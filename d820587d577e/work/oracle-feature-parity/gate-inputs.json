@@ -1,0 +1,40 @@
+{
+  "scope": "Frozen diagnostic sources/programs for complete TRAIN+22reviewed teaching oracle feature arithmetic parity; no retraining or model selection; synthetic unknown origins do not confer lexical truth",
+  "files": {
+    "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/reference_v2_corrected.py": {
+      "sha256": "f3cae572b1ed31cffb89dfdb2553f2721057c92aaa1763221f3432e68477e428",
+      "bytes": 2180
+    },
+    "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/export_vectors.py": {
+      "sha256": "9811b8eaa95ec58c7940a733101db635b5c05342e14c3c549a75f495eb21bd83",
+      "bytes": 2836
+    },
+    "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/export_vectors_full_context.py": {
+      "sha256": "cd83ff956248cee05a4e9093357b9087d9ecbb9d20aa61585fa1127acd4fcc8c",
+      "bytes": 2921
+    },
+    "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/actual_source.rs": {
+      "sha256": "3018ecfed3dddbc60d9ad8afab357ef833e9d8ac9fa44a35f3f1739c07ce9505",
+      "bytes": 4582
+    },
+    "/home/dancxjo/conduit-4907-native-reuse/work/oracle-feature-parity/actual_source_full_context.rs": {
+      "sha256": "946ea6d11c9fe00bacb894e9fb64bc237cd5519f6de76db575a5952b8e57974b",
+      "bytes": 5678
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_proposal_features_v2.conduit": {
+      "sha256": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082",
+      "bytes": 5590
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-language-70b796a2da20ac23/out/proposal_window8_feature_context.hex": {
+      "sha256": "984ecd46c1132b05e2a68e6d0c32253d3ca078ff619622ebf98ca7bed3d7e923",
+      "bytes": 1267948
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-language-70b796a2da20ac23/out/proposal_window8_v2_feature_values.hex": {
+      "sha256": "282ee9af70aa8c8c5a6428307c4992507e326b51dd13172349b23ff0940e5d00",
+      "bytes": 5420322
+    }
+  },
+  "old_model_unchanged": true,
+  "source_laws_unchanged": true,
+  "structural_context_note": "Preexisting exact complete Type fixture is patched with bounded scalar/candidate field values; original Source context and values execute, but fixture metadata laws are not asserted as Native lexical admission."
+}

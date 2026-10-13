@@ -1,0 +1,9 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_VIRTIO_NET_SIGN {"schema":"conduit.conduitos/virtio-websocket-proof@1","status":"completed","proof_class":"freestanding-emulator","device":"virtio-net-pci-transitional","bdf":"00:02.0","mac":"52:54:00:12:34:56","provider_generation":1,"entropy_provider_generation":1,"entropy_requests":2,"entropy_bytes":72,"queue_entries":256,"queue_dma_bytes":24576,"frame_buffer_bytes":4096,"static_dma_bytes":32768,"tcp_rx_bytes":4096,"tcp_tx_bytes":4096,"tls_record_rx_bytes":4096,"tls_record_tx_bytes":4096,"websocket_handshake_bytes":1024,"websocket_frame_bytes":8192,"tcp_polls":137057,"plaintext_transmitted_bytes":6144,"plaintext_received_bytes":17,"remote_ip":"10.0.2.100","remote_port":9000,"server_name":"relay.conduit.invalid","websocket_path":"/conduit","certificate_sha256":"b58b58d2cfc273d464dd6dfaa5eacc8d5b0b404b236839af0360f78caebe7648","tcp_claimed":true,"tls_claimed":true,"websocket_claimed":true,"bounded":true}

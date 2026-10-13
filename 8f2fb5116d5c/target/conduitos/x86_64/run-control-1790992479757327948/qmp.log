@@ -1,0 +1,19 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"1:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"4:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:creche-birth\"}\r\n"}

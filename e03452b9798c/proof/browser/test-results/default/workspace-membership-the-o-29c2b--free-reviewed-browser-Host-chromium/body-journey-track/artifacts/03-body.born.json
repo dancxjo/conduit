@@ -1,0 +1,27 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "40c2decbca7cb46b8613447e5c06cc8df0f2a0f9",
+  "track": "browser-graphical",
+  "step_id": "body.born",
+  "assertion": "body-born",
+  "source_facts": {
+    "event": {
+      "Born": {
+        "initial_workset": {
+          "plots": [
+            {
+              "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+              "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6"
+            },
+            {
+              "source_document_id": "5c59950a208338112d2045d747a6b3fa3b789683f85482a067f6f4b4b63e911d",
+              "checked_plot_id": "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c"
+            }
+          ]
+        },
+        "workload_revision": 0,
+        "sign_id": "f48158f230fbe7cd4db731d90bf7a383fcc274e5851749b339f132b92eee9dc8"
+      }
+    }
+  }
+}

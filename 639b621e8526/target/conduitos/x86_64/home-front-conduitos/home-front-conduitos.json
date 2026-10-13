@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.evidence/home-front@2",
+  "front_id": "conduitos",
+  "proof_class": "freestanding-emulator",
+  "step_ids": [
+    "home.arrived",
+    "plots.opened",
+    "plot.selected",
+    "prompt.opened",
+    "plot.run",
+    "play.observed",
+    "patchbay.requested",
+    "home.returned"
+  ],
+  "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+  "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+  "plan_id": "body-plan/sha256:c30948bb07ef1763f20505b388990f0d27b20689202a622e369b038781c6c975",
+  "active_play_id": "body-play/sha256:bdde9dcf58ccdd799182b7a32d9c7ac13734026714b7d2b62cc70237aee0eb15",
+  "renderer_id": "presenter/native-graphical@1",
+  "manifestation_id": "4b61d383deace6537afd3fba088474323cedca02e620a231b131a1475232d6db",
+  "artifact_path": "home-conduitos.png",
+  "artifact_sha256": "sha256:5b92d8c0e4fe3ed10248e9f360d7466ff4a32b7a3f150b8163d95698632cb607"
+}

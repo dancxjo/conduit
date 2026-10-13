@@ -1,0 +1,19 @@
+    Finished `test` profile [unoptimized] target(s) in 0.11s
+     Running tests/parser_vocative_protected_replay.rs (target/debug/deps/parser_vocative_protected_replay-d7c6806ef23c7dbe)
+
+running 1 test
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices has been running for over 60 seconds
+
+thread 'actual_vocative_two_survives_append_and_refuses_contradictory_choices' (1491606) panicked at semantics/language/tests/common/parser_kernel.rs:247:18:
+called `Result::unwrap()` on an `Err` value: InvalidLifecycle
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices ... FAILED
+
+failures:
+
+failures:
+    actual_vocative_two_survives_append_and_refuses_contradictory_choices
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 467.94s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_vocative_protected_replay`

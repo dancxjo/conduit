@@ -1,0 +1,38 @@
+    pub fn new(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+        let input = match program.input_type.shape() {
+            StructuredInfoTypeShape::Leaf(_) => PreparedInput::Primitive {
+                kind: leaf_kind(&program.input_type)?,
+                nominal_type: None,
+            },
+            StructuredInfoTypeShape::Nominal { representation, .. }
+                if matches!(representation.shape(), StructuredInfoTypeShape::Leaf(_)) =>
+            {
+                PreparedInput::Primitive {
+                    kind: leaf_kind(&program.input_type)?,
+                    nominal_type: Some(
+                        program
+                            .input_type
+                            .canonical_bytes()
+                            .map_err(|_| Refusal::InvalidProgram)?
+                            .into(),
+                    ),
+                }
+            }
+            _ => PreparedInput::Structured(
+                program
+                    .input_type
+                    .canonical_bytes()
+                    .map_err(|_| Refusal::InvalidProgram)?
+                    .into(),
+            ),
+        };
+        Self::prepare(
+            ProgramView {
+                input_type: &program.input_type,
+                output_type: &program.output_type,
+                root: &program.root,
+            },
+            input,
+        )
+    }
+

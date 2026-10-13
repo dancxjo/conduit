@@ -1,0 +1,15 @@
+{
+  "class": "completed regenerable expanded generated Rust scratch; compact source, referenced resource blobs, immutable metadata snapshots, generators, binaries and logs preserved",
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-native-admission/work/actual-family-generated.rs",
+      "bytes": 221488501,
+      "sha256": "80f80077b4747bfeb37a52c3be2a57d9a55c8ec742c093747b0af89f9be29eee"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-admission/work/bank-family-generated.rs",
+      "bytes": 237519134,
+      "sha256": "ddade5bba873f0d48b171f593d16551f97f24fcee0e302b7f86ffbad0ea08872"
+    }
+  ]
+}

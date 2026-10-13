@@ -1,0 +1,10 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 6.46s
+     Running unittests src/lib.rs (target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 2 tests
+test rust_binding::prepared_invariants_tests::prepared_native_bank_checks_nested_members_and_foreign_exact_types ... ok
+test rust_binding::prepared_invariants_tests::prepared_native_bank_preserves_order_and_law_refusals ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 315 filtered out; finished in 0.00s
+

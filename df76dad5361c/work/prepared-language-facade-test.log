@@ -1,0 +1,223 @@
+   Compiling typenum v1.20.1
+   Compiling generic-array v0.14.7
+   Compiling crypto-common v0.1.7
+   Compiling serde v1.0.229
+   Compiling block-buffer v0.10.4
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+   Compiling syn v2.0.119
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/kernel)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/time)
+   Compiling zeroize_derive v1.5.0
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling thiserror v2.0.20
+   Compiling semver v1.0.28
+   Compiling rustc_version v0.4.1
+   Compiling curve25519-dalek v4.1.3
+   Compiling curve25519-dalek-derive v0.1.1
+   Compiling serde_json v1.0.151
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/human)
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling cobs v0.3.0
+   Compiling postcard v1.1.3
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/presentation)
+   Compiling ed25519-dalek v2.2.0
+   Compiling minicbor v2.3.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/body)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/audio)
+   Compiling libc v0.2.189
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/net)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/education)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/planner)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/process)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/catalog)
+   Compiling equivalent v1.0.2
+   Compiling hashbrown v0.17.1
+   Compiling indexmap v2.14.2
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling proc-macro-error-attr v1.0.4
+   Compiling winnow v0.7.15
+   Compiling syn v1.0.109
+   Compiling toml_write v0.1.2
+   Compiling toml_edit v0.22.27
+   Compiling proc-macro-error v1.0.4
+   Compiling toml v0.8.23
+   Compiling hybrid-array v0.4.15
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/make/host)
+   Compiling getrandom v0.2.17
+   Compiling thiserror v1.0.69
+   Compiling cpufeatures v0.3.1
+   Compiling crypto-common v0.2.2
+   Compiling block-buffer v0.12.1
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/ai)
+   Compiling thiserror-impl v1.0.69
+   Compiling const-oid v0.10.2
+   Compiling digest v0.11.3
+   Compiling siphasher v1.0.3
+   Compiling phf_shared v0.11.3
+   Compiling str-newtype-derive v2.0.0
+   Compiling static-automata-macros v1.0.3
+   Compiling heapless v0.8.0
+   Compiling anyhow v1.0.104
+   Compiling byteorder v1.5.0
+   Compiling option-ext v0.2.0
+   Compiling dirs-sys v0.5.0
+   Compiling hash32 v0.3.1
+   Compiling static-automata v1.0.3
+   Compiling str-newtype v2.0.0
+   Compiling phf v0.11.3
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plan-lowering)
+   Compiling stable_deref_trait v1.2.1
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling find-msvc-tools v0.1.13
+   Compiling tinyvec v1.13.3
+   Compiling shlex v2.0.1
+   Compiling cc v1.4.7
+   Compiling unicode-normalization v0.1.25
+   Compiling isolang v2.4.0
+   Compiling langtag v1.1.0
+   Compiling dirs v6.0.0
+   Compiling sha2 v0.11.0
+   Compiling rand_core v0.6.4
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/signal)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/wire)
+   Compiling inout v0.1.4
+   Compiling unicode-segmentation v1.13.3
+   Compiling crossbeam-utils v0.8.23
+   Compiling ryu v1.0.23
+   Compiling serde-json-core v0.6.0
+   Compiling cipher v0.4.4
+   Compiling ring v0.17.14
+   Compiling universal-hash v0.5.1
+   Compiling opaque-debug v0.3.1
+   Compiling crossbeam-epoch v0.9.21
+   Compiling zerocopy v0.8.57
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling aead v0.5.2
+   Compiling arrayvec v0.7.8
+   Compiling autocfg v1.5.1
+   Compiling httparse v1.10.1
+   Compiling crossbeam-deque v0.8.8
+   Compiling num-traits v0.2.19
+   Compiling noise-protocol v0.2.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std/offers)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/tutorial)
+   Compiling rand_core v0.10.1
+   Compiling getrandom v0.4.3
+   Compiling parking_lot_core v0.9.12
+   Compiling rayon-core v1.13.0
+   Compiling bytes v1.12.1
+   Compiling untrusted v0.9.0
+   Compiling log v0.4.34
+   Compiling http v1.5.0
+   Compiling ppv-lite86 v0.2.21
+   Compiling noise-rust-crypto v0.6.2
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/protocols/bluetooth)
+   Compiling x25519-dalek v2.0.1
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay/graph)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/plot-library)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay)
+   Compiling rustls v0.23.45
+   Compiling smallvec v1.16.1
+   Compiling scopeguard v1.2.0
+   Compiling lock_api v0.4.14
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay/application)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/protected-line)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/signal)
+   Compiling rand_chacha v0.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling chacha20 v0.10.2
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/composite)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/synth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/speech)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/birth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/home)
+   Compiling getrandom v0.3.4
+   Compiling once_cell v1.21.4
+   Compiling base64 v0.23.1
+   Compiling either v1.18.0
+   Compiling rayon v1.12.0
+   Compiling ureq-proto v0.6.4
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/mask-offer)
+   Compiling rand v0.10.2
+   Compiling rand v0.8.8
+   Compiling ordered-float v3.9.2
+   Compiling parking_lot v0.12.5
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std/make)
+   Compiling webpki-roots v1.0.9
+   Compiling sha1 v0.11.0
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/raspberry-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/avr/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/orange-pi/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/make/body)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/esp32/make)
+   Compiling num_cpus v1.17.0
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/little-seismograph/fixture)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos)
+   Compiling bitflags v2.13.2
+   Compiling qrcode v0.14.1
+   Compiling utf8-zero v0.8.1
+   Compiling percent-encoding v2.3.2
+   Compiling data-encoding v2.11.1
+   Compiling tungstenite v0.30.0
+   Compiling ureq v3.4.2
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/runtime)
+   Compiling limine v0.5.0
+   Compiling instant-distance v0.6.1
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/network-r1)
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos/mask-offer)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/observatory)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/rp2040/network-realization)
+   Compiling conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/emergency-keyword-spotter)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std)
+error[E0382]: borrow of moved value: `agreed`
+   --> semantics/language/tests/parser_window8_lexical_fact.rs:114:9
+    |
+ 99 |     let agreed = admit(snapshot(0, lexical.lexical(), &basis).unwrap()).unwrap();
+    |         ------ move occurs because `agreed` has type `conduit_language::LanguageParserWindow8StableLexicalFact`, which does not implement the `Copy` trait
+...
+113 |         let canonical = agreed.encode().unwrap();
+    |                                -------- `agreed` moved due to this method call
+114 |         assert_eq!(prepared.decode(&canonical).unwrap(), agreed);
+    |         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ value borrowed here after move
+    |
+note: `encode` takes ownership of the receiver `self`, which moves `agreed`
+   --> architecture/plot/src/rust_binding/value.rs:232:15
+    |
+232 |     fn encode(self) -> Result<Vec<u8>, NativeBindingRefusal> {
+    |               ^^^^
+help: you can `clone` the value and consume it, but this might not be your desired behavior
+    |
+113 |         let canonical = agreed.clone().encode().unwrap();
+    |                               ++++++++
+
+For more information about this error, try `rustc --explain E0382`.
+error: could not compile `conduit-language` (test "parser_window8_lexical_fact") due to 1 previous error

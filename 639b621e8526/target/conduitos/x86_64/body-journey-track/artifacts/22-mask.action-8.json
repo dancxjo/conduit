@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "mask.action-8",
+  "assertion": "mask-mask.doff-alternate",
+  "source_facts": {
+    "action_id": "mask.doff-alternate",
+    "concrete_event": "doffed-alternate-and-executed-restored-plan",
+    "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+    "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+    "receipt_ids": [
+      "9ae00e7e9d44d5325b85481b7ffc9df604309e37982d40fdc3b37dec58786a99",
+      "show-value/6636890854514ad6c96c2ca92e47b8f1d33b1a2aa92226e221d72f2f5ee2cd3c"
+    ],
+    "selected_mask_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+    "selected_route_id": "mask-route/cc5ff375d7d809984b4c007321cc2dbc75adbb9832129c2a3f40d35bb2ad274a",
+    "show_id": null
+  }
+}

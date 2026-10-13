@@ -1,0 +1,20 @@
+#[test]
+fn reviewed_resource_exact_entry_and_shard_custody() {
+    let mut d = dictionary();
+    let definition = bound_definition(&d);
+    let lookup = d.lookup("record").unwrap().unwrap();
+    let hex = |digest: [u8;32]| digest.iter().map(|b|format!("{b:02x}")).collect::<String>();
+    let token = LanguageLexicalToken::new(
+        lookup.entry().candidates().clone(), LinguisticTokenCategory::Word,
+        LanguageLexicalCompleteness::Complete,
+        LinguisticTokenIdentity::new(0, LanguageTextId::new("original".into()).unwrap(), LanguageTextRevisionId::new("original-r0".into()).unwrap()).unwrap(),
+        None, TextSpan::new(LinguisticOffsetBasis::UnicodeScalar,6,0,LanguageTextId::new("original".into()).unwrap(),LanguageTextRevisionId::new("original-r0".into()).unwrap()).unwrap(),
+        "record".into()).unwrap();
+    let origin = LanguageLexicalProposalOrigin::reviewed(hex(lookup.dictionary_identity()),u64::from(lookup.ordinal()),u64::from(lookup.shard()),hex(lookup.shard_identity())).unwrap();
+    let query=LanguageLexicalProposalQuery::new(definition.clone(),origin,Some(lookup.entry().clone()),token.clone()).unwrap();
+    let forged=LanguageLexicalProposalQuery::new(definition.clone(),LanguageLexicalProposalOrigin::reviewed(hex(lookup.dictionary_identity()),0,0,"foreign-shard".into()).unwrap(),Some(lookup.entry().clone()),token).unwrap();
+    let mut port=PreparedLexicalProposerPort::prepare(d,&definition.encode().unwrap(),port_limits()).unwrap();
+    let response=port.admit_query(&query.clone().encode().unwrap()).unwrap();
+    assert_eq!(response.proposal().query(), &query);
+    assert!(matches!(port.admit_query(&forged.encode().unwrap()),Err(LexicalProposerPortRefusal::Resource)));
+}

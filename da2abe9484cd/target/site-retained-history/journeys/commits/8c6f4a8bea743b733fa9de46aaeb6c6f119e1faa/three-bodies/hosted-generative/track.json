@@ -1,0 +1,1062 @@
+{
+  "actions": [
+    {
+      "action_id": "journey.bootstrap",
+      "concrete_event": "The std Host began Orifina's bounded bootstrap before any Body identity existed.",
+      "receipt_ids": [
+        "body.absent",
+        "bootstrap.started"
+      ]
+    },
+    {
+      "action_id": "journey.birth",
+      "concrete_event": "The accepted birth and wake receipts created and activated Orifina's independent Body.",
+      "receipt_ids": [
+        "body.born",
+        "body.awake"
+      ]
+    },
+    {
+      "action_id": "journey.useful-work",
+      "concrete_event": "The admitted model Form handled a later Face realization request through the retained Plan and Play.",
+      "receipt_ids": [
+        "form.used"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "initial ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "receipt_ids": [
+        "mask.action-0"
+      ]
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "alternate ordinary spoken Mask became eligible while the selected route remained current",
+      "receipt_ids": [
+        "mask.action-1"
+      ]
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "preference selected the available alternate route under the same immutable Body Plan",
+      "receipt_ids": [
+        "mask.action-2"
+      ]
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "the selected route became unavailable and live reconciliation produced NoShow",
+      "receipt_ids": [
+        "mask.action-3"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "no current Show; prior WAV artifacts remain stale effect evidence only",
+      "receipt_ids": [
+        "mask.action-4"
+      ]
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "replacement Face Host routes became available but remained outside the old immutable Plan",
+      "receipt_ids": [
+        "mask.action-5"
+      ]
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "authorized planning admitted a distinct Body Plan and selected its available spoken route",
+      "receipt_ids": [
+        "mask.action-6"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "replacement ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "receipt_ids": [
+        "mask.action-7"
+      ]
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "doffing the alternate reconciled the still-worn initial-role Mask to its replacement-Plan route",
+      "receipt_ids": [
+        "mask.action-8"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "restored ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "receipt_ids": [
+        "mask.action-9"
+      ]
+    },
+    {
+      "action_id": "journey.break-recover",
+      "concrete_event": "A retained model-provider failure was followed by a new admitted repair receipt.",
+      "receipt_ids": [
+        "fault.observed",
+        "body.repaired"
+      ]
+    },
+    {
+      "action_id": "journey.rest-finish",
+      "concrete_event": "Explicit lull and fulfillment signs ended Orifina's wake and biography in order.",
+      "receipt_ids": [
+        "body.lulled",
+        "body.fulfilled"
+      ]
+    }
+  ],
+  "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+  "construction": [
+    {
+      "build": {
+        "disposition": "omitted",
+        "reason": "This hosted journey starts admitted implementations directly and produces no standalone build artifact."
+      },
+      "host_id": "host/orifina-local-model",
+      "image": {
+        "disposition": "omitted",
+        "reason": "This hosted Host is not booted from a journey-produced image, so no image identity is claimed."
+      },
+      "profile": {
+        "disposition": "omitted",
+        "reason": "This already-running std Host has no target-profile make stage in the hosted journey."
+      }
+    },
+    {
+      "build": {
+        "disposition": "omitted",
+        "reason": "This hosted journey starts admitted implementations directly and produces no standalone build artifact."
+      },
+      "host_id": "host/orifina-companion",
+      "image": {
+        "disposition": "omitted",
+        "reason": "This hosted Host is not booted from a journey-produced image, so no image identity is claimed."
+      },
+      "profile": {
+        "disposition": "omitted",
+        "reason": "This already-running std Host has no target-profile make stage in the hosted journey."
+      }
+    }
+  ],
+  "distributed_plan_ids": [],
+  "embodiment": "hosted-ollama-http-fixture-body",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "hosts": [
+    {
+      "boot_id": "boot/orifina-local-model",
+      "host_id": "host/orifina-local-model"
+    },
+    {
+      "boot_id": "boot/orifina-companion",
+      "host_id": "host/orifina-companion"
+    }
+  ],
+  "journey_id": "orifina/tutorial@1",
+  "line_ids": [],
+  "mask_actions": [
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "initial ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-0"
+      ],
+      "selected_mask_form_id": "3d3996e97290abf8f213a1dbaa55a3af46fb9af7826f41ed1a8719ca1fd1a740",
+      "selected_route_id": "route/orifina-spoken-initial-plan/0",
+      "show_id": "show/038bab2f635bc3dc39e1634f6d0fd456eff770bc17063353a9144833a5daef59"
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "alternate ordinary spoken Mask became eligible while the selected route remained current",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-1"
+      ],
+      "selected_mask_form_id": "3d3996e97290abf8f213a1dbaa55a3af46fb9af7826f41ed1a8719ca1fd1a740",
+      "selected_route_id": "route/orifina-spoken-initial-plan/0",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "preference selected the available alternate route under the same immutable Body Plan",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-2"
+      ],
+      "selected_mask_form_id": "405f019d2497f5cad2cf4d550faa8e9c5fbe16eacf91684596e0f7f167416016",
+      "selected_route_id": "route/orifina-spoken-initial-plan/1",
+      "show_id": "show/c77299fdb7e20d85d987b8b5ffb05303da0e492c6d7af16d50054a9fd7bd6d69"
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "the selected route became unavailable and live reconciliation produced NoShow",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-3"
+      ],
+      "selected_mask_form_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "no current Show; prior WAV artifacts remain stale effect evidence only",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-4"
+      ],
+      "selected_mask_form_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "replacement Face Host routes became available but remained outside the old immutable Plan",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+      "receipt_ids": [
+        "mask.action-5"
+      ],
+      "selected_mask_form_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "authorized planning admitted a distinct Body Plan and selected its available spoken route",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+      "receipt_ids": [
+        "mask.action-6"
+      ],
+      "selected_mask_form_id": "405f019d2497f5cad2cf4d550faa8e9c5fbe16eacf91684596e0f7f167416016",
+      "selected_route_id": "route/orifina-spoken-replacement-plan/0",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "replacement ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+      "receipt_ids": [
+        "mask.action-7"
+      ],
+      "selected_mask_form_id": "405f019d2497f5cad2cf4d550faa8e9c5fbe16eacf91684596e0f7f167416016",
+      "selected_route_id": "route/orifina-spoken-replacement-plan/0",
+      "show_id": "show/4189952b0098014781f739659b796077f0974c2459204e4b829f9be4dc96e00f"
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "doffing the alternate reconciled the still-worn initial-role Mask to its replacement-Plan route",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+      "receipt_ids": [
+        "mask.action-8"
+      ],
+      "selected_mask_form_id": "3d3996e97290abf8f213a1dbaa55a3af46fb9af7826f41ed1a8719ca1fd1a740",
+      "selected_route_id": "route/orifina-spoken-replacement-plan/1",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "restored ordinary spoken Mask completed Tongues synthesis and an acknowledged artifact Show",
+      "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+      "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+      "receipt_ids": [
+        "mask.action-9"
+      ],
+      "selected_mask_form_id": "3d3996e97290abf8f213a1dbaa55a3af46fb9af7826f41ed1a8719ca1fd1a740",
+      "selected_route_id": "route/orifina-spoken-replacement-plan/1",
+      "show_id": "show/35cdcff78078ffc904e15bbad0f654034b8584167d9c5df5161d767348fce9f1"
+    }
+  ],
+  "mask_form_id": "std/ollama-http-fixture@1",
+  "receipts": [
+    {
+      "assertion": "body-absent",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.absent",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.absent.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/01-body.absent.json",
+          "sha256": "sha256:9566eae964fd3e1f1f6763ba60ad1162255cf4ec4b2b379b2dcd224e7a2ceb02"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "face_id": null,
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "body.absent"
+    },
+    {
+      "assertion": "bootstrap-started",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/bootstrap.started",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for bootstrap.started.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/02-bootstrap.started.json",
+          "sha256": "sha256:c65cd52307c1bacb00debe7aac764167beba021c120be9d3240eedc0a5b18eb8"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "boot/orifina-local-model",
+        "face_id": null,
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "bootstrap.started"
+    },
+    {
+      "assertion": "body-born",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.born",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.born.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/03-body.born.json",
+          "sha256": "sha256:558d87e6a6fdddaef2a4c0a3a3cedc3a2a5b01fbc9a1f6a191e55611a50e6321"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.born-speech.txt",
+          "sha256": "sha256:3e4b4b26fcb861580cf8beab7ef3880b1f4470dd5bf57ba6651f63850ee06b73"
+        },
+        {
+          "artifact_id": "hosted-generative/body.born/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.born-speech.json",
+          "sha256": "sha256:0cd938b7f03a46cd3fdfc1a5fb49963c54980e3ca96f02f223a0cd95c35d956d"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-local-model",
+        "face_id": null,
+        "host_id": "host/orifina-local-model",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "sign/orifina-provider-proof/birth"
+      },
+      "step_id": "body.born"
+    },
+    {
+      "assertion": "body-awake",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.awake",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.awake.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/04-body.awake.json",
+          "sha256": "sha256:3cb9cc285bfb31a0d850e2ac5bfc3999d01a7dc3e1fe953a73ab74703a23c538"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.awake-speech.txt",
+          "sha256": "sha256:63ca34e584a9b50e6bea45e00311ced4c9ad23ac34469e816ab76cc3491bfaec"
+        },
+        {
+          "artifact_id": "hosted-generative/body.awake/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.awake-speech.json",
+          "sha256": "sha256:14e4ea641401ed803cf87b621aa03647fe5f729cdb5bcc9d6a196259e25e078b"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "06bc7c04fd0ebfc6ca6eef84c1452b33ac71e30c813461f45e6c108eba2fd611"
+      },
+      "step_id": "body.awake"
+    },
+    {
+      "assertion": "standing-form-used",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/form.used",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for form.used.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/05-form.used.json",
+          "sha256": "sha256:678e43b719b029e82b6f68ac4e7914620446acf7e2c05adc149888242a930f9c"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/form.used-speech.txt",
+          "sha256": "sha256:63ca34e584a9b50e6bea45e00311ced4c9ad23ac34469e816ab76cc3491bfaec"
+        },
+        {
+          "artifact_id": "hosted-generative/form.used/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/form.used-speech.json",
+          "sha256": "sha256:14e4ea641401ed803cf87b621aa03647fe5f729cdb5bcc9d6a196259e25e078b"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:ed33307bf813aac93e679563cd12d920bafacc6d926316a3701c24332e5f21db",
+        "play_id": "body-play/sha256:de3d7ca0b3aa564ea12d3cf86a62ddbc0408e145c41f090c7731aa8898a95aa7",
+        "show_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "form.used"
+    },
+    {
+      "assertion": "body-inspected",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.inspected",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.inspected.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/06-body.inspected.json",
+          "sha256": "sha256:7b05538f228fa9dfbaba4955bce55ae783943be50b08a43ffc80d7f04e3a057e"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.inspected-speech.txt",
+          "sha256": "sha256:63ca34e584a9b50e6bea45e00311ced4c9ad23ac34469e816ab76cc3491bfaec"
+        },
+        {
+          "artifact_id": "hosted-generative/body.inspected/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.inspected-speech.json",
+          "sha256": "sha256:14e4ea641401ed803cf87b621aa03647fe5f729cdb5bcc9d6a196259e25e078b"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": "sha256:956427ce3130075e822f7e6fc9d3df013187ce2a963c44e640918e138fd013ce",
+        "sign_id": null
+      },
+      "step_id": "body.inspected"
+    },
+    {
+      "assertion": "workload-revised",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/workload.revised",
+          "assertion_rung": "body-biography",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for workload.revised.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/07-workload.revised.json",
+          "sha256": "sha256:9697c901c9a30f6f898610e0c83ccdc86ea0109a372f06871a0e655fbbf7b9cf"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/workload.revised-speech.txt",
+          "sha256": "sha256:27c1f61fb8b0b9e303f40bd7c9afc8c85be86056e2e9b81a1069c8b96505a2de"
+        },
+        {
+          "artifact_id": "hosted-generative/workload.revised/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/workload.revised-speech.json",
+          "sha256": "sha256:459c9eeb3e675bc13f5a117e60d6b66413f789182e4905db59310350bbc6da7e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:ed33307bf813aac93e679563cd12d920bafacc6d926316a3701c24332e5f21db",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "331055a89cda8c26d12d76533234ec165e32cec377d0c7bf9821c33fd708b20b"
+      },
+      "step_id": "workload.revised"
+    },
+    {
+      "assertion": "host-added",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/host.added",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for host.added.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/08-host.added.json",
+          "sha256": "sha256:dd52305d9d51a4015c24daaab26cead25856ded35e193f13040e825c0db36d8b"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/host.added-speech.txt",
+          "sha256": "sha256:27c1f61fb8b0b9e303f40bd7c9afc8c85be86056e2e9b81a1069c8b96505a2de"
+        },
+        {
+          "artifact_id": "hosted-generative/host.added/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/host.added-speech.json",
+          "sha256": "sha256:459c9eeb3e675bc13f5a117e60d6b66413f789182e4905db59310350bbc6da7e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": "boot/orifina-companion",
+        "face_id": null,
+        "host_id": "host/orifina-companion",
+        "line_id": null,
+        "plan_id": "body-plan/sha256:ed33307bf813aac93e679563cd12d920bafacc6d926316a3701c24332e5f21db",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "sign/orifina-companion/joined"
+      },
+      "step_id": "host.added"
+    },
+    {
+      "assertion": "fault-observed",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/fault.observed",
+          "assertion_rung": "stream-disposition",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for fault.observed.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/09-fault.observed.json",
+          "sha256": "sha256:fd2710169ab0d7ab054d6e787f1db32e7ce1a8c8ffcc6dceaa726d7039772f45"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/fault.observed-speech.txt",
+          "sha256": "sha256:b1b6f2fde2dd40c1702dce3fa73b090681f53892f4ab2f6eefab72b01cce39d6"
+        },
+        {
+          "artifact_id": "hosted-generative/fault.observed/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/fault.observed-speech.json",
+          "sha256": "sha256:3557b6d78fb2c6b73cfe866181c8f35876e97b13823c93e0faef0e1c94b1e0e0"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "4992c09186e039f7f436c1a5a4176d80b429238aaa802ccf243120b0581e4950"
+      },
+      "step_id": "fault.observed"
+    },
+    {
+      "assertion": "body-repaired",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.repaired",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.repaired.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/10-body.repaired.json",
+          "sha256": "sha256:8e6dc981ee2f7fbf9fc12ad2d886c40305b5fe3cc9805d361b1e1f62b44eaf46"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.repaired-speech.txt",
+          "sha256": "sha256:5de3d4c82fd5745b786aa9f67a28ea8ffa1ba8c766261af6bcd745969cb3b951"
+        },
+        {
+          "artifact_id": "hosted-generative/body.repaired/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.repaired-speech.json",
+          "sha256": "sha256:9c3fc8147c605206cc8c2acbbcd4617d9cdd19bf242b69827e7617264a848168"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:ed33307bf813aac93e679563cd12d920bafacc6d926316a3701c24332e5f21db",
+        "play_id": "body-play/sha256:de3d7ca0b3aa564ea12d3cf86a62ddbc0408e145c41f090c7731aa8898a95aa7",
+        "show_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.repaired"
+    },
+    {
+      "assertion": "body-long-running",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.long-running",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.long-running.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/11-body.long-running.json",
+          "sha256": "sha256:f05d4c98a365aa36f05942910bec5e3893d6c1b70d7b89c8f64268f081e37394"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.long-running-speech.txt",
+          "sha256": "sha256:5de3d4c82fd5745b786aa9f67a28ea8ffa1ba8c766261af6bcd745969cb3b951"
+        },
+        {
+          "artifact_id": "hosted-generative/body.long-running/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.long-running-speech.json",
+          "sha256": "sha256:9c3fc8147c605206cc8c2acbbcd4617d9cdd19bf242b69827e7617264a848168"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": "body-play/sha256:de3d7ca0b3aa564ea12d3cf86a62ddbc0408e145c41f090c7731aa8898a95aa7",
+        "show_id": null,
+        "sign_id": "476082a6c2d349a7f08e0cb6427c4b68d4221357f0473b89854d7ba44389955e"
+      },
+      "step_id": "body.long-running"
+    },
+    {
+      "assertion": "body-lulled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.lulled",
+          "assertion_rung": "lifecycle-action",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.lulled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/12-body.lulled.json",
+          "sha256": "sha256:dbc6a5a608808dfb4e361894f9b092abc84a4e5dc859dc5f0d24d243b75b7444"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.lulled-speech.txt",
+          "sha256": "sha256:27c1f61fb8b0b9e303f40bd7c9afc8c85be86056e2e9b81a1069c8b96505a2de"
+        },
+        {
+          "artifact_id": "hosted-generative/body.lulled/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.lulled-speech.json",
+          "sha256": "sha256:5c3e8fea08438e503e01d095bd3ba55d822c3e85956271bde13563f341b2b5f8"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "9214f2c5c2f4e7abaf53dda8f07d27e6c3dbc7b2b81aa1283dcf14c3df7ab608"
+      },
+      "step_id": "body.lulled"
+    },
+    {
+      "assertion": "body-fulfilled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/body.fulfilled",
+          "assertion_rung": "fulfilled-transition",
+          "documentary_description": "hosted-ollama-http-fixture-body producer receipt for body.fulfilled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/13-body.fulfilled.json",
+          "sha256": "sha256:5d782481f3e8f40b5959e8043723986cff18a43e601d122c8c2075fe4c9d89e7"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/transcript",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Deterministic HTTP fixture response—not live model inference.",
+          "evidence_class": "transcript",
+          "path": "artifacts/body.fulfilled-speech.txt",
+          "sha256": "sha256:d03177b1199ee96072c1f0bdc430287275b0735e137a7448519ae4477265c406"
+        },
+        {
+          "artifact_id": "hosted-generative/body.fulfilled/presenter-receipt",
+          "assertion_rung": "generated-show",
+          "documentary_description": "Exact structured source, request, execution and generated manifestation.",
+          "evidence_class": "presenter-receipt",
+          "path": "artifacts/body.fulfilled-speech.json",
+          "sha256": "sha256:536c121ffcdbe29192551fbae6e362edd85d9233f1f74f3e89a86001e90efe75"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "f7c46ad3fde073df05ffce70e5e8f38d335d2650a6567351c9e81da6eba520d9"
+      },
+      "step_id": "body.fulfilled"
+    },
+    {
+      "assertion": "mask-mask.inspect-initial-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-0",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.inspect-initial-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/14-mask.action-0.json",
+          "sha256": "sha256:ccb9439fadc5ad265fe484917cb28278349db60cd45a07512f2e5e8f7a0283d8"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": "show/038bab2f635bc3dc39e1634f6d0fd456eff770bc17063353a9144833a5daef59",
+        "sign_id": null
+      },
+      "step_id": "mask.action-0"
+    },
+    {
+      "assertion": "mask-mask.wear-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-1",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.wear-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/15-mask.action-1.json",
+          "sha256": "sha256:af1f33d7e80453d0b4c74f4763cdadc71671266bdb260633ca69995cd98090b6"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-1"
+    },
+    {
+      "assertion": "mask-mask.prefer-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-2",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.prefer-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/16-mask.action-2.json",
+          "sha256": "sha256:894e05d3cb4a97e8ba57cb71ff7dcf244800bcf43bcf3ff6b2940d7b993defca"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": "show/c77299fdb7e20d85d987b8b5ffb05303da0e492c6d7af16d50054a9fd7bd6d69",
+        "sign_id": null
+      },
+      "step_id": "mask.action-2"
+    },
+    {
+      "assertion": "mask-mask.withdraw-selected-route",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-3",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.withdraw-selected-route.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/17-mask.action-3.json",
+          "sha256": "sha256:6a5f3873431631544e1cd657d7883df1068c8f5832d70dee2b2673c34dfc5f0a"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-3"
+    },
+    {
+      "assertion": "mask-mask.inspect-unavailable-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-4",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.inspect-unavailable-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/18-mask.action-4.json",
+          "sha256": "sha256:11af1e4fc85254bc00c6b4e06f4ab7548100260c6301c1cab0b3b857a00a23a8"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-4"
+    },
+    {
+      "assertion": "mask-mask.add-face-host",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-5",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.add-face-host.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/19-mask.action-5.json",
+          "sha256": "sha256:8adcd9a1347af32c0aee17b163f8bae13ceb9a5a13968475f5adb597aaba6b4e"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-5"
+    },
+    {
+      "assertion": "mask-mask.admit-replacement-plan",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-6",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.admit-replacement-plan.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/20-mask.action-6.json",
+          "sha256": "sha256:e28c5372a17c92fc15f170bd6156deaf1692ce6ab2c397bbce5594908059c5ec"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-6"
+    },
+    {
+      "assertion": "mask-mask.inspect-replanned-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-7",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.inspect-replanned-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/21-mask.action-7.json",
+          "sha256": "sha256:5ffc68c7d35fdd733ca56a9b8ac14b768beb7c6bde07f4a24a38ddaecb1abd89"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+        "play_id": null,
+        "show_id": "show/4189952b0098014781f739659b796077f0974c2459204e4b829f9be4dc96e00f",
+        "sign_id": null
+      },
+      "step_id": "mask.action-7"
+    },
+    {
+      "assertion": "mask-mask.doff-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-8",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.doff-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/22-mask.action-8.json",
+          "sha256": "sha256:39c44db0377fb5b50c0016942d3a9d3160de1e474993aa97acde0e09f85e4838"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-8"
+    },
+    {
+      "assertion": "mask-mask.inspect-restored-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "hosted-generative/mask-action-9",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "hosted-ollama-http-fixture-body producer outcome for mask.inspect-restored-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/23-mask.action-9.json",
+          "sha256": "sha256:542fa8bc4e88250ca63e7eb1c4528d60399c09f0466577028d043d74f93ddb22"
+        }
+      ],
+      "provenance": {
+        "body_id": "ce64c95d2691f379cf9afc669ca749c4ea6889e72f2bdd0a00bb054718b208ab",
+        "boot_id": null,
+        "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+        "play_id": null,
+        "show_id": "show/35cdcff78078ffc904e15bbad0f654034b8584167d9c5df5161d767348fce9f1",
+        "sign_id": null
+      },
+      "step_id": "mask.action-9"
+    }
+  ],
+  "schema": "conduit.evidence/body-journey-track@6",
+  "track_id": "hosted-generative"
+}

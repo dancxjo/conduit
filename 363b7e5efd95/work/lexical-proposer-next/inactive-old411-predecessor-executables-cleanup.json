@@ -1,0 +1,26 @@
+{
+  "scope": "owned inactive regenerable ELF executables; fuser no holders; all source/logs/receipts preserved",
+  "removed": [
+    {
+      "path": "work/lexical-proposer-next/proposal_source_bank_tests",
+      "bytes": 122037872,
+      "sha256": "514805189d2a18a58f53ab1fcc80cf58939f0c2d9f3a079187b2af463590962e"
+    },
+    {
+      "path": "work/lexical-proposer-next/prepared_source_internal_tests",
+      "bytes": 57423984,
+      "sha256": "09e34321a46f59bd80f3c9c87bb1aa1f78d69bc31a42e399f47c754022683430"
+    },
+    {
+      "path": "work/lexical-proposer-next/feature_port_probe",
+      "bytes": 22071776,
+      "sha256": "9b204d2fe630ed881c122e0e8e380867b8cdaf93d521e69e1a777d2f6386b958"
+    },
+    {
+      "path": "work/lexical-proposer-next/model-feature-collision",
+      "bytes": 16445400,
+      "sha256": "c5198a5f1c41445053456b4956832d9dfe572c6419b2fb69e7e0bbe8a0d6054b"
+    }
+  ],
+  "recovered_file_bytes": 217979032
+}

@@ -1,0 +1,10 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/time)
+rustc-LLVM ERROR: IO failure on output stream: No space left on device
+error: could not compile `conduit-time` (lib)
+
+Caused by:
+  No space left on device (os error 28)
+
+Caused by:
+  failed to parse process output: `/home/dancxjo/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/bin/rustc --crate-name conduit_time --edition=2021 semantics/time/src/lib.rs --error-format=json --json=diagnostic-rendered-ansi,artifacts,future-incompat --crate-type lib --emit=dep-info,metadata,link -C embed-bitcode=no --check-cfg 'cfg(docsrs,test)' --check-cfg 'cfg(feature, values("default", "kernel-step", "plot-catalog"))' -C metadata=8348971629333a33 -C extra-filename=-66812212b2c6f02c --out-dir /home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps -C strip=debuginfo -L dependency=/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps --extern conduit_core=/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_core-312c58e9574cc44b.rmeta --extern conduit_plot=/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_plot-9c32fb40f29f61fa.rmeta --extern serde=/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libserde-7cb76abf761965c6.rmeta` (exit status: 101)

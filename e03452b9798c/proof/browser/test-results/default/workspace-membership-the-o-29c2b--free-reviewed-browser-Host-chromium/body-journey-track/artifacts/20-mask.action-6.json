@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "40c2decbca7cb46b8613447e5c06cc8df0f2a0f9",
+  "track": "browser-graphical",
+  "step_id": "mask.action-6",
+  "assertion": "mask-mask.admit-replacement-plan",
+  "source_facts": {
+    "action_id": "mask.admit-replacement-plan",
+    "concrete_event": "fresh replacement Plan admitted",
+    "selected_mask_plot_id": "f5fd1b09c71389c274caa5e88e701aa35231923670579792348f80cc11b07fdc",
+    "plan_id": "body-plan/sha256:680d132985a761c66a8cfe1f809d6c024fca982c42c95fe97c17b018c65a3449",
+    "selected_route_id": "route/browser-graphical-fallback",
+    "show_id": null,
+    "receipt_ids": [
+      "body-plan/sha256:4e16a0c2df395711c54e8649ab3018646a319fa3309663ecb346add67f0eda27"
+    ],
+    "face_id": "b29ee7448ecbbb3ea0c5eaf3ef98f104537f5cfebf54a6cc7ba6ef615a58e1bb"
+  }
+}

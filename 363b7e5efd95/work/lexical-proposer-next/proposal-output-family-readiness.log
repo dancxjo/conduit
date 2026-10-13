@@ -1,0 +1,1 @@
+PASS exact16root proposal outputfamily readiness PreparedNativeFamilyStorageReceipt { types: 59, retained_heap_bytes_bound: 153279898, preparation_peak_heap_bytes_bound: 154612133, conversion_requested_bytes_bound: 639893585 }; generated complete childlaws, no runtime/model or Source output parity claim

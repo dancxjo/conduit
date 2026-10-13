@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "40c2decbca7cb46b8613447e5c06cc8df0f2a0f9",
+  "track": "browser-graphical",
+  "step_id": "body.fulfilled",
+  "assertion": "body-fulfilled",
+  "source_facts": {
+    "event": {
+      "Fulfilled": {
+        "final_workload_revision": 1,
+        "final_wake_id": "3dad0be8c1bb8f24bdc21d8fedca8877086294f7fa6aaba144f453528238ae68",
+        "authority_grant_id": "grant/browser/27159e09-10d0-44ad-b031-724fe7203486/workspace-fulfill",
+        "attribution": "operator/browser/27159e09-10d0-44ad-b031-724fe7203486",
+        "settled_obligations": [
+          {
+            "obligation_id": "obligation/workspace-runtime-empty",
+            "settlement_sign_id": "4abee4e7c8e938d10c1d5ba348300d3f25b9b275100095f63dbb264f18499fff"
+          }
+        ],
+        "sign_id": "4abee4e7c8e938d10c1d5ba348300d3f25b9b275100095f63dbb264f18499fff"
+      }
+    }
+  }
+}

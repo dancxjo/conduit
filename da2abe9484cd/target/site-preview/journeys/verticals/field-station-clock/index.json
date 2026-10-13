@@ -1,0 +1,37 @@
+{
+  "schema": "conduit.user-journey/v1",
+  "title": "Keep a Field Station clock through a reload",
+  "summary": "Open a clock, reload its page while preserving its Body, then lull it through the visible control.",
+  "sourceCommit": "9ba8e0bbb9759b138c71bcd1a48b79f8f90c2b4a",
+  "environment": "Chromium",
+  "steps": [
+    {
+      "id": "open",
+      "title": "Open the clock",
+      "action": "Open the Field Station page.",
+      "observation": "The page automatically creates and wakes a Clock Body. Its first tick is visible, alongside the Clock Patchbay and exact runtime identities.",
+      "screenshot": "1-open.png",
+      "sha256": "710359b3b6324b09bfa4c9aeb787561848bcbb7799756db4b0e56a16698ab4b6"
+    },
+    {
+      "id": "reload",
+      "title": "Reload the same Body",
+      "action": "Reload the page using the browser.",
+      "observation": "The clock is awake again. The Body and Host identities stay the same; the Boot, Wake, Plan, and Play identities are new. The page recovers the Body and starts a fresh Play.",
+      "screenshot": "2-reload.png",
+      "sha256": "6d6e2b79f6d04843367992dc1bd231f4b2e26b7f5c213f2e38fe2d7855d43175"
+    },
+    {
+      "id": "lull",
+      "title": "Lull the clock",
+      "action": "Click Lull Clock Body.",
+      "observation": "The status changes to Clock Body lulled and the Lull button becomes disabled. The runtime receipt confirms cancellation of this Play and retention of the same Body in its Lulled state.",
+      "screenshot": "3-lull.png",
+      "sha256": "7e590b1ef0e67bbcf7864926257f8210c1ec1324e795669aab9ffd1e0c3c88a5"
+    }
+  ],
+  "evidence": {
+    "path": "runtime-evidence.json",
+    "sha256": "cecad614d226c50347d7ad49b59dc62dec3e36023cfcb9138cf89dc96e5ed2b8"
+  }
+}

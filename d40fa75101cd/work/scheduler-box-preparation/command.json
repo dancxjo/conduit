@@ -1,0 +1,21 @@
+[
+  "rustc",
+  "+stable",
+  "--edition=2021",
+  "--test",
+  "architecture/kernel/tests/scheduler_box_storage.rs",
+  "--cfg",
+  "feature=\"alloc\"",
+  "-C",
+  "debuginfo=0",
+  "-o",
+  "work/scheduler-box-preparation/tests",
+  "-L",
+  "dependency=/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/immutable-sdk/66ab3f806eb58c4f580073db91a4ee3b69686931c692b0bafc8c52b2e33bb34a",
+  "--extern",
+  "conduit_assigned_plan=/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/immutable-sdk/66ab3f806eb58c4f580073db91a4ee3b69686931c692b0bafc8c52b2e33bb34a/libconduit_assigned_plan-70eeb2d5676f255f.rlib",
+  "-L",
+  "dependency=/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/immutable-sdk/88b18405b5dd5ae750e91bbea25326fa050c1c3f3abcf19d8cb072346e4a1ac6",
+  "--extern",
+  "conduit_kernel=/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/immutable-sdk/88b18405b5dd5ae750e91bbea25326fa050c1c3f3abcf19d8cb072346e4a1ac6/libconduit_kernel.rlib"
+]

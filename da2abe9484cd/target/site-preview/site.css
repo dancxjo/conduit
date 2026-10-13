@@ -1,0 +1,21 @@
+.home-intro { padding: 1rem 0 3rem; }
+.home-actions { display: flex; flex-wrap: wrap; align-items: center; gap: 1.5rem; margin: 2rem 0; }
+.primary-action { display: inline-block; padding: .8rem 1.2rem; background: var(--conduit-emphasis); color: var(--conduit-background); border-radius: .4rem; text-decoration: none; font-weight: 700; }
+.site-content > section { margin: 2rem 0 4rem; }
+.site-content h3 { font-size: 1.3rem; }
+.download-groups { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 2rem; padding: 1rem 0; }
+.download-list { list-style: none; padding: 0; }
+.download-list li { border-top: 1px solid var(--conduit-structure-secondary); padding: .75rem 0; }
+.home-next { border-top: 1px solid var(--conduit-structure-secondary); padding-top: 2rem; }
+.home-next p { max-width: 70ch; }
+.site-footer { padding-top: 1rem; border-top: 1px solid var(--conduit-structure-secondary); font-size: .9rem; }
+.truth-page { width: min(78rem, calc(100% - 3rem)); margin: 0 auto; padding: 3rem 0; }
+.truth-page h1 { font-size: clamp(2rem, 5vw, 4rem); line-height: 1.1; }
+.truth-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 15rem), 1fr)); gap: 1rem; margin: 1.5rem 0 2.5rem; }
+.truth-card { border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; padding: 1rem; overflow-wrap: anywhere; }
+.truth-card h2 { font-size: 1.15rem; }
+.truth-card a { font-family: var(--conduit-font-mono); }
+.truth-lag { border-left: .3rem solid var(--conduit-success); padding: .75rem 1rem; }
+.truth-lag.behind { border-left-color: var(--conduit-warning); }
+.truth-evidence { line-height: 1.8; }
+.truth-error { border-left: .3rem solid var(--conduit-failure); padding: .75rem 1rem; }

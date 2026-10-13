@@ -1,0 +1,9 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.23s
+     Running tests/prepared_storage_accounting.rs (target/debug/deps/prepared_storage_accounting-024b70469e4d4671)
+
+running 1 test
+test capacity_slack_and_recursive_prepared_storage_bound_actual_live_allocations ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,8 @@
+type=LanguageParserWindow8Ancestry laws=10 retained=21595 retained_bound=24925 peak=25993 peak_bound=35138
+type=LanguageParserWindow8CheckedHypothesis laws=17 retained=465988 retained_bound=910136 peak=1120542 peak_bound=2894855
+type=LanguageParserWindow8FactQuery laws=1 retained=97072 retained_bound=97073 peak=1718410 peak_bound=4535545
+type=LanguageParserWindow8Lexical laws=10 retained=75393416 retained_bound=76929862 peak=75628050 peak_bound=77193611
+type=LanguageParserWindow8Snapshot laws=42 retained=54915846 retained_bound=67235416 peak=59066199 peak_bound=78293135
+type=LanguageParserWindow8StableLexicalFact laws=8 retained=1850044 retained_bound=3394404 peak=7867637 peak_bound=18943384
+type=LanguageParserWindow8StateProof laws=29 retained=495417 retained_bound=850233 peak=1360757 peak_bound=3151208
+type=TextSpan laws=1 retained=1221 retained_bound=1227 peak=6426 peak_bound=13794

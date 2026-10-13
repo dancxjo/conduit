@@ -1,0 +1,5 @@
+actual_family_types=35 retained=135449469 retained_bound=151652146 preparation_peak=135455811 preparation_peak_bound=151664713 conversion_requested_bound=639893585 preparation_us=3738432
+actual_complete_recursive_prepared_us=835145 conversion_requested=35098
+actual_complete_recursive_reference_us=4413760
+actual_derived_negative_refusal=Some(ViolatedInvariant { index: 7 })
+actual complete Source family/reference/quota/foreign/malformed parity PASS

@@ -1,0 +1,41 @@
+phase=original_native_beam_decode elapsed_nanos=48586610
+phase=complete_bank_preparation elapsed_nanos=6835893078
+rank_owner_component_retained_bound=24995372
+phase=canonical_rank_owner_preparation elapsed_nanos=850131603
+phase=original_rank_five_hops elapsed_nanos=193664528
+rank_initial_native_encode_nanos=9856501
+rank_5_source_eval_nanos=29978160 rank_5_full_native_decode_nanos=114884057 rank_frame_copy_nanos=13026
+phase=canonical_rank_five_full_native_hops elapsed_nanos=154786949
+PASS original_five_rank_Source_full_Native_intermediate_parity
+phase=original_complete_forest_admission elapsed_nanos=268554460
+phase=original_completion elapsed_nanos=2317510
+phase=original_move_context elapsed_nanos=27304774
+phase=moved_proof_remember elapsed_nanos=5826
+phase=exact_proof_lookup elapsed_nanos=1534
+phase=original_complete_76_class_derivation elapsed_nanos=323713986
+class_retained_bytes=3040
+phase=all_76_original_class_output_parity elapsed_nanos=324568905
+PASS exact_original_outputs_foreign_context_and_class_refusal
+	Command being timed: "work/lexical-proposer-next/profile_canonical_rank_instrumented /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/outputs/native-admission-family/proposal411-teaching-r3/chunk-01/result.json"
+	User time (seconds): 8.99
+	System time (seconds): 0.05
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:09.05
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 218864
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 32461
+	Voluntary context switches: 1
+	Involuntary context switches: 90
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

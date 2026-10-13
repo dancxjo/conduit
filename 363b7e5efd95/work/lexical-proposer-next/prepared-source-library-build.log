@@ -1,0 +1,8 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/kernel)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plan-lowering)
+   Compiling memchr v2.8.3
+   Compiling serde_json v1.0.151
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/composite)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/ai)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Finished `dev` profile [unoptimized] target(s) in 20.65s

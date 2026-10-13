@@ -1,0 +1,12 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.33s
+     Running tests/lexical_proposer_port.rs (target/debug/deps/lexical_proposer_port-44684c05fc08a8c2)
+
+running 4 tests
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test original_source_query_resource_custody_and_capacity ... ok
+test resource_structural_peak_covers_measured_preparation_and_lookup ... ok
+test reviewed_resource_exact_entry_and_shard_custody ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+

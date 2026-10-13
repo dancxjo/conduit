@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=50d3ed38796ba4dedf8025b4a7cfc90d70abc50d37b1437a772f2f9ec529a862
+expanded=8ba99157bb17b3caf028c5e1f21c8e444a1f47f916b5d3d90fa2745886a18904
+input=language-window8-token-codes/expression-a2812048ba8a-0:input
+output=language-window8-token-codes/expression-a2812048ba8a-0:output
+gear=language-window8-token-codes/expression-a2812048ba8a-0:conduitese/pure-expression/18c600e3f64ea1e3857a997434b84163d27df690ccbf5c1950f62c04c9a919fd:conduitese/pure-expression-operation@1:input:output

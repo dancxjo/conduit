@@ -1,0 +1,9 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 8.76s
+     Running tests/source_identity_storage.rs (work/pair-storage-target/debug/deps/source_identity_storage-cde51f574f669c52)
+
+running 1 test
+test literal_source_identity_retains_existing_hash_with_constant_heap_storage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+

@@ -1,0 +1,3 @@
+exact vocative Source Reference/prepared +full27guard parity indices=[15, 29, 302, 327, 338, 345, 346, 352, 356, 358, 360, 362, 364, 366, 368, 370, 372, 374, 376, 378, 381, 382, 384, 386, 388, 402, 408]
+exact object Source Reference/prepared +full27guard parity indices=[15, 29, 302, 327, 338, 345, 346, 352, 356, 358, 360, 362, 364, 366, 368, 370, 372, 374, 376, 378, 381, 382, 384, 386, 388, 405, 408]
+PASS checked122Types; exact new Source expansion; unchanged unigrams/history/origin mechanics and27guards; no runtime model/generation/heldout claim

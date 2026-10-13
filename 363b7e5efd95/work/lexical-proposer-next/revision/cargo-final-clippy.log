@@ -1,0 +1,246 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plot)
+    Checking typenum v1.20.1
+    Checking generic-array v0.14.7
+    Checking crypto-common v0.1.7
+    Checking serde_core v1.0.229
+    Checking serde v1.0.229
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking sha2 v0.10.9
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/time)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/kernel)
+    Checking zeroize v1.9.0
+    Checking subtle v2.6.1
+    Checking itoa v1.0.18
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/data)
+    Checking zmij v1.0.23
+    Checking memchr v2.8.3
+    Checking serde_json v1.0.151
+    Checking thiserror v2.0.20
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/human)
+    Checking curve25519-dalek v4.1.3
+    Checking signature v2.2.0
+    Checking ed25519 v2.2.3
+    Checking cobs v0.3.0
+    Checking postcard v1.1.3
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/presentation)
+    Checking ed25519-dalek v2.2.0
+    Checking minicbor v2.3.0
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/body)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/web)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/ai)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plan-lowering)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/audio)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/composite)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Checking libc v0.2.189
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/net)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/education)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/planner)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/purpose)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/protocols/midi)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/catalog)
+    Checking equivalent v1.0.2
+    Checking hashbrown v0.17.1
+    Checking indexmap v2.14.2
+    Checking serde_spanned v0.6.9
+    Checking toml_datetime v0.6.11
+    Checking winnow v0.7.15
+    Checking toml_write v0.1.2
+    Checking toml_edit v0.22.27
+    Checking toml v0.8.23
+    Checking hybrid-array v0.4.15
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/host)
+    Checking getrandom v0.2.17
+    Checking cpufeatures v0.3.1
+    Checking block-buffer v0.12.1
+    Checking crypto-common v0.2.2
+    Checking const-oid v0.10.2
+    Checking digest v0.11.3
+    Checking siphasher v1.0.3
+    Checking phf_shared v0.11.3
+    Checking option-ext v0.2.0
+    Checking byteorder v1.5.0
+    Checking hash32 v0.3.1
+    Checking dirs-sys v0.5.0
+    Checking str-newtype v2.0.0
+    Checking static-automata v1.0.3
+    Checking phf v0.11.3
+    Checking stable_deref_trait v1.2.1
+    Checking tinyvec v1.13.3
+    Checking unicode-normalization v0.1.25
+    Checking heapless v0.8.0
+    Checking isolang v2.4.0
+    Checking langtag v1.1.0
+    Checking dirs v6.0.0
+    Checking anyhow v1.0.104
+    Checking sha2 v0.11.0
+    Checking rand_core v0.6.4
+    Checking inout v0.1.4
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/chat)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/wire)
+    Checking ryu v1.0.23
+    Checking unicode-segmentation v1.13.3
+    Checking speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+    Checking serde-json-core v0.6.0
+    Checking cipher v0.4.4
+    Checking universal-hash v0.5.1
+    Checking opaque-debug v0.3.1
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking crossbeam-utils v0.8.23
+    Checking rustls-pki-types v1.15.1
+    Checking aead v0.5.2
+    Checking arrayvec v0.7.8
+    Checking noise-protocol v0.2.1
+    Checking chacha20poly1305 v0.10.1
+    Checking crossbeam-epoch v0.9.21
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/offers)
+    Checking zerocopy v0.8.57
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tutorial)
+    Checking bytes v1.12.1
+    Checking untrusted v0.9.0
+    Checking log v0.4.34
+    Checking rand_core v0.10.1
+    Checking ring v0.17.14
+    Checking http v1.5.0
+    Checking ppv-lite86 v0.2.21
+    Checking crossbeam-deque v0.8.8
+    Checking noise-rust-crypto v0.6.2
+    Checking httparse v1.10.1
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/protocols/bluetooth)
+    Checking x25519-dalek v2.0.1
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/graph)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/body-invitation)
+    Checking scopeguard v1.2.0
+    Checking smallvec v1.16.1
+    Checking parking_lot_core v0.9.12
+    Checking lock_api v0.4.14
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/application)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/protected-line)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/signal)
+    Checking num-traits v0.2.19
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/speech)
+    Checking rayon-core v1.13.0
+    Checking rand_chacha v0.3.1
+    Checking rustls-webpki v0.103.15
+    Checking getrandom v0.4.3
+    Checking chacha20 v0.10.2
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/make)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/tour)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/synth)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/birth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/home)
+    Checking either v1.18.0
+    Checking base64 v0.23.1
+    Checking once_cell v1.21.4
+    Checking rustls v0.23.45
+    Checking ureq-proto v0.6.4
+    Checking rayon v1.12.0
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/mask-offer)
+    Checking rand v0.10.2
+    Checking rand v0.8.8
+    Checking ordered-float v3.9.2
+    Checking parking_lot v0.12.5
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/make)
+    Checking webpki-roots v1.0.9
+    Checking sha1 v0.11.0
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/avr/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/raspberry-pi/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/orange-pi/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/rp2040/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/body)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/esp32/make)
+    Checking num_cpus v1.17.0
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/little-seismograph/fixture)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos)
+    Checking qrcode v0.14.1
+    Checking percent-encoding v2.3.2
+    Checking bitflags v2.13.2
+    Checking data-encoding v2.11.1
+    Checking utf8-zero v0.8.1
+    Checking ureq v3.4.2
+    Checking tungstenite v0.30.0
+    Checking limine v0.5.0
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/runtime)
+    Checking instant-distance v0.6.1
+    Checking getrandom v0.3.4
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/network-r1)
+    Checking rustls-pemfile v2.2.0
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/alife-distributed)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/mask-offer)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/observatory)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/rp2040/network-realization)
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/emergency-keyword-spotter)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std)
+error: called `.nth(0)` on a `std::iter::Iterator`, when `.next()` is equivalent
+   --> semantics/language/tests/lexical_proposer_revision.rs:227:9
+    |
+227 | /         first_native
+228 | |             .tape()
+229 | |             .tokens()
+230 | |             .iter()
+231 | |             .nth(0)
+    | |___________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#iter_nth_zero
+    = note: `-D clippy::iter-nth-zero` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::iter_nth_zero)]`
+help: try calling `.next()` instead of `.nth(0)`
+    |
+227 ~         first_native
+228 +             .tape()
+229 +             .tokens()
+230 +             .iter().next()
+    |
+
+error: called `.nth(0)` on a `std::iter::Iterator`, when `.next()` is equivalent
+   --> semantics/language/tests/lexical_proposer_revision.rs:252:9
+    |
+252 | /         next.tape()
+253 | |             .tokens()
+254 | |             .iter()
+255 | |             .nth(0)
+    | |___________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#iter_nth_zero
+help: try calling `.next()` instead of `.nth(0)`
+    |
+252 ~         next.tape()
+253 +             .tokens()
+254 +             .iter().next()
+    |
+
+error: called `.nth(0)` on a `std::iter::Iterator`, when `.next()` is equivalent
+   --> semantics/language/tests/lexical_proposer_revision.rs:260:13
+    |
+260 | /             first_native
+261 | |                 .tape()
+262 | |                 .tokens()
+263 | |                 .iter()
+264 | |                 .nth(0)
+    | |_______________________^
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#iter_nth_zero
+help: try calling `.next()` instead of `.nth(0)`
+    |
+260 ~             first_native
+261 +                 .tape()
+262 +                 .tokens()
+263 +                 .iter().next()
+    |
+
+error: could not compile `conduit-language` (test "lexical_proposer_revision") due to 3 previous errors

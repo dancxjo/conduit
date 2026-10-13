@@ -1,0 +1,18 @@
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/core)
+error[E0658]: cannot call conditionally-const method `<usize as core::cmp::Ord>::max` in constants
+   --> architecture/core/src/structured_info/decode_storage.rs:108:57
+    |
+108 |                 [None; MAXIMUM_STRUCTURED_RECORD_FIELDS.max(MAXIMUM_STRUCTURED_VARIANT_CASES)];
+    |                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+    = note: calls in constants are limited to constant functions, tuple structs and tuple variants
+    = note: see issue #143874 <https://github.com/rust-lang/rust/issues/143874> for more information
+
+error: `core::cmp::Ord` is not yet stable as a const trait
+   --> architecture/core/src/structured_info/decode_storage.rs:108:24
+    |
+108 |                 [None; MAXIMUM_STRUCTURED_RECORD_FIELDS.max(MAXIMUM_STRUCTURED_VARIANT_CASES)];
+    |                        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0658`.
+error: could not compile `conduit-core` (lib) due to 2 previous errors

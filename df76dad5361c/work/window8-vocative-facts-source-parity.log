@@ -1,0 +1,22 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1.07s
+     Running tests/parser_window8_cached_corpus_model.rs (target/debug/deps/parser_window8_cached_corpus_model-a0684c2a8dd1523d)
+
+running 1 test
+test facts::fact_source_retains_exact_generated_types_and_ordered_laws ... FAILED
+
+failures:
+
+---- facts::fact_source_retains_exact_generated_types_and_ordered_laws stdout ----
+
+thread 'facts::fact_source_retains_exact_generated_types_and_ordered_laws' (2880354) panicked at semantics/language/tests/common/window8_fact_replay.rs:31:92:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-028", span: Span { start: 28389, end: 28416, line: 527, column: 335, end_line: 527, end_column: 362 }, message: "no startup signature is available for 'language-parser-legal-facts'; '=' is declarative and there is no later assignment" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    facts::fact_source_retains_exact_generated_types_and_ordered_laws
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 2 filtered out; finished in 32.04s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_window8_cached_corpus_model`

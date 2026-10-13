@@ -1,0 +1,31 @@
+{
+  "name": "Conduit Handbook",
+  "initialPlots": [
+    "tour",
+    "patchbay"
+  ],
+  "plots": [
+    {
+      "role": "tutorial-source",
+      "name": "tour",
+      "title": "Your Handbook"
+    },
+    {
+      "role": "patchbay-source",
+      "name": "patchbay",
+      "title": "Patchbay"
+    },
+    {
+      "role": "clock-source",
+      "name": "clock-demo",
+      "title": "A clock you can stop",
+      "lesson": "Predict: what changes if the interval doubles? Try this clock, watch its ticks, then change 1s to 2s and try again. Open Patchbay and select the clock to follow the cord from time/every to presentation/tick. Lull stops the run; Wake admits another run."
+    },
+    {
+      "role": "lantern-source",
+      "name": "memory_lantern",
+      "title": "Turn keystrokes into text",
+      "lesson": "Try the plot, focus the running example, and type a short message. Open Patchbay and select Memory Lantern: follow keyboard events through key mapping and bounded editing to visible text. Which part turns an event into a character? Your body survives reload; this example does not promise to retain the message."
+    }
+  ]
+}

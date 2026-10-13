@@ -1,0 +1,8 @@
+{
+  "semantics/language/build.rs": "c2a8033386c07ecfac1e8327a6232b310625479c01fa0a386285c9649bb46551",
+  "semantics/language/src/lib.rs": "4e66cd4d9445355da400a4c6c6eaefbc30c915bf1d3e012032b70420b72b9257",
+  "semantics/language/src/parser_window8_program_bank.rs": "390fd5e60f970c9a0ebfff3f01cc81f591cbe9df7c7c8b6495766b34b9add822",
+  "semantics/language/tests/parser_window8_program_bank.rs": "18e444f3b5d870d8276bddab7629472b2dfe38a81ee2c9d15008e8a3b060f215",
+  "architecture/plot/src/rust_binding/generate_options.rs": "3bc558d90ce15531a469af59e66f62a1816e9acfb1d9440a0779f13ed0a3f487",
+  "architecture/plot/src/rust_binding/generate_tests.rs": "68d177f284e4563eacea56f31bd78ccbabfb0b83a5e712ac5d0f4821d8c5f820"
+}

@@ -1,0 +1,12 @@
+
+running 1 test
+affine requested=512961725 peak=44348849 retained=42034 (preparation measurement, not admission)
+linear requested=330203273 peak=44348849 retained=19077 (preparation measurement, not admission)
+embedding requested=99362093 peak=44348849 retained=2573 (preparation measurement, not admission)
+compact-empty-original-plan requested=89738669 peak=44348849 retained=46 (preparation measurement, not admission)
+test full_original_tensor_factory_arrays_and_shared_owner_custody has been running for over 60 seconds
+numeric 6 owners requested=7302764135 peak=44348849 retained=210323 (preparation measurement, not admission)
+test full_original_tensor_factory_arrays_and_shared_owner_custody ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 113.21s
+

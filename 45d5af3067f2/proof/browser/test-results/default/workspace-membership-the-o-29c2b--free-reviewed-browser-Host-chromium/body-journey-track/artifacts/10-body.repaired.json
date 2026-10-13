@@ -1,0 +1,65 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "83152fb94b93af3a0cd71c8a3d90985f492a21c9",
+  "track": "browser-graphical",
+  "step_id": "body.repaired",
+  "assertion": "body-repaired",
+  "source_facts": {
+    "wake": {
+      "wake_id": "e357ac0e01eb8e342c1738eb2925f05bc49325e59a7dd162b602c197b111f859",
+      "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+      "workset": {
+        "plots": [
+          {
+            "source_document_id": "57bc76f68b7dab51ec593be069df751cc50cacf0b6ae2f5cd0897520a46486b4",
+            "checked_plot_id": "6fa9df916f5743f6f5b05202d96724337ed86fa2fd26fefc10db747ce3864e31"
+          },
+          {
+            "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+            "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6"
+          },
+          {
+            "source_document_id": "5c59950a208338112d2045d747a6b3fa3b789683f85482a067f6f4b4b63e911d",
+            "checked_plot_id": "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c"
+          }
+        ]
+      },
+      "workload_revision": 1,
+      "wake_sequence": 24,
+      "lifecycle": "Playing",
+      "plans": [
+        {
+          "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+          "active_play_id": "body-play/sha256:9238aeba70fa5da8c8225342247ddb84e1d4a33f21f1c5abe82cc11389221368",
+          "state": "Playing",
+          "hold": null
+        }
+      ],
+      "sign_ids": [
+        "63533daec405ddce2d8a897f30e1743bf0d9f0880d00a1ce002981eb133cb19d",
+        "ee05aeada5ec0750832c78558cb213800b5fb9edbb0874395a7830b64e41f85f",
+        "99d7834ae58b7a7296af21301838a5fca8a66f810eb22bb5f0c8d640a774f755"
+      ],
+      "events": [
+        {
+          "Woke": {
+            "sign_id": "63533daec405ddce2d8a897f30e1743bf0d9f0880d00a1ce002981eb133cb19d"
+          }
+        },
+        {
+          "PlanReady": {
+            "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+            "sign_id": "ee05aeada5ec0750832c78558cb213800b5fb9edbb0874395a7830b64e41f85f"
+          }
+        },
+        {
+          "PlayStarted": {
+            "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+            "active_play_id": "body-play/sha256:9238aeba70fa5da8c8225342247ddb84e1d4a33f21f1c5abe82cc11389221368",
+            "sign_id": "99d7834ae58b7a7296af21301838a5fca8a66f810eb22bb5f0c8d640a774f755"
+          }
+        }
+      ]
+    }
+  }
+}

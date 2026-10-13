@@ -1,0 +1,1 @@
+final independently pinned declaration selection ready: Ok(CategoricalStepStorageReceipt { original_resource_retained_bytes: 64972, weights_retained_bytes: 62472, type_retained_bytes: 130, execution_metadata_retained_bytes: 1237, retained_heap_bytes_bound: 128811 })

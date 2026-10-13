@@ -1,0 +1,4 @@
+    Blocking waiting for file lock on build directory
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1m 24s
+  Executable tests/parser_joint_v2_decode.rs (target/debug/deps/parser_joint_v2_decode-70acf88beb851eae)

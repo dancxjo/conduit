@@ -1,0 +1,7 @@
+{
+  "semantics/language/build.rs": "211d0e4b5e6f4a361d38ce16d8df2cfcf533072052b34044067dfda00f4956a0",
+  "semantics/language/src/lib.rs": "a1a9d9e27b713a61f40fcbc89eba0ce1af4028b88c04618fc952e2e01b42dff2",
+  "semantics/language/src/parser_window8_program_bank_proposal.rs": "8e50c38ba29a2f4b8106cd5b07c6511bbb35eb15576f668a67152d65d5cf1b4a",
+  "semantics/language/parser_window8_proposal_features.conduit": "7bc6c52478f6565b399fb8bdc6171a4e5b0d660d98b1db0f2fcc92945bcce301",
+  "semantics/language/parser_window8_proposal_features_v2.conduit": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082"
+}

@@ -1,0 +1,21 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1.30s
+     Running tests/parser_vocative_prefix.rs (target/debug/deps/parser_vocative_prefix-e2018d12a55bfdd2)
+
+running 1 test
+
+thread 'actual_partial_vocative_two_is_stable_before_final_punctuation' (1442703) panicked at semantics/language/tests/parser_vocative_prefix.rs:69:17:
+assertion `left == right` failed
+  left: TextSpan { basis: UnicodeScalar, end: 5, start: 0, text_identity: LanguageTextId("stream/v2/independent-hello-travis"), text_revision: LanguageTextRevisionId("independent-vocative/1") }
+ right: TextSpan { basis: UnicodeScalar, end: 5, start: 0, text_identity: LanguageTextId("stream/v2/independent-hello-travis"), text_revision: LanguageTextRevisionId("independent-vocative/0") }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_partial_vocative_two_is_stable_before_final_punctuation ... FAILED
+
+failures:
+
+failures:
+    actual_partial_vocative_two_is_stable_before_final_punctuation
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.61s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_vocative_prefix`

@@ -1,0 +1,123 @@
+warning: static variable `LanguageAnalysisRevisionId_PREPARED_NATIVE_LAWS` should have an upper case name
+ --> work/native-child-rank/recover.rs:2:8
+  |
+2 | static LanguageAnalysisRevisionId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+  |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(non_upper_case_globals)]` (part of `#[warn(nonstandard_style)]`) on by default
+help: convert the identifier to upper case
+  |
+2 - static LanguageAnalysisRevisionId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+2 + static LANGUAGE_ANALYSIS_REVISION_ID_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+  |
+
+warning: static variable `LanguageParserBasis_PREPARED_NATIVE_LAWS` should have an upper case name
+  --> work/native-child-rank/recover.rs:15:8
+   |
+15 | static LanguageParserBasis_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: convert the identifier to upper case
+   |
+15 - static LanguageParserBasis_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+15 + static LANGUAGE_PARSER_BASIS_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |
+
+warning: static variable `LanguageParserRelation_PREPARED_NATIVE_LAWS` should have an upper case name
+  --> work/native-child-rank/recover.rs:30:8
+   |
+30 | static LanguageParserRelation_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: convert the identifier to upper case
+   |
+30 - static LanguageParserRelation_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+30 + static LANGUAGE_PARSER_RELATION_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |
+
+warning: static variable `LanguageParserSubtype_PREPARED_NATIVE_LAWS` should have an upper case name
+  --> work/native-child-rank/recover.rs:43:8
+   |
+43 | static LanguageParserSubtype_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: convert the identifier to upper case
+   |
+43 - static LanguageParserSubtype_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+43 + static LANGUAGE_PARSER_SUBTYPE_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |
+
+warning: static variable `LanguageParserWindow8RawBeam_PREPARED_NATIVE_LAWS` should have an upper case name
+  --> work/native-child-rank/recover.rs:56:8
+   |
+56 | static LanguageParserWindow8RawBeam_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+help: convert the identifier to upper case
+   |
+56 - static LanguageParserWindow8RawBeam_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+56 + static LANGUAGE_PARSER_WINDOW8_RAW_BEAM_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+   |
+
+warning: static variable `LanguageParserWindow8RawHypothesis_PREPARED_NATIVE_LAWS` should have an upper case name
+   --> work/native-child-rank/recover.rs:112:8
+    |
+112 | static LanguageParserWindow8RawHypothesis_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: convert the identifier to upper case
+    |
+112 - static LanguageParserWindow8RawHypothesis_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+112 + static LANGUAGE_PARSER_WINDOW8_RAW_HYPOTHESIS_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |
+
+warning: static variable `LanguageParserWindow8RawState_PREPARED_NATIVE_LAWS` should have an upper case name
+   --> work/native-child-rank/recover.rs:135:8
+    |
+135 | static LanguageParserWindow8RawState_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: convert the identifier to upper case
+    |
+135 - static LanguageParserWindow8RawState_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+135 + static LANGUAGE_PARSER_WINDOW8_RAW_STATE_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |
+
+warning: static variable `LanguageTextId_PREPARED_NATIVE_LAWS` should have an upper case name
+   --> work/native-child-rank/recover.rs:158:8
+    |
+158 | static LanguageTextId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: convert the identifier to upper case
+    |
+158 - static LanguageTextId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+158 + static LANGUAGE_TEXT_ID_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |
+
+warning: static variable `LanguageTextRevisionId_PREPARED_NATIVE_LAWS` should have an upper case name
+   --> work/native-child-rank/recover.rs:171:8
+    |
+171 | static LanguageTextRevisionId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: convert the identifier to upper case
+    |
+171 - static LanguageTextRevisionId_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+171 + static LANGUAGE_TEXT_REVISION_ID_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |
+
+warning: static variable `LanguageUniversalDependencyRelation_PREPARED_NATIVE_LAWS` should have an upper case name
+   --> work/native-child-rank/recover.rs:184:8
+    |
+184 | static LanguageUniversalDependencyRelation_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |        ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |
+help: convert the identifier to upper case
+    |
+184 - static LanguageUniversalDependencyRelation_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+184 + static LANGUAGE_UNIVERSAL_DEPENDENCY_RELATION_PREPARED_NATIVE_LAWS: &[&[u8]] = &[
+    |
+
+warning: 10 warnings emitted
+

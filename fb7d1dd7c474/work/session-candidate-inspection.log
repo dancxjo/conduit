@@ -1,0 +1,21 @@
+
+running 1 test
+"retained-stream/1"
+active=true score=13216 choices=[1, 0, 0, 0] heads=[4, 5, 5, 5, 4] depth=2 unread=1
+active=true score=12238 choices=[0, 0, 0, 0] heads=[4, 5, 5, 5, 4] depth=2 unread=1
+active=true score=-385 choices=[1, 0, 0, 0] heads=[5, 5, 5, 5, 4] depth=2 unread=1
+active=true score=-4504 choices=[0, 0, 0, 0] heads=[5, 5, 5, 5, 4] depth=2 unread=1
+"retained-stream/2"
+active=true score=23731 choices=[1, 0, 0, 0] heads=[1, 4, 5, 5, 4] depth=2 unread=2
+active=true score=20094 choices=[1, 0, 0, 0] heads=[1, 4, 5, 5, 4] depth=2 unread=2
+active=true score=20044 choices=[1, 1, 0, 0] heads=[1, 4, 5, 5, 4] depth=2 unread=2
+active=true score=19068 choices=[1, 1, 0, 0] heads=[1, 4, 5, 5, 4] depth=2 unread=2
+"retained-stream/3"
+active=true score=35192 choices=[1, 0, 0, 0] heads=[1, 4, 5, 5, 4] depth=1 unread=2
+active=true score=31555 choices=[1, 0, 0, 0] heads=[1, 4, 5, 5, 4] depth=1 unread=2
+active=true score=30180 choices=[1, 1, 0, 0] heads=[1, 4, 5, 5, 4] depth=1 unread=2
+active=true score=29204 choices=[1, 1, 0, 0] heads=[1, 4, 5, 5, 4] depth=1 unread=2
+test inspect_retained_native_candidates ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 2.63s
+

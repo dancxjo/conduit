@@ -1,0 +1,9 @@
+{
+  "schema": "conduit.conduitos.image/v2",
+  "artifact_role": "architecture-proof-appliance",
+  "architecture": "x86_64",
+  "limine_version": "12.5.2",
+  "limine_archive_sha256": "4c760c09c53560d859b362319a3dc63b79cca3d47f35d69ab0106a13b8057055",
+  "iso_sha256": "77dfc41a2b7582bb73910882e1f818f983b24d9116d479df4b40c2f7ffe6b37c",
+  "file_count": 7
+}

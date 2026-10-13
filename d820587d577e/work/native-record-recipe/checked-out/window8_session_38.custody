@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=1a390b5004060ed0b1de9fd83f26bf0ec5d31658d2798a98c0f8686ac697c715
+expanded=3fe7fa5fcd7bd27ec664a3462ed5207caf6a2c9406f90033de0d05decfe2e050
+input=language-window8-qualified-lexical-rebase-token/expression-b432bbb1009c-0:input
+output=language-window8-qualified-lexical-rebase-token/expression-b432bbb1009c-0:output
+gear=language-window8-qualified-lexical-rebase-token/expression-b432bbb1009c-0:conduitese/pure-expression/b3094e9890c25afa88b64fddd7b910db1a9112df25f5cdb7733f0ccb8fbae5b9:conduitese/pure-expression-operation@1:input:output

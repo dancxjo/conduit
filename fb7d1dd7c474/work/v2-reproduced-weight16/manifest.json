@@ -1,0 +1,132 @@
+{
+  "action_class_contract_identity": "0aae9add33a46122a5f8f513d055b657a4c6f424bfc59bcb85ff8cc56091b986",
+  "artifact_sha256": "5f9730de725d98d9ccd2c617755265d0bce2afd63ec85d4a43c6c1f11fd7d66f",
+  "availability_contract_identity": "2eb7d6318935458e4e67fcc4ac5e777571f7e1af7a4c30d4efab2fa46dadd365",
+  "calibration": "raw structured ranking scores; no probability or lexical confidence claim",
+  "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+  "conditional_gold_action_lexical_and_gold_state_joint_diagnostics": {
+    "dev": {
+      "ambiguous_pos_correct": 4,
+      "ambiguous_tokens": 4,
+      "joint_context_action_correct": 180,
+      "oracle_steps": 180,
+      "pos_correct": 90,
+      "tokens": 90
+    },
+    "test": {
+      "ambiguous_pos_correct": 11,
+      "ambiguous_tokens": 11,
+      "joint_context_action_correct": 254,
+      "oracle_steps": 256,
+      "pos_correct": 128,
+      "tokens": 128
+    },
+    "train": {
+      "ambiguous_pos_correct": 51,
+      "ambiguous_tokens": 51,
+      "joint_context_action_correct": 1292,
+      "oracle_steps": 1300,
+      "pos_correct": 650,
+      "tokens": 650
+    }
+  },
+  "corpus_profile_exclusions": {
+    "dev": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1538
+    },
+    "test": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1535
+    },
+    "train": {
+      "multiword_or_empty_node": 19,
+      "over_four_tokens": 10539
+    }
+  },
+  "corpus_sha256": {
+    "dev": "39239e0a60db3ae68f4b7036189f11b6692741d10ff8240dd91f74f2760d90f8",
+    "test": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a",
+    "train": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+  },
+  "dataset": "UD_English-EWT",
+  "eligible_sentences": {
+    "dev": 454,
+    "test": 533,
+    "train": 1986
+  },
+  "epochs": 12,
+  "feature_class_contract_identity": "184cd9acdc625222de4a1517eeacdd7f10a83291fab9637699ceda966151c87b",
+  "features": 413,
+  "joint_choice_contract_identity": "1478761780cfd27bba1c4bb2103c0984296a26a050ff50330f797d3b065406e1",
+  "lexical_coverage_exclusions": {
+    "dev": {
+      "profile_oov": 401
+    },
+    "test": {
+      "profile_oov": 453
+    },
+    "train": {
+      "profile_oov": 1592
+    }
+  },
+  "lexical_profile_covered_sentences": {
+    "dev": 53,
+    "test": 80,
+    "train": 394
+  },
+  "lexical_profile_identity": "37e56df9605021d58cdd29dd542996f1c6944644391ed159fa108561f713aef3",
+  "lexical_profile_selection": "TRAIN frequency57 excluding seven separately authored reviewed demonstrator/generalization forms; exact-case; native capacity64",
+  "license": "CC BY-SA 4.0",
+  "lookups": 25,
+  "model_bytes": 62796,
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "native_decode_metrics": "not evaluated by this training script; diagnostics condition on gold state/action and are not blind POS or attachment accuracy",
+  "outputs": 76,
+  "precision": "i16-weights-i64-sums",
+  "quantization_scale": 256,
+  "reviewed_lexical_alternatives": {
+    "Alex": [
+      7,
+      11
+    ],
+    "Hello": [
+      6,
+      7
+    ],
+    "Hi": [
+      6,
+      7
+    ],
+    "Morgan": [
+      7,
+      11
+    ],
+    "Travis": [
+      7,
+      11
+    ],
+    "friend": [
+      7
+    ],
+    "pal": [
+      7
+    ]
+  },
+  "reviewed_teaching_conditional_gold_action_and_state_diagnostic": {
+    "ambiguous_pos_correct": 6,
+    "ambiguous_tokens": 6,
+    "joint_context_action_correct": 16,
+    "oracle_steps": 16,
+    "pos_correct": 8,
+    "tokens": 8
+  },
+  "reviewed_teaching_sentences": 3,
+  "reviewed_teaching_sha256": "013039c84503263c61348b001826ca3d0fcd7055b7b184bf729f481791a46f74",
+  "reviewed_teaching_training_repetitions": 16,
+  "seed": 4907,
+  "training_examples": 1556,
+  "training_steps": 18672,
+  "ud_release": "2.18",
+  "weights_tensor_content_identity": "47171a26189954bf5a52ade5b8727525a5fbfdbcf98d61fcd196172c08f12a79"
+}

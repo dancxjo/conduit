@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "native-graphical",
+  "step_id": "mask.action-1",
+  "assertion": "mask-mask.wear-alternate",
+  "source_facts": {
+    "action_id": "mask.wear-alternate",
+    "concrete_event": "wore-alternate-mask",
+    "face_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+    "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+    "receipt_ids": [
+      "50d82a52141cf6ec0fce3113860f411495b51be23ffa9e480de07447a691384a",
+      "show-value/ae4c558b735c4db0491d9e7db5235d744c61422e0bd7f04c1a91d3ac06eb644a"
+    ],
+    "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+    "selected_route_id": "mask-route/85e8b4cb08fdd3ca6595bfc1ef69518833b3def212c1b83e4cda58ad9e858fc5",
+    "show_id": null
+  }
+}

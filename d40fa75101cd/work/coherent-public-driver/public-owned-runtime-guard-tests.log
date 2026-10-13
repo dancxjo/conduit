@@ -1,0 +1,25 @@
+
+running 3 tests
+
+thread 'foreign_equal_material_owners_stop_without_foreign_actions' (1482151) panicked at work/coherent-public-driver/public-owned-runtime-guard-tests.rs:341:14:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+thread 'unchanged_basis_stop_unload_use_normal_driver_actions' (1482153) panicked at work/coherent-public-driver/public-owned-runtime-guard-tests.rs:341:14:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+test foreign_equal_material_owners_stop_without_foreign_actions ... FAILED
+test unchanged_basis_stop_unload_use_normal_driver_actions ... FAILED
+
+thread 'preparation_one_under_refuses_before_source_plan_verification_or_load' (1482152) panicked at work/coherent-public-driver/public-owned-runtime-guard-tests.rs:341:14:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+test preparation_one_under_refuses_before_source_plan_verification_or_load ... FAILED
+
+failures:
+
+failures:
+    foreign_equal_material_owners_stop_without_foreign_actions
+    preparation_one_under_refuses_before_source_plan_verification_or_load
+    unchanged_basis_stop_unload_use_normal_driver_actions
+
+test result: FAILED. 0 passed; 3 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

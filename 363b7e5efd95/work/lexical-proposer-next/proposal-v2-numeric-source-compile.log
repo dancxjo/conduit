@@ -1,0 +1,11 @@
+error[E0609]: no field `cords` on type `ExpandedCanonicalPlot`
+  --> work/lexical-proposer-next/proposal_v2_numeric_source_probe.rs:11:193
+   |
+11 | ...claim",expanded.expanded.gears.len(),expanded.expanded.cords.len());
+   |                                                           ^^^^^ unknown field
+   |
+   = note: available fields are: `source_document_id`, `checked_plot_id`, `expanded_plot_id`, `name`, `completion` ... and 7 others
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0609`.

@@ -1,0 +1,16 @@
+
+running 7 tests
+test actual_retained_context_all76_prepared_source_proposals_match_reference ... ignored, requires actual canonical lexical-fact evidence
+test actual_retained_context_all76_proposals_match_reference ... ignored, requires CONDUIT_WINDOW8_NATIVE_PROFILE_INPUT actual canonical lexical fact
+test prepared_native_bank_preserves_complete_output_and_refusal_semantics ... ok
+test owned_bank_features_choices_and_scores_retain_exact_native_custody ... ok
+exact allocating merge reference_ns=3708812104 retained_program_ns=2458901742; one fixture, excludes bank preparation
+preparedSource exact resource/refusal parity receipt=Window8PreparedSourceReceipt { retained_heap_bytes_bound: 205260178, preparation_peak_heap_bytes_bound: 237823029, programs: 26, native: PreparedNativeFamilyStorageReceipt { types: 53, retained_heap_bytes_bound: 152388690, preparation_peak_heap_bytes_bound: 154611605, conversion_requested_bytes_bound: 639893585 } }
+test prepared_source_bank_preserves_refusals_and_exact_resource_ceilings ... ok
+exact allocating merge reference_ns=3662428924 retained_program_ns=2423296925; one fixture, excludes bank preparation
+test retained_allocating_program_bank_matches_public_rank_merge_and_full_forest ... ok
+test retained_allocating_class_context_and_guards_match_all76_reference_proposals has been running for over 60 seconds
+test retained_allocating_class_context_and_guards_match_all76_reference_proposals ... ok
+
+test result: ok. 5 passed; 0 failed; 2 ignored; 0 measured; 0 filtered out; finished in 269.26s
+

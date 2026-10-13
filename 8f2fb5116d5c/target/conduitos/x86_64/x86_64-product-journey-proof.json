@@ -1,0 +1,28 @@
+{
+  "body_id": "87110eb8f486936b851b0935ee7a341185692091ac8f59abaedd22a999a686c5",
+  "boot_id": "0114ed5ba7569e5e44219c2ebf5ddf9c5836dabce532a278efa2589a447c6b09",
+  "build_id": "build:sha256:de26e5223a365bc62c7945033e0b67c96ed860d0daf1c7b355574f4cafcdac2b",
+  "host_id": "c5ab66bb9f3e20270aa75a36c3d4aa92f0d70d773360c8370b3f3f3e9ca44ad8",
+  "human_enactment": false,
+  "image_id": "image:sha256:0caea9620243d37b445f27c313aef1301928b72e86f283a80cf02ffacba4b4de",
+  "image_sha256": "0be8fbad414abb01744d3dfc1cbb8c848bf054db22d4b2b04dbbc22c11d52692",
+  "input": "real-qmp-keyboard",
+  "physical_evidence": false,
+  "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3",
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/face-journey-proof@1",
+  "screenshots": "journey-frames/manifest.json",
+  "source_commit": "33f0d5a901ad75ae0f9117f6590808e67be1136b",
+  "steps": [
+    "arrive",
+    "birth",
+    "wake",
+    "plan",
+    "play",
+    "home",
+    "patchbay",
+    "face",
+    "diagram",
+    "stop"
+  ]
+}

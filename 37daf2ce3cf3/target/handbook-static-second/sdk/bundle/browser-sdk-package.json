@@ -1,0 +1,90 @@
+{
+  "schema": "conduit.browser/sdk-package@1",
+  "package_id": "@conduit/browser",
+  "package_version": "0.1.0",
+  "target_id": "browser/wasm32/page",
+  "runtime_abi": "conduit.browser/runtime-abi@1",
+  "image_id": "image:sha256:6d764678ff607a3dc829826f778191f96744da8e53365d9209ab38d8432ad8ac",
+  "profile_id": "sha256:a509749dbfcf6e13153e6d9ef1c1de509b33883330d72cb019a91caea1c8fba8",
+  "bundle_sha256": "sha256:8086986b220d2a685589d30006a065549dd70754892000e84854ca306081915a",
+  "files": [
+    {
+      "path": "runtime.wasm",
+      "bytes": 17843204,
+      "sha256": "sha256:7f214cb8f1ef22af70d6d2863cff4c68a8294908516f0581d8d6ba57e9497818",
+      "media_type": "application/wasm"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5358,
+      "sha256": "sha256:5638c80cce59357fa1a8ee1d9f5c2e752684a9b7f24ae3bc5413d295785f2a55",
+      "media_type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "host.mjs",
+      "bytes": 3862,
+      "sha256": "sha256:0923aac4842375721975d34bc404282cb52b22fb40ee84cb97e569f87fb9099c",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-bootstrap.mjs",
+      "bytes": 824,
+      "sha256": "sha256:5a34c6fab3c998e3dc5e3c95a51e72ba1d0784e0d8d234f389e68a6578f723e5",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-membership.mjs",
+      "bytes": 4863,
+      "sha256": "sha256:6466ba4bac99d4eef2d49b2ec607a906cc07afce1af1c587ddbf2b4bc6c874ce",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-identity.mjs",
+      "bytes": 4198,
+      "sha256": "sha256:cdce12b339de291eb14d66d74509fdfb868d31a159cbd56560eedd1da5cc37f1",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-runtime-bridge.mjs",
+      "bytes": 23117,
+      "sha256": "sha256:59f15668eb7a1afa003cf193bfe49713f00d13b8c442abf09681b92008447401",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-relay-line.mjs",
+      "bytes": 15604,
+      "sha256": "sha256:8f9c3e0188cc673e17275d2b1f47c80e8d7fd800c5393df1f97fc5ba9c7a7b9d",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-boot-profile.mjs",
+      "bytes": 16361,
+      "sha256": "sha256:70cba64210048de13587f5c09dd3da512b740d55e3b710fe0483e95ce2801955",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "media-host.mjs",
+      "bytes": 7556,
+      "sha256": "sha256:366a7eb30243a947d32a973ce8508496d1974bddc22eb455d849ac94a9a3f173",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "device-base.mjs",
+      "bytes": 15324,
+      "sha256": "sha256:9257f42f723df21e42a6bcc205fb6924b0f8d5645d1424bbb372c17d1c0cb8d3",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "usb-device-base.mjs",
+      "bytes": 15615,
+      "sha256": "sha256:a6564ddc75bce96878da828698d6e9517b16befa81c188b3e645969685f62bd7",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "conduit-browser-image.json",
+      "bytes": 4010,
+      "sha256": "sha256:99461db94174da8338941cc99975469b5bd0998467bdcfdaf16456bf156e9f3e",
+      "media_type": "application/vnd.conduit.browser-image+json"
+    }
+  ]
+}

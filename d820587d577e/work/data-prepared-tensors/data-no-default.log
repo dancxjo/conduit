@@ -1,0 +1,4 @@
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/data)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Checking conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/time)
+    Finished `dev` profile [unoptimized] target(s) in 8.08s

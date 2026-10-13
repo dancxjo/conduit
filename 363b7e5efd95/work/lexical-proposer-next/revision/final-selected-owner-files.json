@@ -1,0 +1,13 @@
+{
+  "semantics/language/src/lib.rs": "046486fe3a99973bf526144dab6b344e83ac00eaa9d5a1fceefda7f4b0f9c9eb",
+  "semantics/language/src/lexical_proposer_port.rs": "d53cc5f5a76de5ef3e794f981a329fe3c7dcba196ed2390e91c6798e722b856d",
+  "semantics/language/src/lexical_proposer_port/token_producer.rs": "39c3aef3765769080ba2ed688337bd29f4a4d8cc0d5f2dfa52755e618fa5e6fe",
+  "semantics/language/src/lexical_proposer_port/token_producer/revision.rs": "edb7a0fa18e810712f844cea08ce3980c3f98599843539f45c3fa5ca638e39d9",
+  "semantics/language/src/lexical_proposer_port/token_producer/model_definition.rs": "81921976835deae4120b43dfebedc52254bf2da6a69e7c11100fc34f991e2460",
+  "semantics/language/src/parser_canonical_composition.rs": "e73ea96c67c7279b27c14affd979076ac3b3159486c5ff3079cf18a2bc8bc66d",
+  "semantics/language/src/parser_canonical_schema.rs": "cd541faae43f0e467ef902d2a0855c8625df453d85b7f576fa102eb0a75fa352",
+  "semantics/language/src/lexical_canonical_sequence.rs": "1ee84500fa8bd37722f82405ba13e38399b96c2a9e234bb83b8ec460f9e25b95",
+  "semantics/language/src/lexical_scalar_scan.rs": "a3aff76bf4476e7a1a766be28dcb7e16039d8e651228f00cf84e18e25cc09639",
+  "semantics/language/tests/lexical_proposer_revision.rs": "7e25469f7c7f3e91e79c7b5f1446de3df8f3bd5a66f886aa2cbdd61aceb33253",
+  "semantics/language/tests/lexical_proposer_resource.rs": "a731e233f712a2587c4a8e129cf6f19f94c897d20a42ea1d602e1effd54b2736"
+}

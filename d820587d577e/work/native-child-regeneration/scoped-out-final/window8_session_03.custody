@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=233c81b98dc6a7650825fb5b27bce9f6fce5ba10ab512a46c02fa29570c544dc
+expanded=fe1fdfa1a2c2e00299c51cb60bc2d30cfee8c3a7ec75d2620c5a021b227dceb9
+input=language-proposal-window8-v2-feature-values/expression-8de81dc65c2b-0:input
+output=language-proposal-window8-v2-feature-values/expression-8de81dc65c2b-0:output
+gear=language-proposal-window8-v2-feature-values/expression-8de81dc65c2b-0:conduitese/pure-expression/0398840ebbd0d33a50dd25ce7009a1e16539324b6f81b9edca71573638dcf36e:conduitese/pure-expression-operation@1:input:output

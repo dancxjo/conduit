@@ -1,0 +1,994 @@
+{
+  "actions": [
+    {
+      "action_id": "journey.bootstrap",
+      "concrete_event": "The exact ConduitOS Host boot displayed Crèche before a Body existed and accepted the bounded bootstrap action.",
+      "receipt_ids": [
+        "body.absent",
+        "bootstrap.started"
+      ]
+    },
+    {
+      "action_id": "journey.birth",
+      "concrete_event": "Crèche created the native Body and its first admitted wake; the next frame showed that Body's home.",
+      "receipt_ids": [
+        "body.born",
+        "body.awake"
+      ]
+    },
+    {
+      "action_id": "journey.useful-work",
+      "concrete_event": "Keyboard input traversed the standing Plot and produced the retained HELLO result.",
+      "receipt_ids": [
+        "plot.used"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "inspected-executed-native-show",
+      "receipt_ids": [
+        "mask.action-0"
+      ]
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "wore-alternate-mask",
+      "receipt_ids": [
+        "mask.action-1"
+      ]
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "preferred-and-selected-sealed-alternate-route",
+      "receipt_ids": [
+        "mask.action-2"
+      ]
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "withdrew-selected-native-route",
+      "receipt_ids": [
+        "mask.action-3"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "inspected-no-current-show",
+      "receipt_ids": [
+        "mask.action-4"
+      ]
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "added-presentation-host-without-selecting-unsealed-route",
+      "receipt_ids": [
+        "mask.action-5"
+      ]
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "admitted-and-executed-replacement-plan",
+      "receipt_ids": [
+        "mask.action-6"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "inspected-replacement-plan-show",
+      "receipt_ids": [
+        "mask.action-7"
+      ]
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "doffed-alternate-and-executed-restored-plan",
+      "receipt_ids": [
+        "mask.action-8"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "inspected-restored-show",
+      "receipt_ids": [
+        "mask.action-9"
+      ]
+    },
+    {
+      "action_id": "journey.break-recover",
+      "concrete_event": "USB Line loss remained lost; a separately invalidated native Show was rebuilt and became usable later in the same run.",
+      "receipt_ids": [
+        "fault.observed",
+        "body.repaired"
+      ]
+    },
+    {
+      "action_id": "journey.rest-finish",
+      "concrete_event": "The native Body was explicitly lulled, retained, and then irreversibly fulfilled.",
+      "receipt_ids": [
+        "body.lulled",
+        "body.fulfilled"
+      ]
+    }
+  ],
+  "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+  "construction": [
+    {
+      "build": {
+        "disposition": "exact",
+        "identity": "build:sha256:939f9b8121f2ec8c81f58d339626e0045bdce256b17d7ebff1b848432b25a076"
+      },
+      "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+      "image": {
+        "disposition": "exact",
+        "identity": "image:sha256:a9e9c2021b1007ad05bff1b8b2543dcea4e1e3c153f1d0960fa5fc010471c738"
+      },
+      "profile": {
+        "disposition": "exact",
+        "identity": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3"
+      }
+    },
+    {
+      "build": {
+        "disposition": "omitted",
+        "reason": "The USB peer joined as an already-running Host; this producer retained no peer build identity."
+      },
+      "host_id": "host/qemu-usb-line-peer",
+      "image": {
+        "disposition": "omitted",
+        "reason": "The USB peer joined as an already-running Host; this producer retained no peer image identity."
+      },
+      "profile": {
+        "disposition": "omitted",
+        "reason": "The USB peer joined as an already-running Host; this producer retained no peer profile make identity."
+      }
+    }
+  ],
+  "distributed_plan_ids": [
+    "plan/usb-line/pre-admission-connectivity-seam"
+  ],
+  "embodiment": "freestanding-native-body",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "hosts": [
+    {
+      "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+      "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b"
+    },
+    {
+      "boot_id": "boot/qemu-usb-line-peer/1",
+      "host_id": "host/qemu-usb-line-peer"
+    }
+  ],
+  "journey_id": "orifina/tutorial@1",
+  "line_ids": [
+    "line/usb-ftdi/41728ae02069e370ff90142c792a41ed527524c73602301a34164bdb5f9454c5"
+  ],
+  "mask_actions": [
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "inspected-executed-native-show",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-0"
+      ],
+      "selected_mask_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+      "selected_route_id": "mask-route/229852d0bcdd196ede7bac7c32ab6f95b9949f8925dfdc164425ba2b18d235c7",
+      "show_id": "show/059b9dab75c2b51c6af514f4c2c3571260a018e7cd456e2ba6ead274e1d1e8ab"
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "wore-alternate-mask",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-1"
+      ],
+      "selected_mask_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+      "selected_route_id": "mask-route/229852d0bcdd196ede7bac7c32ab6f95b9949f8925dfdc164425ba2b18d235c7",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "preferred-and-selected-sealed-alternate-route",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-2"
+      ],
+      "selected_mask_plot_id": "63664ec059f4d0b0d7acf96f73759349633ae8b59083323f3607e6551896aa5c",
+      "selected_route_id": "mask-route/72788866a4320fdd8dc98249a44c327e6a7fd22745464c5f04b782bf029ea40c",
+      "show_id": "show/801a4e565153e5ee024b39bf1863929d96039675ff0917eaf7d9ccc44ffe39e4"
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "withdrew-selected-native-route",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-3"
+      ],
+      "selected_mask_plot_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "inspected-no-current-show",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-4"
+      ],
+      "selected_mask_plot_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "added-presentation-host-without-selecting-unsealed-route",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+      "receipt_ids": [
+        "mask.action-5"
+      ],
+      "selected_mask_plot_id": null,
+      "selected_route_id": null,
+      "show_id": null
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "admitted-and-executed-replacement-plan",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+      "receipt_ids": [
+        "mask.action-6"
+      ],
+      "selected_mask_plot_id": "63664ec059f4d0b0d7acf96f73759349633ae8b59083323f3607e6551896aa5c",
+      "selected_route_id": "mask-route/377fd903488084363c7c2d82fe2045cd0f0a58fb811326ddfd4dbfe8b8e63332",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "inspected-replacement-plan-show",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+      "receipt_ids": [
+        "mask.action-7"
+      ],
+      "selected_mask_plot_id": "63664ec059f4d0b0d7acf96f73759349633ae8b59083323f3607e6551896aa5c",
+      "selected_route_id": "mask-route/377fd903488084363c7c2d82fe2045cd0f0a58fb811326ddfd4dbfe8b8e63332",
+      "show_id": "show/6be44c13bcf06be32a52aa85e3ac2274e90892f1e6283db41ee1723930761221"
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "doffed-alternate-and-executed-restored-plan",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+      "receipt_ids": [
+        "mask.action-8"
+      ],
+      "selected_mask_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+      "selected_route_id": "mask-route/cc5ff375d7d809984b4c007321cc2dbc75adbb9832129c2a3f40d35bb2ad274a",
+      "show_id": null
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "inspected-restored-show",
+      "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+      "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+      "receipt_ids": [
+        "mask.action-9"
+      ],
+      "selected_mask_plot_id": "be39108ebbb6fc0caad81927066a5c68fbd1d1ebac686c030b6f77f6ddb263fa",
+      "selected_route_id": "mask-route/cc5ff375d7d809984b4c007321cc2dbc75adbb9832129c2a3f40d35bb2ad274a",
+      "show_id": "show/7d6f235eb01897eb2babc7a9c4b3c5a87969c304691f159c6cfc8b1d22849ca5"
+    }
+  ],
+  "mask_plot_id": "mask/native-graphical@1",
+  "receipts": [
+    {
+      "assertion": "body-absent",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.absent",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for body.absent.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/01-body.absent.json",
+          "sha256": "sha256:510483550032273163f8b246c9e0795e938d96206c6b12621add9006353a9577"
+        },
+        {
+          "artifact_id": "native-graphical/body.absent/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "ConduitOS boots to Crèche before a body is born.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.absent.png",
+          "sha256": "sha256:f7f467c70034112d68227b3a613877ba84f98794af7a47d44527a4c9f4cc4d3e"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+        "face_id": null,
+        "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "body.absent"
+    },
+    {
+      "assertion": "bootstrap-started",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/bootstrap.started",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for bootstrap.started.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/02-bootstrap.started.json",
+          "sha256": "sha256:b807d4da7ca8cc12575633d0dd6bdac6a52b805efcaab32d161133f5e110889f"
+        },
+        {
+          "artifact_id": "native-graphical/bootstrap.started/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The booted host offers Crèche, ready to create a body.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/bootstrap.started.png",
+          "sha256": "sha256:f7f467c70034112d68227b3a613877ba84f98794af7a47d44527a4c9f4cc4d3e"
+        }
+      ],
+      "provenance": {
+        "body_id": null,
+        "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+        "face_id": null,
+        "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "bootstrap.started"
+    },
+    {
+      "assertion": "body-born",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.born",
+          "assertion_rung": "body-biography",
+          "documentary_description": "freestanding-native-body producer receipt for body.born.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/03-body.born.json",
+          "sha256": "sha256:2cb74eb479c47db785fb84be8f9ffe0df6a0d6c7071819793f7862598c278de2"
+        },
+        {
+          "artifact_id": "native-graphical/body.born/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "First visible frame after Birth and Wake: the new body's native home. This entrance performs both actions before this capture.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.born.png",
+          "sha256": "sha256:5b92d8c0e4fe3ed10248e9f360d7466ff4a32b7a3f150b8163d95698632cb607"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+        "face_id": null,
+        "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/product/born/d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23/1"
+      },
+      "step_id": "body.born"
+    },
+    {
+      "assertion": "body-awake",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.awake",
+          "assertion_rung": "body-biography",
+          "documentary_description": "freestanding-native-body producer receipt for body.awake.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/04-body.awake.json",
+          "sha256": "sha256:cbf561e21e6680154ba02092fd94fd0ae14a82e2e898dda265063938ebb182da"
+        },
+        {
+          "artifact_id": "native-graphical/body.awake/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The newly born body wakes in the native graphical shell.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.awake.png",
+          "sha256": "sha256:5b92d8c0e4fe3ed10248e9f360d7466ff4a32b7a3f150b8163d95698632cb607"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/product/woke/2"
+      },
+      "step_id": "body.awake"
+    },
+    {
+      "assertion": "standing-plot-used",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/plot.used",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for plot.used.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/05-plot.used.json",
+          "sha256": "sha256:272075815c2c463a7b435b2730547a53cd52e552beee425230f9d01bac87a61d"
+        },
+        {
+          "artifact_id": "native-graphical/plot.used/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Typing hello produces HELLO through the running keyboard plot.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/plot.used.png",
+          "sha256": "sha256:af26fe55f6e69bbcf9fd07869e3656cc04c41f57c6c59144553ef808d4f8d222"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:2d3d9be7ee08521b8d9c8170c4a423ef98490d650d184f95b4409761c2b39921",
+        "play_id": "body-play/sha256:5f4013d4ade6df913ec7b6a3241303b27785ce6b830a63d8c7ee3635803514e3",
+        "show_id": null,
+        "sign_id": "conduitos/product/result/body-play/sha256:5fb189fa393dc4a85ea0a943c61f2b115897189115b780ce2622238b2b1a2fbd/0/8"
+      },
+      "step_id": "plot.used"
+    },
+    {
+      "assertion": "body-inspected",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.inspected",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer receipt for body.inspected.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/06-body.inspected.json",
+          "sha256": "sha256:4c1c14ca42c75b8407e9232e2f545e86ea36343b3e5bfc390c51c2381ffda694"
+        },
+        {
+          "artifact_id": "native-graphical/body.inspected/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The native body's resident Patchbay inspects its current keyboard plot.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.inspected.png",
+          "sha256": "sha256:bae981efdaa3450dd08e3c320cad14130f6295ae1deb632247a7a36fb878e110"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "3d9234280a9ca2fd9d58a84e082d9caa894dca6b16fb1b3194f33fac3e01b1a3",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": "25fbaa67d612afba28e2a017c637b0bcb244ef2575d6feb9e4801ad26a1f524b",
+        "sign_id": null
+      },
+      "step_id": "body.inspected"
+    },
+    {
+      "assertion": "workload-revised",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/workload.revised",
+          "assertion_rung": "body-biography",
+          "documentary_description": "freestanding-native-body producer receipt for workload.revised.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/07-workload.revised.json",
+          "sha256": "sha256:72f433fd55888876cf60960ce8592f7bafceaf535f26abe140e6b7707034b2f7"
+        },
+        {
+          "artifact_id": "native-graphical/workload.revised/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "A plot is admitted into the living body's workset.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/workload.revised.png",
+          "sha256": "sha256:713a078fa10cafe05bb4e57e1655106ee8158f80ff9fd4ef4aa07f2fc7fa7518"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:2d3d9be7ee08521b8d9c8170c4a423ef98490d650d184f95b4409761c2b39921",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/product/plot-admitted/21"
+      },
+      "step_id": "workload.revised"
+    },
+    {
+      "assertion": "host-added",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/host.added",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for host.added.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/08-host.added.json",
+          "sha256": "sha256:f7e5e1ccd72c0c408d22d104367563ad6c1f190662d70317b87269e970bd64ef"
+        },
+        {
+          "artifact_id": "native-graphical/host.added/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The second host joins through the USB Line.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/host.added.png",
+          "sha256": "sha256:4e565f2edc734ef45f24a3e995c15ea257e797ae1ac5993e686d7897bf2b12ed"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": "boot/qemu-usb-line-peer/1",
+        "face_id": null,
+        "host_id": "host/qemu-usb-line-peer",
+        "line_id": "line/usb-ftdi/41728ae02069e370ff90142c792a41ed527524c73602301a34164bdb5f9454c5",
+        "plan_id": "plan/usb-line/pre-admission-connectivity-seam",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/mask/38/playing"
+      },
+      "step_id": "host.added"
+    },
+    {
+      "assertion": "fault-observed",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/fault.observed",
+          "assertion_rung": "stream-disposition",
+          "documentary_description": "freestanding-native-body producer receipt for fault.observed.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/09-fault.observed.json",
+          "sha256": "sha256:eded68706a9d45551862aa750b8636a5dfc7d4fc15d5ce6326c8bc3aa28b5970"
+        },
+        {
+          "artifact_id": "native-graphical/fault.observed/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Disconnecting the peer makes Line loss visible.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/fault.observed.png",
+          "sha256": "sha256:bbc5584776044fa55e4e23ee533492ee1faa9c8b10d66bf934e6604bde3819b9"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/surface-loss/569dfe5bd9f98769c09c0a383b55fa94d94296a71c80956bc4088e5c75eae06b"
+      },
+      "step_id": "fault.observed"
+    },
+    {
+      "assertion": "body-repaired",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.repaired",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for body.repaired.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/10-body.repaired.json",
+          "sha256": "sha256:073adc8e9fdb68d0cdc007f8f6c99c669b50cf06e6add60f4adb2706e415333b"
+        },
+        {
+          "artifact_id": "native-graphical/body.repaired/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Later in this same run, the native inspector is usable after its presentation was invalidated and rebuilt. This is presentation recovery, not reconnection of the lost peer.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.repaired.png",
+          "sha256": "sha256:1b77b61ef539c4a3da7bc2b1258cff1dc1085a110eda579eea17be587d9629ff"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:2d3d9be7ee08521b8d9c8170c4a423ef98490d650d184f95b4409761c2b39921",
+        "play_id": "body-play/sha256:5f4013d4ade6df913ec7b6a3241303b27785ce6b830a63d8c7ee3635803514e3",
+        "show_id": null,
+        "sign_id": "conduitos/mask/38/playing"
+      },
+      "step_id": "body.repaired"
+    },
+    {
+      "assertion": "body-long-running",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.long-running",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "freestanding-native-body producer receipt for body.long-running.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/11-body.long-running.json",
+          "sha256": "sha256:81a60ddaa00518ded549d294f01a7d2058b1a27391929590de3706ffeea97c27"
+        },
+        {
+          "artifact_id": "native-graphical/body.long-running/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The running plot accepts another input in the same session.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.long-running.png",
+          "sha256": "sha256:af26fe55f6e69bbcf9fd07869e3656cc04c41f57c6c59144553ef808d4f8d222"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": "body-play/sha256:5f4013d4ade6df913ec7b6a3241303b27785ce6b830a63d8c7ee3635803514e3",
+        "show_id": null,
+        "sign_id": "conduitos/product/result/body-play/sha256:5fb189fa393dc4a85ea0a943c61f2b115897189115b780ce2622238b2b1a2fbd/0/8"
+      },
+      "step_id": "body.long-running"
+    },
+    {
+      "assertion": "body-lulled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.lulled",
+          "assertion_rung": "lifecycle-action",
+          "documentary_description": "freestanding-native-body producer receipt for body.lulled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/12-body.lulled.json",
+          "sha256": "sha256:8eeb7b37e94f47e1b052c0b1ac1bf9981492f8be03f288aa65c7d5ffdea91186"
+        },
+        {
+          "artifact_id": "native-graphical/body.lulled/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The body is lulled and retained.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.lulled.png",
+          "sha256": "sha256:bbc5584776044fa55e4e23ee533492ee1faa9c8b10d66bf934e6604bde3819b9"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/product/body-retained/75"
+      },
+      "step_id": "body.lulled"
+    },
+    {
+      "assertion": "body-fulfilled",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/body.fulfilled",
+          "assertion_rung": "fulfilled-transition",
+          "documentary_description": "freestanding-native-body producer receipt for body.fulfilled.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/13-body.fulfilled.json",
+          "sha256": "sha256:b82a08c1032637ed1ea028246a63a80f345ab8bed2ad415f673d8ffd19b158e8"
+        },
+        {
+          "artifact_id": "native-graphical/body.fulfilled/screen",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The native body is fulfilled and its biography closes.",
+          "evidence_class": "screenshot",
+          "path": "artifacts/body.fulfilled.png",
+          "sha256": "sha256:bbc5584776044fa55e4e23ee533492ee1faa9c8b10d66bf934e6604bde3819b9"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": null,
+        "host_id": null,
+        "line_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "show_id": null,
+        "sign_id": "conduitos/product/fulfilled/76"
+      },
+      "step_id": "body.fulfilled"
+    },
+    {
+      "assertion": "mask-mask.inspect-initial-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-0",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.inspect-initial-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/14-mask.action-0.json",
+          "sha256": "sha256:a2d9bb9e13ccf1396fe2ce030b36a907ad4a43551569ba0a67872235d98bbfd9"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": "show/059b9dab75c2b51c6af514f4c2c3571260a018e7cd456e2ba6ead274e1d1e8ab",
+        "sign_id": null
+      },
+      "step_id": "mask.action-0"
+    },
+    {
+      "assertion": "mask-mask.wear-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-1",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.wear-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/15-mask.action-1.json",
+          "sha256": "sha256:49556fd25e4c4da5748013042205acb22987a91f696793901ad97835f8756e0a"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-1"
+    },
+    {
+      "assertion": "mask-mask.prefer-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-2",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.prefer-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/16-mask.action-2.json",
+          "sha256": "sha256:db8bdacf4e665e243ca486c4ae2459d631b8b4e4a7c46e0a3e6189609e6eb4f1"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": "show/801a4e565153e5ee024b39bf1863929d96039675ff0917eaf7d9ccc44ffe39e4",
+        "sign_id": null
+      },
+      "step_id": "mask.action-2"
+    },
+    {
+      "assertion": "mask-mask.withdraw-selected-route",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-3",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.withdraw-selected-route.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/17-mask.action-3.json",
+          "sha256": "sha256:78f91d2798325ba9a75cbf9cdedde7d166670f7ce9942b3c3a7cd8333b64c1a9"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-3"
+    },
+    {
+      "assertion": "mask-mask.inspect-unavailable-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-4",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.inspect-unavailable-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/18-mask.action-4.json",
+          "sha256": "sha256:2254de0dd683e84121bd449a3da2d498b5a518084ee83199a29ca12fea4a62d6"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-4"
+    },
+    {
+      "assertion": "mask-mask.add-face-host",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-5",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.add-face-host.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/19-mask.action-5.json",
+          "sha256": "sha256:c8a12aed1fef0811adaeddad0b813e1e845d3ee9c231efad5da727c23cc2ef2a"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-5"
+    },
+    {
+      "assertion": "mask-mask.admit-replacement-plan",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-6",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.admit-replacement-plan.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/20-mask.action-6.json",
+          "sha256": "sha256:796a29424711a23d7db7af7e1efa25614a7fe77e4f99c5edf472f8b6a69936e0"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-6"
+    },
+    {
+      "assertion": "mask-mask.inspect-replanned-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-7",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.inspect-replanned-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/21-mask.action-7.json",
+          "sha256": "sha256:f4c218d25ccbe09ca88b10c004ae19d1a26aa8e826fa03a0d2adadc969d3a3e6"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+        "play_id": null,
+        "show_id": "show/6be44c13bcf06be32a52aa85e3ac2274e90892f1e6283db41ee1723930761221",
+        "sign_id": null
+      },
+      "step_id": "mask.action-7"
+    },
+    {
+      "assertion": "mask-mask.doff-alternate",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-8",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.doff-alternate.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/22-mask.action-8.json",
+          "sha256": "sha256:912fa6a4659560ffc6ef4ca38f1fbbcc3e16a5683010c255db87cb760ed9bbaa"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+        "play_id": null,
+        "show_id": null,
+        "sign_id": null
+      },
+      "step_id": "mask.action-8"
+    },
+    {
+      "assertion": "mask-mask.inspect-restored-show",
+      "disposition": "established",
+      "evidence": [
+        {
+          "artifact_id": "native-graphical/mask-action-9",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "freestanding-native-body producer outcome for mask.inspect-restored-show.",
+          "evidence_class": "semantic-receipt",
+          "path": "artifacts/23-mask.action-9.json",
+          "sha256": "sha256:bd8d5624404ab17cb877f50e1e4bd77af3b49c7e0f5b1d1169ba43209ea3af05"
+        }
+      ],
+      "provenance": {
+        "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+        "boot_id": null,
+        "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+        "host_id": null,
+        "line_id": null,
+        "plan_id": "body-plan/sha256:a9f6f43adf567f6002e95549107a964721c23956495a328d6ad49defa5678789",
+        "play_id": null,
+        "show_id": "show/7d6f235eb01897eb2babc7a9c4b3c5a87969c304691f159c6cfc8b1d22849ca5",
+        "sign_id": null
+      },
+      "step_id": "mask.action-9"
+    }
+  ],
+  "schema": "conduit.evidence/body-journey-track@6",
+  "track_id": "native-graphical"
+}

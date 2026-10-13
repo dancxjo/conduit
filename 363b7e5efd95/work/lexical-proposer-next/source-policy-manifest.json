@@ -1,0 +1,29 @@
+{
+  "status": "draft; cold generated resource gate live, qualified analysis only Source checker validated",
+  "files": {
+    "semantics/language/lexical_proposer.conduit": "2e86166d6e35cd0eb5d58a9311af0567d72e1eba3f784edc02e7ef6f7894e433",
+    "semantics/language/src/lexical_proposer_resource.rs": "48f4da84f1d132aed51c6ddd5fae710257b3dfb4cb26758a8011621a5b3af762",
+    "work/lexical-proposer-next/qualified_analysis.conduit": "5b6b22bb5c6ab27876e1035a321e7ea7bf7d0f06e954dc2c2797818084438bb2"
+  },
+  "fixed_resource_caps": {
+    "shards": 128,
+    "entries_per_native_shard": 64,
+    "entries": 8192,
+    "per_token_alternatives": 4,
+    "per_revision_tokens": 128,
+    "window_tokens": 8
+  },
+  "qualified_source_check": {
+    "checked_types": 116,
+    "result": "PASS",
+    "does_not_prove": "generated readiness, caller integration, model training or linguistic correctness"
+  },
+  "next_owner_requirements": [
+    "Retain complete canonical dictionary shard frames and exact proposer definition including unknown origin/policy/provenance.",
+    "Prepare new distinct model profile binding resource digest, full policy frame, exact Source/numeric contracts, complete artifact/signature/dimensions/training provenance; no legacy profile recast.",
+    "Pre-admit original revision, all token/origin/per-token Source proposal frames, exact dictionary lookup witnesses and aggregate retained/peak resources before evaluation.",
+    "Use original tokenizer span and prior-occurrence rules; partial tokens carry incomplete origin and empty candidates.",
+    "Qualified symbolic commitment retains original unknown origin, active-beam evidence and exact reviewed stable/final policy; never constructs legacy reviewed lexical fact by recast.",
+    "Genuine revision/commit/contradiction metrics require separately executed actual revision streams."
+  ]
+}

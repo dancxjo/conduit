@@ -1,0 +1,183 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 16.56s
+     Running unittests src/lib.rs (target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 318 filtered out; finished in 0.77s
+
+     Running tests/bme280_compensation.rs (target/debug/deps/bme280_compensation-f3050f5b0f7208fe)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 0.00s
+
+     Running tests/bme280_lifecycle.rs (target/debug/deps/bme280_lifecycle-9639b5f5703cde21)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 11 filtered out; finished in 0.00s
+
+     Running tests/bme280_observation.rs (target/debug/deps/bme280_observation-cf0aa0989bc7032b)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/device_binary.rs (target/debug/deps/device_binary-924bc36ed02518e6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/device_frames.rs (target/debug/deps/device_frames-e08582e30ca71493)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/ecmascript_types.rs (target/debug/deps/ecmascript_types-48bdef041c0e5fb1)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/immutable_expression.rs (target/debug/deps/immutable_expression-3d14b7e2729b18c7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/integer_widening.rs (target/debug/deps/integer_widening-dcb8c55f90f5b30d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/named_record_expression.rs (target/debug/deps/named_record_expression-a2faaa781d2bd347)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/native_expression_construction.rs (target/debug/deps/native_expression_construction-54b19de253782792)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 13 filtered out; finished in 0.00s
+
+     Running tests/native_invariant_admission.rs (target/debug/deps/native_invariant_admission-edeb5c8b00d24301)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/ownership.rs (target/debug/deps/ownership-9ba9452e7ca3d0b6)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/prepared_actual_native_bank.rs (target/debug/deps/prepared_actual_native_bank-f73f21fe73109163)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/prepared_byte_observation.rs (target/debug/deps/prepared_byte_observation-d420480835d0a8a4)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/prepared_computed_projection.rs (target/debug/deps/prepared_computed_projection-56f34f8ba97c8422)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/prepared_leaf_storage.rs (target/debug/deps/prepared_leaf_storage-fd6aa87542396bb8)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/prepared_sequence_selection.rs (target/debug/deps/prepared_sequence_selection-d64af5b9fccaa38d)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/prepared_storage_accounting.rs (target/debug/deps/prepared_storage_accounting-024b70469e4d4671)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+     Running tests/prepared_structured_payload.rs (target/debug/deps/prepared_structured_payload-7ff06a7c7b83224a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/pure_expression_types.rs (target/debug/deps/pure_expression_types-b34d54482d4727ef)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/semantic_expression_call.rs (target/debug/deps/semantic_expression_call-0100ae70a288717c)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 7 filtered out; finished in 0.00s
+
+     Running tests/structured_expression_equality.rs (target/debug/deps/structured_expression_equality-aef40a0c2dd787d3)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/structured_profiles.rs (target/debug/deps/structured_profiles-fc444f7f3079ca5a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 5 filtered out; finished in 0.00s
+
+     Running tests/structured_selectors.rs (target/debug/deps/structured_selectors-d9a44de9ea68e3e7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/structured_values.rs (target/debug/deps/structured_values-7be9d9bcd63c451a)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 12 filtered out; finished in 0.00s
+
+     Running tests/text_material.rs (target/debug/deps/text_material-b7bd82ad583b2c00)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+     Running tests/typed_pair_expression.rs (target/debug/deps/typed_pair_expression-9263b48e7dcf0af7)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+
+     Running tests/typed_pair_refinements.rs (target/debug/deps/typed_pair_refinements-05ebdfafb5fc9ece)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+
+     Running tests/when_filter.rs (target/debug/deps/when_filter-36af51607b637776)
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 0.00s
+

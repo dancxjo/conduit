@@ -1,0 +1,8 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/semantics/data)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plan-lowering)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/semantics/ai)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/composite)
+    Finished `dev` profile [unoptimized] target(s) in 30.53s

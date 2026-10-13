@@ -1,0 +1,38 @@
+{
+  "custody_head": "f2b73f4f2c6909fba82826a8e8b9fad6b2c9e270",
+  "patch_sha256": "403a46538ce40450f4ffd6ad1aa8586797ba302947900290b62a006a9526dcc5",
+  "files": {
+    "architecture/core/src/structured_info/borrowed.rs": {
+      "custody_sha256": "dfaccb5152d6af9e90d62e6f5378f908c232b4a17e4904c0a8de63bef41c5af9",
+      "base_sha256": "dfaccb5152d6af9e90d62e6f5378f908c232b4a17e4904c0a8de63bef41c5af9",
+      "custody_matches_patch_base": true
+    },
+    "architecture/core/src/structured_info/borrowed/record_access.rs": {
+      "custody_sha256": null,
+      "base_sha256": null,
+      "custody_matches_patch_base": true
+    },
+    "architecture/core/tests/record_access_storage.rs": {
+      "custody_sha256": null,
+      "base_sha256": null,
+      "custody_matches_patch_base": true
+    },
+    "architecture/plot/src/rust_binding/borrowed_contracts.rs": {
+      "custody_sha256": "89fe72f63832fc683ea52fffcd16b70d7086faad9612c549089dcde0701b86ba",
+      "base_sha256": "89fe72f63832fc683ea52fffcd16b70d7086faad9612c549089dcde0701b86ba",
+      "custody_matches_patch_base": true
+    },
+    "architecture/plot/src/rust_binding/generate_prepared_family.rs": {
+      "custody_sha256": "31a1dc2e4e0437a18b747e34ef82a8639dd0ba3525175446324f7922a0bc3c2e",
+      "base_sha256": "31a1dc2e4e0437a18b747e34ef82a8639dd0ba3525175446324f7922a0bc3c2e",
+      "custody_matches_patch_base": true
+    },
+    "architecture/plot/src/rust_binding/prepared_family.rs": {
+      "custody_sha256": "986bb5b3ed1e4195adddabc55ba3b5bbae7f78c637a305e264f5106695915673",
+      "base_sha256": "986bb5b3ed1e4195adddabc55ba3b5bbae7f78c637a305e264f5106695915673",
+      "custody_matches_patch_base": true
+    }
+  },
+  "apply_check_exit": 0,
+  "apply_check_output": "Checking patch architecture/core/src/structured_info/borrowed.rs...\nChecking patch architecture/core/src/structured_info/borrowed/record_access.rs...\nChecking patch architecture/core/tests/record_access_storage.rs...\nChecking patch architecture/plot/src/rust_binding/borrowed_contracts.rs...\nChecking patch architecture/plot/src/rust_binding/generate_prepared_family.rs...\nChecking patch architecture/plot/src/rust_binding/prepared_family.rs...\n"
+}

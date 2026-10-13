@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.site-publication/v1",
+  "sourceCommit": "9ba8e0bbb9759b138c71bcd1a48b79f8f90c2b4a",
+  "recordedHistoryCommit": "d9b79319bd78c72e4a6b48ef524e269300a82bdf",
+  "handbook": {
+    "sourceCommit": "9ba8e0bbb9759b138c71bcd1a48b79f8f90c2b4a",
+    "environment": "Chromium",
+    "path": "journeys/verticals/handbook/"
+  },
+  "fieldStation": {
+    "sourceCommit": "9ba8e0bbb9759b138c71bcd1a48b79f8f90c2b4a",
+    "environment": "Chromium",
+    "path": "journeys/verticals/field-station-clock/"
+  },
+  "threeBodies": {
+    "sourceCommit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+    "path": "journeys/current/three-bodies/",
+    "refreshedExecution": false
+  }
+}

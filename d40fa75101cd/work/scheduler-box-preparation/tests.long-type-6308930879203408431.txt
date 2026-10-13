@@ -1,0 +1,2 @@
+conduit_kernel::scheduler::FixedScheduler<D, S, E, NODES, CORDS, PORTS, QUEUE_SLOTS, ROUTE_SLOTS, ROUTE_TARGETS, HOST_BINDING_SLOTS, PENDING_REQUESTS>
+conduit_kernel::scheduler::FixedScheduler<Done, conduit_kernel::FixedValueStore<1, 1>, conduit_kernel::FixedSignLog<16>, 1, 0, 1, 1, 1, 1, 1, 1>

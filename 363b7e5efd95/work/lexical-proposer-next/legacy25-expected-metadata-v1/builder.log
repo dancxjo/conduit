@@ -1,0 +1,34 @@
+signature=20dd9d8c9443e8145a7437ec829f1a29b6a9ab05034180a07a4b424fba244a0b
+artifact_descriptor=ce9a06212e138550c43ae159fd0355d235006c89881838b3af69404b60264a32
+reference=e760626610458de0a60e38c18671cdf80f62b2c34ec87903075dc9e3c9d346ba
+lexical_declared=028c828c944576f458b085fd60174a19e30dab603ba7e0d44d127f0637e70c43
+feature=bdd64adf9c83923ed3e712f25a95670af25169c937da968c9b834bc1ae684181
+availability=ddfec0ab52cc3689bd2d971288c63be3711570a3f3f4f51fb272c3a4a97701fa
+action=ebd9353d96815c8d2a773026819e96dd0b730c62519697555c8e68cf4caa4985
+joint_choice=43dd0c3e9908767af9d0083ba7eafdd814a6fa26d5d5df6fa2385690179a276e
+numeric_indices=46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03
+numeric_scores=37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1
+PASS independently fixed expected metadata only; no scorer/adoption/factory/Source execution or acceptance
+	Command being timed: "work/lexical-proposer-next/legacy25_expected_metadata"
+	User time (seconds): 0.09
+	System time (seconds): 0.00
+	Percent of CPU this job got: 98%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:00.09
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 5768
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 518
+	Voluntary context switches: 3
+	Involuntary context switches: 2
+	Swaps: 0
+	File system inputs: 16
+	File system outputs: 104
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

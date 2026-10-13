@@ -1,0 +1,50 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "workload.revised",
+  "assertion": "workload-revised",
+  "source_facts": {
+    "plan_id": "body-plan/sha256:2d3d9be7ee08521b8d9c8170c4a423ef98490d650d184f95b4409761c2b39921",
+    "workload_sign_id": "conduitos/product/plot-admitted/21",
+    "workset": {
+      "held_release_crossed_selection": true,
+      "input_count": 34,
+      "memory_cleared_and_edited_again": true,
+      "patchbay_edit_requested": true,
+      "patchbay_presenters_replanned": true,
+      "plots": [
+        {
+          "checked_plot_id": "ac070f898f973c9d2ada3d4b9a9a12c4c2f188f211fdf1b2594e2481aa529042",
+          "expanded_plot_id": "9c5eb7b75c414cbec2474fffacd7b743908fc62cbce60b2057ce818d079fa14e",
+          "final_result": "HELLOXY",
+          "source_document_id": "0bd6a6325d58893c387aacc6eabe694f36cb10a82319e39c9981a87cc8aa6208",
+          "title": "Keyboard canvas"
+        },
+        {
+          "checked_plot_id": "64bec31db4b26b034298d129eccc0bbf15cd55d30477d55debef9144962de45f",
+          "expanded_plot_id": "2dab5a7baf00507a59b6309b71e14ae5f65ed14d3bc04aa0273fd6a338b56b04",
+          "final_result": "hi",
+          "source_document_id": "e2aaeb70fcff9896292206f4183863898193f16ea458abd975dd6eaa33e645e5",
+          "title": "Memory Lantern"
+        },
+        {
+          "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6",
+          "expanded_plot_id": "38cd99ee3fb1ceadc5f28d530199b505c15f171c2ce8622ba2b8cdc4a7d2385a",
+          "final_result": "",
+          "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+          "title": "Tour"
+        },
+        {
+          "checked_plot_id": "36da99adad610bc8cc58c1664fd06fd896697ff1f931d4a7fdc63e7baf60eee4",
+          "expanded_plot_id": "a2a7a5dfad1ddd419c62ed52cb0900cccad1ec6175bd2a0c59262552b1709571",
+          "final_result": "",
+          "source_document_id": "372dd54d260225126d5a5e7278a9e71762f21cc5b0e776928593914375fe29d0",
+          "title": "Patchbay"
+        }
+      ],
+      "resident_tour_ran": true,
+      "switches": 12
+    }
+  }
+}

@@ -1,0 +1,61 @@
+{
+  "checkpoints": [],
+  "context": {
+    "image_sha256": "5e7618d1e0fd000a610fd6e2bc1e2f91e9150e1a8095ef6ef4fce26e4042e658",
+    "process_stop": {
+      "cause": "harness-stop-after-failure",
+      "code": null,
+      "status": "signal: 9 (SIGKILL)"
+    },
+    "qemu_argv": [
+      "-M",
+      "q35",
+      "-cpu",
+      "max",
+      "-m",
+      "64M",
+      "-smp",
+      "1",
+      "-display",
+      "none",
+      "-vga",
+      "std",
+      "-monitor",
+      "none",
+      "-qmp",
+      "unix:/tmp/conduit-5399-x86.CiucnX/conduit-journey-570617.sock,server=on,wait=off",
+      "-serial",
+      "file:/home/dancxjo/Documents/Codex/2026-10-10/goal-finish-andclose-conduit-5397/work/x86-5399-diagnostic/target/conduitos/x86_64/journey-serial.log",
+      "-no-reboot",
+      "-net",
+      "none",
+      "-device",
+      "qemu-xhci,id=conduitos-xhci,p2=3,p3=0",
+      "-device",
+      "usb-kbd,id=conduitos-keyboard,bus=conduitos-xhci.0,port=1",
+      "-device",
+      "usb-mouse,id=conduitos-pointer,bus=conduitos-xhci.0,port=2",
+      "-cdrom",
+      "target/x86-product/conduitos-x86_64.iso",
+      "-boot",
+      "d"
+    ],
+    "source_commit": "5c037c23c4e2b2be51eb2346e57e0b7c824483a9",
+    "visual_contract": {
+      "display": "std-vga",
+      "dynamic_identity_pixels": "allowed",
+      "height": 800,
+      "minimum_non_background_pixels": 64,
+      "mode": "invariant",
+      "width": 1280
+    }
+  },
+  "failure": {
+    "detail": "guest did not emit CONDUIT_BOOT_STAGE front-door-ready within 20s",
+    "reason": "journey-arrival-timeout"
+  },
+  "proof_class": "freestanding-emulator",
+  "schema": "conduit.conduitos/visual-journey@1",
+  "serial_path": "/home/dancxjo/Documents/Codex/2026-10-10/goal-finish-andclose-conduit-5397/work/x86-5399-diagnostic/target/conduitos/x86_64/journey-serial.log",
+  "status": "failed"
+}

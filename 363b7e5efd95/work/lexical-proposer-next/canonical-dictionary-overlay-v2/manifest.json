@@ -1,0 +1,654 @@
+{
+  "dictionary_identity": "12458ed85a62ff19a794a8f79e24ff8c7e76e3975392379ed3ba9ed5c9ec89fe",
+  "lemma_policy": "surface unchanged when UTF8<=128bytes; otherwise explicit <unlemmatized>; no morphological truth assertion",
+  "receipt": {
+    "entries": 8192,
+    "lookup_requested_bytes_bound": 8912941,
+    "preparation_peak_heap_bytes_bound": 15682928,
+    "retained_heap_bytes_bound": 3674262,
+    "shards": 128
+  },
+  "scope": "Offline canonical export and full Native dictionary preparation; not parser/model/Source execution acceptance",
+  "shards": [
+    {
+      "bytes": 11365,
+      "ordinal": 0,
+      "semantic_identity": "661a0a726de38eb423dc3bc5a3b76d24d77c60b3cf66b791795b3b657c657de1"
+    },
+    {
+      "bytes": 10665,
+      "ordinal": 1,
+      "semantic_identity": "a7b6137871731cd976b9cd5d81eb50622806be1a00757653cb3628342edb064b"
+    },
+    {
+      "bytes": 9613,
+      "ordinal": 2,
+      "semantic_identity": "0be2f62c72f92eea50d3235345b747e4350d5f8be202205bb9a64698c65209f2"
+    },
+    {
+      "bytes": 9574,
+      "ordinal": 3,
+      "semantic_identity": "cb3ae603a68faf3bb73fe5be605bc8c87da9307c50632650f62c0f8e8e8ab81b"
+    },
+    {
+      "bytes": 9625,
+      "ordinal": 4,
+      "semantic_identity": "9703f34ba195442cfa235972f46af713151ceca4524a3be9878703c2580aea65"
+    },
+    {
+      "bytes": 9671,
+      "ordinal": 5,
+      "semantic_identity": "469765d6e516e997824651c45bc7cd4729bb4a5657ed3d03735deff82b2b101a"
+    },
+    {
+      "bytes": 9568,
+      "ordinal": 6,
+      "semantic_identity": "972bbf7caa73ee94223a084ce9ba11d85a969c4a7d929d810ea7a55195fd0095"
+    },
+    {
+      "bytes": 9537,
+      "ordinal": 7,
+      "semantic_identity": "45173daae2c6cf8f6b603b95f1e1ef68e22c65b8cf0873839b52e9e9fa45a1b0"
+    },
+    {
+      "bytes": 9567,
+      "ordinal": 8,
+      "semantic_identity": "407b5012a65656f81ecb689688cc1c615aea422e36c56af057c28cace6b72a07"
+    },
+    {
+      "bytes": 10820,
+      "ordinal": 9,
+      "semantic_identity": "8507df007fb26731dcf38accd1a2ba6e9becb579d89b179fd87cffea72bbe020"
+    },
+    {
+      "bytes": 10665,
+      "ordinal": 10,
+      "semantic_identity": "2fa9fcf76a7c6c26484b9d32d79ca90920dc0a6d5f7926a590caedbd8b327a4d"
+    },
+    {
+      "bytes": 10308,
+      "ordinal": 11,
+      "semantic_identity": "98f7b3b13682a94704e4d4281b34748f60a34c91c2c656d996b3ab2d5df62ffb"
+    },
+    {
+      "bytes": 10644,
+      "ordinal": 12,
+      "semantic_identity": "08586e882291ae249a7bec2416e1829b9bb12d992f657bd2bb494b947f8fb1dc"
+    },
+    {
+      "bytes": 10486,
+      "ordinal": 13,
+      "semantic_identity": "d32a27ecb555a7439953e7395afc21b4bab162dcbd08c4569ac7506cb22d7731"
+    },
+    {
+      "bytes": 9971,
+      "ordinal": 14,
+      "semantic_identity": "18d90d0aebc00acf1a49b44eacd4b7ca08968c7efd41ebbf7dc6fa8d47a4ba74"
+    },
+    {
+      "bytes": 10497,
+      "ordinal": 15,
+      "semantic_identity": "783cbdc01618eedd386f56df4954755858917f174bb9158da900c4d1f1d63580"
+    },
+    {
+      "bytes": 10584,
+      "ordinal": 16,
+      "semantic_identity": "3f0c9cf27bdc1b686801ae50025224b59bae65ea6b9672cf0675aa9ef84d73c4"
+    },
+    {
+      "bytes": 10910,
+      "ordinal": 17,
+      "semantic_identity": "f647939427b2d671edee8c8d70bef329c71a282d857814529c867976c9f7f46c"
+    },
+    {
+      "bytes": 10215,
+      "ordinal": 18,
+      "semantic_identity": "2d507f36273a95d7f8ff82eff7e3028ff9bd838ea8d256d2b933fb18bae97569"
+    },
+    {
+      "bytes": 10507,
+      "ordinal": 19,
+      "semantic_identity": "08b95e9561ff56b5e4b6775da4008c8850f11a294040c70a17b6ddf3a25446e3"
+    },
+    {
+      "bytes": 10724,
+      "ordinal": 20,
+      "semantic_identity": "f6b76449ae353dedfa084fdeb203e86531bd150673c80704f69bac69780bdd39"
+    },
+    {
+      "bytes": 10551,
+      "ordinal": 21,
+      "semantic_identity": "243af60217913984dd507279278bc1cb6ae895e76792d7c60a3d738325f6b3d9"
+    },
+    {
+      "bytes": 10239,
+      "ordinal": 22,
+      "semantic_identity": "d3056dc58d544626a9bf5de9bb567432b77d7a7b4fa32250d3eb313e641b1c06"
+    },
+    {
+      "bytes": 10065,
+      "ordinal": 23,
+      "semantic_identity": "32d93a6da0843b08c624ba480ccd589c8804e57332e82bb9251dc99ed166bc82"
+    },
+    {
+      "bytes": 10492,
+      "ordinal": 24,
+      "semantic_identity": "e7af1594146bfba0abcb2fbd743c73336161802524b3bedbad04b186f60a1753"
+    },
+    {
+      "bytes": 10749,
+      "ordinal": 25,
+      "semantic_identity": "ee070108cbb61547bb07fe7d0de8bc96d0a185d3d9d1e8d36ab7248bb525a0f3"
+    },
+    {
+      "bytes": 10484,
+      "ordinal": 26,
+      "semantic_identity": "58b32b0573b3dcbddc41605fa7309fe04884480008bfba1f797c7c4b92492c15"
+    },
+    {
+      "bytes": 10230,
+      "ordinal": 27,
+      "semantic_identity": "229e0a85a1a117c47e420dfede6616f225101dce486865c03ddfb5404db12b66"
+    },
+    {
+      "bytes": 10558,
+      "ordinal": 28,
+      "semantic_identity": "3ca7cfdf1291c50657b670084b910a5965d0f1daf232fdfa608b909ef8d23e6f"
+    },
+    {
+      "bytes": 10671,
+      "ordinal": 29,
+      "semantic_identity": "8b3a6dfb383c5d8b6d52b80af5e4d722c9f89351bc5c5c7bc5128d1fa36200c8"
+    },
+    {
+      "bytes": 10037,
+      "ordinal": 30,
+      "semantic_identity": "bf8a3e1a0c6f86019a49d362a5ca47584fc9ded3197e23ef58e6b9b2e67fe7ac"
+    },
+    {
+      "bytes": 10029,
+      "ordinal": 31,
+      "semantic_identity": "2159d4fc714d7871690028822092ad68ceaf32dea17c75ca7ca0e413b2381eea"
+    },
+    {
+      "bytes": 10050,
+      "ordinal": 32,
+      "semantic_identity": "64bb04c2ec1d0894abaebd1504e7d465793b22f3deef9a549724dbc0e4370a76"
+    },
+    {
+      "bytes": 10965,
+      "ordinal": 33,
+      "semantic_identity": "62bedec69184d489d938f82159f0c7ef96b5db9f8eaee586f4bd19a9e97f82f0"
+    },
+    {
+      "bytes": 10368,
+      "ordinal": 34,
+      "semantic_identity": "7b9c621a3fcc8ef39db9b5b26766d7799ec3b0e488abc2641b8cad445131f047"
+    },
+    {
+      "bytes": 10081,
+      "ordinal": 35,
+      "semantic_identity": "e2162278a4187f19f8c7a9c76f3ad2611620179c910eb2f8bc4051a458c97c1d"
+    },
+    {
+      "bytes": 10211,
+      "ordinal": 36,
+      "semantic_identity": "a640ada2bf23fb77757d2e107763065bb614677ccdc17978c7117ff71ae34c0f"
+    },
+    {
+      "bytes": 11086,
+      "ordinal": 37,
+      "semantic_identity": "e0f7e46d3c32b92168311f4086d5fa329c30c6e8d7675b363ed2103d6ba14a53"
+    },
+    {
+      "bytes": 11375,
+      "ordinal": 38,
+      "semantic_identity": "e21fcc18c7f5b9c28be4a34b4894ba20ab68b9245468e199a553943fd862cf67"
+    },
+    {
+      "bytes": 10443,
+      "ordinal": 39,
+      "semantic_identity": "1d813c29a79a1c49bdc060a86fc9422b409c0c7863af280d622ef33a86a238ec"
+    },
+    {
+      "bytes": 10254,
+      "ordinal": 40,
+      "semantic_identity": "25944606b3943275ae0843659ca709d00aea089498e233b88439bf7f245ff803"
+    },
+    {
+      "bytes": 10808,
+      "ordinal": 41,
+      "semantic_identity": "07b1bb15dc603d22071d48fb8ea1a748190ea5d5c8d4f3eacb9a4084a3ef98cc"
+    },
+    {
+      "bytes": 10218,
+      "ordinal": 42,
+      "semantic_identity": "613910dd69bc94fec9a594379051c656a8a3a7cdaef1862d70806e05847a4f7d"
+    },
+    {
+      "bytes": 10758,
+      "ordinal": 43,
+      "semantic_identity": "cab1772249d48a4b19e22f698f97e21bc61279a40a5482a99432b12fd62e3b24"
+    },
+    {
+      "bytes": 10207,
+      "ordinal": 44,
+      "semantic_identity": "ace10a5d5679cf81fc36e88a5ddd872c1bbc7e90319d64e9e9619e32a8262df7"
+    },
+    {
+      "bytes": 10058,
+      "ordinal": 45,
+      "semantic_identity": "23eb0778bad91fe9c0250b238e8f7d11e03eb1a0049faf959ad3f81a1136b66a"
+    },
+    {
+      "bytes": 10697,
+      "ordinal": 46,
+      "semantic_identity": "c82b089bc8b459bf0d3656f769130eed84ad9b3ca933243a24f5e1e3b7b8ca04"
+    },
+    {
+      "bytes": 10409,
+      "ordinal": 47,
+      "semantic_identity": "e681e9dc6555b5820107df3adc88c714b0bf2e2f95b270aacfaa2bc9997579d5"
+    },
+    {
+      "bytes": 10516,
+      "ordinal": 48,
+      "semantic_identity": "e9d2fb7322bdbace4293ea081362179c1b47f9fcc8207691672c63f09deb13d0"
+    },
+    {
+      "bytes": 10486,
+      "ordinal": 49,
+      "semantic_identity": "62434e85e2b37df125fe5d2631bb5a7031b5e3ff41c8af15868b9881042449c5"
+    },
+    {
+      "bytes": 10692,
+      "ordinal": 50,
+      "semantic_identity": "4d7c82658a8b9be7b57d44f57152f4cfd1674be7a09e84e7a87969d27de9294f"
+    },
+    {
+      "bytes": 10295,
+      "ordinal": 51,
+      "semantic_identity": "2c64c03e53c235f9b9d30ba5f7b0036f49c096982251f64fb7cd6e7602ccb8cb"
+    },
+    {
+      "bytes": 10044,
+      "ordinal": 52,
+      "semantic_identity": "a7822fa93aba122536f4cca5c0f0931566698acc9d994d4e49d08093893657e0"
+    },
+    {
+      "bytes": 10744,
+      "ordinal": 53,
+      "semantic_identity": "db5658d0c9dfedcb2322b812536cc90447bf0d1c300cce6bb5b7654d3a6464b8"
+    },
+    {
+      "bytes": 10683,
+      "ordinal": 54,
+      "semantic_identity": "9cabd1c7b252a820bb4cdceac4f1acc6c4e84cd6337bbda50f61490d3182ea7b"
+    },
+    {
+      "bytes": 11110,
+      "ordinal": 55,
+      "semantic_identity": "75693e8c4cfe70cff79b3a1977e4cb7b4aa0c5f88e28a81d3f5538c994e95568"
+    },
+    {
+      "bytes": 10430,
+      "ordinal": 56,
+      "semantic_identity": "b964c613930e17402d43a3127e42ab65972e1ff742371032e9993f9459cc4bb3"
+    },
+    {
+      "bytes": 10720,
+      "ordinal": 57,
+      "semantic_identity": "a13e2532ea042028a8c00431bfc2b273b77fbd55e5f512abcdc30536feb81f01"
+    },
+    {
+      "bytes": 10618,
+      "ordinal": 58,
+      "semantic_identity": "637ce998d02274e4de18ad084321c6e0dec8fce7ed3f5ea8218e01371616da70"
+    },
+    {
+      "bytes": 10905,
+      "ordinal": 59,
+      "semantic_identity": "ca60783aab7d3094448b674c7fb9323ce637d899356a32d7149b72c110ed296b"
+    },
+    {
+      "bytes": 10636,
+      "ordinal": 60,
+      "semantic_identity": "971a9791a8e3abb476aab2c33626263693f6e3f8cae713a2153f0382715f523a"
+    },
+    {
+      "bytes": 10997,
+      "ordinal": 61,
+      "semantic_identity": "b1bc6eaa925bc22a37589099dd76984a0f7bbf4f4499e5805db0541939a2a76e"
+    },
+    {
+      "bytes": 10748,
+      "ordinal": 62,
+      "semantic_identity": "726d3e20dc911c8ef34e4e59b2ff2d7e34db99db79a5956b139e49a42dadd147"
+    },
+    {
+      "bytes": 10696,
+      "ordinal": 63,
+      "semantic_identity": "5263299113d6be543c3983c17d9d52cfdacda78c78c11472bf17d4fdff03312f"
+    },
+    {
+      "bytes": 10967,
+      "ordinal": 64,
+      "semantic_identity": "1fdd546af9249cec960048f405e24328e0bfe2dc083a9d5920beed3c07cb3ba9"
+    },
+    {
+      "bytes": 10470,
+      "ordinal": 65,
+      "semantic_identity": "3f8b3e83fccc6cdc2d7c9c24d2c07a9a908b19bdac393af9e200381a2187eb17"
+    },
+    {
+      "bytes": 10481,
+      "ordinal": 66,
+      "semantic_identity": "6b9337e7443f5699a3bb9802ecd027fb62da6b62a072b5bd4d291bce2f9382c3"
+    },
+    {
+      "bytes": 10555,
+      "ordinal": 67,
+      "semantic_identity": "b62948ca82c05f0288054365e071ad208207f8ff9054f9327b309abbde28676a"
+    },
+    {
+      "bytes": 10384,
+      "ordinal": 68,
+      "semantic_identity": "e8d9f3d773882369f45e75949add943b17b9e71c33231322b888b98f6ea027f7"
+    },
+    {
+      "bytes": 10676,
+      "ordinal": 69,
+      "semantic_identity": "a9a2d4e0cb890104aa72e6b03431c92adcd85df1b1569d9d9d41d6e9eadb7b11"
+    },
+    {
+      "bytes": 10680,
+      "ordinal": 70,
+      "semantic_identity": "e3c52d068257398b3bcab3684bdb04b17028d3e477ef028a4231201d543128d8"
+    },
+    {
+      "bytes": 10432,
+      "ordinal": 71,
+      "semantic_identity": "71990944ee499634568fcb01e8b17287440ba228321d80fa2927bad5ecc181b7"
+    },
+    {
+      "bytes": 10630,
+      "ordinal": 72,
+      "semantic_identity": "716192bfbe199728182cb6539153970483cd9a11352b42b3d163bd06d0fc0dda"
+    },
+    {
+      "bytes": 10313,
+      "ordinal": 73,
+      "semantic_identity": "51e536ce169017bbeb66a9189fd2be8ca7d48391c12b7f4f8401b2ec281c8536"
+    },
+    {
+      "bytes": 10407,
+      "ordinal": 74,
+      "semantic_identity": "104abb0c0cc478be20ec64d215325c024cf8e43548c0d054048e349ac08dd0ac"
+    },
+    {
+      "bytes": 10688,
+      "ordinal": 75,
+      "semantic_identity": "429305e94eac5de7d21c9a71f60adc0c19bb2c41de2a174fbdb2cdc40188c338"
+    },
+    {
+      "bytes": 11317,
+      "ordinal": 76,
+      "semantic_identity": "6c04c6a5d003cc77a6e18464bf22beeb33b3f596adf272b059b688b6cadabbb3"
+    },
+    {
+      "bytes": 10438,
+      "ordinal": 77,
+      "semantic_identity": "b482249fb1fe168fae9f69365bdb7cf7035e8fa717db04fb8887260c23cd28fc"
+    },
+    {
+      "bytes": 10592,
+      "ordinal": 78,
+      "semantic_identity": "376714acc3bd61d6e510228ff8c4e9e3a3b0d7bccad89b9e795796a1882076bd"
+    },
+    {
+      "bytes": 10636,
+      "ordinal": 79,
+      "semantic_identity": "e7a9c112a33b88f68f12dd939e074f228983470adfa2b77699ccd18fc254ee3f"
+    },
+    {
+      "bytes": 10483,
+      "ordinal": 80,
+      "semantic_identity": "adffd0994a8a92ef125677bc7d347124700f1f3af8905c169b006489796f7ed8"
+    },
+    {
+      "bytes": 10988,
+      "ordinal": 81,
+      "semantic_identity": "12e2ad600be7c2903353c5d8f5cab8c363c67598081d72022b5a9e5721466b37"
+    },
+    {
+      "bytes": 11204,
+      "ordinal": 82,
+      "semantic_identity": "87d38dc4d8be0aee80d5528fbb16db94e2f814059e342f47268a01664e47d971"
+    },
+    {
+      "bytes": 11246,
+      "ordinal": 83,
+      "semantic_identity": "b9dd9dbeabeacee0e15dd440279fa4ebca505b160c28c04f05ec2f9d9902f722"
+    },
+    {
+      "bytes": 10854,
+      "ordinal": 84,
+      "semantic_identity": "3a15f636f997138e17094145677c10960278285792ac579b3beec6bdf93e46a2"
+    },
+    {
+      "bytes": 10568,
+      "ordinal": 85,
+      "semantic_identity": "0f0bdc777599b02b92e4e29cc8b2ef9d2ae122ecfc4d73f9b374ab6894c1501c"
+    },
+    {
+      "bytes": 10353,
+      "ordinal": 86,
+      "semantic_identity": "c15946114f487cb670dc8e23b626a1579f2a2ce7cbf8a4032addb5b46fd28b20"
+    },
+    {
+      "bytes": 10950,
+      "ordinal": 87,
+      "semantic_identity": "9938f6f6ed3958f9255ce28dd61d844c59daa71e27f603d5761c788bda606a52"
+    },
+    {
+      "bytes": 10274,
+      "ordinal": 88,
+      "semantic_identity": "a16db175176ef0c6f2981216c92d1446526ff8285c12e20de9d593acc07acc33"
+    },
+    {
+      "bytes": 16348,
+      "ordinal": 89,
+      "semantic_identity": "9883a7df12bc2f1b304d19fa5d84ba417322ccb2f4fc8c04d958f17f5daefd9e"
+    },
+    {
+      "bytes": 13134,
+      "ordinal": 90,
+      "semantic_identity": "f1299d8044dd9c7506b304516abb666fd5bfa00b4d94191db9be382ea5643a8a"
+    },
+    {
+      "bytes": 10570,
+      "ordinal": 91,
+      "semantic_identity": "2461d18067f710de471fab03139795674d6280cd415faebbf615b972b551c2d9"
+    },
+    {
+      "bytes": 10703,
+      "ordinal": 92,
+      "semantic_identity": "8b44c38988f7c9e7e3b9b2369d4026dc1c8c97b4e2fe32761a78e7f2c40fc2cc"
+    },
+    {
+      "bytes": 11048,
+      "ordinal": 93,
+      "semantic_identity": "ab7f9a1b7a493d5bc7e7456737a3e24859aea063fa4332ec0dcc982b5fb10767"
+    },
+    {
+      "bytes": 10621,
+      "ordinal": 94,
+      "semantic_identity": "1bb55f64da7d6f44ef367f8554b26e9d0c386e40b127f9b95c5a491a7e958314"
+    },
+    {
+      "bytes": 11102,
+      "ordinal": 95,
+      "semantic_identity": "7615033d31223c610d6ca0a30c4070b2f5f5aa76acbb25c9b4b082da6efc9350"
+    },
+    {
+      "bytes": 11672,
+      "ordinal": 96,
+      "semantic_identity": "7d765220f474822fa0617a691f0027d60b8bd6001407d5d32897fe240eb512b8"
+    },
+    {
+      "bytes": 10691,
+      "ordinal": 97,
+      "semantic_identity": "fc7994ec14e46838536050c526270bc41b26cba9337efdb0d1f814b2150389f8"
+    },
+    {
+      "bytes": 10420,
+      "ordinal": 98,
+      "semantic_identity": "6e24d2331bb31744cd2c4a759645c75a82cdf91ae9e69fd8370a7a99c3ded29c"
+    },
+    {
+      "bytes": 10593,
+      "ordinal": 99,
+      "semantic_identity": "bc5249d86d43e51389e810e93c462df02e59f3de11e78f584c8f8f544147d489"
+    },
+    {
+      "bytes": 10710,
+      "ordinal": 100,
+      "semantic_identity": "4a9c04d2898e07c757984933887e28e252b2a68aa11faff3f2d6f0696cc5aa16"
+    },
+    {
+      "bytes": 11314,
+      "ordinal": 101,
+      "semantic_identity": "a568fe0385a787fb240217b462b896eb7f1428b40c7c12b943c729bd8cee5e05"
+    },
+    {
+      "bytes": 11663,
+      "ordinal": 102,
+      "semantic_identity": "fce87237ea08bcf791178d94101870145263787e3f81572af514f605f781cc01"
+    },
+    {
+      "bytes": 11121,
+      "ordinal": 103,
+      "semantic_identity": "7d839d4ca6484bf121582ca852187271b599099db7beb30a2f0804ac5ec14c53"
+    },
+    {
+      "bytes": 10502,
+      "ordinal": 104,
+      "semantic_identity": "4c47a10a131311322b243402735d42e2699709c35920d2bc4f7a4da748913698"
+    },
+    {
+      "bytes": 10948,
+      "ordinal": 105,
+      "semantic_identity": "e26290aca4059e6a05dbd9fcf0577b02d766090b9eb92dae903df4ad7656a052"
+    },
+    {
+      "bytes": 11168,
+      "ordinal": 106,
+      "semantic_identity": "629334f77ed5953d5e5a5c2ab10ab67ab0db0314ce974f65ff1af13e4ee397a0"
+    },
+    {
+      "bytes": 10298,
+      "ordinal": 107,
+      "semantic_identity": "c1975a0d84f5d5a9bc08fa6501f015094ed5157c1078babdd880e512fdedcbe8"
+    },
+    {
+      "bytes": 10789,
+      "ordinal": 108,
+      "semantic_identity": "4c332d71aef7d97e9ccecba234a9dab0dd84d4af4f40dd5cf25ae1a5e990c68b"
+    },
+    {
+      "bytes": 10653,
+      "ordinal": 109,
+      "semantic_identity": "eb50679b011a83fb44a6524e1511d3c8c0092adb895e2833da71c28505ccb0cf"
+    },
+    {
+      "bytes": 10661,
+      "ordinal": 110,
+      "semantic_identity": "21a7d282b87c418aa8e8c08f29d4c10ec898f25b80689700b3260b8ca006df83"
+    },
+    {
+      "bytes": 11189,
+      "ordinal": 111,
+      "semantic_identity": "0a1fe8bc67d199e410ffa082b71e9440a48a21e47f968e612cd945bb26e77dbf"
+    },
+    {
+      "bytes": 10860,
+      "ordinal": 112,
+      "semantic_identity": "14682ce4500c7b25bd153b93518cb45a40e498c29a04ed4b47024d4c90a4cd39"
+    },
+    {
+      "bytes": 10937,
+      "ordinal": 113,
+      "semantic_identity": "8c5909cfde3b296248d7c082fd1c43944b94e71ac0767c4d45da052dcbb8eacb"
+    },
+    {
+      "bytes": 10994,
+      "ordinal": 114,
+      "semantic_identity": "957b4bd8b78ee87c011cb0413d384e75764fec37e12c5570c9e00f93184ed479"
+    },
+    {
+      "bytes": 11359,
+      "ordinal": 115,
+      "semantic_identity": "968b41ec78e06b754434c37e9d15d284960cd9930596f85b961e918f38b18fe2"
+    },
+    {
+      "bytes": 10558,
+      "ordinal": 116,
+      "semantic_identity": "da8869b89848ee5585073ffcaa3f8305ea4e232a5a7a2f4df9a01e424236aaf1"
+    },
+    {
+      "bytes": 11055,
+      "ordinal": 117,
+      "semantic_identity": "00854372427af3fcba9198513806c12bae7c5f0ad53fc2cf43f32fa9c561e312"
+    },
+    {
+      "bytes": 10623,
+      "ordinal": 118,
+      "semantic_identity": "078e47e71974c50817d528df87eb51e7bccff807e0e947e1a6eb823d487c0b1a"
+    },
+    {
+      "bytes": 10621,
+      "ordinal": 119,
+      "semantic_identity": "551b90d7018355af8a26c7ba5416664812f52696d88b813fb46bb38e6ce3c7be"
+    },
+    {
+      "bytes": 11489,
+      "ordinal": 120,
+      "semantic_identity": "219874ceb3f46421756bbd58724419df31ad588e6a55bb24483ce58887498aa9"
+    },
+    {
+      "bytes": 10900,
+      "ordinal": 121,
+      "semantic_identity": "39a63796ede7de75c4af42f77b5de1341f421d6ce03dcf7550c7a01cab7f2631"
+    },
+    {
+      "bytes": 11109,
+      "ordinal": 122,
+      "semantic_identity": "9b5d9228eb527214aec93f026ac9a73ad83c691ccaa9514c446d13a1645b4800"
+    },
+    {
+      "bytes": 10858,
+      "ordinal": 123,
+      "semantic_identity": "c12861c5f754d00492c3a74fdc5a654e87b5aa12f547b7081765e191c408f4e5"
+    },
+    {
+      "bytes": 10254,
+      "ordinal": 124,
+      "semantic_identity": "85c82d8f05d285c724c26b0a63d9317acc532ee007f13c065736d525560a4e76"
+    },
+    {
+      "bytes": 11228,
+      "ordinal": 125,
+      "semantic_identity": "ab838bb436f6fa8e5d942096115c8eaedd27a3d3115ba15b85b074144959082f"
+    },
+    {
+      "bytes": 11335,
+      "ordinal": 126,
+      "semantic_identity": "fc072c53e0eeb6d97f390199bf6f924bfb76dbfc404f3b7467614ff82d1bf241"
+    },
+    {
+      "bytes": 11072,
+      "ordinal": 127,
+      "semantic_identity": "36b8b332ecaa46fb88b1f99818f954754c098672c222ba910b6c6ca1c75f07d0"
+    }
+  ]
+}

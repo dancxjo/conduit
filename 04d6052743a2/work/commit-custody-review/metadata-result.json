@@ -1,0 +1,6 @@
+{
+  "exit_code": 0,
+  "candidate_sha256": "91adfda3b569da8bdea54b1c07f779dacab2443c5336b406a1e952c288eb5dfb",
+  "sdk_manifest_sha256": "4331f154a74edf8c4f7b0a32e1e50bc9aa563010fd2f554e849322b7c5ea2718",
+  "scope": "metadata only, copied private dependency modules, no runtime claim"
+}

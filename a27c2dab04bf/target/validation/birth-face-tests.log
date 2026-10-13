@@ -1,0 +1,55 @@
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-birth-face/semantics/presentation)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-birth-face/plots/birth)
+    Finished `test` profile [unoptimized] target(s) in 3.70s
+     Running unittests src/lib.rs (/home/dancxjo/conduit-simple-ci/target/debug/deps/conduit_birth_plot-d89700a1b15d060a)
+
+running 8 tests
+test draft::tests::exhausted_suggestion_variation_refuses_before_mutation ... ok
+test draft::tests::exhausted_revision_refuses_every_edit_without_changing_draft_state ... ok
+test face::tests::producer_and_mask_substitution_refuse_while_zero_body_basis_remains_exact ... ok
+test face::tests::deterministic_aural_projection_preserves_all_fields_choices_values_and_errors ... ok
+test face::tests::closed_show_cannot_authorize_birth_and_arbitrary_confirmation_is_not_an_argument ... ok
+test face::tests::exact_kind_value_availability_and_current_face_are_not_inferred ... ok
+test face::tests::one_draft_and_action_sequence_match_widget_adapter_through_planned_mask_fixture ... ok
+test face::tests::editable_empty_name_search_and_declared_naming_choice_remain_existing_birth_actions ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+     Running tests/draft.rs (/home/dancxjo/conduit-simple-ci/target/debug/deps/draft-0ce014ce75fbd84a)
+
+running 6 tests
+test stale_input_empty_names_and_unavailable_plots_refuse_without_changing_selection ... ok
+test search_is_bounded_revisioned_state_that_preserves_selection ... ok
+test naming_and_selection_produce_a_reviewable_workset_without_inventing_a_body ... ok
+test name_and_choice_edits_preserve_exact_revisions_and_refusal_precedence ... ok
+test full_inventory_and_zero_one_many_selections_keep_exact_workset_order ... ok
+test inventory_bounds_and_exact_plot_identities_are_admitted_before_editing ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/face.rs (/home/dancxjo/conduit-simple-ci/target/debug/deps/face-3cbb8a06b9fd7712)
+
+running 6 tests
+test widget_protocol_bounds_and_stale_events_refuse_before_mutation ... ok
+test full_inventory_and_every_tradition_fit_the_current_widget_view ... ok
+test current_birth_widget_projects_the_reviewed_friendly_name_and_birth_action ... ok
+test one_presented_action_boundary_serves_both_presenters_and_preserves_refusals ... ok
+test search_preserves_selection_and_empty_search_results_remain_presentable ... ok
+test widget_control_order_and_single_choice_search_gate_stay_adapter_owned ... ok
+
+test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/names.rs (/home/dancxjo/conduit-simple-ci/target/debug/deps/names-e1bc0ccd23cce97c)
+
+running 2 tests
+test native_suggestions_match_the_existing_browser_catalog_and_derivation ... ok
+test invalid_identities_refuse_and_all_suggestions_fit_the_same_utf8_bound ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+
+   Doc-tests conduit_birth_plot
+
+running 0 tests
+
+test result: ok. 0 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,40 @@
+error[E0433]: cannot find module or crate `conduit_planner` in this scope
+   --> /home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/numeric-storage-tests.rs:116:22
+    |
+116 |     let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+    |                      ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_planner`
+    |
+help: there is a crate or module with a similar name
+    |
+116 -     let placements = conduit_planner::default_placements(&plot, &hosts).unwrap();
+116 +     let placements = conduit_kernel::default_placements(&plot, &hosts).unwrap();
+    |
+
+error[E0433]: cannot find module or crate `conduit_planner` in this scope
+   --> /home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/numeric-storage-tests.rs:117:5
+    |
+117 |     conduit_planner::plan_with_connection_limits(
+    |     ^^^^^^^^^^^^^^^ use of unresolved module or unlinked crate `conduit_planner`
+    |
+help: there is a crate or module with a similar name
+    |
+117 -     conduit_planner::plan_with_connection_limits(
+117 +     conduit_kernel::plan_with_connection_limits(
+    |
+
+error[E0599]: no associated function or constant named `test_frame` found for struct `StepIo<PORTS>` in the current scope
+   --> /home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/numeric-storage-tests.rs:421:30
+    |
+421 |         let mut io = StepIo::test_frame(
+    |                              ^^^^^^^^^^ associated function or constant not found in `StepIo<_>`
+
+error[E0599]: no associated function or constant named `test_frame` found for struct `StepInputBytes<'a, PORTS>` in the current scope
+   --> /home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/numeric-storage-tests.rs:428:38
+    |
+428 |         let inputs = StepInputBytes::test_frame([Some(bytes.as_slice()), None, None, None], None);
+    |                                      ^^^^^^^^^^ associated function or constant not found in `StepInputBytes<'_, _>`
+
+error: aborting due to 4 previous errors
+
+Some errors have detailed explanations: E0433, E0599.
+For more information about an error, try `rustc --explain E0433`.

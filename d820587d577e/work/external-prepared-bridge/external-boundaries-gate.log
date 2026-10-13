@@ -1,0 +1,22 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 7.49s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test rust_binding::generate_tests::external_descendants_count_toward_complete_root_and_generated_union ... FAILED
+
+failures:
+
+---- rust_binding::generate_tests::external_descendants_count_toward_complete_root_and_generated_union stdout ----
+
+thread 'rust_binding::generate_tests::external_descendants_count_toward_complete_root_and_generated_union' (1323737) panicked at architecture/plot/src/rust_binding/generate_tests.rs:1766:6:
+called `Result::unwrap()` on an `Err` value: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 3242, end: 3276, line: 191, column: 1, end_line: 191, end_column: 35 }, message: "invalid canonical plot syntax: type Local0 = { value: Imported0 }" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    rust_binding::generate_tests::external_descendants_count_toward_complete_root_and_generated_union
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 323 filtered out; finished in 0.02s
+
+error: test failed, to rerun pass `-p conduit-plot --lib`

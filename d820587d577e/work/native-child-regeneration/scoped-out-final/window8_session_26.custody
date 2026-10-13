@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=4ede236e291fa2132fcb0b9fcff5b656f45467d0b95e0bbc6017396652022504
+expanded=88cd3069fb2390d37aef93a11540b4e4495a7008b565eadb5f1fe63bf126d6e8
+input=language-window8-move-legal-right-root/expression-4e37bbe0192a-0:input
+output=language-window8-move-legal-right-root/expression-4e37bbe0192a-0:output
+gear=language-window8-move-legal-right-root/expression-4e37bbe0192a-0:conduitese/pure-expression/1316877bb0cffbb451b7177b328d4a6f80545a9a448c54cc1b37810176fc8bca:conduitese/pure-expression-operation@1:input:output

@@ -1,0 +1,18 @@
+
+running 7 tests
+test complete_original_revision_successor_custody_and_atomic_refusal ... revision_receipt=RevisionReceipt { retained_bytes_bound: 52472005, preparation_peak_bytes_bound: 83846346, admission_peak_bytes_bound: 393756617, response_retained_bytes_bound: 100978792 }
+ok
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test original_source_unknown_reviewed_and_partial_production ... producer_receipt=TokenProducerReceipt { retained_heap_bytes_bound: 47051267, preparation_peak_heap_bytes_bound: 83846346, admission_peak_heap_bytes_bound: 139064884, response_retained_bytes_bound: 786704 }
+ok
+test resource_structural_peak_covers_measured_preparation_and_lookup ... dictionary preparation_peak_observed=208056 lookup_peak_observed=1380 receipt=LexicalDictionaryStorageReceipt { shards: 2, entries: 2, retained_heap_bytes_bound: 2304940, preparation_peak_heap_bytes_bound: 11217881, lookup_requested_bytes_bound: 8912941 }
+ok
+test revision_scalar_limit_and_committed_frontier_refusals ... ok
+test whole_preparation_and_response_allocation_bounds_and_one_under ... surface=glorp producer_preparation_peak_increment=3707818 admission_peak_increment=21377 response_retained=21377 response_charge=21649
+surface=record producer_preparation_peak_increment=3707818 admission_peak_increment=21618 response_retained=21618 response_charge=21890
+ok
+test whole_revision_resource_peak_retained_and_one_under ... revision_preparation_increment=5822483 admission_increment=78267 retained=78267 charge=79187
+ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+

@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.conduitos/creche-arrival-proof@1",
+  "base_commit": "51eb7e6630812e514618b5f9a8a4056ef5b5457a",
+  "image_sha256": "ad094d73c04f3ad789f2e1d5d354c6f6d7f64d722e53df61318a7e4182ac9230",
+  "profile": "q35-single-cpu-64m-visible-gtk-xhci-usb-kbd-mouse",
+  "body": null,
+  "creche_ready": true,
+  "plot_opened": false,
+  "naming_edited": true,
+  "effects": 0,
+  "remained_alive": true,
+  "stopped_by_harness": true
+}

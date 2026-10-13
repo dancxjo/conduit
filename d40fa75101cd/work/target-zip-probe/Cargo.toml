@@ -1,0 +1,13 @@
+[package]
+name = "fargan-target-zip-storage-probe"
+version = "0.0.0"
+edition = "2021"
+[workspace]
+[features]
+plot-catalog=[]
+[dependencies]
+conduit-core = {path="../../architecture/core"}
+conduit-composite = {path="../../architecture/composite"}
+conduit-plot = {path="../../architecture/plot"}
+conduit-plan-lowering = {path="../../architecture/plan-lowering"}
+conduit-kernel = {path="../../architecture/kernel",features=["alloc","step-test-support"]}

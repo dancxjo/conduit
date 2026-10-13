@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "body.awake",
+  "assertion": "body-awake",
+  "source_facts": {
+    "plan_id": "body-plan/sha256:2d3d9be7ee08521b8d9c8170c4a423ef98490d650d184f95b4409761c2b39921",
+    "wake_id": "69edeb84c95752982ed08d5b541dab936fc1dddbe96812fca35d148ba46f15ca",
+    "wake_sign_id": "conduitos/product/woke/2"
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "scope": "Only owned inactive failed r1/r2 teaching runner ELFs; original failure logs/time-v/inputs/pins/published source history/SDK retained; current r3 ELF and three live processes untouched",
+  "unix": 1791471610.7784386,
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/proposal_corpus_tests",
+      "size": 148378872,
+      "sha256": "3a9c03097839a8c4a3504c40dc604fcc33f58874be0077c7c6025afc80652b35",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/proposal_corpus_tests_r2",
+      "size": 148379584,
+      "sha256": "93ef1e0762acc2c3587054cc57e63e1158befaad42ec3362b719e7637f214333",
+      "fuser_exit": 1
+    }
+  ],
+  "recovered_bytes": 296758456
+}

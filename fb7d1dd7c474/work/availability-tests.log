@@ -1,0 +1,63 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/planner)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/catalog)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos/mask-offer)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/alife-distributed)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/speech)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/make/host)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/tongues)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std/offers)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/make)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/patchbay/application)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/tour)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/orange-pi/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/rp2040/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/raspberry-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/avr/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/esp32/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/make/body)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/network-r1)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 5m 07s
+     Running tests/lexical.rs (target/debug/deps/lexical-42b7c6e66e7983da)
+
+running 7 tests
+test unicode_runs_are_honest_unknown_units_not_segmented_language_claims ... ok
+test words_are_whole_and_lexical_ambiguity_is_profile_data ... ok
+test stable_complete_occurrences_correspond_across_exact_revisions ... ok
+test foreign_source_profiles_and_duplicate_data_refuse ... ok
+test listed_punctuation_preserves_exact_mixed_occurrences_and_partial_abstention ... ok
+test scalar_spans_bounds_and_stale_source_are_checked ... ok
+test lexical_schemas_are_available_through_installed_catalog ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.17s
+
+     Running tests/parser_available.rs (target/debug/deps/parser_available-47adf1d38985324d)
+
+running 1 test
+test available_prefix_refuses_partial_tokens_and_source_drives_finality ... FAILED
+
+failures:
+
+---- available_prefix_refuses_partial_tokens_and_source_drives_finality stdout ----
+
+thread 'available_prefix_refuses_partial_tokens_and_source_drives_finality' (749776) panicked at semantics/language/tests/common/parser_kernel.rs:247:18:
+called `Result::unwrap()` on an `Err` value: InvalidLifecycle
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    available_prefix_refuses_partial_tokens_and_source_drives_finality
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 26.24s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_available`

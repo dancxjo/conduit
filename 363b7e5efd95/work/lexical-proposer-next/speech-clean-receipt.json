@@ -1,0 +1,106 @@
+{
+  "scope": "Verified inactive own regenerable conduit-speech Cargo outputs only; Language/source/evidence/actualevaluation preserved",
+  "paths": [
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-725a12726107b052/lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-725a12726107b052/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-725a12726107b052/dep-lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-725a12726107b052/lib-conduit_speech.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-725a12726107b052",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-0431d038985d991b/lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-0431d038985d991b/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-0431d038985d991b/dep-lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-0431d038985d991b/lib-conduit_speech.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-0431d038985d991b",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-4a9031444e6229e6/run-build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-4a9031444e6229e6/run-build-script-build-script-build.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-4a9031444e6229e6",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-39008bf55df9b1d0/lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-39008bf55df9b1d0/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-39008bf55df9b1d0/dep-lib-conduit_speech",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-39008bf55df9b1d0/lib-conduit_speech.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-39008bf55df9b1d0",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-81b01ab76d4ff0ff/run-build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-81b01ab76d4ff0ff/run-build-script-build-script-build.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-81b01ab76d4ff0ff",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-dbc46208d0be2708/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-dbc46208d0be2708/dep-build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-dbc46208d0be2708/build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-dbc46208d0be2708/build-script-build-script-build.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-dbc46208d0be2708",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-b55490dceef46d9e/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-b55490dceef46d9e/dep-build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-b55490dceef46d9e/build-script-build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-b55490dceef46d9e/build-script-build-script-build.json",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-speech-b55490dceef46d9e",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/root-output",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/output",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/stderr",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/text_token_role_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/translation_anchor_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/semantic_types.rs",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/linguistic_prosody_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/pronunciation_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/translation_vocative_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/voice.rs",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/root-output",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/invoked.timestamp",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/output",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/stderr",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/text_token_role_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/translation_anchor_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/semantic_types.rs",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/linguistic_prosody_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/pronunciation_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/translation_vocative_program.hex",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/voice.rs",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708/build_script_build-dbc46208d0be2708",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708/build_script_build-dbc46208d0be2708.d",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708/build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e/build_script_build-b55490dceef46d9e.d",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e/build_script_build-b55490dceef46d9e",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e/build-script-build",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e"
+  ],
+  "files_bytes": 684850110,
+  "fuser_exit_code": 1,
+  "large_files": {
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/semantic_types.rs": {
+      "bytes": 169403640,
+      "sha256": "9ce88f50675e6e107de7040a60ec116f2625767ae10477ba44c4a121c6ad5b99"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-4a9031444e6229e6/out/voice.rs": {
+      "bytes": 143699593,
+      "sha256": "ff494ec1a5d68789eee593f14a6bdb97b9c236b10b14dab5d11f17be87664899"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/semantic_types.rs": {
+      "bytes": 169403640,
+      "sha256": "9ce88f50675e6e107de7040a60ec116f2625767ae10477ba44c4a121c6ad5b99"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-81b01ab76d4ff0ff/out/voice.rs": {
+      "bytes": 143699593,
+      "sha256": "ff494ec1a5d68789eee593f14a6bdb97b9c236b10b14dab5d11f17be87664899"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708/build_script_build-dbc46208d0be2708": {
+      "bytes": 14253760,
+      "sha256": "46533c9c121f726f11735dff788ec091ad016e301467a510518eb1d2745f0fdc"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-dbc46208d0be2708/build-script-build": {
+      "bytes": 14253760,
+      "sha256": "46533c9c121f726f11735dff788ec091ad016e301467a510518eb1d2745f0fdc"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e/build_script_build-b55490dceef46d9e": {
+      "bytes": 14068456,
+      "sha256": "01cc06952096d04628eeb3dd13585552ba338ca1e08e00f5662265d2e9418884"
+    },
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-speech-b55490dceef46d9e/build-script-build": {
+      "bytes": 14068456,
+      "sha256": "01cc06952096d04628eeb3dd13585552ba338ca1e08e00f5662265d2e9418884"
+    }
+  }
+}

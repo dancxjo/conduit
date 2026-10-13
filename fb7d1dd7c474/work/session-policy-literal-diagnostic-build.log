@@ -1,0 +1,47 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/plot)
+error[E0277]: `conduit_core::KindId` doesn't implement `Display`
+  --> architecture/plot/src/canonical_expansion/construction.rs:77:178
+   |
+77 | ...tity={} error={error:?}", native.name, native.identity)))?,
+   |         --                                ^^^^^^^^^^^^^^^ `conduit_core::KindId` cannot be formatted with the default formatter
+   |         |
+   |         required by this formatting parameter
+   |
+   = help: the trait `Display` is not implemented for `conduit_core::KindId`
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0277]: `conduit_core::KindId` doesn't implement `Display`
+  --> architecture/plot/src/canonical_expansion/construction.rs:81:208
+   |
+81 | ...tity={} error={error:?}", native.name, native.identity)))?;
+   |         --                                ^^^^^^^^^^^^^^^ `conduit_core::KindId` cannot be formatted with the default formatter
+   |         |
+   |         required by this formatting parameter
+   |
+   = help: the trait `Display` is not implemented for `conduit_core::KindId`
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0277]: `conduit_core::KindId` doesn't implement `Display`
+  --> architecture/plot/src/canonical_expansion/construction.rs:83:178
+   |
+83 | ...tity={} error={error:?}", native.name, native.identity)))?;
+   |         --                                ^^^^^^^^^^^^^^^ `conduit_core::KindId` cannot be formatted with the default formatter
+   |         |
+   |         required by this formatting parameter
+   |
+   = help: the trait `Display` is not implemented for `conduit_core::KindId`
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+error[E0277]: `conduit_core::KindId` doesn't implement `Display`
+  --> architecture/plot/src/canonical_expansion/construction.rs:91:178
+   |
+91 | ...tity={} error={error:?}", native.name, native.identity)))?;
+   |         --                                ^^^^^^^^^^^^^^^ `conduit_core::KindId` cannot be formatted with the default formatter
+   |         |
+   |         required by this formatting parameter
+   |
+   = help: the trait `Display` is not implemented for `conduit_core::KindId`
+   = note: in format strings you may be able to use `{:?}` (or {:#?} for pretty-print) instead
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `conduit-plot` (lib) due to 4 previous errors

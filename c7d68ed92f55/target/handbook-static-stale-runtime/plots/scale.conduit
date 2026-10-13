@@ -1,0 +1,6 @@
+plot scale-demo {
+    source: scalar/literal(1.5)
+    scale: math/scale(2.0)
+    show: presentation/scalar
+    source >> scale >> show
+}.

@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.09s
+     Running tests/parser_window8_program_bank.rs (target/debug/deps/parser_window8_program_bank-e617461fee293e6a)
+
+running 1 test
+actual profile input_bytes=126704 semantic_digest=[f2, 94, 9d, 48, 64, 81, 33, 3f, b0, 29, 4f, c1, 01, fa, ab, 86, 42, 60, ac, 99, 51, 05, c0, f8, 22, 6d, 52, 6f, fe, d4, 12, 77]
+actual76 Reference batch completed reference_us=18980390
+actual retained context76proposal exact Native parity PASS preparation_us=4259042 reference_us=18980390 prepared_us=16444997 native_storage=PreparedNativeFamilyStorageReceipt { types: 53, retained_heap_bytes_bound: 152388690, preparation_peak_heap_bytes_bound: 154069451, conversion_requested_bytes_bound: 639893585 }; excludes context/class preparation and numerical model inference; Source evaluation and ordinary input encoding included
+test actual_retained_context_all76_proposals_match_reference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 45.98s
+

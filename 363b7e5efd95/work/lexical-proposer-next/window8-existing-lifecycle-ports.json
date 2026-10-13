@@ -1,0 +1,259 @@
+[
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_continuation.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-wait",
+        "ports": "input: LanguageParserWindow8Continuation...| >> output: LanguageParserWindow8WaitProposal...|"
+      },
+      {
+        "plot": "language-window8-grow",
+        "ports": "input: LanguageParserWindow8GrowContext...| >> output: LanguageParserWindow8GrowProposal...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8Continuation",
+        "fields": [
+          "state: LanguageParserWindow8StateProof",
+          "lexical: LanguageParserWindow8Lexical",
+          "basis: LanguageParserBasis"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8Wait",
+        "fields": [
+          "context: LanguageParserWindow8Continuation"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8WaitProposal",
+        "fields": [
+          "context: LanguageParserWindow8Continuation"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8GrowContext",
+        "fields": [
+          "previous: LanguageParserWindow8Wait",
+          "next: LanguageParserWindow8Lexical",
+          "lineage: LanguageTextRevisionLineage",
+          "basis: LanguageParserBasis",
+          "choices: collection U64 = 8",
+          "selected: U64 in 0..=8"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8GrowProposal",
+        "fields": [
+          "state: LanguageParserWindow8RawState",
+          "choices: collection U64 = 8",
+          "selected: U64"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_empty_grow.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-empty-grow",
+        "ports": "input: LanguageParserWindow8EmptyGrowContext...| >> output: LanguageParserWindow8GrowProposal...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8EmptyPrefix",
+        "fields": [
+          "state: LanguageParserWindow8RawState",
+          "lexical: LanguageParserWindow8Lexical",
+          "basis: LanguageParserBasis"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8EmptyGrowContext",
+        "fields": [
+          "previous: LanguageParserWindow8EmptyPrefix",
+          "next: LanguageParserWindow8Lexical",
+          "lineage: LanguageTextRevisionLineage",
+          "basis: LanguageParserBasis",
+          "choices: collection U64 = 8",
+          "selected: U64 in 0..=8"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_reanalysis.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-reanalysis",
+        "ports": "input: LanguageParserWindow8ReanalysisContext...| >> output: LanguageParserWindow8ReanalysisProposal...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8ReanalysisContext",
+        "fields": [
+          "previous: LanguageParserWindow8Snapshot",
+          "next: LanguageParserWindow8Lexical",
+          "lineage: LanguageTextRevisionLineage",
+          "basis: LanguageParserBasis",
+          "default_relation: LanguageParserRelation"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8ReanalysisProposal",
+        "fields": [
+          "state: LanguageParserWindow8RawState",
+          "choices: collection U64 = 8",
+          "selected: U64",
+          "withdrawn_analysis: LanguageAnalysisRevisionId"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_dependency_facts.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-stable-dependency-fact",
+        "ports": "input: LanguageParserWindow8DependencyFactContext...| >> output: LanguageParserWindow8StableDependencyFactProposal...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8DependencyFactContext",
+        "fields": [
+          "query: LanguageParserWindow8FactQuery",
+          "head: U64 in 0..=8",
+          "relation: LanguageParserRelation",
+          "dependent_end: U64",
+          "head_end: U64"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8StableDependencyFact",
+        "fields": [
+          "context: LanguageParserWindow8DependencyFactContext"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8StableDependencyFactProposal",
+        "fields": [
+          "context: LanguageParserWindow8DependencyFactContext"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_lexical_ledger.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-lexical-anchor",
+        "ports": "input: LanguageParserWindow8LexicalAnchorContext...| >> output: LanguageParserWindow8LexicalAnchorProposal...|"
+      },
+      {
+        "plot": "language-window8-lexical-rebase",
+        "ports": "receipt: LanguageParserWindow8LexicalRebase...| >> output: LanguageParserWindow8LexicalAnchorProposal...|"
+      },
+      {
+        "plot": "language-window8-lexical-ledger-branch",
+        "ports": "receipt: LanguageParserWindow8LexicalLedgerBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8LexicalAnchor",
+        "fields": [
+          "origin_basis: LanguageParserBasis",
+          "current_basis: LanguageParserBasis",
+          "dependent: U64 in 0..=7",
+          "choice: U64 in 0..=3",
+          "occurrence: LinguisticTokenIdentity"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8LexicalAnchorProposal",
+        "fields": [
+          "origin_basis: LanguageParserBasis",
+          "current_basis: LanguageParserBasis",
+          "dependent: U64",
+          "choice: U64",
+          "occurrence: LinguisticTokenIdentity"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8LexicalAnchorContext",
+        "fields": [
+          "receipt: LanguageParserWindow8ProtectedLexicalChoice",
+          "occurrence: LinguisticTokenIdentity",
+          "choice: U64 in 0..=3"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8LexicalCustody",
+        "fields": [
+          "origin: LanguageParserWindow8StableLexicalFact",
+          "anchor: LanguageParserWindow8LexicalAnchor",
+          "lexical: LanguageParserWindow8Lexical"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8LexicalRebase",
+        "fields": [
+          "previous: LanguageParserWindow8LexicalCustody",
+          "occurrence: LinguisticTokenIdentity",
+          "next: LanguageParserWindow8Lexical",
+          "lineage: LanguageTextRevisionLineage",
+          "basis: LanguageParserBasis"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8LexicalLedgerBranch",
+        "fields": [
+          "receipt: LanguageParserWindow8LexicalCustody",
+          "dependent: U64 in 0..=7",
+          "choice: U64 in 0..=3",
+          "basis: LanguageParserBasis"
+        ]
+      }
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity/semantics/language/parser_window8_lexical_protection.conduit",
+    "ports": [
+      {
+        "plot": "language-window8-protected-choice",
+        "ports": "input: LanguageParserWindow8ProtectedChoiceBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|"
+      }
+    ],
+    "types": [
+      {
+        "type": "LanguageParserWindow8ProtectedLexicalChoice",
+        "fields": [
+          "fact: LanguageParserWindow8StableLexicalFact",
+          "next: LanguageParserWindow8Lexical",
+          "lineage: LanguageTextRevisionLineage",
+          "origin_basis: LanguageParserBasis",
+          "current_basis: LanguageParserBasis"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8ProtectedChoiceBranch",
+        "fields": [
+          "receipt: LanguageParserWindow8ProtectedLexicalChoice",
+          "dependent: U64 in 0..=7",
+          "choice: U64 in 0..=3",
+          "basis: LanguageParserBasis"
+        ]
+      },
+      {
+        "type": "LanguageParserWindow8ProtectedChoiceDecision",
+        "fields": [
+          "allowed: Boolean"
+        ]
+      }
+    ]
+  }
+]

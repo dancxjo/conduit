@@ -1,0 +1,19 @@
+{
+  "selected_file_sha256": {
+    "semantics/language/build.rs": "6986d79daaa547b526807b61891ace97a0e9b3080ad1b8e802597ccae70883c2",
+    "semantics/language/src/lib.rs": "03fe887b54662d3bce8d98ec951045518f964c05b0b9d0d57f07300a672b6f82",
+    "semantics/language/src/prepared_stable_lexical_fact.rs": "86566a962945ffa912b43f33f458cdc74e1294190a5a153eaa820a8a8ed4ad66",
+    "semantics/language/tests/parser_window8_lexical_fact.rs": "4f8f5486bd89b478478ff9b1efc92c5d5e8dbf52081eb2458c55876818f2f272"
+  },
+  "root": "LanguageParserWindow8StableLexicalFact",
+  "types": 35,
+  "ordered_laws": 118,
+  "generated_header_sha256": "5b89415fb684d09776ca72b5ac215586a06f1d35eaa3824333c75b8434bac202",
+  "trusted_complete_type_law_resource_multiset_equal": true,
+  "gates": {
+    "language_scoped_clippy": "PASS16m12s",
+    "language_fixture": "PASS1test24.50s;build16m09s",
+    "language_no_std": "RUNNING62623"
+  },
+  "scope": "Explicit owned output admission only; no ordinary input encoder, Source execution, output queue, whole parser, v2, model, or voice bound/performance claim."
+}

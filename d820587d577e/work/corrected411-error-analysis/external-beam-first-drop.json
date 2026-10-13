@@ -1,0 +1,189 @@
+{
+  "scope": "External numerical width-four diagnostic only; Source-shaped selected-frontier/score/identity policy; no checked Source equivalence. Not original Source/Native parity, admitted parser output, heldout accuracy or stability proof",
+  "artifact_sha256": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+  "rows": [
+    {
+      "id": "vocative-initial",
+      "text": "Travis, record songs.",
+      "epochs": 10,
+      "first_gold_drop": {
+        "epoch": 3,
+        "oracle_action": 34,
+        "gold_proposals": 1,
+        "gold_score": 81035,
+        "cutoff_score": 81815,
+        "best_action_prefix": [
+          73,
+          0,
+          34
+        ]
+      },
+      "final_gold_rank": null,
+      "final_scores": [
+        305376,
+        293436,
+        283627
+      ],
+      "numeric_calls": 44,
+      "complete": true,
+      "elapsed_seconds": 0.015195230022072792,
+      "heads": [
+        2,
+        0,
+        8,
+        2,
+        3
+      ],
+      "relations": [
+        "vocative",
+        "punct",
+        "root",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        11,
+        12,
+        15,
+        7,
+        12
+      ],
+      "correct_heads": 3,
+      "correct_base_las": 3,
+      "correct_pos": 5,
+      "tokens": 5
+    },
+    {
+      "id": "vocative-medial",
+      "text": "I record, Travis, songs.",
+      "epochs": 14,
+      "first_gold_drop": null,
+      "final_gold_rank": 2,
+      "final_scores": [
+        448589,
+        434035,
+        429198,
+        428706
+      ],
+      "numeric_calls": 69,
+      "complete": true,
+      "elapsed_seconds": 0.022304874029941857,
+      "heads": [
+        1,
+        8,
+        1,
+        2,
+        1,
+        1,
+        5
+      ],
+      "relations": [
+        "nsubj",
+        "root",
+        "punct",
+        "vocative",
+        "punct",
+        "obj",
+        "punct"
+      ],
+      "pos": [
+        10,
+        15,
+        12,
+        11,
+        12,
+        7,
+        12
+      ],
+      "correct_heads": 5,
+      "correct_base_las": 5,
+      "correct_pos": 7,
+      "tokens": 7
+    },
+    {
+      "id": "authored-old-man-nominal",
+      "text": "The old man.",
+      "epochs": 8,
+      "first_gold_drop": null,
+      "final_gold_rank": 3,
+      "final_scores": [
+        263391,
+        259664,
+        259271,
+        258771
+      ],
+      "numeric_calls": 38,
+      "complete": true,
+      "elapsed_seconds": 0.01214197400258854,
+      "heads": [
+        1,
+        2,
+        8,
+        2
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "root",
+        "punct"
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        12
+      ],
+      "correct_heads": 3,
+      "correct_base_las": 2,
+      "correct_pos": 2,
+      "tokens": 4
+    },
+    {
+      "id": "garden-path",
+      "text": "The horse raced past the barn fell",
+      "epochs": 14,
+      "first_gold_drop": null,
+      "final_gold_rank": 2,
+      "final_scores": [
+        389802,
+        389035,
+        372599,
+        371904
+      ],
+      "numeric_calls": 76,
+      "complete": true,
+      "elapsed_seconds": 0.02882349694846198,
+      "heads": [
+        1,
+        2,
+        8,
+        5,
+        5,
+        2,
+        2
+      ],
+      "relations": [
+        "det",
+        "nsubj",
+        "root",
+        "case",
+        "det",
+        "obl",
+        "xcomp"
+      ],
+      "pos": [
+        5,
+        7,
+        15,
+        1,
+        5,
+        7,
+        15
+      ],
+      "correct_heads": 4,
+      "correct_base_las": 4,
+      "correct_pos": 7,
+      "tokens": 7
+    }
+  ]
+}

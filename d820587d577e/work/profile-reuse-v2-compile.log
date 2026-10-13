@@ -1,0 +1,20 @@
+error[E0603]: enum `Window8Refusal` is private
+ --> work/finite_class_owner_v2.rs:8:156
+  |
+8 | ...elf,conduit_language::parser_window8_program_bank::Window8Refusal>{
+  |                                                       ^^^^^^^^^^^^^^ private enum
+  |
+note: the enum `Window8Refusal` is defined here
+ --> semantics/language/src/parser_window8_program_bank.rs:3:38
+  |
+3 | use crate::parser_window8::{lexical, Window8Refusal};
+  |                                      ^^^^^^^^^^^^^^
+help: import `Window8Refusal` directly
+  |
+8 -  pub fn derive(bank:&'a Window8ProgramBank,selection:&'a S,default:&'a LanguageParserRelation)->Result<Self,conduit_language::parser_window8_program_bank::Window8Refusal>{
+8 +  pub fn derive(bank:&'a Window8ProgramBank,selection:&'a S,default:&'a LanguageParserRelation)->Result<Self,conduit_language::parser_window8::Window8Refusal>{
+  |
+
+error: aborting due to 1 previous error
+
+For more information about this error, try `rustc --explain E0603`.

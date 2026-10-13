@@ -1,0 +1,177 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/01-arrive-without-a-body.ppm\"},\"execute\":\"screendump\",\"id\":\"1:01-arrive-without-a-body\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:01-arrive-without-a-body\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"w\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"w\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"4:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"k\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"k\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"9:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"9:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"s\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"10:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"s\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"11:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"11:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"p\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"12:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"12:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"p\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"13:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"13:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"14:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"14:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"15:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"15:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"c\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"16:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"16:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"c\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"17:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"17:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"18:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"18:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"19:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"19:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"20:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"20:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"21:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"21:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"22:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"22:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"23:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"23:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"24:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"24:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"25:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"25:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"26:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"26:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"27:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"27:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"28:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"28:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"29:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"29:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"30:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"30:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"31:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"31:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"32:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"32:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"33:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"33:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"34:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"34:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"35:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"35:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"36:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"36:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"37:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"37:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"38:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"38:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"39:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"39:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"40:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"40:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"41:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"41:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"42:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"42:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"0\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"43:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"43:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"44:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"44:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"45:workspace-edit-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"45:workspace-edit-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/02-review-name-and-plots.ppm\"},\"execute\":\"screendump\",\"id\":\"46:02-review-name-and-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"46:02-review-name-and-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"47:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"47:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"48:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"48:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"49:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"49:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"50:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"50:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"51:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"51:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"52:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"52:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"53:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"53:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"54:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"54:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"55:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"55:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"56:workspace-birth-focus\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"56:workspace-birth-focus\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"57:workspace-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"57:workspace-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"58:workspace-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"58:workspace-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/03-born-and-resting.ppm\"},\"execute\":\"screendump\",\"id\":\"59:03-born-and-resting\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"59:03-born-and-resting\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f10\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"60:workspace-tutorial-wake\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"60:workspace-tutorial-wake\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f10\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"61:workspace-tutorial-wake\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"61:workspace-tutorial-wake\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/04-wake-the-retained-body.ppm\"},\"execute\":\"screendump\",\"id\":\"62:04-wake-the-retained-body\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"62:04-wake-the-retained-body\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f10\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"63:workspace-use-current-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"63:workspace-use-current-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f10\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"64:workspace-use-current-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"64:workspace-use-current-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"h\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"65:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"65:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"h\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"66:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"66:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"67:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"67:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"68:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"68:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"69:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"69:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"70:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"70:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"71:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"71:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"72:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"72:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"73:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"73:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"74:workspace-type-text\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"74:workspace-type-text\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/05-use-memory-lantern.ppm\"},\"execute\":\"screendump\",\"id\":\"75:05-use-memory-lantern\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"75:05-use-memory-lantern\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f9\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"76:workspace-open-tutorial\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"76:workspace-open-tutorial\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f9\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"77:workspace-open-tutorial\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"77:workspace-open-tutorial\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/06-read-current-tutorial.ppm\"},\"execute\":\"screendump\",\"id\":\"78:06-read-current-tutorial\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"78:06-read-current-tutorial\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"pgdn\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"79:workspace-read-next-page\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"79:workspace-read-next-page\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"pgdn\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"80:workspace-read-next-page\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"80:workspace-read-next-page\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/07-read-below-the-first-page.ppm\"},\"execute\":\"screendump\",\"id\":\"81:07-read-below-the-first-page\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"81:07-read-below-the-first-page\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f7\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"82:workspace-lull\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"82:workspace-lull\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f7\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"83:workspace-lull\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"83:workspace-lull\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/08-rest-the-same-body.ppm\"},\"execute\":\"screendump\",\"id\":\"84:08-rest-the-same-body\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"84:08-rest-the-same-body\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"end\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"85:workspace-finish\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"85:workspace-finish\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"end\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"86:workspace-finish\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"86:workspace-finish\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-face-mask-integration/target/conduitos/x86_64/workspace-frames/09-finish-and-inspect.ppm\"},\"execute\":\"screendump\",\"id\":\"87:09-finish-and-inspect\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"87:09-finish-and-inspect\"}\r\n"}

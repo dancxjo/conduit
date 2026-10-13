@@ -1,0 +1,11 @@
+
+running 3 tests
+test exact_full_arrays_and_one_under_preallocation_refusals ... local=1 remote=0 actual full array bytes=20
+local=1024 remote=0 actual full array bytes=20480
+local=32 remote=4 actual full array bytes=736
+ok
+test legacy_budget_refusal_parity_precedes_allocation ... ok
+test unchanged_logical_sign_and_remote_behavior_no_runtime_allocation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

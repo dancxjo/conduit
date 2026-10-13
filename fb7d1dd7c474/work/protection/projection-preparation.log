@@ -1,0 +1,15 @@
+
+running 1 test
+
+thread 'exact_native_fact_compact_projection_prepares' (1284649) panicked at semantics/language/tests/common/parser_kernel.rs:30:67:
+called `Result::unwrap()` on an `Err` value: Source(SyntaxCheckDiagnostic { code: "CND-FRM-058", span: Span { start: 147621, end: 147654, line: 1458, column: 9, end_line: 1458, end_column: 42 }, message: "semantic value Type 'LanguageParserJointConsensusQuery' is not in scope" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test exact_native_fact_compact_projection_prepares ... FAILED
+
+failures:
+
+failures:
+    exact_native_fact_compact_projection_prepares
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 11.86s
+

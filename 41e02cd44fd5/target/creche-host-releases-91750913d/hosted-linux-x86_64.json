@@ -1,0 +1,24 @@
+{
+  "schema": "conduit.release/host-bundle@1",
+  "target_id": "std/x86_64/computer",
+  "make_package_id": "hosted-native@1",
+  "output": "native-bundle",
+  "builder_adapter": "conduit-host-hosted/build-native@1",
+  "deployment_adapter": "conduit-host-hosted/launch@1",
+  "source_identity": "91750913d0105074cfd84787a13bbbed77b4ee3d",
+  "bundle_sha256": "sha256:6362da0c88eae3da17b3ca1f6ed5919b00f33176a808d5c9c21b72f41907ce42",
+  "files": [
+    {
+      "path": "conduit-linux-x86_64",
+      "bytes": 46334128,
+      "sha256": "sha256:00e67990b578100bdf35d83f4db932666f4b2ca758fc050078393e0dfe616f3a",
+      "media_type": "application/vnd.conduit.host+executable"
+    },
+    {
+      "path": "install-linux-x86_64.sh",
+      "bytes": 714,
+      "sha256": "sha256:f09c412fdafc09b625ee4c0a3f843a9d84bf504b56de11cc7e197e928e589293",
+      "media_type": "application/x-sh"
+    }
+  ]
+}

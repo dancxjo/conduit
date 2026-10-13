@@ -1,0 +1,16 @@
+
+running 1 test
+test source_commit_then_append_preserves_native_dependency_and_head_choice has been running for over 60 seconds
+
+thread 'source_commit_then_append_preserves_native_dependency_and_head_choice' (1224330) panicked at semantics/language/tests/common/parser_kernel.rs:33:41:
+language-parser-joint-rebase: Expansion(CanonicalExpansionDiagnostic { code: "CND-FRM-046", message: "pure expression at 1651:171 is not well typed: literal is incompatible with its exact expected type" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test source_commit_then_append_preserves_native_dependency_and_head_choice ... FAILED
+
+failures:
+
+failures:
+    source_commit_then_append_preserves_native_dependency_and_head_choice
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 321.87s
+

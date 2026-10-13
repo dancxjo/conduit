@@ -1,0 +1,34 @@
+{
+  "identity": "proposal-unknown/train-absent-four@1",
+  "ordered_pos_codes": [
+    0,
+    7,
+    11,
+    15
+  ],
+  "commitment": "stable_input_consensus",
+  "origin": "unknown retained through model analysis/any qualified commitment",
+  "selection": "four largest fullTRAINPOS counts absent exact finaldictionary, tie code, numeric output order",
+  "training_only_counts": {
+    "0": 1842,
+    "1": 53,
+    "2": 566,
+    "3": 30,
+    "4": 8,
+    "5": 15,
+    "6": 45,
+    "7": 6081,
+    "8": 571,
+    "9": 3,
+    "10": 43,
+    "11": 2818,
+    "12": 35,
+    "13": 19,
+    "14": 16,
+    "15": 2832,
+    "16": 70
+  },
+  "dictionary_manifest_sha256": "4390281523cd89ef5e31dbccc9c2f9c049116dee3975fc6957f270ed8f195ebd",
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "uncertainty": "omitted POS remain possible; no reviewed lexical truth or confidence probability"
+}

@@ -1,0 +1,1279 @@
+{
+  "scope": "Read-only lexical named-declaration dependency estimate. All canonical parser_window8 files included, including old and successor feature versions. Greedy finite partition, NOT proven minimum/checker/readiness/storage acceptance. All declaration roots cover final guarded admissions; raw numerical aliases require separate bounded primitive capability.",
+  "ports": [
+    {
+      "name": "language-window8-initialize",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8Begin",
+        "LanguageParserWindow8RawState"
+      ],
+      "signature": "value: LanguageParserWindow8Begin...| >> result: LanguageParserWindow8RawState...|"
+    },
+    {
+      "name": "language-window8-walk-initialize",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8WalkQuery",
+        "LanguageParserWindow8RawWalk"
+      ],
+      "signature": "value: LanguageParserWindow8WalkQuery...| >> result: LanguageParserWindow8RawWalk...|"
+    },
+    {
+      "name": "language-window8-walk-follow",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawWalk",
+        "LanguageParserWindow8RawWalk"
+      ],
+      "signature": "value: LanguageParserWindow8RawWalk...| >> result: LanguageParserWindow8RawWalk...|"
+    },
+    {
+      "name": "language-window8-walk",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8WalkQuery",
+        "LanguageParserWindow8RawWalk",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8RootCount"
+      ],
+      "signature": "query: LanguageParserWindow8WalkQuery...| >> result: LanguageParserWindow8RawWalk...|\n) {\n    query >> language-window8-walk-initialize() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> language-window8-walk-follow() >> result\n}\ntype LanguageParserWindow8RootCount = {\n    count: U64\n}\nplot language-window8-root-count (\n    value: LanguageParserWindow8RawState...| >> result: LanguageParserWindow8RootCount...|"
+    },
+    {
+      "name": "language-window8-move-context",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawRequest",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "request: LanguageParserWindow8RawRequest...| >> context: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal-shift",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal-reduce",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal-left",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal-right-root",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal-right-nonroot",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-move-legal",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawResult"
+      ],
+      "signature": "context: LanguageParserWindow8RawContext...| >> checked: LanguageParserWindow8RawContext...|\n) {\n    context >> language-window8-move-legal-shift() >> language-window8-move-legal-reduce() >> language-window8-move-legal-left() >> language-window8-move-legal-right-root() >> language-window8-move-legal-right-nonroot() >> checked\n}\nplot language-window8-move-apply (\n    context: LanguageParserWindow8RawContext...| >> result: LanguageParserWindow8RawResult...|"
+    },
+    {
+      "name": "language-window8-transition",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawRequest",
+        "LanguageParserWindow8RawResult",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8Completion"
+      ],
+      "signature": "request: LanguageParserWindow8RawRequest...| >> result: LanguageParserWindow8RawResult...|\n) {\n    request >> language-window8-move-context() >> language-window8-move-legal() >> language-window8-move-apply() >> result\n}\ntype LanguageParserWindow8Completion = {\n    complete: Boolean\n}\nplot language-window8-complete (\n    state: LanguageParserWindow8RawState...| >> result: LanguageParserWindow8Completion...|"
+    },
+    {
+      "name": "language-window8-available",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageLexicalTape",
+        "LanguageParserWindow8Available"
+      ],
+      "signature": "tape: LanguageLexicalTape...| >> result: LanguageParserWindow8Available...|"
+    },
+    {
+      "name": "language-window8-empty-codes",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8Ordinal",
+        "LanguageParserWindow8RawCodes"
+      ],
+      "signature": "ordinal: LanguageParserWindow8Ordinal...| >> codes: LanguageParserWindow8RawCodes...|"
+    },
+    {
+      "name": "language-window8-token-codes",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8CodeQuery",
+        "LanguageParserWindow8RawCodes"
+      ],
+      "signature": "query: LanguageParserWindow8CodeQuery...| >> codes: LanguageParserWindow8RawCodes...|"
+    },
+    {
+      "name": "language-window8-feature-context",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawFeatureQuery",
+        "LanguageParserWindow8RawFeatureContext"
+      ],
+      "signature": "query: LanguageParserWindow8RawFeatureQuery...| >> context: LanguageParserWindow8RawFeatureContext...|"
+    },
+    {
+      "name": "language-window8-feature-values",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawFeatureContext",
+        "LanguageParserWindow8RawModelFeatures"
+      ],
+      "signature": "context: LanguageParserWindow8RawFeatureContext...| >> features: LanguageParserWindow8RawModelFeatures...|"
+    },
+    {
+      "name": "language-window8-model-features",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawFeatureQuery",
+        "LanguageParserWindow8RawModelFeatures"
+      ],
+      "signature": "query: LanguageParserWindow8RawFeatureQuery...| >> features: LanguageParserWindow8RawModelFeatures...|\n) {\n    query >> language-window8-feature-context() >> language-window8-feature-values() >> features\n}\n\n# Version3 model class encoding: Shift0, Reduce1, Left2..38, Right39..75.\n# All labels predict canonical UD bases only; this finite model has no subtype output.\ntype LanguageParserWindow8ClassQuery = {\n    code: U64 in 0..=75\n    default_relation: LanguageParserRelation\n    where text/material(.default_relation.subtype"
+    },
+    {
+      "name": "language-window8-class-index",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8ClassQuery",
+        "LanguageParserWindow8RawClassIndex"
+      ],
+      "signature": "query: LanguageParserWindow8ClassQuery...| >> index: LanguageParserWindow8RawClassIndex...|"
+    },
+    {
+      "name": "language-window8-class-relations",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawClassIndex",
+        "LanguageParserWindow8RawClassRelations"
+      ],
+      "signature": "index: LanguageParserWindow8RawClassIndex...| >> relations: LanguageParserWindow8RawClassRelations...|"
+    },
+    {
+      "name": "language-window8-class-relation",
+      "file": "parser_window8.conduit",
+      "io": [
+        "LanguageParserWindow8RawClassRelations",
+        "LanguageParserWindow8RawClass"
+      ],
+      "signature": "relations: LanguageParserWindow8RawClassRelations...| >> decoded: LanguageParserWindow8RawClass...|"
+    },
+    {
+      "name": "language-window8-wait",
+      "file": "parser_window8_continuation.conduit",
+      "io": [
+        "LanguageParserWindow8Continuation",
+        "LanguageParserWindow8WaitProposal"
+      ],
+      "signature": "input: LanguageParserWindow8Continuation...| >> output: LanguageParserWindow8WaitProposal...|"
+    },
+    {
+      "name": "language-window8-grow",
+      "file": "parser_window8_continuation.conduit",
+      "io": [
+        "LanguageParserWindow8GrowContext",
+        "LanguageParserWindow8GrowProposal"
+      ],
+      "signature": "input: LanguageParserWindow8GrowContext...| >> output: LanguageParserWindow8GrowProposal...|"
+    },
+    {
+      "name": "language-window8-dependency-custody-rebase",
+      "file": "parser_window8_dependency_custody.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyRebaseQuery",
+        "LanguageParserWindow8DependencyCustodyProposal"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyRebaseQuery...| >> output: LanguageParserWindow8DependencyCustodyProposal...|"
+    },
+    {
+      "name": "language-window8-dependency-custody-origin",
+      "file": "parser_window8_dependency_custody.conduit",
+      "io": [
+        "LanguageParserWindow8StableDependencyFact",
+        "LanguageParserWindow8DependencyCustodyProposal"
+      ],
+      "signature": "input: LanguageParserWindow8StableDependencyFact...| >> output: LanguageParserWindow8DependencyCustodyProposal...|"
+    },
+    {
+      "name": "language-window8-stable-dependency-fact",
+      "file": "parser_window8_dependency_facts.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyFactContext",
+        "LanguageParserWindow8StableDependencyFactProposal"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyFactContext...| >> output: LanguageParserWindow8StableDependencyFactProposal...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-project",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityQuery",
+        "LanguageParserWindow8DependencyForestWorking"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityQuery...| >> output: LanguageParserWindow8DependencyForestWorking...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-height",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyForestWorking",
+        "LanguageParserWindow8DependencyForestWorking"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyForestWorking...| >> output: LanguageParserWindow8DependencyForestWorking...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-decision",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyForestWorking",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyForestWorking...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-0",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-0",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-0",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-1",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-1",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-1",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-2",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-2",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-2",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-3",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-3",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-3",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-4",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-4",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-4",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-5",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-5",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-5",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-6",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-6",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-6",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-geometry-7",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-choices-7",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-dependency-forest-arc-7",
+      "file": "parser_window8_dependency_forest.conduit",
+      "io": [
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "signature": "input: LanguageParserWindow8DependencyCompatibilityDecision...| >> output: LanguageParserWindow8DependencyCompatibilityDecision...|"
+    },
+    {
+      "name": "language-window8-empty-grow",
+      "file": "parser_window8_empty_grow.conduit",
+      "io": [
+        "LanguageParserWindow8EmptyGrowContext",
+        "LanguageParserWindow8GrowProposal"
+      ],
+      "signature": "input: LanguageParserWindow8EmptyGrowContext...| >> output: LanguageParserWindow8GrowProposal...|"
+    },
+    {
+      "name": "language-window8-stable-lexical-fact",
+      "file": "parser_window8_facts.conduit",
+      "io": [
+        "LanguageParserWindow8FactQuery",
+        "LanguageParserWindow8StableLexicalFactProposal"
+      ],
+      "signature": "input: LanguageParserWindow8FactQuery...| >> output: LanguageParserWindow8StableLexicalFactProposal...|"
+    },
+    {
+      "name": "language-window8-independent-commit-initialize",
+      "file": "parser_window8_independent_commit.conduit",
+      "io": [
+        "LanguageParserWindow8IndependentCommitInitialize",
+        "LanguageParserWindow8IndependentCommitSetProposal"
+      ],
+      "signature": "input: LanguageParserWindow8IndependentCommitInitialize...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|"
+    },
+    {
+      "name": "language-window8-independent-commit",
+      "file": "parser_window8_independent_commit.conduit",
+      "io": [
+        "LanguageParserWindow8IndependentCommitRequest",
+        "LanguageParserWindow8IndependentCommitSetProposal"
+      ],
+      "signature": "input: LanguageParserWindow8IndependentCommitRequest...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|"
+    },
+    {
+      "name": "language-window8-independent-commit-rebase",
+      "file": "parser_window8_independent_commit.conduit",
+      "io": [
+        "LanguageParserWindow8IndependentCommitRebase",
+        "LanguageParserWindow8IndependentCommitSet"
+      ],
+      "signature": "input: LanguageParserWindow8IndependentCommitRebase...| >> output: LanguageParserWindow8IndependentCommitSet...|"
+    },
+    {
+      "name": "language-window8-lexical-anchor",
+      "file": "parser_window8_lexical_ledger.conduit",
+      "io": [
+        "LanguageParserWindow8LexicalAnchorContext",
+        "LanguageParserWindow8LexicalAnchorProposal"
+      ],
+      "signature": "input: LanguageParserWindow8LexicalAnchorContext...| >> output: LanguageParserWindow8LexicalAnchorProposal...|"
+    },
+    {
+      "name": "language-window8-lexical-rebase",
+      "file": "parser_window8_lexical_ledger.conduit",
+      "io": [
+        "LanguageParserWindow8LexicalRebase",
+        "LanguageParserWindow8LexicalAnchorProposal"
+      ],
+      "signature": "receipt: LanguageParserWindow8LexicalRebase...| >> output: LanguageParserWindow8LexicalAnchorProposal...|"
+    },
+    {
+      "name": "language-window8-lexical-ledger-branch",
+      "file": "parser_window8_lexical_ledger.conduit",
+      "io": [
+        "LanguageParserWindow8LexicalLedgerBranch",
+        "LanguageParserWindow8ProtectedChoiceDecision"
+      ],
+      "signature": "receipt: LanguageParserWindow8LexicalLedgerBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|"
+    },
+    {
+      "name": "language-window8-protected-choice",
+      "file": "parser_window8_lexical_protection.conduit",
+      "io": [
+        "LanguageParserWindow8ProtectedChoiceBranch",
+        "LanguageParserWindow8ProtectedChoiceDecision"
+      ],
+      "signature": "input: LanguageParserWindow8ProtectedChoiceBranch...| >> output: LanguageParserWindow8ProtectedChoiceDecision...|"
+    },
+    {
+      "name": "language-window8-stable-lexical-candidate",
+      "file": "parser_window8_lexical_selection.conduit",
+      "io": [
+        "LanguageParserWindow8StableLexicalFact",
+        "LanguageLexicalCandidate"
+      ],
+      "signature": "input: LanguageParserWindow8StableLexicalFact...| >> output: LanguageLexicalCandidate...|"
+    },
+    {
+      "name": "language-window8-model-feature-indices",
+      "file": "parser_window8_numeric_custody.conduit",
+      "io": [
+        "LanguageParserWindow8RawModelFeatures",
+        "LanguageParserCategoricalIndices"
+      ],
+      "signature": "input: LanguageParserWindow8RawModelFeatures...| >> output: LanguageParserCategoricalIndices...|"
+    },
+    {
+      "name": "language-window8-model-score-observation",
+      "file": "parser_window8_numeric_custody.conduit",
+      "io": [
+        "LanguageParserCategoricalScores",
+        "LanguageParserWindow8ModelScores"
+      ],
+      "signature": "input: LanguageParserCategoricalScores...| >> output: LanguageParserWindow8ModelScores...|"
+    },
+    {
+      "name": "language-proposal-window8-origins",
+      "file": "parser_window8_proposal_features.conduit",
+      "io": [
+        "LanguageParserProposalWindow8OriginQuery",
+        "LanguageParserProposalWindow8RawOrigins"
+      ],
+      "signature": "query: LanguageParserProposalWindow8OriginQuery...| >> output: LanguageParserProposalWindow8RawOrigins...|"
+    },
+    {
+      "name": "language-proposal-window8-feature-context",
+      "file": "parser_window8_proposal_features.conduit",
+      "io": [
+        "LanguageParserProposalWindow8FeatureQuery",
+        "LanguageParserProposalWindow8FeatureContext"
+      ],
+      "signature": "query: LanguageParserProposalWindow8FeatureQuery...| >> context: LanguageParserProposalWindow8FeatureContext...|"
+    },
+    {
+      "name": "language-proposal-window8-feature-values",
+      "file": "parser_window8_proposal_features.conduit",
+      "io": [
+        "LanguageParserProposalWindow8FeatureContext",
+        "LanguageParserProposalWindow8RawFeatures"
+      ],
+      "signature": "context: LanguageParserProposalWindow8FeatureContext...| >> features: LanguageParserProposalWindow8RawFeatures...|"
+    },
+    {
+      "name": "language-proposal-window8-v2-feature-values",
+      "file": "parser_window8_proposal_features_v2.conduit",
+      "io": [
+        "LanguageParserProposalWindow8FeatureContext",
+        "LanguageParserProposalWindow8V2RawFeatures"
+      ],
+      "signature": "context: LanguageParserProposalWindow8FeatureContext...| >> features: LanguageParserProposalWindow8V2RawFeatures...|"
+    },
+    {
+      "name": "language-proposal-window8-v2-feature-indices",
+      "file": "parser_window8_proposal_numeric_custody.conduit",
+      "io": [
+        "LanguageParserProposalWindow8V2RawFeatures",
+        "LanguageParserWindow8ProposerV2CategoricalIndices"
+      ],
+      "signature": "input: LanguageParserProposalWindow8V2RawFeatures...| >> output: LanguageParserWindow8ProposerV2CategoricalIndices...|"
+    },
+    {
+      "name": "language-proposal-window8-v2-score-observation",
+      "file": "parser_window8_proposal_numeric_custody.conduit",
+      "io": [
+        "LanguageParserWindow8ProposerV2CategoricalScores",
+        "LanguageParserProposalWindow8V2ModelScores"
+      ],
+      "signature": "input: LanguageParserWindow8ProposerV2CategoricalScores...| >> output: LanguageParserProposalWindow8V2ModelScores...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-token",
+      "file": "parser_window8_qualified_dependency.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalAnalysis",
+        "LanguageLexicalToken"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageLexicalToken...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-origin",
+      "file": "parser_window8_qualified_dependency.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalAnalysis",
+        "LanguageLexicalProposalOrigin"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageLexicalProposalOrigin...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-anchor-scalars",
+      "file": "parser_window8_qualified_dependency.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalAnalysis",
+        "LanguageParserWindow8QualifiedLexicalAnchorScalars"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalAnalysis...| >> output: LanguageParserWindow8QualifiedLexicalAnchorScalars...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-anchor",
+      "file": "parser_window8_qualified_dependency.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalAnchorContext",
+        "LanguageParserWindow8QualifiedLexicalAnchor"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalAnchorContext...| >> output: LanguageParserWindow8QualifiedLexicalAnchor...|"
+    },
+    {
+      "name": "language-window8-qualified-dependency-analysis",
+      "file": "parser_window8_qualified_dependency.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedDependencyQuery",
+        "LanguageParserWindow8QualifiedDependencyProposal"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedDependencyQuery...| >> output: LanguageParserWindow8QualifiedDependencyProposal...|"
+    },
+    {
+      "name": "language-window8-qualified-dependency-rebase",
+      "file": "parser_window8_qualified_dependency_rebase.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedDependencyRebase",
+        "LanguageParserWindow8DependencyAnchorProposal"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedDependencyRebase...| >> output: LanguageParserWindow8DependencyAnchorProposal...|"
+    },
+    {
+      "name": "language-window8-qualified-dependency-anchor",
+      "file": "parser_window8_qualified_independent_commit.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedDependencyAnalysis",
+        "LanguageParserWindow8DependencyAnchorProposal"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedDependencyAnalysis...| >> output: LanguageParserWindow8DependencyAnchorProposal...|"
+    },
+    {
+      "name": "language-window8-qualified-independent-commit",
+      "file": "parser_window8_qualified_independent_commit.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedIndependentCommitRequest",
+        "LanguageParserWindow8IndependentCommitSetProposal"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedIndependentCommitRequest...| >> output: LanguageParserWindow8IndependentCommitSetProposal...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-proposal",
+      "file": "parser_window8_qualified_lexical.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalQuery",
+        "LanguageParserWindow8QualifiedLexicalProposal"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalQuery...| >> output: LanguageParserWindow8QualifiedLexicalProposal...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-rebase-token",
+      "file": "parser_window8_qualified_lexical_rebase.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalRebase",
+        "LanguageLexicalToken"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageLexicalToken...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-rebase-origin",
+      "file": "parser_window8_qualified_lexical_rebase.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalRebase",
+        "LanguageLexicalProposalOrigin"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageLexicalProposalOrigin...|"
+    },
+    {
+      "name": "language-window8-qualified-lexical-rebase-scalars",
+      "file": "parser_window8_qualified_lexical_rebase.conduit",
+      "io": [
+        "LanguageParserWindow8QualifiedLexicalRebase",
+        "LanguageParserWindow8QualifiedLexicalAnchorScalars"
+      ],
+      "signature": "input: LanguageParserWindow8QualifiedLexicalRebase...| >> output: LanguageParserWindow8QualifiedLexicalAnchorScalars...|"
+    },
+    {
+      "name": "language-window8-reanalysis",
+      "file": "parser_window8_reanalysis.conduit",
+      "io": [
+        "LanguageParserWindow8ReanalysisContext",
+        "LanguageParserWindow8ReanalysisProposal"
+      ],
+      "signature": "input: LanguageParserWindow8ReanalysisContext...| >> output: LanguageParserWindow8ReanalysisProposal...|"
+    },
+    {
+      "name": "language-window8-rank-0-1",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-rank-2-3",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-rank-0-2",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-rank-1-3",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-rank-1-2",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawBeam...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-rank-insert",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawMerge",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8RawMerge...| >> ranked: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-choice-frontier",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8ChoiceQuery",
+        "LanguageParserWindow8Selected"
+      ],
+      "signature": "query: LanguageParserWindow8ChoiceQuery...| >> frontier: LanguageParserWindow8Selected...|"
+    },
+    {
+      "name": "language-window8-score-advance",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawAdvance",
+        "LanguageParserWindow8RawHypothesis"
+      ],
+      "signature": "query: LanguageParserWindow8RawAdvance...| >> proposal: LanguageParserWindow8RawHypothesis...|"
+    },
+    {
+      "name": "language-window8-class-context",
+      "file": "parser_window8_search.conduit",
+      "io": [
+        "LanguageParserWindow8RawClassContext",
+        "LanguageParserWindow8RawContext"
+      ],
+      "signature": "query: LanguageParserWindow8RawClassContext...| >> context: LanguageParserWindow8RawContext...|"
+    },
+    {
+      "name": "language-window8-session-seed",
+      "file": "parser_window8_session_seed.conduit",
+      "io": [
+        "LanguageParserWindow8SessionSeedContext",
+        "LanguageParserWindow8RawBeam"
+      ],
+      "signature": "input: LanguageParserWindow8SessionSeedContext...| >> output: LanguageParserWindow8RawBeam...|"
+    },
+    {
+      "name": "language-window8-session-empty-seed",
+      "file": "parser_window8_session_seed.conduit",
+      "io": [
+        "LanguageParserWindow8EmptySeedRequest",
+        "LanguageParserWindow8EmptySeedProposal"
+      ],
+      "signature": "input: LanguageParserWindow8EmptySeedRequest...| >> output: LanguageParserWindow8EmptySeedProposal...|"
+    }
+  ],
+  "files": {
+    "parser_window8.conduit": "cd34f6f9d079b88a7c279326c318d73d6abce884b7f481a4b720851b1094ee58",
+    "parser_window8_continuation.conduit": "aebf622c636bf9418f4b178f940032ffcd884c1f3c82fe75cebd67878cd15c4a",
+    "parser_window8_dependency_custody.conduit": "bdeac28e0c790a4c348074db2927ba41ebca5998d18e505e0c4ef0e68a955b69",
+    "parser_window8_dependency_facts.conduit": "83f7f5ea866035ffd32f94c5344601bb5e987332e5b852c18f42a1d2367a2b13",
+    "parser_window8_dependency_forest.conduit": "8f30cfc6bfdd27174e6e1cf127789b58dedd493be039a373516433cf7a4b38b0",
+    "parser_window8_empty_grow.conduit": "4a9e69fc3661a21e8304d1bd1044d1893347c06f6bf3b1f3d38fdca1c0d5b7dc",
+    "parser_window8_facts.conduit": "d15b9bcddf97563ea306d11c2ed2ed25601973b2e4b69ff3cbc8d86549f159ab",
+    "parser_window8_independent_commit.conduit": "d4532a7bc6ff88ec29bb7effa790aaaff58669cde96becb95feb3da6c85cce5e",
+    "parser_window8_lexical_ledger.conduit": "b0305894784e40361c25fba0d394643dc1d52508c45a281ed047d9b1a51f45b5",
+    "parser_window8_lexical_protection.conduit": "4ccced41cece6c99c8075f0e6d897f14eb428b7601a26f3b58eb459ac775a249",
+    "parser_window8_lexical_selection.conduit": "e0df2b082767ecb0e279c347fe31c806b5a0f8be2364d3add993b3db576b19de",
+    "parser_window8_numeric_custody.conduit": "98cdb351909cfd3fd2b098c0977a92868d87837e81bba1aa42ab4515d1919b3e",
+    "parser_window8_proposal_features.conduit": "7bc6c52478f6565b399fb8bdc6171a4e5b0d660d98b1db0f2fcc92945bcce301",
+    "parser_window8_proposal_features_v2.conduit": "5a90a621fbd5d2b87dfea79698e9317639453f602e2cbc0762874171a79f0082",
+    "parser_window8_proposal_numeric_custody.conduit": "7d04168f2003670125496466f3f0182d4b9cd4c40345ecd202824e296419bc4a",
+    "parser_window8_qualified_dependency.conduit": "0fb6e5853e90d7667ee2a6e6e75e70c48dfe45930ed41c46c1c31aeb8b2b382c",
+    "parser_window8_qualified_dependency_rebase.conduit": "dfeba4a57a3de1bf13c241c7934da20486fa4a600d99960428e6a11cca5efdd9",
+    "parser_window8_qualified_independent_commit.conduit": "14996155c694edd0b304b4977a8219a26c9d75da286b23096f382b98b98c84e6",
+    "parser_window8_qualified_lexical.conduit": "d475a9eca96f23c10d9de1f40788955a0b63f122a252ebe687f8db09b1a29d99",
+    "parser_window8_qualified_lexical_rebase.conduit": "88355679e9ffc4bed6f24f9299d2344c97a5a22b293c1bf1b2ed1c137216153b",
+    "parser_window8_reanalysis.conduit": "2e46664d21d4a81bbebccd99d46e5020ed4c6b9a732f9db7074944616165ab53",
+    "parser_window8_search.conduit": "bd8630b2356f2d5f8f7f68bb13119bc09c3f03d8e77ac90edcb1f46c1acc6ff9",
+    "parser_window8_session_seed.conduit": "955cfbd9f7a8fbd229cbfe77ee50e85e98a6e950be0d58ea5a84e42673a4c4df"
+  },
+  "minimal_maximal_roots": [
+    "LanguageParserProposalWindow8FeatureContext",
+    "LanguageParserProposalWindow8Features",
+    "LanguageParserProposalWindow8OriginQuery",
+    "LanguageParserProposalWindow8V2Features",
+    "LanguageParserProposalWindow8V2ModelScores",
+    "LanguageParserWindow8Available",
+    "LanguageParserWindow8Begin",
+    "LanguageParserWindow8ChoiceQuery",
+    "LanguageParserWindow8ClassQuery",
+    "LanguageParserWindow8CodeQuery",
+    "LanguageParserWindow8Completion",
+    "LanguageParserWindow8DependencyCompatibilityDecision",
+    "LanguageParserWindow8DependencyCustodyProposal",
+    "LanguageParserWindow8DependencyRebaseQuery",
+    "LanguageParserWindow8EmptyGrowContext",
+    "LanguageParserWindow8EmptySeedProposal",
+    "LanguageParserWindow8EmptySeedRequest",
+    "LanguageParserWindow8Features",
+    "LanguageParserWindow8GrowContext",
+    "LanguageParserWindow8GrowProposal",
+    "LanguageParserWindow8IndependentCommitInitialize",
+    "LanguageParserWindow8IndependentCommitRebase",
+    "LanguageParserWindow8IndependentCommitRequest",
+    "LanguageParserWindow8IndependentCommitSetProposal",
+    "LanguageParserWindow8LexicalAnchorContext",
+    "LanguageParserWindow8LexicalAnchorProposal",
+    "LanguageParserWindow8LexicalLedgerBranch",
+    "LanguageParserWindow8LexicalRebase",
+    "LanguageParserWindow8ModelScores",
+    "LanguageParserWindow8Ordinal",
+    "LanguageParserWindow8ProtectedChoiceBranch",
+    "LanguageParserWindow8ProtectedChoiceDecision",
+    "LanguageParserWindow8QualifiedDependencyProposal",
+    "LanguageParserWindow8QualifiedDependencyRebase",
+    "LanguageParserWindow8QualifiedIndependentCommitRequest",
+    "LanguageParserWindow8QualifiedLexicalAnalysis",
+    "LanguageParserWindow8QualifiedLexicalAnchorContext",
+    "LanguageParserWindow8QualifiedLexicalProposal",
+    "LanguageParserWindow8QualifiedLexicalRebase",
+    "LanguageParserWindow8RawAdvance",
+    "LanguageParserWindow8RawClassContext",
+    "LanguageParserWindow8RawClassRelations",
+    "LanguageParserWindow8RawFeatureContext",
+    "LanguageParserWindow8RawMerge",
+    "LanguageParserWindow8RawRequest",
+    "LanguageParserWindow8RawWalk",
+    "LanguageParserWindow8ReanalysisContext",
+    "LanguageParserWindow8ReanalysisProposal",
+    "LanguageParserWindow8RootCount",
+    "LanguageParserWindow8Selected",
+    "LanguageParserWindow8SessionSeedContext",
+    "LanguageParserWindow8StableDependencyFactProposal",
+    "LanguageParserWindow8StableLexicalFactProposal",
+    "LanguageParserWindow8WaitProposal"
+  ],
+  "named_union_count": 132,
+  "maximum_single_root_closure": 47,
+  "unresolved_io": [
+    "LanguageParserCategoricalIndices",
+    "LanguageParserCategoricalScores",
+    "LanguageParserWindow8ProposerV2CategoricalIndices",
+    "LanguageParserWindow8ProposerV2CategoricalScores"
+  ],
+  "groups": [
+    {
+      "roots": [
+        "LanguageParserWindow8QualifiedIndependentCommitRequest",
+        "LanguageParserWindow8QualifiedDependencyProposal",
+        "LanguageParserWindow8QualifiedLexicalAnalysis",
+        "LanguageParserWindow8QualifiedLexicalProposal",
+        "LanguageParserWindow8DependencyRebaseQuery",
+        "LanguageParserWindow8IndependentCommitRequest",
+        "LanguageParserWindow8LexicalRebase",
+        "LanguageParserWindow8DependencyCustodyProposal",
+        "LanguageParserWindow8LexicalAnchorContext"
+      ],
+      "closure": [
+        "LanguageAnalysisRevisionId",
+        "LanguageId",
+        "LanguageLexicalCandidate",
+        "LanguageLexicalCompleteness",
+        "LanguageLexicalEntry",
+        "LanguageLexicalPos",
+        "LanguageLexicalProfile",
+        "LanguageLexicalProposalOrigin",
+        "LanguageLexicalProposedTape",
+        "LanguageLexicalProposerDefinition",
+        "LanguageLexicalReviewedOrigin",
+        "LanguageLexicalTape",
+        "LanguageLexicalToken",
+        "LanguageLexicalUnknownCommitPolicy",
+        "LanguageLexicalUnknownOrigin",
+        "LanguageLexicalUnknownPolicy",
+        "LanguageParserBasis",
+        "LanguageParserRelation",
+        "LanguageParserSubtype",
+        "LanguageParserWindow8Ancestry",
+        "LanguageParserWindow8CheckedHypothesis",
+        "LanguageParserWindow8DependencyAnchorProposal",
+        "LanguageParserWindow8DependencyCustody",
+        "LanguageParserWindow8DependencyCustodyProposal",
+        "LanguageParserWindow8DependencyFactContext",
+        "LanguageParserWindow8DependencyRebaseQuery",
+        "LanguageParserWindow8FactQuery",
+        "LanguageParserWindow8IndependentCommitRequest",
+        "LanguageParserWindow8IndependentCommitSet",
+        "LanguageParserWindow8Lexical",
+        "LanguageParserWindow8LexicalAnchor",
+        "LanguageParserWindow8LexicalAnchorContext",
+        "LanguageParserWindow8LexicalCustody",
+        "LanguageParserWindow8LexicalRebase",
+        "LanguageParserWindow8ProtectedLexicalChoice",
+        "LanguageParserWindow8QualifiedDependencyAnalysis",
+        "LanguageParserWindow8QualifiedDependencyProposal",
+        "LanguageParserWindow8QualifiedDependencyQuery",
+        "LanguageParserWindow8QualifiedIndependentCommitRequest",
+        "LanguageParserWindow8QualifiedLexicalAnalysis",
+        "LanguageParserWindow8QualifiedLexicalAnchor",
+        "LanguageParserWindow8QualifiedLexicalProposal",
+        "LanguageParserWindow8QualifiedLexicalQuery",
+        "LanguageParserWindow8RawHypothesis",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8Snapshot",
+        "LanguageParserWindow8StableDependencyFact",
+        "LanguageParserWindow8StableLexicalFact",
+        "LanguageParserWindow8StateProof",
+        "LanguageText",
+        "LanguageTextFinality",
+        "LanguageTextId",
+        "LanguageTextPriorRevision",
+        "LanguageTextRevision",
+        "LanguageTextRevisionId",
+        "LanguageTextRevisionLineage",
+        "LanguageUniversalDependencyRelation",
+        "LinguisticDerivationProvenance",
+        "LinguisticEvidence",
+        "LinguisticOffsetBasis",
+        "LinguisticTokenCategory",
+        "LinguisticTokenFeature",
+        "LinguisticTokenIdentity",
+        "TextSpan"
+      ],
+      "root_count": 9,
+      "type_count": 64
+    },
+    {
+      "roots": [
+        "LanguageParserWindow8LexicalLedgerBranch",
+        "LanguageParserWindow8ProtectedChoiceBranch",
+        "LanguageParserWindow8StableDependencyFactProposal",
+        "LanguageParserWindow8ReanalysisContext",
+        "LanguageParserWindow8StableLexicalFactProposal",
+        "LanguageParserWindow8GrowContext",
+        "LanguageParserWindow8QualifiedLexicalRebase",
+        "LanguageParserWindow8WaitProposal",
+        "LanguageParserWindow8EmptyGrowContext",
+        "LanguageParserProposalWindow8OriginQuery",
+        "LanguageParserWindow8EmptySeedProposal",
+        "LanguageParserWindow8SessionSeedContext",
+        "LanguageParserWindow8EmptySeedRequest"
+      ],
+      "closure": [
+        "LanguageAnalysisRevisionId",
+        "LanguageId",
+        "LanguageLexicalCandidate",
+        "LanguageLexicalCompleteness",
+        "LanguageLexicalEntry",
+        "LanguageLexicalPos",
+        "LanguageLexicalProfile",
+        "LanguageLexicalProposalOrigin",
+        "LanguageLexicalProposedTape",
+        "LanguageLexicalProposerDefinition",
+        "LanguageLexicalReviewedOrigin",
+        "LanguageLexicalTape",
+        "LanguageLexicalToken",
+        "LanguageLexicalUnknownCommitPolicy",
+        "LanguageLexicalUnknownOrigin",
+        "LanguageLexicalUnknownPolicy",
+        "LanguageParserBasis",
+        "LanguageParserProposalWindow8OriginQuery",
+        "LanguageParserRelation",
+        "LanguageParserSubtype",
+        "LanguageParserWindow8Ancestry",
+        "LanguageParserWindow8CheckedHypothesis",
+        "LanguageParserWindow8Continuation",
+        "LanguageParserWindow8DependencyFactContext",
+        "LanguageParserWindow8EmptyGrowContext",
+        "LanguageParserWindow8EmptyPrefix",
+        "LanguageParserWindow8EmptySeedProposal",
+        "LanguageParserWindow8EmptySeedRequest",
+        "LanguageParserWindow8FactQuery",
+        "LanguageParserWindow8GrowContext",
+        "LanguageParserWindow8Lexical",
+        "LanguageParserWindow8LexicalAnchor",
+        "LanguageParserWindow8LexicalCustody",
+        "LanguageParserWindow8LexicalLedgerBranch",
+        "LanguageParserWindow8ProtectedChoiceBranch",
+        "LanguageParserWindow8ProtectedLexicalChoice",
+        "LanguageParserWindow8QualifiedLexicalAnchor",
+        "LanguageParserWindow8QualifiedLexicalRebase",
+        "LanguageParserWindow8RawHypothesis",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8ReanalysisContext",
+        "LanguageParserWindow8SessionSeedContext",
+        "LanguageParserWindow8Snapshot",
+        "LanguageParserWindow8StableDependencyFactProposal",
+        "LanguageParserWindow8StableLexicalFact",
+        "LanguageParserWindow8StableLexicalFactProposal",
+        "LanguageParserWindow8StateProof",
+        "LanguageParserWindow8Wait",
+        "LanguageParserWindow8WaitProposal",
+        "LanguageText",
+        "LanguageTextFinality",
+        "LanguageTextId",
+        "LanguageTextPriorRevision",
+        "LanguageTextRevision",
+        "LanguageTextRevisionId",
+        "LanguageTextRevisionLineage",
+        "LanguageUniversalDependencyRelation",
+        "LinguisticDerivationProvenance",
+        "LinguisticEvidence",
+        "LinguisticOffsetBasis",
+        "LinguisticTokenCategory",
+        "LinguisticTokenFeature",
+        "LinguisticTokenIdentity",
+        "TextSpan"
+      ],
+      "root_count": 13,
+      "type_count": 64
+    },
+    {
+      "roots": [
+        "LanguageParserWindow8QualifiedDependencyRebase",
+        "LanguageParserWindow8QualifiedLexicalAnchorContext",
+        "LanguageParserWindow8IndependentCommitRebase",
+        "LanguageParserProposalWindow8FeatureContext",
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8ChoiceQuery",
+        "LanguageParserWindow8CodeQuery",
+        "LanguageParserWindow8RawClassContext",
+        "LanguageParserWindow8RawFeatureContext",
+        "LanguageParserWindow8RawRequest",
+        "LanguageParserWindow8RawAdvance",
+        "LanguageParserWindow8RawMerge"
+      ],
+      "closure": [
+        "LanguageAnalysisRevisionId",
+        "LanguageId",
+        "LanguageLexicalCandidate",
+        "LanguageLexicalCompleteness",
+        "LanguageLexicalPos",
+        "LanguageLexicalProposalOrigin",
+        "LanguageLexicalProposerDefinition",
+        "LanguageLexicalReviewedOrigin",
+        "LanguageLexicalToken",
+        "LanguageLexicalUnknownCommitPolicy",
+        "LanguageLexicalUnknownOrigin",
+        "LanguageLexicalUnknownPolicy",
+        "LanguageParserAction",
+        "LanguageParserBasis",
+        "LanguageParserProposalWindow8FeatureContext",
+        "LanguageParserProposalWindow8FeatureQuery",
+        "LanguageParserProposalWindow8Origins",
+        "LanguageParserProposalWindow8RawOrigins",
+        "LanguageParserRefusal",
+        "LanguageParserRelation",
+        "LanguageParserSubtype",
+        "LanguageParserWindow8Ancestry",
+        "LanguageParserWindow8ChoiceQuery",
+        "LanguageParserWindow8CodeQuery",
+        "LanguageParserWindow8DependencyAnchorProposal",
+        "LanguageParserWindow8DependencyCompatibilityDecision",
+        "LanguageParserWindow8DependencyCompatibilityQuery",
+        "LanguageParserWindow8DependencyForestWorking",
+        "LanguageParserWindow8IndependentCommitRebase",
+        "LanguageParserWindow8IndependentCommitSet",
+        "LanguageParserWindow8QualifiedDependencyRebase",
+        "LanguageParserWindow8QualifiedLexicalAnchor",
+        "LanguageParserWindow8QualifiedLexicalAnchorContext",
+        "LanguageParserWindow8QualifiedLexicalAnchorScalars",
+        "LanguageParserWindow8RawAdvance",
+        "LanguageParserWindow8RawBeam",
+        "LanguageParserWindow8RawClass",
+        "LanguageParserWindow8RawClassContext",
+        "LanguageParserWindow8RawCodes",
+        "LanguageParserWindow8RawContext",
+        "LanguageParserWindow8RawFeatureContext",
+        "LanguageParserWindow8RawFeatureQuery",
+        "LanguageParserWindow8RawHypothesis",
+        "LanguageParserWindow8RawMerge",
+        "LanguageParserWindow8RawProjection",
+        "LanguageParserWindow8RawRequest",
+        "LanguageParserWindow8RawResult",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8StateProof",
+        "LanguageText",
+        "LanguageTextFinality",
+        "LanguageTextId",
+        "LanguageTextPriorRevision",
+        "LanguageTextRevision",
+        "LanguageTextRevisionId",
+        "LanguageTextRevisionLineage",
+        "LanguageUniversalDependencyRelation",
+        "LinguisticDerivationProvenance",
+        "LinguisticEvidence",
+        "LinguisticOffsetBasis",
+        "LinguisticTokenCategory",
+        "LinguisticTokenFeature",
+        "LinguisticTokenIdentity",
+        "TextSpan"
+      ],
+      "root_count": 12,
+      "type_count": 64
+    },
+    {
+      "roots": [
+        "LanguageParserWindow8GrowProposal",
+        "LanguageParserWindow8IndependentCommitSetProposal",
+        "LanguageParserWindow8ReanalysisProposal",
+        "LanguageParserWindow8Begin",
+        "LanguageParserWindow8IndependentCommitInitialize",
+        "LanguageParserProposalWindow8Features",
+        "LanguageParserProposalWindow8V2Features",
+        "LanguageParserWindow8Features",
+        "LanguageParserWindow8LexicalAnchorProposal",
+        "LanguageParserWindow8RawClassRelations",
+        "LanguageParserWindow8ClassQuery",
+        "LanguageParserWindow8RawWalk",
+        "LanguageParserProposalWindow8V2ModelScores",
+        "LanguageParserWindow8Available",
+        "LanguageParserWindow8Completion",
+        "LanguageParserWindow8ModelScores"
+      ],
+      "closure": [
+        "LanguageAnalysisRevisionId",
+        "LanguageParserAction",
+        "LanguageParserBasis",
+        "LanguageParserProposalWindow8Features",
+        "LanguageParserProposalWindow8RawFeatures",
+        "LanguageParserProposalWindow8V2Features",
+        "LanguageParserProposalWindow8V2ModelScores",
+        "LanguageParserProposalWindow8V2RawFeatures",
+        "LanguageParserRelation",
+        "LanguageParserSubtype",
+        "LanguageParserWindow8Available",
+        "LanguageParserWindow8Begin",
+        "LanguageParserWindow8ClassQuery",
+        "LanguageParserWindow8Completion",
+        "LanguageParserWindow8DependencyAnchorProposal",
+        "LanguageParserWindow8Features",
+        "LanguageParserWindow8GrowProposal",
+        "LanguageParserWindow8IndependentCommitInitialize",
+        "LanguageParserWindow8IndependentCommitSetProposal",
+        "LanguageParserWindow8LexicalAnchorProposal",
+        "LanguageParserWindow8ModelScores",
+        "LanguageParserWindow8RawClassIndex",
+        "LanguageParserWindow8RawClassRelations",
+        "LanguageParserWindow8RawModelFeatures",
+        "LanguageParserWindow8RawState",
+        "LanguageParserWindow8RawWalk",
+        "LanguageParserWindow8ReanalysisProposal",
+        "LanguageParserWindow8WalkQuery",
+        "LanguageTextId",
+        "LanguageTextRevisionId",
+        "LanguageUniversalDependencyRelation",
+        "LinguisticTokenIdentity"
+      ],
+      "root_count": 16,
+      "type_count": 32
+    },
+    {
+      "roots": [
+        "LanguageParserWindow8Ordinal",
+        "LanguageParserWindow8ProtectedChoiceDecision",
+        "LanguageParserWindow8RootCount",
+        "LanguageParserWindow8Selected"
+      ],
+      "closure": [
+        "LanguageParserWindow8Ordinal",
+        "LanguageParserWindow8ProtectedChoiceDecision",
+        "LanguageParserWindow8RootCount",
+        "LanguageParserWindow8Selected"
+      ],
+      "root_count": 4,
+      "type_count": 4
+    }
+  ]
+}

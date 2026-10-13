@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "bootstrap.started",
+  "assertion": "bootstrap-started",
+  "source_facts": {
+    "build_id": "build:sha256:939f9b8121f2ec8c81f58d339626e0045bdce256b17d7ebff1b848432b25a076",
+    "image_id": "image:sha256:a9e9c2021b1007ad05bff1b8b2543dcea4e1e3c153f1d0960fa5fc010471c738",
+    "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3"
+  }
+}

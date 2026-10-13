@@ -1,0 +1,41 @@
+error: unexpected `cfg` condition name: `test`
+   --> semantics/language/src/catalog.rs:219:7
+    |
+219 | #[cfg(test)]
+    |       ^^^^
+    |
+    = help: expected names are: `feature` and 32 more
+    = help: to expect this configuration use `--check-cfg=cfg(test)`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg.html> for more information about checking conditional configuration
+    = note: `-D unexpected-cfgs` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(unexpected_cfgs)]`
+
+error: unexpected `cfg` condition name: `test`
+  --> semantics/language/src/request_contract.rs:74:7
+   |
+74 | #[cfg(test)]
+   |       ^^^^
+   |
+   = help: to expect this configuration use `--check-cfg=cfg(test)`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg.html> for more information about checking conditional configuration
+
+error: unexpected `cfg` condition name: `test`
+  --> semantics/language/src/lexical_scalar_scan.rs:77:7
+   |
+77 | #[cfg(test)]
+   |       ^^^^
+   |
+   = help: to expect this configuration use `--check-cfg=cfg(test)`
+   = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg.html> for more information about checking conditional configuration
+
+error: unexpected `cfg` condition name: `test`
+   --> semantics/language/src/parser_window8_program_bank_prepared.rs:177:7
+    |
+177 | #[cfg(test)]
+    |       ^^^^
+    |
+    = help: to expect this configuration use `--check-cfg=cfg(test)`
+    = note: see <https://doc.rust-lang.org/nightly/rustc/check-cfg.html> for more information about checking conditional configuration
+
+error: aborting due to 4 previous errors
+

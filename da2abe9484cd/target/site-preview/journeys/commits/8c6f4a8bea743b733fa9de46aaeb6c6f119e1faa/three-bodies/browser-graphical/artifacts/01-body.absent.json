@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "browser-graphical",
+  "step_id": "body.absent",
+  "assertion": "body-absent",
+  "source_facts": {
+    "initial_body": null,
+    "host_id": "browser/2ffbeb8d-063a-457f-aa9c-64fcbb6c7101",
+    "boot_id": "browser-boot/062d26b8-3546-46f3-8553-aeac58f6af68"
+  }
+}

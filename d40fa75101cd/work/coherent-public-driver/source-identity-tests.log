@@ -1,0 +1,13 @@
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/kernel)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 22.64s
+     Running unittests src/lib.rs (work/pair-storage-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+test syntax_identity::source_document_identity_tests::lossless_source_identity_matches_checked_document_and_existing_profile ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 325 filtered out; finished in 0.00s
+

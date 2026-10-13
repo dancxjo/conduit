@@ -1,0 +1,33 @@
+warning: function `failure` is never used
+ --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposed_lexical.rs:9:4
+  |
+9 | fn failure(error: impl core::fmt::Debug) -> String {
+  |    ^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `evaluate` is never used
+  --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposed_lexical.rs:12:4
+   |
+12 | fn evaluate<I: NativeRustBinding, O: NativeRustBinding>(input: I, hex: &str) -> Result<O, String> {
+   |    ^^^^^^^^
+
+warning: struct `ProposedLexical` is never constructed
+  --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposed_lexical.rs:18:12
+   |
+18 | pub struct ProposedLexical<'a> {
+   |            ^^^^^^^^^^^^^^^
+
+warning: associated items `prepare` and `features` are never used
+  --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposed_lexical.rs:26:12
+   |
+25 | impl<'a> ProposedLexical<'a> {
+   | ---------------------------- associated items in this implementation
+26 |     pub fn prepare(
+   |            ^^^^^^^
+...
+83 |     pub fn features(
+   |            ^^^^^^^^
+
+warning: 4 warnings emitted
+

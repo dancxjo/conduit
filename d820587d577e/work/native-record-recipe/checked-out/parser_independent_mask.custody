@@ -1,0 +1,11 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=c245880080a05249aa2658d92557c66e5f5eb87c9f1421d62f93e7886c2e19fd
+expanded=266371605a0738e77a2d55aadf4c56120ca55c9e965fcb20cab6c53579f168a0
+input=language-parser-independent-mask/inline-eee6d7e877e8-0/expression-130df784e5b0-0:input
+output=language-parser-independent-mask/inline-992a0411a8e6-0/expression-14f412ebb049-0:output
+gear=language-parser-independent-mask/inline-eee6d7e877e8-0/expression-130df784e5b0-0:conduitese/pure-expression/458dbdabf9af0fb8ab0cfcf7e23e7edfb8f475e44c17874653e02ebd574e252b:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-independent-mask/inline-eee6d7e877e8-0/expression-130df784e5b0-0:output>language-parser-independent-mask/inline-5bcef4103e99-0/expression-4de991be877b-0:input:structured-info/profile-cf432311cd54b4dfee91fd5bae0b32f4dbf751b408e037ef50fb4e0cb5c6a079@1
+gear=language-parser-independent-mask/inline-5bcef4103e99-0/expression-4de991be877b-0:conduitese/pure-expression/8fc8a3a7ec6672853f74d9bc3c56322f6c6f99c221c499ff711459555eb85c01:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-independent-mask/inline-5bcef4103e99-0/expression-4de991be877b-0:output>language-parser-independent-mask/inline-992a0411a8e6-0/expression-14f412ebb049-0:input:structured-info/profile-3653a848fb1f5087f0109278da0b5fee0b545c904b5a2a828f036ed162290088@1
+gear=language-parser-independent-mask/inline-992a0411a8e6-0/expression-14f412ebb049-0:conduitese/pure-expression/37abd1abd4e334eabfdd59db45f5f5248fff1f16b32acf143b8972864cb71cd0:conduitese/pure-expression-operation@1:input:output

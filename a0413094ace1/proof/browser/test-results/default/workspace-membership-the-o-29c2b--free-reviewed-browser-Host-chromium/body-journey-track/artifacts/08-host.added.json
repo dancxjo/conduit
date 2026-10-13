@@ -1,0 +1,17 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "ef8751f5f2346722ee61184fd9e07d3b44f6bbbe",
+  "track": "browser-graphical",
+  "step_id": "host.added",
+  "assertion": "host-added",
+  "source_facts": {
+    "peer": {
+      "host_id": "browser/00000000-0000-4000-8000-000000000001",
+      "boot_id": "browser-boot/00000000-0000-4000-8000-000000000002",
+      "offer_generation": 1,
+      "proof_id": "7f3fdc932d432036275b66402999c36e71e3edff602a117108e0ec9ea1bbf6e9",
+      "sequence": 0
+    },
+    "membership_revision": 4
+  }
+}

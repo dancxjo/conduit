@@ -1,0 +1,13 @@
+{
+  "removed_bytes": 441616314,
+  "sha256": "c2476ac86c9d22205302d3574fee6d1bf7bbff17af7bcc7b58fdaf15610ba53e",
+  "regeneration": "work/recover_trusted_family_metadata followed by work/compact_actual_family.py",
+  "preserved": "immutable actual-family-snapshot manifest, all 153 blobs, compacted semantic_types.rs, no_std and exercise artifacts/logs",
+  "owner_handles_terminal": [
+    31821,
+    45623,
+    9245,
+    87787,
+    88807
+  ]
+}

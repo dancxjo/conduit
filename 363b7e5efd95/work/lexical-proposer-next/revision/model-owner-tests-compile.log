@@ -1,0 +1,71 @@
+error[E0308]: mismatched types
+  --> semantics/language/tests/common/parser_model_resource.rs:29:18
+   |
+29 |         content: reference.clone(),
+   |                  ^^^^^^^^^^^^^^^^^ expected `BoundedResourceRef`, found `conduit_core::BoundedResourceRef`
+   |
+note: there are multiple different versions of crate `conduit_core` in the dependency graph
+  --> architecture/core/src/resource_reference.rs:42:1
+   |
+42 | pub struct BoundedResourceRef {
+   | ----------------------------- this is the found type
+   |
+  ::: architecture/core/src/resource_reference.rs:42:1
+   |
+42 | pub struct BoundedResourceRef {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+   = help: you can use `cargo tree` to explore your dependency tree
+
+error[E0308]: mismatched types
+  --> semantics/language/tests/common/parser_model_resource.rs:44:77
+   |
+44 |         AdmittedModelResource::adopt(artifact, signature, Arc::from(bytes), &binding).unwrap(),
+   |         ----------------------------                                        ^^^^^^^^ expected `ResourceReferenceBinding`, found `conduit_core::ResourceReferenceBinding`
+   |         |
+   |         arguments to this function are incorrect
+   |
+note: there are multiple different versions of crate `conduit_core` in the dependency graph
+  --> architecture/core/src/resource_reference_access.rs:25:1
+   |
+25 | pub struct ResourceReferenceBinding {
+   | ----------------------------------- this is the found type
+   |
+  ::: architecture/core/src/resource_reference_access.rs:25:1
+   |
+25 | pub struct ResourceReferenceBinding {
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+   = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+  --> semantics/ai/src/model_resource.rs:32:12
+   |
+32 |     pub fn adopt(
+   |            ^^^^^
+
+error[E0308]: mismatched types
+   --> semantics/language/tests/common/parser_model_resource.rs:66:80
+    |
+ 66 |     Arc::new(PreparedCategoricalStep::prepare(model, "test/model-pool".into(), residence).unwrap())
+    |              --------------------------------                                  ^^^^^^^^^ expected `ResourceContentOffer`, found `conduit_core::ResourceContentOffer`
+    |              |
+    |              arguments to this function are incorrect
+    |
+note: there are multiple different versions of crate `conduit_core` in the dependency graph
+   --> architecture/core/src/resource_content.rs:51:1
+    |
+ 51 | pub struct ResourceContentOffer {
+    | ------------------------------- this is the found type
+    |
+   ::: architecture/core/src/resource_content.rs:51:1
+    |
+ 51 | pub struct ResourceContentOffer {
+    | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ this is the expected type
+    = help: you can use `cargo tree` to explore your dependency tree
+note: associated function defined here
+   --> semantics/ai/src/integer_categorical_step.rs:122:12
+    |
+122 |     pub fn prepare(
+    |            ^^^^^^^
+
+error: aborting due to 3 previous errors
+
+For more information about this error, try `rustc --explain E0308`.

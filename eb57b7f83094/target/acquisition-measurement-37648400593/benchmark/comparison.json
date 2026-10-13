@@ -1,0 +1,323 @@
+{
+  "schema": "conduit.acquisition-comparison@1",
+  "target": "unit",
+  "sourceSha": "e50a3ce3ad5b98df6f8f2dc381bcf65f925a7a93",
+  "cacheKey": "acquisition-benchmark-37648400593-1-conduit-acquisition-v1-linux-x64-ubuntu24-20261004.327.1-unit-a2dfa0073dd8297295a786a44c71b776af283e82edc908ecd9e80d49600a50ff",
+  "runnerImage": {
+    "os": "ubuntu24",
+    "version": "20261004.327.1"
+  },
+  "coldPreparationMs": 30886.510531999997,
+  "warmPreparationMs": 29185.030998000002,
+  "savedMs": 1701.4795339999946,
+  "uncachedSetupMs": 28006.510531999997,
+  "warmVersusUncachedSavedMs": -1178.5204660000054,
+  "operationCounts": {
+    "cold": {
+      "apt/success": 1
+    },
+    "warm": {
+      "apt/success": 1
+    }
+  },
+  "speedup": 1.0582997336585525,
+  "interpretation": "Project-cache cold versus exact restored-cache warm on fresh hosted runners; runner image tools are preinstalled. Acquisition only, not product build or proof. Checkout and baseline Rust/Node provisioning are excluded. warmVersusUncachedSavedMs excludes cold cache lookup and population overhead from the baseline; a negative value means restoring the cache cost more than uncached setup in this pair.",
+  "cold": {
+    "schema": "conduit.acquisition-benchmark@1",
+    "phase": "cold",
+    "target": "unit",
+    "sourceSha": "e50a3ce3ad5b98df6f8f2dc381bcf65f925a7a93",
+    "runner": "ubuntu-24.04",
+    "runnerImage": {
+      "os": "ubuntu24",
+      "version": "20261004.327.1"
+    },
+    "cacheKey": "acquisition-benchmark-37648400593-1-conduit-acquisition-v1-linux-x64-ubuntu24-20261004.327.1-unit-a2dfa0073dd8297295a786a44c71b776af283e82edc908ecd9e80d49600a50ff",
+    "cacheHit": false,
+    "restoreMs": 409,
+    "setupMs": 28006.510531999997,
+    "saveMs": 2471,
+    "outcome": "success",
+    "timestamp": 1791388820759,
+    "acquisition": {
+      "schema": "conduit.tool-acquisition/v1",
+      "target": "unit",
+      "sourceSha": "e50a3ce3ad5b98df6f8f2dc381bcf65f925a7a93",
+      "runnerImage": {
+        "os": "ubuntu24",
+        "version": "20261004.327.1"
+      },
+      "specificationKey": "a2dfa0073dd8297295a786a44c71b776af283e82edc908ecd9e80d49600a50ff",
+      "outcome": "success",
+      "durationMs": 27866,
+      "tools": [
+        {
+          "name": "apt-packages",
+          "repositoryScope": {
+            "policy": "ubuntu-build-prerequisites@1",
+            "resolution": "no-removal-no-version-downgrade@1",
+            "os": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+            "suite": "noble",
+            "source": "Types: deb\nURIs: https://archive.ubuntu.com/ubuntu\nSuites: noble noble-updates\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\nTypes: deb\nURIs: https://security.ubuntu.com/ubuntu\nSuites: noble-security\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n",
+            "signingKeySha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31"
+          },
+          "versions": {
+            "build-essential": "12.10ubuntu1",
+            "cmake": "3.28.3-1build7",
+            "libasound2-dev": "1.2.11-1ubuntu0.3",
+            "libclang-dev": "1:18.0-59~exp2",
+            "libssl-dev": "3.0.13-0ubuntu3.16",
+            "libudev-dev": "255.4-1ubuntu8.17",
+            "pkg-config": "1.8.1-2build1"
+          },
+          "resolutionKey": "7628b981aace52e1f6ad787f074306fefdc26b771bb128be75ffbe7675d788b6",
+          "resolvedPackages": [
+            {
+              "name": "build-essential",
+              "version": "12.10ubuntu1",
+              "architecture": "amd64",
+              "sha256": "9b2159b95a4c01937309783c7c8a6ec8dfbcb7ffd604951c9713ac52ee9c7268",
+              "bytes": 4928
+            },
+            {
+              "name": "cmake-data",
+              "version": "3.28.3-1build7",
+              "architecture": "all",
+              "sha256": "20a3b644211ce82f35c24f1f5052199adeb0ac159978a8740fd6c0959611557f",
+              "bytes": 2154936
+            },
+            {
+              "name": "cmake",
+              "version": "3.28.3-1build7",
+              "architecture": "amd64",
+              "sha256": "4b0a7f8c0daf27b26b46997d994ae5d1ee7a3d11dfcda9f7627bb1462c162295",
+              "bytes": 11190006
+            },
+            {
+              "name": "libasound2-dev",
+              "version": "1.2.11-1ubuntu0.3",
+              "architecture": "amd64",
+              "sha256": "b83795b1ba0e40cfa8363359fd17a06260838d8ae0f315531771a62f7c7e215a",
+              "bytes": 115386
+            },
+            {
+              "name": "libclang-18-dev",
+              "version": "1:18.1.3-1ubuntu1",
+              "architecture": "amd64",
+              "sha256": "c7575822ec648defe1b04d83a1d6b7779fc26da548c2453acfa120e26d47ed53",
+              "bytes": 28788538
+            },
+            {
+              "name": "libclang-dev",
+              "version": "1:18.0-59~exp2",
+              "architecture": "amd64",
+              "sha256": "4089fd3e1ee1245b0d17a6da51fd9ea42910bff8e630b72ac3348e5f04b3ee7c",
+              "bytes": 5424
+            },
+            {
+              "name": "libjsoncpp25",
+              "version": "1.9.5-6build1",
+              "architecture": "amd64",
+              "sha256": "8efea5b75952f3ad1c40e6b5b31de687c297ea29f87f8b63efebb55e13467211",
+              "bytes": 82754
+            },
+            {
+              "name": "librhash0",
+              "version": "1.4.3-3build1",
+              "architecture": "amd64",
+              "sha256": "e9ee69963ff1a56378b9c5ffdd21ea0feaec9647c522349b7612b25103490528",
+              "bytes": 128748
+            },
+            {
+              "name": "libudev-dev",
+              "version": "255.4-1ubuntu8.17",
+              "architecture": "amd64",
+              "sha256": "e3fde14b59c81d0ef3b9caa7c627d09b5925a915b280919616cc5909096f7519",
+              "bytes": 22016
+            }
+          ]
+        },
+        {
+          "name": "cargo",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+        },
+        {
+          "name": "node",
+          "version": "v22.23.3"
+        },
+        {
+          "name": "rustc",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8"
+        }
+      ],
+      "operations": [
+        {
+          "kind": "apt",
+          "program": "apt-get",
+          "args": [
+            "build-essential",
+            "cmake",
+            "libasound2-dev",
+            "libclang-dev",
+            "libssl-dev",
+            "libudev-dev",
+            "pkg-config"
+          ],
+          "durationMs": 27822,
+          "outcome": "success",
+          "cacheHit": false,
+          "downloadedBytes": 42492736
+        }
+      ]
+    }
+  },
+  "warm": {
+    "schema": "conduit.acquisition-benchmark@1",
+    "phase": "warm",
+    "target": "unit",
+    "sourceSha": "e50a3ce3ad5b98df6f8f2dc381bcf65f925a7a93",
+    "runner": "ubuntu-24.04",
+    "runnerImage": {
+      "os": "ubuntu24",
+      "version": "20261004.327.1"
+    },
+    "cacheKey": "acquisition-benchmark-37648400593-1-conduit-acquisition-v1-linux-x64-ubuntu24-20261004.327.1-unit-a2dfa0073dd8297295a786a44c71b776af283e82edc908ecd9e80d49600a50ff",
+    "cacheHit": true,
+    "restoreMs": 3098,
+    "setupMs": 26087.030998000002,
+    "saveMs": 0,
+    "outcome": "success",
+    "timestamp": 1791388865430,
+    "acquisition": {
+      "schema": "conduit.tool-acquisition/v1",
+      "target": "unit",
+      "sourceSha": "e50a3ce3ad5b98df6f8f2dc381bcf65f925a7a93",
+      "runnerImage": {
+        "os": "ubuntu24",
+        "version": "20261004.327.1"
+      },
+      "specificationKey": "a2dfa0073dd8297295a786a44c71b776af283e82edc908ecd9e80d49600a50ff",
+      "outcome": "success",
+      "durationMs": 25919,
+      "tools": [
+        {
+          "name": "apt-packages",
+          "repositoryScope": {
+            "policy": "ubuntu-build-prerequisites@1",
+            "resolution": "no-removal-no-version-downgrade@1",
+            "os": "PRETTY_NAME=\"Ubuntu 24.04.5 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"24.04\"\nVERSION=\"24.04.5 LTS (Noble Numbat)\"\nVERSION_CODENAME=noble\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=noble\nLOGO=ubuntu-logo\n",
+            "suite": "noble",
+            "source": "Types: deb\nURIs: https://archive.ubuntu.com/ubuntu\nSuites: noble noble-updates\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n\nTypes: deb\nURIs: https://security.ubuntu.com/ubuntu\nSuites: noble-security\nComponents: main restricted universe multiverse\nArchitectures: amd64\nSigned-By: /usr/share/keyrings/ubuntu-archive-keyring.gpg\n",
+            "signingKeySha256": "80a36b0a6de2f69f49d2df75ef473ccde121e9e190b9ea01d20a4f63778d5c31"
+          },
+          "versions": {
+            "build-essential": "12.10ubuntu1",
+            "cmake": "3.28.3-1build7",
+            "libasound2-dev": "1.2.11-1ubuntu0.3",
+            "libclang-dev": "1:18.0-59~exp2",
+            "libssl-dev": "3.0.13-0ubuntu3.16",
+            "libudev-dev": "255.4-1ubuntu8.17",
+            "pkg-config": "1.8.1-2build1"
+          },
+          "resolutionKey": "7628b981aace52e1f6ad787f074306fefdc26b771bb128be75ffbe7675d788b6",
+          "resolvedPackages": [
+            {
+              "name": "build-essential",
+              "version": "12.10ubuntu1",
+              "architecture": "amd64",
+              "sha256": "9b2159b95a4c01937309783c7c8a6ec8dfbcb7ffd604951c9713ac52ee9c7268",
+              "bytes": 4928
+            },
+            {
+              "name": "cmake-data",
+              "version": "3.28.3-1build7",
+              "architecture": "all",
+              "sha256": "20a3b644211ce82f35c24f1f5052199adeb0ac159978a8740fd6c0959611557f",
+              "bytes": 2154936
+            },
+            {
+              "name": "cmake",
+              "version": "3.28.3-1build7",
+              "architecture": "amd64",
+              "sha256": "4b0a7f8c0daf27b26b46997d994ae5d1ee7a3d11dfcda9f7627bb1462c162295",
+              "bytes": 11190006
+            },
+            {
+              "name": "libasound2-dev",
+              "version": "1.2.11-1ubuntu0.3",
+              "architecture": "amd64",
+              "sha256": "b83795b1ba0e40cfa8363359fd17a06260838d8ae0f315531771a62f7c7e215a",
+              "bytes": 115386
+            },
+            {
+              "name": "libclang-18-dev",
+              "version": "1:18.1.3-1ubuntu1",
+              "architecture": "amd64",
+              "sha256": "c7575822ec648defe1b04d83a1d6b7779fc26da548c2453acfa120e26d47ed53",
+              "bytes": 28788538
+            },
+            {
+              "name": "libclang-dev",
+              "version": "1:18.0-59~exp2",
+              "architecture": "amd64",
+              "sha256": "4089fd3e1ee1245b0d17a6da51fd9ea42910bff8e630b72ac3348e5f04b3ee7c",
+              "bytes": 5424
+            },
+            {
+              "name": "libjsoncpp25",
+              "version": "1.9.5-6build1",
+              "architecture": "amd64",
+              "sha256": "8efea5b75952f3ad1c40e6b5b31de687c297ea29f87f8b63efebb55e13467211",
+              "bytes": 82754
+            },
+            {
+              "name": "librhash0",
+              "version": "1.4.3-3build1",
+              "architecture": "amd64",
+              "sha256": "e9ee69963ff1a56378b9c5ffdd21ea0feaec9647c522349b7612b25103490528",
+              "bytes": 128748
+            },
+            {
+              "name": "libudev-dev",
+              "version": "255.4-1ubuntu8.17",
+              "architecture": "amd64",
+              "sha256": "e3fde14b59c81d0ef3b9caa7c627d09b5925a915b280919616cc5909096f7519",
+              "bytes": 22016
+            }
+          ]
+        },
+        {
+          "name": "cargo",
+          "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+        },
+        {
+          "name": "node",
+          "version": "v22.23.3"
+        },
+        {
+          "name": "rustc",
+          "version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8"
+        }
+      ],
+      "operations": [
+        {
+          "kind": "apt",
+          "program": "apt-get",
+          "args": [
+            "build-essential",
+            "cmake",
+            "libasound2-dev",
+            "libclang-dev",
+            "libssl-dev",
+            "libudev-dev",
+            "pkg-config"
+          ],
+          "durationMs": 25881,
+          "outcome": "success",
+          "cacheHit": true,
+          "downloadedBytes": 0
+        }
+      ]
+    }
+  }
+}

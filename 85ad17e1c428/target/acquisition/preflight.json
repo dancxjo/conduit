@@ -1,0 +1,62 @@
+{
+  "schema": "conduit.tool-acquisition/v1",
+  "target": "preflight",
+  "sourceSha": "1d6f958ba05079fab0b754be3c6b6adb09afe90f",
+  "runnerImage": {
+    "os": "linux",
+    "version": "local"
+  },
+  "specificationKey": "b5cf7d0338bc6ed06c46af84970cbfbeb4d49e30f7715e62f3fcacf14664c47f",
+  "outcome": "success",
+  "durationMs": 116,
+  "tools": [
+    {
+      "name": "actionlint",
+      "version": "1.7.7",
+      "archiveSha256": "023070a287cd8cccd71515fedc843f1985bf96c436b7effaecce67290e7e0757",
+      "executableSha256": "9f7dedb4e23f89f2922073d1a6720405b7b520d4f5832ebb96f0d55a2958886c"
+    },
+    {
+      "name": "cargo",
+      "version": "cargo 1.98.1 (797e8a9bc 2026-08-05)"
+    },
+    {
+      "name": "node",
+      "version": "v25.9.0"
+    },
+    {
+      "name": "rustc",
+      "version": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8"
+    }
+  ],
+  "operations": [
+    {
+      "kind": "command",
+      "program": "tar",
+      "args": [
+        "-xOf",
+        "/home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint_1.7.7_linux_amd64.tar.gz",
+        "actionlint"
+      ],
+      "durationMs": 26.51142900000002,
+      "outcome": "success"
+    },
+    {
+      "kind": "command",
+      "program": "/home/dancxjo/.cache/conduit-ci/actionlint/1.7.7/actionlint",
+      "args": [
+        "-version"
+      ],
+      "durationMs": 3.258375000000001,
+      "outcome": "success"
+    },
+    {
+      "kind": "cache",
+      "program": "actionlint",
+      "args": [],
+      "durationMs": 43.754118000000005,
+      "outcome": "success",
+      "cacheHit": true
+    }
+  ]
+}

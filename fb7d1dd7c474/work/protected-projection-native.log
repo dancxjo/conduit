@@ -1,0 +1,17 @@
+
+running 1 test
+
+thread 'compact_projection_preserves_full_fact_endpoints_and_refuses_foreign_tokens' (1328246) panicked at semantics/language/tests/parser_protected_projection.rs:32:5:
+assertion failed: matches!(LanguageParserProtectedProjectionContext::new(head_token.clone(),
+    fact.clone(), head_token.clone()),
+    Err(NativeBindingRefusal::ViolatedInvariant { index: 0 }))
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test compact_projection_preserves_full_fact_endpoints_and_refuses_foreign_tokens ... FAILED
+
+failures:
+
+failures:
+    compact_projection_preserves_full_fact_endpoints_and_refuses_foreign_tokens
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+

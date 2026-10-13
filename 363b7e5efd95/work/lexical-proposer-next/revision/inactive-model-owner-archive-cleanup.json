@@ -1,0 +1,9 @@
+{
+  "path": "work/lexical-proposer-next/revision/libconduit_language_model_owner.rlib",
+  "bytes": 782395842,
+  "sha256": "26e1bd6a446de50b3026ce5be91d2eae4fae5f93929e38e07002046694ac7e91",
+  "class": "inactive manually compiled regenerable Language archive with obsolete indirect AI/Core linkage",
+  "ownership": "own private work output",
+  "open_users": "fuser exit1, no users",
+  "preserved": "sources, current Cargo artifacts, test/probe binaries/logs and exact receipts"
+}

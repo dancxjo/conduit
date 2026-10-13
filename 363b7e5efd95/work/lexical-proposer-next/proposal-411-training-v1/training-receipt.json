@@ -1,0 +1,11 @@
+{
+  "exit_code": 0,
+  "elapsed_seconds": 0.8070603189989924,
+  "child_maxrss_KiB": 14512,
+  "RLIMIT_AS_bytes": 536870912,
+  "epochs": 12,
+  "shuffle_seed": 4907,
+  "scope": "Numerical TRAIN+22teaching only; no runtime acceptance/heldout accuracy",
+  "artifact_bytes": 62492,
+  "artifact_sha256": "1184bc7e9a15e6739da44207f2346775dde1af7cddd521269d5ef2a44b01ff99"
+}

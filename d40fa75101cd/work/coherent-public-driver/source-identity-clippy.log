@@ -1,0 +1,6 @@
+    Checking serde v1.0.229
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plot)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/kernel)
+    Finished `dev` profile [unoptimized] target(s) in 13.53s

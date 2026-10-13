@@ -1,0 +1,5 @@
+plot hello-demo {
+    upper: text/upper
+    show: presentation/text
+    "Hello, world." >> upper >> show
+}.

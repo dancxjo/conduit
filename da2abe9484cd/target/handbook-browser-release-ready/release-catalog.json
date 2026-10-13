@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.release/catalog@1",
+  "generation": 1,
+  "catalog_id": "sha256:d9428c9b0fd6de1efa98efcadedd88a02a3a59a169a6f3a4e3ded0d04d0ba08c",
+  "entries": [
+    {
+      "target_id": "browser/wasm32/page",
+      "package_id": "browser-wasm@1",
+      "output": "browser-bundle",
+      "builder_adapter": "conduit-host-browser/build-wasm@1",
+      "deployment_adapter": "conduit-host-browser/load@1",
+      "manifest": {
+        "path": "browser-page.json",
+        "bytes": 6074,
+        "sha256": "sha256:3d01999f5734ee85d20ef7018df03a3245cdc01fefa7cf55974471a29131f945"
+      }
+    }
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "plot.used",
+  "assertion": "standing-plot-used",
+  "source_facts": {
+    "input_sign_id": "conduitos/product/input/body-play/sha256:5fb189fa393dc4a85ea0a943c61f2b115897189115b780ce2622238b2b1a2fbd/9",
+    "result": "HELLO",
+    "result_sign_id": "conduitos/product/result/body-play/sha256:5fb189fa393dc4a85ea0a943c61f2b115897189115b780ce2622238b2b1a2fbd/0/8"
+  }
+}

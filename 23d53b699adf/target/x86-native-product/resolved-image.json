@@ -1,0 +1,160 @@
+{
+  "payload": {
+    "schema": "conduit.host/image@1",
+    "build_id": "build:sha256:c40f8576c453d5ca0dc42ad5aec748c0da32461a644b994621c97a8f6785aac2",
+    "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3",
+    "source_configuration_id": "sha256:5df112bf7039ed264faae5da7fc824558166cf6f66111a57f9bb60d60995f586",
+    "target": "conduitos/x86_64/pc",
+    "profile_fragments": [],
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "presentation/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 16777216,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    }
+  },
+  "manifest": {
+    "schema": "conduit.host/build-manifest@3",
+    "profile_id": "sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3",
+    "source_configuration_id": "sha256:5df112bf7039ed264faae5da7fc824558166cf6f66111a57f9bb60d60995f586",
+    "build_id": "build:sha256:c40f8576c453d5ca0dc42ad5aec748c0da32461a644b994621c97a8f6785aac2",
+    "image_id": "image:sha256:532a274f5faa01ccf13f6896170f686c9ad8585c7ae0c62bb7492d5ddf4ff306",
+    "source_identity": "5c037c23c4e2b2be51eb2346e57e0b7c824483a9",
+    "toolchain_identity": "rustc:stable+x86_64-unknown-none+llvm-tools",
+    "make_package_id": "conduitos-image@1",
+    "make_package_revision": 1,
+    "builder_adapter": "conduit-host-conduitos/build-x86_64@1",
+    "make_strategy": "deterministic-specialized-build",
+    "deployment_adapter": "conduit-host-conduitos/boot-x86_64@1",
+    "output": "disk-image",
+    "implementation_packages": [
+      {
+        "implementation_id": "display/linear-framebuffer@1",
+        "package_id": "conduit-linear-framebuffer@1",
+        "package_revision": 1
+      }
+    ],
+    "target": "conduitos/x86_64/pc",
+    "profile_fragments": [],
+    "post_build_actions": [
+      "boot"
+    ],
+    "reproducibility": "byte-exact",
+    "implementations": [],
+    "host_calls": [
+      "conduit.host/present@1"
+    ],
+    "resources": [
+      "surface/main"
+    ],
+    "resource_budgets": [
+      {
+        "id": "surface/main",
+        "class": "presentation/surface",
+        "slots": 4,
+        "bytes": 8388608
+      }
+    ],
+    "bases": [
+      "base/0"
+    ],
+    "base_selections": [
+      {
+        "id": "base/0",
+        "kind": "display/scanout",
+        "driver": "display/linear-framebuffer@1"
+      }
+    ],
+    "drivers": [
+      "driver/0"
+    ],
+    "driver_selections": [
+      {
+        "id": "driver/0",
+        "kind": "display/linear-framebuffer@1"
+      }
+    ],
+    "lines": [],
+    "presenters": [
+      "presenter/native-graphical@1"
+    ],
+    "facilities": [
+      "compositor/native@1"
+    ],
+    "bounds": {
+      "static_memory_bytes": 8388608,
+      "heap_arena_bytes": 16777216,
+      "queue_items": 1024,
+      "buffered_bytes": 8388608,
+      "active_instances": 128,
+      "operation_slots": 64,
+      "timer_slots": 32,
+      "line_sessions": 8,
+      "evidence_items": 1024
+    },
+    "inclusion_paths": {
+      "presenter:presenter/main > base:display/scanout": [
+        "base:display/scanout"
+      ],
+      "presenter:presenter/main > driver:display/linear-framebuffer@1": [
+        "base:display/scanout",
+        "driver:display/linear-framebuffer@1"
+      ],
+      "presenter:presenter/main > facility:compositor/native@1": [
+        "facility:compositor/native@1"
+      ],
+      "presenter:presenter/main > host-call:conduit.host/present@1": [
+        "host-call:conduit.host/present@1"
+      ],
+      "presenter:presenter/main > resource:presentation/surface": [
+        "resource:presentation/surface"
+      ]
+    }
+  }
+}

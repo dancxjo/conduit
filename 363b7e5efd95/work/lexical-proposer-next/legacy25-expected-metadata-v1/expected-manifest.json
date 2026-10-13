@@ -1,0 +1,66 @@
+{
+  "scope": "Independently fixed legacy25 candidate expected metadata, no scorer/adoption/factory/Source execution/linguistic/runtime acceptance",
+  "candidate_artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+  "full_artifact": {
+    "architecture_profile": "ai/categorical-linear@1",
+    "format_profile": "model/categorical-i16-sum@1",
+    "precision_profile": "number/i16-weights-i64-sums@1",
+    "state_schema_version": 1,
+    "signature_identity": "20dd9d8c9443e8145a7437ec829f1a29b6a9ab05034180a07a4b424fba244a0b",
+    "content": {
+      "identity": "1ce10ac88f019a933a8c872b51f97273cbed9b18ee080d11ec2ef22d9536b48e",
+      "content_profile": "model/categorical-i16-sum@1",
+      "access_class": "model/pinned-training-artifact/read@1",
+      "extent": {
+        "bytes": 64620,
+        "items": 1
+      },
+      "lifetime": {
+        "version": "1ce10ac88f019a933a8c872b51f97273cbed9b18ee080d11ec2ef22d9536b48e",
+        "expires_at": null
+      }
+    }
+  },
+  "expected_digests": {
+    "signature": "20dd9d8c9443e8145a7437ec829f1a29b6a9ab05034180a07a4b424fba244a0b",
+    "artifact_descriptor": "ce9a06212e138550c43ae159fd0355d235006c89881838b3af69404b60264a32",
+    "reference": "e760626610458de0a60e38c18671cdf80f62b2c34ec87903075dc9e3c9d346ba",
+    "lexical_declared": "028c828c944576f458b085fd60174a19e30dab603ba7e0d44d127f0637e70c43",
+    "feature": "bdd64adf9c83923ed3e712f25a95670af25169c937da968c9b834bc1ae684181",
+    "availability": "ddfec0ab52cc3689bd2d971288c63be3711570a3f3f4f51fb272c3a4a97701fa",
+    "action": "ebd9353d96815c8d2a773026819e96dd0b730c62519697555c8e68cf4caa4985",
+    "joint_choice": "43dd0c3e9908767af9d0083ba7eafdd814a6fa26d5d5df6fa2385690179a276e",
+    "numeric_indices": "46e889a239b1903844a7ea470036f74a4ae32c6f5797b06f589fdeca1357de03",
+    "numeric_scores": "37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1"
+  },
+  "dimensions": [
+    425,
+    76,
+    25
+  ],
+  "maximum_score_magnitude": 1000000,
+  "signature_derivation": "Original Window8Source feature digest+fixed complete port/tensor constraints; no actual scorer metadata copied",
+  "artifact_derivation": "Static published content/extent/architecture/format/precision/state pins + independently constructed signature; no actual scorer/adoption",
+  "lexical_derivation": "Exact pinned64entry profile JSON + full original nativeprofile/provenance construction, semantic pin verified",
+  "limitations": [
+    "This manifest is review input for a closed expected registry, not an accepted public legacyWindow8selection",
+    "Full Source check/orderedNative laws/Plan/model adoption/readiness remain factory duties",
+    "Requested storage not measured/bounded by this offline metadata builder",
+    "These expectation bytes do not establish trained model accuracy"
+  ],
+  "files_sha256": {
+    "builder.rs": "0bbf6eb6cf33b5c46ce4879668460b3c7fb02186a95d77e34f0d0efff42f31b6",
+    "artifact-reference.bin": "23e0f99a638b98282a2addcdeae6ebf7e3f6a7de1c47b741d5c7a4e9332a59b7",
+    "parser_window8.conduit": "cd34f6f9d079b88a7c279326c318d73d6abce884b7f481a4b720851b1094ee58",
+    "lexical-profile.native.bin": "fda3f0de5bae4900f52c01052e63271ba085982c3e3019a0071eeac5141b6ee8",
+    "parser_window8_search.conduit": "bd8630b2356f2d5f8f7f68bb13119bc09c3f03d8e77ac90edcb1f46c1acc6ff9",
+    "candidate-lexical_profile.json": "74bcabecc14698eddbc0631aca3dbfe01e73dc799ab9883461a8d9957c849b20",
+    "numeric-scores.type.bin": "20e1cc29b858f4ddde0e9295d58ad0a09042254f76152b26ea095ad8eb96049b",
+    "signature.native.bin": "638efcc45a5c573011c494fa475d68986d30acfbe6a20e588d3043662eee2eb9",
+    "candidate-manifest.json": "e51dbab2f5f695e47b04e28b4c176a7f88e0244a4dac48bfca33675c5ca5f21f",
+    "numeric-indices.type.bin": "1f2731c0046caec23fda4cadf00d0e805fbeca8257bb53a08877f7e3c6157aca",
+    "builder.log": "1d93aecfbb5b0d5e3a341f9836e8a38d0b1d634a0defc711a43a7c73d9676d69",
+    "artifact-full.debug.txt": "d4cf09a9966f591ba5e7ec1f9ad837e2088dbe99b54dfed87c2290685bb7b0d2",
+    "artifact-full.json": "9f92b7e03535b0924efd8517fdc5668f88af8550310fb5d6af1ba481b2e81935"
+  }
+}

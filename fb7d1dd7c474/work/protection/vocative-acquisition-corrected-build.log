@@ -1,0 +1,3 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1.32s
+  Executable tests/parser_vocative_prefix.rs (target/debug/deps/parser_vocative_prefix-e2018d12a55bfdd2)

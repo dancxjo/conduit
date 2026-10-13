@@ -1,0 +1,77 @@
+{
+  "ambiguous_pos_correct": 7,
+  "ambiguous_tokens": 7,
+  "canonical_exclusions": {},
+  "complete_sentences": 1,
+  "conditional_gold_pos": false,
+  "decode_max_ms": 36486,
+  "decode_ms": 88197,
+  "elapsed_ms": 339617,
+  "eligible_heldout_sentences": 4,
+  "expected_complete_final_inputs": 1,
+  "host_memory": "VmHWM:\t 3796488 kB; VmRSS:\t 3746524 kB",
+  "last_scope_flow_timing": [
+    {
+      "calls": 66,
+      "entry": "language-parser-joint-branch",
+      "maximum_nanos": 19440602,
+      "nanos": 1201357773
+    },
+    {
+      "calls": 4,
+      "entry": "language-parser-v2-pos",
+      "maximum_nanos": 68693273,
+      "nanos": 238769345
+    },
+    {
+      "calls": 31,
+      "entry": "language-parser-v2-model-features",
+      "maximum_nanos": 134643650,
+      "nanos": 3905036847
+    },
+    {
+      "calls": 31,
+      "entry": "language-parser-legal-mask",
+      "maximum_nanos": 53816525,
+      "nanos": 1594561275
+    },
+    {
+      "calls": 76,
+      "entry": "language-parser-score-proposal",
+      "maximum_nanos": 4908148,
+      "nanos": 333771938
+    },
+    {
+      "calls": 76,
+      "entry": "language-parser-transition",
+      "maximum_nanos": 42305976,
+      "nanos": 3062288244
+    },
+    {
+      "calls": 76,
+      "entry": "language-parser-joint-expansion",
+      "maximum_nanos": 2293505,
+      "nanos": 165218856
+    },
+    {
+      "calls": 98,
+      "entry": "language-parser-joint-runtime-merge",
+      "maximum_nanos": 103816893,
+      "nanos": 9782213477
+    }
+  ],
+  "limitations": "finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence",
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "ordinary_plan_preparation_ms": 132459,
+  "pos_correct": 9,
+  "profile": "TRAIN-frequency57 plus seven separately reviewed lexical forms; four-token complete immutable tape; blind learned joint decode; teaching cases are not heldout",
+  "proof": "actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact",
+  "selected_occurrence": "protected-stream",
+  "sentences": 4,
+  "source_preparation_ms": 74259,
+  "tokens": 9,
+  "uas_correct": 9,
+  "universal_base_las_correct": 9,
+  "vocative_correct": 3,
+  "vocative_gold": 3
+}

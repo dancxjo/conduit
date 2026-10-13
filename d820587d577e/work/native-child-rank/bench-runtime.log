@@ -1,0 +1,2 @@
+prepare_nanos=4338559 receipt=PreparedNativeFamilyStorageReceipt { types: 10, retained_heap_bytes_bound: 11543, preparation_peak_heap_bytes_bound: 568373, conversion_requested_bytes_bound: 157548585 }
+PASS all10 retained actual epoch beam values; repeats=20 reference_once_nanos=406298484 prepared_nanos=3920599113 child_scoped_nanos=2888267211 capability_fresh_admission_nanos=96379104 cumulative_cap_combined_bound=494006 scope_logical_bytes=2184

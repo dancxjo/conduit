@@ -1,0 +1,555 @@
+host std-host-1 boot boot-18daaad314f136ea-1 profile rust-std protocol 1
+plan f77270b4922440e40c80ec510b84f51500e67b950805200dd7ea2259eee543fc source_document=3966fe29e9139bf7a20503e84df5427c74833184f68f11b08ee6641b15413562 checked_form=8c1d40c66b9889f5e9185ef89ea5347f9369a1cf2eede119bbb823d2a56deb83 expanded_form=2ad16bcfd905cd918eff1ca60e16eee9cddd36d58229507df1861af3d2d2c5a6
+place little-life/clock kind=time/tick host=std-host-1 boot=boot-18daaad314f136ea-1 capability=time-tick-v2 implementation=std/kernel-time-tick@2 artifact=conduit-std-host/time-tick@2
+place little-life/evolving kind=presentation/scalar-field host=std-host-1 boot=boot-18daaad314f136ea-1 capability=std-scalar-field-presentation-v1 implementation=std/kernel-present-scalar-field@1 artifact=conduit-std-host/presentation-scalar-field@1
+place little-life/organism kind=alife/lenia-step host=std-host-1 boot=boot-18daaad314f136ea-1 capability=std-lenia-step-v1 implementation=std/kernel-lenia-step@1 artifact=conduit-std-host/lenia-spatial-q16@1
+place little-life/seed kind=alife/orbium-seed host=std-host-1 boot=boot-18daaad314f136ea-1 capability=std-orbium-seed-v1 implementation=std/kernel-orbium-seed@1 artifact=conduit-std-host/orbium-seed@1
+connection e42ebf05027eef456ca54f4b092421f96c903ca137fda6d079e7a71380ac3589 dc59c0dee0bd0789d81cb066dad648ecbd9d46628fa22dbfafad727fd32ac874:tick > ef2d35aacf1282aec189678d68c3f444603bef5f2f97f2693b3e3164277668f0:tick line=local base=BaseImplementationId("conduit.base/local@1") queue=4
+connection 10b22c11ace300325c07f0188686b6e0ac54dc1e4cbc5789754b81a7259444e5 ef2d35aacf1282aec189678d68c3f444603bef5f2f97f2693b3e3164277668f0:field > a7bd9daf30bd3c11860e4fb2582e4694e1ea1bac9ede2c65c7d434d98373db01:field line=local base=BaseImplementationId("conduit.base/local@1") queue=4
+connection 691d6a965867a0347d6f5d261e8316a912c2d812a08b531b43a3859ae141503c 1d3ff2830d8f14891e9994465dcc0199c5bd753b573d69e9fe32058aa2a20266:field > ef2d35aacf1282aec189678d68c3f444603bef5f2f97f2693b3e3164277668f0:initial line=local base=BaseImplementationId("conduit.base/local@1") queue=4
+SCALAR-FIELD title="Orbium evolution" generation=1 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                         .      
+                .:-:..... -     
+               .:--:.     :=    
+             .   .:--:     :-   
+           =.     =++*=     -   
+            *     =#%%%*    .:  
+            ::    .%@%%%+.  ..  
+             :.    =##**+-::.   
+              ... .:=++==-:.    
+                 ..:::::..      
+                                
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=2 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                 .:.      :     
+                .---:     :=    
+              .  .:::.     ::   
+           - .    -=++-     -.  
+            +     -*#%%+     :  
+            :-     #@@%@+.  .:  
+             -.    =%#*#*=:.:   
+              ..   :=*+++-::    
+                ...::---:..     
+                                
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=3 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                 ...      :     
+                 :--:.   ..-    
+               ..:--:.     -:   
+           : .    :-==:     -.  
+            =.    :+*##=     -  
+            .=     *%@@@+    :  
+             -.    =%%*##=....  
+              :.   .+**++=-:.   
+                ...:-===-:.     
+                    ....        
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=4 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                          .     
+                 .::: ..   :    
+                .:---.     -:   
+           .  .   :---.     -.  
+            -.    .=***-     =  
+            .=     *%%%%+    :  
+             -.    -@%*#%=. .:  
+              :.   .+#*+*+-::   
+               .....-=+==-:.    
+                   ..::..       
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=5 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                  ...      :    
+                 :-=-:    .-:   
+              ..  :---.     =.  
+            -.     =+++:     =  
+             =     +#%%%=    :  
+             -.    :%@##%=   :  
+              -.    *%*+**-::.  
+               ..   -++++=-:.   
+                  ..:::::.      
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=6 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                           .    
+                 .-==:.   .:.   
+               ...-==-.     =   
+            : .    -=+=:     +  
+             =     =*###-    .. 
+             -.    .%%%%@=   .. 
+              =     *%*+##=:::  
+               :.   :***++=:.   
+                 ..::----:.     
+                                
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=7 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                           .    
+                  :--:.....:.   
+                ..-==-      =   
+            . .    -===.     +  
+             -.    -**#*-    .: 
+             ::     #%%%%=   .: 
+              +     +@#*#%=.... 
+               :.   :*#***=-:.  
+                 ...:-==--:.    
+                    .....       
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=8 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                  .:::......    
+                 .-++=.     +   
+              ..   ----.     *  
+             :.    :++*+:     - 
+             :-     *##%%-    : 
+              +     +%%*%%-  .. 
+               -    .#%**#+-::  
+                ....:-++==-:.   
+                   ..::::..     
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=9 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                   .:. ...      
+                  -=+=:    .=   
+               ....---:      *  
+             ..    .=+++.     - 
+             .-     +**##:    : 
+              *     =%%#%%-   : 
+               -    .#%**#*-::. 
+                :.  .-*++==-:.  
+                  ..:::-::..    
+                                
+                                
+SCALAR-FIELD title="Orbium evolution" generation=10 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                    ..          
+                  :=+=:.   .=   
+                ..:-=-:      *  
+             ...    -===.     = 
+             .-     =****:    : 
+              *     -#%#%%-   ..
+               =     #@#*%#-..: 
+                :.   =**+++=::  
+                  ..::----::.   
+                      ...       
+                                
+SCALAR-FIELD title="Orbium evolution" generation=11 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                  .-=-:.....-   
+                 .:===:      *  
+             . .    :---      = 
+              -     -++++.    :.
+              +     :*##%%:   .:
+               +     #@#*%%-..:.
+                :    -#*++*=-:. 
+                 ....:====--:   
+                    ...::..     
+                                
+SCALAR-FIELD title="Orbium evolution" generation=12 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                   :--. ..  :   
+                  .=+=-     .*  
+                .  .:-::      + 
+              :.    -====.    ..
+              =.    .**#%#:    :
+               *     *%%#%%-  ..
+                -    -%#++*+-:: 
+                 :...:=++==-:.  
+                   ..::::::.    
+                                
+SCALAR-FIELD title="Orbium evolution" generation=13 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                   .::      .   
+                   -==-.    .+  
+                 ...--:.      + 
+              ..    :----     .:
+              -.     +**#*.    -
+               *     *%%#%%-  .:
+                -    -%#++#*-::.
+                 :.  .+*+++=-:. 
+                   .:::----:.   
+                                
+SCALAR-FIELD title="Orbium evolution" generation=14 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                    ..          
+                   :-=-... . +  
+                  ..---.     .+ 
+              . .   .::--     .:
+              :.     =++**.    -
+               *     +#%%%%:   :
+                =    :%%++##-.::
+                 :.  .+#*+*+=:: 
+                  .:::-===--:.  
+                      .....     
+SCALAR-FIELD title="Orbium evolution" generation=15 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                   .:-:      =  
+                   .-=-:     .= 
+                ..  .:.::     ::
+              :..    -==++     =
+.              *     =##%%%:   :
+.               +    .%@++%#-..:
+                .-    +%*+**=::.
+                  .:..:=++==-:. 
+                     ..::::..   
+SCALAR-FIELD title="Orbium evolution" generation=16 width=32 height=32 profile=alife/fixed-q16.16@1
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                    .:.      -  
+                   .-=-:     .- 
+                 .. .:...     ::
+              . .    :--==     =
+:              +.    -*####.   .
+.               *     %@**%%:  .
+                .-    +%*+*#=:::
+                  :. .:=*++=-:. 
+                    ..:::-::..  
+SCALAR-FIELD title="Orbium evolution" generation=17 width=32 height=32 profile=alife/fixed-q16.16@1
+                       ....     
+                                
+                                
+                                
+                                
+                                
+                                
+                    ..       :  
+                    :--:..  ..: 
+                  ..:::..     -:
+              . ..   .::--     =
+-              =.    :+**#*.    
+:               *     #%**%%:  .
+.               .-    =@#+#%+:..
+                 .:   .+***+=-:.
+                   ...::----:.  
+SCALAR-FIELD title="Orbium evolution" generation=18 width=32 height=32 profile=alife/fixed-q16.16@1
+                      ..::...   
+                                
+                                
+                                
+                                
+                                
+                                
+                             .  
+                    .:::....  : 
+                   .:-::.     -:
+.             .  .   ...-:     +
+-              -.    .=++*+     
+:               *     *%*#%#.   
+.               .=    =@%*#%+. .
+.                .:   .+##**+-::
+                   ....:-===-:. 
+SCALAR-FIELD title="Orbium evolution" generation=19 width=32 height=32 profile=alife/fixed-q16.16@1
+                     ..:::::..  
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                     .:.      : 
+                    :--:.    .-:
+.                 .  ...:.     +
+=              : .    -==+=     
+..              *     +#*#%#.   
+..              .=    -%%*#@*.  
+.                ::    +%#*#*-:.
+                  ...  :=+++=-:.
+SCALAR-FIELD title="Orbium evolution" generation=20 width=32 height=32 profile=alife/fixed-q16.16@1
+                    ...::---::. 
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                     ..       . 
+                    .---:.  ..:.
+.                 ........     *
+=              . .    :--==     
+.:              +.    =*+*%*    
+.:               +    :%%#%@*   
+..               -.    +%#*##-..
+.                 ..   .=**++=::
+SCALAR-FIELD title="Orbium evolution" generation=21 width=32 height=32 profile=alife/fixed-q16.16@1
+                   .....-===-:. 
+                       .....    
+                                
+                                
+                                
+                                
+                                
+                                
+                              . 
+                     ::::.....:.
+                   ..::..      *
++                 .   ::---     
+ -              =.    =+++#+    
+ :               *    .#%#%@*   
+..               -.    +@%*##-. 
+.                 :.   .+#***=-:
+SCALAR-FIELD title="Orbium evolution" generation=22 width=32 height=32 profile=alife/fixed-q16.16@1
+                   ..  .:=++=-:.
+                      ..:::..   
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                     ..:....  . 
+                    .::::.    .*
++                 ..  .::::     
+ -              -.    -==+*=    
+ :               *    .*%%%%+   
+ :               -.    =@%#%%=  
+:.                -     +#***+-:
+SCALAR-FIELD title="Orbium evolution" generation=23 width=32 height=32 profile=alife/fixed-q16.16@1
+.                  :.   :+*++=-:
+                     ...::-::.. 
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                       ..       
+                     :-:-.    .+
+*                  .. .:::.     
+ =              : .   :=-=+=    
+ ..              *     *##%%=   
+ ..              -.    -%@#%@=  
+..                =     *%**#*-:
+SCALAR-FIELD title="Orbium evolution" generation=24 width=32 height=32 profile=alife/fixed-q16.16@1
+:                  :    :****+=:
+                     ...:----:. 
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                     .::-:.....+
+*                  ...::::.     
+ =              . .   .-:-=-    
+ .:              +.    +**##=   
+ .:              ::    :%@%%@-  
+.:                =     *%**##-.
+SCALAR-FIELD title="Orbium evolution" generation=25 width=32 height=32 profile=alife/fixed-q16.16@1
+:.                 -    :*#***=-
+                    ....:-===-:.
+                        .....   
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                      ::-:.....=
+*                   ..--::.    .
+ +                ..  .:::-:    
+  :              =:    =+*#*-   
+  :              :-    :#%%%%-  
+ ..               +     *@#*%%- 
+SCALAR-FIELD title="Orbium evolution" generation=26 width=32 height=32 profile=alife/fixed-q16.16@1
+::                 -    .#%**#+-
+.                   ..  .-++==-:
+                       ..:::... 
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                      ..:..... -
+*                    .-=--.    .
+ +                 .. .:.:-.    
+  -              =:    -++**:   
+  :              .=    .*%%%%:  
+ .:               *     +@#*%%- 
+SCALAR-FIELD title="Orbium evolution" generation=27 width=32 height=32 profile=alife/fixed-q16.16@1
+::.                -     #%**#*-
+:.                  :.   -**++=-
+                      ..::--::..
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+                        .. .   :
++                    .-==-:    .
+ *                 ....:..:.    
+  =              -..   :==++.   
+  :              .=     +##%#:  
+  :               *     =%%#%%- 
+SCALAR-FIELD title="Orbium evolution" generation=28 width=32 height=32 profile=alife/fixed-q16.16@1
+..:                =     %@**%#-
+:.                  :    -#*+++=
+.                    ....:-=--:.
+                          ..    
+                                
+                                
+                                
+                                
+                                
+                                
+                               .
++                     :-==:.....
+ *                  ..:-..:     
+  =              :..   .--==.   
+  :               =     +**#*.  
+  ..              *     -%%#%%: 
+SCALAR-FIELD title="Orbium evolution" generation=29 width=32 height=32 profile=alife/fixed-q16.16@1
+ .:.               +     #@**%%-
+-:.                 :    -##++*=
+.                    ....:====-:
+                        ....... 
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+=                     .:--:.....
+.*                   .:-:::     
+  +              . ..  .::--    
+  ..              -.    =++**.  
+  .:              *     :#%%%%: 
+SCALAR-FIELD title="Orbium evolution" generation=30 width=32 height=32 profile=alife/fixed-q16.16@1
+  ..               *     #@#*%%:
+-::                 -    -%#++*+
+:.                   :.  :=++==-
+                       ..:::::..
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+-                      :::..... 
+.+                    :-:::     
+  +                 .. .::::    
+  .:              :.    -=+++   
+   :              +.    .*##%%: 
+SCALAR-FIELD title="Orbium evolution" generation=31 width=32 height=32 profile=alife/fixed-q16.16@1
+  .:               *     *%%#%%:
+-::.                -    :%#++#*
+-:.                  :.  .=*+++=
+.                      .:::---::
+                                
+                                
+                                
+                                
+                                
+                                
+                                
+:                      ..:.     
+.+                    .-:--.    
+  +                 ....:::.    
+  .:              ..    :-===   
+   -              =.    .+**##. 
+SCALAR-FIELD title="Orbium evolution" generation=32 width=32 height=32 profile=alife/fixed-q16.16@1
+   :               *     +%%#@%:
+-..:                -    :%%++%*
+-:.                 .:    +#*+++
+:.                    ...::-==--
+                          ..... 
+                                
+                                
+                                
+                                
+                                
+                                
+.                        .      
+.=                     :.:-.....
+ .+                  ..:-::.    
+  .:              . .   .:---   
+   -              -.     =+***. 
+plan f77270b4922440e40c80ec510b84f51500e67b950805200dd7ea2259eee543fc complete
+receipts 0

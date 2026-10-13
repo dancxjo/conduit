@@ -1,0 +1,22 @@
+{
+  "artifact_descriptor": "e2f89bbc260897aae750a11ee09c7b24d9956e60d33c164b1154185742ecd126",
+  "content_identity": "6bc16c035692eac858611d685220f90d29d89d9fec2ca334ace01fb5b22701a1",
+  "contracts": {
+    "action": "ebd9353d96815c8d2a773026819e96dd0b730c62519697555c8e68cf4caa4985",
+    "availability": "ddfec0ab52cc3689bd2d971288c63be3711570a3f3f4f51fb272c3a4a97701fa",
+    "feature": "c7fdd7d843829cd7a157e5ee1f365e0c90421cccf0546f533051b011b9680216",
+    "joint_choice": "43dd0c3e9908767af9d0083ba7eafdd814a6fa26d5d5df6fa2385690179a276e",
+    "numeric_indices": "0ef7960c3b368f3f2586cbf554bad61c396554226c4da7c48a87f77b1ec88a9a",
+    "numeric_scores": "37beac9d3d9ed441684a35db4cc182523729598dde2823eca786d5d39d6a83f1"
+  },
+  "dictionary_identity": "12458ed85a62ff19a794a8f79e24ff8c7e76e3975392379ed3ba9ed5c9ec89fe",
+  "dimensions": {
+    "categories": 446,
+    "classes": 76,
+    "lookups": 27
+  },
+  "maximum_score_magnitude": 1000000,
+  "reference_identity": "c932a51ac49db44ad052330d40c56c34ca4da88c4c481182e080cc14b57dc4f4",
+  "scope": "Independently derived expected metadata for pinned candidate before scorer adoption; no closed factory/runtime/accuracy authority",
+  "signature_identity": "98af90973bdf088c5d59587fd8c87f4e6ccd5c4c81cd995e328ddc343ee8624b"
+}

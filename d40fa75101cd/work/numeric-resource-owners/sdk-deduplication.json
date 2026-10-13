@@ -1,0 +1,558 @@
+{
+  "scope": "owned immutable SDK identical-content hardlink dedup; all original paths/bytes preserved, inactive fuser verified",
+  "recovered_physical_bytes": 461713408,
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "sha256": "29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c",
+      "reclaimed_blocks_bytes": 57344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "sha256": "2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc",
+      "reclaimed_blocks_bytes": 2736128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "sha256": "4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab",
+      "reclaimed_blocks_bytes": 2416640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "sha256": "49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca",
+      "reclaimed_blocks_bytes": 155648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "sha256": "4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d",
+      "reclaimed_blocks_bytes": 34508800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "sha256": "578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295",
+      "reclaimed_blocks_bytes": 1826816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "sha256": "59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35",
+      "reclaimed_blocks_bytes": 12238848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "sha256": "62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4",
+      "reclaimed_blocks_bytes": 2371584
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "sha256": "722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772",
+      "reclaimed_blocks_bytes": 888832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "sha256": "7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065",
+      "reclaimed_blocks_bytes": 143360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "sha256": "74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba",
+      "reclaimed_blocks_bytes": 417792
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "sha256": "89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03",
+      "reclaimed_blocks_bytes": 819200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "sha256": "8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414",
+      "reclaimed_blocks_bytes": 32768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "sha256": "9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3",
+      "reclaimed_blocks_bytes": 45056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "sha256": "96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4",
+      "reclaimed_blocks_bytes": 4808704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "sha256": "96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6",
+      "reclaimed_blocks_bytes": 28635136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "sha256": "9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80",
+      "reclaimed_blocks_bytes": 958464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "sha256": "9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668",
+      "reclaimed_blocks_bytes": 544768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "sha256": "d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7",
+      "reclaimed_blocks_bytes": 8192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-sdk-a8c6/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "sha256": "e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5",
+      "reclaimed_blocks_bytes": 9015296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/model-resource-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "sha256": "14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02",
+      "reclaimed_blocks_bytes": 2428928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/model-resource-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "sha256": "3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822",
+      "reclaimed_blocks_bytes": 7254016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/model-resource-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "sha256": "830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067",
+      "reclaimed_blocks_bytes": 3121152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "sha256": "14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02",
+      "reclaimed_blocks_bytes": 2428928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "sha256": "29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c",
+      "reclaimed_blocks_bytes": 57344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "sha256": "2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc",
+      "reclaimed_blocks_bytes": 2736128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "sha256": "3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822",
+      "reclaimed_blocks_bytes": 7254016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "sha256": "4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab",
+      "reclaimed_blocks_bytes": 2412544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "sha256": "49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca",
+      "reclaimed_blocks_bytes": 155648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "sha256": "4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d",
+      "reclaimed_blocks_bytes": 34508800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "sha256": "578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295",
+      "reclaimed_blocks_bytes": 1826816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "sha256": "59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35",
+      "reclaimed_blocks_bytes": 12238848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "sha256": "62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4",
+      "reclaimed_blocks_bytes": 2367488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "sha256": "722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772",
+      "reclaimed_blocks_bytes": 888832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "sha256": "7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065",
+      "reclaimed_blocks_bytes": 143360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "sha256": "74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba",
+      "reclaimed_blocks_bytes": 417792
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "sha256": "830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067",
+      "reclaimed_blocks_bytes": 3121152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "sha256": "89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03",
+      "reclaimed_blocks_bytes": 819200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "sha256": "8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414",
+      "reclaimed_blocks_bytes": 32768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "sha256": "9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3",
+      "reclaimed_blocks_bytes": 45056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "sha256": "96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4",
+      "reclaimed_blocks_bytes": 4808704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "sha256": "96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6",
+      "reclaimed_blocks_bytes": 28631040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "sha256": "9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80",
+      "reclaimed_blocks_bytes": 958464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "sha256": "9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668",
+      "reclaimed_blocks_bytes": 544768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "sha256": "d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7",
+      "reclaimed_blocks_bytes": 8192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-back-storage/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "sha256": "e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5",
+      "reclaimed_blocks_bytes": 9011200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "sha256": "14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02",
+      "reclaimed_blocks_bytes": 2428928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "sha256": "29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c",
+      "reclaimed_blocks_bytes": 57344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "sha256": "2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc",
+      "reclaimed_blocks_bytes": 2736128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "sha256": "3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822",
+      "reclaimed_blocks_bytes": 7254016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "sha256": "4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab",
+      "reclaimed_blocks_bytes": 2412544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "sha256": "49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca",
+      "reclaimed_blocks_bytes": 155648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "sha256": "4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d",
+      "reclaimed_blocks_bytes": 34508800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "sha256": "578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295",
+      "reclaimed_blocks_bytes": 1826816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "sha256": "59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35",
+      "reclaimed_blocks_bytes": 12242944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "sha256": "62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4",
+      "reclaimed_blocks_bytes": 2367488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "sha256": "722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772",
+      "reclaimed_blocks_bytes": 888832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "sha256": "7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065",
+      "reclaimed_blocks_bytes": 143360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "sha256": "74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba",
+      "reclaimed_blocks_bytes": 417792
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "sha256": "830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067",
+      "reclaimed_blocks_bytes": 3121152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "sha256": "89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03",
+      "reclaimed_blocks_bytes": 819200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "sha256": "8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414",
+      "reclaimed_blocks_bytes": 32768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "sha256": "9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3",
+      "reclaimed_blocks_bytes": 45056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "sha256": "96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4",
+      "reclaimed_blocks_bytes": 4808704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "sha256": "96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6",
+      "reclaimed_blocks_bytes": 28635136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "sha256": "9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80",
+      "reclaimed_blocks_bytes": 958464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "sha256": "9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668",
+      "reclaimed_blocks_bytes": 544768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "sha256": "d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7",
+      "reclaimed_blocks_bytes": 8192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "sha256": "e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5",
+      "reclaimed_blocks_bytes": 9015296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02/libconduit_kernel-f9e55a656a3ce7ef.rlib",
+      "sha256": "14aa8f2052f6e0a012d4e29c954d5e12fee07467c090148bf2ce0a38f66c5c02",
+      "reclaimed_blocks_bytes": 2428928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c/libblock_buffer-e3864c347c7f8227.rlib",
+      "sha256": "29a16549fe644b228708c591a05d16b6b6a8e3d4080b8c64cba42d246cadf05c",
+      "reclaimed_blocks_bytes": 57344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc/libtypenum-aa2ca32923679fb6.rlib",
+      "sha256": "2cccfd30e714c73b642dcaa17efde17f21cdacbb58a583416e14f731794159cc",
+      "reclaimed_blocks_bytes": 2736128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822/libconduit_composite-2d3b2f0f2fc0cfbc.rlib",
+      "sha256": "3312c0c43a74483dad45b49b921df7994b4ace4030f7531a71e49c19433b9822",
+      "reclaimed_blocks_bytes": 7258112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab/libserde_json-a99dd1068303bcee.rlib",
+      "sha256": "4845bf99afb7ed7a0a90637cb4031ae0ecbe0cfde60599383eb772dd2cba2fab",
+      "reclaimed_blocks_bytes": 2412544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "sha256": "49f206e73fbd2cc9c80de6b5a72f5adf15c85b512cabef4e7e7421aebea49cca",
+      "reclaimed_blocks_bytes": 155648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d/libconduit_plot-9c32fb40f29f61fa.rlib",
+      "sha256": "4cab09b6542a02b7a488ec5e53f72306ca2ce2dc8c5f47e815dc3e7c44a2589d",
+      "reclaimed_blocks_bytes": 34508800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295/libmemchr-243635fb78efc467.rlib",
+      "sha256": "578e292bffd677175e6dde366722021c8b6ae3bb892c27f7d7bcaf1afe7e8295",
+      "reclaimed_blocks_bytes": 1826816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35/libconduit_time-66812212b2c6f02c.rlib",
+      "sha256": "59fffbb48ab9dcc6c48017153a40c57848da9a3e2e7b5dcdc6981262e22d2b35",
+      "reclaimed_blocks_bytes": 12242944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4/liblibm-71cd2fc3aaa02817.rlib",
+      "sha256": "62b079bd0ee0083927f0445bcce6c83c3f3d585a4bd39a580e471d7997d517f4",
+      "reclaimed_blocks_bytes": 2367488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772/libsha2-674c3cc0496069e5.rlib",
+      "sha256": "722cb3ef3dfffaa3237fbfe9be24cc438fc3ad433b4981c523a7c3d10fa3d772",
+      "reclaimed_blocks_bytes": 888832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065/libitoa-8ade534ac5c7f564.rlib",
+      "sha256": "7342d2378a86aaf8d26e1c92adeb213764fda9b2df1da945ad7efd04845c2065",
+      "reclaimed_blocks_bytes": 143360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba/libconduit_assigned_plan-177334d4a11f5220.rlib",
+      "sha256": "74994833bf8ce4e1277e447cba5b331bf3464c312316fe7f1d4f51b679dc2aba",
+      "reclaimed_blocks_bytes": 417792
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067/libconduit_plan_lowering-7e6198aead7f25ec.rlib",
+      "sha256": "830cc543d2ecb8b5964467ce5d5bb8f6b0734b5c2c7239907d2e146412fcf067",
+      "reclaimed_blocks_bytes": 3121152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "sha256": "89e43e1b314d43fb0f560e1d8a2c7e8d5992ad5d7bc5625bc1053835a68b3d03",
+      "reclaimed_blocks_bytes": 819200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "sha256": "8b04301480b03284a20f817333c534e055d79eebb32e0662d2cc9e56dc16d414",
+      "reclaimed_blocks_bytes": 32768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "sha256": "9054912e5c3baf0ae5e4fa43a4aaca98714002249a69b142b0971e4c873d6cd3",
+      "reclaimed_blocks_bytes": 45056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4/libserde_core-b963fc14535b8015.rlib",
+      "sha256": "96347d74ffb90b9928346b7cca37b0fedaccca87222b31abce9d677d15e6b2f4",
+      "reclaimed_blocks_bytes": 4812800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6/libconduit_core-312c58e9574cc44b.rlib",
+      "sha256": "96aa986ee5cce4eed763b1b833eb6d1559e17f5cd3a9fbea64c30eae104b29f6",
+      "reclaimed_blocks_bytes": 28635136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80/libserde-7cb76abf761965c6.rlib",
+      "sha256": "9909da0ba815d1d0ffdcb8ef8e60f511ff9eb523e8afa013dabfbbc13394db80",
+      "reclaimed_blocks_bytes": 958464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668/libzmij-4e7cde0676d7e427.rlib",
+      "sha256": "9f8a19df8b76ffa0d3f35cd5048adf15b35cf16a9d44f631ae398dfd7a030668",
+      "reclaimed_blocks_bytes": 544768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7/libcfg_if-189139af139bd65e.rlib",
+      "sha256": "d995ad9421da51d7a623b681cb174432f41836990165220b63e78689e56393d7",
+      "reclaimed_blocks_bytes": 8192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "same_bytes_at": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/immutable-sdk/e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5/libconduit_data-5026da13ac09c4a9.rlib",
+      "sha256": "e224075c0e92f93ccb847956fd191d1fac7eb81b1d07b8902b683099e9a74ef5",
+      "reclaimed_blocks_bytes": 9011200
+    }
+  ]
+}

@@ -1,0 +1,23 @@
+    Finished `test` profile [unoptimized] target(s) in 0.10s
+     Running tests/parser_independent_protection.rs (target/debug/deps/parser_independent_protection-278a365fcfb1e189)
+
+running 1 test
+protection preparation start: language-parser-protected-set-initialize
+test source_owned_slots_refuse_foreign_choices_and_filter_legal_proposals has been running for over 60 seconds
+protection preparation complete: language-parser-protected-set-initialize
+protection preparation start: language-parser-protected-set-insert
+protection preparation complete: language-parser-protected-set-insert
+protection preparation start: language-parser-initialize
+protection preparation complete: language-parser-initialize
+protection preparation start: language-parser-independent-branch
+protection preparation complete: language-parser-independent-branch
+protection preparation start: language-parser-legal-mask
+protection preparation complete: language-parser-legal-mask
+protection preparation start: language-parser-independent-mask
+protection preparation complete: language-parser-independent-mask
+protection ordinary Plan preparation start
+protection ordinary Plan preparation complete
+test source_owned_slots_refuse_foreign_choices_and_filter_legal_proposals ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 1157.28s
+

@@ -1,0 +1,17 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.77s
+     Running tests/parser_vocative_protected_replay.rs (target/debug/deps/parser_vocative_protected_replay-d7c6806ef23c7dbe)
+
+running 1 test
+VOC2 exact Source check start
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices has been running for over 60 seconds
+VOC2 preparation start: language-parser-protected-set-insert
+VOC2 started: language-parser-protected-set-insert
+VOC2 preparation start: language-parser-protected-set-rebase
+VOC2 started: language-parser-protected-set-rebase
+VOC2 preparation start: language-parser-protection-forest-projection
+VOC2 started: language-parser-protection-forest-projection
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1045.49s
+

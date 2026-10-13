@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "mask.action-4",
+  "assertion": "mask-mask.inspect-unavailable-show",
+  "source_facts": {
+    "action_id": "mask.inspect-unavailable-show",
+    "concrete_event": "inspected-no-current-show",
+    "face_id": "36a7da879dfe83e8d23803be1e0107c746a0fbd3ac52638da51b964a8d3e33a8",
+    "plan_id": "body-plan/sha256:409ac29b8e286c198c276c66979472d0d05505f71a6c0571ff7d6969fa1b883d",
+    "receipt_ids": [
+      "native-route-withdrawn"
+    ],
+    "selected_mask_plot_id": null,
+    "selected_route_id": null,
+    "show_id": null
+  }
+}

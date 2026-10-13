@@ -1,0 +1,10 @@
+warning: unused import: `conduit_composite::KernelOperationFactory`
+ --> work/coherent-public-driver/public-complete-prep-probe.rs:4:5
+  |
+4 | use conduit_composite::KernelOperationFactory;
+  |     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

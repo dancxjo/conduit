@@ -1,0 +1,208 @@
+{
+  "scope": "Read-only lexical declaration references only; not checked descriptor/resource readiness. Imported numerical aliases excluded from named declared closure. No Source mutations.",
+  "snapshot_sha256": "ffda2013dbce8f0f789b6f5f7a277e765543c329c45c22eb8546483321b4b070",
+  "declared_types_in_snapshot": 265,
+  "files": [
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/parser_window8_dependency_custody.conduit",
+      "sha256": "bdeac28e0c790a4c348074db2927ba41ebca5998d18e505e0c4ef0e68a955b69",
+      "types": [
+        "LanguageParserWindow8DependencyAnchorProposal",
+        "LanguageParserWindow8DependencyCustody",
+        "LanguageParserWindow8DependencyRebaseQuery",
+        "LanguageParserWindow8DependencyCustodyProposal"
+      ],
+      "ports": [
+        {
+          "name": "language-window8-dependency-custody-rebase",
+          "input": "LanguageParserWindow8DependencyRebaseQuery",
+          "output": "LanguageParserWindow8DependencyCustodyProposal"
+        },
+        {
+          "name": "language-window8-dependency-custody-origin",
+          "input": "LanguageParserWindow8StableDependencyFact",
+          "output": "LanguageParserWindow8DependencyCustodyProposal"
+        }
+      ],
+      "declaration_closure_count": 41,
+      "port_closure_count": 41
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/parser_window8_independent_commit.conduit",
+      "sha256": "d4532a7bc6ff88ec29bb7effa790aaaff58669cde96becb95feb3da6c85cce5e",
+      "types": [
+        "LanguageParserWindow8IndependentCommitSetProposal",
+        "LanguageParserWindow8IndependentCommitSet",
+        "LanguageParserWindow8IndependentCommitInitialize",
+        "LanguageParserWindow8IndependentCommitRequest",
+        "LanguageParserWindow8IndependentCommitRebase"
+      ],
+      "ports": [
+        {
+          "name": "language-window8-independent-commit-initialize",
+          "input": "LanguageParserWindow8IndependentCommitInitialize",
+          "output": "LanguageParserWindow8IndependentCommitSetProposal"
+        },
+        {
+          "name": "language-window8-independent-commit",
+          "input": "LanguageParserWindow8IndependentCommitRequest",
+          "output": "LanguageParserWindow8IndependentCommitSetProposal"
+        },
+        {
+          "name": "language-window8-independent-commit-rebase",
+          "input": "LanguageParserWindow8IndependentCommitRebase",
+          "output": "LanguageParserWindow8IndependentCommitSet"
+        }
+      ],
+      "declaration_closure_count": 43,
+      "port_closure_count": 43
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/parser_window8_dependency_forest.conduit",
+      "sha256": "1339648562b2810e1bcd059c905f1f9c1fa3b3f19ceed8607eaf4f5acf18124b",
+      "types": [
+        "LanguageParserWindow8DependencyCompatibilityQuery",
+        "LanguageParserWindow8DependencyForestWorking",
+        "LanguageParserWindow8DependencyCompatibilityDecision"
+      ],
+      "ports": [
+        {
+          "name": "language-window8-dependency-forest-project",
+          "input": "LanguageParserWindow8DependencyCompatibilityQuery",
+          "output": "LanguageParserWindow8DependencyForestWorking"
+        },
+        {
+          "name": "language-window8-dependency-forest-height",
+          "input": "LanguageParserWindow8DependencyForestWorking",
+          "output": "LanguageParserWindow8DependencyForestWorking"
+        },
+        {
+          "name": "language-window8-dependency-forest-decision",
+          "input": "LanguageParserWindow8DependencyForestWorking",
+          "output": "LanguageParserWindow8DependencyCompatibilityDecision"
+        },
+        {
+          "name": "language-window8-dependency-compatible",
+          "input": "LanguageParserWindow8DependencyCompatibilityQuery",
+          "output": "LanguageParserWindow8DependencyCompatibilityDecision"
+        }
+      ],
+      "declaration_closure_count": 14,
+      "port_closure_count": 14
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/parser_window8_numeric_custody.conduit",
+      "sha256": "98cdb351909cfd3fd2b098c0977a92868d87837e81bba1aa42ab4515d1919b3e",
+      "types": [
+        "LanguageParserWindow8ModelScores"
+      ],
+      "ports": [
+        {
+          "name": "language-window8-model-feature-indices",
+          "input": "LanguageParserWindow8RawModelFeatures",
+          "output": "LanguageParserCategoricalIndices"
+        },
+        {
+          "name": "language-window8-model-score-observation",
+          "input": "LanguageParserCategoricalScores",
+          "output": "LanguageParserWindow8ModelScores"
+        }
+      ],
+      "declaration_closure_count": 1,
+      "port_closure_count": 6
+    }
+  ],
+  "port_roots": [
+    "LanguageParserCategoricalIndices",
+    "LanguageParserCategoricalScores",
+    "LanguageParserWindow8DependencyCompatibilityDecision",
+    "LanguageParserWindow8DependencyCompatibilityQuery",
+    "LanguageParserWindow8DependencyCustodyProposal",
+    "LanguageParserWindow8DependencyForestWorking",
+    "LanguageParserWindow8DependencyRebaseQuery",
+    "LanguageParserWindow8IndependentCommitInitialize",
+    "LanguageParserWindow8IndependentCommitRebase",
+    "LanguageParserWindow8IndependentCommitRequest",
+    "LanguageParserWindow8IndependentCommitSet",
+    "LanguageParserWindow8IndependentCommitSetProposal",
+    "LanguageParserWindow8ModelScores",
+    "LanguageParserWindow8RawModelFeatures",
+    "LanguageParserWindow8StableDependencyFact"
+  ],
+  "port_root_count": 15,
+  "per_root_declared_closure": {
+    "LanguageParserCategoricalIndices": 0,
+    "LanguageParserCategoricalScores": 0,
+    "LanguageParserWindow8DependencyCompatibilityDecision": 14,
+    "LanguageParserWindow8DependencyCompatibilityQuery": 12,
+    "LanguageParserWindow8DependencyCustodyProposal": 38,
+    "LanguageParserWindow8DependencyForestWorking": 13,
+    "LanguageParserWindow8DependencyRebaseQuery": 40,
+    "LanguageParserWindow8IndependentCommitInitialize": 8,
+    "LanguageParserWindow8IndependentCommitRebase": 18,
+    "LanguageParserWindow8IndependentCommitRequest": 39,
+    "LanguageParserWindow8IndependentCommitSet": 9,
+    "LanguageParserWindow8IndependentCommitSetProposal": 9,
+    "LanguageParserWindow8ModelScores": 1,
+    "LanguageParserWindow8RawModelFeatures": 5,
+    "LanguageParserWindow8StableDependencyFact": 36
+  },
+  "combined_port_named_union": [
+    "LanguageAnalysisRevisionId",
+    "LanguageId",
+    "LanguageLexicalCandidate",
+    "LanguageLexicalCompleteness",
+    "LanguageLexicalEntry",
+    "LanguageLexicalPos",
+    "LanguageLexicalProfile",
+    "LanguageLexicalTape",
+    "LanguageLexicalToken",
+    "LanguageParserBasis",
+    "LanguageParserRelation",
+    "LanguageParserSubtype",
+    "LanguageParserWindow8Ancestry",
+    "LanguageParserWindow8CheckedHypothesis",
+    "LanguageParserWindow8DependencyAnchorProposal",
+    "LanguageParserWindow8DependencyCompatibilityDecision",
+    "LanguageParserWindow8DependencyCompatibilityQuery",
+    "LanguageParserWindow8DependencyCustody",
+    "LanguageParserWindow8DependencyCustodyProposal",
+    "LanguageParserWindow8DependencyFactContext",
+    "LanguageParserWindow8DependencyForestWorking",
+    "LanguageParserWindow8DependencyRebaseQuery",
+    "LanguageParserWindow8FactQuery",
+    "LanguageParserWindow8IndependentCommitInitialize",
+    "LanguageParserWindow8IndependentCommitRebase",
+    "LanguageParserWindow8IndependentCommitRequest",
+    "LanguageParserWindow8IndependentCommitSet",
+    "LanguageParserWindow8IndependentCommitSetProposal",
+    "LanguageParserWindow8Lexical",
+    "LanguageParserWindow8ModelScores",
+    "LanguageParserWindow8RawHypothesis",
+    "LanguageParserWindow8RawModelFeatures",
+    "LanguageParserWindow8RawState",
+    "LanguageParserWindow8Snapshot",
+    "LanguageParserWindow8StableDependencyFact",
+    "LanguageParserWindow8StateProof",
+    "LanguageText",
+    "LanguageTextFinality",
+    "LanguageTextId",
+    "LanguageTextPriorRevision",
+    "LanguageTextRevision",
+    "LanguageTextRevisionId",
+    "LanguageTextRevisionLineage",
+    "LanguageUniversalDependencyRelation",
+    "LinguisticDerivationProvenance",
+    "LinguisticEvidence",
+    "LinguisticOffsetBasis",
+    "LinguisticTokenCategory",
+    "LinguisticTokenFeature",
+    "LinguisticTokenIdentity",
+    "TextSpan"
+  ],
+  "combined_port_named_union_count": 51,
+  "unresolved_port_aliases": [
+    "LanguageParserCategoricalIndices",
+    "LanguageParserCategoricalScores"
+  ]
+}

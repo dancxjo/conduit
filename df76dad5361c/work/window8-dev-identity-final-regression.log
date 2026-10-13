@@ -1,0 +1,24 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 2.28s
+     Running tests/parser_window8_dev_identity_retry.rs (target/debug/deps/parser_window8_dev_identity_retry-19eae81c269e985a)
+
+running 1 test
+test evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity ... FAILED
+
+failures:
+
+---- evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity stdout ----
+
+thread 'evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity' (3397710) panicked at semantics/language/tests/parser_window8_dev_identity_retry.rs:73:5:
+assertion `left == right` failed
+  left: "de6404eedbd4c5b24cce54e9fe46afb93235b07a86f25a18679e111d7dd934fd"
+ right: "window8/xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx/r0"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_window8_dev_identity_retry`

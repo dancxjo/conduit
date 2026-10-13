@@ -1,0 +1,85 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "ef8751f5f2346722ee61184fd9e07d3b44f6bbbe",
+  "track": "browser-graphical",
+  "step_id": "fault.observed",
+  "assertion": "fault-observed",
+  "source_facts": {
+    "refusal": {
+      "code": "ExecutionLineUnavailable",
+      "message": "Body proposal selected an admitted host without a current execution Line"
+    },
+    "wake": {
+      "wake_id": "2b769f37b46a7297fdf9e7f2bd9a6a482939d02407a76294b25bc834c1247e2c",
+      "body_id": "b7237b2bfe4879c891f7bce911094ee34542648a2a047839bf82789acdd698ee",
+      "workset": {
+        "plots": [
+          {
+            "source_document_id": "57bc76f68b7dab51ec593be069df751cc50cacf0b6ae2f5cd0897520a46486b4",
+            "checked_plot_id": "6fa9df916f5743f6f5b05202d96724337ed86fa2fd26fefc10db747ce3864e31"
+          },
+          {
+            "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+            "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6"
+          },
+          {
+            "source_document_id": "5c59950a208338112d2045d747a6b3fa3b789683f85482a067f6f4b4b63e911d",
+            "checked_plot_id": "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c"
+          }
+        ]
+      },
+      "workload_revision": 1,
+      "wake_sequence": 17,
+      "lifecycle": "Failed",
+      "plans": [
+        {
+          "plan_id": "body-plan/sha256:634fe348609aab547e207e546b9669add03fa906e07d5e6327c9b376f03d0003",
+          "active_play_id": null,
+          "state": "AwaitingPlay",
+          "hold": null
+        }
+      ],
+      "rejections": [
+        {
+          "reason_code": "execution.line-unavailable",
+          "category": "Connectivity",
+          "stage": "Browser Host acquisition",
+          "resource": "remote-fragment-execution-line",
+          "required": 1,
+          "available": 0,
+          "host_id": "browser/0a400291-8496-43aa-80a0-1ae95304a87e",
+          "boot_id": "browser-boot/addee1e4-ccb2-4c78-9de1-355e34a77aa0",
+          "plan_id": "body-plan/sha256:634fe348609aab547e207e546b9669add03fa906e07d5e6327c9b376f03d0003",
+          "checked_plot_ids": [
+            "6fa9df916f5743f6f5b05202d96724337ed86fa2fd26fefc10db747ce3864e31",
+            "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6",
+            "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c"
+          ]
+        }
+      ],
+      "sign_ids": [
+        "ec9ed8c9695c80fb13230110e74b85c217dcfb3455fd4f86893d7e0492dcfe1f",
+        "829e73acfb3fac01049769397ac84b312267d19e3c8ea81e8250f5837a84b35b",
+        "77930286f317c38a57de78b7b94988c4e5ccf2b239ff777eb9a6ed13adfdb303"
+      ],
+      "events": [
+        {
+          "Woke": {
+            "sign_id": "ec9ed8c9695c80fb13230110e74b85c217dcfb3455fd4f86893d7e0492dcfe1f"
+          }
+        },
+        {
+          "PlanReady": {
+            "plan_id": "body-plan/sha256:634fe348609aab547e207e546b9669add03fa906e07d5e6327c9b376f03d0003",
+            "sign_id": "829e73acfb3fac01049769397ac84b312267d19e3c8ea81e8250f5837a84b35b"
+          }
+        },
+        {
+          "Failed": {
+            "sign_id": "77930286f317c38a57de78b7b94988c4e5ccf2b239ff777eb9a6ed13adfdb303"
+          }
+        }
+      ]
+    }
+  }
+}

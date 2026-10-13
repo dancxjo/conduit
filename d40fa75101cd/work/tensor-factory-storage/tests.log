@@ -1,0 +1,12 @@
+
+running 1 test
+affine requested=205259931 peak=44348849 retained=39212 (preparation measurement, not admission)
+linear requested=147498393 peak=44348849 retained=16917 (preparation measurement, not admission)
+embedding requested=99362093 peak=44348849 retained=2573 (preparation measurement, not admission)
+compact-empty-original-plan requested=89738669 peak=44348849 retained=46 (preparation measurement, not admission)
+numeric 6 owners requested=946479160 peak=44348849 retained=186624 (preparation measurement, not admission)
+actual full resource aggregate newarrayrequested=320 retained_payload=87003938 sharedallocations=81 tensorresources=36 descriptors=36 backings=6
+test full_original_tensor_factory_arrays_and_shared_owner_custody ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.64s
+

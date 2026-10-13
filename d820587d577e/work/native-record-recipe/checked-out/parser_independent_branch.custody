@@ -1,0 +1,11 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=9e0f4d20736c7154ad149855e5e80ae9016d941687dde6185e58e092466d8d4b
+expanded=6e29356a237652f222c389dd1727e7c8b5d277c4f5d34b08115a8c92c1573ac5
+input=language-parser-independent-branch/inline-237737adbf4c-0/expression-f368ae43b275-0:input
+output=language-parser-independent-branch/inline-5f0efca33c95-0/inline-412457de23eb-0/expression-412a2cdec870-0:output
+gear=language-parser-independent-branch/inline-237737adbf4c-0/expression-f368ae43b275-0:conduitese/pure-expression/3716b483514989f9fbf960bdd8433ef21a40cac3e42065ab38dd004a1bfdf654:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-independent-branch/inline-237737adbf4c-0/expression-f368ae43b275-0:output>language-parser-independent-branch/inline-5f0efca33c95-0/inline-f36f78edbfc0-0/expression-9b8fdfa9e6a6-0:input:structured-info/profile-b976f77c2994b4489fa6cd7c0fbcad2297a0f51c818853805d3e643b2687e5b3@1
+gear=language-parser-independent-branch/inline-5f0efca33c95-0/inline-f36f78edbfc0-0/expression-9b8fdfa9e6a6-0:conduitese/pure-expression/6d37ae1ad5ecd296433fc3120c5802e65ce8dde371374e3d1546835bbdc4d407:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-independent-branch/inline-5f0efca33c95-0/inline-f36f78edbfc0-0/expression-9b8fdfa9e6a6-0:output>language-parser-independent-branch/inline-5f0efca33c95-0/inline-412457de23eb-0/expression-412a2cdec870-0:input:structured-info/profile-870d1e9b5601302f60d4db7d72db4f7eab324808beba3623ed2559314c3fae4a@1
+gear=language-parser-independent-branch/inline-5f0efca33c95-0/inline-412457de23eb-0/expression-412a2cdec870-0:conduitese/pure-expression/b18b5cf964d96e70907182bb539d0d2a5ddcb524e5ad03a2234c576d9c5711c0:conduitese/pure-expression-operation@1:input:output

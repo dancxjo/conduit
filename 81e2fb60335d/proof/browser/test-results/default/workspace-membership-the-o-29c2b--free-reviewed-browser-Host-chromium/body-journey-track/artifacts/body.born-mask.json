@@ -1,0 +1,904 @@
+{
+  "schema": "conduit.browser/mask-observation@1",
+  "wardrobe_action": {
+    "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+    "wake_id": null,
+    "action": {
+      "Wear": {
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+      }
+    },
+    "basis_revision": 0,
+    "resulting_wardrobe": {
+      "revision": 1,
+      "lifetime": "Body",
+      "worn": [
+        {
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+        }
+      ],
+      "preference": []
+    },
+    "active_plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+    "reconciliation": {
+      "show": {
+        "SelectSealed": {
+          "prior": null,
+          "selected": {
+            "route_id": "route/browser-graphical",
+            "mask_form": {
+              "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+              "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+              "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+            },
+            "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08"
+          }
+        }
+      },
+      "planning": "NotRequired"
+    }
+  },
+  "planned_mask": {
+    "mask": {
+      "form_identity": {
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+      },
+      "form_name": "browser-graphical",
+      "presentation_input": {
+        "front_port_id": "presentation",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "presentation"
+      },
+      "interaction_output": {
+        "front_port_id": "interaction",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "interaction"
+      },
+      "show_output": {
+        "front_port_id": "show",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "show"
+      }
+    },
+    "plan": {
+      "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+      "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+      "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+      "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+      "completion_policy": "Live",
+      "realization_backs": [],
+      "fragments": [
+        {
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796",
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+          "completion_policy": "Live",
+          "realization_backs": [],
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "placements": [
+            {
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_id": "browser-graphical/mask",
+              "kind_id": "presentation/browser-dom-mask",
+              "kind_contract_revision": "conduit.browser/presentation-dom-mask@1",
+              "execution_profile_id": "browser/mask@1",
+              "configuration": [],
+              "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+              "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+              "offer_generation": 1,
+              "capability_id": "capability/browser-dom-mask",
+              "implementation_id": "implementation/browser-dom-mask",
+              "artifact_id": "artifact/browser-runtime",
+              "realization_characteristics": [],
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_items": 4,
+                "max_queue_bytes": 524288
+              },
+              "inputs": [
+                {
+                  "port_id": "presentation",
+                  "value_kind": "presentation/presentation@1",
+                  "direction": "Input",
+                  "temporal": "Value"
+                }
+              ],
+              "outputs": [
+                {
+                  "port_id": "interaction",
+                  "value_kind": "presentation/interaction@1",
+                  "direction": "Output",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  }
+                },
+                {
+                  "port_id": "show",
+                  "value_kind": "presentation/show@1",
+                  "direction": "Output",
+                  "temporal": "Value"
+                }
+              ],
+              "host_calls": [
+                {
+                  "contract_id": "browser.host/dom-mask@1",
+                  "target_kind": "presentation/browser-dom-mask",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 524288,
+                  "maximum_output_bytes": 524288
+                }
+              ],
+              "resources": [],
+              "authority": [],
+              "pool_references": []
+            }
+          ],
+          "execution_regions": [],
+          "execution_fusions": [],
+          "connections": [],
+          "fore_ports": [
+            {
+              "front_port_id": "presentation",
+              "direction": "Input",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "presentation",
+              "value_kind": "presentation/presentation@1",
+              "track": "payload",
+              "temporal": "Value",
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            },
+            {
+              "front_port_id": "interaction",
+              "direction": "Output",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "interaction",
+              "value_kind": "presentation/interaction@1",
+              "track": "payload",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            },
+            {
+              "front_port_id": "show",
+              "direction": "Output",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "show",
+              "value_kind": "presentation/show@1",
+              "track": "payload",
+              "temporal": "Value",
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            }
+          ],
+          "shared_pools": [],
+          "startup_dependencies": [],
+          "startup_order": [
+            "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+          ],
+          "cancellation_policy": "CancelAllAndRejectLateCompletion",
+          "terminal_policy": "RequireAllPlacementsAndConnections",
+          "expected_terminals": [
+            {
+              "PlacementCompleted": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            "PlanCompleted"
+          ],
+          "expected_sign": [
+            "PlanFragmentReceived",
+            {
+              "PlacementPrepared": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            {
+              "PlacementTerminal": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            "PlanTerminal"
+          ],
+          "sign_storage_budget": {
+            "item_capacity": 4,
+            "byte_capacity": 132
+          },
+          "plan_fragments": [
+            {
+              "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+              "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "mask_play": {
+    "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+    "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+    "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+    "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+    "play_sequence": 1
+  },
+  "presentation": {
+    "identity": "2af7c5eea3b44ad1f6ab3cec0459ed1ddce67634f72755e2e027fbe8e3efba58",
+    "revision": 2,
+    "basis": {
+      "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "wake_id": null,
+      "source_document_id": null,
+      "checked_form_id": null,
+      "expanded_form_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "sign_ids": [
+        "eaf84dc1e34f5aaddb0c3bd40ffcaa43904226ef19dcc4ffb3a5fd0decde3d88"
+      ]
+    },
+    "subjects": [
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "role": "Body",
+        "label": "Body",
+        "accessibility_name": "Current body"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "role": "Region",
+        "label": "overview",
+        "accessibility_name": "Current overview context"
+      },
+      {
+        "identity": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "role": "Form",
+        "label": "8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "accessibility_name": "Resident Form 8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3"
+      },
+      {
+        "identity": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "role": "Form",
+        "label": "d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "accessibility_name": "Resident Form d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "role": "Status",
+        "label": "Purpose",
+        "accessibility_name": "Purpose"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "role": "Status",
+        "label": "Fulfillment readiness",
+        "accessibility_name": "Fulfillment readiness"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "kind": "Contains"
+      }
+    ],
+    "properties": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "body-id",
+        "value": {
+          "Identity": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "lifecycle-state",
+        "value": {
+          "Text": "lulled"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "workload-revision",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "name": "operator-context",
+        "value": {
+          "Text": "overview"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "name": "operator-focus",
+        "value": {
+          "Text": "body"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "2a01bd41bd052d866c5115311feac7bb7313dea4b414f4ceaaee37752cdf68a0"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "checked-form-id",
+        "value": {
+          "Identity": "8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "43afbb025118dff53ec05be43f3f2e10506c60c5c1e3b59cafefa9fff5550bdf"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "checked-form-id",
+        "value": {
+          "Identity": "d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "tutorial-phase",
+        "value": {
+          "Text": "wake"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "name": "purpose",
+        "value": {
+          "Identity": "purpose/orifina-tutorial@1"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "name": "purpose-revision",
+        "value": {
+          "Count": 3
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "experience-revision",
+        "value": {
+          "Count": 3
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "name": "readiness",
+        "value": {
+          "Text": "not-ready"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "name": "unresolved-obligations",
+        "value": {
+          "Text": "wake,plan-ready,play-started,repair-fault,add-host"
+        }
+      }
+    ],
+    "text": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "text": "Wake this body: Birth made one retained body. Wake admits its first exact plan and Play without creating another body."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "text": "Teach one real Body lifecycle"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Declared work remains unfinished."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Wake through an admitted plan and Play."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Establish an exact current plan."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Start ordinary form work."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Repair a real failed Wake."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Admit another host."
+      }
+    ],
+    "actions": [
+      {
+        "identity": "body/action/wake/0",
+        "intent": "conduit.intent/wake@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Wake",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-overview/0",
+        "intent": "conduit.intent/open-body-overview@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Open Body overview",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-library/0",
+        "intent": "conduit.intent/open-form-library@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Open Forms library",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3/0",
+        "intent": "conduit.intent/open-resident-form@1",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "label": "Open resident Form",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "form-not-playing",
+            "explanation": "The resident Form is not currently presenting."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-inspection/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3/0",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "label": "Open inspection",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05/0",
+        "intent": "conduit.intent/open-resident-form@1",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "label": "Open resident Form",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "form-not-playing",
+            "explanation": "The resident Form is not currently presenting."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-inspection/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05/0",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "label": "Open inspection",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "body.wake",
+        "intent": "conduit.intent/tutorial-next@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Wake the retained body",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      }
+    ],
+    "inputs": [
+      {
+        "identity": "input/tutorial-action",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "value_kind": "value/text",
+        "maximum_bytes": 256,
+        "allow_empty": true,
+        "label": "Wake the retained body",
+        "accessibility_name": "Wake the retained body",
+        "submit_action": "body.wake"
+      }
+    ],
+    "disclosures": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "level": "Primary"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "level": "Context"
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "level": "Context"
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "level": "Context"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "level": "Context"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "level": "Context"
+      }
+    ],
+    "temporal_references": [],
+    "temporal_facts": []
+  },
+  "mask_show": {
+    "show_id": "show/b8edb6a4e222a69d2b5619a18b1944d43297209a50a496cdcd1ddc3f29e890e7",
+    "mask_form": {
+      "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+      "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+      "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+    },
+    "presentation_id": "2af7c5eea3b44ad1f6ab3cec0459ed1ddce67634f72755e2e027fbe8e3efba58",
+    "presentation_revision": 2,
+    "planned_mask": {
+      "mask": {
+        "form_identity": {
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+        },
+        "form_name": "browser-graphical",
+        "presentation_input": {
+          "front_port_id": "presentation",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "presentation"
+        },
+        "interaction_output": {
+          "front_port_id": "interaction",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "interaction"
+        },
+        "show_output": {
+          "front_port_id": "show",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "show"
+        }
+      },
+      "plan": {
+        "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+        "completion_policy": "Live",
+        "realization_backs": [],
+        "fragments": [
+          {
+            "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+            "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796",
+            "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+            "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+            "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+            "completion_policy": "Live",
+            "realization_backs": [],
+            "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+            "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_id": "browser-graphical/mask",
+                "kind_id": "presentation/browser-dom-mask",
+                "kind_contract_revision": "conduit.browser/presentation-dom-mask@1",
+                "execution_profile_id": "browser/mask@1",
+                "configuration": [],
+                "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+                "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+                "offer_generation": 1,
+                "capability_id": "capability/browser-dom-mask",
+                "implementation_id": "implementation/browser-dom-mask",
+                "artifact_id": "artifact/browser-runtime",
+                "realization_characteristics": [],
+                "limits": {
+                  "max_active_instances": 1,
+                  "max_queue_items": 4,
+                  "max_queue_bytes": 524288
+                },
+                "inputs": [
+                  {
+                    "port_id": "presentation",
+                    "value_kind": "presentation/presentation@1",
+                    "direction": "Input",
+                    "temporal": "Value"
+                  }
+                ],
+                "outputs": [
+                  {
+                    "port_id": "interaction",
+                    "value_kind": "presentation/interaction@1",
+                    "direction": "Output",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    }
+                  },
+                  {
+                    "port_id": "show",
+                    "value_kind": "presentation/show@1",
+                    "direction": "Output",
+                    "temporal": "Value"
+                  }
+                ],
+                "host_calls": [
+                  {
+                    "contract_id": "browser.host/dom-mask@1",
+                    "target_kind": "presentation/browser-dom-mask",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 524288,
+                    "maximum_output_bytes": 524288
+                  }
+                ],
+                "resources": [],
+                "authority": [],
+                "pool_references": []
+              }
+            ],
+            "execution_regions": [],
+            "execution_fusions": [],
+            "connections": [],
+            "fore_ports": [
+              {
+                "front_port_id": "presentation",
+                "direction": "Input",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "presentation",
+                "value_kind": "presentation/presentation@1",
+                "track": "payload",
+                "temporal": "Value",
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              },
+              {
+                "front_port_id": "interaction",
+                "direction": "Output",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "interaction",
+                "value_kind": "presentation/interaction@1",
+                "track": "payload",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              },
+              {
+                "front_port_id": "show",
+                "direction": "Output",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "show",
+                "value_kind": "presentation/show@1",
+                "track": "payload",
+                "temporal": "Value",
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              }
+            ],
+            "shared_pools": [],
+            "startup_dependencies": [],
+            "startup_order": [
+              "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            ],
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "terminal_policy": "RequireAllPlacementsAndConnections",
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              "PlanCompleted"
+            ],
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              {
+                "PlacementTerminal": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              "PlanTerminal"
+            ],
+            "sign_storage_budget": {
+              "item_capacity": 4,
+              "byte_capacity": 132
+            },
+            "plan_fragments": [
+              {
+                "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+                "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "show": {
+      "manifestation_id": "cb2b66353bcd992a506e8a0e96ac16b08cb6b7e9602dd0ab038e2efaf1ad6bb9",
+      "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "wake_id": null,
+      "presentation_id": "2af7c5eea3b44ad1f6ab3cec0459ed1ddce67634f72755e2e027fbe8e3efba58",
+      "presentation_revision": 2,
+      "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+      "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+      "play_sequence": 1,
+      "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+      "front_subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "presenter_capability_id": "capability/browser-dom-mask",
+      "presenter_implementation_id": "implementation/browser-dom-mask",
+      "presenter_artifact_id": "artifact/browser-runtime",
+      "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+      "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+      "offer_generation": 1,
+      "target_subject": "browser/document",
+      "lifecycle": "Available",
+      "failure": null,
+      "signs": [
+        {
+          "sign_id": "sign/browser-mask-prepared/2",
+          "manifestation_id": "cb2b66353bcd992a506e8a0e96ac16b08cb6b7e9602dd0ab038e2efaf1ad6bb9",
+          "presentation_id": "2af7c5eea3b44ad1f6ab3cec0459ed1ddce67634f72755e2e027fbe8e3efba58",
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+          "play_sequence": 1,
+          "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "presenter_implementation_id": "implementation/browser-dom-mask",
+          "lifecycle": "Prepared",
+          "failure": null
+        },
+        {
+          "sign_id": "sign/browser-mask-available/2",
+          "manifestation_id": "cb2b66353bcd992a506e8a0e96ac16b08cb6b7e9602dd0ab038e2efaf1ad6bb9",
+          "presentation_id": "2af7c5eea3b44ad1f6ab3cec0459ed1ddce67634f72755e2e027fbe8e3efba58",
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+          "play_sequence": 1,
+          "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "presenter_implementation_id": "implementation/browser-dom-mask",
+          "lifecycle": "Available",
+          "failure": null
+        }
+      ]
+    }
+  },
+  "execution": {
+    "schema": "conduit.browser/mask-kernel-execution@1",
+    "fore": [
+      {
+        "front_port_id": "presentation",
+        "direction": "Input",
+        "track": "payload",
+        "value_kind": "presentation/presentation@1",
+        "endpoint": 0,
+        "cord": 0
+      },
+      {
+        "front_port_id": "interaction",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "presentation/interaction@1",
+        "endpoint": 1,
+        "cord": 1
+      },
+      {
+        "front_port_id": "show",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "presentation/show@1",
+        "endpoint": 2,
+        "cord": 2
+      }
+    ],
+    "remote_signs": [
+      {
+        "event_sequence": 0,
+        "kind": "RemoteInputAdmitted",
+        "endpoint": 0,
+        "cord": 0,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 1,
+        "kind": "RemoteInputClosed",
+        "endpoint": 0,
+        "cord": 0,
+        "sequence": 1
+      },
+      {
+        "event_sequence": 9,
+        "kind": "RemoteValueOffered",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 10,
+        "kind": "RemoteValueAccepted",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 11,
+        "kind": "RemoteValueDelivered",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      }
+    ]
+  },
+  "interaction": null
+}

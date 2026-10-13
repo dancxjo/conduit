@@ -1,0 +1,30 @@
+{
+  "preserved": "Source, commits, logs, canonical inputs, receipts and current tracked test executable; only inactive regenerable own ELF probes",
+  "removed": [
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/prepared_source_bank_tests",
+      "bytes": 182955808,
+      "sha256": "7916ad9f986928823636a7f8801c80a0835d124cd9141384d8e1d84f173efc36",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/proposal_source_bank_probe",
+      "bytes": 113847736,
+      "sha256": "0e6a4a91b1544e9338c2dbb57d6d2734413957e52b9920cb25d41264302f8ac3",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/prepared_source_allocations",
+      "bytes": 105402536,
+      "sha256": "82b56356b79fd596f48dce6c281d5af0ed4c2ec46e95a82db691c8cdcd89f6aa",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/proposal_output_family_readiness",
+      "bytes": 64723336,
+      "sha256": "b543eab2a1855d7d83abe580b74cfd52d323b1342dc7cde3b784d0da6ec3e6b7",
+      "fuser_exit": 1
+    }
+  ],
+  "recovered_bytes": 466929416
+}

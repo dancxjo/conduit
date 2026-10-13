@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "body.born",
+  "assertion": "body-born",
+  "source_facts": {
+    "body_id": "510010be6bba51512abe39e7e0dde926314ab9541dec93dbd6cefb759f3506c9",
+    "born_sign_id": "conduitos/product/born/d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23/1",
+    "part_id": "bdc0f91ca550860983d8b2a9c278e7d61af06714292e0ec9b4e8b0a140c29044"
+  }
+}

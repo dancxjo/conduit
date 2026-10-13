@@ -1,0 +1,31 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+error: failed to run custom build command for `conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/conduit-4907-incremental/target/debug/build/conduit-language-b20c19caa2f58f69/build-script-build` (exit status: 101)
+  --- stdout
+  cargo:rerun-if-changed=types.conduit
+  cargo:rerun-if-changed=identity.conduit
+  cargo:rerun-if-changed=coverage.conduit
+  cargo:rerun-if-changed=syntax.conduit
+  cargo:rerun-if-changed=text_revision.conduit
+  cargo:rerun-if-changed=revision_lineage.conduit
+  cargo:rerun-if-changed=lexical.conduit
+  cargo:rerun-if-changed=parser.conduit
+  cargo:rerun-if-changed=parser_beam.conduit
+  cargo:rerun-if-changed=parser_scorer.conduit
+  cargo:rerun-if-changed=parser_mask.conduit
+  cargo:rerun-if-changed=parser_joint.conduit
+  cargo:rerun-if-changed=parser_joint_decode.conduit
+  cargo:rerun-if-changed=parser_available.conduit
+  cargo:rerun-if-changed=parser_revision.conduit
+  cargo:rerun-if-changed=parser_session.conduit
+  cargo:rerun-if-changed=parser_scorer_v2.conduit
+  cargo:rerun-if-changed=discourse.conduit
+  cargo:rerun-if-changed=prosody.conduit
+
+  --- stderr
+
+  thread 'main' (1054556) panicked at semantics/language/build.rs:48:10:
+  language semantic Types must check: SyntaxCheckDiagnostic { code: "CND-FRM-019", span: Span { start: 151646, end: 151651, line: 1557, column: 1, end_line: 1557, end_column: 6 }, message: "invalid canonical plot syntax: ) = {" }
+  note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

@@ -1,0 +1,21 @@
+{
+  "commands": [
+    {
+      "name": "plot-clippy",
+      "exit": 0,
+      "seconds": 4.083337913034484
+    },
+    {
+      "name": "data-clippy",
+      "exit": 0,
+      "seconds": 29.795189991011284
+    },
+    {
+      "name": "data-no-default",
+      "exit": 0,
+      "seconds": 8.10887743200874
+    }
+  ],
+  "unchanged": true,
+  "source_files": 469
+}

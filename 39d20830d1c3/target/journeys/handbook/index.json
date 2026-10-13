@@ -1,0 +1,69 @@
+{
+  "schema": "conduit.user-journey/v1",
+  "title": "Try a clock, inspect it, and keep your changes",
+  "summary": "Open your local Handbook, check and run a clock, inspect its resident Patchbay, edit its timing, then lull and recover the same Body.",
+  "sourceCommit": "b53ed44e92b576015469f4689e027d312a00f1fb",
+  "environment": "Chromium",
+  "steps": [
+    {
+      "id": "open",
+      "title": "Open your own Handbook",
+      "action": "Open the static Handbook in a fresh browser profile.",
+      "observation": "The Handbook creates a local Body, then wakes its resident application. The page offers lessons, editable source, and lifecycle controls.",
+      "screenshot": "1-open.png",
+      "sha256": "ab8f091860cfda0e5cdc218ad55ca7328cd688e77fbd2225a44371c114f4d1e7"
+    },
+    {
+      "id": "check",
+      "title": "Check an unfinished edit",
+      "action": "Open Start here, choose the clock lesson, enter unfinished source, and press Try in my Handbook.",
+      "observation": "Live highlighting follows the Unicode edit. The checker reports a refusal; the existing Body, Play, and installed workset remain unchanged.",
+      "screenshot": "2-check.png",
+      "sha256": "ac046af92fe5258744ef3245d698a5c5b2619426ba34ced2fff5fc0f06b27ad9"
+    },
+    {
+      "id": "try",
+      "title": "Run the clock lesson",
+      "action": "Restore the clock source and press Try in my Handbook.",
+      "observation": "The checked clock joins the same Body and runs through a newly admitted Plan and Play.",
+      "screenshot": "3-try.png",
+      "sha256": "c07f930cb068e16e4f0c46fb62a0a012477ceed4ee534fe9cc5f078a2050c550"
+    },
+    {
+      "id": "inspect",
+      "title": "Inspect the running clock",
+      "action": "Press Open in Patchbay, choose the clock, focus its output port, and press Enter.",
+      "observation": "The resident Patchbay shows the clock's gears, ports, and cord. Its selected output port and graph identities belong to this Body's actual Plan and Play.",
+      "screenshot": "4-inspect.png",
+      "sha256": "8e32a8133a0cbc2772dbee13472770912ca99e560f49bdb71341002ad6aad198"
+    },
+    {
+      "id": "edit",
+      "title": "Change the clock's timing",
+      "action": "Change time/every(1s) to time/every(2s), then press Try in my Handbook.",
+      "observation": "The same Body replaces the clock with the newly checked source and admits a new Plan and Play. The workset does not grow with a duplicate clock.",
+      "screenshot": "5-edit.png",
+      "sha256": "da20f5697fce30d4860545cf7381cfe381d03965996288e5bf6e83864c90e599"
+    },
+    {
+      "id": "lull",
+      "title": "Bring the Body to rest",
+      "action": "After checking that the edit survives switching lessons and inspecting the new graph, press Lull.",
+      "observation": "Execution ends and Wake becomes available. The Body retains the edited clock without an active Play.",
+      "screenshot": "6-lull.png",
+      "sha256": "d72686a9f317c7a415de0549adb2563835a9f24c384218096b4dd77e013cded1"
+    },
+    {
+      "id": "recover",
+      "title": "Return to your edited clock",
+      "action": "Press Wake, then reload the page.",
+      "observation": "The same Host and Body return with a fresh Boot, Plan, and Play. The two-second source, installed workset, and foreground selection survive.",
+      "screenshot": "7-recover.png",
+      "sha256": "8c8b663678c61e7dac3c006c80f7f45230cf30821e9860ef94e9a37c7f400cb6"
+    }
+  ],
+  "evidence": {
+    "path": "runtime-evidence.json",
+    "sha256": "3932e9753cff348862e0bc8fc116e0e8ee413295b064e9206e66709a41db2c93"
+  }
+}

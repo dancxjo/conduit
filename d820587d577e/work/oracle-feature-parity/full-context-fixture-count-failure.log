@@ -1,0 +1,6 @@
+
+thread 'main' (1201358) panicked at work/oracle-feature-parity/actual_source_full_context.rs:40:385:
+assertion `left == right` failed: row "weblog-juancole.com_juancole_20051126063000_ENG_20051126_063000-0040" state {"heads":[1,2,8,2,9,9,9,9],"n":7,"relations":["det","nsubj","root","advmod","dep","dep","dep","dep"],"stack":[8,2,4],"unread":5} origins "reviewed"
+  left: [11, 35, 239, 328, 340, 344, 346, 354, 356, 358, 360, 362, 364, 366, 368, 370, 372, 374, 376, 378, 381, 382, 384, 386, 388, 401, 408]
+ right: [11, 26, 231, 328, 340, 344, 346, 354, 356, 358, 360, 362, 364, 366, 368, 370, 372, 374, 376, 378, 381, 382, 384, 386, 388, 401, 408]
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

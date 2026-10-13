@@ -1,0 +1,162 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/human)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/presentation)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/text)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/education)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/planner)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/robotics)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/purpose)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/protocols/midi)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/catalog)
+    Checking hashbrown v0.17.1
+    Checking equivalent v1.0.2
+    Checking indexmap v2.14.2
+    Checking serde_spanned v0.6.9
+    Checking toml_datetime v0.6.11
+    Checking toml_write v0.1.2
+    Checking winnow v0.7.15
+    Checking toml_edit v0.22.27
+    Checking toml v0.8.23
+    Checking hybrid-array v0.4.15
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/make/host)
+    Checking getrandom v0.2.17
+    Checking cpufeatures v0.3.1
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/ai)
+    Checking const-oid v0.10.2
+    Checking digest v0.11.3
+    Checking siphasher v1.0.3
+    Checking phf_shared v0.11.3
+    Checking byteorder v1.5.0
+    Checking option-ext v0.2.0
+    Checking dirs-sys v0.5.0
+    Checking hash32 v0.3.1
+    Checking str-newtype v2.0.0
+    Checking static-automata v1.0.3
+    Checking phf v0.11.3
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/plan-lowering)
+    Checking tinyvec v1.13.3
+    Checking stable_deref_trait v1.2.1
+    Checking heapless v0.8.0
+    Checking unicode-normalization v0.1.25
+    Checking isolang v2.4.0
+    Checking langtag v1.1.0
+    Checking dirs v6.0.0
+    Checking anyhow v1.0.104
+    Checking sha2 v0.11.0
+    Checking rand_core v0.6.4
+    Checking inout v0.1.4
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/wire)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/signal)
+    Checking unicode-segmentation v1.13.3
+    Checking ryu v1.0.23
+    Checking serde-json-core v0.6.0
+    Checking speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+    Checking cipher v0.4.4
+    Checking universal-hash v0.5.1
+    Checking opaque-debug v0.3.1
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking crossbeam-utils v0.8.23
+    Checking rustls-pki-types v1.15.1
+    Checking aead v0.5.2
+    Checking arrayvec v0.7.8
+    Checking noise-protocol v0.2.1
+    Checking chacha20poly1305 v0.10.1
+    Checking crossbeam-epoch v0.9.21
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std/offers)
+    Checking zerocopy v0.8.57
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/tutorial)
+    Checking log v0.4.34
+    Checking untrusted v0.9.0
+    Checking rand_core v0.10.1
+    Checking bytes v1.12.1
+    Checking http v1.5.0
+    Checking ring v0.17.14
+    Checking ppv-lite86 v0.2.21
+    Checking crossbeam-deque v0.8.8
+    Checking noise-rust-crypto v0.6.2
+    Checking httparse v1.10.1
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/protocols/bluetooth)
+    Checking x25519-dalek v2.0.1
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay/graph)
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/plot-library)
+    Checking smallvec v1.16.1
+    Checking scopeguard v1.2.0
+    Checking lock_api v0.4.14
+    Checking parking_lot_core v0.9.12
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/patchbay/application)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/speech)
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/protected-line)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/signal)
+    Checking num-traits v0.2.19
+    Checking rayon-core v1.13.0
+    Checking rand_chacha v0.3.1
+    Checking getrandom v0.4.3
+    Checking rustls-webpki v0.103.15
+    Checking chacha20 v0.10.2
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/composite)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/make)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/tour)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/synth)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/birth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/home)
+    Checking either v1.18.0
+    Checking once_cell v1.21.4
+    Checking base64 v0.23.1
+    Checking ureq-proto v0.6.4
+    Checking rustls v0.23.45
+    Checking rayon v1.12.0
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/mask-offer)
+    Checking rand v0.10.2
+    Checking rand v0.8.8
+    Checking ordered-float v3.9.2
+    Checking parking_lot v0.12.5
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std/make)
+    Checking webpki-roots v1.0.9
+    Checking sha1 v0.11.0
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/rp2040/make)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/raspberry-pi/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/esp32/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/make/body)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos/make)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/avr/make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/orange-pi/make)
+    Checking num_cpus v1.17.0
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-native-admission/plots/little-seismograph/fixture)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos)
+    Checking percent-encoding v2.3.2
+    Checking utf8-zero v0.8.1
+    Checking qrcode v0.14.1
+    Checking data-encoding v2.11.1
+    Checking bitflags v2.13.2
+    Checking limine v0.5.0
+    Checking tungstenite v0.30.0
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/browser/runtime)
+    Checking ureq v3.4.2
+    Checking instant-distance v0.6.1
+    Checking getrandom v0.3.4
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/network-r1)
+    Checking rustls-pemfile v2.2.0
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-admission/proof/conformance/alife-distributed)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/conduitos/mask-offer)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-native-admission/architecture/observatory)
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/rp2040/network-realization)
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-4907-native-admission/mechanisms/implementations/emergency-keyword-spotter)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-native-admission/targets/std)
+    Finished `dev` profile [unoptimized] target(s) in 16m 12s

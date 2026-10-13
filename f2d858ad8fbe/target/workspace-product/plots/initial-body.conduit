@@ -1,0 +1,103 @@
+{
+  "schema": "conduit.creche/reviewed-plot-bundle@2",
+  "plots": [
+    {
+      "slug": "morse-network",
+      "title": "Morse Network",
+      "entry": "morse_network",
+      "presentation_profile": 0,
+      "source": "plot morse_network {\n    # Run once; each later portable key transition is mapped and manifested.\n    keyboard: input/keyboard\n    keymap: input/keymap\n    morse: text/morse(120)\n    light: presentation/indicator\n\n    keyboard.key >> keymap.key\n    keymap.text >> morse >> light\n}\n"
+    },
+    {
+      "slug": "memory-lantern",
+      "title": "Memory Lantern",
+      "entry": "memory_lantern",
+      "presentation_profile": 0,
+      "source": "plot memory_lantern {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    message: text/edit(maximum-bytes = 256)\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> message.fragment\n    message.current >> show.text\n}\n"
+    },
+    {
+      "slug": "desk-telegraph",
+      "title": "Desk Telegraph",
+      "entry": "desk_telegraph",
+      "presentation_profile": 0,
+      "source": "# Reusable exact adaptation at the typed-record communication waist.\nplot text-record (\n    text: Text >> record: TypedRecord\n) {\n    wrap: record/text-to-typed\n    text >> wrap.text\n    wrap.record >> record\n}\n\n# A non-text record refuses here instead of becoming presentation text.\nplot text-from-record (\n    record: TypedRecord >> text: Text\n) {\n    unwrap: record/typed-to-text\n    record >> unwrap.record\n    unwrap.text >> text\n}\n\n# Each completed framed record crosses an explicitly finite ordered queue.\n# Queue capacity bounds simultaneous pressure, not the desk's lifetime.\nplot bounded-record-send (\n    maximum-items: Count = 4\n    maximum-frame-bytes: Count = 4096\n    frame: FramedTypedRecord >> queued: FramedTypedRecord\n) {\n    queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)\n\n    frame >> queue >> queued\n}\n\n# The first honest local Desk Telegraph vertical. The queued remote Line,\n# receipt/status, and transcript branches are added only with their executable\n# closing-flow realization; local framing is not called remote delivery.\nplot desk_telegraph {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    message: text/submit-lines(maximum-bytes = 256)\n    encode: text-record\n    frame: record/frame-typed\n    send: bounded-record-send(4, 4096)\n    deframe: record/deframe-typed\n    decode: text-from-record\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> message.fragment\n    message.submitted >> encode >> frame >> send >> deframe >> decode >> show\n}\n"
+    },
+    {
+      "slug": "button-across-room",
+      "title": "Button Across the Room",
+      "entry": "button_across_room",
+      "presentation_profile": 0,
+      "source": "# One ordered button transition controls one current indicator state.\nplot button_across_room {\n    button: input/button\n    state: input/button-indicator-state\n    indicator: presentation/indicator-state\n\n    button >> state >> indicator\n}\n"
+    },
+    {
+      "slug": "clock",
+      "title": "Clock",
+      "entry": "clock-demo",
+      "presentation_profile": 0,
+      "source": "plot clock-demo {\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n"
+    },
+    {
+      "slug": "startup-chime",
+      "title": "Startup Chime",
+      "entry": "startup_chime",
+      "presentation_profile": 0,
+      "source": "plot startup_chime {\n    wake: body/wake\n    chime: sound/startup-chime\n    wake.pulse >> chime.pulse\n}\n"
+    },
+    {
+      "slug": "first-wake-chime",
+      "title": "First wake Chime",
+      "entry": "first_wake_chime",
+      "presentation_profile": 0,
+      "source": "plot first_wake_chime {\n    first: body/first-wake\n    chime: sound/startup-chime\n    first.pulse >> chime.pulse\n}\n"
+    },
+    {
+      "slug": "firefly-choir",
+      "title": "Firefly Choir",
+      "entry": "firefly-choir",
+      "presentation_profile": 0,
+      "source": "# A living local pulse path for the Firefly Choir proving composition. Peer\n# exchange and phase following extend this plot through ordinary Lines; they\n# are not hidden inside this browser-independent authored meaning.\nplot firefly-choir {\n    clock: time/every(240ms)\n    observe: pulse-manifestation\n    peer_observe: time/pulse-observe(period-ms = 240)\n    follow: phase-follower\n\n    clock >> observe.tick\n    clock >> peer_observe.tick\n    peer_observe.observation >> follow.peer\n}\n\n# Reusable light-only pulse manifestation. Sound is omitted by authored\n# composition: there is no tone Gear or Cord to skip at runtime.\nplot pulse-manifestation (\n    >> tick: value/tick@1...\n) {\n    observe: time/pulse-observe(period-ms = 240)\n    light: presentation/pulse\n\n    tick >> observe.tick\n    observe.observation >> light.pulse\n}\n\n# Explicit enriched composition. Light and tone are separate semantic sinks\n# fed by ordinary atomic fan-out and require separately offered realizations.\nplot pulse-light-tone-manifestation (\n    >> tick: value/tick@1...\n) {\n    observe: time/pulse-observe(period-ms = 240)\n    light: presentation/pulse\n    tone: sound/pulse-tone\n\n    tick >> observe.tick\n    observe.observation >> light.pulse\n    observe.observation >> tone.pulse\n}\n\n# Reusable stateful follower. One explicit initial state is updated by an open\n# peer flow; light/audio realization and transport remain separate concerns.\nplot phase-follower (\n    >> peer: time/pulse-observation@1...\n) {\n    local: time/rhythm-state(sequence = 0, next-pulse-at-ms = 0, period-ms = 280, expected-peer-sequence = 0)\n    synchronize: phase-synchronization\n    manifest: presentation/rhythm\n\n    local.state >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> manifest.state\n}\n\nplot phase-synchronization (\n    >> local: time/rhythm-state@1...\n    >> peer: time/pulse-observation@1...\n    updated: time/rhythm-state@1... >>\n) {\n    synchronize: time/phase-synchronize\n    local >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> updated\n}\n"
+    },
+    {
+      "slug": "night-radio",
+      "title": "Night Radio",
+      "entry": "night-radio",
+      "presentation_profile": 0,
+      "source": "# A living Night Radio station: each submitted portable text report becomes an\n# exact typed record, crosses an ordinary planned Line when placed remotely,\n# and is reconstructed for presentation. The Line session retains its sent,\n# received, and terminal events through the shared bounded transcript contract.\n# Transport, Host, storage, and renderer choices remain outside authored meaning.\nplot night-radio {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    report: text/submit-lines(maximum-bytes = 256)\n    encode: record/text-to-typed\n    frame: record/frame-typed\n    queue: record/ordered-send-queue(maximum-items = 4, maximum-frame-bytes = 4096)\n    deframe: record/deframe-typed\n    decode: record/typed-to-text\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> report.fragment\n    report.submitted >> encode >> frame >> queue >> deframe >> decode >> show\n}\n"
+    },
+    {
+      "slug": "secret-knock",
+      "title": "Secret Knock",
+      "entry": "secret-knock-demo",
+      "presentation_profile": 3,
+      "source": "# A bounded timing-pattern Plot. Trigger, clock, storage, and presentation\n# realizations remain Host choices made by an exact plan.\nplot secret-knock (\n    >> transitions: InputButtonTransition...\n    >> template_commands: NamedPatternTemplateCommand...|\n) {\n    # Three presses include two intervening releases; finish on the third press.\n    # Six slots admit the release separating two physical attempts as well as\n    # the five transitions that describe one three-press attempt.\n    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 6, timeout-ms = 1000ms)\n    intervals: derive-intervals\n    normalize: normalize-durations\n    storage: storage/named-pattern-templates(maximum-commands = 2)\n    final_template: sequence/final-normalized-pattern(maximum-values = 1)\n    compare: compare-pattern(metric = \"maximum-absolute-millionths@1\", tolerance-millionths = 150000)\n    manifest: presentation/structured-info\n\n    transitions >> attempt.transition\n    attempt.events >> intervals.events\n    intervals.intervals >> normalize.intervals\n    normalize.normalized >> compare.candidate\n    template_commands >> storage.command\n    storage.result >> select(NamedPatternTemplateResult.found, unmatched=drop) >> project(NamedPatternTemplate.pattern) >> final_template.patterns\n    final_template.pattern >> compare.template\n    compare.comparison >> manifest.input\n}\n\n# Reusable finite relative-duration normalization through its typed Front.\nplot normalize-durations (\n    >> intervals: IntervalSequence\n    normalized: NormalizedDurationSequence >>\n) {\n    normalize: sequence/normalize-relative-duration\n    intervals >> normalize.intervals\n    normalize.normalized >> normalized\n}\n\n# Reusable ordered-event interval derivation through its typed Front.\nplot derive-intervals (\n    >> events: TimedEventSequence\n    intervals: IntervalSequence >>\n) {\n    derive: time/ordered-event-intervals\n    events >> derive.events\n    derive.intervals >> intervals\n}\n\n# Reusable pattern comparison with explicit semantic policy.\nplot compare-pattern (\n    metric: Text = \"maximum-absolute-millionths@1\"\n    tolerance-millionths: Count = 1\n    >> candidate: NormalizedDurationSequence\n    >> template: NormalizedDurationSequence\n    comparison: PatternComparison >>\n) {\n    compare: sequence/compare-normalized-pattern(metric = metric, tolerance-millionths = tolerance-millionths)\n    candidate >> compare.candidate\n    template >> compare.template\n    compare.comparison >> comparison\n}\n\n# The Gallery entry is a living ordinary plot: pointer, device, or fixture\n# button realizations can drive repeated bounded attempts. The initializer\n# emits one bounded Put/Get command pair; storage remains independently\n# selected and admitted truth rather than hidden UI state.\nplot secret-knock-demo {\n    button: input/button\n    template: storage/named-pattern-template-initializer(name = \"gallery-knock\", normalized-values = \"333333,1000000\")\n    recognize: secret-knock\n\n    button.transition >> recognize.transitions\n    template.commands >> recognize.template_commands\n}\n"
+    },
+    {
+      "slug": "pocket-theremin",
+      "title": "Pocket Theremin",
+      "entry": "phone-two-axis-controller",
+      "presentation_profile": 1,
+      "source": "# The one canonical Theremin. Both controls describe portable meaning. Hosts\n# own acquisition, cadence, and playback; this Plot owns the instrument law.\nplot pocket-theremin (\n    >> pitch-distance: Distance\n    >> volume: Scalar\n    >> cadence: value/tick@1...\n    audio: audio/pcm-frames@1...| >>\n) {\n    pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)\n    tone: audio/continuous-tone\n    gain: audio/apply-gain\n\n    pitch-distance >> pitch.distance\n    pitch.frequency >> tone.frequency\n    cadence >> tone.cadence\n    tone.audio >> gain.source-audio\n    volume >> gain.amplitude\n    gain.audio >> audio\n}.\n\n# A controller binding, not another Theremin. It adapts a normalized two-axis\n# surface to the canonical Plot and selects browser audio playback.\nplot phone-two-axis-controller {\n    controller: input/pointer-source\n    x-normalize: math/normalized-ratio-scalar\n    y-normalize: math/normalized-ratio-scalar\n    pitch-distance: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = cm, range-policy = \"clamp\", quantization = \"nearest\")\n    cadence: time/every(freq = 40ms)\n    instrument: pocket-theremin\n    play: audio/play\n\n    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.x) >> x-normalize.in\n    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.y) >> y-normalize.in\n    x-normalize.out >> pitch-distance.in\n    pitch-distance.out >> instrument.pitch-distance\n    y-normalize.out >> instrument.volume\n    cadence.tick >> instrument.cadence\n    instrument.audio >> play.audio\n}.\n"
+    },
+    {
+      "slug": "patchbay",
+      "title": "Patchbay",
+      "entry": "patchbay",
+      "presentation_profile": 0,
+      "source": "plot patchbay (\n  application: Text = \"patchbay\"\n) {\n  events: input/application-event\n  state: application/retained(application = application)\n  view: presentation/application-view\n\n  events.event >> state.event\n  state.view >> view.view\n}\n"
+    },
+    {
+      "slug": "little-seismograph",
+      "title": "Little Seismograph",
+      "entry": "little-seismograph-display",
+      "presentation_profile": 0,
+      "source": "# Reusable count-bounded measurement retention. The full policy is semantic and\n# explicit; no renderer or acquisition mechanism owns this state.\nplot measurement-window (\n    >> profile: MeasurementWindowProfile\n    measurement: MeasurementSample...| >> window: MeasurementWindow\n) {\n    retain: data/measurement-count-window\n    profile >> retain.profile\n    measurement >> retain.measurement\n    retain.window >> window\n}\n\nplot measurement-summary (\n    window: MeasurementWindow >> summary: MeasurementSummary\n) {\n    summarize: data/measurement-summary\n    window >> summarize.window\n    summarize.summary >> summary\n}\n\nplot measurement-threshold (\n    >> profile: MeasurementHysteresisProfile\n    >> summary: MeasurementSummary\n    decision: MeasurementThresholdDecision >>\n) {\n    threshold: data/measurement-hysteresis\n    profile >> threshold.profile\n    summary >> threshold.summary\n    threshold.decision >> decision\n}\n\nplot measurement-plot (\n    window: MeasurementWindow >> series: MeasurementPlotSeries\n) {\n    project: data/measurement-plot(points = 8, when-full = \"evenly-spaced\")\n    window >> project.window\n    project.series >> series\n}\n\n# The processing waist accepts any compatible exact typed measurement flow.\nplot little-seismograph-processing (\n    >> profile: MeasurementWindowProfile\n    >> measurement: MeasurementSample...|\n    >> threshold-profile: MeasurementHysteresisProfile\n    window: MeasurementWindow >>\n    summary: MeasurementSummary >>\n    decision: MeasurementThresholdDecision >>\n    series: MeasurementPlotSeries >>\n) {\n    samples: measurement-window\n    summarize: measurement-summary\n    decide: measurement-threshold\n    plot: measurement-plot\n\n    profile >> samples.profile\n    measurement >> samples.measurement\n    samples.window >> window\n    samples.window >> summarize.window\n    samples.window >> plot.window\n    summarize.summary >> summary\n    summarize.summary >> decide.summary\n    threshold-profile >> decide.profile\n    decide.decision >> decision\n    plot.series >> series\n}\n\n# Deterministic proving composition. Acquisition remains a replaceable source;\n# the manifestations consume the portable processing outputs.\nplot little-seismograph-display {\n    # Transactional display specimen: one bounded measurement series.\n    source: measurement/deterministic-seismograph-inputs\n    processing: little-seismograph-processing\n    plot: presentation/measurement-plot\n    threshold: presentation/measurement-threshold\n\n    source.profile >> processing.profile\n    source.measurement >> processing.measurement\n    source.threshold-profile >> processing.threshold-profile\n    processing.series >> plot.series\n    processing.decision >> threshold.decision\n}.\n"
+    },
+    {
+      "slug": "tour",
+      "title": "Tutorial",
+      "entry": "tour",
+      "presentation_profile": 0,
+      "source": "plot tour (\n  application: Text = \"tutorial\"\n) {\n  events: input/application-event\n  state: application/retained(application = application)\n  view: presentation/application-view\n\n  events.event >> state.event\n  state.view >> view.view\n}\n"
+    }
+  ]
+}

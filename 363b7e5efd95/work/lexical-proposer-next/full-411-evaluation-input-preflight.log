@@ -1,0 +1,23 @@
+{
+  "dev": {
+    "original_evaluation_sha256": "b06007c5c2e13a797ac590ea09ef0ea8a79640c7473f9c21441c1d6c074c8d49",
+    "rows": 822,
+    "tokens": 3500,
+    "sequence_disjoint_rows": 756,
+    "corpus_shape_skips": {
+      "over_eight_tokens": 1114,
+      "multiword_or_empty_node": 65
+    }
+  },
+  "test": {
+    "original_evaluation_sha256": "513bbed9ef15ba9523124f98640bc9b5f52f9e100bdd5c374e86404c80942340",
+    "rows": 933,
+    "tokens": 3864,
+    "sequence_disjoint_rows": 839,
+    "corpus_shape_skips": {
+      "over_eight_tokens": 1082,
+      "multiword_or_empty_node": 59,
+      "unreachable_projective_profile": 3
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "hosted-generative",
+  "step_id": "mask.action-5",
+  "assertion": "mask-mask.add-face-host",
+  "source_facts": {
+    "action_id": "mask.add-face-host",
+    "concrete_event": "replacement Face Host routes became available but remained outside the old immutable Plan",
+    "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+    "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+    "receipt_ids": [
+      "route/orifina-spoken-replacement-plan/0"
+    ],
+    "selected_mask_form_id": null,
+    "selected_route_id": null,
+    "show_id": null
+  }
+}

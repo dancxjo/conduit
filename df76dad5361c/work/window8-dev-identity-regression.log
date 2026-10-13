@@ -1,0 +1,19 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+error[E0277]: can't compare `&std::string::String` with `std::string::String`
+   --> semantics/language/tests/parser_window8_dev_identity_retry.rs:73:5
+    |
+ 73 | /     assert_eq!(
+ 74 | |         evaluation_source_ids(&boundary).1.get(),
+ 75 | |         format!("window8/{boundary}/r0")
+ 76 | |     );
+    | |_____^ no implementation for `&std::string::String == std::string::String`
+    |
+    = help: the trait `PartialEq<std::string::String>` is not implemented for `&std::string::String`
+help: the trait `PartialEq` is implemented for `std::string::String`
+   --> /home/dancxjo/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs:350:10
+    |
+350 | #[derive(PartialEq, PartialOrd, Eq, Ord)]
+    |          ^^^^^^^^^
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `conduit-language` (test "parser_window8_dev_identity_retry") due to 1 previous error

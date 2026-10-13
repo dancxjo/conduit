@@ -1,0 +1,7 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/data)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/plots/little-seismograph/fixture)
+    Finished `dev` profile [unoptimized] target(s) in 29.71s

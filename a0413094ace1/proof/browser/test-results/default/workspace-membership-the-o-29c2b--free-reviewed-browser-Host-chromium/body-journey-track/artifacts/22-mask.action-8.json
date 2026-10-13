@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "ef8751f5f2346722ee61184fd9e07d3b44f6bbbe",
+  "track": "browser-graphical",
+  "step_id": "mask.action-8",
+  "assertion": "mask-mask.doff-alternate",
+  "source_facts": {
+    "action_id": "mask.doff-alternate",
+    "concrete_event": "alternate Mask doffed; sealed initial route restored",
+    "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+    "plan_id": "body-plan/sha256:f5e2f943a4de38cc05fd61c82e4f7da153d189f6c6d2422096b5dd726d7ae404",
+    "selected_route_id": "route/browser-graphical",
+    "show_id": null,
+    "receipt_ids": [
+      "wardrobe-revision/3"
+    ],
+    "face_id": "60b8e14494d6a85158f7b902c937b6a4f9ff3c14cea7632946312bb7d7867ceb"
+  }
+}

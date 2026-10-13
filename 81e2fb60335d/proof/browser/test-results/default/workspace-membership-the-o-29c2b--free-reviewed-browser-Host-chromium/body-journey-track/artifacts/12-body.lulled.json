@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "29a80666578f299a9b5cb12b9de8b2595a62bdce",
+  "track": "browser-graphical",
+  "step_id": "body.lulled",
+  "assertion": "body-lulled",
+  "source_facts": {
+    "lull_sign_id": "f9e842374a5568915126df534833e7993bd1eb1bceb898b55bb4d8b78f611015"
+  }
+}

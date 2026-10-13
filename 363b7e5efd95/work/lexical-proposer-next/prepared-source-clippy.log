@@ -1,0 +1,9 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/data)
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/kernel)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plan-lowering)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/ai)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/composite)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Finished `dev` profile [unoptimized] target(s) in 12m 41s

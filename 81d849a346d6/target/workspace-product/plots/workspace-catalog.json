@@ -1,0 +1,1290 @@
+{
+  "schema": "conduit.workspace/reviewed-plot-catalog@3",
+  "maximum_plots": 118,
+  "plots": [
+    {
+      "slug": "startup-chime",
+      "title": "Startup Chime",
+      "entry": "startup_chime",
+      "source": "plot startup_chime {\n    wake: body/wake\n    chime: sound/startup-chime\n    wake.pulse >> chime.pulse\n}\n",
+      "source_document_id": "43dbd80aa41130098333703d53c6607088a40c36613c17d003f980d6c014f0e3",
+      "checked_plot_id": "68d5dfac21e9e29bbf26acb117a05dfa551d8ccb6489a97c56d42097461a5322",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "body/wake",
+        "sound/startup-chime"
+      ],
+      "unavailable_hint": "requires a retained body lifecycle and real audio policy; covered by workspace startup acceptance"
+    },
+    {
+      "slug": "first-wake-chime",
+      "title": "First wake Chime",
+      "entry": "first_wake_chime",
+      "source": "plot first_wake_chime {\n    first: body/first-wake\n    chime: sound/startup-chime\n    first.pulse >> chime.pulse\n}\n",
+      "source_document_id": "28cc827eaaf2d1557b3630de2fe46bc458a4b3c1322e4cbbcfc87660bcdb0bc3",
+      "checked_plot_id": "6cf73b4fcda333992e721bb6be8aa0d8d42f6c4534571997425098c388043a8e",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "body/first-wake",
+        "sound/startup-chime"
+      ],
+      "unavailable_hint": "requires a retained body lifecycle; a standalone Gallery Play cannot invent a body wake"
+    },
+    {
+      "slug": "addressed-utterance",
+      "title": "Addressed Utterance",
+      "entry": "addressed-utterance",
+      "source": "plot addressed-utterance (\n    >> recognized: Text\n    >> addresses: AddressSet\n    detection: AddressDetection >>\n) {\n    detector: text/address-detect\n    recognized >> detector.recognized\n    addresses >> detector.addresses\n    detector.detection >> detection\n}\n",
+      "source_document_id": "30ed2286a831f3afdb47cbbe3adf40357a6b1588dc3f9bab3c28b0412885c9fe",
+      "checked_plot_id": "3a897e3263caadde92512af75f1a5bd657734e268ba39862579b671d8581f5a0",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "text/address-detect"
+      ],
+      "unavailable_hint": "portable address detection has no installed browser Host execution oracle"
+    },
+    {
+      "slug": "arithmetic-lesson",
+      "title": "Arithmetic Lesson",
+      "entry": "arithmetic-lesson",
+      "source": "# Deterministic non-music lesson using the reusable education substrate.\nplot arithmetic-lesson (\n    assessment: EducationAssessment >>\n    feedback: EducationLessonFeedback >>\n    progress: EducationProgress >>\n    question: EducationQuestion >>\n) {\n    fixture: education/arithmetic-fixture\n    evaluate: education/evaluate-arithmetic\n    fixture.question >> evaluate.question\n    fixture.response >> evaluate.response\n    evaluate.assessment >> assessment\n    evaluate.feedback >> feedback\n    evaluate.progress >> progress\n    fixture.question >> question\n}\n",
+      "source_document_id": "9321ca3e96345cb2ccf91cc6718b6d3944faef4ade595907ebc7f24ab14a96f1",
+      "checked_plot_id": "40d356c8b90bd9abe398b038a10cfd8a6093cc7e70e4d85512675ee13420f77e",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "education/arithmetic-fixture",
+        "education/evaluate-arithmetic"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "body-chat",
+      "title": "Body Chat",
+      "entry": "body-chat",
+      "source": "# A human conversation with one body. Provider and Presenter choices remain Plan truth.\nplot body-chat (\n    >> interaction: FaceInteraction...|\n    face: Presentation...| >>\n) {\n    ui: chat/state(title = \"Body Chat\", history-label = \"Conversation\", input-label = \"Message\", submit-label = \"Send\", status-label = \"Body\", maximum-history-items = 16, maximum-message-bytes = 256)\n    submit: chat/submit(action = \"chat/send\", maximum-message-bytes = 256)\n    available: boolean/literal(value = true)\n    availability: chat/current-connection\n    context: body/conversation-context\n    prompt: body/chat-prompt\n    model: llm/generate-flow(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)\n    text: llm/result-flow-to-text\n\n    available.value >> availability.source\n    availability.value >> ui.live\n    ui.presentation >> face\n    interaction >> submit.interaction\n    submit.message >> prompt.message\n    context.context >> prompt.context\n    prompt.human-message >> ui.message\n    prompt.request >> model.request\n    model.result >> text.result\n    text.text >> prompt.response\n    prompt.body-message >> ui.message\n}\n",
+      "source_document_id": "35a019bf73b75bfc62793d0bdc6595fd6cb7a3f21ca6673a51889ef3c3157759",
+      "checked_plot_id": "d041200b564d6b873ca01348be2e8370a50c0494ddeb430192bc5d044e54920c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "body/chat-prompt",
+        "body/conversation-context",
+        "boolean/literal",
+        "chat/current-connection",
+        "chat/state",
+        "chat/submit",
+        "llm/generate-flow",
+        "llm/result-flow-to-text"
+      ],
+      "unavailable_hint": "the portable body conversation requires a current body supervisor and an admitted model realization"
+    },
+    {
+      "slug": "house-conversation",
+      "title": "House Conversation",
+      "entry": "house-conversation",
+      "source": "plot house-conversation (\n    >> detection: AddressDetection\n    >> context: HouseContext\n    response: Text >>\n) {\n    request: house/context-to-prompt\n    model: llm/generate(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)\n    text: llm/result-to-text\n\n    detection >> request.detection\n    context >> request.context\n    request.request >> model.request\n    model.result >> text.result\n    text.text >> response\n}\n",
+      "source_document_id": "83c39f7a9b80e16ae66763338cace63e66a3d743e07890830fda10198d601091",
+      "checked_plot_id": "6f3c163d483a59e2721206b99b3b022cb5c35b6fade61e18b17706e44c71a567",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "house/context-to-prompt",
+        "llm/generate",
+        "llm/result-to-text"
+      ],
+      "unavailable_hint": "portable House conversation has no installed browser model realization"
+    },
+    {
+      "slug": "live-conversation",
+      "title": "Live Conversation",
+      "entry": "spoken-live-conversation",
+      "source": "# The reviewed English live voice conversation specimen. Audio acquisition, presentation,\n# provider choice, devices, and placement remain realization truth.\nplot live-conversation (\n    >> audio: PcmFrames...|\n    spoken: PcmFrames...| >>\n) {\n    recognize: speech/recognize-stream(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") })\n    commit-turn: speech/commit-recognized-turn\n    turn-text: speech/committed-turn-to-text\n    context: body/conversation-context\n    conversation: body/chat-prompt\n    model: llm/generate-stream(maximum-input-bytes = 4096, maximum-context-items = 1, maximum-output-bytes = 2560, maximum-work-units = 4096, maximum-history-items = 0)\n    generated-text: llm/generated-chunk-to-text\n    speech-commit: speech/commit-generated-text\n    synthesize: speech/synthesize-stream(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes = 32768)\n\n    audio >> recognize.audio\n    recognize.events >> commit-turn.events\n    commit-turn.message >> turn-text.message\n    turn-text.text >> conversation.message\n    context.context >> conversation.context\n    conversation.request >> model.request\n    model.result >> generated-text.chunk\n    generated-text.text >> speech-commit.generated\n    speech-commit.segments >> synthesize.text\n    synthesize.audio >> spoken\n}\n\n# An ordinary complete spoken turn. The reusable live-conversation Front above\n# remains the refined explicit-PCM pipeline; acquisition and playback are\n# separate portable meanings selected by the plan.\nplot spoken-live-conversation {\n    microphone: audio/capture-push-to-talk\n    conversation: live-conversation\n    speaker: audio/play\n\n    microphone.audio >> conversation.audio\n    conversation.spoken >> speaker.audio\n}\n",
+      "source_document_id": "56450dc7d7bcdd8e80722cb87b705196f68ddf709a66ebb804b0f01f5132f01b",
+      "checked_plot_id": "f49324634376762b8f668bba8f6516d81d050a50052161db9fe6e58381ee5b50",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "audio/capture-push-to-talk",
+        "audio/play",
+        "live-conversation"
+      ],
+      "unavailable_hint": "live audio acquisition, streaming model generation, synthesis, and presentation require explicitly admitted realizations",
+      "graceful_fallback": {
+        "slug": "body-chat",
+        "title": "Body Chat"
+      }
+    },
+    {
+      "slug": "house-spoken-response",
+      "title": "House Spoken Response",
+      "entry": "house-spoken-response",
+      "source": "plot house-spoken-response (\n    >> detection: AddressDetection\n    >> context: HouseContext\n    response: Text >>\n) {\n    conversation: house-conversation\n    synthesize: speech/synthesize(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes = 32768)\n    speaker: audio/play\n\n    detection >> conversation.detection\n    context >> conversation.context\n    conversation.response >> response\n    conversation.response >> synthesize.text\n    synthesize.audio >> speaker.audio\n}\n",
+      "source_document_id": "0faf5bb3f840d1fe88b097d0112745c2145d94e07e8d28996bbc3b1052030a64",
+      "checked_plot_id": "7bc954d4b6e4e8ef45cbd615b20382acbeef5b71b5df738f6d0839c528d2c1df",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "audio/play",
+        "house-conversation",
+        "speech/synthesize"
+      ],
+      "unavailable_hint": "portable speech output requires an admitted synthesis and audio-output realization",
+      "graceful_fallback": {
+        "slug": "house-conversation",
+        "title": "House Conversation"
+      }
+    },
+    {
+      "slug": "orifina-tutorial-presenter",
+      "title": "Orifina Tutorial Presenter",
+      "entry": "orifina-tutorial-presenter",
+      "source": "plot orifina-tutorial-presenter {\n  request: tutorial/presenter-request\n  present: llm/present\n  manifestation: tutorial/manifestation\n\n  request.request >> present.request\n  present.result >> manifestation.manifestation\n}\n",
+      "source_document_id": "b3b105df2ff2f455c0015ea311bb734b5fbfcd3b49fbb2c804da3426e6b1ed4b",
+      "checked_plot_id": "cb49497eb3aa456c1d397b10bafe937907a024021cacf4d0c8c4a3762f0b4a5d",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "llm/present",
+        "tutorial/manifestation",
+        "tutorial/presenter-request"
+      ],
+      "unavailable_hint": "requires a joined Host offering llm/present; the resident deterministic tutorial remains the semantic fallback"
+    },
+    {
+      "slug": "bench-telemetry",
+      "title": "Bench Telemetry",
+      "entry": "bench-telemetry",
+      "source": "# Bench consumes the reviewed bounded measurement-plot Back. Device decoding,\n# windowing, thresholding, acquisition, recording, commands, and presentation\n# remain separate Plots and Host truth; this slice owns one telemetry component.\nplot bench-telemetry (\n    >> window: MeasurementWindow\n    series: MeasurementPlotSeries >>\n) {\n    plot: data/bounded-measurement-plot\n\n    window >> plot.window\n    plot.series >> series\n}\n",
+      "source_document_id": "290882e45a20d8154564210dc04011b8d46f35929c0762b66145f3589ba89477",
+      "checked_plot_id": "20057b1c7b2e868ee796e1b4ec86a73d28fbb47aa26c1ac00ea7543ce419ad46",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "data/bounded-measurement-plot"
+      ],
+      "unavailable_hint": "the reusable plot Back is browser-installed, but Bench device acquisition and presentation remain separate unfinished Plots"
+    },
+    {
+      "slug": "bounded-job",
+      "title": "Bounded Job",
+      "entry": "bounded-job",
+      "source": "plot bounded-job (\n    lifecycle: JobLifecycle >>\n) {\n    request: process/deterministic-request\n    run: process/run-bounded\n    request.request >> run.request\n    run.lifecycle >> lifecycle\n}\n",
+      "source_document_id": "89ca3889ff27faa87add949dfc0cefcedf9d50317a8bdf372941310698937e35",
+      "checked_plot_id": "597b5c866bd02a7bdfdfb4c64534a0f8f9923d2b69b285f94b27a679ffce28e2",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "process/deterministic-request",
+        "process/run-bounded"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "bounded-navigation",
+      "title": "Bounded Navigation",
+      "entry": "bounded-navigation",
+      "source": "# Portable bounded navigation from a validated spatial goal to body-motion\n# intent. The exact host implementations, authority, actuator lowering, and\n# mandatory physical safety remain choices and obligations of the Conduit Plan.\nplot bounded-navigation (\n    >> pose: NavigationPose\n    >> goal: NavigationGoal\n    >> traversability: NavigationTraversability4x4\n    >> time: NavigationTime\n    decision: NavigationRouteDecision >>\n    control: NavigationControl >>\n    request: NavigationBoundedMotionIntent >>\n) {\n    route: navigation/route-grid4\n    timing: navigation/time-parameterize\n    controller: navigation/local-control\n\n    pose >> route.pose\n    goal >> route.goal\n    traversability >> route.traversability\n    time >> route.time\n    route.decision >> decision\n    route.decision >> select(NavigationRouteDecision.route, unmatched=drop) >> timing.route\n    time >> timing.time\n    timing.trajectory >> controller.trajectory\n    pose >> controller.pose\n    time >> controller.time\n    controller.control >> control\n    controller.control >> select(NavigationControl.motion, unmatched=drop) >> request\n}\n",
+      "source_document_id": "540eaebfd5c408bcfd78f8e72c30e2dda7b954b5117db1fe5cfc314de0b8df51",
+      "checked_plot_id": "6e29877c14fd5eb3c0a8f52bd5ea039d3da8b2714df95b23788c767d59e4869a",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "navigation/local-control",
+        "navigation/route-grid4",
+        "navigation/time-parameterize"
+      ],
+      "unavailable_hint": "portable navigation has no installed browser route or local-control realization"
+    },
+    {
+      "slug": "bounded-replay-control",
+      "title": "Bounded Replay Control",
+      "entry": "bounded-replay-control",
+      "source": "plot bounded-replay-control (\n    mode: Text = \"original-timing\"\n    rate-numerator: Count = 1\n    rate-denominator: Count = 1\n    maximum-duration-seconds: Count = 86400\n    >> timeline: ReplayTimeline\n    >> control: ReplayControl...|\n    >> clock: PlaybackTick...|\n    event: ReplayEvent...| >>\n    state: ReplayState...| >>\n) {\n    replay: time/replay-control(mode, rate-numerator, rate-denominator, maximum-duration-seconds)\n    timeline >> replay.timeline\n    control >> replay.control\n    clock >> replay.clock\n    replay.event >> event\n    replay.state >> state\n}\n",
+      "source_document_id": "7c5beeecf25efc304ea810c7fcb6f9f5cb4616f27c5fa46a0364ebb0855349bd",
+      "checked_plot_id": "b2b9ef9dbade343c763f7f1e1ce4d2e6ab62bb839c08129306fc3c6b46722eee",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "time/replay-control"
+      ],
+      "unavailable_hint": "portable replay control has no installed browser realization"
+    },
+    {
+      "slug": "bounded-replay-source",
+      "title": "Bounded Replay Source",
+      "entry": "bounded-replay-source",
+      "source": "plot bounded-replay-source (\n    >> timeline: HistoricalTypedTimeline\n    replay: ReplayTimeline >>\n    gap: HistoricalRetentionGap >>\n) {\n    source: history/replay-source\n    timeline >> source.timeline\n    source.replay >> replay\n    source.gap >> gap\n}\n",
+      "source_document_id": "92cd0e88988b10b833e92468b0fed005df32ec954f17d5750fb5e98d63dbe172",
+      "checked_plot_id": "9f160d48a9d1bc37626a5022e61b95d59364b0e31f15c7281ac3d3318af63d80",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "history/replay-source"
+      ],
+      "unavailable_hint": "portable replay projection has no installed browser realization"
+    },
+    {
+      "slug": "bounded-stroke-capture",
+      "title": "Bounded Stroke Capture",
+      "entry": "bounded-stroke-capture",
+      "source": "# Collect exactly four ordered points into one semantic bounded stroke.\nplot bounded-stroke-capture (\n    point: Point2...| >> stroke: Path2Four\n) {\n    capture: geometry/capture-bounded-stroke\n    point >> capture.point\n    capture.stroke >> stroke\n}\n",
+      "source_document_id": "95d7fa927cb8bb68d8b265a2e7f3bbc1ad7fe720be368d819ba3055b9e4d970e",
+      "checked_plot_id": "d181c101dad1738b9687d27035a556dd07c9052a6b4f2a5a291dbb8f0040d22c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "geometry/capture-bounded-stroke"
+      ],
+      "unavailable_hint": "portable stroke semantics have no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "bounded-typed-history",
+      "title": "Bounded Typed History",
+      "entry": "bounded-typed-history",
+      "source": "plot bounded-typed-history (\n    value-profile: Text = \"value/text\"\n    clock-basis: Text = \"history/event-clock\"\n    time-scale: Text = \"milliseconds\"\n    maximum-entries: Count = 16\n    maximum-referenced-bytes: Count = 1048576\n    overflow-policy: Text = \"refuse\"\n    first-sequence: Count = 0\n    >> command: HistoricalTimelineCommand...|\n    timeline: HistoricalTypedTimeline >>\n) {\n    history: history/bounded-typed(value-profile, clock-basis, time-scale, maximum-entries, maximum-referenced-bytes, overflow-policy, first-sequence)\n    command >> history.command\n    history.timeline >> timeline\n}\n",
+      "source_document_id": "932e6e338f71850439b867503783044314d10998a47955ca4d52cc0a33a34983",
+      "checked_plot_id": "db017f2337b9d3f936e1ead2730a9cb6523bc77f8e7eb97bb07dd93ad9d847cc",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "history/bounded-typed"
+      ],
+      "unavailable_hint": "portable typed history has no installed browser realization"
+    },
+    {
+      "slug": "button-across-room",
+      "title": "Button Across the Room",
+      "entry": "button_across_room",
+      "source": "# One ordered button transition controls one current indicator state.\nplot button_across_room {\n    button: input/button\n    state: input/button-indicator-state\n    indicator: presentation/indicator-state\n\n    button >> state >> indicator\n}\n",
+      "source_document_id": "72afe3692adc7ac58094711d3b04ae937218fc114bb31b458ec1503277dcb35a",
+      "checked_plot_id": "fb4f449baacad60a29844ab8a273b17dc8059070b1d2500ebd53ecf562136ce1",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/button",
+        "input/button-indicator-state",
+        "presentation/indicator-state"
+      ],
+      "unavailable_hint": "the browser realization requires an explicit ordered pointer interaction proof"
+    },
+    {
+      "slug": "breadboard-instrument",
+      "title": "Breadboard Instrument",
+      "entry": "breadboard-instrument",
+      "source": "# Portable instrument meaning. A fixture/profile binds physical controls; this\n# Plot contains no Pico, GPIO, ADC, USB, MIDI endpoint, or Host identity.\nplot breadboard-instrument (\n    >> input: InstrumentControl...|\n    notes: music/note-event@1...| >>\n    controls: music/control-event@1...| >>\n) {\n    mapper: music/instrument-map({ pitch_millihertz: [261626, 293665, 329628, 349228, 391995, 440000, 493883, 523251], sustain_button: 8, modulation_control: 0, expression_control: 1 })\n    input >> mapper.input\n    mapper.notes >> notes\n    mapper.controls >> controls\n}\n",
+      "source_document_id": "dd5287f509f65090cd90a8e55635a17f403f374c61c715fe2ce02ad08f72e226",
+      "checked_plot_id": "f99fff0a93d9c86523fae9e67afd7819ab4394383e6fdb43fd4f3fefd3290f0c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "music/instrument-map"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "camera-summary",
+      "title": "Camera Summary",
+      "entry": "camera-summary",
+      "source": "# Summarize a semantic camera frame stream.\nplot camera-summary {\n    camera: media/camera\n    sink: media/frame-sink\n\n    camera.frame >> sink.frame\n}\n",
+      "source_document_id": "a9f06ff350ca29395e2b4b15bd19aa666c83bb024af184a9beac9a5dddf02346",
+      "checked_plot_id": "3311666493905808618b81d6048482dc31fc7b06f9f549084e11fa3a17ade20a",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "media/camera",
+        "media/frame-sink"
+      ],
+      "unavailable_hint": "camera acquisition requires an explicit permission and device proof mode"
+    },
+    {
+      "slug": "clock",
+      "title": "Clock",
+      "entry": "clock-demo",
+      "source": "plot clock-demo {\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n",
+      "source_document_id": "aa95def24c9d72941a2d8cf3eb32f08174dcd8aa70be2859eba8c9072d320800",
+      "checked_plot_id": "690a47e663976c9c9537a2c229dea854af0c22c233b87bec6c933e51a150d528",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "presentation/tick",
+        "time/every"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "count",
+      "title": "Count",
+      "entry": "count-demo",
+      "source": "plot count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\n\nplot count-demo {\n    clock: time/every(1s)\n    count: count(2)\n    show: presentation/count\n    clock >> count >> show\n}\n",
+      "source_document_id": "bd89e62a932a8134a74ecdff25956db6f2b7c4ded1dfdabc81536c26afeea883",
+      "checked_plot_id": "567e6400ab646745d2da1c7cb68265714b1b8473923c02c7be333dd35216dcec",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "count",
+        "presentation/count",
+        "time/every"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "default-welcome",
+      "title": "Default Welcome",
+      "entry": "default-welcome",
+      "source": "plot greet (\n    greeting: Text = \"Welcome\"\n    name: Text >> text: Text\n) {\n    join: text/join(greeting)\n    name >> join >> text\n}\n\nplot default-welcome {\n    hello: greet\n    literal: text/literal(\"Hello\")\n    show: presentation/text\n\n    \"Travis\" >> hello >> presentation/text\n    literal.text >> show.text\n}\n",
+      "source_document_id": "16be6045cd52fb4735ab24e27955ba94269952143331d780992336c3b0ba2c5b",
+      "checked_plot_id": "2d77fab905fac915ee046ee280493a5043b6702c632257b1c5cf222a96a98e11",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "greet",
+        "presentation/text",
+        "text/literal"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "desk-telegraph",
+      "title": "Desk Telegraph",
+      "entry": "desk_telegraph",
+      "source": "# Reusable exact adaptation at the typed-record communication waist.\nplot text-record (\n    text: Text >> record: TypedRecord\n) {\n    wrap: record/text-to-typed\n    text >> wrap.text\n    wrap.record >> record\n}\n\n# A non-text record refuses here instead of becoming presentation text.\nplot text-from-record (\n    record: TypedRecord >> text: Text\n) {\n    unwrap: record/typed-to-text\n    record >> unwrap.record\n    unwrap.text >> text\n}\n\n# Each completed framed record crosses an explicitly finite ordered queue.\n# Queue capacity bounds simultaneous pressure, not the desk's lifetime.\nplot bounded-record-send (\n    maximum-items: Count = 4\n    maximum-frame-bytes: Count = 4096\n    frame: FramedTypedRecord >> queued: FramedTypedRecord\n) {\n    queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)\n\n    frame >> queue >> queued\n}\n\n# The first honest local Desk Telegraph vertical. The queued remote Line,\n# receipt/status, and transcript branches are added only with their executable\n# closing-flow realization; local framing is not called remote delivery.\nplot desk_telegraph {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    message: text/submit-lines(maximum-bytes = 256)\n    encode: text-record\n    frame: record/frame-typed\n    send: bounded-record-send(4, 4096)\n    deframe: record/deframe-typed\n    decode: text-from-record\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> message.fragment\n    message.submitted >> encode >> frame >> send >> deframe >> decode >> show\n}\n",
+      "source_document_id": "57bc76f68b7dab51ec593be069df751cc50cacf0b6ae2f5cd0897520a46486b4",
+      "checked_plot_id": "6fa9df916f5743f6f5b05202d96724337ed86fa2fd26fefc10db747ce3864e31",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "bounded-record-send",
+        "input/keyboard",
+        "input/keymap",
+        "presentation/text",
+        "record/deframe-typed",
+        "record/frame-typed",
+        "text-from-record",
+        "text-record",
+        "text/submit-lines"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "generalized-input",
+      "title": "Generalized Input",
+      "entry": "generalized-input",
+      "source": "# Deterministic portable input families with no device report or platform facts.\nplot generalized-input (\n    button: InputButtonTransition >>\n    gamepad: GamepadState >>\n    pointer: PointerEvent >>\n    rotary: RotaryStep >>\n    touch: TouchFrame >>\n) {\n    controls: input/deterministic-gamepad\n    surface: input/deterministic-pointer-touch\n    controls.button >> button\n    controls.gamepad >> gamepad\n    controls.rotary >> rotary\n    surface.pointer >> pointer\n    surface.touch >> touch\n}\n",
+      "source_document_id": "a43a91385ef4ca2b41ab50cae27ad89b2f973e85ae91001da15d3d191ef491a6",
+      "checked_plot_id": "8c2835993a8ddd557cdddc1c9a9ea4b05536dc1833df12fd97af2453eeb4e160",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/deterministic-gamepad",
+        "input/deterministic-pointer-touch"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "geometry-spatial",
+      "title": "Spatial Geometry",
+      "entry": "geometry-spatial",
+      "source": "plot geometry-spatial (\n    moved: Point2 >>\n) {\n    source: geometry/point2(value = {frame: \"robot/base\", x: 1000mm, y: 2000mm})\n    move: geometry/apply-transform2(transform = {from_frame: \"robot/base\", offset_x: 1m, offset_y: -500mm, to_frame: \"map\"})\n    source.point >> move.source\n    move.transformed >> moved\n}\n",
+      "source_document_id": "09e2f2aa764d231caa87fc30ed12545c779557f97c696e03ea38ee8f78b53752",
+      "checked_plot_id": "18f8595bf5777b7fe3c7ed1787be09715c096475f5abde221b779b5bec11ed1d",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "geometry/apply-transform2",
+        "geometry/point2"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "greet",
+      "title": "Greeting",
+      "entry": "default-welcome",
+      "source": "plot greet (\n    greeting: Text = \"Hello\"\n    name: Text >> text: Text\n) {\n    join: text/join(greeting)\n    name >> join >> text\n}\n\nplot welcome {\n    hello: greet(\"Welcome\")\n    \"Travis\" >> hello >> presentation/text\n}\n\nplot default-welcome {\n    hello: greet\n    \"Travis\" >> hello >> presentation/text\n}\n",
+      "source_document_id": "8190b039963831771c22a11bf85e1f9bc316a424cb311c341a17994bb19bdeb1",
+      "checked_plot_id": "064d17fc7ed6fe46482ffad3902155572660b688b5fc54d0f66e4ecb8dae16cd",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "greet",
+        "presentation/text"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "heartbeat-phase-follower",
+      "title": "Heartbeat Phase Follower",
+      "entry": "heartbeat-phase-follower",
+      "source": "# A heartbeat consumer of the reusable pulse observation and synchronization Plots.\nplot heartbeat-phase-follower (\n    >> tick: value/tick@1...\n    >> local: time/rhythm-state@1...\n    >> peer: time/pulse-observation@1...\n    heartbeat: time/pulse-observation@1... >>\n    updated: time/rhythm-state@1... >>\n) {\n    observe: time/pulse-observe\n    synchronize: time/phase-synchronize\n    tick >> observe.tick\n    observe.observation >> heartbeat\n    local >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> updated\n}\n",
+      "source_document_id": "d4f5b38601592f1413d8b7f12e54ae5fa076e95301e24dc69c5ef46dc21b9e2b",
+      "checked_plot_id": "90920ba445d2100299214025108acc0ed728e5bd7ecce268eff0eccc62566a7a",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "time/phase-synchronize",
+        "time/pulse-observe"
+      ],
+      "unavailable_hint": "portable heartbeat phase following has no installed browser realization"
+    },
+    {
+      "slug": "hello",
+      "title": "Hello",
+      "entry": "hello",
+      "source": "plot hello {\n    # This literal pipeline is transactional and explicitly completes.\n    upper: text/upper\n    show: presentation/text\n\n    \"Hello, world.\" >> upper >> show\n}.\n",
+      "source_document_id": "fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "checked_plot_id": "cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "presentation/text",
+        "text/upper"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "image-text-compose",
+      "title": "Image Text Composition",
+      "entry": "image-text-compose",
+      "source": "plot image-text-compose (\n    >> image: ImageObservationReference\n    >> caption: Text\n    record: ImageTextRecord >>\n) {\n    compose: media/compose-image-text\n    image >> compose.image\n    caption >> compose.caption\n    compose.record >> record\n}\n",
+      "source_document_id": "b1db4ddc10a126385dc13674b81c1a56a3ae64e8e17f029179830e628fc0bedc",
+      "checked_plot_id": "55504136de0c73e4ed9ad28c602cdaa4e5b546b52255fc27274c8e40704001d9",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "media/compose-image-text"
+      ],
+      "unavailable_hint": "portable image-text composition has no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "image-text-delivery-record",
+      "title": "Image Text Delivery Record",
+      "entry": "image-text-delivery-record",
+      "source": "plot image-text-delivery-record (\n    >> image: ImageObservationReference\n    >> caption: Text\n    framed: FramedTypedRecord >>\n) {\n    compose: media/compose-image-text\n    adapt: media/image-text-to-typed-record\n    frame: record/frame-typed\n    image >> compose.image\n    caption >> compose.caption\n    compose.record >> adapt.record\n    adapt.typed >> frame.record\n    frame.frame >> framed\n}\n",
+      "source_document_id": "86749d1a6ac57dd1f333b827d8a0e42e64f2b08ad4ce3ca2c7417d0c70746f20",
+      "checked_plot_id": "8c222819f064b35435e49cf78d4720e19cce421ac150901b1747ce709ccb9ff2",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "media/compose-image-text",
+        "media/image-text-to-typed-record",
+        "record/frame-typed"
+      ],
+      "unavailable_hint": "portable image-text delivery recording has no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "image-text-inspection",
+      "title": "Image Text Inspection",
+      "entry": "image-text-inspection",
+      "source": "plot image-text-inspection (\n    >> record: ImageTextRecord\n) {\n    inspect: presentation/structured-info\n    record >> inspect.input\n}\n",
+      "source_document_id": "5a8415b5eadd74ccbf9fdad6db31de83dfde06392c7f26a2ace1ec3e17bd4155",
+      "checked_plot_id": "2d62058658d45e9a191f541a6e2a3acef0af5e52f05830df3c87eba00fb02146",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "presentation/structured-info"
+      ],
+      "unavailable_hint": "portable structured inspection has no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "lenia-orbium",
+      "title": "Lenia Orbium",
+      "entry": "lenia-orbium-demo",
+      "source": "# Lenia as portable meaning with realization facts absent from the plot.\nplot lenia (\n    >> initial: ScalarField2\n    >> tick: Tick...|\n    field: ScalarField2...| >>\n) {\n    evolve: alife/lenia-step(kernel_radius = 13, kernel_mu = 0.5, kernel_sigma = 0.15, growth_mu = 0.15, growth_sigma = 0.015, dt = 0.1, boundary = \"wrap\", numeric_profile = \"fixed-q16.16\")\n\n    initial >> evolve.initial\n    tick >> evolve.tick\n    evolve.field >> field\n}\n\n# Autonomous Orbium specimen: deterministic seed and no human feedback.\nplot lenia-orbium-demo {\n    seed: alife/orbium-seed(width = 128, height = 128, seed = 1)\n    clock: time/tick(count = 4, period-ms = 50)\n    organism: lenia\n    show: presentation/scalar-field(title = \"Orbium\", minimum = 0.0, maximum = 1.0)\n\n    seed.field >> organism.initial\n    clock >> organism.tick\n    organism.field >> show.field\n}\n",
+      "source_document_id": "e49b875fd838b675d30877be9ba1b6b9a264ea805e99f44f2615043d72928469",
+      "checked_plot_id": "623dad22f42871e98fd4d8983bf103333a03c3828208953f7a983aaf2d0298bc",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "alife/orbium-seed",
+        "lenia",
+        "presentation/scalar-field",
+        "time/tick"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "little-life",
+      "title": "Little Life",
+      "entry": "little-life",
+      "source": "# One deterministic Orbium seen before and during thirty-two admitted steps.\nplot little-life {\n    seed: alife/orbium-seed(width = 32, height = 32, seed = 1)\n    clock: time/tick(count = 32, period-ms = 0)\n    organism: alife/lenia-step(kernel_radius = 13, kernel_mu = 0.5, kernel_sigma = 0.15, growth_mu = 0.15, growth_sigma = 0.015, dt = 0.1, boundary = \"wrap\", numeric_profile = \"fixed-q16.16\")\n    evolving: presentation/scalar-field(title = \"Orbium evolution\", minimum = 0.0, maximum = 1.0)\n\n    seed.field >> organism.initial\n    clock >> organism.tick\n    organism.field >> evolving.field\n}\n",
+      "source_document_id": "39eca947de7843188904ab05ea99c44e50a1becb2c489d26031614e40161a02e",
+      "checked_plot_id": "7cf987889c0aa93a9822ede0a8991a10853d8a865375e6a4c62fb7baaf866d85",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "alife/lenia-step",
+        "alife/orbium-seed",
+        "presentation/scalar-field",
+        "time/tick"
+      ],
+      "unavailable_hint": "the journey uses the installed std scalar-field terminal presentation; retained PNGs are derived documentary evidence rather than browser execution"
+    },
+    {
+      "slug": "linguistic-annotations",
+      "title": "Linguistic Annotations",
+      "entry": "linguistic-annotations",
+      "source": "plot linguistic-annotations (\n    label: LinguisticLabel >>\n) {\n    tokenize: language/tokenize-four(material = { identity: \"text/linguistic-specimen\", language: \"language/english\", revision: \"source/1\", text: \"Bright stars shine.\" })\n    annotate: language/annotate-four(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") })\n    tokenize.tokens >> annotate.tokens\n    annotate.annotations >> project(AnnotationBundleFour.annotations) >> index(LinguisticAnnotationsFour[0]) >> project(LinguisticAnnotation.label) >> label\n}\n",
+      "source_document_id": "e211bed55ffcbfb419a69bd8627e3dc93f3b4c9a955cff281bf5e80b654273ea",
+      "checked_plot_id": "dfdc46bf5f5a10e36f6e81e162ff4214b4ea44e8965c3c0e4033ff17c8ef7ab0",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "language/annotate-four",
+        "language/tokenize-four"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "memory-lantern",
+      "title": "Memory Lantern",
+      "entry": "memory_lantern",
+      "source": "plot memory_lantern {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    message: text/edit(maximum-bytes = 256)\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> message.fragment\n    message.current >> show.text\n}\n",
+      "source_document_id": "e2aaeb70fcff9896292206f4183863898193f16ea458abd975dd6eaa33e645e5",
+      "checked_plot_id": "64bec31db4b26b034298d129eccc0bbf15cd55d30477d55debef9144962de45f",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/keyboard",
+        "input/keymap",
+        "presentation/text",
+        "text/edit"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "durable-notebook",
+      "title": "Durable Notebook",
+      "entry": "durable-note",
+      "source": "plot durable-note (\n    >> write: Text <= 4KiB\n    >> save-request: SaveRequest...\n    current: $Text <= 4KiB >>\n    saved: &Text... >>\n    loaded: Text >>\n    save-failed: data/save-text-terminal@2e710b62054501d8eb8210a36d4e0f635c5b2ac4a057d37454babcaed109f85a >>\n    load-failed: data/load-text-terminal@6c99fbff6f4b3cb49c2594b9ec9c31cbb605617d2f327483af17a51dd8eae236 >>\n) {\n    note: keep Text(\"\") <= 4KiB for life\n    save: data/save/text\n    load: data/load/text\n\n    write >> note\n    note >> current\n\n    note @ save-request >> save.value\n    save.data >> saved\n    save.data! >> save-failed\n    save.data >> load.data\n    load.value >> loaded\n    load.value! >> load-failed\n}\n",
+      "source_document_id": "c83a57e7deb1c4fff6a09e8cd300b423c9f22f15eefb151ee5f6dba60f084a45",
+      "checked_plot_id": "b1a4fb30a291eb180112ab5f5e40fab89261bb3e3259ae0d31a72d2d14b91fad",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "current/sample",
+        "data/load/text",
+        "data/save/text",
+        "state/latest"
+      ],
+      "unavailable_hint": "the reviewed browser Host does not offer Body-durable keep or immutable data-generation residence"
+    },
+    {
+      "slug": "little-seismograph",
+      "title": "Little Seismograph",
+      "entry": "little-seismograph-display",
+      "source": "# Reusable count-bounded measurement retention. The full policy is semantic and\n# explicit; no renderer or acquisition mechanism owns this state.\nplot measurement-window (\n    >> profile: MeasurementWindowProfile\n    measurement: MeasurementSample...| >> window: MeasurementWindow\n) {\n    retain: data/measurement-count-window\n    profile >> retain.profile\n    measurement >> retain.measurement\n    retain.window >> window\n}\n\nplot measurement-summary (\n    window: MeasurementWindow >> summary: MeasurementSummary\n) {\n    summarize: data/measurement-summary\n    window >> summarize.window\n    summarize.summary >> summary\n}\n\nplot measurement-threshold (\n    >> profile: MeasurementHysteresisProfile\n    >> summary: MeasurementSummary\n    decision: MeasurementThresholdDecision >>\n) {\n    threshold: data/measurement-hysteresis\n    profile >> threshold.profile\n    summary >> threshold.summary\n    threshold.decision >> decision\n}\n\nplot measurement-plot (\n    window: MeasurementWindow >> series: MeasurementPlotSeries\n) {\n    project: data/measurement-plot(points = 8, when-full = \"evenly-spaced\")\n    window >> project.window\n    project.series >> series\n}\n\n# The processing waist accepts any compatible exact typed measurement flow.\nplot little-seismograph-processing (\n    >> profile: MeasurementWindowProfile\n    >> measurement: MeasurementSample...|\n    >> threshold-profile: MeasurementHysteresisProfile\n    window: MeasurementWindow >>\n    summary: MeasurementSummary >>\n    decision: MeasurementThresholdDecision >>\n    series: MeasurementPlotSeries >>\n) {\n    samples: measurement-window\n    summarize: measurement-summary\n    decide: measurement-threshold\n    plot: measurement-plot\n\n    profile >> samples.profile\n    measurement >> samples.measurement\n    samples.window >> window\n    samples.window >> summarize.window\n    samples.window >> plot.window\n    summarize.summary >> summary\n    summarize.summary >> decide.summary\n    threshold-profile >> decide.profile\n    decide.decision >> decision\n    plot.series >> series\n}\n\n# Deterministic proving composition. Acquisition remains a replaceable source;\n# the manifestations consume the portable processing outputs.\nplot little-seismograph-display {\n    # Transactional display specimen: one bounded measurement series.\n    source: measurement/deterministic-seismograph-inputs\n    processing: little-seismograph-processing\n    plot: presentation/measurement-plot\n    threshold: presentation/measurement-threshold\n\n    source.profile >> processing.profile\n    source.measurement >> processing.measurement\n    source.threshold-profile >> processing.threshold-profile\n    processing.series >> plot.series\n    processing.decision >> threshold.decision\n}.\n",
+      "source_document_id": "3a3304c0ae3eac9d5f3cb3b69e6e69d3256c1438f528055162f76cac5fe32f3e",
+      "checked_plot_id": "9e2b0a55878dba3157c6778001395ac94b4b129c809e340524b4cb0b0363cb79",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "little-seismograph-processing",
+        "measurement/deterministic-seismograph-inputs",
+        "presentation/measurement-plot",
+        "presentation/measurement-threshold"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "normalized-control-measurement",
+      "title": "Normalized Control Measurement",
+      "entry": "normalized-control-measurement",
+      "source": "# A normalized semantic control becomes the exact measurement contract used by\n# processing Plots. Occurrence time is explicit; acquisition stays outside.\nplot normalized-control-measurement (\n    control: Scalar >> measurement: MeasurementSample\n) {\n    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = \"mV\", range-policy = \"refuse\", quantization = \"nearest\")\n    observe: data/measurement-observation(clock-basis = \"control-occurrence\")\n\n    control >> map.in\n    map.out >> observe.quantity\n    observe.measurement >> measurement\n}\n",
+      "source_document_id": "d9274d70f8181a6a2e13a3335ceb7b5dc128124a5fdd92efbbd6cff048c7ed44",
+      "checked_plot_id": "0fb978f20d5c6c0a5f6c4934ff00fc88bb1a7819e788160c7cc0a12912b2eaa1",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "data/measurement-observation",
+        "math/map-quantity"
+      ],
+      "unavailable_hint": "the reusable adapter has production-kernel conformance but is not a standalone Gallery experience"
+    },
+    {
+      "slug": "messaging-delivery",
+      "title": "Messaging Delivery",
+      "entry": "messaging-delivery",
+      "source": "# Portable message construction and delivery admission.\nplot messaging-delivery (\n    message: PortableMessage >>\n    notification: NotificationEvent >>\n    request: DeliveryRequest >>\n    update: DeliveryUpdate >>\n) {\n    message-source: messaging/message\n    delivery: messaging/deliver\n    message-source.request >> delivery.request\n    message-source.message >> message\n    message-source.request >> request\n    delivery.notification >> notification\n    delivery.update >> update\n}\n",
+      "source_document_id": "c2e4e15143daee76f4c7b7c25277d02d5e96ae98e7e4167eb51f10d8c7ed78f3",
+      "checked_plot_id": "d4eace64c94f0278748992c430ac63093cd32ed8899fee7bf7de29200b064230",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "messaging/deliver",
+        "messaging/message"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "money-quote",
+      "title": "Money Quote",
+      "entry": "money-quote",
+      "source": "plot money-quote (\n    amount: FinanceFixedDecimal >>\n    comparison: FinanceMoneyComparison >>\n    converted: FinanceMoney >>\n    events: FinanceTransactionEventsThree >>\n    quote: FinanceQuote >>\n) {\n    fixture: finance/deterministic-fixture\n    add: finance/add-money\n    compare: finance/compare-money\n    convert: finance/convert-money\n    fixture.left >> add.left\n    fixture.left >> compare.left\n    fixture.right >> add.right\n    fixture.right >> compare.right\n    fixture.convertible >> convert.money\n    fixture.rate >> convert.rate\n    add.sum >> project(FinanceMoney.amount) >> amount\n    compare.result >> comparison\n    convert.converted >> converted\n    fixture.events >> events\n    fixture.quote >> quote\n}\n",
+      "source_document_id": "440861c72ee3e092789d41682b898cc638e0d550044724b36a429a8f0c2c9364",
+      "checked_plot_id": "ae8b8375af69a0114e18394d8b6f9d723ea293bd7026b42f43fe1f009f1dc462",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "finance/add-money",
+        "finance/compare-money",
+        "finance/convert-money",
+        "finance/deterministic-fixture"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "native-graphical-mask",
+      "title": "Native Graphical Mask",
+      "entry": "native-graphical",
+      "source": "# Native graphical Mask role. The Plan selects native renderer and interaction backs.\nplot native-graphical (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    spread: presentation/tee\n    surface: presentation/show-resource-source\n    render: presentation/resource-renderer\n    human: face/interaction\n\n    face >> spread.source\n    spread.presentation >> render.presentation\n    surface.show-resource >> render.show-resource\n    spread.presentation >> human.presentation\n    render.show >> human.show\n    render.show >> show\n    human.interaction >> interaction\n}\n",
+      "source_document_id": "80a54037b4973a36296899a82e2903c5aff8cbc92b48dc0f5c75406607107e9d",
+      "checked_plot_id": "e72bd4aa6159c5554349655e6f591abee624e0aa786fe462dc5f896ba49ea01c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "face/interaction",
+        "presentation/resource-renderer",
+        "presentation/show-resource-source",
+        "presentation/tee"
+      ],
+      "unavailable_hint": "the ordinary Mask is realized by the ConduitOS graphical Host, not a browser Host"
+    },
+    {
+      "slug": "morse-network",
+      "title": "Morse Network",
+      "entry": "morse_network",
+      "source": "plot morse_network {\n    # Run once; each later portable key transition is mapped and manifested.\n    keyboard: input/keyboard\n    keymap: input/keymap\n    morse: text/morse(120)\n    light: presentation/indicator\n\n    keyboard.key >> keymap.key\n    keymap.text >> morse >> light\n}\n",
+      "source_document_id": "471af77bc67e7bcd0385b2dbc9bd71f77cef94289018ea6262c80b5044199194",
+      "checked_plot_id": "b767972b91159865e9a2a8182676a625d7bcd9435cd3dfeaa2142b05fa4b83d2",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/keyboard",
+        "input/keymap",
+        "presentation/indicator",
+        "text/morse"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "network-resolution",
+      "title": "Network Resolution",
+      "entry": "network-resolution",
+      "source": "plot network-resolution (\n    connection: NetworkConnectionState >>\n    dns: DnsResult >>\n) {\n    endpoint: net/deterministic-endpoint\n    query: net/deterministic-dns-query\n    connect: net/connect\n    resolve: net/resolve-dns\n    endpoint.endpoint >> connect.endpoint\n    query.query >> resolve.query\n    connect.state >> connection\n    resolve.result >> dns\n}\n",
+      "source_document_id": "1a7dda073253ad956cd035be4302fc5f07c67d0cf5e42be78000925d21cb2266",
+      "checked_plot_id": "465a103cb0521098f78253301bc3864412bb4aab1d3c5c94ccbc9c4f2d358322",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "net/connect",
+        "net/deterministic-dns-query",
+        "net/deterministic-endpoint",
+        "net/resolve-dns"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "night-radio",
+      "title": "Night Radio",
+      "entry": "night-radio",
+      "source": "# A living Night Radio station: each submitted portable text report becomes an\n# exact typed record, crosses an ordinary planned Line when placed remotely,\n# and is reconstructed for presentation. The Line session retains its sent,\n# received, and terminal events through the shared bounded transcript contract.\n# Transport, Host, storage, and renderer choices remain outside authored meaning.\nplot night-radio {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    report: text/submit-lines(maximum-bytes = 256)\n    encode: record/text-to-typed\n    frame: record/frame-typed\n    queue: record/ordered-send-queue(maximum-items = 4, maximum-frame-bytes = 4096)\n    deframe: record/deframe-typed\n    decode: record/typed-to-text\n    show: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> report.fragment\n    report.submitted >> encode >> frame >> queue >> deframe >> decode >> show\n}\n",
+      "source_document_id": "5eec9af9428684235c4291bd4fc3a057353b166207e31734b8d298d4574181e1",
+      "checked_plot_id": "91400079f59d60548b555edb8952515ee2663d784f5f0bf20ae5bc6e18f13773",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/keyboard",
+        "input/keymap",
+        "presentation/text",
+        "record/deframe-typed",
+        "record/frame-typed",
+        "record/ordered-send-queue",
+        "record/text-to-typed",
+        "record/typed-to-text",
+        "text/submit-lines"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "normalized-light-intensity",
+      "title": "Normalized Light Intensity",
+      "entry": "normalized-light-intensity",
+      "source": "# An outside-instrument consumer mapping normalized control to percentage intensity.\nplot normalized-light-intensity (\n    control: Scalar >> intensity: Quantity\n) {\n    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 100, target-granularity = 1, unit = \"%\", range-policy = \"clamp\", quantization = \"nearest\")\n    control >> map.in\n    map.out >> intensity\n}\n",
+      "source_document_id": "ed41cfe0c5dcd1d1b24edac963e5396abad7f178fbbf30cbac9a3152e5c805c7",
+      "checked_plot_id": "d1810612e233f70ff2f9b87daa136cbfe1ed83e0a3bff8206a307bed01d9cfec",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "math/map-quantity"
+      ],
+      "unavailable_hint": "portable quantity mapping has no installed browser realization"
+    },
+    {
+      "slug": "patchbay-front-door",
+      "title": "Patchbay Front Door",
+      "entry": "patchbay-front-door",
+      "source": "plot patchbay-front-door {\n    greeting: text/literal(\"Hello from this body\")\n    show: presentation/text\n\n    greeting.text >> show.text\n}\n",
+      "source_document_id": "083a6bfebd91d6d8cff2c6c7f1187d705212eead860d44f3f239a2b2c7b51205",
+      "checked_plot_id": "e9a30e4be0f5b34355bdf594a6cf4e3c04592dc49bed5fddc2c58b2e0884582a",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "presentation/text",
+        "text/literal"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "firefly-choir",
+      "title": "Firefly Choir",
+      "entry": "firefly-choir",
+      "source": "# A living local pulse path for the Firefly Choir proving composition. Peer\n# exchange and phase following extend this plot through ordinary Lines; they\n# are not hidden inside this browser-independent authored meaning.\nplot firefly-choir {\n    clock: time/every(240ms)\n    observe: pulse-manifestation\n    peer_observe: time/pulse-observe(period-ms = 240)\n    follow: phase-follower\n\n    clock >> observe.tick\n    clock >> peer_observe.tick\n    peer_observe.observation >> follow.peer\n}\n\n# Reusable light-only pulse manifestation. Sound is omitted by authored\n# composition: there is no tone Gear or Cord to skip at runtime.\nplot pulse-manifestation (\n    >> tick: value/tick@1...\n) {\n    observe: time/pulse-observe(period-ms = 240)\n    light: presentation/pulse\n\n    tick >> observe.tick\n    observe.observation >> light.pulse\n}\n\n# Explicit enriched composition. Light and tone are separate semantic sinks\n# fed by ordinary atomic fan-out and require separately offered realizations.\nplot pulse-light-tone-manifestation (\n    >> tick: value/tick@1...\n) {\n    observe: time/pulse-observe(period-ms = 240)\n    light: presentation/pulse\n    tone: sound/pulse-tone\n\n    tick >> observe.tick\n    observe.observation >> light.pulse\n    observe.observation >> tone.pulse\n}\n\n# Reusable stateful follower. One explicit initial state is updated by an open\n# peer flow; light/audio realization and transport remain separate concerns.\nplot phase-follower (\n    >> peer: time/pulse-observation@1...\n) {\n    local: time/rhythm-state(sequence = 0, next-pulse-at-ms = 0, period-ms = 280, expected-peer-sequence = 0)\n    synchronize: phase-synchronization\n    manifest: presentation/rhythm\n\n    local.state >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> manifest.state\n}\n\nplot phase-synchronization (\n    >> local: time/rhythm-state@1...\n    >> peer: time/pulse-observation@1...\n    updated: time/rhythm-state@1... >>\n) {\n    synchronize: time/phase-synchronize\n    local >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> updated\n}\n",
+      "source_document_id": "5c59950a208338112d2045d747a6b3fa3b789683f85482a067f6f4b4b63e911d",
+      "checked_plot_id": "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "phase-follower",
+        "pulse-manifestation",
+        "time/every",
+        "time/pulse-observe"
+      ],
+      "unavailable_hint": "the deterministic browser-runtime oracle exercises the ordinary finite browser kernel; pinned multi-host convergence proof remains owned by issue 2215"
+    },
+    {
+      "slug": "firefly-line-follower",
+      "title": "Firefly Line Follower",
+      "entry": "firefly-line-follower",
+      "source": "# Deterministic two-Host proof entrance. A plan places `ticks` and `observe` on\n# one host and the state, synchronizer, and manifestation on another. The\n# authored plot names no Host or transport; its pulse Cord is ordinary.\nplot firefly-line-follower {\n    ticks: time/every(240ms)\n    observe: time/pulse-observe(period-ms = 240)\n    local: time/rhythm-state(sequence = 0, next-pulse-at-ms = 0, period-ms = 280, expected-peer-sequence = 0)\n    synchronize: time/phase-synchronize\n    manifest: presentation/rhythm\n\n    ticks >> observe.tick\n    local.state >> synchronize.local\n    observe.observation >> synchronize.peer\n    synchronize.updated >> manifest.state\n}\n",
+      "source_document_id": "81325f24306bfea4e4cb07e7fa120e82b8eb57592669e1b243eb0dfa736b3af6",
+      "checked_plot_id": "074810eac54fbb15bba634c3603c7e29b4622a1053377c7a24cbb99628e034a1",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "presentation/rhythm",
+        "time/every",
+        "time/phase-synchronize",
+        "time/pulse-observe",
+        "time/rhythm-state"
+      ],
+      "unavailable_hint": "the deterministic browser multi-host oracle exercises two exact host/Boot identities over one ordinary bounded Line"
+    },
+    {
+      "slug": "phase-synchronization",
+      "title": "Phase Synchronization",
+      "entry": "phase-synchronization",
+      "source": "# Follow peer rhythm with a finite deterministic adjustment policy.\n# This is phase following, not distributed consensus.\nplot phase-synchronization (\n    >> local: time/rhythm-state@1...\n    >> peer: time/pulse-observation@1...\n    updated: time/rhythm-state@1... >>\n) {\n    synchronize: time/phase-synchronize\n    local >> synchronize.local\n    peer >> synchronize.peer\n    synchronize.updated >> updated\n}\n",
+      "source_document_id": "c94f90ad30c16fff2e39a69c6de3f9be0632c2cd4aff592d5ec8b63fed904f00",
+      "checked_plot_id": "9dab236ae6862ee493024e61b12da273a79bbd23ce45a2ad87b9dbdd5edf3c96",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "time/phase-synchronize"
+      ],
+      "unavailable_hint": "portable phase synchronization has no installed browser realization"
+    },
+    {
+      "slug": "pete-memory",
+      "title": "Pete Memory",
+      "entry": "pete-memory",
+      "source": "plot pete-memory (\n    >> candidate: ExperienceCandidate\n    retained: RetainedExperience >>\n) {\n    memory: pete/memory-retain\n    candidate >> memory.candidate\n    memory.retained >> retained\n}\n",
+      "source_document_id": "c42f24e3ff5e23c996ac49ee37aaf36f110fcffd0ee9495bdaeccd859f1cfd2a",
+      "checked_plot_id": "64ead619d40c383c09bc1b2e7ee8b961582cfa81702788797c51dbbdcfbb3708",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "pete/memory-retain"
+      ],
+      "unavailable_hint": "Pete autobiographical retention has no installed browser realization"
+    },
+    {
+      "slug": "pete-situation",
+      "title": "Pete Situation",
+      "entry": "pete-situation",
+      "source": "plot pete-situation (\n    >> battery: BatteryObservation\n    >> utterance: UtteranceObservation\n    >> body: BodyCurrentState\n    situation: PeteSituation >>\n) {\n    select: pete/situation-select\n    battery >> select.battery\n    utterance >> select.utterance\n    body >> select.body\n    select.situation >> situation\n}\n",
+      "source_document_id": "3f9f166365b4125fd1784c19d1f02c9b9a04fe859f6ae74fe83b37bbd60fa767",
+      "checked_plot_id": "29ac307537be28bf519100067203c80d539e31a0891bd14b67bfd54fbdafe965",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "pete/situation-select"
+      ],
+      "unavailable_hint": "Pete situation selection has no installed browser realization"
+    },
+    {
+      "slug": "pocket-theremin",
+      "title": "Pocket Theremin",
+      "entry": "phone-two-axis-controller",
+      "source": "# The one canonical Theremin. Both controls describe portable meaning. Hosts\n# own acquisition, cadence, and playback; this Plot owns the instrument law.\nplot pocket-theremin (\n    >> pitch-distance: Distance\n    >> volume: Scalar\n    >> cadence: value/tick@1...\n    audio: audio/pcm-frames@1...| >>\n) {\n    pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)\n    tone: audio/continuous-tone\n    gain: audio/apply-gain\n\n    pitch-distance >> pitch.distance\n    pitch.frequency >> tone.frequency\n    cadence >> tone.cadence\n    tone.audio >> gain.source-audio\n    volume >> gain.amplitude\n    gain.audio >> audio\n}.\n\n# A controller binding, not another Theremin. It adapts a normalized two-axis\n# surface to the canonical Plot and selects browser audio playback.\nplot phone-two-axis-controller {\n    controller: input/pointer-source\n    x-normalize: math/normalized-ratio-scalar\n    y-normalize: math/normalized-ratio-scalar\n    pitch-distance: math/map-normalized-distance(source-minimum = 0, source-maximum = 1000000, target-minimum = 0, target-maximum = 30, target-granularity = 1, unit = \"cm\", range-policy = \"clamp\", quantization = \"nearest\")\n    cadence: time/every(freq = 40ms)\n    instrument: pocket-theremin\n    play: audio/play\n\n    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.x) >> x-normalize.in\n    controller.pointer >> project(PointerEvent.position) >> project(InputSurfacePoint.y) >> y-normalize.in\n    x-normalize.out >> pitch-distance.in\n    pitch-distance.out >> instrument.pitch-distance\n    y-normalize.out >> instrument.volume\n    cadence.tick >> instrument.cadence\n    instrument.audio >> play.audio\n}.\n",
+      "source_document_id": "9cfeaab7c51ca133fb495acc5855a05b4baaa20d893689cd8b791ed01e96c702",
+      "checked_plot_id": "e4496de39b80bf72696acc1494c559507b7a9cd7656f685e97f0d89bb2232c2e",
+      "presentation_profile": 1,
+      "required_kinds": [
+        "audio/play",
+        "input/pointer-source",
+        "math/map-normalized-distance",
+        "math/normalized-ratio-scalar",
+        "pocket-theremin",
+        "time/every"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "pool-webchat",
+      "title": "Pool Webchat",
+      "entry": "pool-webchat",
+      "source": "# Dynamic chat semantics. Line selection belongs to the plan/host and is\n# deliberately absent from this authored plot.\nplot chat/peer (\n    recv: ChatMessage...| >> send: ChatMessage...|\n) {\n}\n\nplot pool-webchat {\n    pool peers: chat/peer(size = 32)\n    merge: flow/merge(peers)\n    room: chat/room(peers)\n    fan: flow/fan(peers)\n\n    merge.message >> room.recv\n    room.send >> fan.message\n}\n",
+      "source_document_id": "ee1eacff5d442f4d99783d2880e1ee3e2efae7997a5cc33df131d518e71347a9",
+      "checked_plot_id": "dc79cba81d4dbc28cdaa17f6a4639bc83e2e1754bf31d9ae9c7fe0627897de79",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "chat/room",
+        "flow/fan",
+        "flow/merge"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "pulse-observation",
+      "title": "Pulse Observation",
+      "entry": "pulse-observation",
+      "source": "# Ordered transitions with an explicit nominal period; this does not measure time.\nplot pulse-observation (\n    period-ms: Count = 240\n    >> tick: value/tick@1...\n    observation: time/pulse-observation@1... >>\n) {\n    observe: time/pulse-observe(period-ms)\n    tick >> observe.tick\n    observe.observation >> observation\n}\n",
+      "source_document_id": "f15b80b8efbd8af5e0109167bc6617e6172137e1f26c5fad966b706f40ecb5d4",
+      "checked_plot_id": "de3c62dc89bc6a8f5506f1943c4729cd32165700dcf39d4fdedb9e75d5738954",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "time/pulse-observe"
+      ],
+      "unavailable_hint": "the browser realization is exercised through the Firefly Choir deterministic kernel oracle"
+    },
+    {
+      "slug": "quantity-range-map",
+      "title": "Quantity Range Map",
+      "entry": "quantity-range-map",
+      "source": "# Map normalized semantic control into an exact unit-bearing range.\nplot quantity-range-map (\n    control: Scalar >> quantity: Quantity\n) {\n    map: math/map-quantity(source-minimum = 0, source-maximum = 1000000, target-minimum = 20, target-maximum = 20000, target-granularity = 1, unit = \"Hz\", range-policy = \"clamp\", quantization = \"nearest\")\n    control >> map.in\n    map.out >> quantity\n}\n",
+      "source_document_id": "c78187e53e78d7c9307343dc89ec356f07b2c7645b7d90cee164b74208d3a4c5",
+      "checked_plot_id": "551b104b45875bb910e1f23b93b940524e5b016954955d07bd99932ef957829d",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "math/map-quantity"
+      ],
+      "unavailable_hint": "portable quantity mapping has no installed browser realization"
+    },
+    {
+      "slug": "r1-network-bootstrap",
+      "title": "R1 Network Bootstrap",
+      "entry": "r1-network-bootstrap",
+      "source": "plot r1-network-bootstrap {\n    credentials: network/credentials\n    join: network/join\n    attachment_sign: network/attachment-sign\n\n    credentials.request >> join.request\n    join.attachment >> attachment_sign.attachment\n}\n",
+      "source_document_id": "f472a631025451640af68760f6eefcaa9358b758d219a3c2ea574f9a68ef5ef0",
+      "checked_plot_id": "68e2ff3e82944e40daacbbbeb1d5a9516316d832fd4444ab41236aab2588e4ed",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "network/attachment-sign",
+        "network/credentials",
+        "network/join"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "rhythm-lesson",
+      "title": "Rhythm Lesson",
+      "entry": "rhythm-lesson",
+      "source": "# Portable rhythm lesson meaning. Performance may come from any compatible\n# musical source; this plot contains no controller, device, transport, or Host facts.\nplot rhythm-lesson (\n    >> performance: music/note-event@1...|\n    >> reference: BeatReference...|\n    feedback: EducationRhythmFeedback...| >>\n    timing_feedback: TimingFeedback...| >>\n) {\n    compare: music/rhythm-compare(target-offset-micros = 0, tolerance-micros = 30000)\n    educate: education/rhythm-feedback\n    performance >> compare.performance\n    reference >> compare.reference\n    compare.feedback >> timing_feedback\n    compare.feedback >> educate.timing\n    educate.feedback >> feedback\n}\n",
+      "source_document_id": "1af9ed8dbb74aa122190669b6dcb16304ba53dff6eccb76c3f13d093d441ac9d",
+      "checked_plot_id": "21371267dd2b26fd9e811d19d25c6b2bf0dbbb9ea4371f0cad957f7ca612bb5b",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "education/rhythm-feedback",
+        "music/rhythm-compare"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "robotics-diversity",
+      "title": "Robotics Diversity",
+      "entry": "robotics-diversity",
+      "source": "# Deterministic structured robotics values. This plot does not actuate.\nplot robotics-diversity (\n    contact: RoboticsContactEvent >>\n    motion: RoboticsMotionRequest >>\n    pose: RoboticsPoseSample >>\n    power: RoboticsPowerTelemetry >>\n    range: RoboticsRangeObservation >>\n) {\n    observations: robotics/deterministic-observations\n    intent: robotics/deterministic-intent\n    observations.contact >> contact\n    intent.request >> motion\n    observations.pose >> pose\n    observations.power >> power\n    observations.range >> range\n}\n",
+      "source_document_id": "9ec08c5211215aa4666d7e6946f5fc421dbdf64e0f3b1de9637e20c6315bf462",
+      "checked_plot_id": "62522ea209edb30defefdd11d7f171dd42e352bd59751222cf831b6308cfc9e0",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "robotics/deterministic-intent",
+        "robotics/deterministic-observations"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "robotics-range",
+      "title": "Robotics Range",
+      "entry": "robotics-range",
+      "source": "# Portable simulated physical range source. The authored value carries its\n# length unit; the compact observation retains sensor-forward frame and age.\nplot robotics-range {\n    range: robotics/observe-range(distance = 500mm)\n}\n",
+      "source_document_id": "c5b32f0cb9a16d24e5905b9ba899f996668ff5fa994ac440f15173e0ba3f87b7",
+      "checked_plot_id": "30068b80e38a4f239e645de1ee5da439ab195a64e8ef36b51f8eea48873c70fd",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "robotics/observe-range"
+      ],
+      "unavailable_hint": "portable simulated range semantics have no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "route-annotation-stroke",
+      "title": "Route Annotation Stroke",
+      "entry": "route-annotation-stroke",
+      "source": "# A non-drawing consumer that captures finite route annotation geometry.\nplot route-annotation-stroke (\n    waypoint: Point2...| >> route: Path2Four\n) {\n    capture: geometry/capture-bounded-stroke\n    waypoint >> capture.point\n    capture.stroke >> route\n}\n",
+      "source_document_id": "35082f0e48b74f988097c37dbbb456a5f7a6b6b98b52a7a7932d10dc407177a6",
+      "checked_plot_id": "5b66ec1138b4c406fc80cbc8d9573df268a6e98470a37584fc63ea013ff58fe6",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "geometry/capture-bounded-stroke"
+      ],
+      "unavailable_hint": "portable stroke semantics have no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "scheduled-reminder",
+      "title": "Scheduled Reminder",
+      "entry": "scheduled-reminder",
+      "source": "plot scheduled-reminder {\n    source: notification/deterministic-reminder\n    deliver: notification/deliver-reminder\n    source.reminder >> deliver.reminder\n}\n",
+      "source_document_id": "3d7a22b724cc68cb7aa711776b27b3faf0010184a29562c284fa7b0c46509db4",
+      "checked_plot_id": "fcad1bb83d49c241c8e6ab605a0afc79393c49feeac3a4bcda88c7e8fff9e8ec",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "notification/deliver-reminder",
+        "notification/deterministic-reminder"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "scheduling-workflow",
+      "title": "Scheduling Workflow",
+      "entry": "workflow-state",
+      "source": "plot bounded-schedule {\n    expand: time/expand-recurrence({ excluded_ordinals: [unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\")], fold_policy: \"refuse\", gap_policy: \"refuse\", identity: \"recurrence/report\", maximum_occurrences: 1, maximum_results: 1, resolutions: [unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\"), unused(\"\")], rule: one_shot({ at: { basis: \"unix/utc@1\", resolution_ticks: 1, scale: \"seconds\", ticks: 100 } }), until: none(\"\"), window: wall({ end: { basis: \"unix/utc@1\", resolution_ticks: 1, scale: \"seconds\", ticks: 100 }, start: { basis: \"unix/utc@1\", resolution_ticks: 1, scale: \"seconds\", ticks: 100 } }) })\n}\n\nplot workflow-state (\n    assessment: ScheduleAssessment >>\n) {\n    fixture: schedule/deterministic-fixture\n    assess: schedule/assess-workflow\n    fixture.intent >> assess.intent\n    fixture.lifecycle >> assess.lifecycle\n    fixture.observation >> assess.observation\n    assess.assessment >> assessment\n}\n",
+      "source_document_id": "e5ef096c12cbecf08bbb9de217fa20273f2922acb4cb7bc574ae4b0fdaa5c4b9",
+      "checked_plot_id": "41f19c32c3e1c64d06212a98abdf296c96e4b9d2bf92cc57eb892948c88b2865",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "schedule/assess-workflow",
+        "schedule/deterministic-fixture"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "secret-knock",
+      "title": "Secret Knock",
+      "entry": "secret-knock-demo",
+      "source": "# A bounded timing-pattern Plot. Trigger, clock, storage, and presentation\n# realizations remain Host choices made by an exact plan.\nplot secret-knock (\n    >> transitions: InputButtonTransition...\n    >> template_commands: NamedPatternTemplateCommand...|\n) {\n    # Three presses include two intervening releases; finish on the third press.\n    # Six slots admit the release separating two physical attempts as well as\n    # the five transitions that describe one three-press attempt.\n    attempt: time/pressed-button-attempt(maximum-presses = 3, maximum-transitions = 6, timeout-ms = 1000ms)\n    intervals: derive-intervals\n    normalize: normalize-durations\n    storage: storage/named-pattern-templates(maximum-commands = 2)\n    final_template: sequence/final-normalized-pattern(maximum-values = 1)\n    compare: compare-pattern(metric = \"maximum-absolute-millionths@1\", tolerance-millionths = 150000)\n    manifest: presentation/structured-info\n\n    transitions >> attempt.transition\n    attempt.events >> intervals.events\n    intervals.intervals >> normalize.intervals\n    normalize.normalized >> compare.candidate\n    template_commands >> storage.command\n    storage.result >> select(NamedPatternTemplateResult.found, unmatched=drop) >> project(NamedPatternTemplate.pattern) >> final_template.patterns\n    final_template.pattern >> compare.template\n    compare.comparison >> manifest.input\n}\n\n# Reusable finite relative-duration normalization through its typed Front.\nplot normalize-durations (\n    >> intervals: IntervalSequence\n    normalized: NormalizedDurationSequence >>\n) {\n    normalize: sequence/normalize-relative-duration\n    intervals >> normalize.intervals\n    normalize.normalized >> normalized\n}\n\n# Reusable ordered-event interval derivation through its typed Front.\nplot derive-intervals (\n    >> events: TimedEventSequence\n    intervals: IntervalSequence >>\n) {\n    derive: time/ordered-event-intervals\n    events >> derive.events\n    derive.intervals >> intervals\n}\n\n# Reusable pattern comparison with explicit semantic policy.\nplot compare-pattern (\n    metric: Text = \"maximum-absolute-millionths@1\"\n    tolerance-millionths: Count = 1\n    >> candidate: NormalizedDurationSequence\n    >> template: NormalizedDurationSequence\n    comparison: PatternComparison >>\n) {\n    compare: sequence/compare-normalized-pattern(metric = metric, tolerance-millionths = tolerance-millionths)\n    candidate >> compare.candidate\n    template >> compare.template\n    compare.comparison >> comparison\n}\n\n# The Gallery entry is a living ordinary plot: pointer, device, or fixture\n# button realizations can drive repeated bounded attempts. The initializer\n# emits one bounded Put/Get command pair; storage remains independently\n# selected and admitted truth rather than hidden UI state.\nplot secret-knock-demo {\n    button: input/button\n    template: storage/named-pattern-template-initializer(name = \"gallery-knock\", normalized-values = \"333333,1000000\")\n    recognize: secret-knock\n\n    button.transition >> recognize.transitions\n    template.commands >> recognize.template_commands\n}\n",
+      "source_document_id": "2b01e76f1d86c372463f21602d2a3dfa5059e6e31fceaa3ca562d547cc9e3021",
+      "checked_plot_id": "a550061380d7282c9ee4684598d7c9bbfffaa1924097606008614ed226e4120d",
+      "presentation_profile": 3,
+      "required_kinds": [
+        "input/button",
+        "secret-knock",
+        "storage/named-pattern-template-initializer"
+      ],
+      "unavailable_hint": "the retired standalone Tour carrier owned this browser-device journey; deterministic kernel execution remains current"
+    },
+    {
+      "slug": "signal-demo",
+      "title": "Signal Demo",
+      "entry": "signal-demo",
+      "source": "plot signal-demo {\n    # Transactional demo: emits its admitted sixteen-value sequence.\n    pulse: flow/pulse(count = 16, period-ms = 250, initial = false)\n    show: presentation/show\n    pulse >> show\n}.\n",
+      "source_document_id": "f56c917929a21a0175704b034f938344dc074d093c0f3da123e5e634384f70d9",
+      "checked_plot_id": "ededc6968a743c4def8fb5a0eeba5f91b1113add1a4a5ec1d6ba59037c3cd6fe",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "flow/pulse",
+        "presentation/show"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "signal-garden",
+      "title": "Signal Garden",
+      "entry": "signal-garden-interactive",
+      "source": "# Reusable minimal evolution from explicit prior state and clock observation.\nplot garden-state-step (\n    >> prior: GardenState\n    >> clock: GardenClockObservation\n    next: GardenState >>\n) {\n    evolve: state/garden-step\n    prior >> evolve.prior\n    clock >> evolve.clock\n    evolve.next >> next\n}\n\n# Contact enrichment is a second exact front, not an optional or erased input.\nplot garden-state-step-contact (\n    >> prior: GardenState\n    >> clock: GardenClockObservation\n    >> contact: GardenContactObservation\n    next: GardenState >>\n) {\n    combine: observation/garden-clock-contact\n    evolve: state/garden-step-enriched-reducer\n    prior >> evolve.prior\n    clock >> combine.clock\n    contact >> combine.contact\n    combine.observation >> evolve.observation\n    evolve.next >> next\n}\n\n# A meaningful minimal Garden has only its explicitly required clock source.\nplot signal-garden-minimal (\n    state: GardenState >>\n) {\n    observations: garden/deterministic-observations\n    evolve: garden-state-step\n    observations.prior >> evolve.prior\n    observations.clock >> evolve.clock\n    evolve.next >> state\n}\n\n# Contact enriches the same state family through a distinct mandatory typed port.\nplot signal-garden-interactive (\n    state: GardenState >>\n) {\n    observations: garden/deterministic-observations\n    evolve: garden-state-step-contact\n    observations.prior >> evolve.prior\n    observations.clock >> evolve.clock\n    observations.contact >> evolve.contact\n    evolve.next >> state\n}\n\n# Presentation consumes the semantic state after evolution and does not own the reducer.\nplot signal-garden-interactive-display {\n    # Transactional display specimen: one admitted Garden transition.\n    observations: garden/deterministic-observations\n    evolve: garden-state-step-contact\n    show: presentation/garden-state\n    observations.prior >> evolve.prior\n    observations.clock >> evolve.clock\n    observations.contact >> evolve.contact\n    evolve.next >> show.state\n}.\n",
+      "source_document_id": "9d0121ae38ed84a75b826a0a5a9806fc68132294243e800d2d89b26cc711f814",
+      "checked_plot_id": "7e47339333b411447f3acd7bfc47cefd01637a77be2b417f13d27eb8e7c96fab",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "garden-state-step-contact",
+        "garden/deterministic-observations"
+      ],
+      "unavailable_hint": "portable Garden state evolution has no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "socket-client",
+      "title": "Socket Client",
+      "entry": "echo-client-demo",
+      "source": "# Canonical external WebSocket client front. The demo root supplies a concrete\n# local address; host admission still decides whether it can be realized.\nplot echo-client (\n    url: Url\n    >> send: WebSocketMessage...|\n    recv: WebSocketMessage...| >>\n    live: $Boolean >>\n) {\n    sock: net/websocket(url)\n    send >> sock.send\n    sock.recv >> recv\n    sock.live >> live\n}\n\nplot echo-client-demo {\n    client: echo-client(\"ws://127.0.0.1:4178\")\n}\n",
+      "source_document_id": "a55dd49903e566303af82ce69fea4c295842ced76e779730e42a7c7691e6acc9",
+      "checked_plot_id": "7de54c3486a624adb2b4f6f40644970040757fc929a3731fb4c722621259466b",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "echo-client"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "spoken-generative-mask",
+      "title": "Generative Spoken Mask",
+      "entry": "spoken-generative",
+      "source": "# This reviewed speech specimen explicitly requests English realization.\nplot spoken-generative (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n request: presentation/adapt-generative-request\n language: llm/present\n envelope: presentation/build-generated-validation-envelope\n validator: presentation/generated-semantic-validator\n accepted: presentation/retain-generated-validation\n speech: presentation/generated-manifestation-speech\n voice: speech/synthesize(language-request = { language: \"language/english\", variety: none(\"\"), variety_policy: language_sufficient(\"\") }, maximum-output-bytes = 32768)\n convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")\n artifact: presentation/spoken-artifact\n shown: presentation/artifact-acknowledged-show\n no-input: presentation/no-interaction\n face >> request.presentation\n request.request >> language.request\n request.request >> envelope.request\n language.result >> envelope.candidate\n language.result >> accepted.candidate\n envelope.envelope >> validator.envelope\n validator.assessment >> accepted.assessment\n accepted.manifestation >> speech.manifestation\n accepted.manifestation >> shown.manifestation\n speech.speech >> voice.text\n voice.audio >> convert.audio\n convert.converted >> artifact.audio\n artifact.receipt >> shown.artifact\n shown.show >> show\n no-input.interaction >> interaction\n}\n",
+      "source_document_id": "c7d9bbb580260c5c90862ff79bd6a6a70434ef297c20a80f42355871efa131a0",
+      "checked_plot_id": "678f1e9b6210f8799902c03f2a472e22ed312f756e4d03fb0d7d40b277c9eb5c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "audio/convert-pcm-profile",
+        "llm/present",
+        "presentation/adapt-generative-request",
+        "presentation/artifact-acknowledged-show",
+        "presentation/build-generated-validation-envelope",
+        "presentation/generated-manifestation-speech",
+        "presentation/generated-semantic-validator",
+        "presentation/no-interaction",
+        "presentation/retain-generated-validation",
+        "presentation/spoken-artifact",
+        "speech/synthesize"
+      ],
+      "unavailable_hint": "the reviewed path requires admitted language, speech, audio conversion, and artifact authority on a hosted speech-capable Host"
+    },
+    {
+      "slug": "spoken-mask",
+      "title": "Spoken Mask",
+      "entry": "spoken",
+      "source": "# Spoken Mask role. The Plan selects speech/audio and spoken-interaction backs.\nplot spoken (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n    spread: presentation/tee\n    render: presentation/renderer\n    human: face/interaction\n\n    face >> spread.source\n    spread.presentation >> render.presentation\n    spread.presentation >> human.presentation\n    render.show >> human.show\n    render.show >> show\n    human.interaction >> interaction\n}\n",
+      "source_document_id": "845f7d87acc822d90fce9fd082fbe5b45cd2819d1935b3f44efd69d3a1738fce",
+      "checked_plot_id": "15166f820b393c6251321b4a5a8693c83209f80c868dd05d9d4e59bace56edff",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "face/interaction",
+        "presentation/renderer",
+        "presentation/tee"
+      ],
+      "unavailable_hint": "the ordinary Mask is realized by the ConduitOS speech Host, not a browser Host"
+    },
+    {
+      "slug": "tabular-query",
+      "title": "Tabular Query",
+      "entry": "tabular-query",
+      "source": "plot tabular-query (\n    name: TabularSelectedText >>\n) {\n    query: tabular/person-query-four\n    filter: tabular/filter-active-four\n    query.result >> filter.source\n    filter.result >> project(TabularQueryResultFour.rows) >> index(TabularPersonRowsFour[0]) >> select(TabularPersonRowSlot.row, unmatched=refuse) >> project(TabularPersonRow.name) >> name\n}\n",
+      "source_document_id": "14e26597fe5811bf8b77cd5adccacc81ae0e78e284c15e7ae98adfcc9aa83a43",
+      "checked_plot_id": "721525d68957b9934e46d6143667d60954ee8f24d4ff6a48bcd52650f07dd940",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "tabular/filter-active-four",
+        "tabular/person-query-four"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "talking-polaroid-inspection",
+      "title": "Talking Polaroid Inspection",
+      "entry": "talking-polaroid-inspection",
+      "source": "plot talking-polaroid-inspection (\n    >> image: ImageObservationReference\n    >> caption: Text\n) {\n    compose: media/compose-image-text\n    inspect: presentation/structured-info\n    image >> compose.image\n    caption >> compose.caption\n    compose.record >> inspect.input\n}\n",
+      "source_document_id": "75b93e2adae779318ff10de0f912f8755016cfa3d7a80be682e7a98ab33b4ce7",
+      "checked_plot_id": "6389fc2dcdfe987d368a8a4f89942303fcac7d89cd63e0b7f2c6ae1d0debd174",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "media/compose-image-text",
+        "presentation/structured-info"
+      ],
+      "unavailable_hint": "portable Talking Polaroid inspection has no reviewed browser Host execution oracle"
+    },
+    {
+      "slug": "text-lab",
+      "title": "Text Lab",
+      "entry": "text-lab",
+      "source": "plot text-lab {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    uppercase: text/upper\n    presentation: presentation/text\n\n    keyboard.key >> keymap.key\n    keymap.text >> uppercase.source\n    uppercase.text >> presentation.text\n}\n",
+      "source_document_id": "791854c843c03cf1e5f2a5bd82507b90caca9579af8236bf6c17699e4b76814c",
+      "checked_plot_id": "68245452eb60da163ae5d8c92c2bfa43669aa359e15fdaebfe2ace1587a724f7",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "input/keyboard",
+        "input/keymap",
+        "presentation/text",
+        "text/upper"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "todo",
+      "title": "Todo State Slice",
+      "entry": "todo/command-snapshot",
+      "source": "# Task records are application data: { \"complete\": Boolean, \"text\": Text }.\n# State evolution uses the ordinary bounded collection contract. The request\n# carries the prior collection and one explicit command; no Host owns edits.\nplot todo/state-step (\n    request: value/json@1 >> tasks: value/json@1\n) {\n    edit: json/collection-step\n    request >> edit.source\n    edit.value >> tasks\n}\n\n# The same portable JSON waist supplies bounded persisted-state encoding.\nplot todo/snapshot (\n    tasks: value/json@1 >> snapshot: text/json-utf8@1\n) {\n    encode: json/encode\n    tasks >> encode.source\n    encode.value >> snapshot\n}\n\nplot todo/command-snapshot (\n    request: value/json@1 >> snapshot: text/json-utf8@1\n) {\n    update: todo/state-step\n    persistable: todo/snapshot\n    request >> update.request\n    update.tasks >> persistable.tasks\n    persistable.snapshot >> snapshot\n}\n\nplot todo/summary (\n    tasks: value/json@1 >> summary: value/json@1\n) {\n    count: json/boolean-summary(field = \"complete\")\n    tasks >> count.source\n    count.value >> summary\n}\n\nplot todo/command-summary (\n    request: value/json@1 >> snapshot: text/json-utf8@1\n) {\n    update: todo/state-step\n    count: todo/summary\n    encode: todo/snapshot\n    request >> update.request\n    update.tasks >> count.tasks\n    count.summary >> encode.tasks\n    encode.snapshot >> snapshot\n}\n\n# Storage supplies encoded content; meaning is recovered in an authored plot.\nplot todo/restore (\n    snapshot: text/json-utf8@1 >> tasks: value/json@1\n) {\n    decode: json/decode\n    snapshot >> decode.source\n    decode.value >> tasks\n}\n\nplot todo/restore-summary (\n    snapshot: text/json-utf8@1 >> result: text/json-utf8@1\n) {\n    restore: todo/restore\n    count: todo/summary\n    encode: todo/snapshot\n    snapshot >> restore.snapshot\n    restore.tasks >> count.tasks\n    count.summary >> encode.tasks\n    encode.snapshot >> result\n}\n",
+      "source_document_id": "bfebe876fe6bae0d70cf2561d0f986ac6a9bbad3305cd58e57f9149713283334",
+      "checked_plot_id": "ccf2e4f39952a179fb7b1e3221ecd9a37bb3892572b9e39cc5294a9acb47206c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "todo/snapshot",
+        "todo/state-step"
+      ],
+      "unavailable_hint": "state-transition slice has no admitted browser input, persistent Resource, or presentation realization"
+    },
+    {
+      "slug": "tongues-bidirectional-inference",
+      "title": "Tongues Bidirectional Inference",
+      "entry": "tongues-bidirectional-inference",
+      "source": "# One learned artifact supports both observation directions and uncertain inversion.\nplot tongues-bidirectional-inference {\n    corpus: tongues/paired-observations\n    train: tongues/train-shared-latent\n    infer: tongues/bidirectional-latent\n    evaluate: tongues/evaluate-latent\n\n    corpus.acoustic >> train.acoustic\n    corpus.articulation >> train.articulation\n    corpus.acoustic >> infer.acoustic\n    corpus.articulation >> infer.articulation\n    train.checkpoint >> infer.checkpoint\n    infer.latent >> evaluate.latent\n    infer.generated-acoustic >> evaluate.generated-acoustic\n    infer.inferred-articulation >> evaluate.inferred-articulation\n}\n",
+      "source_document_id": "7351ef9054e6b424856a72bd6d20578daebf350484a9deb02e61c4abaee48acc",
+      "checked_plot_id": "58cdfe1f228c07a4469fe146d5743febc8a23359c3cd7ef7d84136afedee8d18",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "tongues/bidirectional-latent",
+        "tongues/evaluate-latent",
+        "tongues/paired-observations",
+        "tongues/train-shared-latent"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "tongues-dynamics-analysis",
+      "title": "Tongues Dynamics Analysis",
+      "entry": "tongues-dynamics-analysis",
+      "source": "# Analyze one already-frozen continuous representation; labels enter only afterward.\nplot tongues-dynamics-analysis {\n    observations: tongues/paired-observations\n    extract: tongues/extract-frozen-latent\n    dynamics: tongues/analyze-continuous-dynamics\n    overlay: tongues/post-freeze-analysis\n\n    observations.acoustic >> extract.acoustic\n    observations.articulation >> extract.articulation\n    extract.latent >> dynamics.latent\n    observations.articulation >> dynamics.articulation\n    dynamics.analysis >> overlay.analysis\n}\n",
+      "source_document_id": "97a8edf5d0f26edb1ad4837c41e87094ef6a7547c805e1b83b927955d49c2f07",
+      "checked_plot_id": "68158fa86e298f8f44b3fa5f994b6089764f53230e30b0f10975f6269dcf5dc5",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "tongues/analyze-continuous-dynamics",
+        "tongues/extract-frozen-latent",
+        "tongues/paired-observations",
+        "tongues/post-freeze-analysis"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "tongues-latent-training",
+      "title": "Tongues Latent Training",
+      "entry": "tongues-latent-training",
+      "source": "# Labels and segment boundaries are deliberately absent from this training Plot.\nplot tongues-latent-training {\n    corpus: tongues/paired-observations\n    train: tongues/train-shared-latent\n\n    corpus.acoustic >> train.acoustic\n    corpus.articulation >> train.articulation\n}\n",
+      "source_document_id": "36729dc435c3b1850c0c96c324e2a43353735087aa2ef0cca86d07d38f9e9192",
+      "checked_plot_id": "b8b2225d96e4271bf4d782f382c9cdcd151d9cdd39148ab1b117aa935dd3731f",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "tongues/paired-observations",
+        "tongues/train-shared-latent"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "typed-record-deframe",
+      "title": "Typed Record Deframe",
+      "entry": "typed-record-deframe",
+      "source": "plot typed-record-deframe (\n    frame: FramedTypedRecord >> record: TypedRecord\n) {\n    deframing: record/deframe-typed\n    frame >> deframing.frame\n    deframing.record >> record\n}\n",
+      "source_document_id": "df7d6e9085cda8814bd494ee4d99f6e2b1c7e31b3bee7bd93be559153a7418a8",
+      "checked_plot_id": "cd44401d9e68cf24508efbf525a4e08ae5ad6e55a04547a2035c96b74a46b5ce",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "record/deframe-typed"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "typed-record-frame",
+      "title": "Typed Record Frame",
+      "entry": "typed-record-frame",
+      "source": "plot typed-record-frame (\n    record: TypedRecord >> frame: FramedTypedRecord\n) {\n    framing: record/frame-typed\n    record >> framing.record\n    framing.frame >> frame\n}\n",
+      "source_document_id": "e793919608b749708d3daebab1f7ce8c2b9637dad5d065fd2021ff112506fb81",
+      "checked_plot_id": "80447a6d44b03fdb0cd8b7f8d5cc587a8c77211bba651fc5fb3c7468c5043619",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "record/frame-typed"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "fulfillment-readiness",
+      "title": "Fulfillment Readiness",
+      "entry": "fulfillment-readiness",
+      "source": "# Deterministic semantic derivation only. This plot offers no lifecycle action.\nplot fulfillment-readiness (\n    >> purpose: $PurposeState\n    readiness: $FulfillmentReadiness >>\n) {\n    evaluate: purpose/fulfillment-readiness\n    purpose >> evaluate.purpose\n    evaluate.readiness >> readiness\n}\n",
+      "source_document_id": "791fe5b3f20fdc43e28e0d4ac35c6c286878d695fe6a36e5c2d8ade23a08c608",
+      "checked_plot_id": "b97ca7d1ff230bef7c10f4d8e7be26987668b6ca6036dab5446e2b791745346c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "purpose/fulfillment-readiness"
+      ],
+      "unavailable_hint": "readiness is a deterministic Body semantic derivation without a browser lifecycle authority"
+    },
+    {
+      "slug": "experiencer",
+      "title": "Portable Experiencer",
+      "entry": "experiencer",
+      "source": "# Portable convergence only: sources remain typed and provenance-bearing;\n# this plot owns no acquisition, storage, action, or lifecycle machinery.\nplot experiencer (\n    >> visual: VisualExperience...|\n    >> human: ExperienceHumanInput...|\n    >> body: ExperienceBodyInput...|\n    >> memory: ExperienceMemoryInput...|\n    >> inference: ExperienceInferenceInput...|\n    >> hypothesis: ExperienceHypothesisInput...|\n    >> source-status: ExperienceSourceStatus...|\n    current: $CurrentExperience >>\n) {\n    relate: experience/relate-current\n\n    visual >> relate.visual\n    human >> relate.human\n    body >> relate.body\n    memory >> relate.memory\n    inference >> relate.inference\n    hypothesis >> relate.hypothesis\n    source-status >> relate.source_status\n    relate.current >> current\n}\n",
+      "source_document_id": "7af3f8da548ee22ec65799d6d21bed7d94f28603bf14c884e25ce9e222a6403c",
+      "checked_plot_id": "4fd0e47462d25b4717eabaeae508797a565002e428802c8c6fac034e11241c0d",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "experience/relate-current"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "vision",
+      "title": "Continuous Vision",
+      "entry": "vision",
+      "source": "# Continuous Vision is ordinary composition. Acquisition remains outside this\n# Plot; generic pressure admits only the newest pending image under load.\nplot vision (\n    >> images: ImageResource...|\n    experience: $VisualExperience >>\n) {\n    ingress: flow/coalesce-latest\n    normalize: vision/normalize\n    motion: vision/local-motion\n    objects: vision/local-objects\n    text: vision/local-ocr\n    tracks: vision/local-track\n    describe: vision/model-describe\n    relate: vision/relate-experience\n\n    images >> ingress.in\n    ingress.out >> normalize.source\n    normalize.normalized >> motion.image\n    normalize.normalized >> objects.image\n    normalize.normalized >> text.image\n    normalize.normalized >> describe.image\n    objects.detections >> tracks.detections\n    objects.detections >> describe.detections\n    objects.detections >> relate.detections\n    text.texts >> describe.texts\n    text.texts >> relate.texts\n    tracks.tracks >> describe.tracks\n    tracks.tracks >> relate.tracks\n    motion.motions >> relate.motions\n    describe.impression >> relate.impression\n    relate.experience >> experience\n}\n",
+      "source_document_id": "5345dc154d1209167735c7d9e37a725c9a470a239fd7764e2986aacd58af4382",
+      "checked_plot_id": "713aab91fbca531dd58a713dc0e0a0d2fed512189b5e07724b4c309abee6dda7",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "flow/coalesce-latest",
+        "vision/local-motion",
+        "vision/local-objects",
+        "vision/local-ocr",
+        "vision/local-track",
+        "vision/model-describe",
+        "vision/normalize",
+        "vision/relate-experience"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "vision-metadata",
+      "title": "Vision Metadata",
+      "entry": "vision-metadata",
+      "source": "plot vision-metadata (\n    detections: VisionDetectionsFour >>\n    image: ImageResource >>\n) {\n    fixture: vision/deterministic-image\n    detect: vision/deterministic-detector\n    fixture.image >> detect.image\n    detect.detections >> detections\n    fixture.image >> image\n}\n",
+      "source_document_id": "17ef878c41b8eda0963721bd77f8ad1943a61b63fe5b176a07c5d24891b7e6b9",
+      "checked_plot_id": "d2aa2f8d5c746fcfcab5083988089007f395691ea7619404516d0ff119b0de9c",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "vision/deterministic-detector",
+        "vision/deterministic-image"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "webchat",
+      "title": "Webchat",
+      "entry": "webchat-transport-demo",
+      "source": "# Explicit external-WebSocket transport fronts for the bounded local webchat.\nplot chat/client (\n    url: Url\n    >> send: WebSocketMessage...|\n    recv: WebSocketMessage...| >>\n    live: $Boolean >>\n) {\n    socket: net/websocket(url)\n    send >> socket.send\n    socket.recv >> recv\n    socket.live >> live\n}\n\nplot chat/server (\n    bind: NetAddress\n    live: $Boolean >>\n) {\n    listen: net/websocket/listen(bind)\n    listen.recv >> listen.send\n    listen.live >> live\n}\n\nplot webchat-transport-demo {\n    client: chat/client(\"ws://127.0.0.1:4178\")\n    server: chat/server(\"127.0.0.1:4178\")\n}\n\nplot webchat-server-demo {\n    server: chat/server(\"127.0.0.1:4178\")\n}\n\nplot chat/browser-client (\n    >> interaction: FaceInteraction...|\n    face: Presentation...| >>\n) {\n    state: chat/state(title = \"Conduit Webchat\", history-label = \"Chat history\", input-label = \"Message\", submit-label = \"Send\", status-label = \"Connection\", maximum-history-items = 16, maximum-message-bytes = 256)\n    submit: chat/submit(action = \"chat/send\", maximum-message-bytes = 256)\n    socket: net/websocket(\"ws://127.0.0.1:4178\")\n    incoming: chat/from-websocket\n    outgoing: chat/to-websocket\n    connection: chat/connection-from-websocket\n\n    socket.recv >> incoming.source\n    incoming.value >> state.message\n    socket.live >> connection.source\n    connection.value >> state.live\n    state.presentation >> face\n    interaction >> submit.interaction\n    submit.message >> outgoing.source\n    outgoing.value >> socket.send\n}\n\nplot chat/browser-client-label-oracle (\n    >> interaction: FaceInteraction...|\n    face: Presentation...| >>\n) {\n    state: chat/state(title = \"Conduit Webchat\", history-label = \"Chat history\", input-label = \"Say something\", submit-label = \"Transmit\", status-label = \"Connection\", maximum-history-items = 16, maximum-message-bytes = 256)\n    submit: chat/submit(action = \"chat/send\", maximum-message-bytes = 256)\n    socket: net/websocket(\"ws://127.0.0.1:4178\")\n    incoming: chat/from-websocket\n    outgoing: chat/to-websocket\n    connection: chat/connection-from-websocket\n\n    socket.recv >> incoming.source\n    incoming.value >> state.message\n    socket.live >> connection.source\n    connection.value >> state.live\n    state.presentation >> face\n    interaction >> submit.interaction\n    submit.message >> outgoing.source\n    outgoing.value >> socket.send\n}\n",
+      "source_document_id": "3037cdbce4bf0e3e5bd0d6ee2f637f773268094fa21e8718980794665e08bcca",
+      "checked_plot_id": "7673042c03eb502cdf7d70dfd39af3364a5c6cd4204674fa1206874529c4fbb6",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "chat/client",
+        "chat/server"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "bounded-record-transcript",
+      "title": "Bounded Record Transcript",
+      "entry": "bounded-record-transcript",
+      "source": "plot bounded-record-transcript (\n    maximum-items: Count = 16\n    maximum-events: Count = 32\n    maximum-frame-bytes: Count = 4096\n    maximum-retained-bytes: Count = 131072\n    >> sent: FramedTypedRecord...|\n    >> received: FramedTypedRecord...|\n    >> terminal: RecordTerminalEvent...|\n    retained-sent: FramedTypedRecord...| >>\n    retained-received: FramedTypedRecord...| >>\n    retained-terminal: RecordTerminalEvent...| >>\n) {\n    transcript: record/bounded-transcript(maximum-items, maximum-events, maximum-frame-bytes, maximum-retained-bytes)\n    sent >> transcript.sent\n    received >> transcript.received\n    terminal >> transcript.terminal\n    transcript.retained-sent >> retained-sent\n    transcript.retained-received >> retained-received\n    transcript.retained-terminal >> retained-terminal\n}\n",
+      "source_document_id": "47acd1b0782759dc150829dafc132f0e47cf2a76ebddffee0fea237073c9b56d",
+      "checked_plot_id": "e97bd4f0eab04512fd8b16b2acc5d8f592a5cd24b2e4b639a79b2b2c7516847b",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "record/bounded-transcript"
+      ],
+      "unavailable_hint": "open reusable front is exercised inside the Desk Telegraph browser oracle"
+    },
+    {
+      "slug": "ordered-record-send-queue",
+      "title": "Ordered Record Send Queue",
+      "entry": "ordered-record-send-queue",
+      "source": "plot ordered-record-send-queue (\n    maximum-items: Count = 4\n    maximum-frame-bytes: Count = 4096\n    frame: FramedTypedRecord...| >> queued: FramedTypedRecord...|\n) {\n    queue: record/ordered-send-queue(maximum-items, maximum-frame-bytes)\n    frame >> queue.frame\n    queue.queued >> queued\n}\n",
+      "source_document_id": "637dc7932eb7a7beb4516caa01a88a5d99b6e4aa09f4f2ba272db7ecedc7945c",
+      "checked_plot_id": "df66f21b646267fd81edf6f00a0c2c212f1d4bb37733e20137888f6d8fabb35f",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "record/ordered-send-queue"
+      ],
+      "unavailable_hint": "open reusable front is exercised inside the Desk Telegraph browser oracle"
+    },
+    {
+      "slug": "record-delivery-status",
+      "title": "Record Delivery Status",
+      "entry": "record-delivery-status",
+      "source": "plot record-delivery-status (\n    >> observation: RecordDeliveryObservation...|\n    status: RecordDeliveryStatus...| >>\n) {\n    tracker: record/delivery-status\n    observation >> tracker.observation\n    tracker.status >> status\n}\n",
+      "source_document_id": "8ad7220ad95b11795d3749a8042d43c16616cba7e2b27127316447c4d43d6a4f",
+      "checked_plot_id": "955706931e9b8b277a053d884bb42783484af09099569bf093f2e20d0ced38b7",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "record/delivery-status"
+      ],
+      "unavailable_hint": "open reusable front is exercised inside the Desk Telegraph browser oracle"
+    },
+    {
+      "slug": "tour",
+      "title": "Tutorial",
+      "entry": "tour",
+      "source": "plot tour (\n  application: Text = \"tutorial\"\n) {\n  events: input/application-event\n  state: application/retained(application = application)\n  view: presentation/application-view\n\n  events.event >> state.event\n  state.view >> view.view\n}\n",
+      "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+      "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "application/retained",
+        "input/application-event",
+        "presentation/application-view"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    },
+    {
+      "slug": "patchbay",
+      "title": "Patchbay",
+      "entry": "patchbay",
+      "source": "plot patchbay (\n  application: Text = \"patchbay\"\n) {\n  events: input/application-event\n  state: application/retained(application = application)\n  view: presentation/application-view\n\n  events.event >> state.event\n  state.view >> view.view\n}\n",
+      "source_document_id": "372dd54d260225126d5a5e7278a9e71762f21cc5b0e776928593914375fe29d0",
+      "checked_plot_id": "36da99adad610bc8cc58c1664fd06fd896697ff1f931d4a7fdc63e7baf60eee4",
+      "presentation_profile": 0,
+      "required_kinds": [
+        "application/retained",
+        "input/application-event",
+        "presentation/application-view"
+      ],
+      "unavailable_hint": "The current admitted hosts and Bases cannot realize this plot."
+    }
+  ]
+}

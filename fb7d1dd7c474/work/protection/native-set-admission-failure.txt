@@ -1,0 +1,11 @@
+2026-10-07: cached native protection replay 91783
+Command: cargo +stable test -p conduit-language --features parser-model-selection --test parser_independent_protection -- --ignored --nocapture
+Environment: CARGO_INCREMENTAL=0 CARGO_BUILD_JOBS=1 CARGO_PROFILE_TEST_DEBUG=0
+Result: FAILED after 1705.28s; Source set initialization succeeded before first insert context admission.
+Error: InvalidInvariantProgram(MalformedEncoding)
+Generated ProtectedInsertContext invariant codec diagnostics:
+four guarded conjunction programs: depth19, nodes157, bytes2667939 each
+basis equality program: depth6, nodes10, bytes303393
+Existing decoder expression depth limit:16
+No decoder bound or generic architecture changed.
+Follow-on: split identical Source conjunctions into separate guarded laws, verify codec round-trip and unchanged full-fact admission directly before rerunning ordinary graph replay.

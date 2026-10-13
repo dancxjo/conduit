@@ -1,0 +1,17 @@
+{
+  "base_commit": "f7b1bb850a7df66136bcbaee9da96089595f4186",
+  "selected_files": {
+    "semantics/language/build.rs": "c2a8033386c07ecfac1e8327a6232b310625479c01fa0a386285c9649bb46551",
+    "semantics/language/src/lib.rs": "4e66cd4d9445355da400a4c6c6eaefbc30c915bf1d3e012032b70420b72b9257",
+    "semantics/language/src/parser_window8_program_bank.rs": "390fd5e60f970c9a0ebfff3f01cc81f591cbe9df7c7c8b6495766b34b9add822",
+    "semantics/language/tests/parser_window8_program_bank.rs": "18e444f3b5d870d8276bddab7629472b2dfe38a81ee2c9d15008e8a3b060f215",
+    "architecture/plot/src/rust_binding/generate_prepared_family.rs": "ead195b91c2725e69a3dd6545e1ebef7bcf8837c798a9da6b6ef129a64fd6c6b",
+    "architecture/plot/src/rust_binding/generate_options.rs": "91fa3600bc4bfbbcb9d51234e9e527b6396bfc5182a8dca9187a68753176f299"
+  },
+  "phase": "runtime gates after66017 terminal; onlytest diagnostics/refusal assertion added",
+  "actual_profile_input": {
+    "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/outputs/early-verb-public-pronunciation/generated-lexical-fact.bin",
+    "sha256": "3bb1723f3d37be4fadcecd35672d344720f495e8f4e19a2be39890e366131920",
+    "bytes": 126704
+  }
+}

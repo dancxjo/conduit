@@ -1,0 +1,55 @@
+fact_invariants=54 context_invariants=12
+epoch=3 dep=0 head=1 relation=nsubj result=accepted
+epoch=3 dep=1 head=8 relation=root result=accepted
+epoch=3 dep=2 head=1 relation=obj result=ViolatedInvariant { index: 17 }
+epoch=3 dep=3 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=3 dep=4 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=3 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=4 dep=0 head=1 relation=nsubj result=accepted
+epoch=4 dep=1 head=8 relation=root result=accepted
+epoch=4 dep=2 head=1 relation=obj result=ViolatedInvariant { index: 30 }
+epoch=4 dep=3 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=4 dep=4 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=4 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=5 dep=0 head=1 relation=nsubj result=accepted
+epoch=5 dep=1 head=8 relation=root result=accepted
+epoch=5 dep=2 head=1 relation=obj result=ViolatedInvariant { index: 30 }
+epoch=5 dep=3 head=1 relation=punct result=ViolatedInvariant { index: 23 }
+epoch=5 dep=4 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=5 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=6 dep=0 head=1 relation=nsubj result=accepted
+epoch=6 dep=1 head=8 relation=root result=accepted
+epoch=6 dep=2 head=1 relation=obj result=ViolatedInvariant { index: 30 }
+epoch=6 dep=3 head=1 relation=punct result=ViolatedInvariant { index: 23 }
+epoch=6 dep=4 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=6 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=7 dep=0 head=1 relation=nsubj result=accepted
+epoch=7 dep=1 head=8 relation=root result=accepted
+epoch=7 dep=2 head=1 relation=obj result=accepted
+epoch=7 dep=3 head=1 relation=punct result=accepted
+epoch=7 dep=4 head=1 relation=vocative result=ViolatedInvariant { index: 19 }
+epoch=7 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=8 dep=0 head=1 relation=nsubj result=accepted
+epoch=8 dep=1 head=8 relation=root result=accepted
+epoch=8 dep=2 head=1 relation=obj result=accepted
+epoch=8 dep=3 head=1 relation=punct result=accepted
+epoch=8 dep=4 head=1 relation=vocative result=ViolatedInvariant { index: 19 }
+epoch=8 dep=5 head=9 relation=dep result=InvalidInvariant(InvalidInput)
+epoch=9 dep=0 head=1 relation=nsubj result=accepted
+epoch=9 dep=1 head=8 relation=root result=accepted
+epoch=9 dep=2 head=1 relation=obj result=accepted
+epoch=9 dep=3 head=1 relation=punct result=accepted
+epoch=9 dep=4 head=1 relation=vocative result=ViolatedInvariant { index: 19 }
+epoch=9 dep=5 head=1 relation=punct result=ViolatedInvariant { index: 49 }
+epoch=10 dep=0 head=1 relation=nsubj result=accepted
+epoch=10 dep=1 head=8 relation=root result=accepted
+epoch=10 dep=2 head=1 relation=obj result=accepted
+epoch=10 dep=3 head=1 relation=punct result=accepted
+epoch=10 dep=4 head=1 relation=vocative result=ViolatedInvariant { index: 19 }
+epoch=10 dep=5 head=1 relation=punct result=ViolatedInvariant { index: 49 }
+epoch=11 dep=0 head=1 relation=nsubj result=accepted
+epoch=11 dep=1 head=8 relation=root result=accepted
+epoch=11 dep=2 head=1 relation=obj result=accepted
+epoch=11 dep=3 head=1 relation=punct result=accepted
+epoch=11 dep=4 head=1 relation=vocative result=ViolatedInvariant { index: 19 }
+epoch=11 dep=5 head=1 relation=punct result=ViolatedInvariant { index: 49 }

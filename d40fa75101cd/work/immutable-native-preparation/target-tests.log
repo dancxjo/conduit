@@ -1,0 +1,10 @@
+
+running 3 tests
+test complete_actual_preparation_preserves_originals_within_admitted_bounds ... original input owner live=43872832 construction requested=87749987 peak=78704751 (construction upstream)
+requested=258221149 peak=89012212 live=44625188 retained_inputs=43872503 factory=NativeFactoryStorage { selected_array_capacity_bytes: 960, shared_profiles: 17, shared_offers: 18, requested_heap_payload_bytes: 590931 }
+ok
+test foreign_full_inputs_refuse_without_allocation ... ok
+test one_under_refuses_before_allocating ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.27s
+

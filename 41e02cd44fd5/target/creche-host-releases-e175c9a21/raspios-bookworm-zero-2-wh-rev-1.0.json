@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.release/host-bundle@1",
+  "target_id": "std/aarch64/raspberry-pi-zero-2-wh-rev-1.0",
+  "make_package_id": "conduit-host-raspberry-pi@1",
+  "output": "native-bundle",
+  "builder_adapter": "conduit-host-raspberry-pi/build-raspios-native@1",
+  "deployment_adapter": "conduit-host-raspberry-pi/install-raspios-package@1",
+  "source_identity": "e175c9a2126ad66ba85d2300be1f84eaff4e0680",
+  "bundle_sha256": "sha256:58af3a45140daaa30b612bdeedb03f7afe75651627ddebffa94ee6375b4a6f81",
+  "files": [
+    {
+      "path": "conduit-linux-aarch64",
+      "bytes": 41511952,
+      "sha256": "sha256:1a277a9c2fa9b4a91b3438c5d76b02cbf7f8b3607f54b85dcf0a84951276cdd9",
+      "media_type": "application/vnd.conduit.host+executable"
+    }
+  ]
+}

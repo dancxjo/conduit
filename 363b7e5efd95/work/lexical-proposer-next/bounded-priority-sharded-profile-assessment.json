@@ -1,0 +1,35 @@
+{
+  "scope": "Read-only TRAIN-only dictionary policy comparison; no training/model execution/Source selection.",
+  "policy": "Include all exact surfaces from bounded Window8 TRAIN examples, then fill8192 entries using full TRAIN surface frequency and exact surface tie order. POS candidates prioritize bounded TRAIN frequency then code, then fill4 with full TRAIN frequency then code. Omitted observed alternatives remain explicit in manifest.",
+  "entries": 8192,
+  "shards": 128,
+  "bounded_train_forms": 4448,
+  "splits": {
+    "train": {
+      "rows": 3531,
+      "tokens": 14667,
+      "oov_tokens": 0,
+      "all_gold_pos_in_dictionary": 3530,
+      "all_gold_pos_in_dictionary_or_unknown4": 3530
+    },
+    "dev": {
+      "rows": 822,
+      "tokens": 3500,
+      "oov_tokens": 650,
+      "all_gold_pos_in_dictionary": 337,
+      "all_gold_pos_in_dictionary_or_unknown4": 677,
+      "all_training_sequence_disjoint": 756,
+      "disjoint_multiclause_or_coordination": 125
+    },
+    "test": {
+      "rows": 933,
+      "tokens": 3864,
+      "oov_tokens": 780,
+      "all_gold_pos_in_dictionary": 414,
+      "all_gold_pos_in_dictionary_or_unknown4": 753,
+      "all_training_sequence_disjoint": 839,
+      "disjoint_multiclause_or_coordination": 123
+    }
+  },
+  "assessment_note": "Corrected reported bounded TRAIN form count independently; profile calculations and split counts unchanged."
+}

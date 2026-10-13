@@ -1,0 +1,12 @@
+{
+  "scope": "Distinct numerical TRAIN+22reviewed teaching origin ABI correction only; no runtime selection or heldout acceptance",
+  "old_samples_sha256": "84d229d9e38a630d17ef1987267d565b53b8eb563c684313f13d0efbba83d0ed",
+  "new_samples_sha256": "8e439ecdad8c6bb9b2dd7643c3fd1239b0dc40fd4af6f6ab3d18d691a13d5ccc",
+  "tuples": 89859,
+  "changed_origin_tuples": 26619,
+  "all_other26_features_targets_alternative_counts_unchanged": true,
+  "trainer_sha256": "a5f373567e1c2321de3b7dd968c7dd911428ffb1a5ad69ee07b45af50031f287",
+  "epochs": 12,
+  "seed": 4907,
+  "RLIMIT_AS_bytes": 536870912
+}

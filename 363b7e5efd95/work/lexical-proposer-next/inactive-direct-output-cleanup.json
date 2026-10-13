@@ -1,0 +1,17 @@
+{
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/libconduit_language_next.rlib",
+      "bytes": 772924336,
+      "sha256": "d6ad904894c8d97eb49bcefca91086556bd9d7b070bd6161e757d0ec606cf06d",
+      "class": "inactive regenerable direct library/lint compiler output; selected current revision rlib, test binaries, Source headers and logs preserved"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/libconduit_language_next_lint.rlib",
+      "bytes": 774793824,
+      "sha256": "ea038a845e06fe56beffbfa8a624a9af3cdccb67df8ca4276634cdc2e4883dd2",
+      "class": "inactive regenerable direct library/lint compiler output; selected current revision rlib, test binaries, Source headers and logs preserved"
+    }
+  ],
+  "total_bytes": 1547718160
+}

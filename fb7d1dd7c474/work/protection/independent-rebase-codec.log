@@ -1,0 +1,19 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.68s
+     Running tests/parser_protection_preparation.rs (target/debug/deps/parser_protection_preparation-05e5bf949a175814)
+
+running 1 test
+
+thread 'insert_invariants_round_trip_and_retain_exact_fact' (1448412) panicked at semantics/language/tests/parser_protection_preparation.rs:19:51:
+called `Result::unwrap()` on an `Err` value: Os { code: 2, kind: NotFound, message: "No such file or directory" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test insert_invariants_round_trip_and_retain_exact_fact ... FAILED
+
+failures:
+
+failures:
+    insert_invariants_round_trip_and_retain_exact_fact
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 1 filtered out; finished in 0.00s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_protection_preparation`

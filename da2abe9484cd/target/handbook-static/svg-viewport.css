@@ -1,0 +1,16 @@
+.diagram-viewport { display: grid; width: 100%; margin: 1.5rem 0 2rem; overflow: hidden; border: 1px solid var(--conduit-structure-secondary); border-radius: .65rem; background: var(--conduit-surface); box-shadow: 0 1rem 2.5rem color-mix(in srgb, #000 18%, transparent); }
+.diagram-toolbar { min-height: 2.8rem; padding: .35rem .5rem; display: flex; align-items: center; gap: .35rem; border-bottom: 1px solid color-mix(in srgb, var(--conduit-text-primary) 16%, transparent); background: color-mix(in srgb, var(--conduit-surface) 92%, var(--conduit-emphasis)); }
+.diagram-toolbar button, .diagram-toolbar a { min-width: 2.3rem; min-height: 2.1rem; padding: .25rem .65rem; display: inline-grid; place-items: center; border: 1px solid var(--conduit-structure-secondary); border-radius: .35rem; color: var(--conduit-text-primary); background: var(--conduit-background); font: 750 .8rem/1 var(--conduit-font-mono); text-decoration: none; cursor: pointer; }
+.diagram-toolbar button:hover, .diagram-toolbar a:hover { border-color: var(--conduit-emphasis); color: var(--conduit-emphasis); }
+.diagram-toolbar button:focus-visible, .diagram-toolbar a:focus-visible, .diagram-stage:focus-visible { outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: -3px; }
+.diagram-toolbar output { min-width: 4.5rem; margin-left: .25rem; color: var(--conduit-text-secondary); font: 700 .72rem/1 var(--conduit-font-mono); }
+.diagram-toolbar a { margin-left: auto; }
+.diagram-stage { width: 100%; height: clamp(22rem, 62vh, 50rem); overflow: hidden; background: var(--conduit-background); cursor: grab; touch-action: none; user-select: none; }
+.diagram-stage.is-dragging { cursor: grabbing; }
+.diagram-stage > svg { display: block; width: 100%; height: 100%; max-width: none; }
+.diagram-help { margin: 0; padding: .45rem .75rem; color: var(--conduit-text-secondary); background: var(--conduit-surface); font: 600 .72rem/1.35 var(--conduit-font-mono); }
+
+@media (max-width: 34rem) {
+  .diagram-stage { height: clamp(18rem, 58vh, 36rem); }
+  .diagram-toolbar output { min-width: 3.8rem; }
+}

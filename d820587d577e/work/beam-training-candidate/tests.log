@@ -1,0 +1,8 @@
+/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/test_train.py:8: ResourceWarning: unclosed file <_io.TextIOWrapper name='work/corrected411-runtime/diagnostic-rows.json' mode='r' encoding='UTF-8'>
+  cls.rows=json.load(open('work/corrected411-runtime/diagnostic-rows.json'))
+ResourceWarning: Enable tracemalloc to get the object allocation traceback
+..
+----------------------------------------------------------------------
+Ran 2 tests in 0.104s
+
+OK

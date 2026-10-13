@@ -1,0 +1,14 @@
+     Locking 26 packages to latest compatible versions
+      Adding sha2 v0.10.9 (available: v0.11.0)
+      Adding syn v2.0.119 (available: v3.0.6)
+   Compiling crypto-common v0.1.7
+   Compiling proc-macro2 v1.0.107
+   Compiling digest v0.10.7
+   Compiling sha2 v0.10.9
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+   Compiling quote v1.0.47
+   Compiling syn v2.0.119
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+   Compiling conduit-prepared-native-converters v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/tools/prepared-native-converters)
+    Finished `dev` profile [unoptimized] target(s) in 13.96s

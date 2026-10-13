@@ -1,0 +1,130 @@
+{
+  "removed": [
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-owned-runtime-guard-tests",
+      "bytes": 17329768,
+      "sha256": "5858d014ee0f9de241dfe3b66700be5f0714e9c9c304ba7fd4649d4a815df000",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-owned-runtime-guard-tests.rs",
+      "source_sha256": "5d7124b7a645e351a0a5fb49d6ac63a2c346a58e94623ab291ac4107b46aa1c1",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-complete-prep-probe",
+      "bytes": 20278120,
+      "sha256": "557f68858299868027af1a92f1a9a46f244a3626c1a8563f1ca27c7318c76aca",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-complete-prep-probe.rs",
+      "source_sha256": "5d43da5f7f353c4202a28c59af41fb9a3d605fdf64e2460de45fda37480bec10",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-native-factory-probe",
+      "bytes": 20531680,
+      "sha256": "3f7c5effff8bc852a1975639045d74c7969546618563d72ce4134b30392142f6",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/public-native-factory-probe.rs",
+      "source_sha256": "96c76a367c7caf93c60bbf842f85b08353b322e3218575116c6436196188fb6f",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/plan-verification-probe",
+      "bytes": 11551768,
+      "sha256": "d15744717100990a4eac1a5c5abd87c26e6df0d0b1832185778850090d892bb7",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/plan-verification-probe.rs",
+      "source_sha256": "2be457e8a5f21cab53c3bb5fe41a9d13eba62a941baa517ddd6db841371123cd",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/model-signature-probe",
+      "bytes": 8272920,
+      "sha256": "9f07d586e88aed68c1e2115cc093e2a865b6e9aed800fa106e118aed7bb8f264",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/coherent-public-driver/model-signature-probe.rs",
+      "source_sha256": "8368fd440fe85aacb17b3007d5786aa131289fde1ac40b3ad314f19c97d216ea",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-native-preparation/tests",
+      "bytes": 22760712,
+      "sha256": "8eb8e932e44faa5a3974f3de5ef7c6703c4fd804ccd6b00933da7dae2eacff45",
+      "source": "/home/dancxjo/conduit-4898-pair-storage/work/immutable-native-preparation/tests.rs",
+      "source_sha256": "6a20a3cd934f337d45760f6a225e28d420ba77366d03ffb73f0b2bf0e96a1f45",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-original-candidate-tests",
+      "bytes": 26463768,
+      "sha256": "7e91013a27b1b1fc94afd057b1629f734a71f1fbfb82b89aefcbdb6d3592e935",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-original-candidate-tests.rs",
+      "source_sha256": "0a44ac8f9d32a8c7688a268591a082fc9fe747d491f9db3896731fdf649051d9",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/runtime-profiles-test",
+      "bytes": 24060768,
+      "sha256": "f19344b7cba688c27404871075551117fcc77112f1745b9bd6ba2b8952f71bf2",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/runtime-profiles-test.rs",
+      "source_sha256": "84fe9eab971a944db35cd7192ac1a1eeb830802a036ede4c8e93a9d9247f8a4a",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-type-probe",
+      "bytes": 26447944,
+      "sha256": "3b4091b0ca920b587bca642cce0dd72285613cbe2ce6c0c1b2657bc4e977877e",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-type-probe.rs",
+      "source_sha256": "fec73e00a4994e24e641bbaccefa471f7f730e436ce318b65e8b59edafaa0adb",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-decimal-tests",
+      "bytes": 26450760,
+      "sha256": "589893b66e777e9fa48c40a80d6ce8de2a2171e35045a544572ef936bfcf204d",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-decimal-tests.rs",
+      "source_sha256": "6af51c2b95e00c6f6162f2d2a7443b7e06e0c7d1f56d28c9115693adaa7dfe88",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/plan-coherent-probe",
+      "bytes": 11294152,
+      "sha256": "6f400abba8362609b3e06c0422d1b57d86acd1494f455aac9f40789c3d6aad53",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/plan-coherent-probe.rs",
+      "source_sha256": "512a2f816603266b575e180c2de165f9bb02f07d386e2c1f3e1e23003490956d",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-positive-tests",
+      "bytes": 26451952,
+      "sha256": "7bb1631e3ed2ce02c39348593891f0f5a6f1fe53059f43e32a4638abe3512195",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-positive-tests.rs",
+      "source_sha256": "847e48dbdd492bf06a069b6a17721936a430e5a3c283ad6ee0af55a5e78f0ddc",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-original-tests",
+      "bytes": 26451952,
+      "sha256": "43a75e07f4b712afdd94cefe761200c535090f133ee4075c29b3a69bd4d8d5c0",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-original-tests.rs",
+      "source_sha256": "249278fb8e4e48cd184723f7f801ffc7947331e514781549b4e286493fc65cf0",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    },
+    {
+      "path": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/owned-runtime-guard-tests",
+      "bytes": 17189080,
+      "sha256": "e7be867514b74752c1973a61ec55a6a681094008a29f13a60444f04aa13cbcb8",
+      "source": "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/owned-runtime-guard-tests.rs",
+      "source_sha256": "96194f4a9c0c724150178379f54fe904ff5c44f603e66e7876c83702699afc45",
+      "reason": "owned inactive regenerable direct compiler ELF; source/logs/SDK retained"
+    }
+  ],
+  "recovered_bytes": 285535344,
+  "preserved_uncertain_candidates": [
+    "work/coherent-public-driver/numeric-bounded-tests",
+    "work/immutable-native-preparation/target-tests",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-traversal-test",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/transport-test",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/pending-scheduler-test",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/pending-scheduler-clippy",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-shared-factory-tests",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/zip-clippy",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/zip-tests",
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/fargan/public-model-driver/native-profile-cached-kind-tests"
+  ],
+  "preserved": "all Cargo artifacts, content-addressed immutable SDK, original trained owner libraries, current compiled/ rich probes, all Source/logs/receipts"
+}

@@ -1,0 +1,5 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plot)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Finished `dev` profile [unoptimized] target(s) in 10m 57s

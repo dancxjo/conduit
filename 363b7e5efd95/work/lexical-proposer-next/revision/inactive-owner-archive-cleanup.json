@@ -1,0 +1,15 @@
+{
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/revision/libconduit_language_revision.rlib",
+      "bytes": 772924464,
+      "class": "inactive regenerable direct rustc archive; executable probes statically linked; current model_owner archive preserved"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/revision/libconduit_language_owner.rlib",
+      "bytes": 774445444,
+      "class": "inactive regenerable direct rustc archive; executable probes statically linked; current model_owner archive preserved"
+    }
+  ],
+  "recovered_bytes": 1547369908
+}

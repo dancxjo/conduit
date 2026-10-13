@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=29eac17190c4c6d6917263f3886776887d86e1c6bb5ca15e3d118610a2a647ce
+expanded=a25b7e9368636921c4c4b126be601e159e1822dc97b0d4fe1577efc40e7e685b
+input=language-parser-independent-commit-rebase/expression-1aa69b42bffb-0:input
+output=language-parser-independent-commit-rebase/expression-1aa69b42bffb-0:output
+gear=language-parser-independent-commit-rebase/expression-1aa69b42bffb-0:conduitese/pure-expression/93e8d9fdd6665febd96f7c417e3dcb270ace0255c4290f88303d9f543a071226:conduitese/pure-expression-operation@1:input:output

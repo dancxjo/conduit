@@ -1,0 +1,37 @@
+{
+  "boundary": "prelaunch input inventory; no evaluation result",
+  "files": {
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/v3-vocative-candidate-pinned-teaching/ewt_window8.i16": {
+      "sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+      "bytes": 64620
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/v3-vocative-candidate-pinned-teaching/manifest.json": {
+      "sha256": "e51dbab2f5f695e47b04e28b4c176a7f88e0244a4dac48bfca33675c5ca5f21f",
+      "bytes": 3449
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/v3-vocative-candidate-pinned-teaching/lexical_profile.json": {
+      "sha256": "74bcabecc14698eddbc0631aca3dbfe01e73dc799ab9883461a8d9957c849b20",
+      "bytes": 1676
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/vocative-evaluation-slice/authored_vocative.json": {
+      "sha256": "4b537a0e9eafe45885adac0b651eb6f73c21a3bb4cf3d547a8d8ade2df857c23",
+      "bytes": 8786
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/vocative-evaluation-slice/dev.json": {
+      "sha256": "98c0300bfa6a39562be81a05435f959c10eb8d6e0871c31d373701dfd6c88f48",
+      "bytes": 1947
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/vocative-evaluation-slice/test.json": {
+      "sha256": "9cfad304d5ef9086df1b21ac6269630520ecf248b6a7ca62a9b3ee0878994dfa",
+      "bytes": 3029
+    },
+    "/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/window8/vocative-evaluation-slice/manifest.json": {
+      "sha256": "41a2aa9df4f7b76088445829eef4b6918189f33d9de443586c4d9dee0d3e9eac",
+      "bytes": 3050
+    },
+    "/home/dancxjo/conduit-4907-text-revisions/semantics/language/training/ewt_joint_v3_window8/vocative_training.json": {
+      "sha256": "05fb914ad5e9cc3820fd7387e742f56c570794643f12afee6e47d1aa27e0441c",
+      "bytes": 5941
+    }
+  }
+}

@@ -1,0 +1,788 @@
+{
+  "status": "passed",
+  "environment": "Chromium",
+  "pages": [
+    {
+      "id": "home",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/",
+      "screenshot": "desktop-home.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "journeys",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/journeys/",
+      "screenshot": "desktop-journeys.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "workspace",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/workspace/",
+      "screenshot": "desktop-workspace.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "three-bodies",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/journeys/current/three-bodies/",
+      "screenshot": "desktop-three-bodies.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "little-life",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/journeys/current/little-life/",
+      "screenshot": "desktop-little-life.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "handbook",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/handbook/",
+      "screenshot": "desktop-handbook.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "start-here",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/handbook/Start-here.html",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "field-station",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/journeys/verticals/field-station-clock/",
+      "screenshot": "desktop-field-station.png",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "current-product",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/current-product.html",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "handbook-journey",
+      "layout": "desktop",
+      "width": 1280,
+      "path": "/conduit/journeys/verticals/handbook/",
+      "viewport": 1280,
+      "content": 1280
+    },
+    {
+      "id": "home",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/",
+      "screenshot": "mobile-home.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "journeys",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/journeys/",
+      "screenshot": "mobile-journeys.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "workspace",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/workspace/",
+      "screenshot": "mobile-workspace.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "three-bodies",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/journeys/current/three-bodies/",
+      "screenshot": "mobile-three-bodies.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "little-life",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/journeys/current/little-life/",
+      "screenshot": "mobile-little-life.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "handbook",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/handbook/",
+      "screenshot": "mobile-handbook.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "start-here",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/handbook/Start-here.html",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "field-station",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/journeys/verticals/field-station-clock/",
+      "screenshot": "mobile-field-station.png",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "current-product",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/current-product.html",
+      "viewport": 390,
+      "content": 390
+    },
+    {
+      "id": "handbook-journey",
+      "layout": "mobile",
+      "width": 390,
+      "path": "/conduit/journeys/verticals/handbook/",
+      "viewport": 390,
+      "content": 390
+    }
+  ],
+  "checkedLinks": [
+    {
+      "path": "/conduit/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/workspace/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Start-here.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/ConduitOS-and-real-machines.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Why-Conduit.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Conduitese-by-example.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Glossary.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/current-product.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/little-life/",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.absent.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/01-body.absent.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/bootstrap.started.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/02-bootstrap.started.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.absent.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/01-body.absent.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/bootstrap.started.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/02-bootstrap.started.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/01-body.absent.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/02-bootstrap.started.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.born.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/03-body.born.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.awake.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/04-body.awake.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.born.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/03-body.born.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.awake.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/04-body.awake.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.awake-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/03-body.born.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.born-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.born-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/04-body.awake.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.awake-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.awake-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/form.used.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/05-form.used.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/form.used.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/05-form.used.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/form.used-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/05-form.used.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/form.used-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/form.used-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/14-mask.action-0.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/14-mask.action-0.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/14-mask.action-0.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/15-mask.action-1.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/15-mask.action-1.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/15-mask.action-1.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/16-mask.action-2.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/16-mask.action-2.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/16-mask.action-2.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/17-mask.action-3.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/17-mask.action-3.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/17-mask.action-3.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/18-mask.action-4.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/18-mask.action-4.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/18-mask.action-4.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/19-mask.action-5.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/19-mask.action-5.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/19-mask.action-5.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/20-mask.action-6.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/20-mask.action-6.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/20-mask.action-6.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/21-mask.action-7.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/21-mask.action-7.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/21-mask.action-7.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/22-mask.action-8.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/22-mask.action-8.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/22-mask.action-8.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/23-mask.action-9.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/23-mask.action-9.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/browser-body-session.webm",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/23-mask.action-9.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/fault.observed.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/09-fault.observed.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.repaired.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/10-body.repaired.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/fault.observed.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/09-fault.observed.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/fault.observed-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.repaired.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/10-body.repaired.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.repaired-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/09-fault.observed.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/fault.observed-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/fault.observed-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/10-body.repaired.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.repaired-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.repaired-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.lulled.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/12-body.lulled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/body.fulfilled.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/native-graphical/artifacts/13-body.fulfilled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.lulled.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/12-body.lulled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.lulled-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.fulfilled.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/13-body.fulfilled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/browser-graphical/artifacts/body.fulfilled-mask.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/12-body.lulled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.lulled-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.lulled-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/13-body.fulfilled.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.fulfilled-speech.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/hosted-generative/artifacts/body.fulfilled-speech.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/three-bodies/index.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/little-life/t000.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/little-life/execution.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/little-life/presentation.txt",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/current/little-life/manifest.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Bodies-hosts-plans-and-plays.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/index.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Architecture-tour.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Conduitese.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Plot-diagrams.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/State-time-and-data.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Lines-networking-and-replanning.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Face-Mask-and-Show.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Current-language-surface.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Architecture.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Plots-and-flow.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Types-and-state.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Terminals-and-concurrency.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Effects-and-realization.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Packs-hosts-and-bodies.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Evidence-and-proof.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Project-status-and-roadmap.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/handbook/Canon-governance.html",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/1-open.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/2-reload.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/3-lull.png",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/index.json",
+      "status": 200
+    },
+    {
+      "path": "/conduit/journeys/verticals/field-station-clock/runtime-evidence.json",
+      "status": 200
+    }
+  ],
+  "excludedLinks": [
+    {
+      "path": "/conduit/journeys/verticals/",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/commits/8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa/little-life/",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/gallery.json",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/index.html",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/1-open.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/2-check.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/3-try.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/4-inspect.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/5-edit.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/6-lull.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/7-recover.png",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/index.json",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    },
+    {
+      "path": "/conduit/journeys/verticals/handbook/runtime-evidence.json",
+      "reason": "Outside the documentary page routes; runtime distributions and historical evidence are validated separately."
+    }
+  ]
+}

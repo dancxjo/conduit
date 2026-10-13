@@ -1,0 +1,2 @@
+family=PreparedNativeFamilyStorageReceipt { types: 11, retained_heap_bytes_bound: 19919, preparation_peak_heap_bytes_bound: 754801, conversion_requested_bytes_bound: 196870190 }
+PASS actualsameType_changedchild_emptytext_contract_refusal_parity ViolatedConstraint { representation_path: "", refusal: Membership }

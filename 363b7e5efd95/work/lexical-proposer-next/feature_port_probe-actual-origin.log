@@ -1,0 +1,7 @@
+expand=language-proposal-window8-origins
+expand=language-proposal-window8-feature-context
+expand=language-proposal-window8-feature-values
+actual original revision/token Source→origin projection Reference/prepared parity [0, 1, 1, 2, 2, 2, 2, 2]; full lexical tape equality law passed
+constructed=vocative last_two=[437, 443] all27=[15, 29, 317, 362, 373, 380, 381, 387, 391, 393, 395, 397, 399, 401, 403, 405, 407, 409, 411, 413, 416, 417, 419, 421, 423, 437, 443]
+constructed=object last_two=[440, 443] all27=[15, 29, 317, 362, 373, 380, 381, 387, 391, 393, 395, 397, 399, 401, 403, 405, 407, 409, 411, 413, 416, 417, 419, 421, 423, 440, 443]
+PASS exact Source Reference/prepared parity, all27complete output guards, collision separated by selected previous POS; constructed reviewed-origin fixtures only; no model inference or original origin-port custody claim

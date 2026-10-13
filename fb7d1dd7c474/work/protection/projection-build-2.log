@@ -1,0 +1,3 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.82s
+  Executable tests/parser_protection_probe.rs (target/debug/deps/parser_protection_probe-c11ba4717b38ee59)

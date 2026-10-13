@@ -1,0 +1,3 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/semantics/language)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/kernel)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plan-lowering)

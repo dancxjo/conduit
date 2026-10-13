@@ -1,0 +1,19 @@
+error[E0433]: cannot find module or crate `serde_json` in this scope
+ --> work/canonical-bank-prototype/context.rs:8:65
+  |
+8 |  let p=std::env::args().nth(1).unwrap();let j:serde_json::Value=serde_json::from_slice(&std::fs::read(p).unwrap()).unwrap();
+  |                                                                 ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+  |
+  = help: you might be missing a crate named `serde_json`
+
+error[E0433]: cannot find module or crate `serde_json` in this scope
+ --> work/canonical-bank-prototype/context.rs:8:47
+  |
+8 |  let p=std::env::args().nth(1).unwrap();let j:serde_json::Value=serde_json::from_slice(&std::fs::read(p).unwrap()).unwrap();
+  |                                               ^^^^^^^^^^ use of unresolved module or unlinked crate `serde_json`
+  |
+  = help: you might be missing a crate named `serde_json`
+
+error: aborting due to 2 previous errors
+
+For more information about this error, try `rustc --explain E0433`.

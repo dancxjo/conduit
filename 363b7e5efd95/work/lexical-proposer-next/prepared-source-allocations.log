@@ -1,0 +1,7 @@
+
+running 1 test
+complete preparedSource bank measured_peak=192674364 measured_retained=182573995 receipt=Window8PreparedSourceReceipt { retained_heap_bytes_bound: 205260178, preparation_peak_heap_bytes_bound: 237823029, programs: 26, native: PreparedNativeFamilyStorageReceipt { types: 53, retained_heap_bytes_bound: 152388690, preparation_peak_heap_bytes_bound: 154611605, conversion_requested_bytes_bound: 639893585 } }; requested allocations, no allocator bookkeeping
+test prepared_source_complete_bank_bound_covers_measured_requests ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.63s
+

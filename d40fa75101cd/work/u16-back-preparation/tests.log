@@ -1,0 +1,9 @@
+
+running 2 tests
+"type FarganPeriod = U16 in 32..=255\n" contract-only requested=984 peak=481 retained=481 reservation=U16ContractOnlyStorageReceipt { preparation_requested_bytes_bound: 1152, retained_heap_bytes_bound: 649, retained_accounted_heap_bytes: 0 }
+test valid_general_invariant_profile_refuses_limited_preparation_without_allocation ... ok
+"type Full = U16 in 0..=65535\n" contract-only requested=928 peak=457 retained=457 reservation=U16ContractOnlyStorageReceipt { preparation_requested_bytes_bound: 1096, retained_heap_bytes_bound: 625, retained_accounted_heap_bytes: 0 }
+test complete_contract_only_constructor_is_reserved_before_clones ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

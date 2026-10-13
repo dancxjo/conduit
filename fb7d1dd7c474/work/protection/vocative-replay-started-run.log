@@ -1,0 +1,24 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.76s
+     Running tests/parser_vocative_protected_replay.rs (target/debug/deps/parser_vocative_protected_replay-d7c6806ef23c7dbe)
+
+running 1 test
+VOC2 exact Source check start
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices has been running for over 60 seconds
+VOC2 ordinary insert preparation start
+VOC2 ordinary insert started
+VOC2 ordinary rebase preparation start
+
+thread 'actual_vocative_two_survives_append_and_refuses_contradictory_choices' (1497214) panicked at semantics/language/tests/common/parser_kernel.rs:247:18:
+called `Result::unwrap()` on an `Err` value: InvalidLifecycle
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_vocative_two_survives_append_and_refuses_contradictory_choices ... FAILED
+
+failures:
+
+failures:
+    actual_vocative_two_survives_append_and_refuses_contradictory_choices
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 0 filtered out; finished in 748.87s
+
+error: test failed, to rerun pass `-p conduit-language --test parser_vocative_protected_replay`

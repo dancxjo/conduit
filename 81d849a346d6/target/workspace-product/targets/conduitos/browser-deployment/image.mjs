@@ -1,0 +1,149 @@
+const MAXIMUM_IMAGE_BYTES = 80 * 1024 * 1024;
+
+export async function acquireConduitOsRelease(profile, signal, { resolved = null } = {}) {
+  if (resolved) return acquireResolvedConduitOsRelease(profile, signal, resolved);
+  let response;
+  try {
+    response = await fetch(profile.manifestPath, { signal, cache: "no-store" });
+  } catch (error) {
+    refuse("ArtifactUnavailable", "reviewed ConduitOS release manifest is unavailable", error);
+  }
+  if (!response.ok) refuse("ArtifactUnavailable", `reviewed ConduitOS release manifest returned HTTP ${response.status}`);
+  const manifest = await response.json();
+  validateConduitOsReleaseManifest(manifest, profile);
+  let artifactResponse;
+  try {
+    artifactResponse = await fetch(new URL(manifest.artifact.path, response.url), { signal, cache: "no-store" });
+  } catch (error) {
+    refuse("ArtifactUnavailable", "reviewed ConduitOS disk IMAGE is unavailable", error);
+  }
+  if (!artifactResponse.ok) refuse("ArtifactUnavailable", `reviewed ConduitOS disk IMAGE returned HTTP ${artifactResponse.status}`);
+  const bytes = new Uint8Array(await artifactResponse.arrayBuffer());
+  if (bytes.byteLength !== manifest.artifact.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_IMAGE_BYTES) {
+    refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE violated its exact finite byte bound");
+  }
+  const digest = await sha256(bytes);
+  if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
+    refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");
+  }
+  return Object.freeze({ manifest: Object.freeze(manifest), bytes, digest });
+}
+
+async function acquireResolvedConduitOsRelease(profile, signal, resolved) {
+  let manifest;
+  try { manifest = JSON.parse(new TextDecoder().decode(resolved.manifest)); }
+  catch (error) { refuse("StaleArtifact", "reviewed ConduitOS release manifest is malformed", error); }
+  validateConduitOsReleaseManifest(manifest, profile);
+  const bytes = await resolved.acquire(manifest.artifact, MAXIMUM_IMAGE_BYTES, signal);
+  const digest = await sha256(bytes);
+  if (digest !== manifest.artifact.sha256 || manifest.image_id !== `image:${digest}`) {
+    refuse("StaleArtifact", "reviewed ConduitOS disk IMAGE content identity is stale");
+  }
+  return Object.freeze({ manifest: Object.freeze(manifest), bytes, digest });
+}
+
+export function validateConduitOsReleaseManifest(manifest, profile) {
+  if (manifest?.target_id !== profile.target.id) refuse("WrongMachine", "reviewed ConduitOS release names a different exact target");
+  if (manifest?.architecture !== profile.architecture) refuse("WrongArchitecture", "reviewed ConduitOS release names a different architecture");
+  if (manifest?.machine !== profile.machine) refuse("WrongMachine", "reviewed ConduitOS release names a different machine");
+  if (manifest?.artifact_role !== "product-host") refuse("UnsupportedProductRole", "architecture proof appliances are not Crèche product Host artifacts");
+  if (typeof manifest?.boot_assets?.firmware !== "string" || manifest.boot_assets.firmware.length === 0) {
+    refuse("MissingFirmware", "reviewed ConduitOS release omitted its required firmware identity");
+  }
+  if (typeof manifest?.boot_assets?.boot_entry !== "string" || manifest.boot_assets.boot_entry.length === 0) {
+    refuse("MissingBootloader", "reviewed ConduitOS release omitted its required boot entry identity");
+  }
+  if (manifest.schema !== "conduit.conduitos/creche-release@1"
+    || manifest.make_package_id !== "conduitos-image@1"
+    || manifest.output !== "disk-image"
+    || manifest.builder_adapter !== profile.builderAdapter
+    || manifest.deployment_adapter !== profile.deploymentAdapter
+    || manifest.boot_mechanism !== profile.bootMechanism
+    || manifest.boot_assets.firmware !== profile.firmware
+    || manifest.boot_assets.boot_entry !== profile.bootEntry
+    || manifest.artifact?.role !== "final-bootable-image"
+    || manifest.artifact?.format !== "hybrid-iso"
+    || manifest.spore_region?.schema !== "conduit.conduitos/spore-region@1"
+    || manifest.spore_region?.encoding !== "conduit.spore/native-media-provision@1"
+    || !Number.isSafeInteger(manifest.spore_region?.offset) || manifest.spore_region.offset < 0
+    || manifest.spore_region?.bytes !== 32 * 1024
+    || manifest.spore_region.offset + manifest.spore_region.bytes > manifest.artifact?.bytes
+    || typeof manifest.artifact?.path !== "string" || manifest.artifact.path.includes("/")
+    || !Number.isSafeInteger(manifest.artifact?.bytes) || manifest.artifact.bytes < 1 || manifest.artifact.bytes > MAXIMUM_IMAGE_BYTES
+    || !/^sha256:[0-9a-f]{64}$/.test(manifest.artifact?.sha256)
+    || manifest.image_id !== `image:${manifest.artifact.sha256}`
+    || typeof manifest.profile_id !== "string" || typeof manifest.build_id !== "string"
+    || typeof manifest.resolved_description_binding !== "string"
+    || manifest.resolved_image?.manifest?.image_id !== manifest.resolved_description_binding
+    || manifest.resolved_image?.manifest?.profile_id !== manifest.profile_id
+    || manifest.resolved_image?.manifest?.build_id !== manifest.build_id
+    || manifest.resolved_image?.manifest?.target !== profile.target.id
+    || manifest.resolved_image?.manifest?.source_identity !== manifest.source_identity
+    || manifest.resolved_image?.manifest?.toolchain_identity !== manifest.toolchain_identity
+    || manifest.resolved_image?.payload?.profile_id !== manifest.profile_id
+    || manifest.resolved_image?.payload?.build_id !== manifest.build_id
+    || manifest.resolved_image?.payload?.target !== profile.target.id
+    || typeof manifest.source_identity !== "string" || typeof manifest.toolchain_identity !== "string"
+    || JSON.stringify(manifest.expected_offers) !== JSON.stringify(["conduit.host/present@1"])
+    || JSON.stringify(manifest.bounds) !== JSON.stringify(profile.bounds)
+    || manifest.boot_claimed !== false || manifest.physical_proof_claimed !== false) {
+    refuse("StaleArtifact", "reviewed ConduitOS release contract or identity is stale");
+  }
+  return Object.freeze({ ...manifest });
+}
+
+export function validateLoaderEvidence(evidence, profile, binding) {
+  if (!evidence || typeof evidence.loader_id !== "string") refuse("UnavailableWriter", "no explicit local disk or VM loader receipt was supplied");
+  if (evidence.target_id !== profile.target.id || evidence.machine !== profile.machine) refuse("WrongMachine", "local loader receipt names a different machine");
+  if (evidence.architecture !== profile.architecture) refuse("WrongArchitecture", "local loader receipt names a different architecture");
+  if (evidence.image_content_digest !== binding.prepared?.image_content_digest
+    || evidence.artifact_sha256 !== binding.nativeSpore?.content_digest
+    || evidence.artifact_bytes !== binding.nativeSpore?.bytes?.byteLength) refuse("StaleArtifact", "local loader receipt names a different body-bound ISO identity");
+  if (!profile.supportedCarriers.includes(evidence.carrier) || evidence.explicit_authority !== true || evidence.load_completed !== true) {
+    refuse("LoaderEvidenceInvalid", "local loader receipt omitted a supported carrier, explicit authority, or completed load truth");
+  }
+  return Object.freeze({ ...evidence });
+}
+
+export function parseConduitOsSerialJoin(serialOutput, binding) {
+  if (typeof serialOutput !== "string" || serialOutput.length < 1 || serialOutput.length > 64 * 1024) {
+    refuse("BootObservationAbsent", "loader did not retain one bounded ConduitOS serial observation");
+  }
+  const prefix = "CONDUIT_SPORE_JOIN ";
+  const lines = serialOutput.split(/\r?\n/).filter((line) => line.startsWith(prefix));
+  if (lines.length !== 1) refuse("BootObservationAmbiguous", "loader did not retain exactly one ConduitOS spore join");
+  let join;
+  try { join = JSON.parse(lines[0].slice(prefix.length)); }
+  catch (error) { refuse("BootObservationMalformed", "ConduitOS serial join is not valid JSON", error); }
+  const prepared = binding?.prepared;
+  if (join?.schema !== "conduit.conduitos/serial-spawn-observation@1" || join.protocol !== 1
+    || join.spore_id !== prepared?.spore_id || join.image_id !== prepared?.image_id
+    || join.invitation_id !== prepared?.invitation_id || join.body_id !== prepared?.body_id
+    || join.host_id !== join.advertisement?.host_id || join.boot_id !== join.advertisement?.boot_id
+    || !Array.isArray(join.nonce) || join.nonce.length !== 32
+    || join.nonce.some((byte, index) => byte !== prepared?.invitation_nonce?.[index])
+    || !Array.isArray(join.signature) || join.signature.length !== 64
+    || join.membership_claimed !== false || join.expiry_checked_by_body !== true) {
+    refuse("BootObservationStale", "ConduitOS serial join lost the exact spore, invitation, Host, or Boot identity");
+  }
+  return Object.freeze(join);
+}
+
+async function sha256(bytes) {
+  const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));
+  return `sha256:${Array.from(digest, (byte) => byte.toString(16).padStart(2, "0")).join("")}`;
+}
+
+function refuse(code, message, cause) {
+  const error = new Error(message, cause ? { cause } : undefined);
+  error.name = "ConduitOsProvisioningRefusal";
+  error.code = code;
+  error.evidence = Object.freeze({
+    schema: "conduit.conduitos/creche-provisioning-refusal@1",
+    terminal: code,
+    message,
+    browser_device_authority_requested: false,
+    external_work_started: false,
+  });
+  throw error;
+}

@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "hosted-generative",
+  "step_id": "mask.action-2",
+  "assertion": "mask-mask.prefer-alternate",
+  "source_facts": {
+    "action_id": "mask.prefer-alternate",
+    "concrete_event": "preference selected the available alternate route under the same immutable Body Plan",
+    "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+    "plan_id": "body-plan/sha256:a0faf9b3b254270c80cb33542f73448774d46d7045e882754b21dc779831198e",
+    "receipt_ids": [
+      "wardrobe/revision/2"
+    ],
+    "selected_mask_form_id": "405f019d2497f5cad2cf4d550faa8e9c5fbe16eacf91684596e0f7f167416016",
+    "selected_route_id": "route/orifina-spoken-initial-plan/1",
+    "show_id": "show/c77299fdb7e20d85d987b8b5ffb05303da0e492c6d7af16d50054a9fd7bd6d69"
+  }
+}

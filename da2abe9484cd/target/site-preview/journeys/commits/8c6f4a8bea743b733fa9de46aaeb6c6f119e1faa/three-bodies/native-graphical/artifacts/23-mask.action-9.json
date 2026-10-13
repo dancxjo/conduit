@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "native-graphical",
+  "step_id": "mask.action-9",
+  "assertion": "mask-mask.inspect-restored-show",
+  "source_facts": {
+    "action_id": "mask.inspect-restored-show",
+    "concrete_event": "inspected-restored-show",
+    "face_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+    "plan_id": "body-plan/sha256:4eb14cb0f6c9f265da0030623e855e53e3e4553fdb901d4211b0a57919ca9ebe",
+    "receipt_ids": [
+      "b39ae86678edffac162f4e3cc6edec2a3e849b46309f6f6775bd71fe17bd9fed",
+      "show-value/27edf46155f357fb9d31c75ab268e1b44b959fa4f8bd884df059000bf57e3756"
+    ],
+    "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+    "selected_route_id": "mask-route/14d7c7f8f5607fbb6283aa12a9c75033983990d7ee95a2ff71a5f34d600a329d",
+    "show_id": "show/1e4be9aaf7da85b9bb2c1c6d5ed150b350c116eb1b3d3328f0ff105e9bdff1e9"
+  }
+}

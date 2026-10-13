@@ -1,0 +1,11 @@
+Diff in /home/dancxjo/conduit-4907-incremental/semantics/language/tests/parser_joint_v2_model.rs:39:
+         manifest["weights_tensor_content_identity"]
+     );
+     let maximum = BYTES[20..]
+-        .as_chunks::<2>().0.iter()
++        .as_chunks::<2>()
++        .0
++        .iter()
+         .map(|bytes| i16::from_le_bytes(*bytes).unsigned_abs() as u64)
+         .max()
+         .unwrap();

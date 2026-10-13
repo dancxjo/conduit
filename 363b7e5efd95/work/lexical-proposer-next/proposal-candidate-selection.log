@@ -1,0 +1,4 @@
+
+thread 'main' (752899) panicked at work/lexical-proposer-next/../../semantics/language/tests/common/parser_model_resource.rs:66:91:
+called `Result::unwrap()` on an `Err` value: "Bounds"
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

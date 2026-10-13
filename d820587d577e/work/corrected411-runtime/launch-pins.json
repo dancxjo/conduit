@@ -1,0 +1,17 @@
+{
+  "/home/dancxjo/conduit-4907-native-reuse/work/corrected411-runtime/corpus": "018e494d9b7e43aea611993a5f5aab762e0be6677c85547e61dfae65c401eb3e",
+  "/home/dancxjo/conduit-4907-native-reuse/work/corrected411-runtime/corpus.rs": "e7f2f0e9469240f61fb79c634a21c34da95905f6785111193e8528dca0fc10e3",
+  "/home/dancxjo/conduit-4907-native-reuse/work/corrected411-runtime/candidate.rs": "e8d88587a202ec3611965241e2f9f6f1130c32eab834b47e8395188263c9332f",
+  "/home/dancxjo/conduit-4907-native-reuse/work/corrected411-runtime/diagnostic-rows.json": "a520c3459cdac1fb66907dda38aa680c75c481f1c21555a5bd9d5f6a74d608a4",
+  "scope": "TRAIN+22 reviewed teaching diagnostics; four preserved priority rows, not heldout. Original baseline runs unchanged. Corrected artifact400b/manifestf2b7.",
+  "candidate_material": {
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/origin-corrected-v2/proposal_window8.i16": "400b304df9050715151878af0058620f7f04f471cd289e81c850a1b8e4211f15",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/origin-corrected-v2/declared-model-training-manifest.json": "f2b7a02b85a3b177b5eb807642fcfe6fcdc53ac6e168a170a5a5c5af6c906c33",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/origin-corrected-v2/expected-metadata/signature.native.bin": "442156610399aae8c7e970edf22b8b18e4fd8dddbcb7f4d1f50d0d332ba2fe70",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/origin-corrected-v2/expected-metadata/artifact-reference.bin": "d6bb249d402645fc17988a5469097b353c19733fc6fe9c5339c11bb00714efbe",
+    "/home/dancxjo/conduit-4907-native-reuse/semantics/language/training/ewt_proposal_v2/origin-corrected-v2/expected-metadata/expected.json": "373c79c42cbe55b39fd4e4217b4cc22bc78d35576ab739c3ecbc9a6cc9d15c29"
+  },
+  "library_manifest": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/coherent-target-rlibs.json",
+  "actual_original_source_abi": "unchanged selected-history-origin/411-27-76@2",
+  "model_identity": "TRAIN+22-reviewed-proposal-candidate2-origin-corrected-v2"
+}

@@ -1,0 +1,53 @@
+{
+  "scope": "Read-only alternative lexical resource assessment. All TRAIN integer-token POS frequencies; maximum8192 forms/4POS per form, frequency then code ordering. Actual parser training still bounded original Window8 extraction. No DEV/TEST lexical fitting, training or model execution.",
+  "train_sha256": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143",
+  "all_train_distinct_forms": 19674,
+  "selected_entries": 8192,
+  "shards": 128,
+  "rows_with_more_than_four_POS": 20,
+  "profile_policy": "Top8192 surfaces by TRAIN frequency then exact surface; top4 POS per surface by TRAIN count then POS code. No certainty/calibration claim.",
+  "splits": {
+    "train": {
+      "counts": {
+        "rows": 3531,
+        "tokens": 14667,
+        "oov_tokens": 1552,
+        "all_gold_pos_in_dictionary": 2309
+      },
+      "extraction_exclusions": {
+        "over_eight_tokens": 8809,
+        "multiword_or_empty_node": 196,
+        "unreachable_projective_profile": 8
+      }
+    },
+    "dev": {
+      "counts": {
+        "rows": 822,
+        "tokens": 3500,
+        "oov_tokens": 651,
+        "all_gold_pos_in_dictionary": 343,
+        "all_training_sequence_disjoint": 756,
+        "disjoint_multiclause_or_coordination": 125
+      },
+      "extraction_exclusions": {
+        "over_eight_tokens": 1114,
+        "multiword_or_empty_node": 65
+      }
+    },
+    "test": {
+      "counts": {
+        "rows": 933,
+        "tokens": 3864,
+        "oov_tokens": 791,
+        "all_gold_pos_in_dictionary": 406,
+        "all_training_sequence_disjoint": 839,
+        "disjoint_multiclause_or_coordination": 123
+      },
+      "extraction_exclusions": {
+        "over_eight_tokens": 1082,
+        "multiword_or_empty_node": 59,
+        "unreachable_projective_profile": 3
+      }
+    }
+  }
+}

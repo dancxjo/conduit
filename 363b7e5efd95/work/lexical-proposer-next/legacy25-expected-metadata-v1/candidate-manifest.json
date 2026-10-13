@@ -1,0 +1,95 @@
+{
+  "artifact_sha256": "08425a686e679feeb92a6efcfe120429d3b4ca61e41bcae8eb72ac3444e145ac",
+  "calibration": "raw ranking scores; no confidence/probability claim",
+  "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+  "conditional_gold_state_diagnostics": {
+    "dev": {
+      "gold_state_joint_context_action_correct": 45,
+      "gold_state_steps": 52
+    },
+    "test": {
+      "gold_state_joint_context_action_correct": 63,
+      "gold_state_steps": 72
+    },
+    "train": {
+      "gold_state_joint_context_action_correct": 208,
+      "gold_state_steps": 238
+    }
+  },
+  "corpus_profile_exclusions": {
+    "dev": {
+      "multiword_or_empty_node": 65,
+      "over_eight_tokens": 1114
+    },
+    "test": {
+      "multiword_or_empty_node": 59,
+      "over_eight_tokens": 1082,
+      "unreachable_projective_profile": 3
+    },
+    "train": {
+      "multiword_or_empty_node": 196,
+      "over_eight_tokens": 8809,
+      "unreachable_projective_profile": 8
+    }
+  },
+  "corpus_sha256": {
+    "dev": "39239e0a60db3ae68f4b7036189f11b6692741d10ff8240dd91f74f2760d90f8",
+    "test": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a",
+    "train": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+  },
+  "dataset": "UD_English-EWT",
+  "eligible_sentences": {
+    "dev": 822,
+    "test": 933,
+    "train": 3531
+  },
+  "epochs": 12,
+  "external_reference_sha256": "33f0016d26caa6439196948904c63cfc46c1eb6cdba46abe05f56ead8e7e4bc8",
+  "feature_class_contract_identity": "bdd64adf9c83923ed3e712f25a95670af25169c937da968c9b834bc1ae684181",
+  "features": 425,
+  "lexical_coverage_exclusions": {
+    "dev": {
+      "gold_pos_absent_from_train_alternatives": 13,
+      "profile_oov": 797
+    },
+    "test": {
+      "gold_pos_absent_from_train_alternatives": 25,
+      "profile_oov": 889
+    },
+    "train": {
+      "gold_pos_absent_from_train_alternatives": 102,
+      "profile_oov": 3367
+    }
+  },
+  "lexical_profile_covered_sentences": {
+    "dev": 12,
+    "test": 19,
+    "train": 62
+  },
+  "lexical_profile_identity": "7df46c1df70a0d296bf6ff5a41f0b920899451e8becb0dc9ba82fd98ac435469",
+  "lexical_profile_selection": "TRAIN frequency37 plus27 separately authored exact-case reviewed forms; native capacity64",
+  "license": "CC BY-SA 4.0",
+  "lookups": 25,
+  "model_bytes": 64620,
+  "model_content_identity": "1ce10ac88f019a933a8c872b51f97273cbed9b18ee080d11ec2ef22d9536b48e",
+  "native_decode_metrics": "not evaluated by this script; fresh native Source decoding required",
+  "outputs": 76,
+  "precision": "i16-weights-i64-sums",
+  "quantization_scale": 256,
+  "reviewed_profile_sha256": "c9a6f5245686dee5436da665460f6549c49734258c6a7457c1523a66e84e6517",
+  "reviewed_teaching_conditional_gold_state_diagnostic": {
+    "gold_state_joint_context_action_correct": 109,
+    "gold_state_steps": 118
+  },
+  "reviewed_teaching_search_rounds": 100,
+  "reviewed_teaching_search_updates": 13,
+  "reviewed_teaching_sha256": "05fb914ad5e9cc3820fd7387e742f56c570794643f12afee6e47d1aa27e0441c",
+  "reviewed_teaching_training_repetitions": 16,
+  "seed": 4907,
+  "teaching_content_identity": "d67ef87c8adc3a898d397a8d34d4c161bf3f1cb024cc113716ab1a7c25748387",
+  "trainer_sha256": "23a694965db8871e92cdfd0397f455d354ce42452b2f25c31a5aaf12a0f24a5b",
+  "training_examples": 2126,
+  "training_steps": 25512,
+  "ud_release": "2.18",
+  "weights_tensor_content_identity": "ee1162d59b992c84473f8dcbd1bbf9f6a9a025bfe9671fe5880ff6b9d272bfdd"
+}

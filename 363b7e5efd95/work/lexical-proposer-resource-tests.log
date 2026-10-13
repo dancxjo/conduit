@@ -1,0 +1,8 @@
+
+running 2 tests
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test resource_structural_peak_covers_measured_preparation_and_lookup ... dictionary preparation_peak_observed=208056 lookup_peak_observed=1380 receipt=LexicalDictionaryStorageReceipt { shards: 2, entries: 2, retained_heap_bytes_bound: 2304913, preparation_peak_heap_bytes_bound: 11217854, lookup_requested_bytes_bound: 8912941 }
+ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.02s
+

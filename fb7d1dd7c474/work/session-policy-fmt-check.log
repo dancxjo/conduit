@@ -1,0 +1,15 @@
+Diff in /home/dancxjo/conduit-4907-incremental/semantics/language/tests/parser_session.rs:305:
+                 assert_eq!(fact.query(), &query);
+             }
+             observed.push(accepted);
+-            let fact_bytes = native.as_ref().ok().map(|fact| fact.clone().into_structured().unwrap().canonical_bytes().unwrap());
++            let fact_bytes = native.as_ref().ok().map(|fact| {
++                fact.clone()
++                    .into_structured()
++                    .unwrap()
++                    .canonical_bytes()
++                    .unwrap()
++            });
+             let refusal = native.as_ref().err().map(|error| format!("{error:?}"));
+             fact_receipts.push(serde_json::json!({"dependent":dependent,"accepted":accepted,"native_fact_bytes":fact_bytes,"refusal":refusal}));
+             if accepted && dependent == 0 {

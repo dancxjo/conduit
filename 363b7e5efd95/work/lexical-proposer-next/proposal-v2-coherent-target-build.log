@@ -1,0 +1,26 @@
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plan-lowering)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/ai)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/composite)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/catalog)
+   Compiling chacha20 v0.9.1
+   Compiling aead v0.5.2
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/wire)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tutorial)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/home)
+   Compiling rand_core v0.6.4
+   Compiling x25519-dalek v2.0.1
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/planner)
+   Compiling noise-rust-crypto v0.6.2
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/graph)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/application)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/protected-line)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/mask-offer)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/birth)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/observatory)
+    Finished `dev` profile [unoptimized] target(s) in 13m 43s

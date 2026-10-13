@@ -1,0 +1,622 @@
+<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; connect-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' blob: 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'none'"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Conduitese by example · Conduit handbook</title><style>:root {
+  color-scheme: dark;
+  --conduit-background: #05070b;
+  --conduit-reading-paper: #0c121c;
+  --conduit-workbench-canvas: #05070b;
+  --conduit-bootstrap-surface: #090d16;
+  --conduit-surface: #090d16;
+  --conduit-structure-primary: #0dd8f6;
+  --conduit-structure-secondary: #0a1f87;
+  --conduit-text-primary: #93d2f7;
+  --conduit-text-secondary: #578ec9;
+  --conduit-emphasis: #e9a325;
+  --conduit-focus: #f4c400;
+  --conduit-warning: #f2bd71;
+  --conduit-failure: #ff7272;
+  --conduit-success: #63d69b;
+  --conduit-muted: #8c4c19;
+  /* Short aliases remain available while browser layout styles migrate to semantic names. */
+  --ink: var(--conduit-text-primary);
+  --muted: var(--conduit-text-secondary);
+  --paper: var(--conduit-background);
+  --panel: var(--conduit-reading-paper);
+  --field: var(--conduit-bootstrap-surface);
+  --line: #183d61;
+  --green: var(--conduit-structure-primary);
+  --green-dark: var(--conduit-text-primary);
+  --amber: var(--conduit-emphasis);
+  --focus: var(--conduit-focus);
+  --failure: var(--conduit-failure);
+  --conduit-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --conduit-font-editorial: Georgia, "Times New Roman", serif;
+  --conduit-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --conduit-type-body: 16px;
+  --conduit-type-small: 14px;
+  --conduit-line-height: 150%;
+  --conduit-space-unit: 4px;
+  --conduit-space-control-inline: 10px;
+  --conduit-space-control-block: 7px;
+  --conduit-space-panel: 13px;
+  --conduit-radius-control: 6px;
+  --conduit-radius-panel: 9px;
+  --conduit-focus-width: 3px;
+  --conduit-responsive-breakpoint: 720px;
+  --conduit-responsive-grid-min: 260px;
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --conduit-background: #eef5f8;
+    --conduit-reading-paper: #ffffff;
+    --conduit-workbench-canvas: #e5eff4;
+    --conduit-bootstrap-surface: #f7fbfd;
+    --conduit-surface: #ffffff;
+    --conduit-structure-primary: #00758c;
+    --conduit-structure-secondary: #9ab8d1;
+    --conduit-text-primary: #17364d;
+    --conduit-text-secondary: #496b82;
+    --conduit-emphasis: #9a5b00;
+    --conduit-focus: #775d00;
+    --conduit-warning: #8a5200;
+    --conduit-failure: #a32d37;
+    --conduit-success: #08784e;
+    --conduit-muted: #7b654f;
+    --line: #b8cfdd;
+    --green-dark: #174f68;
+    color-scheme: light;
+  }
+}
+:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+.conduit-skip-link {
+  position: fixed; z-index: 2147483647; inset-block-start: var(--conduit-space-unit); inset-inline-start: var(--conduit-space-unit);
+  padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); border: 2px solid var(--conduit-focus);
+  border-radius: var(--conduit-radius-control); color: var(--conduit-background); background: var(--conduit-focus);
+  font: 700 var(--conduit-type-small)/1.2 var(--conduit-font-body); text-decoration: none; transform: translateY(calc(-100% - 1rem));
+}
+.conduit-skip-link:focus { outline: var(--conduit-focus-width) solid var(--conduit-background); outline-offset: 2px; transform: none; }
+.visually-hidden { position:absolute!important; inline-size:1px!important; block-size:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip-path:inset(50%)!important; white-space:nowrap!important; border:0!important; }
+:where([data-application-syntax="conduit"]) { position: relative; min-width: 0; }
+:where([data-application-syntax="conduit"] .syntax-editor) { position: relative; width: 100%; height: 100%; min-width: 0; color:#e9f1ec; background:#071018; }
+:where([data-application-syntax="conduit"] .syntax-highlight) {
+  position: absolute; inset: 0; z-index: 0; margin: 0; padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
+  white-space: pre-wrap; overflow-wrap: normal;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea {
+  display: block; width: 100%; border: 0;
+  padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
+  -webkit-text-fill-color: transparent;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea::selection {
+  /* Selection paints readable glyphs above the backdrop. */
+  color: #fff; background: rgb(119 218 168 / 45%); -webkit-text-fill-color: #fff;
+}
+:where(.syntax-comment) { color: #91aa9d; font-style: italic; }
+:where(.syntax-keyword) { color: #ffcf70; font-weight: 750; }
+:where(.syntax-name) { color: #e9f1ec; }
+:where(.syntax-identity) { color: #8ddfc0; }
+:where(.syntax-string) { color: #ffd7a0; }
+:where(.syntax-number, .syntax-literal) { color: #d9b8ff; }
+:where(.syntax-operator) { color: #ff9f8f; }
+:where(.syntax-delimiter) { color: #b9cbc1; }
+:where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="choice-group"]) { display:grid; gap:var(--conduit-space-unit); min-inline-size:0; margin:0; padding:0; border:0; }
+:where([data-application-component="choice-group-label"]) { margin-block-end:var(--conduit-space-unit); font-weight:700; }
+:where([data-application-component="choice-option-label"]) { display:flex; align-items:center; gap:var(--conduit-space-unit); width:max-content; cursor:pointer; }
+:where(input[type="checkbox"], input[type="radio"])[data-application-component] { appearance:auto; inline-size:1.1rem; block-size:1.1rem; margin:0; padding:0; accent-color:var(--conduit-emphasis); cursor:pointer; }
+:where([data-application-component="choice-option-label"]):has(input:focus-visible) { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:2px; }
+:where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
+:where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
+:where([data-application-key="product-masthead"]) { min-height:3.75rem; padding:.7rem max(1.25rem,calc((100vw - 96rem)/2)); display:flex; align-items:center; justify-content:space-between; gap:1.5rem; color:var(--conduit-text-primary); background:var(--conduit-surface); border-bottom:1px solid var(--conduit-structure-secondary); font-size:.82rem; }
+:where([data-application-key="product-navigation"]) { position:static; inset:auto; flex:1; width:auto; max-width:none; margin:0; padding:0; display:flex; align-items:center; flex-wrap:wrap; gap:1.35rem; border:0; background:transparent; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]) { color:var(--conduit-text-secondary); text-decoration:none; font-weight:720; letter-spacing:.02em; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):hover { color:var(--conduit-text-primary); }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
+:where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
+:where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
+:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:var(--conduit-font-mono); letter-spacing:.08em; }
+:where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
+@media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }
+:where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
+  padding: var(--conduit-space-panel);
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-panel);
+  background: var(--conduit-surface);
+}
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component] {
+  padding: var(--conduit-space-control-block, .65rem) var(--conduit-space-control-inline, 1rem);
+  color: inherit;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-control, .6rem);
+  background: var(--conduit-surface);
+  font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] input:not([type="checkbox"]):not([type="radio"]), [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary) {
+  min-height: 2.5rem; padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); color: inherit;
+  border: 1px solid var(--conduit-structure-secondary); border-radius: var(--conduit-radius-control); background: var(--conduit-surface); font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] select) { font-weight: 650; cursor: pointer; }
+:where([data-application-theme] button, [data-application-theme] select):disabled { cursor: not-allowed; opacity: .48; }
+:where([data-application-theme] button, [data-application-theme] input, [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary, [data-application-theme] a):focus-visible {
+  border-color: var(--conduit-focus); outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: 2px;
+}
+:where(button[data-application-component]) {
+  min-height: 2.5rem;
+  border-color: color-mix(in srgb, var(--conduit-structure-primary) 58%, var(--conduit-structure-secondary));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--conduit-structure-primary) 10%, var(--conduit-surface)), var(--conduit-surface));
+  box-shadow: inset 0 1px rgb(255 255 255 / 10%), 0 2px 0 color-mix(in srgb, var(--conduit-structure-secondary) 72%, #000);
+  font-weight: 720;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+:where(button[data-application-component]:not(:disabled)):hover { color:var(--conduit-emphasis); border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000),0 0 1rem color-mix(in srgb,var(--conduit-structure-primary) 16%,transparent); transform:translateY(-1px); }
+:where(button[data-application-component]:not(:disabled)):active { box-shadow:inset 0 1px 4px rgb(0 0 0 / 35%); transform:translateY(1px); }
+:where(button[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(select[data-application-component]) {
+  min-height:2.5rem; appearance:none; padding-inline-end:2.7rem;
+  border-color:color-mix(in srgb,var(--conduit-structure-primary) 58%,var(--conduit-structure-secondary));
+  background-image:linear-gradient(45deg,transparent 50%,var(--conduit-emphasis) 50%),linear-gradient(135deg,var(--conduit-emphasis) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 10%,var(--conduit-surface)),var(--conduit-surface));
+  background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat;
+  box-shadow:inset 0 1px rgb(255 255 255 / 10%),0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 72%,#000); font-weight:650; cursor:pointer;
+  transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease;
+}
+:where(select[data-application-component]:not(:disabled)):hover { border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000); transform:translateY(-1px); }
+:where(select[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component]:focus-visible {
+  border-color: var(--conduit-focus);
+  outline: var(--conduit-focus-width) solid var(--conduit-focus);
+  outline-offset: 2px;
+}
+:where([data-application-status="ordinary"]) { color: var(--conduit-text-secondary); }
+:where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
+:where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
+:where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
+:where([data-application-theme][data-conduit-contrast="high"]) {
+  --conduit-surface: var(--conduit-background) !important;
+  --conduit-text-secondary: var(--conduit-text-primary) !important;
+  --conduit-structure-secondary: var(--conduit-focus) !important;
+}
+@media (max-width: 720px) {
+  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
+
+/* Shared by the homepage, handbook, and every documentary page. */
+* { box-sizing: border-box; }
+html { color-scheme: dark light; scroll-behavior: smooth; }
+body { margin: 0; background: var(--conduit-background); color: var(--conduit-text-primary); font: 400 1rem/1.65 var(--conduit-font-body, system-ui, sans-serif); }
+a { color: var(--conduit-emphasis); text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
+.site-header { width: 100%; display: flex; align-items: center; gap: 2rem; padding: 1rem max(1.25rem, calc((100vw - 88rem)/2)); background: var(--conduit-surface); border-bottom: 1px solid var(--conduit-structure-secondary); }
+.site-header a { color: var(--conduit-text-secondary); text-decoration: none; font-size: .9rem; white-space: nowrap; }
+.site-header .site-brand { color: var(--conduit-text-primary); font-size: 1.15rem; font-weight: 750; }
+.site-header nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.4rem; margin: 0; }
+.site-header .site-source { margin-left: auto; }
+.site-header a:hover, .site-header a[aria-current="page"] { color: var(--conduit-emphasis); }
+.site-header a[aria-current="page"] { text-decoration: underline; text-underline-offset: .45em; }
+.site-content { width: min(78rem, calc(100% - 3rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 5rem) 0; }
+.site-content h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; letter-spacing: -.04em; margin: .4rem 0 1.4rem; }
+.site-content h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.2; }
+.site-content .lede { max-width: 65ch; font-size: 1.2rem; color: var(--conduit-text-secondary); }
+.site-content .eyebrow { font-size: .8rem; color: var(--conduit-text-secondary); }
+.site-content img, .site-content video { display: block; width: 100%; height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.site-content figure { margin: 1.5rem 0; }
+.site-content figcaption { color: var(--conduit-text-secondary); font-size: .95rem; margin-top: .6rem; }
+.site-content details { border-top: 1px solid var(--conduit-structure-secondary); padding: 1rem 0; margin-top: 1.5rem; overflow-wrap: anywhere; }
+.site-content summary { cursor: pointer; }
+.journey-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin: 2rem 0 3rem; }
+.journey-card { padding: 1.5rem; background: var(--conduit-surface); border: 1px solid var(--conduit-structure-secondary); border-radius: .6rem; }
+.journey-card h2, .journey-card h3 { margin-top: 0; }
+.journey-steps { list-style: none; padding: 0; counter-reset: journey-step; }
+.journey-step { counter-increment: journey-step; padding: 2rem 0; border-top: 1px solid var(--conduit-structure-secondary); }
+.journey-step h2::before { content: counter(journey-step, decimal-leading-zero) "  "; color: var(--conduit-text-secondary); }
+.journey-step p { max-width: 70ch; }
+.recording-note { color: var(--conduit-text-secondary); font-size: .95rem; }
+@media (max-width: 50rem) { .site-header { gap: .8rem 1.2rem; flex-wrap: wrap; } .site-header nav { order: 3; width: 100%; gap: .65rem 1.2rem; } .site-content { width: calc(100% - 2rem); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style><link rel="stylesheet" href="handbook.css"><link rel="stylesheet" href="svg-viewport.css"><script type="module" src="handbook.mjs"></script><meta name="conduit-application-package" content="application.application.json"></head><body class="handbook-page handbook-page-Conduitese-by-example" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="site-header"><a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a><nav aria-label="Main navigation"><a data-section="home" href="/conduit/">Home</a><a data-section="journeys" href="/conduit/journeys/">Journeys</a><a data-section="handbook" aria-current="page" href="/conduit/handbook/">Handbook</a><a data-section="downloads" href="/conduit/#get-conduit">Downloads</a><a data-section="workspace" href="/conduit/workspace/">Open Conduit</a></nav><a class="site-source" href="https://github.com/dancxjo/conduit">Source</a></header>
+<div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a aria-current="page" href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Plot-diagrams.html">Plot diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li><a href="Start-here.html">Start here</a></li>
+<li><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></li>
+<li><a href="State-time-and-data.html">State, time and data</a></li>
+<li><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></li>
+<li><a href="Face-Mask-and-Show.html">Face, mask and show</a></li>
+<li><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Plots-and-flow.html">Plots and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Section 5 of 23</p><h1>Conduitese by example</h1><p>This page starts with source that exists in the current <code>dev</code> tree, then moves into newer canonical surfaces.</p>
+<h2 id="hello-a-finite-pipeline">Hello: a finite pipeline</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/hello/main.conduit">plots/hello/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">hello</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">upper</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/text</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-string">&quot;Hello, world.&quot;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">upper</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">show</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/hello.svg" alt="The hello plot as connected gears" /></p>
+<p>There is no explicit main function, process, display handle, or stdout. The plot composes semantic work. The full stop says drain completes the plot.</p>
+<h2 id="clock-a-standing-live-plot">Clock: a standing live plot</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/clock/main.conduit">plots/clock/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">clock-demo</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">time/every</span><span class="syntax-delimiter">(</span><span class="syntax-number">1s</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">clock</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/tick</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/clock-demo.svg" alt="The clock demo plot as connected gears" /></p>
+<p>No trailing full stop. The plot remains alive between ticks.</p>
+<h2 id="memory-lantern-input-editing-and-current">Memory Lantern: input, editing, and Current</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/main.conduit">plots/memory-lantern/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">memory_lantern</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">keyboard</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/keyboard</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">keymap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/keymap</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">message</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/edit</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">256</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/text</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-identity">keyboard.key</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">keymap.key</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">keymap.text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">message.fragment</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">message.current</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">show.text</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The editor exposes current text. The plot does not own a window, DOM node, terminal, or framebuffer.</p>
+<h2 id="pocket-theremin-quantities-and-retained-state">Pocket Theremin: quantities and retained state</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/pocket-theremin/main.conduit">plots/pocket-theremin/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">pocket-theremin</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">distance</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Distance</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">audio</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/pcm-frames</span><span class="syntax-operator">@</span><span class="syntax-number">1</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">map</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/map-distance-frequency</span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">source-minimum</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">0cm</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">source-maximum</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">30cm</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">target-minimum</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">220Hz</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">target-maximum</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">880Hz</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frequency</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep</span><span class="syntax-whitespace"> </span><span class="syntax-name">Frequency</span><span class="syntax-delimiter">(</span><span class="syntax-number">440Hz</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">for</span><span class="syntax-whitespace"> </span><span class="syntax-name">this</span><span class="syntax-whitespace"> </span><span class="syntax-name">play</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">tone</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/tone</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">distance</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">map.distance</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">map.frequency</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">frequency</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frequency</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">tone.frequency</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">tone.audio</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">audio</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-literal">.</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The units are semantic. The <code>keep</code> is current frequency state. Browser audio, hosted audio, or a future native realization can sit behind the same meaning.</p>
+<p>The <code>@1</code> catalog spelling in some current-tree examples is implementation/migration history, not a reason to invent new version-suffix syntax in authored canon.</p>
+<h2 id="button-across-the-room-meaning-without-transport">Button across the room: meaning without transport</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/button-across-room/main.conduit">plots/button-across-room/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">button_across_room</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">button</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/button</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">state</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">input/button-indicator-state</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">indicator</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/indicator-state</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">button</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">state</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">indicator</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Nothing here says whether button and indicator are on the same host. If planning places them apart, a line may realize the crossing cord.</p>
+<h2 id="desk-telegraph-reusable-plots-as-gears">Desk Telegraph: reusable plots as gears</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/desk-telegraph/main.conduit">plots/desk-telegraph/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">text-record</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">text</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">record</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">TypedRecord</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wrap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">record/text-to-typed</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">wrap.text</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">wrap.record</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">record</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">bounded-record-send</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">maximum-items</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">maximum-frame-bytes</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4096</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frame</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FramedTypedRecord</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queued</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FramedTypedRecord</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">queue</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">record/ordered-send-queue</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-frame-bytes</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">frame</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queue</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">queued</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>These are two complete declarations excerpted from the larger Desk Telegraph source. A plot can itself define reusable semantic work and then be invoked like another kind.</p>
+<h2 id="firefly-choir-omission-is-semantic-composition">Firefly Choir: omission is semantic composition</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/firefly-choir/main.conduit">plots/firefly-choir/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">pulse-manifestation</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">tick</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">value/tick</span><span class="syntax-operator">@</span><span class="syntax-number">1</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">observe</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">time/pulse-observe</span><span class="syntax-delimiter">(</span><span class="syntax-name">period-ms</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">240</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">light</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/pulse</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">tick</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">observe.tick</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">observe.observation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">light.pulse</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/pulse-manifestation.svg" alt="The light-only pulse manifestation as connected gears" /></p>
+<p>This is light-only because there is no tone gear and no tone cord. Sound is not a runtime flag that a host may quietly toggle.</p>
+<h2 id="explicit-enrichment">Explicit enrichment</h2>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">pulse-light-tone-manifestation</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">tick</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">value/tick</span><span class="syntax-operator">@</span><span class="syntax-number">1</span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">observe</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">time/pulse-observe</span><span class="syntax-delimiter">(</span><span class="syntax-name">period-ms</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">240</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">light</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/pulse</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">tone</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">sound/pulse-tone</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">tick</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">observe.tick</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">observe.observation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">light.pulse</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">observe.observation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">tone.pulse</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><img src="assets/sample-diagrams/pulse-light-tone-manifestation.svg" alt="The light-and-tone pulse manifestation with explicit fan-out" /></p>
+<p>The fan-out is visible.</p>
+<h2 id="bounded-navigation-portable-intent-down-to-motion-requests">Bounded navigation: portable intent down to motion requests</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/bounded-navigation/main.conduit">plots/bounded-navigation/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">bounded-navigation</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">pose</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationPose</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">goal</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationGoal</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">traversability</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationTraversability4x4</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">time</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationTime</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">decision</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationRouteDecision</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">control</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NavigationControl</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">request</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">RoboticsMotionRequest</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">route</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">navigation/route-grid4</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">timing</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">navigation/time-parameterize</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">controller</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">navigation/local-control</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">pose</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">route.pose</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">goal</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">route.goal</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">traversability</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">route.traversability</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">time</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">route.time</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">route.decision</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">decision</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">route.decision</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">select</span><span class="syntax-delimiter">(</span><span class="syntax-identity">NavigationRouteDecision.route</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">unmatched</span><span class="syntax-operator">=</span><span class="syntax-name">drop</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">timing.route</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">time</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">timing.time</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">timing.trajectory</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">controller.trajectory</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">pose</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">controller.pose</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">time</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">controller.time</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">controller.control</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">control</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">controller.control</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">select</span><span class="syntax-delimiter">(</span><span class="syntax-identity">NavigationControl.motion</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">unmatched</span><span class="syntax-operator">=</span><span class="syntax-name">drop</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">request</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The plot ends at semantic body-motion intent. Robot authority and actuator lowering belong to the plan and host realization.</p>
+<h2 id="body-chat-application-meaning-model-choice-still-realization">body Chat: application meaning, model choice still realization</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/body-chat/main.conduit">plots/body-chat/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">body-chat</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">interaction</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FaceInteraction</span><span class="syntax-operator">...|</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">face</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Presentation</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">ui</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">chat/state</span><span class="syntax-delimiter">(</span><span class="syntax-name">title</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;Body Chat&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">history-label</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;Conversation&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">input-label</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;Message&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">submit-label</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;Send&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">status-label</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;Body&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-history-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">16</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-message-bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">256</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">submit</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">chat/submit</span><span class="syntax-delimiter">(</span><span class="syntax-name">action</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;chat/send&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-message-bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">256</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">available</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">boolean/literal</span><span class="syntax-delimiter">(</span><span class="syntax-name">value</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-literal">true</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">availability</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">chat/current-connection</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">context</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">body/conversation-context</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">prompt</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">body/chat-prompt</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">model</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">llm/generate-flow</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-input-bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4096</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-context-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-output-bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2560</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-work-units</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4096</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-history-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">0</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">text</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">llm/result-flow-to-text</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-identity">available.value</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">availability.source</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">availability.value</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">ui.live</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">ui.presentation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">face</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">interaction</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">submit.interaction</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">submit.message</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">prompt.message</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">context.context</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">prompt.context</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">prompt.human-message</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">ui.message</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">prompt.request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">model.request</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">model.result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text.result</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">text.text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">prompt.response</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">prompt.body-message</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">ui.message</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The semantic model operation is named. Provider protocol, URL, credentials, or Ollama identity do not belong in the plot.</p>
+<h2 id="a-mask-is-an-ordinary-plot">A mask is an ordinary plot</h2>
+<p>Current tree: <a href="https://github.com/dancxjo/conduit/blob/dev/plots/native-graphical-mask/main.conduit">plots/native-graphical-mask/main.conduit</a></p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">face</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">interaction</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">FaceInteraction</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">show</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">spread</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/tee</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/show-resource-source</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">render</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/resource-renderer</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">human</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">face/interaction</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">face</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">render.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">surface.show-resource</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">render.show-resource</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">spread.presentation</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">human.presentation</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">render.show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">human.show</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">render.show</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">show</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">human.interaction</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">interaction</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>mask is a role, not a special declaration or second UI language.</p>
+<h2 id="checked-refinements">Checked refinements</h2>
+<p>Canonical:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">guarded</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">32B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">not</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;root&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;admin&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">count</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1..</span><span class="syntax-operator">=</span><span class="syntax-number">100</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">64B</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">[</span><span class="syntax-name">0-9</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-identity">/</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">...</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>These relations become part of checked semantic type identity.</p>
+<h2 id="glyphs-remain-inspectable-gears">Glyphs remain inspectable gears</h2>
+<p>Canonical:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span><span class="syntax-name">a</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;&lt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">b</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;&lt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">c</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">merged</span><span class="syntax-whitespace">
+</span><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">snapshot</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The checker can always expose <code>text/upper</code>, <code>flow/merge</code>, and <code>current/sample</code> behind the concise spelling.</p>
+<h2 id="a-native-semantic-type">A native semantic type</h2>
+<p>Merged current tree:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">LinguisticOffsetBasis</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">unicode_scalar</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">utf8_byte</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The Rust binding is generated from this authored type.</p>
+<h2 id="one-type-family-exact-concrete-values">One type family, exact concrete values</h2>
+<p>The current <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit">data types</a>
+include this generic record and its bounded-text specialization:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">DataGenerationValue</span><span class="syntax-operator">&lt;</span><span class="syntax-name">T</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">namespace</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">DataGenerationNamespace</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">value</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">T</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">DataGenerationTextValue</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">DataGenerationValue</span><span class="syntax-operator">&lt;</span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4096B</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>DataGenerationNamespace</code> is defined in that same source. <code>T</code> ranges over
+checked semantic types, and the application fixes one exact finite value shape
+before play. Generated bindings consume that checked shape. The generic family
+does not imply unbounded values or a runtime type-erasure layer.</p>
+<h2 id="separate-origin-from-certainty">Separate origin from certainty</h2>
+<p>These declarations are taken from
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/human/types.conduit">the human-experience types</a>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">ExperienceOrigin</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">observation</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">human_reported</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">remembered</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">model_derived</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">imagined</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">ExperienceTemporalRole</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">current</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">recent</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">stale</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">historical</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">ExperienceCertainty</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">certain</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">uncertain</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Origin, age, and certainty are different facts. An uncertain observation and a
+certain recollection should not collapse into one flag. These finite variants
+make the distinctions available to checking and generated bindings; the
+vocabulary alone does not prove an observation happened or make every consumer
+report it honestly. That still needs the source's evidence and the consuming
+contract.</p>
+<h2 id="a-pack">A pack</h2>
+<p>Canonical:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">pack</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">version</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1.4.0</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">ship</span><span class="syntax-whitespace"> </span><span class="syntax-name">temperature</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">need</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^</span><span class="syntax-identity">2.1</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>conduit.lock</code> carries exact resolved truth. Imports grant no runtime authority.</p>
+<h2 id="body-wardrobe">body wardrobe</h2>
+<p>Canonical:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/spoken</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">roseau</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wear</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">want</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace"> </span><span class="syntax-name">over</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The body permits either mask. The optional <code>want</code> line expresses its preference;
+the comma list does not.</p>
+<h2 id="host-construction">host construction</h2>
+<p>Canonical:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-name">tiny-screen</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">conduitos/x86_64/pc</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">build</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">release</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">slots</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2MiB</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">display</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">base</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/display</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">graphics</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/graphics</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">surface</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">surface</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">display</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">display</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">bounds</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">heap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">8MiB</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">calls</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">32</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">signs</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">256</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This is construction source. A successful parse does not claim the machine booted or the display exists.</p>
+<h2 id="bounded-collection-behavior">Bounded collection behavior</h2>
+<p>A reusable plot can take exact checked behavior as a parameter. This is the
+<code>flow/each</code> wrapper from the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/activation_tests.rs">activation tests</a>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-identity">flow/each</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">result</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">transform</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">kind</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">value</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">values</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-operator">...|</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">each</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">activate</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">values</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">each.value</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">each.mapped</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">mapped</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>transform</code> is checked at specialization time. <code>activate</code> bounds its work and
+keeps each selected invocation inspectable. The wrapper's name is defined by
+this source; it is not a promise that bare <code>flow/each(...)</code> resolves everywhere.</p>
+<p>For selection, folding, scanning, and collection proof, continue with
+<a href="Current-language-surface.html#bounded-each-select-fold-and-scan">bounded activation in the reference</a>.
+That reference gives the exact body fragments, required fores, and std/browser
+proof boundaries. <a href="https://github.com/dancxjo/conduit/issues/4378">#4378</a> is
+completed work, not a remaining syntax gap.</p>
+<h2 id="a-record-owns-its-law">A record owns its law</h2>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Interval</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">start</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">end</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">where</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.start</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.end</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The law belongs to the type and is enforced when generated bindings construct
+or decode a value. See the real
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit">TextSpan declaration</a>.
+Completed <a href="https://github.com/dancxjo/conduit/issues/4639">#4639</a> carries this
+relation into consuming-plot arithmetic proofs: <code>.end - .start</code> can be proven
+safe, while <code>.end + 1</code> remains checked unless an upper bound justifies it.
+Only operations established safe by the proof lose their runtime check.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue reading</span><a href="Plot-diagrams.html">Plot diagrams<b aria-hidden="true">→</b></a></nav></main></div><script type="module" src="host/assets/browser-application-loader.mjs"></script></body></html>

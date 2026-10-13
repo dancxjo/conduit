@@ -1,0 +1,1076 @@
+{
+  "row_id": "authored-vocative-final-I",
+  "source": {
+    "finality": {
+      "final": ""
+    },
+    "material": {
+      "identity": "window8/authored-vocative-final-I",
+      "language": "language/en",
+      "revision": "window8/authored-vocative-final-I/r0",
+      "text": "I record songs, Travis."
+    },
+    "prior": {
+      "none": ""
+    },
+    "provenance": {
+      "model": {
+        "implementation": "window8/ewt-reviewed-train",
+        "revision": "version3/425-76-25"
+      }
+    },
+    "sequence": 0,
+    "stable_prefix": {
+      "none": ""
+    }
+  },
+  "tokens": [
+    {
+      "candidates": [
+        {
+          "lemma": "I",
+          "morphology": [],
+          "pos": {
+            "pronoun": ""
+          }
+        }
+      ],
+      "category": {
+        "word": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 0,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 1,
+        "start": 0,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": "I"
+    },
+    {
+      "candidates": [
+        {
+          "lemma": "record",
+          "morphology": [],
+          "pos": {
+            "noun": ""
+          }
+        },
+        {
+          "lemma": "record",
+          "morphology": [],
+          "pos": {
+            "verb": ""
+          }
+        }
+      ],
+      "category": {
+        "word": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 1,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 8,
+        "start": 2,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": "record"
+    },
+    {
+      "candidates": [
+        {
+          "lemma": "songs",
+          "morphology": [],
+          "pos": {
+            "noun": ""
+          }
+        }
+      ],
+      "category": {
+        "word": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 2,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 14,
+        "start": 9,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": "songs"
+    },
+    {
+      "candidates": [
+        {
+          "lemma": ",",
+          "morphology": [],
+          "pos": {
+            "punctuation": ""
+          }
+        }
+      ],
+      "category": {
+        "punctuation": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 3,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 15,
+        "start": 14,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": ","
+    },
+    {
+      "candidates": [
+        {
+          "lemma": "Travis",
+          "morphology": [],
+          "pos": {
+            "proper_noun": ""
+          }
+        }
+      ],
+      "category": {
+        "word": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 4,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 22,
+        "start": 16,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": "Travis"
+    },
+    {
+      "candidates": [
+        {
+          "lemma": ".",
+          "morphology": [],
+          "pos": {
+            "punctuation": ""
+          }
+        }
+      ],
+      "category": {
+        "punctuation": ""
+      },
+      "completeness": {
+        "complete": ""
+      },
+      "identity": {
+        "ordinal": 5,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "prior_occurrence": {
+        "none": ""
+      },
+      "span": {
+        "basis": {
+          "unicode_scalar": ""
+        },
+        "end": 23,
+        "start": 22,
+        "text_identity": "window8/authored-vocative-final-I",
+        "text_revision": "window8/authored-vocative-final-I/r0"
+      },
+      "surface": "."
+    }
+  ],
+  "epochs": [
+    {
+      "epoch": 0,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 4,
+          "score": 18177,
+          "selected": 1
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 5,
+          "score": -1295,
+          "selected": 1
+        },
+        {
+          "active": false,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 0,
+          "score": 0,
+          "selected": 0
+        },
+        {
+          "active": false,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1,
+          "score": 0,
+          "selected": 0
+        }
+      ]
+    },
+    {
+      "epoch": 1,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 106,
+          "score": 32405,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 33,
+          "score": 25531,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 124,
+          "score": 21730,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 13,
+          "score": 21054,
+          "selected": 2
+        }
+      ]
+    },
+    {
+      "epoch": 2,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 229,
+          "score": 41566,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 228,
+          "score": 37306,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 230,
+          "score": 30605,
+          "selected": 2
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 262,
+          "score": 29734,
+          "selected": 3
+        }
+      ]
+    },
+    {
+      "epoch": 3,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 302,
+          "score": 51266,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 308,
+          "score": 44885,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 306,
+          "score": 43876,
+          "selected": 3
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 278,
+          "score": 43850,
+          "selected": 3
+        }
+      ]
+    },
+    {
+      "epoch": 4,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 495,
+          "score": 59892,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 528,
+          "score": 55896,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 533,
+          "score": 53511,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 507,
+          "score": 52620,
+          "selected": 4
+        }
+      ]
+    },
+    {
+      "epoch": 5,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 680,
+          "score": 70989,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 685,
+          "score": 66850,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 756,
+          "score": 64608,
+          "selected": 4
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 761,
+          "score": 63574,
+          "selected": 5
+        }
+      ]
+    },
+    {
+      "epoch": 6,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 799,
+          "score": 83831,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 837,
+          "score": 77587,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 875,
+          "score": 77450,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 834,
+          "score": 74881,
+          "selected": 5
+        }
+      ]
+    },
+    {
+      "epoch": 7,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 986,
+          "score": 90576,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 951,
+          "score": 88421,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 984,
+          "score": 87638,
+          "selected": 5
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 980,
+          "score": 87180,
+          "selected": 5
+        }
+      ]
+    },
+    {
+      "epoch": 8,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1103,
+          "score": 103429,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1142,
+          "score": 100491,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1180,
+          "score": 100033,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1136,
+          "score": 94681,
+          "selected": 6
+        }
+      ]
+    },
+    {
+      "epoch": 9,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1251,
+          "score": 113029,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1289,
+          "score": 110091,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1327,
+          "score": 109633,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1331,
+          "score": 108217,
+          "selected": 6
+        }
+      ]
+    },
+    {
+      "epoch": 10,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1332,
+          "score": 128453,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1333,
+          "score": 125515,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1334,
+          "score": 125057,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1335,
+          "score": 123328,
+          "selected": 6
+        }
+      ]
+    },
+    {
+      "epoch": 11,
+      "candidates": [
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1336,
+          "score": 137657,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1337,
+          "score": 134719,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1338,
+          "score": 134261,
+          "selected": 6
+        },
+        {
+          "active": true,
+          "choices": [
+            0,
+            1,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "identity": 1339,
+          "score": 132532,
+          "selected": 6
+        }
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.32s
+     Running tests/parser_window8_lexical_fact.rs (target/debug/deps/parser_window8_lexical_fact-174c71d2e0cf5342)
+
+running 1 test
+test generated_lexical_fact_admits_agreement_and_refuses_changed_basis_choice_or_prefix ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 16.67s
+

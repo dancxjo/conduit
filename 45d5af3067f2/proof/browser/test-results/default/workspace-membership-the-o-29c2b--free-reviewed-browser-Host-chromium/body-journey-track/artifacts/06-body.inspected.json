@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "83152fb94b93af3a0cd71c8a3d90985f492a21c9",
+  "track": "browser-graphical",
+  "step_id": "body.inspected",
+  "assertion": "body-inspected",
+  "source_facts": {
+    "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+    "show_id": "b060039bf6ee078ec34e994bd7dcd2e395d5532f74dac3b733f3dec5212d532e"
+  }
+}

@@ -1,0 +1,1150 @@
+{
+  "schema": "conduit.browser/application-package@1",
+  "application_id": "conduit.application/workspace",
+  "package_digest": "sha256:d8f11a90f28940e02ffc2db2da052378f9b1a7891c0699ec9b31a3bb4ccc0b9a",
+  "state_compatibility": {
+    "identity": "conduit.application/creche-host-state",
+    "version": 1
+  },
+  "host_implementations": [
+    "browser/indexeddb@1"
+  ],
+  "resources": [
+    {
+      "role": "creche-installed-targets",
+      "kind": "module",
+      "path": "creche-installed-targets.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:9acd8a67267372fd6411764ec9920ca33fc75411f452a2f0ec7f0a39f5f53459",
+      "dependencies": [
+        {
+          "role": "creche-target-catalog",
+          "specifier": "./creche-target-catalog.mjs"
+        },
+        {
+          "role": "avr-adapter",
+          "specifier": "../../../targets/avr/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "rp2040-adapter",
+          "specifier": "../../../targets/rp2040/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "esp32-adapter",
+          "specifier": "../../../targets/esp32/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "std-adapter",
+          "specifier": "../../../targets/std/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "browser-adapter",
+          "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "orange-pi-adapter",
+          "specifier": "../../../targets/orange-pi/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "raspberry-pi-adapter",
+          "specifier": "../../../targets/raspberry-pi/deployment/browser/creche-adapter.mjs"
+        },
+        {
+          "role": "conduitos-adapter",
+          "specifier": "../../../targets/conduitos/deployment/browser/creche-adapter.mjs"
+        }
+      ]
+    },
+    {
+      "role": "application-module",
+      "kind": "module",
+      "path": "workspace.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:0e17725a53aec2d06115200a352fcf4011a72659e4e8be1d7e234e80d34e365e",
+      "dependencies": [
+        {
+          "role": "browser-host-bootstrap",
+          "specifier": "../../../targets/browser/host/assets/browser-host-bootstrap.mjs"
+        },
+        {
+          "role": "creche-lifecycle",
+          "specifier": "./body-bootstrap.mjs"
+        },
+        {
+          "role": "creche-plot-selection",
+          "specifier": "./reviewed-plot-selection.mjs"
+        },
+        {
+          "role": "workspace-session",
+          "specifier": "./workspace-session.mjs"
+        },
+        {
+          "role": "workspace-membership",
+          "specifier": "./workspace-membership.mjs"
+        },
+        {
+          "role": "workspace-play",
+          "specifier": "./workspace-play.mjs"
+        },
+        {
+          "role": "workspace-voice-play",
+          "specifier": "./workspace-voice-play.mjs"
+        },
+        {
+          "role": "workspace-tutorial-presenter-play",
+          "specifier": "./workspace-tutorial-presenter-play.mjs"
+        },
+        {
+          "role": "browser-body-continuity",
+          "specifier": "../../../targets/browser/host/assets/browser-body-continuity.mjs"
+        },
+        {
+          "role": "workspace-library",
+          "specifier": "./workspace-library.mjs"
+        },
+        {
+          "role": "workspace-handoff",
+          "specifier": "./workspace-handoff.mjs"
+        },
+        {
+          "role": "workspace-surface",
+          "specifier": "./workspace-surface.mjs"
+        },
+        {
+          "role": "creche-release-catalog",
+          "specifier": "./creche-release-catalog.mjs"
+        },
+        {
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
+        }
+      ]
+    },
+    {
+      "role": "reviewed-plot-inventory",
+      "kind": "content",
+      "path": "plots/initial-body.conduit",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:ddbe2b02236628c9a3b3ef97d90b168e5c001c0fa2a1e8dfff14cc10e5775336",
+      "dependencies": []
+    },
+    {
+      "role": "reviewed-plot-catalog",
+      "kind": "content",
+      "path": "plots/workspace-catalog.json",
+      "maximum_bytes": 131072,
+      "sha256": "sha256:85cc18a937fad6675dbb13c466495d24386917bc7d132e9410b02b4b29e3a957",
+      "dependencies": []
+    },
+    {
+      "role": "browser-host-bootstrap",
+      "kind": "module",
+      "path": "browser-host-bootstrap.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:c0fe57146d9a878b1170ac74dde218e741671bc7190f574192d0a657015305d7",
+      "dependencies": [
+        {
+          "role": "browser-host-membership",
+          "specifier": "./browser-host-membership.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-membership",
+      "kind": "module",
+      "path": "browser-host-membership.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:6466ba4bac99d4eef2d49b2ec607a906cc07afce1af1c587ddbf2b4bc6c874ce",
+      "dependencies": [
+        {
+          "role": "browser-host-identity",
+          "specifier": "./browser-host-identity.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-identity",
+      "kind": "module",
+      "path": "browser-host-identity.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:cdce12b339de291eb14d66d74509fdfb868d31a159cbd56560eedd1da5cc37f1",
+      "dependencies": []
+    },
+    {
+      "role": "creche-lifecycle",
+      "kind": "module",
+      "path": "body-bootstrap.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:00ea14e4f4bdd7645d40bae49ff0ead54fe480e95ea6d655c3c63ed920ad3b74",
+      "dependencies": [
+        {
+          "role": "application-syntax-presentation",
+          "specifier": "../../../targets/browser/host/assets/application-syntax-presentation.mjs"
+        },
+        {
+          "role": "creche-plot-selection",
+          "specifier": "./reviewed-plot-selection.mjs"
+        }
+      ]
+    },
+    {
+      "role": "creche-plot-selection",
+      "kind": "module",
+      "path": "reviewed-plot-selection.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:b667baab89d88b63dc76c1219fd74592b50e7a1da1f107a42161f5e27e1583e2",
+      "dependencies": []
+    },
+    {
+      "role": "application-syntax-presentation",
+      "kind": "module",
+      "path": "application-syntax-presentation.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:21e8f21fef6bc151d5d1e857244b36eaf54d5cd956e36dd53ceedc011fff0a28",
+      "dependencies": []
+    },
+    {
+      "role": "runtime",
+      "kind": "wasm",
+      "path": "runtime.wasm",
+      "maximum_bytes": 12582912,
+      "sha256": "sha256:811bc3e23c1856c1d1cec6fb6ad966440cb746fe0903c381fe7fe455b79bece1",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-session",
+      "kind": "module",
+      "path": "workspace-session.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:a7a109baa418d755671d1f54c89ba25d214932942e945a2f789397056862d526",
+      "dependencies": [
+        {
+          "role": "browser-runtime-bridge",
+          "specifier": "../../../targets/browser/host/assets/browser-runtime-bridge.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-runtime-bridge",
+      "kind": "module",
+      "path": "browser-runtime-bridge.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:33a159e01ff2335a175eb9783eb19f8b8b9c9ef7252aa2b69d133d0eaa6b68b0",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-membership",
+      "kind": "module",
+      "path": "workspace-membership.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:a3abd84dccdf2fe61b62aefe7b2e0d2fef3dea8be5b75c1dcbe5f22a73038498",
+      "dependencies": [
+        {
+          "role": "creche-rendezvous",
+          "specifier": "./creche-rendezvous.mjs"
+        },
+        {
+          "role": "workspace-host-configuration",
+          "specifier": "./workspace-host-configuration.mjs"
+        },
+        {
+          "role": "creche-physical",
+          "specifier": "./creche-physical.mjs"
+        },
+        {
+          "role": "creche-target-catalog",
+          "specifier": "./creche-target-catalog.mjs"
+        },
+        {
+          "role": "creche-installed-targets",
+          "specifier": "./creche-installed-targets.mjs"
+        },
+        {
+          "role": "browser-adapter",
+          "specifier": "../../../targets/browser/deployment/browser/creche-adapter.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-host-configuration",
+      "kind": "module",
+      "path": "workspace-host-configuration.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:a392b52bdb4f5014b591f4be6f0d135e0e5c6c91465b0617b07b78ad4a04a6a7",
+      "dependencies": [
+        {
+          "role": "browser-host-configuration",
+          "specifier": "./browser-host-configuration.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-configuration",
+      "kind": "module",
+      "path": "browser-host-configuration.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:d95772930d40c5a20183c6fb404dca4f4d5852ca78b766daf7c1d29d85a3f15a",
+      "dependencies": []
+    },
+    {
+      "role": "creche-rendezvous",
+      "kind": "module",
+      "path": "creche-rendezvous.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:916e9ead38fb3a56f483b8eeab1e55be10e8fbeb7e11d3800baa35825a64cde3",
+      "dependencies": [
+        {
+          "role": "rendezvous-cbor",
+          "specifier": "./rendezvous-cbor.mjs"
+        },
+        {
+          "role": "rendezvous-candidate-schedule",
+          "specifier": "./rendezvous-candidate-schedule.mjs"
+        }
+      ]
+    },
+    {
+      "role": "rendezvous-candidate-schedule",
+      "kind": "module",
+      "path": "rendezvous-candidate-schedule.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:86c385fc1a5a6f70beca84469284ba69f4816f773fe923633c88be2c589c704c",
+      "dependencies": []
+    },
+    {
+      "role": "rendezvous-cbor",
+      "kind": "module",
+      "path": "rendezvous-cbor.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:65feacf848bfe51f8299ecee61560dbe0b1e1fae06608c206bba34aba98dbd9a",
+      "dependencies": []
+    },
+    {
+      "role": "creche-physical",
+      "kind": "module",
+      "path": "creche-physical.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:8adf88952af253c0ee0f142df2574f91d2ff2f170422db526c6012d26d316626",
+      "dependencies": [
+        {
+          "role": "creche-target-catalog",
+          "specifier": "./creche-target-catalog.mjs"
+        },
+        {
+          "role": "creche-physical-presentation",
+          "specifier": "./creche-physical-presentation.mjs"
+        }
+      ]
+    },
+    {
+      "role": "creche-physical-presentation",
+      "kind": "module",
+      "path": "creche-physical-presentation.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:8bce71eb4efb7fdd3cda6f457a559edf1b42f74c3c95e7d696ac7e192418a5ab",
+      "dependencies": []
+    },
+    {
+      "role": "creche-target-catalog",
+      "kind": "module",
+      "path": "creche-target-catalog.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:22abc689cb2cc7ccf91e2fe6e292537dfdec087cfb95e02c8d55ec819f99e2b8",
+      "dependencies": []
+    },
+    {
+      "role": "creche-existing-computer",
+      "kind": "module",
+      "path": "creche-existing-computer.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:99b2e39327f2e257dc8f2bf811cae4c3cb655e133d47e6b05f6187ca984526f8",
+      "dependencies": [
+        {
+          "role": "creche-release-catalog",
+          "specifier": "./creche-release-catalog.mjs"
+        },
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "./creche-spore-bundle.mjs"
+        },
+        {
+          "role": "creche-native-zip",
+          "specifier": "./creche-native-zip.mjs"
+        },
+        {
+          "role": "creche-target-catalog",
+          "specifier": "./creche-target-catalog.mjs"
+        },
+        {
+          "role": "creche-rendezvous",
+          "specifier": "./creche-rendezvous.mjs"
+        }
+      ]
+    },
+    {
+      "role": "creche-rendezvous-candidates",
+      "kind": "module",
+      "path": "creche-rendezvous-candidates.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:ca8f253d321f88923d94137616b1781d55e64c2060f6d355dc045d988bb3d145",
+      "dependencies": []
+    },
+    {
+      "role": "creche-release-bundle",
+      "kind": "module",
+      "path": "creche-release-bundle.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:ba32b8154b28f1b75ecc870dfd4d9f34a2853fadac463e42370da41fae87a269",
+      "dependencies": []
+    },
+    {
+      "role": "creche-release-catalog",
+      "kind": "module",
+      "path": "creche-release-catalog.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:659f40863a7f7f4c9986f21166235673982e63a1775b159c6e96d026c6aa464c",
+      "dependencies": [
+        {
+          "role": "creche-release-bundle",
+          "specifier": "./creche-release-bundle.mjs"
+        }
+      ]
+    },
+    {
+      "role": "creche-spore-bundle",
+      "kind": "module",
+      "path": "creche-spore-bundle.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:9fdd4367bc8a52b1425f2316231811b3ea6ea5be165e0bf191518392f305f693",
+      "dependencies": [
+        {
+          "role": "creche-rendezvous-candidates",
+          "specifier": "./creche-rendezvous-candidates.mjs"
+        }
+      ]
+    },
+    {
+      "role": "creche-native-zip",
+      "kind": "module",
+      "path": "creche-native-zip.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:83304d33d3ecf9a11569263bd2814fa82580917fae470b279578f4af16a9a8ec",
+      "dependencies": [
+        {
+          "role": "creche-rendezvous-candidates",
+          "specifier": "./creche-rendezvous-candidates.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-adapter",
+      "kind": "module",
+      "path": "targets/browser/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:a0c3a1114b1eed8421360c47d705f12fddf502c6f2f2c0f8c6b26abd2d6bd91f",
+      "dependencies": [
+        {
+          "role": "creche-existing-computer",
+          "specifier": "../../../creche-existing-computer.mjs"
+        },
+        {
+          "role": "browser-host-configuration",
+          "specifier": "../../../browser-host-configuration.mjs"
+        },
+        {
+          "role": "creche-release-bundle",
+          "specifier": "../../../creche-release-bundle.mjs"
+        },
+        {
+          "role": "browser-bundle-builder",
+          "specifier": "./browser-bundle.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-bundle-builder",
+      "kind": "module",
+      "path": "targets/browser/browser-deployment/browser-bundle.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:52168b41e85ce0839037e8048932f43d4ee179e129f171dfd043d9a57fd5245a",
+      "dependencies": []
+    },
+    {
+      "role": "creche-native-disk",
+      "kind": "module",
+      "path": "creche-native-disk.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:75ebf88ee5f1772ba232c7445af626abd45548ec9156be461bab24a7144689b2",
+      "dependencies": [
+        {
+          "role": "creche-rendezvous-candidates",
+          "specifier": "./creche-rendezvous-candidates.mjs"
+        }
+      ]
+    },
+    {
+      "role": "avr-adapter",
+      "kind": "module",
+      "path": "targets/avr/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:af76f1ce6b69eabf274e75b9289e57e738cdb541f4f4941ffb2af9e35890a9b5",
+      "dependencies": [
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        },
+        {
+          "role": "avr-image",
+          "specifier": "./image.mjs"
+        }
+      ]
+    },
+    {
+      "role": "avr-image",
+      "kind": "module",
+      "path": "targets/avr/browser-deployment/image.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:29e9cb803557111a04eb11c44d6fd83a05c486124c2f9c9c37d33cb12016322b",
+      "dependencies": []
+    },
+    {
+      "role": "conduitos-adapter",
+      "kind": "module",
+      "path": "targets/conduitos/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:be733b3f8be7e9dd3d0acfe1f79a7d0bc4c0e73966fae4bd8f87925837aa8fa7",
+      "dependencies": [
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        },
+        {
+          "role": "creche-native-disk",
+          "specifier": "../../../creche-native-disk.mjs"
+        },
+        {
+          "role": "conduitos-image",
+          "specifier": "./image.mjs"
+        }
+      ]
+    },
+    {
+      "role": "conduitos-image",
+      "kind": "module",
+      "path": "targets/conduitos/browser-deployment/image.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:91ca6f444100968d603ff9175c4934c977b92853115a7459d2b5b5a6a10921b0",
+      "dependencies": []
+    },
+    {
+      "role": "esp32-adapter",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:f31bc39b5f41cdfc180a35349efaa65f0f1d598d1aadc34968719f1841604bf7",
+      "dependencies": [
+        {
+          "role": "device-base",
+          "specifier": "../../../device-base.mjs"
+        },
+        {
+          "role": "rp2040-spawn",
+          "specifier": "../../rp2040/browser-deployment/spawn.mjs"
+        },
+        {
+          "role": "esp32-deployment",
+          "specifier": "./deployment.mjs"
+        },
+        {
+          "role": "esp32-image",
+          "specifier": "./image.mjs"
+        },
+        {
+          "role": "esp32-release",
+          "specifier": "./release.mjs"
+        },
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        }
+      ]
+    },
+    {
+      "role": "esp32-release",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/release.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:9508441252d1ce69310e5cb52ed663152b24af8aa2e2790d0f589e1e433b431c",
+      "dependencies": []
+    },
+    {
+      "role": "esp32-deployment",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/deployment.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:15dbd8c1005e96aaabde5e947415c1e0163021664023a2d2ca9ce54fd9ae1700",
+      "dependencies": [
+        {
+          "role": "esp32-image",
+          "specifier": "./image.mjs"
+        },
+        {
+          "role": "esp32-rom-loader",
+          "specifier": "./rom-loader.mjs"
+        },
+        {
+          "role": "esp32-reset",
+          "specifier": "./reset.mjs"
+        }
+      ]
+    },
+    {
+      "role": "esp32-image",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/image.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:712507d8136a1354a39460d9c863259acfe63f681616d24c99566b1fb0d33f23",
+      "dependencies": [
+        {
+          "role": "esp32-md5",
+          "specifier": "./md5.mjs"
+        }
+      ]
+    },
+    {
+      "role": "esp32-md5",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/md5.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:2e1cd42bef183dc5bcd15f2fde8081dcbc7a3b31b3531aa5a861e084b22c4ae9",
+      "dependencies": []
+    },
+    {
+      "role": "esp32-reset",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/reset.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:8d4bc07c91ef0df6c7cfcae02e845245b9c67fd85e6dbdd0ab9b2ecadf51e85d",
+      "dependencies": []
+    },
+    {
+      "role": "esp32-rom-loader",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/rom-loader.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:60989c1af3b8ddf5f40071ec61bada10ddef89905ca90294bf81b02232f02d49",
+      "dependencies": [
+        {
+          "role": "esp32-slip",
+          "specifier": "./slip.mjs"
+        }
+      ]
+    },
+    {
+      "role": "esp32-slip",
+      "kind": "module",
+      "path": "targets/esp32/browser-deployment/slip.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:15df2a462948fc8947400e260a47f509b4b521214680e720e6d147bcc28283cc",
+      "dependencies": []
+    },
+    {
+      "role": "orange-pi-adapter",
+      "kind": "module",
+      "path": "targets/orange-pi/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:e8ba61090b3b0e48243c9bc3289bd08146ace159528201c975c5a53a1c4c8d69",
+      "dependencies": [
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        },
+        {
+          "role": "creche-native-disk",
+          "specifier": "../../../creche-native-disk.mjs"
+        },
+        {
+          "role": "orange-pi-image",
+          "specifier": "./image.mjs"
+        }
+      ]
+    },
+    {
+      "role": "orange-pi-image",
+      "kind": "module",
+      "path": "targets/orange-pi/browser-deployment/image.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:1e669790cc1825cf05afb6e3413c2aa9844c87f15d6fd75c4f2185372db46a28",
+      "dependencies": []
+    },
+    {
+      "role": "raspberry-pi-adapter",
+      "kind": "module",
+      "path": "targets/raspberry-pi/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:c6bce024b0f64070ddbdd24516a85eebba512595be3a5606f30339548b10269d",
+      "dependencies": [
+        {
+          "role": "creche-existing-computer",
+          "specifier": "../../../creche-existing-computer.mjs"
+        },
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        },
+        {
+          "role": "creche-native-disk",
+          "specifier": "../../../creche-native-disk.mjs"
+        },
+        {
+          "role": "raspberry-pi-image",
+          "specifier": "./image.mjs"
+        }
+      ]
+    },
+    {
+      "role": "raspberry-pi-image",
+      "kind": "module",
+      "path": "targets/raspberry-pi/browser-deployment/image.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:284b5f15910b0419ac000054a6761cf37f690805be42809bb4344da3f494222b",
+      "dependencies": []
+    },
+    {
+      "role": "rp2040-adapter",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:a25eed05c32d98ea49d0d902a1b4059040d09f7fbfcc73855677ad4daef66759",
+      "dependencies": [
+        {
+          "role": "device-base",
+          "specifier": "../../../device-base.mjs"
+        },
+        {
+          "role": "usb-device-base",
+          "specifier": "../../../usb-device-base.mjs"
+        },
+        {
+          "role": "rp2040-deployment",
+          "specifier": "./deployment.mjs"
+        },
+        {
+          "role": "rp2040-make",
+          "specifier": "./make.mjs"
+        },
+        {
+          "role": "rp2040-spawn",
+          "specifier": "./spawn.mjs"
+        },
+        {
+          "role": "creche-spore-bundle",
+          "specifier": "../../../creche-spore-bundle.mjs"
+        }
+      ]
+    },
+    {
+      "role": "rp2040-deployment",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/deployment.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:f53e11efb0d58e911e2c7d9d3f0c898a6782f2a062d4cd5c80997cfc0e553ae8",
+      "dependencies": [
+        {
+          "role": "rp2040-picoboot",
+          "specifier": "./picoboot.mjs"
+        },
+        {
+          "role": "rp2040-uf2",
+          "specifier": "./uf2.mjs"
+        }
+      ]
+    },
+    {
+      "role": "rp2040-make",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/make.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:82d75d8bc0308f668c3e37c2966c483019a535ef4068ab432d81ceb168e7c6f3",
+      "dependencies": [
+        {
+          "role": "rp2040-uf2",
+          "specifier": "./uf2.mjs"
+        }
+      ]
+    },
+    {
+      "role": "rp2040-picoboot",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/picoboot.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:82690686ce4c852096cca713cd7f5ca7880cf5d113eb784fdf8bdd951fd58d18",
+      "dependencies": []
+    },
+    {
+      "role": "rp2040-spawn",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/spawn.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:ad4094c10b32304c636e82736431fc04bd9997074ad65fe19303b40e715a92e2",
+      "dependencies": []
+    },
+    {
+      "role": "rp2040-uf2",
+      "kind": "module",
+      "path": "targets/rp2040/browser-deployment/uf2.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:3401c8edcf9955c6f98a242bd75b64452ee41736594118fcf5fc304ca9d21c3b",
+      "dependencies": []
+    },
+    {
+      "role": "std-adapter",
+      "kind": "module",
+      "path": "targets/std/browser-deployment/creche-adapter.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:119db3a19a64675a3e700c15c172b5d0bf62a36446f4ba5b43c66c809ef46350",
+      "dependencies": [
+        {
+          "role": "creche-existing-computer",
+          "specifier": "../../../creche-existing-computer.mjs"
+        }
+      ]
+    },
+    {
+      "role": "device-base",
+      "kind": "module",
+      "path": "device-base.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:9257f42f723df21e42a6bcc205fb6924b0f8d5645d1424bbb372c17d1c0cb8d3",
+      "dependencies": []
+    },
+    {
+      "role": "usb-device-base",
+      "kind": "module",
+      "path": "usb-device-base.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:a6564ddc75bce96878da828698d6e9517b16befa81c188b3e645969685f62bd7",
+      "dependencies": []
+    },
+    {
+      "role": "shared-presentation-style",
+      "kind": "style",
+      "path": "conduit.css",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:8b84a6c5e4c6af377a5e90723d477831247ee69486afde6c1b96c711b2e54099",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-style",
+      "kind": "style",
+      "path": "workspace.css",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:8703f6f3ccbfc4892d8d3d07518daf4b91a9050cf806497a593746bc188e6388",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-web-manifest",
+      "kind": "content",
+      "path": "workspace.webmanifest",
+      "maximum_bytes": 2048,
+      "sha256": "sha256:0062d23e7028c6e60ab1904f7cc61824dc5a06e1607797f780d8e761f4b782eb",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-install-icon",
+      "kind": "content",
+      "path": "workspace-icon.svg",
+      "maximum_bytes": 2048,
+      "sha256": "sha256:380237481f6790d37653e24d8bf579a4a811426475c40857359ed88b1ff10e57",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-share-target-worker",
+      "kind": "content",
+      "path": "workspace-share-target-sw.js",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:39410a979aaf972a4b8dc62856e636e3c14949e7f4354904886e64fbbb5cf1d5",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-play",
+      "kind": "module",
+      "path": "workspace-play.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:e5503229cc1cdf379ffddd331885a0e5c6a0a1e6e8e02b33d4e9c0b60630f9f5",
+      "dependencies": [
+        {
+          "role": "browser-body-host",
+          "specifier": "../../../targets/browser/host/assets/browser-body-host.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-body-continuity",
+      "kind": "module",
+      "path": "browser-body-continuity.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:d7d576705fca7d44414de374bca4ef82057ed92e2e9e7cc0b0de3e5b0828cf36",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-voice-play",
+      "kind": "module",
+      "path": "workspace-voice-play.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:f296d96afb56ba9dbbbb8535600a0312b18d688bcd76f53559589c8eb1bbca88",
+      "dependencies": [
+        {
+          "role": "browser-remote-fragment",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-fragment.mjs"
+        },
+        {
+          "role": "browser-remote-voice",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-voice.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-tutorial-presenter-play",
+      "kind": "module",
+      "path": "workspace-tutorial-presenter-play.mjs",
+      "maximum_bytes": 12288,
+      "sha256": "sha256:b02dcc21cb7edab71f8c5cae880da3711eaa2010ec48f88dd0e1f6c0ab637a6e",
+      "dependencies": [
+        {
+          "role": "browser-remote-fragment",
+          "specifier": "../../../targets/browser/host/assets/browser-remote-fragment.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-remote-fragment",
+      "kind": "module",
+      "path": "browser-remote-fragment.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:0d6f25cf748952e80d02d8d556bc1ee510c87cf6ce9b907a12044a6a75729d93",
+      "dependencies": []
+    },
+    {
+      "role": "browser-remote-voice",
+      "kind": "module",
+      "path": "browser-remote-voice.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:581ea55ac823dba8ec1604a7c3ca9b876863d734259b0c4977958eaea2d58ee0",
+      "dependencies": [
+        {
+          "role": "browser-pcm-audio",
+          "specifier": "./browser-pcm-audio.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-body-host",
+      "kind": "module",
+      "path": "browser-body-host.mjs",
+      "maximum_bytes": 32768,
+      "sha256": "sha256:bc5746866c2539336c9dfd5fdd67c705355842d5841f19d6d3055712bb3f68f6",
+      "dependencies": [
+        {
+          "role": "browser-human-input",
+          "specifier": "./browser-human-input.mjs"
+        },
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
+        },
+        {
+          "role": "browser-monotonic-timer",
+          "specifier": "./browser-monotonic-timer.mjs"
+        },
+        {
+          "role": "browser-body-input",
+          "specifier": "./browser-body-input.mjs"
+        },
+        {
+          "role": "browser-audio-cue",
+          "specifier": "./browser-audio-cue.mjs"
+        },
+        {
+          "role": "browser-pcm-audio",
+          "specifier": "./browser-pcm-audio.mjs"
+        },
+        {
+          "role": "application-presentation",
+          "specifier": "./application-presentation.mjs"
+        },
+        {
+          "role": "browser-runtime-bridge",
+          "specifier": "./browser-runtime-bridge.mjs"
+        },
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
+        },
+        {
+          "role": "browser-resource-storage",
+          "specifier": "./browser-resource-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-application-storage",
+      "kind": "module",
+      "path": "browser-application-storage.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:7cec567e6ee6bfbe6fe507ec93437597332de8c56ec3f54a8f2c8c5efad3615a",
+      "dependencies": []
+    },
+    {
+      "role": "browser-resource-storage",
+      "kind": "module",
+      "path": "browser-resource-storage.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:7bf7157800cc1e3ae0349077fde7f0fb13bfccceeca1e50fdd6af5ca75e8046f",
+      "dependencies": [
+        {
+          "role": "browser-application-storage",
+          "specifier": "./browser-application-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-monotonic-timer",
+      "kind": "module",
+      "path": "browser-monotonic-timer.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:19f2f95b66d8587e0da7e6c51b7a8d7eee8dbf7416ed588ee9d7fd1a0db84001",
+      "dependencies": [
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "application-presentation",
+      "kind": "module",
+      "path": "application-presentation.mjs",
+      "maximum_bytes": 40960,
+      "sha256": "sha256:eff7d5c0eb05c0e310688a958fb46f348742279c9cbdfff6777a6654f9158a09",
+      "dependencies": [
+        {
+          "role": "application-graph-canvas",
+          "specifier": "./application-graph-canvas.mjs"
+        },
+        {
+          "role": "application-theme",
+          "specifier": "./application-theme.mjs"
+        }
+      ]
+    },
+    {
+      "role": "application-graph-canvas",
+      "kind": "module",
+      "path": "application-graph-canvas.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:90106d2d95425ab652e33f5295f0dab743ff6e65c048041f29bb0fde2f289dc7",
+      "dependencies": []
+    },
+    {
+      "role": "application-theme",
+      "kind": "module",
+      "path": "application-theme.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:7fc4ef854ae08ba3e75db208087c27385d628c8eb6e42300ffc7ea2657ccbcc8",
+      "dependencies": []
+    },
+    {
+      "role": "browser-human-input",
+      "kind": "module",
+      "path": "browser-human-input.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:cb4f28b41f2b9fe402c277e3ee911b320d34c52e2a7e8468fe41a19af2fb752d",
+      "dependencies": []
+    },
+    {
+      "role": "browser-plot-effects",
+      "kind": "module",
+      "path": "browser-plot-effects.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:2a657bf2a56a192e46065bbd0e96f5c9dbfaf59fc278707ca4b6a4fb59ebffe8",
+      "dependencies": []
+    },
+    {
+      "role": "browser-body-input",
+      "kind": "module",
+      "path": "browser-body-input.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:68abd39b1475aa0201292a97085ca9d67aeb491de0724432e1335d62dad49866",
+      "dependencies": [
+        {
+          "role": "browser-human-input",
+          "specifier": "./browser-human-input.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-audio-cue",
+      "kind": "module",
+      "path": "browser-audio-cue.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:107abea252796042aeef8678cb7de652314fc56959ef074d89679ac4c0258085",
+      "dependencies": [
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-pcm-audio",
+      "kind": "module",
+      "path": "browser-pcm-audio.mjs",
+      "maximum_bytes": 16384,
+      "sha256": "sha256:9eafc8713f28c168489340550f1c2c67077e00c54eaa99d18aca52d116d4f6a3",
+      "dependencies": [
+        {
+          "role": "browser-plot-effects",
+          "specifier": "./browser-plot-effects.mjs"
+        }
+      ]
+    },
+    {
+      "role": "workspace-library",
+      "kind": "module",
+      "path": "workspace-library.mjs",
+      "maximum_bytes": 8192,
+      "sha256": "sha256:b4e801c1357b822eebcf55ae7900f7eb08fed20159e6e77e51a4b10eeced3c8e",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-handoff",
+      "kind": "module",
+      "path": "workspace-handoff.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:8e0db57fe02612bea9c6848971e4bc7ae81a4005aff034fc4b6ea74294c3dcb9",
+      "dependencies": [
+        {
+          "role": "browser-host-calls",
+          "specifier": "../../../targets/browser/host/assets/browser-host-calls.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-host-calls",
+      "kind": "module",
+      "path": "browser-host-calls.mjs",
+      "maximum_bytes": 24576,
+      "sha256": "sha256:949ed2a82dfde680e580ffca93b25ccc55513ef46c70901fc72d27745cb58c2b",
+      "dependencies": []
+    },
+    {
+      "role": "workspace-surface",
+      "kind": "module",
+      "path": "workspace-surface.mjs",
+      "maximum_bytes": 4096,
+      "sha256": "sha256:b049b9b1103af9f898db328e40a6a1de0a200fa15e5f9375c2190d10946957a5",
+      "dependencies": []
+    }
+  ]
+}

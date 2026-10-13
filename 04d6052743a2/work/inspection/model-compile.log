@@ -1,0 +1,23 @@
+warning: associated functions `new` and `empty` are never used
+   --> semantics/language/src/parser_session_inspection.rs:128:19
+    |
+127 | impl<'a> InspectionFrames<'a> {
+    | ----------------------------- associated functions in this implementation
+128 |     pub(crate) fn new(source: &'a dyn InspectionFrameSource) -> Self {
+    |                   ^^^
+...
+133 |     pub(crate) fn empty() -> Self {
+    |                   ^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: associated function `new` is never used
+   --> semantics/language/src/parser_session_inspection.rs:215:19
+    |
+214 | impl<'a> ParserSessionInspector<'a> {
+    | ----------------------------------- associated function in this implementation
+215 |     pub(crate) fn new(source: &'a dyn InspectionSource) -> Self {
+    |                   ^^^
+
+warning: 2 warnings emitted
+

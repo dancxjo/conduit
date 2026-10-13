@@ -1,0 +1,37 @@
+# First-basis independent protection receipt. Private Session retains selected
+# model/policy and actual Source insert execution. This is not a played ACK.
+type LanguageParserIndependentProtectedAdmission = {
+ admission: LanguageParserStableDependencyAdmission
+ insert: LanguageParserProtectedInsertContext
+ output: LanguageParserProtectedSetProposal
+ where .admission.fact == .insert.context.fact
+ where .output.basis == .insert.previous.basis
+ where .output.active.0 == (.insert.previous.active.0 || .admission.fact.query.dependent == 0)
+ where .insert.previous.active.0 || .admission.fact.query.dependent != 0 ? .output.edge0 == .insert.previous.edge0 : true
+ where .admission.fact.query.dependent == 0 ? ((.output.edge0.origin_basis == .admission.fact.query.beam.basis) && (.output.edge0.current_basis == .admission.fact.query.beam.basis)) : true
+ where .admission.fact.query.dependent == 0 ? ((.output.edge0.dependent == .admission.fact.query.dependent) && (.output.edge0.head == .admission.head)) : true
+ where .admission.fact.query.dependent == 0 ? ((.output.edge0.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.fact.query.dependent)) && (.output.edge0.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0))) : true
+ where .admission.fact.query.dependent == 0 ? ((variant/tag(.output.edge0.relation.base) == variant/tag(.admission.arc.relation.base)) && (.output.edge0.relation.subtype == .admission.subtype)) : true
+ where .admission.fact.query.dependent == 0 ? ((.output.edge0.dependent_occurrence == .insert.context.dependent_token.identity) && (.output.edge0.head_occurrence == .insert.context.head_token.identity)) : true
+ where .output.active.1 == (.insert.previous.active.1 || .admission.fact.query.dependent == 1)
+ where .insert.previous.active.1 || .admission.fact.query.dependent != 1 ? .output.edge1 == .insert.previous.edge1 : true
+ where .admission.fact.query.dependent == 1 ? ((.output.edge1.origin_basis == .admission.fact.query.beam.basis) && (.output.edge1.current_basis == .admission.fact.query.beam.basis)) : true
+ where .admission.fact.query.dependent == 1 ? ((.output.edge1.dependent == .admission.fact.query.dependent) && (.output.edge1.head == .admission.head)) : true
+ where .admission.fact.query.dependent == 1 ? ((.output.edge1.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.fact.query.dependent)) && (.output.edge1.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0))) : true
+ where .admission.fact.query.dependent == 1 ? ((variant/tag(.output.edge1.relation.base) == variant/tag(.admission.arc.relation.base)) && (.output.edge1.relation.subtype == .admission.subtype)) : true
+ where .admission.fact.query.dependent == 1 ? ((.output.edge1.dependent_occurrence == .insert.context.dependent_token.identity) && (.output.edge1.head_occurrence == .insert.context.head_token.identity)) : true
+ where .output.active.2 == (.insert.previous.active.2 || .admission.fact.query.dependent == 2)
+ where .insert.previous.active.2 || .admission.fact.query.dependent != 2 ? .output.edge2 == .insert.previous.edge2 : true
+ where .admission.fact.query.dependent == 2 ? ((.output.edge2.origin_basis == .admission.fact.query.beam.basis) && (.output.edge2.current_basis == .admission.fact.query.beam.basis)) : true
+ where .admission.fact.query.dependent == 2 ? ((.output.edge2.dependent == .admission.fact.query.dependent) && (.output.edge2.head == .admission.head)) : true
+ where .admission.fact.query.dependent == 2 ? ((.output.edge2.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.fact.query.dependent)) && (.output.edge2.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0))) : true
+ where .admission.fact.query.dependent == 2 ? ((variant/tag(.output.edge2.relation.base) == variant/tag(.admission.arc.relation.base)) && (.output.edge2.relation.subtype == .admission.subtype)) : true
+ where .admission.fact.query.dependent == 2 ? ((.output.edge2.dependent_occurrence == .insert.context.dependent_token.identity) && (.output.edge2.head_occurrence == .insert.context.head_token.identity)) : true
+ where .output.active.3 == (.insert.previous.active.3 || .admission.fact.query.dependent == 3)
+ where .insert.previous.active.3 || .admission.fact.query.dependent != 3 ? .output.edge3 == .insert.previous.edge3 : true
+ where .admission.fact.query.dependent == 3 ? ((.output.edge3.origin_basis == .admission.fact.query.beam.basis) && (.output.edge3.current_basis == .admission.fact.query.beam.basis)) : true
+ where .admission.fact.query.dependent == 3 ? ((.output.edge3.dependent == .admission.fact.query.dependent) && (.output.edge3.head == .admission.head)) : true
+ where .admission.fact.query.dependent == 3 ? ((.output.edge3.dependent_choice == sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.fact.query.dependent)) && (.output.edge3.head_choice == (.admission.head < 4 ? sequence/at(.admission.fact.query.beam.candidate0.choices,.admission.head) : 0))) : true
+ where .admission.fact.query.dependent == 3 ? ((variant/tag(.output.edge3.relation.base) == variant/tag(.admission.arc.relation.base)) && (.output.edge3.relation.subtype == .admission.subtype)) : true
+ where .admission.fact.query.dependent == 3 ? ((.output.edge3.dependent_occurrence == .insert.context.dependent_token.identity) && (.output.edge3.head_occurrence == .insert.context.head_token.identity)) : true
+}

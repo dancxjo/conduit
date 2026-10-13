@@ -1,0 +1,85 @@
+{
+  "status": "passed",
+  "publication": {
+    "schema": "conduit.site-publication/v1",
+    "sourceCommit": "df17cde50cf5f8549ea6d0d0d432de75175a93ac",
+    "recordedHistoryCommit": "d9b79319bd78c72e4a6b48ef524e269300a82bdf",
+    "handbook": {
+      "sourceCommit": "df17cde50cf5f8549ea6d0d0d432de75175a93ac",
+      "environment": "Chromium",
+      "path": "journeys/verticals/handbook/"
+    },
+    "fieldStation": {
+      "sourceCommit": "df17cde50cf5f8549ea6d0d0d432de75175a93ac",
+      "environment": "Chromium",
+      "path": "journeys/verticals/field-station-clock/"
+    },
+    "threeBodies": {
+      "sourceCommit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+      "path": "journeys/current/three-bodies/",
+      "refreshedExecution": false
+    }
+  },
+  "checked": [
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/runtime-evidence.json",
+      "sha256": "997d46d62f3358aea80d991d01469dc084f8a2d3cadd345cdfb5a5ea9ff40513",
+      "bytes": 597477
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/1-open.png",
+      "sha256": "f94f80d0bbb6f3dcb54bfd7205d9724eea5b6ce8758f475cdae77b036d93ad4e",
+      "bytes": 114200
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/2-check.png",
+      "sha256": "85dbf6c7290076636f1bd0851d35c124cafb8bfc7aa207239ca4d85520a3305d",
+      "bytes": 135613
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/3-try.png",
+      "sha256": "e635669059a5b5f3b849d33568e1bebf64a867e4c471fe4ca06d02f20da26a6c",
+      "bytes": 125032
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/4-inspect.png",
+      "sha256": "202b25d8abe8432b45994f5960df50edaa7511fcddb082943bc7ed58d1c353ff",
+      "bytes": 122553
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/5-edit.png",
+      "sha256": "fc4cacd1d754ab67ba9a8bbb5e4d3b64e256616c9dedc81e93c40b65bb07f045",
+      "bytes": 125331
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/6-lull.png",
+      "sha256": "37b81f2986244df23c33d93b54bdac19cd480b7b4d1ecd64820b329095ac797e",
+      "bytes": 145890
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/handbook/7-recover.png",
+      "sha256": "c54c29f5506db6300128fcfd0f06ba4f30528c6cf090ebddee219e56e294075c",
+      "bytes": 210964
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/field-station-clock/runtime-evidence.json",
+      "sha256": "6a75bf906309b313a95642e565ee3d5dccc892f1b630d82056989ccc5164f233",
+      "bytes": 700864
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/field-station-clock/1-open.png",
+      "sha256": "c1c8c76240068381ad95c446d90b6629d14c1eda9966b5dce03d6d7d95561639",
+      "bytes": 63128
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/field-station-clock/2-reload.png",
+      "sha256": "ccb53a1e6f33608dc20af1a7157e3e4fe493928099969332cada87dec39257fb",
+      "bytes": 62125
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/journeys/verticals/field-station-clock/3-lull.png",
+      "sha256": "290f786f3f8344f149d2c96401a8a620a856e325b228ee84f41ecf6f2fbd2650",
+      "bytes": 61092
+    }
+  ]
+}

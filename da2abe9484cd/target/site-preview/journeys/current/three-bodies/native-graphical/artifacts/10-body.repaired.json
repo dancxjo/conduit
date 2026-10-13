@@ -1,0 +1,217 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "native-graphical",
+  "step_id": "body.repaired",
+  "assertion": "body-repaired",
+  "source_facts": {
+    "current_show_id": "31293a5e121942c41cbceeb6a430b11cebd5d17ae8c4ec8071933c46b71c5c31",
+    "mask": {
+      "actions": [
+        "wear",
+        "wear",
+        "prefer"
+      ],
+      "application_plan_id": "body-plan/sha256:aade6b32f22b514388f073f68509c1467897c433c348d8c28b43c7217781df17",
+      "body_id": "2bf3c3e361558e2241abae5145a5ad07490e4b5f3fdaafb0a96ef46ec79ee7ee",
+      "fore_endpoints": 6,
+      "kernel_signs": 68,
+      "manifestation_id": "224dcb98966882de6b035aec3018317da043a712b226d8d478cd6b3b0a8b3f58",
+      "mask_actions": [
+        {
+          "action_id": "mask.inspect-initial-show",
+          "concrete_event": "inspected-executed-native-show",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "50d82a52141cf6ec0fce3113860f411495b51be23ffa9e480de07447a691384a",
+            "show-value/ae4c558b735c4db0491d9e7db5235d744c61422e0bd7f04c1a91d3ac06eb644a"
+          ],
+          "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "selected_route_id": "mask-route/85e8b4cb08fdd3ca6595bfc1ef69518833b3def212c1b83e4cda58ad9e858fc5",
+          "show_id": "show/b79dbeda8902c1a6a3c2e6e4b292f7e39e2ce269cbdec05305f5662613988c07"
+        },
+        {
+          "action_id": "mask.wear-alternate",
+          "concrete_event": "wore-alternate-mask",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "50d82a52141cf6ec0fce3113860f411495b51be23ffa9e480de07447a691384a",
+            "show-value/ae4c558b735c4db0491d9e7db5235d744c61422e0bd7f04c1a91d3ac06eb644a"
+          ],
+          "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "selected_route_id": "mask-route/85e8b4cb08fdd3ca6595bfc1ef69518833b3def212c1b83e4cda58ad9e858fc5",
+          "show_id": null
+        },
+        {
+          "action_id": "mask.prefer-alternate",
+          "concrete_event": "preferred-and-selected-sealed-alternate-route",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "3bb2ca9a782e8403ed5e4874e869c842ad69ac5d3a00da66118ea0af5579fcd7",
+            "show-value/e13fe41830438f127f3d655a633bd7eca23058f1821d749a3905cd67d9f23729"
+          ],
+          "selected_mask_form_id": "d347c77952a8f24592c1e833f7918a86dc94cf290d5b6c509b98972b37c89d2a",
+          "selected_route_id": "mask-route/91126d48945ad4c1cccb00dad5247b413d063234d39d146ca86d1630aab857fc",
+          "show_id": "show/91bfc7e2781905de613c0d56ab89121a545738a9ea671ce17380b6c9069b88a0"
+        },
+        {
+          "action_id": "mask.withdraw-selected-route",
+          "concrete_event": "withdrew-selected-native-route",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "native-route-withdrawn"
+          ],
+          "selected_mask_form_id": null,
+          "selected_route_id": null,
+          "show_id": null
+        },
+        {
+          "action_id": "mask.inspect-unavailable-show",
+          "concrete_event": "inspected-no-current-show",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "native-route-withdrawn"
+          ],
+          "selected_mask_form_id": null,
+          "selected_route_id": null,
+          "show_id": null
+        },
+        {
+          "action_id": "mask.add-face-host",
+          "concrete_event": "added-presentation-host-without-selecting-unsealed-route",
+          "plan_id": "body-plan/sha256:7671ef53bac26836f3b42f60e07bbcf651eefe4e6616e11789a6d0e64b310b6e",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "host-offer:f5adc4e3837e05dc1e244505ffab01f6e438dff24d1cd5e0cc829338d346a991/presentation-replacement"
+          ],
+          "selected_mask_form_id": null,
+          "selected_route_id": null,
+          "show_id": null
+        },
+        {
+          "action_id": "mask.admit-replacement-plan",
+          "concrete_event": "admitted-and-executed-replacement-plan",
+          "plan_id": "body-plan/sha256:4eb14cb0f6c9f265da0030623e855e53e3e4553fdb901d4211b0a57919ca9ebe",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "9ada9825bd079422672737c640c30fe7dd617915c4fbe150101806e74122aed9",
+            "show-value/ae2ef9efac677b638be2392be05a31fd8dfee067e63c8656b588b1fe8c8842c3"
+          ],
+          "selected_mask_form_id": "d347c77952a8f24592c1e833f7918a86dc94cf290d5b6c509b98972b37c89d2a",
+          "selected_route_id": "mask-route/222de6c9d69898d9c837bc0a8a615a3a4e902a148ee60da253838f858310cf80",
+          "show_id": null
+        },
+        {
+          "action_id": "mask.inspect-replanned-show",
+          "concrete_event": "inspected-replacement-plan-show",
+          "plan_id": "body-plan/sha256:4eb14cb0f6c9f265da0030623e855e53e3e4553fdb901d4211b0a57919ca9ebe",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "9ada9825bd079422672737c640c30fe7dd617915c4fbe150101806e74122aed9",
+            "show-value/ae2ef9efac677b638be2392be05a31fd8dfee067e63c8656b588b1fe8c8842c3"
+          ],
+          "selected_mask_form_id": "d347c77952a8f24592c1e833f7918a86dc94cf290d5b6c509b98972b37c89d2a",
+          "selected_route_id": "mask-route/222de6c9d69898d9c837bc0a8a615a3a4e902a148ee60da253838f858310cf80",
+          "show_id": "show/874427c16d86279c2f932cd42cd679c80cf9114059b8700c59f4eba0231f4905"
+        },
+        {
+          "action_id": "mask.doff-alternate",
+          "concrete_event": "doffed-alternate-and-executed-restored-plan",
+          "plan_id": "body-plan/sha256:4eb14cb0f6c9f265da0030623e855e53e3e4553fdb901d4211b0a57919ca9ebe",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "b39ae86678edffac162f4e3cc6edec2a3e849b46309f6f6775bd71fe17bd9fed",
+            "show-value/27edf46155f357fb9d31c75ab268e1b44b959fa4f8bd884df059000bf57e3756"
+          ],
+          "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "selected_route_id": "mask-route/14d7c7f8f5607fbb6283aa12a9c75033983990d7ee95a2ff71a5f34d600a329d",
+          "show_id": null
+        },
+        {
+          "action_id": "mask.inspect-restored-show",
+          "concrete_event": "inspected-restored-show",
+          "plan_id": "body-plan/sha256:4eb14cb0f6c9f265da0030623e855e53e3e4553fdb901d4211b0a57919ca9ebe",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "receipt_ids": [
+            "b39ae86678edffac162f4e3cc6edec2a3e849b46309f6f6775bd71fe17bd9fed",
+            "show-value/27edf46155f357fb9d31c75ab268e1b44b959fa4f8bd884df059000bf57e3756"
+          ],
+          "selected_mask_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "selected_route_id": "mask-route/14d7c7f8f5607fbb6283aa12a9c75033983990d7ee95a2ff71a5f34d600a329d",
+          "show_id": "show/1e4be9aaf7da85b9bb2c1c6d5ed150b350c116eb1b3d3328f0ff105e9bdff1e9"
+        }
+      ],
+      "mask_plan_ids": [
+        "85e8b4cb08fdd3ca6595bfc1ef69518833b3def212c1b83e4cda58ad9e858fc5",
+        "3b043ce884300f9fae95e820b6d646df8571c003c5c4380152e45ea42bb82b54"
+      ],
+      "planning_disposition": "not-required",
+      "preference": [
+        {
+          "checked_form_id": "420ee5b8062b7a6c4bbf127e8ab83c824eccebb6d393bbffb2152f9a29446f6c",
+          "expanded_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "source_document_id": "57f6ad3a61045462ca02315e9efeef809fc71a78aabc04e4b132b1d670ed44e3"
+        },
+        {
+          "checked_form_id": "615dbffc7c77cf00c845c8bfda72c5161e2a43dd477a2bf88d68c4bfe9f94864",
+          "expanded_form_id": "d347c77952a8f24592c1e833f7918a86dc94cf290d5b6c509b98972b37c89d2a",
+          "source_document_id": "4b3dbc0c8700dac43bafa409f042963c22c5e36184f7bdc07cc635f8bb8bddb1"
+        }
+      ],
+      "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+      "presentation_revision": 4,
+      "route_disposition": "selected-executed-route",
+      "schema": "conduit.conduitos/native-mask-control@1",
+      "show_id": "show/b79dbeda8902c1a6a3c2e6e4b292f7e39e2ce269cbdec05305f5662613988c07",
+      "shows": [
+        {
+          "manifestation_id": "224dcb98966882de6b035aec3018317da043a712b226d8d478cd6b3b0a8b3f58",
+          "mask_active_play_id": "50d82a52141cf6ec0fce3113860f411495b51be23ffa9e480de07447a691384a",
+          "mask_plan_id": "85e8b4cb08fdd3ca6595bfc1ef69518833b3def212c1b83e4cda58ad9e858fc5",
+          "mask_show_id": "show/b79dbeda8902c1a6a3c2e6e4b292f7e39e2ce269cbdec05305f5662613988c07",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "presentation_revision": 4,
+          "show_value_id": "show-value/ae4c558b735c4db0491d9e7db5235d744c61422e0bd7f04c1a91d3ac06eb644a",
+          "surface_possession": {
+            "connection_id": "6253dcff07396f19eb94962b3084de2bd3117951068b38f6bfa0c5c47d59e0d5",
+            "lifecycle": "revoked-at-play-end",
+            "provider_generation": 1,
+            "provider_instance_id": "5c4fe4d19869f57cf14b733e4adb5168d464badf202345f7b9cdcf8b106a38ab/provider/1",
+            "resource_pool_id": "5c4fe4d19869f57cf14b733e4adb5168d464badf202345f7b9cdcf8b106a38ab/surface"
+          }
+        },
+        {
+          "manifestation_id": "79726868f89fe88f6224e57a33b8ea22249295ab956e36b90402d223c614f916",
+          "mask_active_play_id": "bd6f4c45d66adbdcc3596d6e12cc9f79b30cdd77ec048d76552459b667c1c61a",
+          "mask_plan_id": "3b043ce884300f9fae95e820b6d646df8571c003c5c4380152e45ea42bb82b54",
+          "mask_show_id": "show/86aee2ec2efd86ba07e8658071d82cca2ee4ffb9ebba32be732416ca1188c767",
+          "presentation_id": "42cae786bf1be043e352d720359e35136d29fb0dee42b0b35f58b5cd1cb512e3",
+          "presentation_revision": 4,
+          "show_value_id": "show-value/90729587c8b878ee6d992e057c173d202aad259573d54ed11b706a775d042af4",
+          "surface_possession": null
+        }
+      ],
+      "wake_id": "62b321323dca9117fc0ee66841f0f003f6e1fcd84caf2b5c6daa1d7810768971",
+      "wardrobe_revision": 3,
+      "worn_mask_forms": [
+        {
+          "checked_form_id": "420ee5b8062b7a6c4bbf127e8ab83c824eccebb6d393bbffb2152f9a29446f6c",
+          "expanded_form_id": "129ce13b494621258247f15295c755f78571f6c2e51875e65cc7fe64aef4ca73",
+          "source_document_id": "57f6ad3a61045462ca02315e9efeef809fc71a78aabc04e4b132b1d670ed44e3"
+        },
+        {
+          "checked_form_id": "615dbffc7c77cf00c845c8bfda72c5161e2a43dd477a2bf88d68c4bfe9f94864",
+          "expanded_form_id": "d347c77952a8f24592c1e833f7918a86dc94cf290d5b6c509b98972b37c89d2a",
+          "source_document_id": "4b3dbc0c8700dac43bafa409f042963c22c5e36184f7bdc07cc635f8bb8bddb1"
+        }
+      ]
+    },
+    "plan_id": "body-plan/sha256:9f3235f8e10b2d72b339f4f7e40d3202eb8448f966256f783571b0624c9618f8",
+    "play_sign_id": "conduitos/mask/39/playing"
+  }
+}

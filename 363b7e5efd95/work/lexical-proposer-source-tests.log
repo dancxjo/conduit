@@ -1,0 +1,12 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 0.30s
+     Running tests/lexical_proposer_policy.rs (target/debug/deps/lexical_proposer_policy-d40817ed707a5573)
+
+running 2 tests
+proposer_two_root_family=PreparedNativeFamilyStorageReceipt { types: 30, retained_heap_bytes_bound: 40383281, preparation_peak_heap_bytes_bound: 40518320, conversion_requested_bytes_bound: 41156678 }
+proposal_source_decode_bound=403824 prepared=PreparedExpressionStorageReceipt { decoded_program_heap_bytes: 74043, preparation_requested_bytes_bound: 640401, retained_heap_bytes_bound: 582779 }
+test exact_checked_proposal_source_matches_prepared_execution_and_native_output ... ok
+test exact_unknown_proposal_preserves_origin_and_refuses_laundered_lemma_or_policy ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.24s
+

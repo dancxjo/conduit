@@ -1,0 +1,16 @@
+{
+  "out_dir": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/build/conduit-language-70b796a2da20ac23/out",
+  "libraries": {
+    "conduitos": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduitos-f2ee7410b27fe78f.rlib",
+    "conduit_language": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_language-55670bec4770deea.rlib",
+    "conduit_core": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_core-4ef03007210cad9a.rlib",
+    "conduit_ai": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_ai-7e238c9a76f0016b.rlib",
+    "conduit_composite": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_composite-d78f6fb38c2450b4.rlib",
+    "conduit_plot": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_plot-80b2617ccc91da4f.rlib",
+    "conduit_kernel": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_kernel-15a60009aa2ab2e6.rlib",
+    "conduit_plan_lowering": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_plan_lowering-2d5c78dad9dcddba.rlib",
+    "conduit_planner": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_planner-53a26db1c1ffbb48.rlib",
+    "serde_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libserde_json-a99dd1068303bcee.rlib"
+  },
+  "selected_source_hashes_unchanged": true
+}

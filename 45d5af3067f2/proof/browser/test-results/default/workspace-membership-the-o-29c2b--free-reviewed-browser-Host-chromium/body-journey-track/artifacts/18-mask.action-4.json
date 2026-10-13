@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "83152fb94b93af3a0cd71c8a3d90985f492a21c9",
+  "track": "browser-graphical",
+  "step_id": "mask.action-4",
+  "assertion": "mask-mask.inspect-unavailable-show",
+  "source_facts": {
+    "action_id": "mask.inspect-unavailable-show",
+    "concrete_event": "NoShow with replacement planning required",
+    "selected_mask_plot_id": null,
+    "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+    "selected_route_id": null,
+    "show_id": null,
+    "receipt_ids": [
+      "show/no-current"
+    ],
+    "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+  }
+}

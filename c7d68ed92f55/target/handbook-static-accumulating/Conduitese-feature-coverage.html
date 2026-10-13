@@ -1,0 +1,426 @@
+<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; connect-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' blob: 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'none'"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Conduitese feature example index · Conduit handbook</title><style>:root {
+  color-scheme: dark;
+  --conduit-background: #05070b;
+  --conduit-reading-paper: #0c121c;
+  --conduit-workbench-canvas: #05070b;
+  --conduit-bootstrap-surface: #090d16;
+  --conduit-surface: #090d16;
+  --conduit-structure-primary: #0dd8f6;
+  --conduit-structure-secondary: #0a1f87;
+  --conduit-text-primary: #93d2f7;
+  --conduit-text-secondary: #578ec9;
+  --conduit-emphasis: #e9a325;
+  --conduit-focus: #f4c400;
+  --conduit-warning: #f2bd71;
+  --conduit-failure: #ff7272;
+  --conduit-success: #63d69b;
+  --conduit-muted: #8c4c19;
+  /* Short aliases remain available while browser layout styles migrate to semantic names. */
+  --ink: var(--conduit-text-primary);
+  --muted: var(--conduit-text-secondary);
+  --paper: var(--conduit-background);
+  --panel: var(--conduit-reading-paper);
+  --field: var(--conduit-bootstrap-surface);
+  --line: #183d61;
+  --green: var(--conduit-structure-primary);
+  --green-dark: var(--conduit-text-primary);
+  --amber: var(--conduit-emphasis);
+  --focus: var(--conduit-focus);
+  --failure: var(--conduit-failure);
+  --conduit-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --conduit-font-editorial: Georgia, "Times New Roman", serif;
+  --conduit-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --conduit-type-body: 16px;
+  --conduit-type-small: 14px;
+  --conduit-line-height: 150%;
+  --conduit-space-unit: 4px;
+  --conduit-space-control-inline: 10px;
+  --conduit-space-control-block: 7px;
+  --conduit-space-panel: 13px;
+  --conduit-radius-control: 6px;
+  --conduit-radius-panel: 9px;
+  --conduit-focus-width: 3px;
+  --conduit-responsive-breakpoint: 720px;
+  --conduit-responsive-grid-min: 260px;
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --conduit-background: #eef5f8;
+    --conduit-reading-paper: #ffffff;
+    --conduit-workbench-canvas: #e5eff4;
+    --conduit-bootstrap-surface: #f7fbfd;
+    --conduit-surface: #ffffff;
+    --conduit-structure-primary: #00758c;
+    --conduit-structure-secondary: #9ab8d1;
+    --conduit-text-primary: #17364d;
+    --conduit-text-secondary: #496b82;
+    --conduit-emphasis: #9a5b00;
+    --conduit-focus: #775d00;
+    --conduit-warning: #8a5200;
+    --conduit-failure: #a32d37;
+    --conduit-success: #08784e;
+    --conduit-muted: #7b654f;
+    --line: #b8cfdd;
+    --green-dark: #174f68;
+    color-scheme: light;
+  }
+}
+:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+.conduit-skip-link {
+  position: fixed; z-index: 2147483647; inset-block-start: var(--conduit-space-unit); inset-inline-start: var(--conduit-space-unit);
+  padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); border: 2px solid var(--conduit-focus);
+  border-radius: var(--conduit-radius-control); color: var(--conduit-background); background: var(--conduit-focus);
+  font: 700 var(--conduit-type-small)/1.2 var(--conduit-font-body); text-decoration: none; transform: translateY(calc(-100% - 1rem));
+}
+.conduit-skip-link:focus { outline: var(--conduit-focus-width) solid var(--conduit-background); outline-offset: 2px; transform: none; }
+.visually-hidden { position:absolute!important; inline-size:1px!important; block-size:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip-path:inset(50%)!important; white-space:nowrap!important; border:0!important; }
+:where([data-application-syntax="conduit"]) { position: relative; min-width: 0; }
+:where([data-application-syntax="conduit"] .syntax-editor) { position: relative; width: 100%; height: 100%; min-width: 0; color:#e9f1ec; background:#071018; }
+:where([data-application-syntax="conduit"] .syntax-highlight) {
+  position: absolute; inset: 0; z-index: 0; margin: 0; padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
+  white-space: pre-wrap; overflow-wrap: normal;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea {
+  display: block; width: 100%; border: 0;
+  padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
+  -webkit-text-fill-color: transparent;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea::selection {
+  /* Selection paints readable glyphs above the backdrop. */
+  color: #fff; background: rgb(119 218 168 / 45%); -webkit-text-fill-color: #fff;
+}
+:where(.syntax-comment) { color: #91aa9d; font-style: italic; }
+:where(.syntax-keyword) { color: #ffcf70; font-weight: 750; }
+:where(.syntax-name) { color: #e9f1ec; }
+:where(.syntax-identity) { color: #8ddfc0; }
+:where(.syntax-string) { color: #ffd7a0; }
+:where(.syntax-number, .syntax-literal) { color: #d9b8ff; }
+:where(.syntax-operator) { color: #ff9f8f; }
+:where(.syntax-delimiter) { color: #b9cbc1; }
+:where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="choice-group"]) { display:grid; gap:var(--conduit-space-unit); min-inline-size:0; margin:0; padding:0; border:0; }
+:where([data-application-component="choice-group-label"]) { margin-block-end:var(--conduit-space-unit); font-weight:700; }
+:where([data-application-component="choice-option-label"]) { display:flex; align-items:center; gap:var(--conduit-space-unit); width:max-content; cursor:pointer; }
+:where(input[type="checkbox"], input[type="radio"])[data-application-component] { appearance:auto; inline-size:1.1rem; block-size:1.1rem; margin:0; padding:0; accent-color:var(--conduit-emphasis); cursor:pointer; }
+:where([data-application-component="choice-option-label"]):has(input:focus-visible) { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:2px; }
+:where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
+:where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
+:where([data-application-key="product-masthead"]) { min-height:3.75rem; padding:.7rem max(1.25rem,calc((100vw - 96rem)/2)); display:flex; align-items:center; justify-content:space-between; gap:1.5rem; color:var(--conduit-text-primary); background:var(--conduit-surface); border-bottom:1px solid var(--conduit-structure-secondary); font-size:.82rem; }
+:where([data-application-key="product-navigation"]) { position:static; inset:auto; flex:1; width:auto; max-width:none; margin:0; padding:0; display:flex; align-items:center; flex-wrap:wrap; gap:1.35rem; border:0; background:transparent; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]) { color:var(--conduit-text-secondary); text-decoration:none; font-weight:720; letter-spacing:.02em; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):hover { color:var(--conduit-text-primary); }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
+:where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
+:where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
+:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:var(--conduit-font-mono); letter-spacing:.08em; }
+:where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
+@media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }
+:where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
+  padding: var(--conduit-space-panel);
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-panel);
+  background: var(--conduit-surface);
+}
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component] {
+  padding: var(--conduit-space-control-block, .65rem) var(--conduit-space-control-inline, 1rem);
+  color: inherit;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-control, .6rem);
+  background: var(--conduit-surface);
+  font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] input:not([type="checkbox"]):not([type="radio"]), [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary) {
+  min-height: 2.5rem; padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); color: inherit;
+  border: 1px solid var(--conduit-structure-secondary); border-radius: var(--conduit-radius-control); background: var(--conduit-surface); font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] select) { font-weight: 650; cursor: pointer; }
+:where([data-application-theme] button, [data-application-theme] select):disabled { cursor: not-allowed; opacity: .48; }
+:where([data-application-theme] button, [data-application-theme] input, [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary, [data-application-theme] a):focus-visible {
+  border-color: var(--conduit-focus); outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: 2px;
+}
+:where(button[data-application-component]) {
+  min-height: 2.5rem;
+  border-color: color-mix(in srgb, var(--conduit-structure-primary) 58%, var(--conduit-structure-secondary));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--conduit-structure-primary) 10%, var(--conduit-surface)), var(--conduit-surface));
+  box-shadow: inset 0 1px rgb(255 255 255 / 10%), 0 2px 0 color-mix(in srgb, var(--conduit-structure-secondary) 72%, #000);
+  font-weight: 720;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+:where(button[data-application-component]:not(:disabled)):hover { color:var(--conduit-emphasis); border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000),0 0 1rem color-mix(in srgb,var(--conduit-structure-primary) 16%,transparent); transform:translateY(-1px); }
+:where(button[data-application-component]:not(:disabled)):active { box-shadow:inset 0 1px 4px rgb(0 0 0 / 35%); transform:translateY(1px); }
+:where(button[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(select[data-application-component]) {
+  min-height:2.5rem; appearance:none; padding-inline-end:2.7rem;
+  border-color:color-mix(in srgb,var(--conduit-structure-primary) 58%,var(--conduit-structure-secondary));
+  background-image:linear-gradient(45deg,transparent 50%,var(--conduit-emphasis) 50%),linear-gradient(135deg,var(--conduit-emphasis) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 10%,var(--conduit-surface)),var(--conduit-surface));
+  background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat;
+  box-shadow:inset 0 1px rgb(255 255 255 / 10%),0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 72%,#000); font-weight:650; cursor:pointer;
+  transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease;
+}
+:where(select[data-application-component]:not(:disabled)):hover { border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000); transform:translateY(-1px); }
+:where(select[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component]:focus-visible {
+  border-color: var(--conduit-focus);
+  outline: var(--conduit-focus-width) solid var(--conduit-focus);
+  outline-offset: 2px;
+}
+:where([data-application-status="ordinary"]) { color: var(--conduit-text-secondary); }
+:where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
+:where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
+:where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
+:where([data-application-theme][data-conduit-contrast="high"]) {
+  --conduit-surface: var(--conduit-background) !important;
+  --conduit-text-secondary: var(--conduit-text-primary) !important;
+  --conduit-structure-secondary: var(--conduit-focus) !important;
+}
+@media (max-width: 720px) {
+  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
+
+/* Shared by the homepage, handbook, and every documentary page. */
+* { box-sizing: border-box; }
+html { color-scheme: dark light; scroll-behavior: smooth; }
+body { margin: 0; background: var(--conduit-background); color: var(--conduit-text-primary); font: 400 1rem/1.65 var(--conduit-font-body, system-ui, sans-serif); }
+a { color: var(--conduit-emphasis); text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
+.site-header { width: 100%; display: flex; align-items: center; gap: 2rem; padding: 1rem max(1.25rem, calc((100vw - 88rem)/2)); background: var(--conduit-surface); border-bottom: 1px solid var(--conduit-structure-secondary); }
+.site-header a { color: var(--conduit-text-secondary); text-decoration: none; font-size: .9rem; white-space: nowrap; }
+.site-header .site-brand { color: var(--conduit-text-primary); font-size: 1.15rem; font-weight: 750; }
+.site-header nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.4rem; margin: 0; }
+.site-header .site-source { margin-left: auto; }
+.site-header a:hover, .site-header a[aria-current="page"] { color: var(--conduit-emphasis); }
+.site-header a[aria-current="page"] { text-decoration: underline; text-underline-offset: .45em; }
+.site-content { width: min(78rem, calc(100% - 3rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 5rem) 0; }
+.site-content h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; letter-spacing: -.04em; margin: .4rem 0 1.4rem; }
+.site-content h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.2; }
+.site-content .lede { max-width: 65ch; font-size: 1.2rem; color: var(--conduit-text-secondary); }
+.site-content .eyebrow { font-size: .8rem; color: var(--conduit-text-secondary); }
+.site-content img, .site-content video { display: block; width: 100%; height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.site-content figure { margin: 1.5rem 0; }
+.site-content figcaption { color: var(--conduit-text-secondary); font-size: .95rem; margin-top: .6rem; }
+.site-content details { border-top: 1px solid var(--conduit-structure-secondary); padding: 1rem 0; margin-top: 1.5rem; overflow-wrap: anywhere; }
+.site-content summary { cursor: pointer; }
+.journey-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin: 2rem 0 3rem; }
+.journey-card { padding: 1.5rem; background: var(--conduit-surface); border: 1px solid var(--conduit-structure-secondary); border-radius: .6rem; }
+.journey-card h2, .journey-card h3 { margin-top: 0; }
+.journey-steps { list-style: none; padding: 0; counter-reset: journey-step; }
+.journey-step { counter-increment: journey-step; padding: 2rem 0; border-top: 1px solid var(--conduit-structure-secondary); }
+.journey-step h2::before { content: counter(journey-step, decimal-leading-zero) "  "; color: var(--conduit-text-secondary); }
+.journey-step p { max-width: 70ch; }
+.recording-note { color: var(--conduit-text-secondary); font-size: .95rem; }
+@media (max-width: 50rem) { .site-header { gap: .8rem 1.2rem; flex-wrap: wrap; } .site-header nav { order: 3; width: 100%; gap: .65rem 1.2rem; } .site-content { width: calc(100% - 2rem); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style><link rel="stylesheet" href="handbook.css"><link rel="stylesheet" href="svg-viewport.css"><script type="module" src="handbook.mjs"></script><meta name="conduit-application-package" content="application.application.json"></head><body class="handbook-page handbook-page-Conduitese-feature-coverage" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="site-header"><a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a><nav aria-label="Main navigation"><a data-section="home" href="/conduit/">Home</a><a data-section="journeys" href="/conduit/journeys/">Journeys</a><a data-section="handbook" aria-current="page" href="/conduit/handbook/">Handbook</a><a data-section="downloads" href="/conduit/#get-conduit">Downloads</a><a data-section="workspace" href="/conduit/workspace/">Open Conduit</a></nav><a class="site-source" href="https://github.com/dancxjo/conduit">Source</a></header>
+<div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Units-and-quantities.html">Units and quantities</a></li>
+<li><a aria-current="page" href="Conduitese-feature-coverage.html">Feature example index</a></li>
+<li><a href="Plot-diagrams.html">Plot diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li>
+<p><a href="Creating-models.html">Creating models: teach Conduit to speak</a></p>
+</li>
+<li>
+<p><a href="Start-here.html">Start here</a></p>
+</li>
+<li>
+<p><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></p>
+</li>
+<li>
+<p><a href="State-time-and-data.html">State, time and data</a></p>
+</li>
+<li>
+<p><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></p>
+</li>
+<li>
+<p><a href="Face-Mask-and-Show.html">Face, mask and show</a></p>
+</li>
+<li>
+<p><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></p>
+</li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Plots-and-flow.html">Plots and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Section 7 of 26</p><h1 id="conduitese-feature-example-index">Conduitese feature example index</h1>
+<p>Use this index to find an example of each reviewed language feature. It covers
+the current parser/checker surface and language proposals in
+<a href="https://github.com/dancxjo/conduit/issues?q=is%3Aissue+is%3Aopen">dancxjo/conduit's open issues</a>,
+reviewed on <strong>9 October 2026</strong>. The issue list is the upcoming-work source;
+completed issues provide provenance, not future work. Individual catalog Kinds
+are extensible domain libraries, rather than separate grammar features.</p>
+<p>An example labeled <strong>current</strong> demonstrates development grammar or a named
+implementation boundary. A <strong>fragment</strong> assumes declared ports and available
+Kinds. A <strong>proposal</strong> demonstrates intended behavior and is not runnable syntax.
+Use <a href="Current-language-surface.html">Current language surface</a> for proof limits and
+<a href="https://dancxjo.github.io/conduit/current-product.html">current product truth</a>
+for the published product's exact release.</p>
+<h2 id="meaning-composition-and-execution">Meaning, composition and execution</h2>
+<table><thead><tr><th>Current feature</th><th>Example in this handbook</th></tr></thead><tbody>
+<tr><td>Live Plot and source Gear</td><td><a href="Conduitese-by-example.html#clock-a-standing-live-plot">Clock</a></td></tr>
+<tr><td>Finite-on-drain Plot <code>}.</code></td><td><a href="Conduitese-by-example.html#hello-a-finite-pipeline">Hello</a></td></tr>
+<tr><td>Cord <code>&gt;&gt;</code>, anonymous Gear and explicit port</td><td><a href="Plots-and-flow.html#cords-and-fore-direction">Fore directions</a> and <a href="Conduitese-by-example.html#memory-lantern-input-editing-and-current">Memory Lantern</a></td></tr>
+<tr><td>Paired Fore <code>input: T &gt;&gt; output: U</code></td><td><a href="Conduitese-by-example.html#desk-telegraph-reusable-plots-as-gears">Desk Telegraph</a></td></tr>
+<tr><td>Required/default startup parameters; named/positional calls</td><td><a href="Conduitese-by-example.html#a-pure-plot-with-a-default-parameter">Parameterized pure Plot</a></td></tr>
+<tr><td>Reusable Plot as Gear</td><td><a href="Conduitese-by-example.html#desk-telegraph-reusable-plots-as-gears">Desk Telegraph</a></td></tr>
+<tr><td>Named compile-time Type parameters and inference</td><td><a href="Conduitese-by-example.html#specialize-a-reusable-plot">Specialization</a></td></tr>
+<tr><td>Exact behavior parameters and <code>activate</code></td><td><a href="Conduitese-by-example.html#bounded-collection-behavior">Bounded each</a></td></tr>
+<tr><td><code>select</code>, <code>fold</code>, <code>scan</code>, bounded collection on close</td><td><a href="Current-language-surface.html#bounded-each-select-fold-and-scan">Bounded activation</a></td></tr>
+<tr><td>Private nested Plot</td><td><a href="Conduitese-by-example.html#a-private-nested-plot">Nested helper</a></td></tr>
+<tr><td>Shared finite pool and explicit consumer binding</td><td><a href="Conduitese-by-example.html#one-shared-pool-explicit-consumers">Pool webchat</a></td></tr>
+<tr><td>Glyph aliases and <code>sans glyphs</code></td><td><a href="Current-language-surface.html#gear-glyphs">Glyph reference</a></td></tr>
+<tr><td>Explicit fan-out and pressure law</td><td><a href="Conduitese-by-example.html#explicit-enrichment">Light plus tone</a></td></tr>
+<tr><td>Merge, zip, race, combine-latest, Current sample</td><td><a href="Terminals-and-concurrency.html#multi-input-temporal-relationships-must-be-explicit">Temporal relationships</a></td></tr>
+<tr><td>Routing variant cases, record guards and otherwise</td><td><a href="Plots-and-flow.html#exactly-one-graph-routing">Routing</a></td></tr>
+<tr><td>Unary <code>when</code> filter</td><td><a href="Plots-and-flow.html#unary-filter-sugar-when">Filter</a></td></tr>
+<tr><td>Typed <code>project</code>, fixed <code>index</code>, <code>select</code> with drop/refuse</td><td><a href="Plots-and-flow.html#glyph-composition-and-exact-selectors">Structured selectors</a></td></tr>
+<tr><td>Normal close `</td><td><code>, abnormal terminal </code>!<code>, quiescence </code>;`</td></tr>
+<tr><td>Cancellation request <code>~</code> and terminal propagation</td><td><a href="Terminals-and-concurrency.html#semantic-cancellation">Cancellation</a></td></tr>
+<tr><td>Inferred effect eligibility and semantic realization</td><td><a href="Effects-and-realization.html">Effects</a> with <a href="Conduitese-by-example.html#body-chat-application-meaning-model-choice-still-realization">Body Chat</a></td></tr>
+</tbody></table>
+<h2 id="values-types-and-pure-computation">Values, Types and pure computation</h2>
+<table><thead><tr><th>Current feature</th><th>Example in this handbook</th></tr></thead><tbody>
+<tr><td>Native unit literals and dimension-aware consumers</td><td><a href="Units-and-quantities.html#a-distance-becomes-a-musical-pitch">Pocket Theremin</a></td></tr>
+<tr><td>All 24 SI prefixes, case and approved aliases</td><td><a href="Units-and-quantities.html#all-24-decimal-si-prefixes">SI table</a></td></tr>
+<tr><td>Exact conversion and comparison</td><td><a href="Units-and-quantities.html#convert-explicitly-and-retain-the-result">Conversions</a> and <a href="Units-and-quantities.html#compare-compatible-dimensions-exactly">comparison</a></td></tr>
+<tr><td>Absolute temperature versus temperature difference</td><td><a href="Units-and-quantities.html#a-temperature-point-differs-from-a-temperature-change">Temperature changes</a></td></tr>
+<tr><td>Explicit wider quantity profile, inexact/overflow/dimension refusals</td><td><a href="Units-and-quantities.html#extreme-scale-needs-an-explicit-representation">Extreme scale</a> and <a href="Units-and-quantities.html#refusal-is-an-inspectable-result">refusals</a></td></tr>
+<tr><td>Integers, IEEE floats, Boolean, text and byte bounds</td><td><a href="Plots-and-flow.html#systems-grade-scalar-expressions">Scalar expressions</a> and <a href="Current-language-surface.html#checked-refinements-and-portable-patterns">refinements</a></td></tr>
+<tr><td>Decimal/hex/binary/octal literals and separators</td><td><a href="Plots-and-flow.html#systems-grade-scalar-expressions">Scalar literals</a></td></tr>
+<tr><td>Text quoting, escapes, Unicode and source comments</td><td><a href="Plots-and-flow.html#text-and-source-spelling">Text and source spelling</a></td></tr>
+<tr><td>Unary, arithmetic, comparison, equality, bitwise, shift and Boolean expressions</td><td><a href="Plots-and-flow.html#complete-expression-plots">Complete expression Plots</a></td></tr>
+<tr><td>Pure expression Plot, input <code>.</code>, field and tuple projections</td><td><a href="Conduitese-by-example.html#a-pure-plot-with-a-default-parameter">Expression Plot</a> and <a href="Types-and-state.html#anonymous-finite-structures">structures</a></td></tr>
+<tr><td>Ternary evaluates one pure branch</td><td><a href="Conduitese-by-example.html#choose-a-payload-bearing-variant">Choice</a></td></tr>
+<tr><td>Immutable local dependencies and record punning</td><td><a href="Plots-and-flow.html#immutable-locals">Locals</a></td></tr>
+<tr><td>Checked semantic calls and explicit integer widening</td><td><a href="Conduitese-by-example.html#give-an-arithmetic-invariant-to-the-type">Widening</a> and <a href="Conduitese-by-example.html#check-an-index-against-the-actual-length">bounded indexing</a></td></tr>
+<tr><td>Named/anonymous/nested records and tuples</td><td><a href="Conduitese-by-example.html#construct-a-nested-record">Nested record</a> and <a href="Types-and-state.html#anonymous-finite-structures">structures</a></td></tr>
+<tr><td>Payload-bearing/payloadless finite variant constructors</td><td><a href="Conduitese-by-example.html#choose-a-payload-bearing-variant">Choice</a></td></tr>
+<tr><td>Generic native Type families and checked identity</td><td><a href="Current-language-surface.html#generic-native-types">Generic Types</a></td></tr>
+<tr><td>Native scalar declarations; resolved identity versus source aliases</td><td><a href="Types-and-state.html#checked-type-identity-is-not-source-spelling">Identity</a></td></tr>
+<tr><td>Exact collections, bounded sequences, empty sequence and actual length</td><td><a href="Conduitese-by-example.html#finite-collections-and-variable-length-sequences">Finite containers</a></td></tr>
+<tr><td>Byte bounds, membership, excluded membership, closed/open-ended ranges</td><td><a href="Current-language-surface.html#checked-refinements-and-portable-patterns">Refinements</a></td></tr>
+<tr><td>Portable positive/negative text patterns, flags, conjunction</td><td><a href="Current-language-surface.html#checked-refinements-and-portable-patterns">Patterns</a></td></tr>
+<tr><td><code>finite</code> floating refinement and scalar <code>where</code> law</td><td><a href="Conduitese-by-example.html#give-an-arithmetic-invariant-to-the-type">Scalar laws</a> and <a href="Current-language-surface.html#checked-refinements-and-portable-patterns">refinements</a></td></tr>
+<tr><td>Record <code>where</code> laws and bounded arithmetic proof propagation</td><td><a href="Conduitese-by-example.html#a-record-owns-its-law">Interval</a></td></tr>
+<tr><td>Separate semantic Type and compact <code>u8</code> Form</td><td><a href="Current-language-surface.html#compact-forms">Compact Forms</a></td></tr>
+<tr><td>Value, optional value, flow, closing flow, Current, optional Current</td><td><a href="Types-and-state.html#temporal-value-modalities">Temporal shapes</a></td></tr>
+<tr><td>Initialized/uninitialized/optional <code>keep</code>, all six durations/default</td><td><a href="Types-and-state.html#keep-explicit-retained-current-value">Retained state</a></td></tr>
+<tr><td>Exact immutable data generation reference <code>&amp;T</code></td><td><a href="Types-and-state.html#data-t-save-load-and-disk">Data references</a></td></tr>
+<tr><td>Admitted resource possession <code>resource T</code></td><td><a href="Current-language-surface.html#runtime-bound-resources">Resource ports</a></td></tr>
+</tbody></table>
+<h2 id="construction-and-distribution">Construction and distribution</h2>
+<table><thead><tr><th>Current feature</th><th>Example in this handbook</th></tr></thead><tbody>
+<tr><td>Imports, grouped imports, ordinary and glyph aliases</td><td><a href="Current-language-surface.html#imports-and-packs">Imports</a></td></tr>
+<tr><td>Relative module imports</td><td><a href="Packs-hosts-and-bodies.html#packs-imports-resolution-and-distribution">Packs and imports</a></td></tr>
+<tr><td>Pack version, <code>ship</code>, <code>need</code>, exact lock and no authority grant</td><td><a href="Conduitese-by-example.html#a-pack">Pack</a></td></tr>
+<tr><td>Host target/build/loader, resource pools, Base, Back, policy and bounds</td><td><a href="Current-language-surface.html#host-source">Host source</a></td></tr>
+<tr><td>Body hosts, parts and spores; construction versus current membership</td><td><a href="Packs-hosts-and-bodies.html#a-body-construction-source">Body construction example</a></td></tr>
+<tr><td>Body unordered <code>wear</code> and optional ordered <code>want</code></td><td><a href="Conduitese-by-example.html#body-wardrobe">Wardrobe</a></td></tr>
+<tr><td>Mask as ordinary Plot; Face, interaction and Show</td><td><a href="Conduitese-by-example.html#a-mask-is-an-ordinary-plot">Native graphical Mask</a></td></tr>
+</tbody></table>
+<h2 id="proposed-language-features">Proposed language features</h2>
+<p>The repository issue inventory currently contains two open issues explicitly
+adding Conduitese grammar/type-system surfaces. The examples below come from
+their proposals. They cannot be checked as current programs.</p>
+<h3 id="finite-value-parameters-and-shape-indexed-types-5326">Finite value parameters and shape-indexed Types — #5326</h3>
+<p><a href="https://github.com/dancxjo/conduit/issues/5326">Issue #5326</a> proposes compile-time
+value parameters alongside existing Type parameters:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-comment"># PROPOSAL ONLY: finite value parameters are not current grammar.</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericFiniteF32</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">F32</span><span class="syntax-whitespace"> </span><span class="syntax-name">finite</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericVector</span><span class="syntax-operator">&lt;</span><span class="syntax-name">N</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">collection</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericFiniteF32</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">N</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericHistory</span><span class="syntax-operator">&lt;</span><span class="syntax-name">H</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">D</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">collection</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericVector</span><span class="syntax-operator">&lt;</span><span class="syntax-name">D</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">H</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericWindow</span><span class="syntax-operator">&lt;</span><span class="syntax-name">H</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">D</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">window</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericVector</span><span class="syntax-operator">&lt;</span><span class="syntax-delimiter">(</span><span class="syntax-name">H</span><span class="syntax-whitespace"> </span><span class="syntax-name">+</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">*</span><span class="syntax-whitespace"> </span><span class="syntax-name">D</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">next_history</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericHistory</span><span class="syntax-operator">&lt;</span><span class="syntax-name">H</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">D</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericWindow2x64</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">NumericWindow</span><span class="syntax-operator">&lt;</span><span class="syntax-number">2</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The worked example derives a 192-element window from <code>(2 + 1) * 64</code>.
+<code>NumericVector&lt;64&gt;</code> and <code>&lt;128&gt;</code> must refuse mismatched ports; <code>&lt;32 + 32&gt;</code>
+must normalize to <code>&lt;64&gt;</code> for the same family. Zero where forbidden, overflow,
+wrong argument kinds, cycles, runtime dimensions and excessive specialization
+must refuse. Matrix resource laws such as <code>.columns == C</code> must survive
+specialization, construction and decode. Grammar is still subject to the
+issue's resolution and Type-identity review.</p>
+<h3 id="scoped-typed-delimiter-glyph-families-5317">Scoped typed delimiter glyph families — #5317</h3>
+<p><a href="https://github.com/dancxjo/conduit/issues/5317">Issue #5317</a> proposes locally
+imported typed literal families:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-comment"># PROPOSAL ONLY: typed delimiter families are not current grammar/exports.</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">speech/ipa/notation</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">ph</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">pattern/portable/notation</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">r</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">phonetic</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">ph</span><span class="syntax-delimiter">[</span><span class="syntax-name">foˈnetika</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span><span class="syntax-name">phonemic</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">ph/fonz/</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>ph[…]</code> denotes universal phonetic transcription. <code>ph/…/</code> requires a supplied
+checked phonemic inventory/variety/basis; the snippet deliberately omits that
+basis and therefore does not claim a valid phonemic value. Both remain
+transcription Types even for one segment. Single phones and phonemes have
+separate explicit constructors.</p>
+<p>The non-Speech example is the proposed refinement
+<code>Text &lt;= 64B ~ r/[A-Z]+/i</code>, with the same checked pattern meaning as current
+<code>Text &lt;= 64B ~ /[A-Z]+/i</code>. The domain owns lexical policy, bounds and payload
+escapes. Conflicts with indexing or division refuse; expected return Type
+cannot choose a parser. Raw source and original spans survive lowering into
+an ordinary qualified constructor. Imports grant no speech or parser authority.
+Native <code>440Hz</code>/<code>250ms</code> quantity suffixes stay import-free.</p>
+<h2 id="planned-domain-experiences-written-with-the-language">Planned domain experiences written with the language</h2>
+<p>These related open issues add domain contracts, composition or product proof
+rather than general language grammar. Each has a concrete example of the
+intended work below. These are acceptance scenarios, not installed Kind APIs.</p>
+<table><thead><tr><th>Open feature</th><th>Worked intended example</th></tr></thead><tbody>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5216">Acoustic quantities #5216</a>, <a href="https://github.com/dancxjo/conduit/issues/5262">Speech binding #5262</a></td><td><a href="Units-and-quantities.html#acoustic-quantities-current-building-blocks-and-planned-integration">200-Hz intent at three sample rates</a>; preserve exact duration, referenced dB, overlap, uncertainty and linguistic scope</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5217">Reusable DSP #5217</a>, <a href="https://github.com/dancxjo/conduit/issues/5218">phonological gestures #5218</a></td><td>Excitation → resonator → filter → PCM; use an overlapping pitch/energy trajectory for one IPA utterance, then reuse the resonator in a musical patch</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5222">Streaming #5222</a>, <a href="https://github.com/dancxjo/conduit/issues/5223">measurements #5223</a>, <a href="https://github.com/dancxjo/conduit/issues/5224">acoustic tutorials #5224</a>, <a href="https://github.com/dancxjo/conduit/issues/5215">EPIC #5215</a></td><td>The same finite speech/synth patch renders successive blocks under pressure; inspect intended and measured pitch separately, then edit the authored patch in Patchbay</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5219">Model Gear #5219</a>, <a href="https://github.com/dancxjo/conduit/issues/5220">ORT Back #5220</a>, <a href="https://github.com/dancxjo/conduit/issues/5221">Piper #5221</a>, <a href="https://github.com/dancxjo/conduit/issues/5225">voice journey #5225</a></td><td>Checked utterance → verified model inference → bounded PCM → retained WAV; source keeps model meaning while the Host supplies ORT. See <a href="Creating-models.html">model contracts</a></td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5206">ConduitVoice #5206</a>, <a href="https://github.com/dancxjo/conduit/issues/5207">model tutorial #5207</a>, <a href="https://github.com/dancxjo/conduit/issues/4898">FARGAN #4898</a></td><td>Train, checkpoint and resume a compact acoustic model, then realize its admitted output through a Plot-owned vocoder. <a href="Creating-models.html">Creating models</a> separates existing recipe proof from this unfinished voice outcome</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/4907">Language revisions #4907</a>, <a href="https://github.com/dancxjo/conduit/issues/5261">common IR #5261</a>, <a href="https://github.com/dancxjo/conduit/issues/5212">IPA prerequisite #5212</a>, <a href="https://github.com/dancxjo/conduit/issues/5263">two realizations #5263</a></td><td>Append text, replace a tentative span, commit the linguistic revision, then retain phone/syllable/source identities while selecting formant or neural realization; a committed occurrence cannot silently change identity</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5365">Mask components #5365</a>, <a href="https://github.com/dancxjo/conduit/issues/5364">Face/component/Look separation #5364</a></td><td>Reuse a checked prompt component in two Masks over the same Face action; substitute visual or spoken Look without changing the action identity. <a href="Conduitese-by-example.html#a-mask-is-an-ordinary-plot">Native Mask</a> is the current composition foundation</td></tr>
+<tr><td><a href="https://github.com/dancxjo/conduit/issues/5359">Commons Plot #5359</a>, <a href="https://github.com/dancxjo/conduit/issues/5355">cross-Mask invariants #5355</a></td><td>Author a finite place with an inspectable door/action and encounter it through graphical and spoken Masks; both interactions must address the same verified Face input</td></tr>
+</tbody></table>
+<p>Scheduler optimization, USB implementations, confinement and presentation
+polish are Host/runtime/product work. They can realize an authored Plot without
+introducing a new language construct. Their own issue criteria still govern
+completion; an example or a grammar check does not close those issues.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue reading</span><a href="Plot-diagrams.html">Plot diagrams<b aria-hidden="true">→</b></a></nav></main></div><script type="module" src="host/assets/browser-application-loader.mjs"></script></body></html>

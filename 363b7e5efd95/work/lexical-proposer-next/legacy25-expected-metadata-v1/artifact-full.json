@@ -1,0 +1,20 @@
+{
+  "architecture_profile": "ai/categorical-linear@1",
+  "format_profile": "model/categorical-i16-sum@1",
+  "precision_profile": "number/i16-weights-i64-sums@1",
+  "state_schema_version": 1,
+  "signature_identity": "20dd9d8c9443e8145a7437ec829f1a29b6a9ab05034180a07a4b424fba244a0b",
+  "content": {
+    "identity": "1ce10ac88f019a933a8c872b51f97273cbed9b18ee080d11ec2ef22d9536b48e",
+    "content_profile": "model/categorical-i16-sum@1",
+    "access_class": "model/pinned-training-artifact/read@1",
+    "extent": {
+      "bytes": 64620,
+      "items": 1
+    },
+    "lifetime": {
+      "version": "1ce10ac88f019a933a8c872b51f97273cbed9b18ee080d11ec2ef22d9536b48e",
+      "expires_at": null
+    }
+  }
+}

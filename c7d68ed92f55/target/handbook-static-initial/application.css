@@ -1,0 +1,92 @@
+.handbook-application { margin: 2rem auto; padding: clamp(1rem,3vw,2rem); max-width: 78rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; background: var(--conduit-surface); }
+.handbook-application header { max-width: 65ch; }
+.handbook-application .handbook-controls { display: flex; flex-wrap: wrap; gap: .6rem; margin: 1rem 0; }
+.handbook-application button, .handbook-application select { font: inherit; color: var(--conduit-text-primary); background: var(--conduit-background); border: 1px solid var(--conduit-structure-secondary); border-radius: .35rem; padding: .5rem .8rem; cursor: pointer; }
+.handbook-application button:disabled { opacity: .5; cursor: default; }
+.handbook-application [data-try] { background: var(--conduit-emphasis); color: var(--conduit-background); font-weight: 700; }
+.handbook-application label { display: block; margin: 1rem 0 .4rem; }
+.handbook-application textarea { width: 100%; min-height: 18rem; resize: vertical; }
+.handbook-application .syntax-editor { max-height: 32rem; }
+.handbook-show { min-height: 10rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; padding: 1rem; margin: 1.5rem 0; background: var(--conduit-background); overflow: auto; }
+.handbook-show:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 3px; }
+.handbook-application pre { white-space: pre-wrap; overflow-wrap: anywhere; }
+.handbook-application [data-refused] { color: var(--conduit-text-primary); border-left: 3px solid var(--conduit-emphasis); padding-left: 1rem; }
+.handbook-application [data-lesson] { max-width: 70ch; }
+.handbook-application [hidden] { display: none !important; }
+.handbook-show [data-application-component="shell"], .handbook-show [data-application-component="main"], .handbook-show [data-application-component="panel"] { display: grid; gap: .8rem; }
+.handbook-show [data-application-component="heading"] { font-size: 1.25rem; font-weight: 700; }
+.handbook-show [data-application-component="button"] { justify-self: start; }
+.handbook-show [data-application-component="status"], .handbook-show [data-application-component="definition"] { overflow-wrap: anywhere; font-size: .9rem; }
+.handbook-show [data-application-component="disclosure"] { max-width: 100%; }
+
+/* The reading path surrounds the live application; every result stays runtime-owned. */
+.handbook-home { max-width: 82rem; }
+.handbook-introduction { max-width: 58rem; padding-block: 1rem 2rem; }
+.handbook-introduction h1 { max-width: 18ch; line-height: 1.08; letter-spacing: -.035em; }
+.handbook-introduction .lede { max-width: 52ch; font-size: clamp(1.1rem,2vw,1.3rem); }
+.handbook-start { display: inline-block; margin-top: .5rem; font-weight: 700; text-underline-offset: .3em; }
+.handbook-first-steps h2, .handbook-next h2, .handbook-local-note h2 { font-size: 1.3rem; }
+.handbook-first-steps ol { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 1.25rem; list-style: none; counter-reset: experiment; padding: 0; }
+.handbook-first-steps li { counter-increment: experiment; border-top: 2px solid var(--conduit-structure-secondary); padding-top: .75rem; }
+.handbook-first-steps li::before { content: counter(experiment, decimal-leading-zero); display: block; font: 700 .85rem var(--conduit-font-mono); color: var(--conduit-emphasis); margin-bottom: .5rem; }
+.handbook-first-steps strong { display: block; font-size: 1.1rem; margin-bottom: .3rem; }
+.handbook-home #your-handbook { scroll-margin-top: 2rem; }
+.handbook-application textarea { min-height: 12rem; }
+.handbook-application [data-application-syntax="conduit"] { border-radius: .35rem; overflow: hidden; }
+.handbook-application [data-session-status] { display: inline-block; border-left: 3px solid var(--conduit-emphasis); padding: .4rem .75rem; background: var(--conduit-background); }
+.handbook-application [data-lesson] { border-left: 2px solid var(--conduit-structure-secondary); padding-left: 1rem; line-height: 1.75; }
+.handbook-application button:focus-visible, .handbook-application select:focus-visible, .handbook-application textarea:focus-visible { outline: 3px solid var(--conduit-focus, var(--conduit-emphasis)); outline-offset: 3px; }
+.handbook-show svg [tabindex]:focus-visible { outline: 3px solid var(--conduit-emphasis); outline-offset: 4px; }
+.handbook-next { margin-block: 3rem; }
+.handbook-next > p { max-width: 65ch; }
+.handbook-reading { display: grid; grid-template-columns: repeat(2,minmax(0,1fr)); gap: 1rem; }
+.handbook-reading a { display: block; border: 1px solid var(--conduit-structure-secondary); border-radius: .4rem; padding: 1rem 1.25rem; text-decoration: none; background: var(--conduit-surface); }
+.handbook-reading a:hover { border-color: var(--conduit-emphasis); }
+.handbook-reading strong, .handbook-reading span { display: block; }
+.handbook-reading span { margin-top: .35rem; color: var(--conduit-text-secondary); font-size: .95rem; }
+.handbook-local-note { border-top: 1px solid var(--conduit-structure-secondary); padding-top: 1rem; max-width: 70ch; color: var(--conduit-text-secondary); }
+.owner-identity { display: grid; grid-template-columns: max-content minmax(0,1fr); gap: .5rem 1rem; }
+.owner-identity dt { font-weight: 700; }
+.owner-identity dd { margin: 0; overflow-wrap: anywhere; }
+.owner-identity [data-copy-key] { display: block; margin-top: .5rem; }
+.handbook-application [data-owner-join] { max-width: 48rem; }
+.handbook-application [data-owner-join] input { display: block; box-sizing: border-box; width: 100%; font: inherit; padding: .5rem; }
+.handbook-application [data-owner-result] { max-width: 72ch; }
+.owner-face { margin-block: 2rem; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; background: var(--conduit-background); }
+.owner-face > header { max-width: 70ch; }
+.owner-face > header h3 { font-size: clamp(1.35rem,2.2vw,1.8rem); margin-block: .2rem .6rem; }
+.owner-face-summary { grid-column: 1/-1; color: var(--conduit-text-secondary); font-size: .95rem; }
+.owner-face-document { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap: .75rem; margin-block: 1rem; }
+.owner-face-document > * { min-width: 0; }
+.owner-face-subject { padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-surface); overflow-wrap: anywhere; }
+.owner-face-subject[data-face-role="Body"], .owner-face-subject[data-face-role="Plot"] { border-top: 3px solid var(--conduit-emphasis); }
+.owner-face-subject h4, .owner-face-subject h5 { margin-block: .3rem .7rem; font-size: 1.08rem; }
+.owner-face-subject p { margin-block: .5rem; line-height: 1.5; }
+.owner-face-collection { grid-column: 1/-1; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-top: 3px solid var(--conduit-emphasis); border-radius: .5rem; background: var(--conduit-surface); }
+.owner-face-collection h4 { margin: 0 0 .5rem; font-size: 1.35rem; }
+.owner-face-collection-count { color: var(--conduit-text-secondary); }
+.owner-face-items { display: grid; gap: .6rem; list-style: none; margin: 1rem 0; padding: 0; }
+.owner-face-items li { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem 1rem; padding: .7rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-background); }
+.owner-face-item-name { flex: 1 1 12rem; font-weight: 650; line-height: 1.45; }
+.owner-face-empty { padding: .75rem 1rem; border-radius: .5rem; background: var(--conduit-background); }
+.owner-face-completed .owner-face-item-name { font-weight: 400; text-decoration: line-through; text-decoration-color: var(--conduit-text-secondary); }
+.owner-face-items [data-owner-action] { flex: 0 0 auto; padding: 0; border: 0; background: transparent; }
+.owner-face-items [data-owner-action] button { font-size: .92rem; }
+.owner-face-completed { margin-top: 1rem; color: var(--conduit-text-secondary); }
+.owner-face-completed summary { cursor: pointer; }
+.owner-face-role { font: 700 .72rem var(--conduit-font-mono); letter-spacing: .08em; text-transform: uppercase; color: var(--conduit-emphasis); }
+.owner-face-document > details, .owner-face-document > section:not(.owner-face-subject) { grid-column: 1/-1; padding: .8rem 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.owner-face li { margin-block: .3rem; overflow-wrap: anywhere; }
+.owner-face [data-owner-action] { grid-column: 1/-1; display: flex; flex-wrap: wrap; align-items: end; gap: .75rem 1rem; padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-surface); }
+.owner-face [data-owner-action] h5 { flex-basis: 100%; margin: 0; }
+.owner-face [data-owner-action] label { display: grid; gap: .3rem; font-weight: 700; }
+.owner-face [data-owner-action] select, .owner-face [data-owner-action] input { font: inherit; padding: .4rem .6rem; }
+.owner-face [data-owner-action] p { flex-basis: 100%; margin: 0; }
+.owner-wardrobe { margin-block: 2rem; padding: clamp(1rem,2vw,1.5rem); border: 1px solid var(--conduit-structure-secondary); border-radius: .75rem; }
+.owner-wardrobe > header { max-width: 70ch; }
+.owner-wardrobe-list { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap: .75rem; padding: 0; list-style: none; }
+.owner-wardrobe-list li { padding: 1rem; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; background: var(--conduit-background); overflow-wrap: anywhere; }
+.owner-wardrobe-list h4 { margin: 0; }
+.owner-wardrobe-controls { display: flex; flex-wrap: wrap; gap: .5rem; }
+@media(max-width:900px) { .handbook-first-steps ol { grid-template-columns: repeat(2,minmax(0,1fr)); } }
+@media(max-width:540px) { .handbook-first-steps ol, .handbook-reading { grid-template-columns: 1fr; }.handbook-application { padding: 1rem; }.handbook-application select { max-width: 100%; }.handbook-controls button { flex: 1 1 8rem; } }

@@ -1,0 +1,76 @@
+{
+  "ambiguous_pos_correct": 6,
+  "ambiguous_tokens": 6,
+  "canonical_exclusions": {},
+  "complete_sentences": 3,
+  "conditional_gold_pos": false,
+  "decode_max_ms": 61108,
+  "decode_ms": 151610,
+  "elapsed_ms": 354976,
+  "eligible_heldout_sentences": 3,
+  "host_memory": "VmHWM:\t 1655452 kB; VmRSS:\t 1608392 kB",
+  "last_scope_flow_timing": [
+    {
+      "calls": 148,
+      "entry": "language-parser-joint-branch",
+      "maximum_nanos": 19857249,
+      "nanos": 2690138206
+    },
+    {
+      "calls": 73,
+      "entry": "language-parser-v2-pos",
+      "maximum_nanos": 127834909,
+      "nanos": 4814538403
+    },
+    {
+      "calls": 70,
+      "entry": "language-parser-v2-model-features",
+      "maximum_nanos": 251406261,
+      "nanos": 9693503307
+    },
+    {
+      "calls": 70,
+      "entry": "language-parser-legal-mask",
+      "maximum_nanos": 59395377,
+      "nanos": 3724758319
+    },
+    {
+      "calls": 192,
+      "entry": "language-parser-score-proposal",
+      "maximum_nanos": 7857679,
+      "nanos": 870527768
+    },
+    {
+      "calls": 192,
+      "entry": "language-parser-transition",
+      "maximum_nanos": 63152158,
+      "nanos": 7985396183
+    },
+    {
+      "calls": 192,
+      "entry": "language-parser-joint-expansion",
+      "maximum_nanos": 2898327,
+      "nanos": 421366325
+    },
+    {
+      "calls": 203,
+      "entry": "language-parser-joint-runtime-merge",
+      "maximum_nanos": 166863399,
+      "nanos": 20693496853
+    }
+  ],
+  "limitations": "finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence",
+  "model_content_identity": "a04156426101c80499fb0944ac68094e073b30bcf87890ed487faa5185840659",
+  "ordinary_plan_preparation_ms": 122540,
+  "pos_correct": 8,
+  "profile": "TRAIN-frequency57 plus seven separately reviewed lexical forms; four-token complete immutable tape; blind learned joint decode; teaching cases are not heldout",
+  "proof": "actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact",
+  "selected_occurrence": "reviewed-teaching",
+  "sentences": 3,
+  "source_preparation_ms": 75248,
+  "tokens": 8,
+  "uas_correct": 6,
+  "universal_base_las_correct": 6,
+  "vocative_correct": 2,
+  "vocative_gold": 3
+}

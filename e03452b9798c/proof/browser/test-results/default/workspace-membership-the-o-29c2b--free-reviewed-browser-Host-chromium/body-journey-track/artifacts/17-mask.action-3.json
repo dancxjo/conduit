@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "40c2decbca7cb46b8613447e5c06cc8df0f2a0f9",
+  "track": "browser-graphical",
+  "step_id": "mask.action-3",
+  "assertion": "mask-mask.withdraw-selected-route",
+  "source_facts": {
+    "action_id": "mask.withdraw-selected-route",
+    "concrete_event": "selected sealed route became unavailable",
+    "selected_mask_plot_id": null,
+    "plan_id": "body-plan/sha256:4e16a0c2df395711c54e8649ab3018646a319fa3309663ecb346add67f0eda27",
+    "selected_route_id": null,
+    "show_id": null,
+    "receipt_ids": [
+      "route-observation/withdrawn"
+    ],
+    "face_id": "b29ee7448ecbbb3ea0c5eaf3ef98f104537f5cfebf54a6cc7ba6ef615a58e1bb"
+  }
+}

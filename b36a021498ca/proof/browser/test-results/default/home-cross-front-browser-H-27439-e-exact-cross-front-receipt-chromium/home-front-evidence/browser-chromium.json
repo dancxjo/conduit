@@ -1,0 +1,23 @@
+{
+  "schema": "conduit.evidence/home-front@1",
+  "front_id": "browser-chromium",
+  "proof_class": "live-browser",
+  "step_ids": [
+    "home.arrived",
+    "forms.opened",
+    "form.selected",
+    "prompt.opened",
+    "form.run",
+    "play.observed",
+    "patchbay.opened",
+    "home.returned"
+  ],
+  "host_id": "browser/home",
+  "boot_id": "browser-boot/home/82f1e5ca-1e4a-4dd9-899e-9bd910147658",
+  "plan_id": "38c8547c39506554002425b757827628ef0727b64a7c2c6d2c09b425e7f64722",
+  "active_play_id": "f39c393077cee2a46a97fbc1cadc7828ba37869f6b22e1596e376c3487e62feb",
+  "renderer_id": "browser/home-status-text@1",
+  "manifestation_id": "02f2e3e7bd266bc9d7b20e330f1412cf868e14c9490dc916794fefee7d3749ae",
+  "artifact_path": "browser-chromium.png",
+  "artifact_sha256": "sha256:c1d844c859185ca7deebc827070ca885e37935cf4cce616cf97b2ad926346b05"
+}

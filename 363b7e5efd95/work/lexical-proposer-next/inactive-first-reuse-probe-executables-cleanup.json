@@ -1,0 +1,43 @@
+{
+  "scope": "Owned inactive regenerable standalone probe ELFs only; all sources/logs/SDK and latest reference/instrumented executables retained; current three corpus workers untouched",
+  "unix": 1791470731.1532936,
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_actual_bank",
+      "size": 118707264,
+      "sha256": "83aecce7fb116d9b4d1dfd5fd73bd9d391ce1f78bf02063e5b064a9b6657b93d",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_actual_bank_full",
+      "size": 119042424,
+      "sha256": "8182a8de4d30b1e17cdcceb98df2f3c9b5765a9ea1340f8ddfb7afab1f594770",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_canonical_rank",
+      "size": 118782640,
+      "sha256": "234a0ff502cdfeb943fece904fbd57bb3ba84cbf9331df8818f94e6575e4f958",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_proof_owner_gates",
+      "size": 118733840,
+      "sha256": "a20a96e19251e3ff5e620b3026d53214c1cc8b77a263052732ba7c1bd2740ec3",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_proof_owner_full_gates",
+      "size": 118793512,
+      "sha256": "58112fb4c7084565fd48caf5f2bc4979e177f2b9fa0a7e5031cefdff6e886a41",
+      "fuser_exit": 1
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/profile_reuse_full_gates",
+      "size": 118809976,
+      "sha256": "6030a779098829183aaefa2148f2771596cb94e223a120ce09b3e82265fd5610",
+      "fuser_exit": 1
+    }
+  ],
+  "recovered_bytes": 712869656
+}

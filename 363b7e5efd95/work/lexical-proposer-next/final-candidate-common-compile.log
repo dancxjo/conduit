@@ -1,0 +1,23 @@
+warning: fields `owner`, `selected`, and `contracts` are never read
+  --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposal_candidate.rs:20:9
+   |
+19 | pub struct Candidate {
+   |            --------- fields in this struct
+20 |     pub owner: PreparedRevisionProducer,
+   |         ^^^^^
+21 |     pub scorer: Arc<PreparedCategoricalStep>,
+22 |     pub selected: PreparedProposalModelSelection,
+   |         ^^^^^^^^
+23 |     pub contracts: ParserSourceModelContract,
+   |         ^^^^^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `numeric_source` is never used
+   --> work/lexical-proposer-next/../../semantics/language/tests/common/window8_proposal_candidate.rs:222:8
+    |
+222 | pub fn numeric_source(candidate: &Candidate) -> String {
+    |        ^^^^^^^^^^^^^^
+
+warning: 2 warnings emitted
+

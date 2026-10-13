@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=9554f6e1b4a009d1c76e169ad9f77bfca4d3b74cf154516904b060c1db7eefa6
+expanded=9fb8d80ead54a1623272d2dc8c6b50746cbc173073034b435c5455f3f541cea9
+input=language-window8-qualified-dependency-analysis/expression-ab297daf689d-0:input
+output=language-window8-qualified-dependency-analysis/expression-ab297daf689d-0:output
+gear=language-window8-qualified-dependency-analysis/expression-ab297daf689d-0:conduitese/pure-expression/e036a569bdc6fbb72bfff749fcefe27e689a028d676e430fd8993f45ee946413:conduitese/pure-expression-operation@1:input:output

@@ -1,0 +1,8 @@
+{
+  "semantics/language/build.rs": "b744302ea1d1285ad58c5740b5d44ba445ff9b54280d7c54188499f00898a631",
+  "semantics/language/src/lib.rs": "61d629e3bcaedf845ec050aa4d15d21b400a098023a7bbad95899d5bf7afd063",
+  "semantics/language/lexical_proposer.conduit": "2e86166d6e35cd0eb5d58a9311af0567d72e1eba3f784edc02e7ef6f7894e433",
+  "semantics/language/src/lexical_proposer_resource.rs": "48f4da84f1d132aed51c6ddd5fae710257b3dfb4cb26758a8011621a5b3af762",
+  "semantics/language/tests/lexical_proposer_resource.rs": "a9948e2d8021bc8e148edb8059ade5ce801b3971d67dafd3542f5c3f7155b265",
+  "architecture/core/src/structured_info/decode_storage.rs": "4297fdeb1a46fd5f2788f230018f1ead964c96d25e4b55338d3b5b30943dc6fa"
+}

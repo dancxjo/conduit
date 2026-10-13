@@ -1,0 +1,32 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+CONDUIT_BOOT_STAGE xhci-start
+CONDUIT_BOOT_STAGE xhci-ready
+CONDUIT_BOOT_STAGE usb-enumeration-start
+CONDUIT_BOOT_STAGE usb-configured
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_SPORE_PROVISION {"schema":"conduit.conduitos/spore-provision@1","status":"absent","membership_claimed":false}
+CONDUIT_XHCI_SIGN {"schema":"conduit.conduitos.xhci-base/v1","status":"ready","proof_class":"freestanding-emulator","base_id":"832225f0a8a38fa5bf9e5c334f27cadc101445204e0e31d7dcaebbbc435dbd10","boot_id":"4bc0c48283662324659c9ea8ff46083bf3daeccd69542260556ec84f2783d777","segment":0,"bus":0,"device":2,"function":0,"vendor":6966,"device_id":13,"bar_physical":4273930240,"hardware_slots":64,"admitted_slots":3,"command_trbs":16,"event_trbs":16,"dma_bytes":640,"dma_alignment":64,"maximum_pending_commands":1,"poll_steps":2000000,"sign_slots":8,"semantic_keyboard_offer":false}
+CONDUIT_USB_SIGN {"schema":"conduit.conduitos.usb-device/v1","status":"configured","proof_class":"freestanding-emulator","controller_base_id":"832225f0a8a38fa5bf9e5c334f27cadc101445204e0e31d7dcaebbbc435dbd10","boot_id":"4bc0c48283662324659c9ea8ff46083bf3daeccd69542260556ec84f2783d777","device_instance_id":"b80288e24ee11ab3409efa3e49c11304a880df396f8fdeb0e812bfacd4160d7a","root_port":1,"slot":1,"address":1,"attachment_epoch":1,"usb_version":512,"device_class":0,"device_subclass":0,"device_protocol":0,"ep0_maximum_packet_size":64,"vendor_id":1575,"product_id":1,"device_version":0,"configuration_value":1,"configuration_bytes":34,"descriptor_records":4,"interface_count":1,"endpoint_count":1,"first_interface_id":"eb82e5ee2d1a0c6a916287db6829a811c6db4a941da3400dad2569a637bdc550","first_interface_number":0,"first_interface_alternate":0,"first_interface_class":3,"first_interface_subclass":1,"first_interface_protocol":1,"first_endpoint_id":"bb8cc1c64d8b45a233114152b40e4688991710327bbd0d3778fd93b03dba65c1","first_endpoint_address":129,"first_endpoint_direction_in":true,"first_endpoint_transfer_type":3,"first_endpoint_maximum_packet_size":8,"first_endpoint_interval":7,"configuration_limit_bytes":256,"interface_limit":4,"endpoint_limit":8,"descriptor_record_limit":16,"outstanding_control_transfer_limit":1,"enumeration_retries":0,"control_transfers":5,"short_packets":0,"transfer_trbs":32,"dma_bytes":8192,"dma_alignment":4096,"port_poll_steps":2000000,"sign_slots":12,"semantic_keyboard_offer":false}
+CONDUIT_BOOT_STAGE hid-start
+CONDUIT_BOOT_STAGE local-rescue-ready
+CONDUIT_BOOT_SIGN {"schema":"conduit.conduitos.boot-sign/v1","status":"accepted","arch":"x86_64","firmware":"x86-bios","profile_id":"sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3","build_id":"build:sha256:224b4801294bbd25ba3c571b5487b0759a57b29c0d9753ac0c5f1d39b1e6def2","image_binding":"image:sha256:a144af61ffc9335720781a035e70f37f1206499bacace88f7853633f93a69ddd","offer_generation":1,"limine":"12.5.2","qemu_profile":"q35-single-cpu-64m-headless-xhci-usb-kbd-usb-mouse-usb-ftdi-adlib","host_id":"cdbb3c99ae2bbe20fb8e67634a38e76cc2c8102f8e74d39cd7e4e07a9b866012","boot_id":"4bc0c48283662324659c9ea8ff46083bf3daeccd69542260556ec84f2783d777","memory_regions":19,"artifacts":1,"framebuffers":1,"command_line_bytes":38,"runtime_arena_bytes":16777216}
+CONDUIT_BOOT_STAGE identities
+CONDUIT_GRAPHICAL_PROFILE {"profile":"conduitos/graphical/dejavu-v1","primary":"DejaVu Sans","code":"DejaVu Sans Mono","fallback":"pinned Unifont","primitive":false}
+CONDUIT_PRODUCT_JOURNEY {"status":"world","revision":1,"profile_id":"sha256:c817b0db0f2290d3c4a31dbc2c14f28fffce3d6449675ad1e8e65d9064aaa3d3","build_id":"build:sha256:224b4801294bbd25ba3c571b5487b0759a57b29c0d9753ac0c5f1d39b1e6def2","image_id":"image:sha256:a144af61ffc9335720781a035e70f37f1206499bacace88f7853633f93a69ddd","host_id":"cdbb3c99ae2bbe20fb8e67634a38e76cc2c8102f8e74d39cd7e4e07a9b866012","boot_id":"4bc0c48283662324659c9ea8ff46083bf3daeccd69542260556ec84f2783d777","offer_generation":1,"source_document_id":null,"checked_plot_id":null,"expanded_plot_id":null,"body_id":null,"friendly_name":null,"born_sign_id":null,"fulfilled_sign_id":null,"lull_sign_id":null,"workload_revision":null,"workload_sign_id":null,"part_id":null,"wake_id":null,"wake_sign_id":null,"plan_id":null,"plan_sign_id":null,"active_play_id":null,"play_sign_id":null,"gear_ids":[],"port_ids":[],"cord_ids":[],"presentation_id":"742181bc46d31e90a325f069e902dd713b3748c26758c2a721e3965dee65d542","manifestation_id":"0e38784f4c65c946509df068b26378af79e6a9f004ffb0b482085bd8456b4aad","presenter_implementation_id":"presentation/renderer-conduitos-native@1","input_sign_id":null,"loss_kind":null,"loss_sign_id":null,"recovery":null,"result_sign_id":null,"result":null,"result_omitted_bytes":0,"input_count":0,"kernel_sign_gap":null,"request_id":null}
+CONDUIT_BOOT_STAGE front-door-ready
+CONDUIT_CRECHE_CHECKPOINT ready
+CONDUIT_BOOT_STAGE hid-awaiting-qemu-key
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_CRECHE_CHECKPOINT edited
+CONDUIT_KERNEL_SIGN {"schema":"conduit.conduitos.kernel-sign/v2","status":"refused","reason":"native-face-mask-input-unsupported"}

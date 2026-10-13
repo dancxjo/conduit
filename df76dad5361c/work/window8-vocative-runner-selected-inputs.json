@@ -1,0 +1,7 @@
+{
+  "semantics/language/tests/parser_window8_cached_corpus_model.rs": "557eab80d0b7526c512dd4dcce4eddcdae750ed5ce7ff6c404ea560da1a5a061",
+  "semantics/language/tests/common/dependency_metrics.rs": "6824e995dd8b2c5577db93396ba407cff57f4efb18fc682dc673024d19b81688",
+  "semantics/language/training/ewt_joint_v3_window8/vocative_training.json": "05fb914ad5e9cc3820fd7387e742f56c570794643f12afee6e47d1aa27e0441c",
+  "semantics/language/training/ewt_joint_v3_window8/vocative_lexical_alternatives.json": "c9a6f5245686dee5436da665460f6549c49734258c6a7457c1523a66e84e6517",
+  "semantics/language/tests/common/window8_fact_replay.rs": "86117c8f276c15301272b45e853f7b93bec3f824b9472d7350b6bb7a59fa87df"
+}

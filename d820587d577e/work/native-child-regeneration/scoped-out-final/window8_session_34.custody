@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=c0afbcd737c717bfbffb4bacfd99b99997db443bcf7481812df65c15b5c2b304
+expanded=eb1c4b3ad00d79fb7f800440b560d2346cc57da51a750069b079bc4658a2df2c
+input=language-window8-qualified-lexical-origin/expression-8b241fade580-0:input
+output=language-window8-qualified-lexical-origin/expression-8b241fade580-0:output
+gear=language-window8-qualified-lexical-origin/expression-8b241fade580-0:conduitese/pure-expression/99a219d60385acecbb2a8b76adccc13b14dc3bdfa454f843ac72a0594d386e60:conduitese/pure-expression-operation@1:input:output

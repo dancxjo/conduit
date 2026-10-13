@@ -1,0 +1,2836 @@
+{
+  "rows": [
+    {
+      "kind": "units/convert-temperature-difference",
+      "left": "TemperatureDelta(9, °F)",
+      "right": "K",
+      "source": "plot checked-quantity {\n operation: units/convert-temperature-difference(source = TemperatureDelta(9, °F), to = K)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"converted\") ? (.result.converted.coefficient == 5 ? .result.converted.exponent == 0 : false) : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "6d4a54e415849ba28200f26f20b7202c1b67b36f9fcfd3a276f3a7775c46f47d",
+        "checked_plot_id": "ab159843ec3f2f50a429c3153f0d677e504b623a50e8d5fdddac08c59454a456",
+        "expanded_plot_id": "78f5f8b48eb6c4a5ad6dec95fe86313f89be29a3f42be5edb50accbbff520476",
+        "plan_id": "fbb226ccc4e5f4aa650dd3e52cf6577c36429bbd6fbda377db056178619bbad6",
+        "fragment_id": "ebecb0365cf8e5be59580831ad819c9df3ab5d5841ca315b7b7fe92949a8b530",
+        "active_play_id": "12b7677678ec8f589caf808e80a1f94b75c5c47eb011839738edff0c71e5502a",
+        "presentation_id": "064eef31730d7244d2d2f68c0c2aef32889f160115846c4382e3d03f57560d97",
+        "placement_id": "7793452061d4d9cf6f67f1909dc4b220613f4df914ba10af0fa5e93dc5e74c5e",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-5d31d427b3ab-0",
+            "kind_id": "conduitese/pure-expression/a21b8de0d0a47fae2778f4fd8cb67eb16c49059faa4ca2e642c3bb253861aa0b",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/convert-temperature-difference",
+            "implementation_id": "browser/exact-temperature-difference-conversion@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/0294cd6770ec8d4f60b343e915d1bbd9470e4d4ba7d16c425ce123d76bb808de",
+          "result_identity": "interaction-result/3152587f49bd2b7c5ae1662283a4ac0c8f8b06fc04d1635fdb134478b1cec2d6",
+          "sequence": 1,
+          "value_kind": "value/text",
+          "value_bytes": 309
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "12b7677678ec8f589caf808e80a1f94b75c5c47eb011839738edff0c71e5502a",
+        "presentation_id": "064eef31730d7244d2d2f68c0c2aef32889f160115846c4382e3d03f57560d97",
+        "terminal_sign_id": "f13fdf5b53f0e87d3fa860d58fc6a7577c4bfb92a04abc0e68422a7fb0eedff6",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "12b7677678ec8f589caf808e80a1f94b75c5c47eb011839738edff0c71e5502a",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "fbb226ccc4e5f4aa650dd3e52cf6577c36429bbd6fbda377db056178619bbad6",
+                "fragment_id": "ebecb0365cf8e5be59580831ad819c9df3ab5d5841ca315b7b7fe92949a8b530"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "fbb226ccc4e5f4aa650dd3e52cf6577c36429bbd6fbda377db056178619bbad6",
+              "fragment_id": "ebecb0365cf8e5be59580831ad819c9df3ab5d5841ca315b7b7fe92949a8b530",
+              "placement_id": "f79de3369e45b7da4744aab2e43579099ecbd9295e4894eedde413b9fd4dfd6c"
+            },
+            {
+              "node": 1,
+              "plan_id": "fbb226ccc4e5f4aa650dd3e52cf6577c36429bbd6fbda377db056178619bbad6",
+              "fragment_id": "ebecb0365cf8e5be59580831ad819c9df3ab5d5841ca315b7b7fe92949a8b530",
+              "placement_id": "6f0d50377ddd62e3a3e90d0cf85e27e491a72454927b7f17df16d949965d158a"
+            },
+            {
+              "node": 2,
+              "plan_id": "fbb226ccc4e5f4aa650dd3e52cf6577c36429bbd6fbda377db056178619bbad6",
+              "fragment_id": "ebecb0365cf8e5be59580831ad819c9df3ab5d5841ca315b7b7fe92949a8b530",
+              "placement_id": "7793452061d4d9cf6f67f1909dc4b220613f4df914ba10af0fa5e93dc5e74c5e"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/convert-temperature-difference",
+      "left": "TemperatureDelta(1, m°C)",
+      "right": "K",
+      "source": "plot checked-quantity {\n operation: units/convert-temperature-difference(source = TemperatureDelta(1, m°C), to = K)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == -3 : false) : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "1cd211d44f9ed384b50b987887c8fe7bb15e46abad470789261a063d099b3502",
+        "checked_plot_id": "d266f985af3211175313729dd4e267a0affdfad709f2a7af4a0306a482e08c1e",
+        "expanded_plot_id": "9c9762d0e8413a992fbf2c009ad421a1f24cfad9d69fd3e9f100626c8612481b",
+        "plan_id": "c0062e3fc7448d714c3da10ac1a68149cd781f74dd1f0f8bd1cf5a57db7e8863",
+        "fragment_id": "a972ef346476aec2321c7f5225e95f8533e15822d3dbff9f63364e10a075d715",
+        "active_play_id": "78a5bc7385abfac3ad1ad8b29bf49a3c19addaa46a6bf181a31e8d1328c99963",
+        "presentation_id": "a874c4fcc27e7dc9023e8e3a520597fb97f3d106a4ed90d6e4de86211e5d61d8",
+        "placement_id": "9c2b5983644887a8d25658a2c047e2de137954528e5f0d00c27917f379098e62",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-5cc82b299c35-0",
+            "kind_id": "conduitese/pure-expression/330b253d54ac34a2da31a38609642ed9909041e4355b07b610ff0973a3f9d9bd",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/convert-temperature-difference",
+            "implementation_id": "browser/exact-temperature-difference-conversion@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/b74950ddaa874983793bcd923f77dd32596ea6ad0cfa52d74e5cd092458f597a",
+          "result_identity": "interaction-result/eec6061b6c39d55b11743437556d91968d4422da1694ee472ae022b15d2c1b7e",
+          "sequence": 2,
+          "value_kind": "value/text",
+          "value_bytes": 311
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "78a5bc7385abfac3ad1ad8b29bf49a3c19addaa46a6bf181a31e8d1328c99963",
+        "presentation_id": "a874c4fcc27e7dc9023e8e3a520597fb97f3d106a4ed90d6e4de86211e5d61d8",
+        "terminal_sign_id": "189ec75f1910bb213974e8474d1dee62698550a1e80a044b39230f8667750d32",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "78a5bc7385abfac3ad1ad8b29bf49a3c19addaa46a6bf181a31e8d1328c99963",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "c0062e3fc7448d714c3da10ac1a68149cd781f74dd1f0f8bd1cf5a57db7e8863",
+                "fragment_id": "a972ef346476aec2321c7f5225e95f8533e15822d3dbff9f63364e10a075d715"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "c0062e3fc7448d714c3da10ac1a68149cd781f74dd1f0f8bd1cf5a57db7e8863",
+              "fragment_id": "a972ef346476aec2321c7f5225e95f8533e15822d3dbff9f63364e10a075d715",
+              "placement_id": "c5793ea5879b76352499866dd85e140f9ee14a3a44056416d1ebfaeab3edf477"
+            },
+            {
+              "node": 1,
+              "plan_id": "c0062e3fc7448d714c3da10ac1a68149cd781f74dd1f0f8bd1cf5a57db7e8863",
+              "fragment_id": "a972ef346476aec2321c7f5225e95f8533e15822d3dbff9f63364e10a075d715",
+              "placement_id": "72e1bae8d69daeb7d5778d68b08db9b1c7f60589ba280375d8b0675e41d93498"
+            },
+            {
+              "node": 2,
+              "plan_id": "c0062e3fc7448d714c3da10ac1a68149cd781f74dd1f0f8bd1cf5a57db7e8863",
+              "fragment_id": "a972ef346476aec2321c7f5225e95f8533e15822d3dbff9f63364e10a075d715",
+              "placement_id": "9c2b5983644887a8d25658a2c047e2de137954528e5f0d00c27917f379098e62"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/compare",
+      "left": "1000mm",
+      "right": "0.001km",
+      "source": "plot checked-quantity {\n operation: units/compare(left = 1000mm, right = 0.001km)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"equal\")) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "65490c932bc40f8bdf348201bb247fd74c26de6bfd439c33a3323f9e94c0de5c",
+        "checked_plot_id": "1be187b50d1ca7d3f79a8d8dd2e3baca9a460242fbd1d36ad36748ff4a17ecec",
+        "expanded_plot_id": "812ed280baa5289718cfae3d049391f6c33de9fbe601ecd51369d22a3f0a00b1",
+        "plan_id": "647f26d5b263d48ffb679156163c5eb7bd8211b06e086c82c7fd3306bea3fd2e",
+        "fragment_id": "5f3fbc58cf5c5337617550950e5e9523d5e8069817e279577b1b00db8c3cad76",
+        "active_play_id": "cbb37ecf3b01c48080ae4270936fb56ffb8119c895773be3dd9e735afad42e4f",
+        "presentation_id": "2006f791e328eb3ecd46013aee5253bc50c69c80d87ef949407c941333ef3fff",
+        "placement_id": "8e2681bcc14a61c9a3277a3b972297eb46f03105b6a8c32f02d6788c4cec1c1d",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-a8fa749862d1-0",
+            "kind_id": "conduitese/pure-expression/7cbfef8260d9f6fd9ac44d7ed9ae36694e8793c36dcff6ab5a74fb6bf5c0f702",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/compare",
+            "implementation_id": "browser/exact-quantity-comparison@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/0e6c6cb52c0d26b689444adebf36a9bfb5cc62a408495466373bf7087a787ef8",
+          "result_identity": "interaction-result/126bc3ccb8140433706f0e39e2de9df2ae65425f844ee21613425a8305d4b49d",
+          "sequence": 3,
+          "value_kind": "value/text",
+          "value_bytes": 182
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "cbb37ecf3b01c48080ae4270936fb56ffb8119c895773be3dd9e735afad42e4f",
+        "presentation_id": "2006f791e328eb3ecd46013aee5253bc50c69c80d87ef949407c941333ef3fff",
+        "terminal_sign_id": "326c6a2ffac6574f9c5ecc2314ab233122f340d8d8f1f2b0418771bf927ab6a8",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "cbb37ecf3b01c48080ae4270936fb56ffb8119c895773be3dd9e735afad42e4f",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "647f26d5b263d48ffb679156163c5eb7bd8211b06e086c82c7fd3306bea3fd2e",
+                "fragment_id": "5f3fbc58cf5c5337617550950e5e9523d5e8069817e279577b1b00db8c3cad76"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "647f26d5b263d48ffb679156163c5eb7bd8211b06e086c82c7fd3306bea3fd2e",
+              "fragment_id": "5f3fbc58cf5c5337617550950e5e9523d5e8069817e279577b1b00db8c3cad76",
+              "placement_id": "6c392a723011038dfd6906df2c722ddf19c5c616f949752ca6938a4fb8c66a3d"
+            },
+            {
+              "node": 1,
+              "plan_id": "647f26d5b263d48ffb679156163c5eb7bd8211b06e086c82c7fd3306bea3fd2e",
+              "fragment_id": "5f3fbc58cf5c5337617550950e5e9523d5e8069817e279577b1b00db8c3cad76",
+              "placement_id": "45420c706e646530e8890dfb05dffe85b295713af28102117c2239ffe2d2f67d"
+            },
+            {
+              "node": 2,
+              "plan_id": "647f26d5b263d48ffb679156163c5eb7bd8211b06e086c82c7fd3306bea3fd2e",
+              "fragment_id": "5f3fbc58cf5c5337617550950e5e9523d5e8069817e279577b1b00db8c3cad76",
+              "placement_id": "8e2681bcc14a61c9a3277a3b972297eb46f03105b6a8c32f02d6788c4cec1c1d"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/compare",
+      "left": "1°F",
+      "right": "0°C",
+      "source": "plot checked-quantity {\n operation: units/compare(left = 1°F, right = 0°C)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"less\")) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "7cf001a6006c51b72d1a39c3a6cc234edad8e195fb5c3d53429cdcc94177eba2",
+        "checked_plot_id": "79e749004bb569878f9dd5ad7cae11111670d1feb879fd6bb95f3b92451232a4",
+        "expanded_plot_id": "4c02670ef06bc0a34eed0273ac4a0f17b7ae5cc39cf3dda6a64cfaac16188881",
+        "plan_id": "87ea68e13dd46f5f51be09f260922921b1a8dd88dbdecc6aba92adb6e4e868ed",
+        "fragment_id": "e5facba97db473bd0f68e575c5e3e2901f6643ae3f9df5ac327724f8c4755bd4",
+        "active_play_id": "6f7606e5b9aa946a3c7453981279f83d3858166b8d949f53a765167ae9f355ef",
+        "presentation_id": "d74cb972b5c58662e9685ea6c21a40d41f31136aeb7c2ac5b638f3b6ada885f7",
+        "placement_id": "4b7e26612283b23e603374619a720002a960d33f4c00ac7335acc2968ef09c37",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-60cd3afffed6-0",
+            "kind_id": "conduitese/pure-expression/097b7846f5a43eade6e94396584910eb094a208459ff19daa0a4714b7208ed2a",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/compare",
+            "implementation_id": "browser/exact-quantity-comparison@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/b01d9001bad741ea01c70e700fed62f005fc93a3abcfdd6e33f4aa4dccf091c2",
+          "result_identity": "interaction-result/de9258eeeac6692ee0d69c6950deea6a41edfb5dc60ba046483a970620b9c68e",
+          "sequence": 4,
+          "value_kind": "value/text",
+          "value_bytes": 176
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "6f7606e5b9aa946a3c7453981279f83d3858166b8d949f53a765167ae9f355ef",
+        "presentation_id": "d74cb972b5c58662e9685ea6c21a40d41f31136aeb7c2ac5b638f3b6ada885f7",
+        "terminal_sign_id": "55eba6950af68ea4947cfc5eab38c3bd6aef78658e2042bafea46d49aa89fa20",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "6f7606e5b9aa946a3c7453981279f83d3858166b8d949f53a765167ae9f355ef",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "87ea68e13dd46f5f51be09f260922921b1a8dd88dbdecc6aba92adb6e4e868ed",
+                "fragment_id": "e5facba97db473bd0f68e575c5e3e2901f6643ae3f9df5ac327724f8c4755bd4"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "87ea68e13dd46f5f51be09f260922921b1a8dd88dbdecc6aba92adb6e4e868ed",
+              "fragment_id": "e5facba97db473bd0f68e575c5e3e2901f6643ae3f9df5ac327724f8c4755bd4",
+              "placement_id": "419b0a787c4611bbe23e6601711904f42dc48f2318f3d7f1e3fa1f53d929f267"
+            },
+            {
+              "node": 1,
+              "plan_id": "87ea68e13dd46f5f51be09f260922921b1a8dd88dbdecc6aba92adb6e4e868ed",
+              "fragment_id": "e5facba97db473bd0f68e575c5e3e2901f6643ae3f9df5ac327724f8c4755bd4",
+              "placement_id": "14c72989b831ab973ba1b32ae8497febff3697d570025125fe5b31245ad654a1"
+            },
+            {
+              "node": 2,
+              "plan_id": "87ea68e13dd46f5f51be09f260922921b1a8dd88dbdecc6aba92adb6e4e868ed",
+              "fragment_id": "e5facba97db473bd0f68e575c5e3e2901f6643ae3f9df5ac327724f8c4755bd4",
+              "placement_id": "4b7e26612283b23e603374619a720002a960d33f4c00ac7335acc2968ef09c37"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/compare",
+      "left": "1MB",
+      "right": "1MiB",
+      "source": "plot checked-quantity {\n operation: units/compare(left = 1MB, right = 1MiB)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"less\")) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "81c03f138404ebe5b18091d2fdce9c3c481876476e745a9c547232b775a70bed",
+        "checked_plot_id": "f06ca0ecffe7394dd4faf5ea77ca84017d5c7e952cfbc93bef2b9d31495ff31f",
+        "expanded_plot_id": "95ee78e852711fcd76f1beb399af0e7125dff3034f2dc385f48237717d6ea0b2",
+        "plan_id": "9deb10429a7c173b69872c88fa7b12772e6e980c5267afa683a86aa2c2707b31",
+        "fragment_id": "7b1264dc2b8c2a0d75fa81e0a3c5a508b81429f6f6316a4521c190e81418d4e7",
+        "active_play_id": "f5159671114c805d51156a43064274b9400e1a667081ec2b6b8fe8d327ca1ed2",
+        "presentation_id": "d93ba297e56284e4f163e03138a6ad106985f8ef9477733cefcaa7bc97d24a70",
+        "placement_id": "137b7707f1f6549500a543ddd6855755a0a98654edef628da3b17e841a73c348",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-60cd3afffed6-0",
+            "kind_id": "conduitese/pure-expression/097b7846f5a43eade6e94396584910eb094a208459ff19daa0a4714b7208ed2a",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/compare",
+            "implementation_id": "browser/exact-quantity-comparison@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/75d26f1f876fd654ae8e3a6173cdcbd4e6ed9e3e20ee728b4273be3ca0ade96a",
+          "result_identity": "interaction-result/a924a0376d20fa4b8ed065d46d88e8c044afb68af2aa71404ec5de8d24bf1963",
+          "sequence": 5,
+          "value_kind": "value/text",
+          "value_bytes": 175
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "f5159671114c805d51156a43064274b9400e1a667081ec2b6b8fe8d327ca1ed2",
+        "presentation_id": "d93ba297e56284e4f163e03138a6ad106985f8ef9477733cefcaa7bc97d24a70",
+        "terminal_sign_id": "aa5f01b7716a26f330c2f2f1612485dcf2cee6b624f7efc446208bc08192530e",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "f5159671114c805d51156a43064274b9400e1a667081ec2b6b8fe8d327ca1ed2",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "9deb10429a7c173b69872c88fa7b12772e6e980c5267afa683a86aa2c2707b31",
+                "fragment_id": "7b1264dc2b8c2a0d75fa81e0a3c5a508b81429f6f6316a4521c190e81418d4e7"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "9deb10429a7c173b69872c88fa7b12772e6e980c5267afa683a86aa2c2707b31",
+              "fragment_id": "7b1264dc2b8c2a0d75fa81e0a3c5a508b81429f6f6316a4521c190e81418d4e7",
+              "placement_id": "878b28e7ca0debc903b0c0070e5f0da8c5ea6cbd26ad2106e439cacd743c06d5"
+            },
+            {
+              "node": 1,
+              "plan_id": "9deb10429a7c173b69872c88fa7b12772e6e980c5267afa683a86aa2c2707b31",
+              "fragment_id": "7b1264dc2b8c2a0d75fa81e0a3c5a508b81429f6f6316a4521c190e81418d4e7",
+              "placement_id": "d4f854d760f06d523931ab059e838f32778adeaf2267eebd5ded9b5c6bb2904e"
+            },
+            {
+              "node": 2,
+              "plan_id": "9deb10429a7c173b69872c88fa7b12772e6e980c5267afa683a86aa2c2707b31",
+              "fragment_id": "7b1264dc2b8c2a0d75fa81e0a3c5a508b81429f6f6316a4521c190e81418d4e7",
+              "placement_id": "137b7707f1f6549500a543ddd6855755a0a98654edef628da3b17e841a73c348"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/compare-temperature-differences",
+      "left": "TemperatureDelta(9, °F)",
+      "right": "TemperatureDelta(5, K)",
+      "source": "plot checked-quantity {\n operation: units/compare-temperature-differences(left = TemperatureDelta(9, °F), right = TemperatureDelta(5, K))\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"equal\")) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "a61cfe51c96b5738b57db23e6e74979c732db49bab8a2f232d012030e3a0a855",
+        "checked_plot_id": "1bc87f110e054f06ac086ea4ff31029de87ca4dd31fc9f76cbd1e53e6b9d67cb",
+        "expanded_plot_id": "3323d8919dc083177677da6ca9fe51148d816bf7bc93bfadfdaa2eff7fb54188",
+        "plan_id": "7c041f89a4c0c1f71a3d6aaff07d50eff58b2c8c8ff2301f28dc068221a14f87",
+        "fragment_id": "7e5488d07ad1c70f4d7f86492054ccbd4000c985a150e92e7be9eaa8539f1b37",
+        "active_play_id": "9a34a7fdfeec13bd77206b8bd40c08132238367cb98f127500ffb70a868da774",
+        "presentation_id": "beefb3708b0e76863ec6e60b50d203a05ecb511f266a0a5dce8129b02ac03f76",
+        "placement_id": "057d5d2c93be79f78c7fb318a567f1f479359e8ddaa4316dc00e69dd9d8884fe",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-126a34ec9260-0",
+            "kind_id": "conduitese/pure-expression/764414ccc9a79156734b320779b03477bc02affe7e3b5e7d289570913b333b12",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/compare-temperature-differences",
+            "implementation_id": "browser/exact-temperature-difference-comparison@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/bc1d84bf6b31ef472d1998fa25748da96249425a2abd8f0613ab19116f71c2c8",
+          "result_identity": "interaction-result/5f8bb90b4208c87e78f40dfe974d331d0f15ab98b1135c54b1f015304c1758ea",
+          "sequence": 6,
+          "value_kind": "value/text",
+          "value_bytes": 239
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "9a34a7fdfeec13bd77206b8bd40c08132238367cb98f127500ffb70a868da774",
+        "presentation_id": "beefb3708b0e76863ec6e60b50d203a05ecb511f266a0a5dce8129b02ac03f76",
+        "terminal_sign_id": "4d9d3bd3cb39adc9886db948c16da3c1fdb14065bfd63e0e821ee119e0ee1427",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "9a34a7fdfeec13bd77206b8bd40c08132238367cb98f127500ffb70a868da774",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "7c041f89a4c0c1f71a3d6aaff07d50eff58b2c8c8ff2301f28dc068221a14f87",
+                "fragment_id": "7e5488d07ad1c70f4d7f86492054ccbd4000c985a150e92e7be9eaa8539f1b37"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "7c041f89a4c0c1f71a3d6aaff07d50eff58b2c8c8ff2301f28dc068221a14f87",
+              "fragment_id": "7e5488d07ad1c70f4d7f86492054ccbd4000c985a150e92e7be9eaa8539f1b37",
+              "placement_id": "9ede7564eab565bd9e5899d1cd3973369f242099fd3336583ebc74a13b1f57ef"
+            },
+            {
+              "node": 1,
+              "plan_id": "7c041f89a4c0c1f71a3d6aaff07d50eff58b2c8c8ff2301f28dc068221a14f87",
+              "fragment_id": "7e5488d07ad1c70f4d7f86492054ccbd4000c985a150e92e7be9eaa8539f1b37",
+              "placement_id": "4a5458e710ce485e194f2eb09e3bc3fc40241dae79c7f0df46e72c10f31f7c4d"
+            },
+            {
+              "node": 2,
+              "plan_id": "7c041f89a4c0c1f71a3d6aaff07d50eff58b2c8c8ff2301f28dc068221a14f87",
+              "fragment_id": "7e5488d07ad1c70f4d7f86492054ccbd4000c985a150e92e7be9eaa8539f1b37",
+              "placement_id": "057d5d2c93be79f78c7fb318a567f1f479359e8ddaa4316dc00e69dd9d8884fe"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/convert",
+      "left": "1°F",
+      "right": "°C",
+      "source": "plot checked-quantity {\n operation: units/convert(source = 1°F, to = °C)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"refused\") ? .result.refused == \"inexact\" : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "be2a1aa7586cbd10607ec569ee425fe7610574f52457d0028ef2bf7bf2e5a9bb",
+        "checked_plot_id": "54caab6a480df20b6c51b26d02c29fcd7b16543b5b9cee3c8ff20989ff2700e3",
+        "expanded_plot_id": "4196ccb9bf1b53584b96ecd243487613dbdecb207f487ac9b48c6fdc511309e8",
+        "plan_id": "5820f1272920cdae30ea9d51bfd7f4b1ebcc1cdb9bdbc7bea6e04ac85395c0ea",
+        "fragment_id": "68bb411808227c56dfaed77f64712f73e700d18bfdd987dbce828c0c3d634226",
+        "active_play_id": "7e47e3fcc10c7437093b07173f34b423315383a23d23604fde29fbbe074cedeb",
+        "presentation_id": "ccbaa02ab4cba9298a8d301cce72bc42ca21cd4cc627a3afc6f410cd58e749aa",
+        "placement_id": "9d3f8ffa844c83be1936d38e33a16c50b5383bf1167e879550d85a25460dc4de",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-33f660f42fa2-0",
+            "kind_id": "conduitese/pure-expression/bc91f139ee7429075fbead96043f1deb3a363fe69e995a59d49a671b4fc64143",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/28951796e68e827d737a13272351ccf3b71b00f4d1df10139be18d14ede70fbc",
+          "result_identity": "interaction-result/81727157c61f23410ceee7bc7542a50f5dc77405ab7ac098bfefde9dae151da3",
+          "sequence": 7,
+          "value_kind": "value/text",
+          "value_bytes": 216
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "7e47e3fcc10c7437093b07173f34b423315383a23d23604fde29fbbe074cedeb",
+        "presentation_id": "ccbaa02ab4cba9298a8d301cce72bc42ca21cd4cc627a3afc6f410cd58e749aa",
+        "terminal_sign_id": "1f919ec06ca7ff22a5ac51a8772431cb21155a55c999ee352904f539fa779119",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "7e47e3fcc10c7437093b07173f34b423315383a23d23604fde29fbbe074cedeb",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "5820f1272920cdae30ea9d51bfd7f4b1ebcc1cdb9bdbc7bea6e04ac85395c0ea",
+                "fragment_id": "68bb411808227c56dfaed77f64712f73e700d18bfdd987dbce828c0c3d634226"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "5820f1272920cdae30ea9d51bfd7f4b1ebcc1cdb9bdbc7bea6e04ac85395c0ea",
+              "fragment_id": "68bb411808227c56dfaed77f64712f73e700d18bfdd987dbce828c0c3d634226",
+              "placement_id": "3d8877e5abdf36d3390eca43ce95d2659402a1f5a98299feede2f11593718590"
+            },
+            {
+              "node": 1,
+              "plan_id": "5820f1272920cdae30ea9d51bfd7f4b1ebcc1cdb9bdbc7bea6e04ac85395c0ea",
+              "fragment_id": "68bb411808227c56dfaed77f64712f73e700d18bfdd987dbce828c0c3d634226",
+              "placement_id": "175e3a9e46ce7d57fe05a14af29b06af6cdf6f71f9cc6d175b744cf38606edac"
+            },
+            {
+              "node": 2,
+              "plan_id": "5820f1272920cdae30ea9d51bfd7f4b1ebcc1cdb9bdbc7bea6e04ac85395c0ea",
+              "fragment_id": "68bb411808227c56dfaed77f64712f73e700d18bfdd987dbce828c0c3d634226",
+              "placement_id": "9d3f8ffa844c83be1936d38e33a16c50b5383bf1167e879550d85a25460dc4de"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/convert",
+      "left": "1Hz",
+      "right": "m",
+      "source": "plot checked-quantity {\n operation: units/convert(source = 1Hz, to = m)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"refused\") ? .result.refused == \"incompatible-dimensions\" : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "5987533f3ce711df2d0f82b58d0cccc0bd948605ebe05b1db5fd397bb7c20167",
+        "checked_plot_id": "6f9d64111ef5f71d2d1bd551b2d425aa40197b95ab888638e4a6e15a2fc9415b",
+        "expanded_plot_id": "f8498252160ff0f49c7ada662094cc7bbe9ec755fdfd13235cac4b8e47d6bb53",
+        "plan_id": "108efc124927b9264d8ec1cdd2153ed227d4fc81587a0b615ef43e88e46405cc",
+        "fragment_id": "75ad7d88ef176bbca8feed30097be414b4d6313ac17e0c8c90a0e201585857d5",
+        "active_play_id": "0066bd7dc0e9c147042f2fdf910e8a2b5648d0547840af084f6adeba5492cb1f",
+        "presentation_id": "345ca8eb1986a1b5699c05e678b844394f69ec53e7e6de8a1d1ccc1ea1dc99bb",
+        "placement_id": "945fbd522675ba718db345ecb3f860c536d799e4dc634567c19d338cd95ab8e1",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-b9f0a1ed7549-0",
+            "kind_id": "conduitese/pure-expression/750258b143ab9877acfb050c1a6eb1fc0ab7893c5a7c580684417f83696be476",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/9143ca44a84a919d624b26a86bf2941c167a3f0e477eac35c4fe845dd55016d2",
+          "result_identity": "interaction-result/a79f53d9b007f2f9dfa49d751d307e3926303d6fcec84bbf6f2075d4a5c2821b",
+          "sequence": 8,
+          "value_kind": "value/text",
+          "value_bytes": 229
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "0066bd7dc0e9c147042f2fdf910e8a2b5648d0547840af084f6adeba5492cb1f",
+        "presentation_id": "345ca8eb1986a1b5699c05e678b844394f69ec53e7e6de8a1d1ccc1ea1dc99bb",
+        "terminal_sign_id": "f84da9abc696661f7fa1a9c1ec555294ce339701fe821a2568110ee0aabbb7d0",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "0066bd7dc0e9c147042f2fdf910e8a2b5648d0547840af084f6adeba5492cb1f",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "108efc124927b9264d8ec1cdd2153ed227d4fc81587a0b615ef43e88e46405cc",
+                "fragment_id": "75ad7d88ef176bbca8feed30097be414b4d6313ac17e0c8c90a0e201585857d5"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "108efc124927b9264d8ec1cdd2153ed227d4fc81587a0b615ef43e88e46405cc",
+              "fragment_id": "75ad7d88ef176bbca8feed30097be414b4d6313ac17e0c8c90a0e201585857d5",
+              "placement_id": "f8fb81c6d4f845d508927bb62ed47b31283b457dfe16d9a0fec01a5f8bc2b749"
+            },
+            {
+              "node": 1,
+              "plan_id": "108efc124927b9264d8ec1cdd2153ed227d4fc81587a0b615ef43e88e46405cc",
+              "fragment_id": "75ad7d88ef176bbca8feed30097be414b4d6313ac17e0c8c90a0e201585857d5",
+              "placement_id": "8dc02e414f323a262d36bebf594ca6d9f961d87c22b2c58d3766c87dff8ec686"
+            },
+            {
+              "node": 2,
+              "plan_id": "108efc124927b9264d8ec1cdd2153ed227d4fc81587a0b615ef43e88e46405cc",
+              "fragment_id": "75ad7d88ef176bbca8feed30097be414b4d6313ac17e0c8c90a0e201585857d5",
+              "placement_id": "945fbd522675ba718db345ecb3f860c536d799e4dc634567c19d338cd95ab8e1"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/convert",
+      "left": "1Qm³",
+      "right": "qm³",
+      "source": "plot checked-quantity {\n operation: units/convert(source = 1Qm³, to = qm³)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"refused\") ? .result.refused == \"overflow\" : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "3f3fafb17c80fbdb2f0e94e1e947497a592f58b017f4ab267ca2bedf1061b494",
+        "checked_plot_id": "90d470a14dbdff5724775bb0d7a4c0aad67edb9bb54359c6ec850654b2e3de22",
+        "expanded_plot_id": "a60fc065bf91eeb9ea84d6defa8b9a4e1e056492f061cdfdbe081ee30f915dd1",
+        "plan_id": "3148286e4cbbf6913a5ec9d599d79eb730ab0c13bbde391f469a820b84397d88",
+        "fragment_id": "9a855ba61fa440b1b7d24377e80e4476585ff0087973cd4c9c169475589df1ef",
+        "active_play_id": "938602b67f2f26718c90c27ff5eaf3c1f594cba5a16c418f1f7f3d35c3b555b5",
+        "presentation_id": "e28af0b312a75423304a647c5b4f06999ec1bbb7154f3815d330285523573ca8",
+        "placement_id": "906e59a414fe3657d9070462fd4c947e6aed061f5a6f3e2a9b53733892e2b99d",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-959ef622c23c-0",
+            "kind_id": "conduitese/pure-expression/80e3fb930cefbd3664e67fea4f7d37461ff4089c507731287252dc3bf2ee31b3",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/0e64c06c1908b0868aab33c62ef756a8f21afb3041d229e825422a7be50ba03d",
+          "result_identity": "interaction-result/8d03ebb7a85bc13a21bff8c298d50bb1f9c02e71bc0ebc512cd15fdc7c1943fe",
+          "sequence": 9,
+          "value_kind": "value/text",
+          "value_bytes": 219
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "938602b67f2f26718c90c27ff5eaf3c1f594cba5a16c418f1f7f3d35c3b555b5",
+        "presentation_id": "e28af0b312a75423304a647c5b4f06999ec1bbb7154f3815d330285523573ca8",
+        "terminal_sign_id": "74c698a653e5c94a6a9d257833efafdf76ac146034e1ef055347c82b04dead0f",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "938602b67f2f26718c90c27ff5eaf3c1f594cba5a16c418f1f7f3d35c3b555b5",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "3148286e4cbbf6913a5ec9d599d79eb730ab0c13bbde391f469a820b84397d88",
+                "fragment_id": "9a855ba61fa440b1b7d24377e80e4476585ff0087973cd4c9c169475589df1ef"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "3148286e4cbbf6913a5ec9d599d79eb730ab0c13bbde391f469a820b84397d88",
+              "fragment_id": "9a855ba61fa440b1b7d24377e80e4476585ff0087973cd4c9c169475589df1ef",
+              "placement_id": "1740bf4ac1ea91715ba4cc03da2ea73b5a0891118a8866fb57abf0b9e3cadf52"
+            },
+            {
+              "node": 1,
+              "plan_id": "3148286e4cbbf6913a5ec9d599d79eb730ab0c13bbde391f469a820b84397d88",
+              "fragment_id": "9a855ba61fa440b1b7d24377e80e4476585ff0087973cd4c9c169475589df1ef",
+              "placement_id": "786d0ab52d8e89c2b4cb3e4328c3f17fdbfcc0189617a1709f6526695e227dc5"
+            },
+            {
+              "node": 2,
+              "plan_id": "3148286e4cbbf6913a5ec9d599d79eb730ab0c13bbde391f469a820b84397d88",
+              "fragment_id": "9a855ba61fa440b1b7d24377e80e4476585ff0087973cd4c9c169475589df1ef",
+              "placement_id": "906e59a414fe3657d9070462fd4c947e6aed061f5a6f3e2a9b53733892e2b99d"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/compare",
+      "left": "1m",
+      "right": "1s",
+      "source": "plot checked-quantity {\n operation: units/compare(left = 1m, right = 1s)\n show: presentation/bool-value\n operation.receipt >> (variant/is(.result, \"refused\") ? .result.refused == \"incompatible-dimensions\" : false) >> show.value\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "e1a95f4a5b36f07a46741373271c666ff7d34b5734dae482cd59f81bfdf9d47b",
+        "checked_plot_id": "e07a5d97ab1ce1aee36163f17184b7731aa0079c042e9c692ae58471e952ba61",
+        "expanded_plot_id": "2c4115c805bf345a5e13d5e52d2a5bd5e5ef57cb4ee0fc5e886dc7689b9167b0",
+        "plan_id": "4bf3f86f773ea02524ebf386d7be7f625fdb410059f8eb57a7d410acd69c58c4",
+        "fragment_id": "1d536e93306362754100a34ca8b8c6654f62e05700b183d21e54069981e9f137",
+        "active_play_id": "1cb5d4117b37b816f37f0e2d2b7a7d7c3d89420b62b9405e84240ea63e021470",
+        "presentation_id": "d30cd2faddc3a561e7378a91dfa7dd38a03df5328f9a4e969480de5f0c400417",
+        "placement_id": "ec0cca30086f2c50e39007ada282735fa58e76d55046d3dcb6e30a64670be0e3",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/bool-value",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "checked-quantity/expression-3c32a5298a3a-0",
+            "kind_id": "conduitese/pure-expression/b08b486b28de0f9686c5ceadc9823d1a6112723f9ae5fa176229753ff35c1c4c",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "checked-quantity/operation",
+            "kind_id": "units/compare",
+            "implementation_id": "browser/exact-quantity-comparison@1"
+          },
+          {
+            "gear_id": "checked-quantity/show",
+            "kind_id": "presentation/bool-value",
+            "implementation_id": "browser/presentation-bool-value@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "true",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/bcf56629169b3664bbe40fe7560f1256a80e1f966d672a7919f76c81aaae1393",
+          "result_identity": "interaction-result/2cb7ea813001bbd77e7206a719aee3c1688b64117d0e75e94040fd833b9cfb39",
+          "sequence": 10,
+          "value_kind": "value/text",
+          "value_bytes": 230
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "1cb5d4117b37b816f37f0e2d2b7a7d7c3d89420b62b9405e84240ea63e021470",
+        "presentation_id": "d30cd2faddc3a561e7378a91dfa7dd38a03df5328f9a4e969480de5f0c400417",
+        "terminal_sign_id": "7387fd3a27896a0ccdcacf3ba6579405a0910a93ce65925e26f710564432dd3d",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "1cb5d4117b37b816f37f0e2d2b7a7d7c3d89420b62b9405e84240ea63e021470",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "4bf3f86f773ea02524ebf386d7be7f625fdb410059f8eb57a7d410acd69c58c4",
+                "fragment_id": "1d536e93306362754100a34ca8b8c6654f62e05700b183d21e54069981e9f137"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              4096,
+              8192,
+              4096,
+              4096
+            ],
+            "reserved_storage_bytes": 24656,
+            "live_byte_quota": 24576,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "4bf3f86f773ea02524ebf386d7be7f625fdb410059f8eb57a7d410acd69c58c4",
+              "fragment_id": "1d536e93306362754100a34ca8b8c6654f62e05700b183d21e54069981e9f137",
+              "placement_id": "7bd6c2ed87f9ff16f23b9be7b311b6b910fb119da14ebb6382a10f57abedc6e8"
+            },
+            {
+              "node": 1,
+              "plan_id": "4bf3f86f773ea02524ebf386d7be7f625fdb410059f8eb57a7d410acd69c58c4",
+              "fragment_id": "1d536e93306362754100a34ca8b8c6654f62e05700b183d21e54069981e9f137",
+              "placement_id": "566f4c5f6d0780183bdaa117623a74f9137327eab16c9e6ca69535f1f048a8dc"
+            },
+            {
+              "node": 2,
+              "plan_id": "4bf3f86f773ea02524ebf386d7be7f625fdb410059f8eb57a7d410acd69c58c4",
+              "fragment_id": "1d536e93306362754100a34ca8b8c6654f62e05700b183d21e54069981e9f137",
+              "placement_id": "ec0cca30086f2c50e39007ada282735fa58e76d55046d3dcb6e30a64670be0e3"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 3,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 5,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 10,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 11,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 12,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 13,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 14,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 16,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 17,
+              "node": 2,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 18,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 19,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 2,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "wasm_sha256": "7c7d7d452ac3e32b4156f6d2aa072da27e6cc67035bf31c9952089c3f7820a8d",
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+}

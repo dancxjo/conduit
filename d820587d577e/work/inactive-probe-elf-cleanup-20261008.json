@@ -1,0 +1,23 @@
+{
+  "scope": "Owned terminal passing regenerable manual fixture ELF only; sources, terminal logs, receipts, graphs and active actual corpus preserved",
+  "fuser_exit": 1,
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-native-reuse/work/canonical-bank-prototype/context",
+      "bytes": 119612720,
+      "sha256": "16d0b1ed92d6fbfd736290f11b272b1898f2843355bddd46dcd75c292492b421"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-reuse/work/canonical-bank-optin/context",
+      "bytes": 119927528,
+      "sha256": "5876804b2a16c2c4980ae3508917063284a41ee93a706c65b61e89d718f27ea4"
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-reuse/work/beam-training-candidate/numeric",
+      "bytes": 37624048,
+      "sha256": "ef2ca4c1a56b1f6ba0660bb0570534ca63bbab390b63f7d66cb906e47170d488"
+    }
+  ],
+  "recovered_bytes": 277164296,
+  "time": 1791482507.3919554
+}

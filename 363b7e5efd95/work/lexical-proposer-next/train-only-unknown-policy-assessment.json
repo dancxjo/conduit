@@ -1,0 +1,39 @@
+{
+  "scope": "TRAIN-only candidate unknown policy assessment, no Source selection/model training",
+  "dictionary_manifest_sha256": "8e98e83dc05406b2eac1c31dbed65b8220da3d9e0283d21e2e6e3cc4567a14ab",
+  "selection": "four most frequent POS among fullTRAINtokens with exact surfaces absent selected8192 dictionary, ties POS code; order numeric for Source uniqueness",
+  "unknown_forms": 11482,
+  "unknown_tokens": 15042,
+  "train_pos_counts": {
+    "NOUN": 6081,
+    "VERB": 2830,
+    "PROPN": 2818,
+    "ADJ": 1839,
+    "NUM": 571,
+    "ADV": 566,
+    "X": 70,
+    "ADP": 53,
+    "INTJ": 45,
+    "PRON": 43,
+    "PUNCT": 35,
+    "AUX": 30,
+    "SCONJ": 19,
+    "SYM": 16,
+    "DET": 15,
+    "CCONJ": 8,
+    "PART": 3
+  },
+  "candidate_ordered_pos_codes": [
+    0,
+    7,
+    11,
+    15
+  ],
+  "candidate_pos_names": [
+    "ADJ",
+    "NOUN",
+    "PROPN",
+    "VERB"
+  ],
+  "uncertainty": "candidate analysis only, unknown origin retained; omitted POS remain possible"
+}

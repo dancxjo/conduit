@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.13s
+     Running tests/parser_protection_preparation.rs (target/debug/deps/parser_protection_preparation-05e5bf949a175814)
+
+running 1 test
+test insert_invariants_round_trip_and_retain_exact_fact has been running for over 60 seconds
+LanguageParserProtectedSetRebaseContext: 45 exact invariant programs round-trip
+5 exact Source invariants round-trip and admit the retained fact
+test insert_invariants_round_trip_and_retain_exact_fact ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 119.11s
+

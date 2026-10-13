@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "body.lulled",
+  "assertion": "body-lulled",
+  "source_facts": {
+    "body_retained_after_lull": true,
+    "lull_sign_id": "conduitos/product/body-retained/75"
+  }
+}

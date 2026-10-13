@@ -1,0 +1,11 @@
+
+running 4 tests
+test aggregate_original_owners_deduplicate_identity_and_reserve_before_copy ... aggregate original owners requested=72 retained_payload=50865377 shared_allocations=8 resources=2 descriptors=1 backings=2
+ok
+test both_one_under_ceilings_refuse_before_allocation ... ok
+test exact_original_digest_and_bounded_adoption_preserve_custody ... signature bytes=692, adoption requested=1030 peak=692 newlive=45 fullretainedpayload=3276591
+ok
+test original_content_authority_and_signature_refusals_remain ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.81s
+

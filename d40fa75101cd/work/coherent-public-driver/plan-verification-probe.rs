@@ -1,0 +1,4 @@
+use conduit_core::*;
+#[path="allocation_probe.rs"] mod allocation_probe;
+#[global_allocator] static ALLOCATOR: allocation_probe::Allocator=allocation_probe::Allocator;
+fn main(){let path=std::env::args().nth(1).unwrap();let bytes=std::fs::read(&path).unwrap();let plan:Plan=serde_json::from_slice(&bytes).unwrap();let (valid,observed)=allocation_probe::observe(||verify_plan(&plan));println!("{}",serde_json::json!({"path":path,"plan_id":plan.plan_id,"fragments":plan.fragments.len(),"placements":plan.fragments.iter().map(|f|f.placements.len()).sum::<usize>(),"valid":valid,"verification_requested_bytes":observed.requested_bytes,"verification_peak_bytes":observed.peak_bytes,"verification_retained_bytes":observed.live_bytes,"verification_allocations":observed.allocations,"verification_reallocations":observed.reallocations,"plan_retained_heap_bytes":plan_owned_heap_bytes(&plan).unwrap()}));}

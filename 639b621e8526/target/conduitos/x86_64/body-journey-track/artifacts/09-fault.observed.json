@@ -1,0 +1,13 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "fault.observed",
+  "assertion": "fault-observed",
+  "source_facts": {
+    "final_membership": "admitted-offline",
+    "input_refused": true,
+    "invalidated_show_id": "569dfe5bd9f98769c09c0a383b55fa94d94296a71c80956bc4088e5c75eae06b",
+    "loss_sign_id": "conduitos/surface-loss/569dfe5bd9f98769c09c0a383b55fa94d94296a71c80956bc4088e5c75eae06b"
+  }
+}

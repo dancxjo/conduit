@@ -1,0 +1,10 @@
+warning: unused imports: `StructuredFieldValue` and `StructuredInfoValue`
+ --> work/lexical-proposer-next/../../semantics/language/tests/lexical_proposer_policy.rs:1:20
+  |
+1 | use conduit_core::{StructuredFieldValue, StructuredInfoValue};
+  |                    ^^^^^^^^^^^^^^^^^^^^  ^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

@@ -1,0 +1,16 @@
+PASS checked_native_types=116
+type=LanguageParserWindow8QualifiedLexicalQuery depth=13 canonical_bytes=107057 laws=2
+law=0 ast_depth=6 bytes=430768
+law=1 ast_depth=6 bytes=544781
+type=LanguageParserWindow8QualifiedLexicalProposal depth=14 canonical_bytes=107190 laws=0
+type=LanguageParserWindow8QualifiedLexicalAnalysis depth=14 canonical_bytes=107190 laws=9
+law=0 ast_depth=9 bytes=874785
+law=1 ast_depth=13 bytes=2880051
+law=2 ast_depth=8 bytes=858165
+law=3 ast_depth=9 bytes=1298387
+law=4 ast_depth=10 bytes=2049375
+law=5 ast_depth=9 bytes=1298387
+law=6 ast_depth=10 bytes=2049375
+law=7 ast_depth=9 bytes=1298387
+law=8 ast_depth=10 bytes=2049375
+PASS qualified-port-expansion

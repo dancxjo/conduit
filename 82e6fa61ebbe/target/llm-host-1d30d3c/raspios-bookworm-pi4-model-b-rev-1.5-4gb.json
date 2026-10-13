@@ -1,0 +1,18 @@
+{
+  "schema": "conduit.release/host-bundle@1",
+  "target_id": "std/aarch64/raspberry-pi-4-model-b-rev-1.5-4gb",
+  "make_package_id": "conduit-host-raspberry-pi@1",
+  "output": "native-bundle",
+  "builder_adapter": "conduit-host-raspberry-pi/build-raspios-native@1",
+  "deployment_adapter": "conduit-host-raspberry-pi/install-raspios-package@1",
+  "source_identity": "1d30d3ca294fdb57279316a97f30c1a499d37ef1",
+  "bundle_sha256": "sha256:ebc83fae3b51ff548ce1e9cbae1b445b691b1ca125487f406fa13c5a80387589",
+  "files": [
+    {
+      "path": "conduit-linux-aarch64",
+      "bytes": 41590864,
+      "sha256": "sha256:f235cc0062e007d31d2cb447078e50d764ceee55b55bffdf748fc705c3a8d561",
+      "media_type": "application/vnd.conduit.host+executable"
+    }
+  ]
+}

@@ -1,0 +1,1078 @@
+{
+  "schema": "conduit.evidence/body-journey-track@6",
+  "journey_id": "orifina/tutorial@1",
+  "git_commit": "83152fb94b93af3a0cd71c8a3d90985f492a21c9",
+  "track_id": "browser-graphical",
+  "embodiment": "browser-wasm-body",
+  "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+  "mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+  "construction": [
+    {
+      "host_id": "browser/f245e01a-e0fc-40f2-b7aa-46907a041db2",
+      "profile": {
+        "disposition": "omitted",
+        "reason": "The original page Host predates this producer's make step; no profile make identity was retained for it."
+      },
+      "build": {
+        "disposition": "omitted",
+        "reason": "The original page Host predates this producer's make step; no build identity was retained for it."
+      },
+      "image": {
+        "disposition": "omitted",
+        "reason": "The original page Host predates this producer's make step; no image identity was retained for it."
+      }
+    },
+    {
+      "host_id": "browser/00000000-0000-4000-8000-000000000001",
+      "profile": {
+        "disposition": "exact",
+        "identity": "sha256:558fbbdc3985dd8c2f77264dd12f3d32005411a455c5911968bbdd9d30fe20d9"
+      },
+      "build": {
+        "disposition": "exact",
+        "identity": "build:sha256:b85c8108c57ce44138857018d664fb86fca2c5762990385a70251289a9c7fff7"
+      },
+      "image": {
+        "disposition": "exact",
+        "identity": "image:sha256:7ba9ddc1f5ac05f6104dcfa3e179ae7415bc081cf2dff806f5b72549319d3beb"
+      }
+    }
+  ],
+  "hosts": [
+    {
+      "host_id": "browser/f245e01a-e0fc-40f2-b7aa-46907a041db2",
+      "boot_id": "browser-boot/efe66a6b-7569-426b-98c8-5f37caa02d60"
+    },
+    {
+      "host_id": "browser/00000000-0000-4000-8000-000000000001",
+      "boot_id": "browser-boot/00000000-0000-4000-8000-000000000002"
+    }
+  ],
+  "line_ids": [],
+  "distributed_plan_ids": [],
+  "receipts": [
+    {
+      "step_id": "body.absent",
+      "assertion": "body-absent",
+      "disposition": "established",
+      "provenance": {
+        "body_id": null,
+        "host_id": "browser/f245e01a-e0fc-40f2-b7aa-46907a041db2",
+        "boot_id": "browser-boot/efe66a6b-7569-426b-98c8-5f37caa02d60",
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.absent",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for body.absent.",
+          "path": "artifacts/01-body.absent.json",
+          "sha256": "sha256:8350daa70f7c694b85c78cbfb178c4cecd1b08c07d7125b7caf7df5526295ac2"
+        },
+        {
+          "artifact_id": "browser-graphical/body.absent/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The browser opens at Crèche. No body has been born yet.",
+          "path": "artifacts/body.absent.png",
+          "sha256": "sha256:9fbd352e764b93866a76415ee81d83d246ebcbfc295162a0baff87468d17f0b4"
+        }
+      ]
+    },
+    {
+      "step_id": "bootstrap.started",
+      "assertion": "bootstrap-started",
+      "disposition": "established",
+      "provenance": {
+        "body_id": null,
+        "host_id": "browser/f245e01a-e0fc-40f2-b7aa-46907a041db2",
+        "boot_id": "browser-boot/efe66a6b-7569-426b-98c8-5f37caa02d60",
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/bootstrap.started",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for bootstrap.started.",
+          "path": "artifacts/02-bootstrap.started.json",
+          "sha256": "sha256:1a340cb59289c5c428186ede42506c890391ed2bbe7495727f1ca9f2c4a9b22c"
+        },
+        {
+          "artifact_id": "browser-graphical/bootstrap.started/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Firefly Choir is selected as the new body's first plot.",
+          "path": "artifacts/bootstrap.started.png",
+          "sha256": "sha256:3db12562da10fe2f6b17aeb93fab170753082cd86985c616395114f729c74cda"
+        }
+      ]
+    },
+    {
+      "step_id": "body.born",
+      "assertion": "body-born",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": "browser/f245e01a-e0fc-40f2-b7aa-46907a041db2",
+        "boot_id": "browser-boot/efe66a6b-7569-426b-98c8-5f37caa02d60",
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "368bf16ca6149aad24c0eb99a8b9ef80472d242ecae9eaac834fcb5ae14e0212"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.born",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "body-biography",
+          "documentary_description": "browser-wasm-body producer receipt for body.born.",
+          "path": "artifacts/03-body.born.json",
+          "sha256": "sha256:6aa18693e0b34b65496c464eb0f5285155f346cb01949458816c479f79c495f1"
+        },
+        {
+          "artifact_id": "browser-graphical/body.born/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The new body has its own home and a Wake control.",
+          "path": "artifacts/body.born.png",
+          "sha256": "sha256:ce6508bbf0560d90d37b8084897d732da0b9d349876317065b1d5e793bbe9cd3"
+        }
+      ]
+    },
+    {
+      "step_id": "body.awake",
+      "assertion": "body-awake",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "d530e73c1b782119c6fccf9e905523a1d4d24748b5e00fa7df111d97acb5458c"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.awake",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "body-biography",
+          "documentary_description": "browser-wasm-body producer receipt for body.awake.",
+          "path": "artifacts/04-body.awake.json",
+          "sha256": "sha256:37319f589865148bba01d64a3bf518750eeb66e0155efdc97356fadc9a6a1fe0"
+        },
+        {
+          "artifact_id": "browser-graphical/body.awake/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The body is awake and its selected plot is playing.",
+          "path": "artifacts/body.awake.png",
+          "sha256": "sha256:b012d778b731f53501811dd67ae3410eba815e92ae7a597fc7ae943ba91563b6"
+        },
+        {
+          "artifact_id": "browser-graphical/body.awake/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.awake-mask.json",
+          "sha256": "sha256:f2bf94545bc048adbaf288e6e309ea541a7420169b8660ff9692d5aecb9be141"
+        }
+      ]
+    },
+    {
+      "step_id": "plot.used",
+      "assertion": "standing-plot-used",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+        "play_id": "body-play/sha256:9238aeba70fa5da8c8225342247ddb84e1d4a33f21f1c5abe82cc11389221368",
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "99d7834ae58b7a7296af21301838a5fca8a66f810eb22bb5f0c8d640a774f755"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/plot.used",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for plot.used.",
+          "path": "artifacts/05-plot.used.json",
+          "sha256": "sha256:8dd0626edb0147a5453d56fc7a61de9050a98223ed0a010250e89613cd1029da"
+        },
+        {
+          "artifact_id": "browser-graphical/plot.used/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Typing hello into Desk Telegraph produces hello through the running plot.",
+          "path": "artifacts/plot.used.png",
+          "sha256": "sha256:8953e5edc8095c047b72a2f188be48c42c8f66f2c16dc2873701ac5e85341ef9"
+        },
+        {
+          "artifact_id": "browser-graphical/plot.used/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/plot.used-mask.json",
+          "sha256": "sha256:1d31db71c39134b45888f8610a82c3fcb22994899c00741b4d1c8e9c294139fb"
+        }
+      ]
+    },
+    {
+      "step_id": "body.inspected",
+      "assertion": "body-inspected",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": "b060039bf6ee078ec34e994bd7dcd2e395d5532f74dac3b733f3dec5212d532e",
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.inspected",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer receipt for body.inspected.",
+          "path": "artifacts/06-body.inspected.json",
+          "sha256": "sha256:f50a7a7095820b304d2095a3bde9754ca2f11e662daf0cdef0cfcbf0352b0bbe"
+        },
+        {
+          "artifact_id": "browser-graphical/body.inspected/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The body's own inspection panel reveals its lifecycle.",
+          "path": "artifacts/body.inspected.png",
+          "sha256": "sha256:7f96768d10cd804deb068df48bbddc62008f16eac0fd50c74f8998bb4a5a7058"
+        },
+        {
+          "artifact_id": "browser-graphical/body.inspected/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.inspected-mask.json",
+          "sha256": "sha256:004fd2389c28ba3901cfd92220abfa2f162432b39943f366e89ee4ab55fc6799"
+        }
+      ]
+    },
+    {
+      "step_id": "workload.revised",
+      "assertion": "workload-revised",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "2c8d7fe7d4da9c45a25dedb53c19adb1a119cdb4bd756ffff0349f4144a9ef4e"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/workload.revised",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "body-biography",
+          "documentary_description": "browser-wasm-body producer receipt for workload.revised.",
+          "path": "artifacts/07-workload.revised.json",
+          "sha256": "sha256:7656a0f6549755ed1cdc0ab76c1115bfc70c98143b2264c718f788a4b2956449"
+        },
+        {
+          "artifact_id": "browser-graphical/workload.revised/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Desk Telegraph has been added through the plot library.",
+          "path": "artifacts/workload.revised.png",
+          "sha256": "sha256:82309c08ed9a2adefaf29884cea4dddfb39951aef689a2113aeeab0c4e538833"
+        },
+        {
+          "artifact_id": "browser-graphical/workload.revised/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/workload.revised-mask.json",
+          "sha256": "sha256:1d31db71c39134b45888f8610a82c3fcb22994899c00741b4d1c8e9c294139fb"
+        }
+      ]
+    },
+    {
+      "step_id": "host.added",
+      "assertion": "host-added",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": "browser/00000000-0000-4000-8000-000000000001",
+        "boot_id": "browser-boot/00000000-0000-4000-8000-000000000002",
+        "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "2ab43aa6cee910dd7bd5db4460aee78a5818dbd951683f26961df929d5a4e471"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/host.added",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for host.added.",
+          "path": "artifacts/08-host.added.json",
+          "sha256": "sha256:cac51bf772c65d4b4653ca54e0a75a3579ba62a9d9bc31bf017e5ec12fd82287"
+        },
+        {
+          "artifact_id": "browser-graphical/host.added/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "The membership panel now contains two admitted hosts.",
+          "path": "artifacts/host.added.png",
+          "sha256": "sha256:55da080bb3deda60ea728a6251862140b5525b8692d1c87a3026d50deccc319d"
+        },
+        {
+          "artifact_id": "browser-graphical/host.added/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/host.added-mask.json",
+          "sha256": "sha256:a4a663adfc5506f50693ace3703da1a2136890d54784468f9fb818c5bdecac17"
+        }
+      ]
+    },
+    {
+      "step_id": "fault.observed",
+      "assertion": "fault-observed",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "c21ceacc05d35414a647fc57ce899d37d5c294235d954b7d5fc28a4158dee0b3"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/fault.observed",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "stream-disposition",
+          "documentary_description": "browser-wasm-body producer receipt for fault.observed.",
+          "path": "artifacts/09-fault.observed.json",
+          "sha256": "sha256:9cb1643e0c56e0f1f7ee289ae2b7d6c3b91f93d0aef6a9bc7541dc50932368cf"
+        },
+        {
+          "artifact_id": "browser-graphical/fault.observed/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Wake is refused because the added host has no current execution Line.",
+          "path": "artifacts/fault.observed.png",
+          "sha256": "sha256:66d82e927f1bca123e2330a95f06ecc41c79eeead7783d816ac384d871f4fd60"
+        },
+        {
+          "artifact_id": "browser-graphical/fault.observed/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/fault.observed-mask.json",
+          "sha256": "sha256:f7278da9fb42c7d1a90f15c65aaa6007a0858bc024aa35678461b21f0d3ad4f6"
+        }
+      ]
+    },
+    {
+      "step_id": "body.repaired",
+      "assertion": "body-repaired",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:35f049c080a380221a0c3389494f9873aca3fff089d22bcb2e7f4dbc661865b8",
+        "play_id": "body-play/sha256:9238aeba70fa5da8c8225342247ddb84e1d4a33f21f1c5abe82cc11389221368",
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "99d7834ae58b7a7296af21301838a5fca8a66f810eb22bb5f0c8d640a774f755"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.repaired",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for body.repaired.",
+          "path": "artifacts/10-body.repaired.json",
+          "sha256": "sha256:5f9005c6e9b5e39a1c9d8790bd4a66c58b4f73d449648abe49c22890ea58a8b6"
+        },
+        {
+          "artifact_id": "browser-graphical/body.repaired/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "After refreshing host presence, Wake succeeds on the available host.",
+          "path": "artifacts/body.repaired.png",
+          "sha256": "sha256:eab1544ea3f09bd772b1b59f22dbe3dfd301e4b3a5a347b3ba4a2bacb31c320f"
+        },
+        {
+          "artifact_id": "browser-graphical/body.repaired/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.repaired-mask.json",
+          "sha256": "sha256:a0ef084a2691a765e0f2057c6040d3ece34d77cbf9fd8559d239810e690df0b1"
+        }
+      ]
+    },
+    {
+      "step_id": "body.long-running",
+      "assertion": "body-long-running",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": "body-play/sha256:9238aeba70fa5da8c8225342247ddb84e1d4a33f21f1c5abe82cc11389221368",
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "99d7834ae58b7a7296af21301838a5fca8a66f810eb22bb5f0c8d640a774f755"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.long-running",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "runtime-receipt",
+          "documentary_description": "browser-wasm-body producer receipt for body.long-running.",
+          "path": "artifacts/11-body.long-running.json",
+          "sha256": "sha256:950322ca2e0273e868eb0c50106475b33d78a4f772aae9c2f3f443fe96096ed2"
+        },
+        {
+          "artifact_id": "browser-graphical/body.long-running/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Still here: another input succeeds through the same recovered play.",
+          "path": "artifacts/body.long-running.png",
+          "sha256": "sha256:7acfef6904d5be8e857140f6dc78711ba978fadcdf8f99ba593759f140075eec"
+        },
+        {
+          "artifact_id": "browser-graphical/body.long-running/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.long-running-mask.json",
+          "sha256": "sha256:a0ef084a2691a765e0f2057c6040d3ece34d77cbf9fd8559d239810e690df0b1"
+        }
+      ]
+    },
+    {
+      "step_id": "body.lulled",
+      "assertion": "body-lulled",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "117c23c82d99b972d26475c871e445ee9d18433b58e120618610f94c6fa98abd"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.lulled",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "lifecycle-action",
+          "documentary_description": "browser-wasm-body producer receipt for body.lulled.",
+          "path": "artifacts/12-body.lulled.json",
+          "sha256": "sha256:35dd84d18456882e1773c4e11ff599337ff9c4ea8534fb0293e93306824e0d85"
+        },
+        {
+          "artifact_id": "browser-graphical/body.lulled/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Lull stops the play while retaining the body.",
+          "path": "artifacts/body.lulled.png",
+          "sha256": "sha256:69348a2abd909b3dae921173d7d7f34113bf6f6af084eddbae752b48aed2e733"
+        },
+        {
+          "artifact_id": "browser-graphical/body.lulled/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.lulled-mask.json",
+          "sha256": "sha256:a0ef084a2691a765e0f2057c6040d3ece34d77cbf9fd8559d239810e690df0b1"
+        }
+      ]
+    },
+    {
+      "step_id": "body.fulfilled",
+      "assertion": "body-fulfilled",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": null,
+        "play_id": null,
+        "face_id": null,
+        "show_id": null,
+        "line_id": null,
+        "sign_id": "e575451b65c3875e9d783a912b793570d822991615dd4fab8f353802fda60c52"
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/body.fulfilled",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "fulfilled-transition",
+          "documentary_description": "browser-wasm-body producer receipt for body.fulfilled.",
+          "path": "artifacts/13-body.fulfilled.json",
+          "sha256": "sha256:a0b71120070d37a7be7fddc141d3b4b9baedb087b7f4e16c46024408fdbf5c9b"
+        },
+        {
+          "artifact_id": "browser-graphical/body.fulfilled/screen",
+          "evidence_class": "screenshot",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Finish closes this body's biography with Fulfilled.",
+          "path": "artifacts/body.fulfilled.png",
+          "sha256": "sha256:2165e317be4db88eea6c936130654af3eebe36dfcfc2e957cc01004c50e2b777"
+        },
+        {
+          "artifact_id": "browser-graphical/body.fulfilled/mask",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "Rust-owned ordinary Mask Plot, wardrobe, Plan, Play, Face and acknowledged Show observation for this action.",
+          "path": "artifacts/body.fulfilled-mask.json",
+          "sha256": "sha256:a0ef084a2691a765e0f2057c6040d3ece34d77cbf9fd8559d239810e690df0b1"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-0",
+      "assertion": "mask-mask.inspect-initial-show",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": "show/f7eeb915ead143b83c39d4b5749e9e6049baa2e8b893356fb12267f979dd4b4a",
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-0",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.inspect-initial-show.",
+          "path": "artifacts/14-mask.action-0.json",
+          "sha256": "sha256:e4509a08eb26f6a1d5ad3abc83ca7333c6f95e084c3733a5218757dc1dc4daf4"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-1",
+      "assertion": "mask-mask.wear-alternate",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-1",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.wear-alternate.",
+          "path": "artifacts/15-mask.action-1.json",
+          "sha256": "sha256:af1a6b0311bc27dcf4cb5bda649b3795993d112c4c1ceaa4fedcc598ce29d81b"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-2",
+      "assertion": "mask-mask.prefer-alternate",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": "show/8220aa646518692d98ad41a6eee4e0549fdf8cef2451c0d976a7dc38fb9a0358",
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-2",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.prefer-alternate.",
+          "path": "artifacts/16-mask.action-2.json",
+          "sha256": "sha256:72d6f54dac12a8b44fdeed2e5fb243f318c2cdc9c0e551e08a980d99c44cf47a"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-3",
+      "assertion": "mask-mask.withdraw-selected-route",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-3",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.withdraw-selected-route.",
+          "path": "artifacts/17-mask.action-3.json",
+          "sha256": "sha256:4d34297b3636de3296f86bf1a011be9ce172a1639229de7259173f07533c0927"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-4",
+      "assertion": "mask-mask.inspect-unavailable-show",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-4",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.inspect-unavailable-show.",
+          "path": "artifacts/18-mask.action-4.json",
+          "sha256": "sha256:40d7e763943496e05feb40021068d0d41ddebcc1f692ebecada83ea202a6d37a"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-5",
+      "assertion": "mask-mask.add-face-host",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-5",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.add-face-host.",
+          "path": "artifacts/19-mask.action-5.json",
+          "sha256": "sha256:cf1b213e91ae5db302ca8065b78198e91d95e0f2f55f91325a732cb6a9959e7e"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-6",
+      "assertion": "mask-mask.admit-replacement-plan",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-6",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.admit-replacement-plan.",
+          "path": "artifacts/20-mask.action-6.json",
+          "sha256": "sha256:e2f720fe883795feea662ce50baa494da8506f0b4c76dd3fc70c1b08527be43e"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-7",
+      "assertion": "mask-mask.inspect-replanned-show",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": "show/7e92ca237c7f308bd0d50a2c7d0c7b271373b0e2c661ad212d5f7bff3d3b7ee3",
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-7",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.inspect-replanned-show.",
+          "path": "artifacts/21-mask.action-7.json",
+          "sha256": "sha256:7a8970816d5177c92356e61433b259f463376d25b4120fc34bba39b948b87f5a"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-8",
+      "assertion": "mask-mask.doff-alternate",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": null,
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-8",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.doff-alternate.",
+          "path": "artifacts/22-mask.action-8.json",
+          "sha256": "sha256:28c28d7876699eeaf4111a81dc85390feafaf54c27bb7f481099b0aeabcb71db"
+        }
+      ]
+    },
+    {
+      "step_id": "mask.action-9",
+      "assertion": "mask-mask.inspect-restored-show",
+      "disposition": "established",
+      "provenance": {
+        "body_id": "cdae01f773bc5aa349429118de47205c848caee458687bc58fcb38cebb568edf",
+        "host_id": null,
+        "boot_id": null,
+        "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+        "play_id": null,
+        "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177",
+        "show_id": "show/ddf12c88fb70f3dc9e24cc3efbc461baa6b59907e79c7faabdba43ce82be8fab",
+        "line_id": null,
+        "sign_id": null
+      },
+      "evidence": [
+        {
+          "artifact_id": "browser-graphical/mask-action-9",
+          "evidence_class": "semantic-receipt",
+          "assertion_rung": "semantic-face",
+          "documentary_description": "browser-wasm-body producer outcome for mask.inspect-restored-show.",
+          "path": "artifacts/23-mask.action-9.json",
+          "sha256": "sha256:236e6ac1c36ffeb9d5bc1ecd574078f7183a613ee460e085fc3b4f2d0982f5b6"
+        },
+        {
+          "artifact_id": "browser-graphical/session-video",
+          "evidence_class": "video",
+          "assertion_rung": "deterministic-observation",
+          "documentary_description": "Watch the complete uncut browser session, including birth, host admission, refusal, recovery and fulfillment.",
+          "path": "artifacts/browser-body-session.webm",
+          "sha256": "sha256:52ae2fcfeae8f3ecd78410202735ee732bf3d13876fff98ea9966591f85de48a"
+        }
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "action_id": "journey.bootstrap",
+      "concrete_event": "The browser Host started with no Body, then accepted the bounded bootstrap through the live DOM entrance.",
+      "receipt_ids": [
+        "body.absent",
+        "bootstrap.started"
+      ]
+    },
+    {
+      "action_id": "journey.birth",
+      "concrete_event": "The browser birth action created this independent Body and admitted its first wake.",
+      "receipt_ids": [
+        "body.born",
+        "body.awake"
+      ]
+    },
+    {
+      "action_id": "journey.useful-work",
+      "concrete_event": "A browser interaction exercised the standing Plot through its retained Plan and Play.",
+      "receipt_ids": [
+        "plot.used"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "available DOM Show and interaction inspected",
+      "receipt_ids": [
+        "mask.action-0"
+      ]
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "wardrobe revision 1 wore alternate Mask",
+      "receipt_ids": [
+        "mask.action-1"
+      ]
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "sealed fallback executed as a fresh acknowledged DOM Show without Plan mutation",
+      "receipt_ids": [
+        "mask.action-2"
+      ]
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "selected sealed route became unavailable",
+      "receipt_ids": [
+        "mask.action-3"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "NoShow with replacement planning required",
+      "receipt_ids": [
+        "mask.action-4"
+      ]
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "Host browser/f245e01a-e0fc-40f2-b7aa-46907a041db2 Boot browser-boot/ad9c0da7-b1e7-4fd6-b217-0249e705ed43/mask-replacement offered replacement realization",
+      "receipt_ids": [
+        "mask.action-5"
+      ]
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "fresh replacement Plan admitted",
+      "receipt_ids": [
+        "mask.action-6"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "replacement DOM Show inspected",
+      "receipt_ids": [
+        "mask.action-7"
+      ]
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "alternate Mask doffed; sealed initial route restored",
+      "receipt_ids": [
+        "mask.action-8"
+      ]
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "restored acknowledged DOM Show inspected",
+      "receipt_ids": [
+        "mask.action-9"
+      ]
+    },
+    {
+      "action_id": "journey.break-recover",
+      "concrete_event": "A refused browser wake remained a fault until a later admitted wake established repair.",
+      "receipt_ids": [
+        "fault.observed",
+        "body.repaired"
+      ]
+    },
+    {
+      "action_id": "journey.rest-finish",
+      "concrete_event": "Explicit browser actions lulled the Body and then fulfilled its biography.",
+      "receipt_ids": [
+        "body.lulled",
+        "body.fulfilled"
+      ]
+    }
+  ],
+  "mask_actions": [
+    {
+      "action_id": "mask.inspect-initial-show",
+      "concrete_event": "available DOM Show and interaction inspected",
+      "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": "route/browser-graphical",
+      "show_id": "show/f7eeb915ead143b83c39d4b5749e9e6049baa2e8b893356fb12267f979dd4b4a",
+      "receipt_ids": [
+        "mask.action-0"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.wear-alternate",
+      "concrete_event": "wardrobe revision 1 wore alternate Mask",
+      "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": "route/browser-graphical",
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-1"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.prefer-alternate",
+      "concrete_event": "sealed fallback executed as a fresh acknowledged DOM Show without Plan mutation",
+      "selected_mask_plot_id": "f5fd1b09c71389c274caa5e88e701aa35231923670579792348f80cc11b07fdc",
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": "route/browser-graphical-fallback",
+      "show_id": "show/8220aa646518692d98ad41a6eee4e0549fdf8cef2451c0d976a7dc38fb9a0358",
+      "receipt_ids": [
+        "mask.action-2"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.withdraw-selected-route",
+      "concrete_event": "selected sealed route became unavailable",
+      "selected_mask_plot_id": null,
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": null,
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-3"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.inspect-unavailable-show",
+      "concrete_event": "NoShow with replacement planning required",
+      "selected_mask_plot_id": null,
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": null,
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-4"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.add-face-host",
+      "concrete_event": "Host browser/f245e01a-e0fc-40f2-b7aa-46907a041db2 Boot browser-boot/ad9c0da7-b1e7-4fd6-b217-0249e705ed43/mask-replacement offered replacement realization",
+      "selected_mask_plot_id": null,
+      "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+      "selected_route_id": null,
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-5"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.admit-replacement-plan",
+      "concrete_event": "fresh replacement Plan admitted",
+      "selected_mask_plot_id": "f5fd1b09c71389c274caa5e88e701aa35231923670579792348f80cc11b07fdc",
+      "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+      "selected_route_id": "route/browser-graphical-fallback",
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-6"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.inspect-replanned-show",
+      "concrete_event": "replacement DOM Show inspected",
+      "selected_mask_plot_id": "f5fd1b09c71389c274caa5e88e701aa35231923670579792348f80cc11b07fdc",
+      "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+      "selected_route_id": "route/browser-graphical-fallback",
+      "show_id": "show/7e92ca237c7f308bd0d50a2c7d0c7b271373b0e2c661ad212d5f7bff3d3b7ee3",
+      "receipt_ids": [
+        "mask.action-7"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.doff-alternate",
+      "concrete_event": "alternate Mask doffed; sealed initial route restored",
+      "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+      "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+      "selected_route_id": "route/browser-graphical",
+      "show_id": null,
+      "receipt_ids": [
+        "mask.action-8"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    },
+    {
+      "action_id": "mask.inspect-restored-show",
+      "concrete_event": "restored acknowledged DOM Show inspected",
+      "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+      "plan_id": "body-plan/sha256:64c1aa479b24aecfb096373f20183e5248b82fc7cb37647175ee735b7b49c657",
+      "selected_route_id": "route/browser-graphical",
+      "show_id": "show/ddf12c88fb70f3dc9e24cc3efbc461baa6b59907e79c7faabdba43ce82be8fab",
+      "receipt_ids": [
+        "mask.action-9"
+      ],
+      "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+    }
+  ]
+}

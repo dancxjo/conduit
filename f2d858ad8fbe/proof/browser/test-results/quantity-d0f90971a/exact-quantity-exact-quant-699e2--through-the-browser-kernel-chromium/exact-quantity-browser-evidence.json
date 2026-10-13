@@ -1,0 +1,2670 @@
+{
+  "rows": [
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "1000Hz",
+      "invocation": "units/converted-equals",
+      "source": "plot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: units/converted-equals(expected = 1000Hz)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "1e4c62e77dc5f41ff496f21359d4340623431363b0ea4ed0a42de59a924827a6",
+        "checked_plot_id": "a674863f8529bcc32023433b1ff298d1639f3d8ff811493a1d71ef31d2c1f2d1",
+        "expanded_plot_id": "4e09b989485e9004a6da8287ef5e243c9b45025c325bced7e41c7b4818eb1116",
+        "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+        "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03",
+        "active_play_id": "1fa247c418b8cf8df4cd84962840d8f5fe0acc4b6dcae86ca85b5a8ef2ea629c",
+        "presentation_id": "eaa0a76e7be56917de47af57e63c4df9e8a0b94c2be71ed13f5e47fee503f8fd",
+        "placement_id": "dfefdcbcfcab9584916397f80179c0027ad93c3549fbc174d4e20e69d49b6d9b",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/f92dc6b9dafdd16b1d8dea05cbbd808e363f01a2d25029eb7716263ae38ed78d",
+          "result_identity": "interaction-result/f5db604e4b1d9fc8f206baa1070b865e1c471e21119cabe106c96e4b733941cf",
+          "sequence": 1,
+          "value_kind": "value/text",
+          "value_bytes": 288
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "1fa247c418b8cf8df4cd84962840d8f5fe0acc4b6dcae86ca85b5a8ef2ea629c",
+        "presentation_id": "eaa0a76e7be56917de47af57e63c4df9e8a0b94c2be71ed13f5e47fee503f8fd",
+        "terminal_sign_id": "e761104a772a1f7f65635f4fb73561e17fe84d4d33a52f7b336ffa4c6e6ad41b",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "1fa247c418b8cf8df4cd84962840d8f5fe0acc4b6dcae86ca85b5a8ef2ea629c",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+                "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+              "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03",
+              "placement_id": "fa0a405b890c364db5c44a26080415e5a69909c577a2e2353b90f56144b57ddf"
+            },
+            {
+              "node": 1,
+              "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+              "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03",
+              "placement_id": "caecbf9fb0a048205bd2253917e7a8162ec4eb00f9733afb932f850b03a2dc48"
+            },
+            {
+              "node": 2,
+              "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+              "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03",
+              "placement_id": "610b65de1e5bc6fda1a890ccf5f87a4100d6653031cdf8a60c679b9669d0d6a8"
+            },
+            {
+              "node": 3,
+              "plan_id": "fcdf89691ede227148907311784161433cd4d4351c0394154e3d61cb9a74ddfa",
+              "fragment_id": "9e1b08ea45a1c2a79bb0fb05085b5e56e6b32cd602d8dbdeaee6c636cff83b03",
+              "placement_id": "dfefdcbcfcab9584916397f80179c0027ad93c3549fbc174d4e20e69d49b6d9b"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "999Hz",
+      "invocation": "units/converted-equals",
+      "source": "plot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: units/converted-equals(expected = 999Hz)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "8e6872d9da089cc647e9c350d224a626ca4d93778c4f60562bd8233c33fafd83",
+        "checked_plot_id": "580219b2c702fa1e545d4ca982e78b225ffe360495778867f1fdad80cfb30c18",
+        "expanded_plot_id": "133f802a22766fd9beae5d8ef0bf5465ec4ca2d69b71b218258f456cbfb8169e",
+        "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+        "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524",
+        "active_play_id": "6357e9b33e070d5313070d2112bc10b16598690463c78aa0d793e285d15f5689",
+        "presentation_id": "fb0317278b2b3020bece317b4055d25b9231436c6f759620a64c9670b855e925",
+        "placement_id": "347aecceeade856f47c656a6917c950f41cda38028f327abf8e2f91550944bf3",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/f8ddbdda8e86d9cf28d215a4e8607d5ac8054c82a4d114345f229ece7296eaa7",
+          "result_identity": "interaction-result/85e0fff7c1c3c48f7ba40fffd4fa063e6dd2f377f02d76cb8a7f8d9a4687ce1e",
+          "sequence": 2,
+          "value_kind": "value/text",
+          "value_bytes": 287
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "6357e9b33e070d5313070d2112bc10b16598690463c78aa0d793e285d15f5689",
+        "presentation_id": "fb0317278b2b3020bece317b4055d25b9231436c6f759620a64c9670b855e925",
+        "terminal_sign_id": "7c1e03acdbd5055fc1614c970f733645669918fc3a895aa74f9ba81cb21ea4fa",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "6357e9b33e070d5313070d2112bc10b16598690463c78aa0d793e285d15f5689",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+                "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+              "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524",
+              "placement_id": "a2672eca69b30adf23937307e654c7a2ae5e9995dc991bffd5970cede7a1bbd0"
+            },
+            {
+              "node": 1,
+              "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+              "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524",
+              "placement_id": "455a8eaf558eb90f277aaf660026f1fc44abbe63d9221cbdb1a3cf9c2fad252b"
+            },
+            {
+              "node": 2,
+              "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+              "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524",
+              "placement_id": "4de85518c71263f5172bb016b86e11826cd213dbaa8a9b7f6523601204d03b5a"
+            },
+            {
+              "node": 3,
+              "plan_id": "df512895c8155bcf3db49c3b97a7fcebf01e3561057d9d2537722ebde30091d9",
+              "fragment_id": "4dab72d3c9f909c879b81406dbf8a68db5b76ca3ae1a0013ab8c8e2f5c653524",
+              "placement_id": "347aecceeade856f47c656a6917c950f41cda38028f327abf8e2f91550944bf3"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1Hz",
+      "right": "m",
+      "expected": "1m",
+      "invocation": "units/converted-equals",
+      "source": "plot convert-pitch-demo {\n operation: units/convert(source = 1Hz, to = m)\n exact: units/converted-equals(expected = 1m)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "cf9aeaf849a153e9073f34aee019e7f5036721e4dcc3f06b72821de2f14f9dff",
+        "checked_plot_id": "7eaa651f1532a13cc12f1bd293285869bcd007de515fdf76da520176b9e9921e",
+        "expanded_plot_id": "a713c65a1b0f8c93935b7d153214c8e7cc83058e5f15f2a9ec8d2663d067d68f",
+        "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+        "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61",
+        "active_play_id": "3ff7ca843345d39cdbd11c78e2ec007af44d485cf057a431770e10980914e6d0",
+        "presentation_id": "51bd769920d233e32e63a11d71b9d60227f5bf6960f495ec9d504e2e237437c9",
+        "placement_id": "94eb0b1e4b5f8c0968fc8dc0a48f685b707af7363a57f2b6f565c54cf8b447ca",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/7a8cbf2a05a0f36f75592d92adc8448aca3cf48b0889073721e8fb4fd3366d6b",
+          "result_identity": "interaction-result/d8a127e8ea3cf55de41c89a721ad0403f1227cb6d5ffa51e1abdeb967ce64236",
+          "sequence": 3,
+          "value_kind": "value/text",
+          "value_bytes": 282
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "3ff7ca843345d39cdbd11c78e2ec007af44d485cf057a431770e10980914e6d0",
+        "presentation_id": "51bd769920d233e32e63a11d71b9d60227f5bf6960f495ec9d504e2e237437c9",
+        "terminal_sign_id": "435df2fd6583310fae7867c9455ff9ecadfcd21aa94c63577cdd548c546e8615",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "3ff7ca843345d39cdbd11c78e2ec007af44d485cf057a431770e10980914e6d0",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+                "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+              "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61",
+              "placement_id": "8faac4e24654a5ce2af0ab35b13c40ff08d5a4982a2dcc4263b4e65e1d1c33d6"
+            },
+            {
+              "node": 1,
+              "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+              "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61",
+              "placement_id": "13b12c2b4f6ad1ca52206e440dab272caf750fc83de2f24481b16f6eea759b54"
+            },
+            {
+              "node": 2,
+              "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+              "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61",
+              "placement_id": "e2f4f27c7305e0d4eb3ac2ed8cf6bdf870fe66366582a318d7f85d506f23063d"
+            },
+            {
+              "node": 3,
+              "plan_id": "682b0297970066552be5c1298b37e15d96ca921cc51881e3a67455f5b495b9de",
+              "fragment_id": "fa8c080ecbed3a8ae4587299f73651b5afe254abc24c653d9932fb79e7451a61",
+              "placement_id": "94eb0b1e4b5f8c0968fc8dc0a48f685b707af7363a57f2b6f565c54cf8b447ca"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "1m",
+      "invocation": "units/converted-equals",
+      "source": "plot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: units/converted-equals(expected = 1m)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "479e5af4bcb5b7ade295147347ea4e6b8a57b695d7f44ed9689d474c147a217e",
+        "checked_plot_id": "d1c52720a962b9949a6c4dcc5eb668cf953d3de2a28eeff2c5308816f63ecb7f",
+        "expanded_plot_id": "f83872a4a396f340894b4f45b50f5932a6291ce21da980479c88efee3cde1183",
+        "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+        "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420",
+        "active_play_id": "df9488bec30abb407477cddce014369abae557647c15684039e206689e0954e5",
+        "presentation_id": "c8ce559436803a9d06469361b482203d82a3314a44ebf404af5db1d130079f73",
+        "placement_id": "8d656a631dabf59c2fadde366852077e9dfedee7d59361dba1fd8c21bb14d374",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/6b4185b16ee0da85c0e738a71401571a127187cc434d2eb367dff5395f22ee1e",
+          "result_identity": "interaction-result/f2018a0414d53421960a11a7498d6cdd9c9a830f9d58f5962a686ba8764b2e56",
+          "sequence": 4,
+          "value_kind": "value/text",
+          "value_bytes": 284
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "df9488bec30abb407477cddce014369abae557647c15684039e206689e0954e5",
+        "presentation_id": "c8ce559436803a9d06469361b482203d82a3314a44ebf404af5db1d130079f73",
+        "terminal_sign_id": "392010fa8c28296f1e3796556968a70edef052bd4a8dccc29bd0736847f56486",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "df9488bec30abb407477cddce014369abae557647c15684039e206689e0954e5",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+                "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+              "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420",
+              "placement_id": "785642e7f6887fc607544a46703812a9a5677b642b0e687f0bd87cdfd3a662a6"
+            },
+            {
+              "node": 1,
+              "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+              "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420",
+              "placement_id": "c0e1e48829eb5aece67ae62bd54916efb7d661a9aec9f175e0df7ca1b437f083"
+            },
+            {
+              "node": 2,
+              "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+              "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420",
+              "placement_id": "65993bfa6ba3fdb2157cba2928953c3b02ce54fcf64223bef913966c52ffee8e"
+            },
+            {
+              "node": 3,
+              "plan_id": "f8ae84306fd0c6313d9285b7e85c963d61ff93a5bd0a09ac9923da2c850210d3",
+              "fragment_id": "35fa326df56df146b29bb2f023d9bb749f1b5386d330192b35520d3982b81420",
+              "placement_id": "8d656a631dabf59c2fadde366852077e9dfedee7d59361dba1fd8c21bb14d374"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "1000Hz",
+      "invocation": "=?",
+      "source": "with units/converted-equals as =?\nplot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: =?(expected = 1000Hz)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "a2893765ea03d1d4c96d64ed740b00532f425db41efa2a63bd9e6b925daab9e3",
+        "checked_plot_id": "a674863f8529bcc32023433b1ff298d1639f3d8ff811493a1d71ef31d2c1f2d1",
+        "expanded_plot_id": "4e09b989485e9004a6da8287ef5e243c9b45025c325bced7e41c7b4818eb1116",
+        "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+        "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68",
+        "active_play_id": "dce7c9c55ab4f198a9b2c8fab548b9daf00ddf04a740d7461a3a13c228b29f9e",
+        "presentation_id": "dbe7e3754554162ff40f72b254ffa69571976bdf05b86b0eba6999b9fec3fab0",
+        "placement_id": "dfefdcbcfcab9584916397f80179c0027ad93c3549fbc174d4e20e69d49b6d9b",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/ee9b1f05c22c8f541da4b73bff8314475ad56500365055a47388acf6e35a50d3",
+          "result_identity": "interaction-result/eacef4fa47213ca5d32099bf075003b13f7978d559912d8cb953c244c5c8e33e",
+          "sequence": 5,
+          "value_kind": "value/text",
+          "value_bytes": 302
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "dce7c9c55ab4f198a9b2c8fab548b9daf00ddf04a740d7461a3a13c228b29f9e",
+        "presentation_id": "dbe7e3754554162ff40f72b254ffa69571976bdf05b86b0eba6999b9fec3fab0",
+        "terminal_sign_id": "2edc5b6a55a89789a6426a5ecea72bb36e6db9a8f2a7114a62aa981375245608",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "dce7c9c55ab4f198a9b2c8fab548b9daf00ddf04a740d7461a3a13c228b29f9e",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+                "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+              "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68",
+              "placement_id": "fa0a405b890c364db5c44a26080415e5a69909c577a2e2353b90f56144b57ddf"
+            },
+            {
+              "node": 1,
+              "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+              "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68",
+              "placement_id": "caecbf9fb0a048205bd2253917e7a8162ec4eb00f9733afb932f850b03a2dc48"
+            },
+            {
+              "node": 2,
+              "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+              "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68",
+              "placement_id": "610b65de1e5bc6fda1a890ccf5f87a4100d6653031cdf8a60c679b9669d0d6a8"
+            },
+            {
+              "node": 3,
+              "plan_id": "6ee8584b1876778ec19b1688f2e0c5a1b6eeb7b268ed377e6d9a026a72311cfd",
+              "fragment_id": "4c491f7207469fb202ed4b3b2b99e6d94c1b63353ee798977359f385645d5a68",
+              "placement_id": "dfefdcbcfcab9584916397f80179c0027ad93c3549fbc174d4e20e69d49b6d9b"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "999Hz",
+      "invocation": "=?",
+      "source": "with units/converted-equals as =?\nplot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: =?(expected = 999Hz)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "b50efa0f485eb38fd990ad803d735acde59899e29a1d5a2d5f9aa51a8ce8c53d",
+        "checked_plot_id": "580219b2c702fa1e545d4ca982e78b225ffe360495778867f1fdad80cfb30c18",
+        "expanded_plot_id": "133f802a22766fd9beae5d8ef0bf5465ec4ca2d69b71b218258f456cbfb8169e",
+        "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+        "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769",
+        "active_play_id": "93a826d64989ada9880333278c969d8369e3a9f481b5fca5e9ff103853d2d161",
+        "presentation_id": "370c08440ff397ccd52856438ddffd3aff082a878e875c32d6bfb80dc50407c9",
+        "placement_id": "347aecceeade856f47c656a6917c950f41cda38028f327abf8e2f91550944bf3",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/a9fe581d2c6a1a4ae75d4dfdf845e5b726c9f13126006d11f7a2cd56a23f273d",
+          "result_identity": "interaction-result/47dcc019675d2f197fafa17f2dcda4f2fa61b7cfc0ffeadf364b8b30e658c3b8",
+          "sequence": 6,
+          "value_kind": "value/text",
+          "value_bytes": 301
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "93a826d64989ada9880333278c969d8369e3a9f481b5fca5e9ff103853d2d161",
+        "presentation_id": "370c08440ff397ccd52856438ddffd3aff082a878e875c32d6bfb80dc50407c9",
+        "terminal_sign_id": "c6d0052aebd438ba1694de079801769f76763a3e2fa42110f5d918841e79d566",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "93a826d64989ada9880333278c969d8369e3a9f481b5fca5e9ff103853d2d161",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+                "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+              "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769",
+              "placement_id": "a2672eca69b30adf23937307e654c7a2ae5e9995dc991bffd5970cede7a1bbd0"
+            },
+            {
+              "node": 1,
+              "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+              "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769",
+              "placement_id": "455a8eaf558eb90f277aaf660026f1fc44abbe63d9221cbdb1a3cf9c2fad252b"
+            },
+            {
+              "node": 2,
+              "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+              "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769",
+              "placement_id": "4de85518c71263f5172bb016b86e11826cd213dbaa8a9b7f6523601204d03b5a"
+            },
+            {
+              "node": 3,
+              "plan_id": "df24687dc0c7c7cfbbbd542bdb526513e609cf2433d019841ddacba1898513f1",
+              "fragment_id": "74664949ea40dbda69053369451ae2419df95e5ee7ddd97d0972ee6f18495769",
+              "placement_id": "347aecceeade856f47c656a6917c950f41cda38028f327abf8e2f91550944bf3"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1Hz",
+      "right": "m",
+      "expected": "1m",
+      "invocation": "=?",
+      "source": "with units/converted-equals as =?\nplot convert-pitch-demo {\n operation: units/convert(source = 1Hz, to = m)\n exact: =?(expected = 1m)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "8fc3bc4c40a15a109a179c49bacd5d89538b4b0c1ece64f57ac6a326a26c2bc6",
+        "checked_plot_id": "7eaa651f1532a13cc12f1bd293285869bcd007de515fdf76da520176b9e9921e",
+        "expanded_plot_id": "a713c65a1b0f8c93935b7d153214c8e7cc83058e5f15f2a9ec8d2663d067d68f",
+        "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+        "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d",
+        "active_play_id": "ed73debad7c1781578b070d192172d5bbe1b49120a735572432f1ae701ced98f",
+        "presentation_id": "e5baea27376daa584d5dc8ce81b5a28d2d07df6f7f8e607e6c117b31a962c0d0",
+        "placement_id": "94eb0b1e4b5f8c0968fc8dc0a48f685b707af7363a57f2b6f565c54cf8b447ca",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/66667df26d6dac270feee7ebe38f7004da69801c7dea4d9d7c951cc6d490a451",
+          "result_identity": "interaction-result/012712373ee0d78031515b490d39804d3761c65ad12dd947317c7e889958da8c",
+          "sequence": 7,
+          "value_kind": "value/text",
+          "value_bytes": 296
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "ed73debad7c1781578b070d192172d5bbe1b49120a735572432f1ae701ced98f",
+        "presentation_id": "e5baea27376daa584d5dc8ce81b5a28d2d07df6f7f8e607e6c117b31a962c0d0",
+        "terminal_sign_id": "2fa23af2aeec5cf13172948e1953ff5e04e2b41d1bef9ccfe899e5ff0dc8869f",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "ed73debad7c1781578b070d192172d5bbe1b49120a735572432f1ae701ced98f",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+                "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+              "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d",
+              "placement_id": "8faac4e24654a5ce2af0ab35b13c40ff08d5a4982a2dcc4263b4e65e1d1c33d6"
+            },
+            {
+              "node": 1,
+              "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+              "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d",
+              "placement_id": "13b12c2b4f6ad1ca52206e440dab272caf750fc83de2f24481b16f6eea759b54"
+            },
+            {
+              "node": 2,
+              "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+              "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d",
+              "placement_id": "e2f4f27c7305e0d4eb3ac2ed8cf6bdf870fe66366582a318d7f85d506f23063d"
+            },
+            {
+              "node": 3,
+              "plan_id": "78e601a946ad108948de976cb13df0bfd7b54c17fb485a66972039fe5d606f9d",
+              "fragment_id": "b7f6b2acc0b9a5841cf6dd02396847d84402545db32f45b6a03b6925f820322d",
+              "placement_id": "94eb0b1e4b5f8c0968fc8dc0a48f685b707af7363a57f2b6f565c54cf8b447ca"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      "kind": "units/converted-equals",
+      "left": "1kHz",
+      "right": "Hz",
+      "expected": "1m",
+      "invocation": "=?",
+      "source": "with units/converted-equals as =?\nplot convert-pitch-demo {\n operation: units/convert(source = 1kHz, to = Hz)\n exact: =?(expected = 1m)\n show: presentation/text\n operation.receipt >> exact.receipt\n exact.result >> (. ? \"Exactly 1000 Hz\" : \"Conversion did not yield exactly 1000 Hz\") >> show.text\n}.",
+      "effect": {
+        "schema": "conduit.tour/manifestation-effect@3",
+        "effect_kind": "manifestation",
+        "source_document_id": "aa0c61f80a75ce90d3fb81f7a87ef4dc5410359409748ecdde96faaf92a32983",
+        "checked_plot_id": "d1c52720a962b9949a6c4dcc5eb668cf953d3de2a28eeff2c5308816f63ecb7f",
+        "expanded_plot_id": "f83872a4a396f340894b4f45b50f5932a6291ce21da980479c88efee3cde1183",
+        "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+        "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227",
+        "active_play_id": "c279234329fed83432053f3ad1d47b882f7e117831e6fb4fcb52e86fbaec45eb",
+        "presentation_id": "754ee07b31385191493f86ac6d1feb166d48c960fd037d91f37ef08f966ec760",
+        "placement_id": "8d656a631dabf59c2fadde366852077e9dfedee7d59361dba1fd8c21bb14d374",
+        "host_id": "browser/exact-quantity-proof",
+        "boot_id": "boot/exact-quantity-proof",
+        "presentation_kind": "presentation/text",
+        "observation_sequence": 0,
+        "realization": "direct",
+        "expanded_gears": [
+          {
+            "gear_id": "convert-pitch-demo/exact",
+            "kind_id": "units/converted-equals",
+            "implementation_id": "browser/converted-equals@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/expression-28433af1a9c0-0",
+            "kind_id": "conduitese/pure-expression/e6844e722f1eaa79c6a1d2ce6d8009cb1c6b7fbe6a75bcdac2b0e143a5d6393f",
+            "implementation_id": "browser/kernel-pure-expression@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/operation",
+            "kind_id": "units/convert",
+            "implementation_id": "browser/exact-quantity-conversion@1"
+          },
+          {
+            "gear_id": "convert-pitch-demo/show",
+            "kind_id": "presentation/text",
+            "implementation_id": "browser/presentation-text@1"
+          }
+        ],
+        "realization_backs": [],
+        "unit_millis": 0,
+        "segments": [],
+        "text": "Conversion did not yield exactly 1000 Hz",
+        "source_interaction": {
+          "schema": "conduit.tour/source-interaction@1",
+          "disposition": "accepted",
+          "semantic_id": "interaction/executable-tour-source",
+          "contract_identity": "interaction-contract/483d109fece0174fee53eb946a589ee4f965d65f62ae678fc732885a62c755d5",
+          "state_identity": "interaction-state/e2c0fe0170115dc4c70662da49a65ec21f0002b0850d40f3a86fdfe6cae180b0",
+          "proposal_identity": "interaction-proposal/9162236cb6d7c69f608747865b6196dd826ef3ea3e01c769bfb1046e06823ea9",
+          "result_identity": "interaction-result/dc426f830f236206b53b3fa652dedfb0a6e29c8ff0612e6413809b7fc0c051d3",
+          "sequence": 8,
+          "value_kind": "value/text",
+          "value_bytes": 298
+        }
+      },
+      "receipt": {
+        "schema": "conduit.tour/manifestation-receipt@3",
+        "disposition": "completed",
+        "active_play_id": "c279234329fed83432053f3ad1d47b882f7e117831e6fb4fcb52e86fbaec45eb",
+        "presentation_id": "754ee07b31385191493f86ac6d1feb166d48c960fd037d91f37ef08f966ec760",
+        "terminal_sign_id": "a2a22d2e055c616950274293316364ed250f17137ae28283271699e1bc14418f",
+        "timer_completions": 0,
+        "manifestation_completions": 1,
+        "kernel_signs": {
+          "schema": "conduit.browser/kernel-sign-evidence@1",
+          "host_id": "browser/exact-quantity-proof",
+          "boot_id": "boot/exact-quantity-proof",
+          "active_play_id": "c279234329fed83432053f3ad1d47b882f7e117831e6fb4fcb52e86fbaec45eb",
+          "item_capacity": 256,
+          "prepared_storage": {
+            "partitions": [
+              {
+                "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+                "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227"
+              }
+            ],
+            "slot_capacities": [
+              4096,
+              256,
+              4096,
+              8192,
+              4096,
+              256,
+              4096
+            ],
+            "reserved_storage_bytes": 25200,
+            "live_byte_quota": 25088,
+            "data_memory_reservation": 0,
+            "memory_pool_bytes": 8388608
+          },
+          "retention_gap": null,
+          "placements": [
+            {
+              "node": 0,
+              "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+              "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227",
+              "placement_id": "785642e7f6887fc607544a46703812a9a5677b642b0e687f0bd87cdfd3a662a6"
+            },
+            {
+              "node": 1,
+              "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+              "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227",
+              "placement_id": "c0e1e48829eb5aece67ae62bd54916efb7d661a9aec9f175e0df7ca1b437f083"
+            },
+            {
+              "node": 2,
+              "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+              "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227",
+              "placement_id": "65993bfa6ba3fdb2157cba2928953c3b02ce54fcf64223bef913966c52ffee8e"
+            },
+            {
+              "node": 3,
+              "plan_id": "0667b3cf7c320165397d353bcb8563b1d3f4c05f8f50cea3fa0100b9511fef15",
+              "fragment_id": "1f30a5789921a9d29a43871293975bffece456358ca3081c3a049f6447409227",
+              "placement_id": "8d656a631dabf59c2fadde366852077e9dfedee7d59361dba1fd8c21bb14d374"
+            }
+          ],
+          "events": [
+            {
+              "sequence": 0,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 1,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 2,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 3,
+              "node": 2,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 4,
+              "node": 2,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 5,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 6,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 7,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 8,
+              "node": 0,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 9,
+              "node": 0,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 10,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 11,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 12,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 13,
+              "node": 1,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 14,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 15,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "ValueRouted"
+            },
+            {
+              "sequence": 16,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 17,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "ValueConsumed"
+            },
+            {
+              "sequence": 18,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallRequested"
+            },
+            {
+              "sequence": 19,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 20,
+              "node": 1,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 21,
+              "node": 1,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            },
+            {
+              "sequence": 22,
+              "node": 3,
+              "port": null,
+              "request": 0,
+              "kind": "HostCallCompleted"
+            },
+            {
+              "sequence": 23,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 24,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "StepFuelGranted"
+            },
+            {
+              "sequence": 25,
+              "node": 3,
+              "port": 0,
+              "request": null,
+              "kind": "InputClosed"
+            },
+            {
+              "sequence": 26,
+              "node": 3,
+              "port": null,
+              "request": null,
+              "kind": "BackCompleted"
+            }
+          ],
+          "host_completions": {
+            "schema": "conduit.browser/host-completion-evidence@1",
+            "capacity": 64,
+            "omitted": 0,
+            "records": [
+              {
+                "sequence": 0,
+                "node": 3,
+                "request": 0,
+                "disposition": "completed",
+                "failure_code": null,
+                "failure_detail": null
+              }
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "wasm_sha256": "05ff57aaa6eb75506e1a265fdfe621bf0545d57a12e1fdb4fb1aec20a8576f90",
+  "browser": "Mozilla/5.0 (X11; Linux x86_64) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/151.0.7922.34 Safari/537.36"
+}

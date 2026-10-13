@@ -1,0 +1,11 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "29a80666578f299a9b5cb12b9de8b2595a62bdce",
+  "track": "browser-graphical",
+  "step_id": "bootstrap.started",
+  "assertion": "bootstrap-started",
+  "source_facts": {
+    "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+    "boot_id": "browser-boot/46596021-7264-4d61-957a-985508de3031"
+  }
+}

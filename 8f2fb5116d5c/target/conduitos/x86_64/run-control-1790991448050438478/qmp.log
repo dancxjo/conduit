@@ -1,0 +1,5 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"1:run-control-key\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:run-control-key\"}\r\n"}

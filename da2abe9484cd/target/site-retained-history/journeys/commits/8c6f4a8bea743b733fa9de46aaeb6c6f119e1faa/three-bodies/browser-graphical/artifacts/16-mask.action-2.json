@@ -1,0 +1,20 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "browser-graphical",
+  "step_id": "mask.action-2",
+  "assertion": "mask-mask.prefer-alternate",
+  "source_facts": {
+    "action_id": "mask.prefer-alternate",
+    "concrete_event": "sealed fallback executed as a fresh acknowledged DOM Show without Plan mutation",
+    "selected_mask_form_id": "af952f56c516223ad205f79e55d70217882ac887367273fa6be7835c6d9b883a",
+    "plan_id": "body-plan/sha256:acd4157276a15eb05295a71028ef7c44a42e2b2a2f09cd8782c9b81139369a0d",
+    "selected_route_id": "route/browser-graphical-fallback",
+    "show_id": "show/fc6a41ea8ba9b05db42cfb5bbca79c389290ea350da9cfd6dc8f69740ac49fdb",
+    "receipt_ids": [
+      "wardrobe-revision/2",
+      "5a0ab73f034744abf545dd449823e773fba45be51a16809f49006af42a8d85e1"
+    ],
+    "face_id": "3ca51e579422af32b20baf7f99bb9744b487438801b6400ead2fb14072390e31"
+  }
+}

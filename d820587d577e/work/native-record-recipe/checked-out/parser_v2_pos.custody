@@ -1,0 +1,23 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=2dc340f6852c11db86dc1443470ac8b340aa2cc704ad0a185de86da24ded7b0c
+expanded=f4253f63cba8f9b425993f176a9327731c9ac443473b964d82c0c2757fc2bb9a
+input=language-parser-v2-pos/inline-7aa2a731bf5c-0/expression-0396399d400e-0:input
+output=language-parser-v2-pos/inline-191a51e22bf6-0/expression-a503993bdeb6-0:output
+gear=language-parser-v2-pos/inline-7aa2a731bf5c-0/expression-0396399d400e-0:conduitese/pure-expression/be515ff469108ebee6501a02f8b8e8eee6435f77d1888a4bdf1f09dbbfafb20f:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-7aa2a731bf5c-0/expression-0396399d400e-0:output>language-parser-v2-pos/inline-2ccbfc48cf36-0/expression-ec201244dfd6-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-2ccbfc48cf36-0/expression-ec201244dfd6-0:conduitese/pure-expression/4ea7a3a98acbee1273535f055914d2f072adc1fba6fccaf8da11b4e73064cf47:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-2ccbfc48cf36-0/expression-ec201244dfd6-0:output>language-parser-v2-pos/inline-7cc318a5fcde-0/expression-9e06ec302a91-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-7cc318a5fcde-0/expression-9e06ec302a91-0:conduitese/pure-expression/1a277b01a581d8c839288f64a03194b490197b16afa247aecb6626ab8a2e4115:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-7cc318a5fcde-0/expression-9e06ec302a91-0:output>language-parser-v2-pos/inline-7e2f3e7e8d95-0/expression-ca0897354bb4-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-7e2f3e7e8d95-0/expression-ca0897354bb4-0:conduitese/pure-expression/42f277f57968e65381f14a6e594e2ea1c88a15faef07f3ac5fc186084debab9d:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-7e2f3e7e8d95-0/expression-ca0897354bb4-0:output>language-parser-v2-pos/inline-382b30fa2836-0/expression-2c1568103f55-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-382b30fa2836-0/expression-2c1568103f55-0:conduitese/pure-expression/08dd1454163db21c37c8abc7883472c9d3a48df8958865f6c00f41327ac3a0d1:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-382b30fa2836-0/expression-2c1568103f55-0:output>language-parser-v2-pos/inline-99a8e01d2755-0/expression-ddd44cd92932-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-99a8e01d2755-0/expression-ddd44cd92932-0:conduitese/pure-expression/65b03cf66019c91e08b1956324ee1bf2b55b1910ea5844b84fd13d9d08f3dd7e:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-99a8e01d2755-0/expression-ddd44cd92932-0:output>language-parser-v2-pos/inline-b08f6742c0c7-0/expression-c8aaa9e1a81e-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-b08f6742c0c7-0/expression-c8aaa9e1a81e-0:conduitese/pure-expression/93c8c808d6ca164b950f5b3da310a962c136994d4cf3c33bdf9116e3c0ae818a:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-b08f6742c0c7-0/expression-c8aaa9e1a81e-0:output>language-parser-v2-pos/inline-12e91f9ed035-0/expression-9f8b03a75bbe-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-12e91f9ed035-0/expression-9f8b03a75bbe-0:conduitese/pure-expression/73103bd9cf6ef70eac723e0ea682dbd5380b116a3ce3753786b9255c4faca34b:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-v2-pos/inline-12e91f9ed035-0/expression-9f8b03a75bbe-0:output>language-parser-v2-pos/inline-191a51e22bf6-0/expression-a503993bdeb6-0:input:structured-info/profile-5282775b92a5dbe15d11345c3444024e4c78fd3ccd3ba10d1098f11cb3d725c8@1
+gear=language-parser-v2-pos/inline-191a51e22bf6-0/expression-a503993bdeb6-0:conduitese/pure-expression/b515dcc165d9d0bb948331ffe8e902cd25966605f2f39c1c44ffcb19a0e680a1:conduitese/pure-expression-operation@1:input:output

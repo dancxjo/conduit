@@ -1,0 +1,10 @@
+{
+  "exit": 0,
+  "inputs": {
+    "/home/dancxjo/conduit-4907-evaluation-identity/work/lexical-proposer-next/coherent-target-rlibs.json": "566ded1468612297b3e341da589ed415d42695b4b08cd49551c8e4619f2c8eea",
+    "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_ai-7e238c9a76f0016b.rlib": "f04b984fc3142857ed2c1059c64eca5293426bbc9c6d7233a5bdc970a82c0409",
+    "/home/dancxjo/conduit-4907-production-custody/semantics/language/src/parser_session_inspection.rs": "1031c779281a38b1ab3d47f4224f0b24b082a8e72da82b8c2c32bc276ce8704b"
+  },
+  "unchanged": true,
+  "scope": "Standalone feature-enabled inspection interface metadata compile against coherent AI; no Session integration/runtime acceptance"
+}

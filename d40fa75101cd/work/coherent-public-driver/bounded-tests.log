@@ -1,0 +1,16 @@
+
+running 5 tests
+test transport_envelope::tests::exact_raw_primitive_and_full_structured_transport ... ok
+test native_traversal::tests::prepared_paths_require_exact_leaf_kinds_and_valid_contract_definitions ... ok
+offer flow=false requested=1650 live=1472 prep_bound=1650 retained_bound=1472
+offer flow=true requested=1675 live=1487 prep_bound=1675 retained_bound=1487
+back requested=6861 live=4467 prep_bound=7967 retained_bound=4469
+test native_profile::storage_tests::bounded_native_back_retains_full_source_guards_and_refuses_without_consumption ... ok
+offer flow=false requested=1650 live=1472 prep_bound=1650 retained_bound=1472
+offer flow=true requested=1675 live=1487 prep_bound=1675 retained_bound=1487
+test native_profile::storage_tests::exact_source_offer_reservation_precedes_all_allocations ... ok
+nested back requested=24756 live=16385 prep_bound=28177 retained_bound=16396
+test native_profile::storage_tests::nested_variant_collection_back_has_measured_complete_payload_inventory ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

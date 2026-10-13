@@ -1,0 +1,67 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "ef8751f5f2346722ee61184fd9e07d3b44f6bbbe",
+  "track": "browser-graphical",
+  "step_id": "body.awake",
+  "assertion": "body-awake",
+  "source_facts": {
+    "wake": {
+      "wake_id": "cfdfaba3d10aa578b6196e70233e3c7c30003fa2d6810f9a28e35a4011280fb7",
+      "body_id": "b7237b2bfe4879c891f7bce911094ee34542648a2a047839bf82789acdd698ee",
+      "workset": {
+        "plots": [
+          {
+            "source_document_id": "57f5cf4bf2a535a6511addab9dfed61eed68c3b1356c29b3223f0b839830251d",
+            "checked_plot_id": "a2a1d7bb47e1084d3927cfc555d53b97f6578f03826aee25c29f08d92dae2df6"
+          },
+          {
+            "source_document_id": "5c59950a208338112d2045d747a6b3fa3b789683f85482a067f6f4b4b63e911d",
+            "checked_plot_id": "6173e0192a3862e3b8079e5ab9697d66fcff81215704205e2d548e488ebd955c"
+          }
+        ]
+      },
+      "workload_revision": 0,
+      "wake_sequence": 4,
+      "lifecycle": "Lulled",
+      "plans": [
+        {
+          "plan_id": "body-plan/sha256:cf1377b235a36b851fe769a0059cbda5e346abbc08c35cfb5c791d1f5530856f",
+          "active_play_id": "body-play/sha256:e5fb2611417778ee75f7928eb5419284e54f3b83c7235cfe42adf54068d4d772",
+          "state": "Playing",
+          "hold": null
+        }
+      ],
+      "sign_ids": [
+        "2516acac3b3cfe7275af0ed1b1ee1bbb5b5c04160534f59490c920bff6782bb8",
+        "43e3d8312548598bbd68f6ddb903b8d63237856b34ea93a3b03a4bf2ea55f36f",
+        "466be806223dfda3485acf28be5ed792a78cd39aaa50bdf2b1767054dc4cff45",
+        "7299ea1521731e997e220ae73ddaf87766b29596b5f49a946c15f67b10734ae1"
+      ],
+      "events": [
+        {
+          "Woke": {
+            "sign_id": "2516acac3b3cfe7275af0ed1b1ee1bbb5b5c04160534f59490c920bff6782bb8"
+          }
+        },
+        {
+          "PlanReady": {
+            "plan_id": "body-plan/sha256:cf1377b235a36b851fe769a0059cbda5e346abbc08c35cfb5c791d1f5530856f",
+            "sign_id": "43e3d8312548598bbd68f6ddb903b8d63237856b34ea93a3b03a4bf2ea55f36f"
+          }
+        },
+        {
+          "PlayStarted": {
+            "plan_id": "body-plan/sha256:cf1377b235a36b851fe769a0059cbda5e346abbc08c35cfb5c791d1f5530856f",
+            "active_play_id": "body-play/sha256:e5fb2611417778ee75f7928eb5419284e54f3b83c7235cfe42adf54068d4d772",
+            "sign_id": "466be806223dfda3485acf28be5ed792a78cd39aaa50bdf2b1767054dc4cff45"
+          }
+        },
+        {
+          "Lulled": {
+            "sign_id": "7299ea1521731e997e220ae73ddaf87766b29596b5f49a946c15f67b10734ae1"
+          }
+        }
+      ]
+    }
+  }
+}

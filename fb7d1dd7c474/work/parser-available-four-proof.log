@@ -1,0 +1,9 @@
+
+running 4 tests
+test available_prefix_refuses_partial_tokens_and_source_drives_finality ... ok
+test revision_reset_matches_full_lineage_and_preserves_committed_state ... ok
+test nonfinal_exhaustion_suppresses_all_proposals_and_growth_preserves_state ... ok
+test v2_lookahead_is_available_candidate_membership_without_future_pos_choice ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 36.76s
+

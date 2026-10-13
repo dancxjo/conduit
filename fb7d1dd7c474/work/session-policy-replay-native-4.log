@@ -1,0 +1,16 @@
+
+running 1 test
+test actual_stream_score_band_admits_independent_non_root_facts has been running for over 60 seconds
+
+thread 'actual_stream_score_band_admits_independent_non_root_facts' (1159959) panicked at semantics/language/tests/common/parser_kernel.rs:33:41:
+language-parser-joint-stable-fact: Expansion(CanonicalExpansionDiagnostic { code: "CND-FRM-046", message: "pure construction of a refined native Type requires an admitted law validator" })
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test actual_stream_score_band_admits_independent_non_root_facts ... FAILED
+
+failures:
+
+failures:
+    actual_stream_score_band_admits_independent_non_root_facts
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 3 filtered out; finished in 73.49s
+

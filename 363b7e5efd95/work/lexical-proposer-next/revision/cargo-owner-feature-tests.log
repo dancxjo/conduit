@@ -1,0 +1,78 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/human)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/presentation)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/web)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/ai)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/composite)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/audio)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/net)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/planner)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/education)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/host)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/wire)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/offers)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tutorial)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/protocols/bluetooth)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/graph)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/body-invitation)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/application)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/signal)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/speech)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/birth)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/finance)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/home)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/esp32/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/rp2040/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/orange-pi/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/raspberry-pi/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/body)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/little-seismograph/fixture)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/runtime)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/network-r1)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/mask-offer)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 29m 23s
+     Running tests/lexical_proposer_revision.rs (target/debug/deps/lexical_proposer_revision-d74db8993408b394)
+
+running 8 tests
+test complete_original_revision_successor_custody_and_atomic_refusal ... revision_receipt=RevisionReceipt { retained_bytes_bound: 52472005, preparation_peak_bytes_bound: 83846346, admission_peak_bytes_bound: 393756617, response_retained_bytes_bound: 100978792 }
+ok
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test distinct_proposal_model_declaration_full_material_and_foreign_refusals ... ok
+test original_source_unknown_reviewed_and_partial_production ... producer_receipt=TokenProducerReceipt { retained_heap_bytes_bound: 47051267, preparation_peak_heap_bytes_bound: 83846346, admission_peak_heap_bytes_bound: 139064884, response_retained_bytes_bound: 786704 }
+ok
+test resource_structural_peak_covers_measured_preparation_and_lookup ... dictionary preparation_peak_observed=208056 lookup_peak_observed=1380 receipt=LexicalDictionaryStorageReceipt { shards: 2, entries: 2, retained_heap_bytes_bound: 2304940, preparation_peak_heap_bytes_bound: 11217881, lookup_requested_bytes_bound: 8912941 }
+ok
+test revision_scalar_limit_and_committed_frontier_refusals ... ok
+test whole_preparation_and_response_allocation_bounds_and_one_under ... surface=glorp producer_preparation_peak_increment=3707818 admission_peak_increment=21377 response_retained=21377 response_charge=21649
+surface=record producer_preparation_peak_increment=3707818 admission_peak_increment=21618 response_retained=21618 response_charge=21890
+ok
+test whole_revision_resource_peak_retained_and_one_under ... revision_preparation_increment=5822483 admission_increment=78267 retained=78267 charge=79187
+ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.41s
+

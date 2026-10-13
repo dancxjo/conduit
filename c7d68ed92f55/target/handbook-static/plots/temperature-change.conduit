@@ -1,0 +1,5 @@
+plot temperature-change-demo {
+    operation: units/convert-temperature-difference(source = "9°F", to = "K")
+    show: presentation/text
+    operation.receipt >> ((variant/is(.result, "converted") ? (.result.converted.coefficient == 5 ? .result.converted.exponent == 0 : false) : false) ? "The temperature change is exactly 5 K" : "The result is not a 5 K change") >> show.text
+}.

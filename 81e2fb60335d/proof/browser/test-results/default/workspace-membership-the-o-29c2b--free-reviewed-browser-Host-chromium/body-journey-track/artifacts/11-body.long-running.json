@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "29a80666578f299a9b5cb12b9de8b2595a62bdce",
+  "track": "browser-graphical",
+  "step_id": "body.long-running",
+  "assertion": "body-long-running",
+  "source_facts": {
+    "active_play_id": "body-play/sha256:97407322a134a053dd2e81da44a2ede27142b098d80c995a8e57dc55430ee035"
+  }
+}

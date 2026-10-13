@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "hosted-generative",
+  "step_id": "mask.action-8",
+  "assertion": "mask-mask.doff-alternate",
+  "source_facts": {
+    "action_id": "mask.doff-alternate",
+    "concrete_event": "doffing the alternate reconciled the still-worn initial-role Mask to its replacement-Plan route",
+    "face_id": "e85a0664930bf1c2d8d71163e02f1450bbf1e19f930eb81d411de38ce00159db",
+    "plan_id": "body-plan/sha256:5d322c419fb395c87e1095b2e02e1641f64275df9b72508c53905d78ac0b9907",
+    "receipt_ids": [
+      "wardrobe/revision/3"
+    ],
+    "selected_mask_form_id": "3d3996e97290abf8f213a1dbaa55a3af46fb9af7826f41ed1a8719ca1fd1a740",
+    "selected_route_id": "route/orifina-spoken-replacement-plan/1",
+    "show_id": null
+  }
+}

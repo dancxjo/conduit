@@ -1,0 +1,10 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/data)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/kernel)
+   Compiling serde_json v1.0.151
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plan-lowering)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/ai)
+   Compiling memchr v2.8.3
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/composite)
+    Finished `dev` profile [unoptimized] target(s) in 24.91s

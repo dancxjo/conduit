@@ -1,0 +1,10 @@
+
+running 3 tests
+test actual_archived_float_integer_back_inventory_includes_box_root_separately ... actual original float-i16 local=6392 box=2672 observed=9064
+ok
+test codec_inventory_counts_actual_capacity_without_allocation ... ok
+test full_tensor_descriptor_inventory_counts_spare_sequences_and_child_strings ... tensor descriptor actual requested retained=372
+ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 1.36s
+

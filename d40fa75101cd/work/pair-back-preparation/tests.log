@@ -1,0 +1,7 @@
+
+running 1 test
+selected pair requested=3021 peak=2203 retained=2203 reservation=PreparedStructuredCompositionStorageReceipt { preparation_requested_bytes_bound: 3021, retained_heap_bytes_bound: 2203 }
+test complete_pair_construction_is_reserved_before_types_are_cloned ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.11s
+

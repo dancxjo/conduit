@@ -1,0 +1,9 @@
+[package]
+name = "fargan-zip-storage-probe"
+version = "0.0.0"
+edition = "2021"
+[workspace]
+[dependencies]
+conduit-core = {path="../../architecture/core"}
+conduit-composite = {path="../../architecture/composite"}
+conduit-kernel = {path="../../architecture/kernel",features=["alloc","step-test-support"]}

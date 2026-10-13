@@ -1,0 +1,1013 @@
+{
+  "schema": "conduit.browser/mask-observation@1",
+  "wardrobe_action": {
+    "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+    "wake_id": null,
+    "action": {
+      "Wear": {
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+      }
+    },
+    "basis_revision": 0,
+    "resulting_wardrobe": {
+      "revision": 1,
+      "lifetime": "Body",
+      "worn": [
+        {
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+        }
+      ],
+      "preference": []
+    },
+    "active_plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+    "reconciliation": {
+      "show": {
+        "SelectSealed": {
+          "prior": null,
+          "selected": {
+            "route_id": "route/browser-graphical",
+            "mask_form": {
+              "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+              "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+              "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+            },
+            "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08"
+          }
+        }
+      },
+      "planning": "NotRequired"
+    }
+  },
+  "planned_mask": {
+    "mask": {
+      "form_identity": {
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+      },
+      "form_name": "browser-graphical",
+      "presentation_input": {
+        "front_port_id": "presentation",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "presentation"
+      },
+      "interaction_output": {
+        "front_port_id": "interaction",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "interaction"
+      },
+      "show_output": {
+        "front_port_id": "show",
+        "gear_id": "browser-graphical/mask",
+        "gear_port_id": "show"
+      }
+    },
+    "plan": {
+      "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+      "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+      "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+      "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+      "completion_policy": "Live",
+      "realization_backs": [],
+      "fragments": [
+        {
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796",
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+          "completion_policy": "Live",
+          "realization_backs": [],
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "placements": [
+            {
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_id": "browser-graphical/mask",
+              "kind_id": "presentation/browser-dom-mask",
+              "kind_contract_revision": "conduit.browser/presentation-dom-mask@1",
+              "execution_profile_id": "browser/mask@1",
+              "configuration": [],
+              "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+              "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+              "offer_generation": 1,
+              "capability_id": "capability/browser-dom-mask",
+              "implementation_id": "implementation/browser-dom-mask",
+              "artifact_id": "artifact/browser-runtime",
+              "realization_characteristics": [],
+              "limits": {
+                "max_active_instances": 1,
+                "max_queue_items": 4,
+                "max_queue_bytes": 524288
+              },
+              "inputs": [
+                {
+                  "port_id": "presentation",
+                  "value_kind": "presentation/presentation@1",
+                  "direction": "Input",
+                  "temporal": "Value"
+                }
+              ],
+              "outputs": [
+                {
+                  "port_id": "interaction",
+                  "value_kind": "presentation/interaction@1",
+                  "direction": "Output",
+                  "temporal": {
+                    "Flow": {
+                      "closes": true
+                    }
+                  }
+                },
+                {
+                  "port_id": "show",
+                  "value_kind": "presentation/show@1",
+                  "direction": "Output",
+                  "temporal": "Value"
+                }
+              ],
+              "host_calls": [
+                {
+                  "contract_id": "browser.host/dom-mask@1",
+                  "target_kind": "presentation/browser-dom-mask",
+                  "maximum_in_flight": 1,
+                  "maximum_input_bytes": 524288,
+                  "maximum_output_bytes": 524288
+                }
+              ],
+              "resources": [],
+              "authority": [],
+              "pool_references": []
+            }
+          ],
+          "execution_regions": [],
+          "execution_fusions": [],
+          "connections": [],
+          "fore_ports": [
+            {
+              "front_port_id": "presentation",
+              "direction": "Input",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "presentation",
+              "value_kind": "presentation/presentation@1",
+              "track": "payload",
+              "temporal": "Value",
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            },
+            {
+              "front_port_id": "interaction",
+              "direction": "Output",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "interaction",
+              "value_kind": "presentation/interaction@1",
+              "track": "payload",
+              "temporal": {
+                "Flow": {
+                  "closes": true
+                }
+              },
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            },
+            {
+              "front_port_id": "show",
+              "direction": "Output",
+              "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+              "gear_port_id": "show",
+              "value_kind": "presentation/show@1",
+              "track": "payload",
+              "temporal": "Value",
+              "pressure_policy": "preserve-order",
+              "item_capacity": 4,
+              "byte_capacity": 524288
+            }
+          ],
+          "shared_pools": [],
+          "startup_dependencies": [],
+          "startup_order": [
+            "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+          ],
+          "cancellation_policy": "CancelAllAndRejectLateCompletion",
+          "terminal_policy": "RequireAllPlacementsAndConnections",
+          "expected_terminals": [
+            {
+              "PlacementCompleted": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            "PlanCompleted"
+          ],
+          "expected_sign": [
+            "PlanFragmentReceived",
+            {
+              "PlacementPrepared": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            {
+              "PlacementTerminal": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            },
+            "PlanTerminal"
+          ],
+          "sign_storage_budget": {
+            "item_capacity": 4,
+            "byte_capacity": 132
+          },
+          "plan_fragments": [
+            {
+              "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+              "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796"
+            }
+          ]
+        }
+      ]
+    }
+  },
+  "mask_play": {
+    "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+    "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+    "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+    "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+    "play_sequence": 1
+  },
+  "presentation": {
+    "identity": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+    "revision": 5,
+    "basis": {
+      "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "wake_id": "07383a5e066c825453b3eee0d1933b06f6a1ff7aea9b6e4ebf02ca8f58be8cfb",
+      "source_document_id": null,
+      "checked_form_id": null,
+      "expanded_form_id": null,
+      "plan_id": null,
+      "active_play_id": null,
+      "sign_ids": [
+        "0d96488acf4afca6d6b5cfad613355e1fa6a7401d383d0551b074990d2602c84",
+        "431eb4a773caa44e1b940c90160e3dc061fa15f600c828794ba8259e02e938d4",
+        "91f7a7e16ae704d9100721a5fc0317f1d22014a4b97bb638093c952576788a4a",
+        "eaf84dc1e34f5aaddb0c3bd40ffcaa43904226ef19dcc4ffb3a5fd0decde3d88"
+      ]
+    },
+    "subjects": [
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "role": "Body",
+        "label": "Body",
+        "accessibility_name": "Current body"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "role": "Region",
+        "label": "overview",
+        "accessibility_name": "Current overview context"
+      },
+      {
+        "identity": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "role": "Plan",
+        "label": "body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "accessibility_name": "Current wake Plan body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4"
+      },
+      {
+        "identity": "play/body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74",
+        "role": "Play",
+        "label": "body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74",
+        "accessibility_name": "Active play body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74"
+      },
+      {
+        "identity": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "role": "Form",
+        "label": "8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "accessibility_name": "Resident Form 8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3"
+      },
+      {
+        "identity": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "role": "Form",
+        "label": "d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "accessibility_name": "Resident Form d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "role": "Status",
+        "label": "Purpose",
+        "accessibility_name": "Purpose"
+      },
+      {
+        "identity": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "role": "Status",
+        "label": "Fulfillment readiness",
+        "accessibility_name": "Fulfillment readiness"
+      }
+    ],
+    "relationships": [
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "kind": "Contains"
+      },
+      {
+        "source": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "target": "play/body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74",
+        "kind": "Realizes"
+      },
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "kind": "Contains"
+      },
+      {
+        "source": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "kind": "Contains"
+      }
+    ],
+    "properties": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "body-id",
+        "value": {
+          "Identity": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "lifecycle-state",
+        "value": {
+          "Text": "awake"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "workload-revision",
+        "value": {
+          "Count": 0
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "name": "operator-context",
+        "value": {
+          "Text": "overview"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "name": "operator-focus",
+        "value": {
+          "Text": "body"
+        }
+      },
+      {
+        "subject": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "name": "plan-id",
+        "value": {
+          "Identity": "body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4"
+        }
+      },
+      {
+        "subject": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "name": "wake-plan-state",
+        "value": {
+          "Text": "Playing"
+        }
+      },
+      {
+        "subject": "play/body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74",
+        "name": "active-play-id",
+        "value": {
+          "Identity": "body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "2a01bd41bd052d866c5115311feac7bb7313dea4b414f4ceaaee37752cdf68a0"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "checked-form-id",
+        "value": {
+          "Identity": "8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3"
+        }
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "source-document-id",
+        "value": {
+          "Identity": "43afbb025118dff53ec05be43f3f2e10506c60c5c1e3b59cafefa9fff5550bdf"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "checked-form-id",
+        "value": {
+          "Identity": "d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05"
+        }
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "name": "workload-membership",
+        "value": {
+          "Text": "resident"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "tutorial-phase",
+        "value": {
+          "Text": "living"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "name": "purpose",
+        "value": {
+          "Identity": "purpose/orifina-tutorial@1"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "name": "purpose-revision",
+        "value": {
+          "Count": 6
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "name": "experience-revision",
+        "value": {
+          "Count": 6
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "name": "readiness",
+        "value": {
+          "Text": "not-ready"
+        }
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "name": "unresolved-obligations",
+        "value": {
+          "Text": "repair-fault,add-host"
+        }
+      }
+    ],
+    "text": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "text": "Use it, then leave it useful: Interact more than once. A finite Body may remain awake indefinitely because its instantaneous and retained bounds stay finite."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "text": "Teach one real Body lifecycle"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Declared work remains unfinished."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Repair a real failed Wake."
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "text": "Still to do: Admit another host."
+      }
+    ],
+    "actions": [
+      {
+        "identity": "body/action/lull/0",
+        "intent": "conduit.intent/lull@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Lull",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-overview/0",
+        "intent": "conduit.intent/open-body-overview@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Open Body overview",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-library/0",
+        "intent": "conduit.intent/open-form-library@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Open Forms library",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      },
+      {
+        "identity": "body/action/open-form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3/0",
+        "intent": "conduit.intent/open-resident-form@1",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "label": "Open resident Form",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "form-not-playing",
+            "explanation": "The resident Form is not currently presenting."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-inspection/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3/0",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "label": "Open inspection",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05/0",
+        "intent": "conduit.intent/open-resident-form@1",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "label": "Open resident Form",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "form-not-playing",
+            "explanation": "The resident Form is not currently presenting."
+          }
+        }
+      },
+      {
+        "identity": "body/action/open-inspection/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05/0",
+        "intent": "conduit.intent/open-inspection@1",
+        "target": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "label": "Open inspection",
+        "disclosure": "CurrentAction",
+        "availability": {
+          "Unavailable": {
+            "reason_code": "inspection-not-playing",
+            "explanation": "No admitted inspection contribution is currently playing."
+          }
+        }
+      },
+      {
+        "identity": "body.use-current",
+        "intent": "conduit.intent/tutorial-next@1",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "label": "Use the current form",
+        "disclosure": "CurrentAction",
+        "availability": "Available"
+      }
+    ],
+    "inputs": [
+      {
+        "identity": "input/tutorial-action",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "value_kind": "value/text",
+        "maximum_bytes": 256,
+        "allow_empty": true,
+        "label": "Use the current form",
+        "accessibility_name": "Use the current form",
+        "submit_action": "body.use-current"
+      }
+    ],
+    "disclosures": [
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "level": "Primary"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/context",
+        "level": "Context"
+      },
+      {
+        "subject": "plan/body-plan/sha256:de1beb13d0d7f8ff6564a16e531ed7ddacbaffe51fe0731bf96b32874aa625e4",
+        "level": "ExactProvenance"
+      },
+      {
+        "subject": "play/body-play/sha256:14823d8f63ce07af2ae352fb4b45151863f0b600d36538e6dbf5102332f00b74",
+        "level": "ExactProvenance"
+      },
+      {
+        "subject": "form/8e4352a1896d2b68ca97ea5928d6cb59c36893584fe6754856091a4b81d382e3",
+        "level": "Context"
+      },
+      {
+        "subject": "form/d4ef5be2d7ec607cb39ae77f7db28e779f40efefef8e514566fe54f2b3af1c05",
+        "level": "Context"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/purpose",
+        "level": "Context"
+      },
+      {
+        "subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9/fulfillment-readiness",
+        "level": "Context"
+      }
+    ],
+    "temporal_references": [],
+    "temporal_facts": []
+  },
+  "mask_show": {
+    "show_id": "show/167f618ac573ac2732ea579e8110dd97d5d84f95d4ebda940d61d7af81689ce0",
+    "mask_form": {
+      "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+      "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+      "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+    },
+    "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+    "presentation_revision": 5,
+    "planned_mask": {
+      "mask": {
+        "form_identity": {
+          "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+          "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+          "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+        },
+        "form_name": "browser-graphical",
+        "presentation_input": {
+          "front_port_id": "presentation",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "presentation"
+        },
+        "interaction_output": {
+          "front_port_id": "interaction",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "interaction"
+        },
+        "show_output": {
+          "front_port_id": "show",
+          "gear_id": "browser-graphical/mask",
+          "gear_port_id": "show"
+        }
+      },
+      "plan": {
+        "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+        "completion_policy": "Live",
+        "realization_backs": [],
+        "fragments": [
+          {
+            "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+            "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796",
+            "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+            "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+            "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc",
+            "completion_policy": "Live",
+            "realization_backs": [],
+            "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+            "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+            "offer_generation": 1,
+            "placements": [
+              {
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_id": "browser-graphical/mask",
+                "kind_id": "presentation/browser-dom-mask",
+                "kind_contract_revision": "conduit.browser/presentation-dom-mask@1",
+                "execution_profile_id": "browser/mask@1",
+                "configuration": [],
+                "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+                "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+                "offer_generation": 1,
+                "capability_id": "capability/browser-dom-mask",
+                "implementation_id": "implementation/browser-dom-mask",
+                "artifact_id": "artifact/browser-runtime",
+                "realization_characteristics": [],
+                "limits": {
+                  "max_active_instances": 1,
+                  "max_queue_items": 4,
+                  "max_queue_bytes": 524288
+                },
+                "inputs": [
+                  {
+                    "port_id": "presentation",
+                    "value_kind": "presentation/presentation@1",
+                    "direction": "Input",
+                    "temporal": "Value"
+                  }
+                ],
+                "outputs": [
+                  {
+                    "port_id": "interaction",
+                    "value_kind": "presentation/interaction@1",
+                    "direction": "Output",
+                    "temporal": {
+                      "Flow": {
+                        "closes": true
+                      }
+                    }
+                  },
+                  {
+                    "port_id": "show",
+                    "value_kind": "presentation/show@1",
+                    "direction": "Output",
+                    "temporal": "Value"
+                  }
+                ],
+                "host_calls": [
+                  {
+                    "contract_id": "browser.host/dom-mask@1",
+                    "target_kind": "presentation/browser-dom-mask",
+                    "maximum_in_flight": 1,
+                    "maximum_input_bytes": 524288,
+                    "maximum_output_bytes": 524288
+                  }
+                ],
+                "resources": [],
+                "authority": [],
+                "pool_references": []
+              }
+            ],
+            "execution_regions": [],
+            "execution_fusions": [],
+            "connections": [],
+            "fore_ports": [
+              {
+                "front_port_id": "presentation",
+                "direction": "Input",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "presentation",
+                "value_kind": "presentation/presentation@1",
+                "track": "payload",
+                "temporal": "Value",
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              },
+              {
+                "front_port_id": "interaction",
+                "direction": "Output",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "interaction",
+                "value_kind": "presentation/interaction@1",
+                "track": "payload",
+                "temporal": {
+                  "Flow": {
+                    "closes": true
+                  }
+                },
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              },
+              {
+                "front_port_id": "show",
+                "direction": "Output",
+                "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+                "gear_port_id": "show",
+                "value_kind": "presentation/show@1",
+                "track": "payload",
+                "temporal": "Value",
+                "pressure_policy": "preserve-order",
+                "item_capacity": 4,
+                "byte_capacity": 524288
+              }
+            ],
+            "shared_pools": [],
+            "startup_dependencies": [],
+            "startup_order": [
+              "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+            ],
+            "cancellation_policy": "CancelAllAndRejectLateCompletion",
+            "terminal_policy": "RequireAllPlacementsAndConnections",
+            "expected_terminals": [
+              {
+                "PlacementCompleted": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              "PlanCompleted"
+            ],
+            "expected_sign": [
+              "PlanFragmentReceived",
+              {
+                "PlacementPrepared": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              {
+                "PlacementTerminal": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07"
+              },
+              "PlanTerminal"
+            ],
+            "sign_storage_budget": {
+              "item_capacity": 4,
+              "byte_capacity": 132
+            },
+            "plan_fragments": [
+              {
+                "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+                "fragment_id": "c3dd91fcb5195c1dc3c56e3a777b8bcddb3f0838c7ef59fbf94b01b3d6c48796"
+              }
+            ]
+          }
+        ]
+      }
+    },
+    "show": {
+      "manifestation_id": "247785c89689f836ff33b413bbf415fd4a1551f931da042e682b35abac480c7e",
+      "body_id": "28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "wake_id": "07383a5e066c825453b3eee0d1933b06f6a1ff7aea9b6e4ebf02ca8f58be8cfb",
+      "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+      "presentation_revision": 5,
+      "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+      "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+      "play_sequence": 1,
+      "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+      "front_subject": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "presenter_capability_id": "capability/browser-dom-mask",
+      "presenter_implementation_id": "implementation/browser-dom-mask",
+      "presenter_artifact_id": "artifact/browser-runtime",
+      "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+      "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+      "offer_generation": 1,
+      "target_subject": "browser/document",
+      "lifecycle": "Available",
+      "failure": null,
+      "signs": [
+        {
+          "sign_id": "sign/browser-mask-prepared/5",
+          "manifestation_id": "247785c89689f836ff33b413bbf415fd4a1551f931da042e682b35abac480c7e",
+          "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+          "play_sequence": 1,
+          "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "presenter_implementation_id": "implementation/browser-dom-mask",
+          "lifecycle": "Prepared",
+          "failure": null
+        },
+        {
+          "sign_id": "sign/browser-mask-available/5",
+          "manifestation_id": "247785c89689f836ff33b413bbf415fd4a1551f931da042e682b35abac480c7e",
+          "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+          "plan_id": "1c51ce7df1327ff1e246181a92f8fbd119807bdb069d397373ec5e3be3ef5d08",
+          "active_play_id": "74c0223a26c1ba24b1b71f87753922f32b542e0de2197b1728ee11170f03f09c",
+          "play_sequence": 1,
+          "placement_id": "41bd0dc709fdbd1c6ea325770acf8aff7aa7cd73729dee75ea707114e5d96c07",
+          "host_id": "browser/09cfa855-e33c-42e7-9e17-d3b7a72e47df",
+          "boot_id": "browser-boot/b45aead5-7498-4661-9214-60211aaa8cf4",
+          "offer_generation": 1,
+          "presenter_implementation_id": "implementation/browser-dom-mask",
+          "lifecycle": "Available",
+          "failure": null
+        }
+      ]
+    }
+  },
+  "execution": {
+    "schema": "conduit.browser/mask-kernel-execution@1",
+    "fore": [
+      {
+        "front_port_id": "presentation",
+        "direction": "Input",
+        "track": "payload",
+        "value_kind": "presentation/presentation@1",
+        "endpoint": 0,
+        "cord": 0
+      },
+      {
+        "front_port_id": "interaction",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "presentation/interaction@1",
+        "endpoint": 1,
+        "cord": 1
+      },
+      {
+        "front_port_id": "show",
+        "direction": "Output",
+        "track": "payload",
+        "value_kind": "presentation/show@1",
+        "endpoint": 2,
+        "cord": 2
+      }
+    ],
+    "remote_signs": [
+      {
+        "event_sequence": 0,
+        "kind": "RemoteInputAdmitted",
+        "endpoint": 0,
+        "cord": 0,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 1,
+        "kind": "RemoteInputClosed",
+        "endpoint": 0,
+        "cord": 0,
+        "sequence": 1
+      },
+      {
+        "event_sequence": 9,
+        "kind": "RemoteValueOffered",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 10,
+        "kind": "RemoteValueAccepted",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 11,
+        "kind": "RemoteValueDelivered",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 15,
+        "kind": "RemoteOutputClosed",
+        "endpoint": 1,
+        "cord": 1,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 16,
+        "kind": "RemoteOutputClosed",
+        "endpoint": 2,
+        "cord": 2,
+        "sequence": 1
+      },
+      {
+        "event_sequence": 18,
+        "kind": "RemoteValueOffered",
+        "endpoint": 1,
+        "cord": 1,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 19,
+        "kind": "RemoteValueAccepted",
+        "endpoint": 1,
+        "cord": 1,
+        "sequence": 0
+      },
+      {
+        "event_sequence": 20,
+        "kind": "RemoteValueDelivered",
+        "endpoint": 1,
+        "cord": 1,
+        "sequence": 0
+      }
+    ]
+  },
+  "interaction": {
+    "schema": "conduit.browser/mask-interaction@1",
+    "correlation": {
+      "show_id": "show/167f618ac573ac2732ea579e8110dd97d5d84f95d4ebda940d61d7af81689ce0",
+      "mask_form": {
+        "source_document_id": "77a3379256b10f3f6ffa86b988d9da630f71d55cfe4ff80c388a319a50785158",
+        "checked_form_id": "326e6fc7e2acd3ebe9cd2ff10227715e499715315060a44780c1dd279888f340",
+        "expanded_form_id": "3cc4e99f441724583e7f3e17f92288808c13632d401294fcb3af76dcbfe513bc"
+      },
+      "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+      "presentation_revision": 5,
+      "interaction": {
+        "identity": "d25f4eb7d149e301fbdcdd51e6eed3a02de40759ca8ac302f8fe8db8915a4e64",
+        "presentation_id": "827567a2e14a01399066869b5cb3edd1e2de509f5a8c974711e0242710f89453",
+        "presentation_revision": 5,
+        "manifestation_id": "247785c89689f836ff33b413bbf415fd4a1551f931da042e682b35abac480c7e",
+        "input_id": "input/tutorial-action",
+        "action_id": "body.use-current",
+        "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+        "value_kind": "value/text",
+        "value": [],
+        "sequence": 1
+      }
+    },
+    "semantic_action": {
+      "identity": "body.use-current",
+      "intent": "conduit.intent/tutorial-next@1",
+      "target": "body/28681a28b620c0ead1fe6467ffa158460d8abd38eb11794b807aed03464645c9",
+      "label": "Use the current form",
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    }
+  }
+}

@@ -1,0 +1,12 @@
+
+running 1 test
+test actual_stream_score_band_admits_independent_non_root_facts has been running for over 60 seconds
+SOURCE_STABLE_FACTS id="retained-stream/1" admitted=[false] policy=uncalibrated-score-band-1000
+SOURCE_COMMITTED_PREFIX id="retained-stream/2" committed=1
+SOURCE_STABLE_FACTS id="retained-stream/2" admitted=[true, false] policy=uncalibrated-score-band-1000
+SOURCE_COMMITTED_PREFIX id="retained-stream/3" committed=1
+SOURCE_STABLE_FACTS id="retained-stream/3" admitted=[true, true] policy=uncalibrated-score-band-1000
+test actual_stream_score_band_admits_independent_non_root_facts ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3 filtered out; finished in 120.20s
+

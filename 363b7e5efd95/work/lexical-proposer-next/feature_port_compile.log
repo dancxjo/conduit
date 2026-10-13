@@ -1,0 +1,10 @@
+warning: function `token` is never used
+  --> work/lexical-proposer-next/../../semantics/language/tests/lexical_proposer_revision.rs:58:4
+   |
+58 | fn token(surface: &str, partial: bool) -> Vec<u8> {
+   |    ^^^^^
+   |
+   = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

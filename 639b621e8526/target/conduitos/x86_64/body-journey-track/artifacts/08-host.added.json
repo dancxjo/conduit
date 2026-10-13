@@ -1,0 +1,14 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "host.added",
+  "assertion": "host-added",
+  "source_facts": {
+    "boot_id": "boot/qemu-usb-line-peer/1",
+    "host_id": "host/qemu-usb-line-peer",
+    "line_id": "line/usb-ftdi/41728ae02069e370ff90142c792a41ed527524c73602301a34164bdb5f9454c5",
+    "membership": "admitted-present",
+    "plan_id": "plan/usb-line/pre-admission-connectivity-seam"
+  }
+}

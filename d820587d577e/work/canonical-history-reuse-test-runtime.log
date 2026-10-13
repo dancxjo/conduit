@@ -1,0 +1,7 @@
+
+running 1 test
+PASS borrowed four-parent fullcanonical key, exactowner/Type/basis, original fullNative+Source replay, mandatoryreplay refusal, malformed, inline oneunder, zeroallocmechanical lookup; Storage { retained_inline_bytes: 88, construction_inline_overlap_bytes: 176 }; histories/validator/replay allocation separately charged, no admission authority
+test exact_canonical_history_reuse_requires_original_parent_replay ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 7.86s
+

@@ -1,0 +1,5 @@
+Captured first focused ordinary consensus run failure (excerpt, not full log):
+Finished test profile [unoptimized] in 4m38s.
+source_consensus_retains_lexical_disagreement_and_unassigned_abstention: FAILED after77.75s.
+parser_kernel.rs:129: Evaluation(UnsupportedType("structured expression runtime"))
+Source compared complete relation records. Follow-up uses established variant/tag(base) and subtype equality.

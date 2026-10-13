@@ -1,0 +1,27 @@
+{
+  "header": "9f36caf330784d17c31b1c474d574e5a4c1851a5fbfc281c733730b4a89a63d2",
+  "names": [
+    "LanguageAnalysisRevisionId",
+    "LanguageParserBasis",
+    "LanguageParserRelation",
+    "LanguageParserSubtype",
+    "LanguageParserWindow8RawBeam",
+    "LanguageParserWindow8RawHypothesis",
+    "LanguageParserWindow8RawState",
+    "LanguageTextId",
+    "LanguageTextRevisionId",
+    "LanguageUniversalDependencyRelation"
+  ],
+  "blobs": {
+    "native_binding_bytes_21.bin": "e0e11b5d67dd716de853cebefc026395e004000524bf8640c43d2081c5f41672",
+    "native_binding_bytes_103.bin": "2198d90eb34c072c323fd944a09f162df05fe545f12f247b00ce6aad5a23d662",
+    "native_binding_bytes_102.bin": "668fe5e1a4bd7456ea4356d19914bdaef4652e378bac39fa4cd838b6723c5d7f",
+    "native_binding_bytes_101.bin": "1dac2a00eb566c827f4cce153150a3724597da42f62386df7707ee7e81cd47ff",
+    "native_binding_bytes_247.bin": "9162abbcfcf6b9ba9b8c2c1c2e104a646afd76fdaf3b64521c633546144d4d50",
+    "native_binding_bytes_246.bin": "f7305e7e228d3b42f037f87536960866371139b5284a317d3cfc553deb922ba4",
+    "native_binding_bytes_132.bin": "23a9c7772f47b46d732ddebab9a640d73bda66821b816d98777ff03f29e5b373",
+    "native_binding_bytes_34.bin": "769c880fd4b1cc1ebb75e44fb4c46d88452af5a861a097ee0af6a5d37dc6eb0f",
+    "native_binding_bytes_35.bin": "6a991359d6f7eb3e1e18744ca439bf23e26b5d0ebf848385bf663f88b9c9ec3c",
+    "native_binding_bytes_18.bin": "27d217679ce91f207e90790d27465448ea046cf9a9e2f21113ff0376ececa44d"
+  }
+}

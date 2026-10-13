@@ -1,0 +1,7 @@
+
+running 2 tests
+test pinned_selection_retains_complete_model_profile_and_inspectable_compatibility ... ok
+test same_named_changed_lexical_material_and_foreign_signature_content_state_refuse_before_play ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.07s
+

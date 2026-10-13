@@ -1,0 +1,111 @@
+{
+  "schema": "conduit.browser/bundle-image@1",
+  "build_id": "build:sha256:93c4158f5e4de2669681bb4e4f00e6da8d0f2b002fb1f6331941d44668a56aa6",
+  "target_id": "browser/wasm32/page",
+  "profile_id": "sha256:a509749dbfcf6e13153e6d9ef1c1de509b33883330d72cb019a91caea1c8fba8",
+  "source_configuration_id": "sha256:c081595b4a06893bc8c14d1f35b84c789cf1eca12e81fe3767f7f6fa80e051b2",
+  "reviewed_distribution": {
+    "distribution_id": "conduit.browser/reviewed-distribution@1",
+    "distribution_digest": "sha256:223229a537bee0cff2f2fe60ea9dd44bade65c9e1df2b54a83578bc6b324f4fc",
+    "runtime_abi": "conduit.browser/runtime-abi@1",
+    "toolchain_identity": "rustc:stable+wasm32-unknown-unknown",
+    "source_commit": "d812d7883c46cd497c67795bbb669a3c7725d289"
+  },
+  "implementations": [
+    {
+      "id": "browser/dom-presentation@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    },
+    {
+      "id": "browser/dom@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    },
+    {
+      "id": "browser/indexeddb@1",
+      "revision": 1,
+      "artifact": "browser-runtime-superset.wasm"
+    }
+  ],
+  "boot_module": {
+    "role": "profile-gated-boot",
+    "path": "browser-boot-profile.mjs",
+    "sha256": "sha256:4ca50de2f934269f81b02e6b90632a3c828508c80d1f3333c963da004eb4974e"
+  },
+  "files": [
+    {
+      "path": "runtime.wasm",
+      "bytes": 11440044,
+      "sha256": "sha256:811bc3e23c1856c1d1cec6fb6ad966440cb746fe0903c381fe7fe455b79bece1",
+      "media_type": "application/wasm"
+    },
+    {
+      "path": "index.html",
+      "bytes": 5358,
+      "sha256": "sha256:5638c80cce59357fa1a8ee1d9f5c2e752684a9b7f24ae3bc5413d295785f2a55",
+      "media_type": "text/html; charset=utf-8"
+    },
+    {
+      "path": "host.mjs",
+      "bytes": 3862,
+      "sha256": "sha256:0923aac4842375721975d34bc404282cb52b22fb40ee84cb97e569f87fb9099c",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-bootstrap.mjs",
+      "bytes": 824,
+      "sha256": "sha256:c0fe57146d9a878b1170ac74dde218e741671bc7190f574192d0a657015305d7",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-membership.mjs",
+      "bytes": 4863,
+      "sha256": "sha256:6466ba4bac99d4eef2d49b2ec607a906cc07afce1af1c587ddbf2b4bc6c874ce",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-host-identity.mjs",
+      "bytes": 4198,
+      "sha256": "sha256:cdce12b339de291eb14d66d74509fdfb868d31a159cbd56560eedd1da5cc37f1",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-runtime-bridge.mjs",
+      "bytes": 21373,
+      "sha256": "sha256:33a159e01ff2335a175eb9783eb19f8b8b9c9ef7252aa2b69d133d0eaa6b68b0",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-relay-line.mjs",
+      "bytes": 15604,
+      "sha256": "sha256:8f9c3e0188cc673e17275d2b1f47c80e8d7fd800c5393df1f97fc5ba9c7a7b9d",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "browser-boot-profile.mjs",
+      "bytes": 16361,
+      "sha256": "sha256:4ca50de2f934269f81b02e6b90632a3c828508c80d1f3333c963da004eb4974e",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "media-host.mjs",
+      "bytes": 7556,
+      "sha256": "sha256:366a7eb30243a947d32a973ce8508496d1974bddc22eb455d849ac94a9a3f173",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "device-base.mjs",
+      "bytes": 15324,
+      "sha256": "sha256:9257f42f723df21e42a6bcc205fb6924b0f8d5645d1424bbb372c17d1c0cb8d3",
+      "media_type": "text/javascript; charset=utf-8"
+    },
+    {
+      "path": "usb-device-base.mjs",
+      "bytes": 15615,
+      "sha256": "sha256:a6564ddc75bce96878da828698d6e9517b16befa81c188b3e645969685f62bd7",
+      "media_type": "text/javascript; charset=utf-8"
+    }
+  ],
+  "image_id": "image:sha256:28bfbdaf8e71604457da403d969ff4cd7fb234715fe9090161026934d0514d22"
+}

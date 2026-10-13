@@ -1,0 +1,598 @@
+{
+  "plan_id": "cc8d5731b1482bcacd0cf9ed043bcd75904df8642c2d1942fbb8dd245ac239aa",
+  "source_document_id": "4751480594c7bd75167b1f06d4c520c380e52b3f2d177b2cdf22d2fd1ed5ccbf",
+  "checked_plot_id": "c8a35d7c6b822883f6ffa2a7bef1079d004a882db23b9ef68891c3d2a6f83434",
+  "expanded_plot_id": "4b8e08927bcc437d930eeb7c9ca0a852647dc78a97f32aa6f161e69d1634a7df",
+  "completion_policy": "SemanticCompletion",
+  "realization_backs": [],
+  "fragments": [
+    {
+      "plan_id": "cc8d5731b1482bcacd0cf9ed043bcd75904df8642c2d1942fbb8dd245ac239aa",
+      "fragment_id": "e6172014feef6cedff896311b9e12fc3bd264973e764c3028b82e8a9ca326c25",
+      "source_document_id": "4751480594c7bd75167b1f06d4c520c380e52b3f2d177b2cdf22d2fd1ed5ccbf",
+      "checked_plot_id": "c8a35d7c6b822883f6ffa2a7bef1079d004a882db23b9ef68891c3d2a6f83434",
+      "expanded_plot_id": "4b8e08927bcc437d930eeb7c9ca0a852647dc78a97f32aa6f161e69d1634a7df",
+      "completion_policy": "SemanticCompletion",
+      "realization_backs": [],
+      "host_id": "std-host-1",
+      "boot_id": "boot-18dacb01d905ad29-1",
+      "offer_generation": 1,
+      "placements": [
+        {
+          "placement_id": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1",
+          "gear_id": "real_speech/artifact",
+          "kind_id": "audio/play",
+          "kind_contract_revision": "conduit.std/audio-play@1",
+          "source_span": {
+            "start": 199,
+            "end": 209,
+            "line": 4,
+            "column": 12,
+            "end_line": 4,
+            "end_column": 22
+          },
+          "execution_profile_id": "std/wav-artifact-s16le-48000-stereo@1",
+          "configuration": [],
+          "host_id": "std-host-1",
+          "boot_id": "boot-18dacb01d905ad29-1",
+          "offer_generation": 1,
+          "capability_id": "audio-write-wav-artifact",
+          "implementation_id": "std/kernel-audio-write-wav@1",
+          "artifact_id": "conduit-std-host/wav-artifact@1",
+          "realization_characteristics": [],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 8,
+            "max_queue_bytes": 524288
+          },
+          "inputs": [
+            {
+              "port_id": "audio",
+              "value_kind": "audio/pcm-frames@1",
+              "direction": "Input",
+              "temporal": "Value"
+            }
+          ],
+          "outputs": [],
+          "semantic_contract": {
+            "configuration": [],
+            "laws": [
+              {
+                "Terminal": "CompletesWhenInputsClose"
+              }
+            ]
+          },
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/audio-wav-write@1",
+              "target_kind": "audio/pcm-frames@1",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 1053,
+              "maximum_output_bytes": 0
+            }
+          ],
+          "resources": [
+            {
+              "pool_id": "std/audio/wav-artifact",
+              "class_id": "conduit.resource/storage/artifact@1",
+              "units": 1,
+              "protected": null,
+              "compute": null
+            }
+          ],
+          "authority": [
+            {
+              "grant_id": "grant/xtask-speech-wav",
+              "contract_id": "conduit.authority/artifact-write@1",
+              "host_call_contract_id": "conduit.host/audio-wav-write@1",
+              "subject_kind": "audio/pcm-frames@1",
+              "host_id": "std-host-1",
+              "boot_id": "boot-18dacb01d905ad29-1",
+              "capability_id": "audio-write-wav-artifact"
+            }
+          ],
+          "pool_references": []
+        },
+        {
+          "placement_id": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4",
+          "gear_id": "real_speech/convert",
+          "kind_id": "audio/convert-pcm-profile",
+          "kind_contract_revision": "conduit.std/audio-convert-pcm-profile@1",
+          "source_span": {
+            "start": 86,
+            "end": 187,
+            "line": 3,
+            "column": 11,
+            "end_line": 3,
+            "end_column": 112
+          },
+          "execution_profile_id": "std/pcm-s16le-mono-22050-to-stereo-48000@1",
+          "configuration": [
+            {
+              "key": "output-sample-rate-hz",
+              "value": {
+                "U64": 48000
+              }
+            },
+            {
+              "key": "output-channel-layout",
+              "value": {
+                "Text": "stereo-left-right"
+              }
+            }
+          ],
+          "host_id": "std-host-1",
+          "boot_id": "boot-18dacb01d905ad29-1",
+          "offer_generation": 1,
+          "capability_id": "audio-convert-pcm-profile",
+          "implementation_id": "std/kernel-pcm-nearest-s16le-mono-22050-to-stereo-48000@1",
+          "artifact_id": "conduit-std-host/pcm-profile-conversion@1",
+          "realization_characteristics": [],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 8,
+            "max_queue_bytes": 524288
+          },
+          "inputs": [
+            {
+              "port_id": "audio",
+              "value_kind": "audio/pcm-frames@1",
+              "direction": "Input",
+              "temporal": "Value"
+            }
+          ],
+          "outputs": [
+            {
+              "port_id": "converted",
+              "value_kind": "audio/pcm-frames@1",
+              "direction": "Output",
+              "temporal": "Value"
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "output-sample-rate-hz",
+                "default_value": {
+                  "U64": 48000
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 8000,
+                    "maximum": 192000
+                  }
+                }
+              },
+              {
+                "key": "output-channel-layout",
+                "default_value": {
+                  "Text": "stereo-left-right"
+                },
+                "rule": {
+                  "TextOneOf": {
+                    "values": [
+                      "mono",
+                      "stereo-left-right"
+                    ]
+                  }
+                }
+              }
+            ],
+            "laws": [
+              {
+                "Terminal": "CompletesWhenInputsClose"
+              }
+            ]
+          },
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/pcm-profile-convert@1",
+              "target_kind": "audio/pcm-frames@1",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 79,
+              "maximum_output_bytes": 249
+            }
+          ],
+          "resources": [],
+          "authority": [],
+          "pool_references": []
+        },
+        {
+          "placement_id": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29",
+          "gear_id": "real_speech/literal-ed9f11e5283d-0",
+          "kind_id": "text/literal",
+          "kind_contract_revision": "conduit.std/text-literal@1",
+          "source_span": {
+            "start": 211,
+            "end": 233,
+            "line": 5,
+            "column": 2,
+            "end_line": 5,
+            "end_column": 24
+          },
+          "execution_profile_id": "conduit.std/text-literal-kernel-hosted@1",
+          "configuration": [
+            {
+              "key": "value",
+              "value": {
+                "Text": "Hello. I am Conduit."
+              }
+            }
+          ],
+          "host_id": "std-host-1",
+          "boot_id": "boot-18dacb01d905ad29-1",
+          "offer_generation": 1,
+          "capability_id": "text-literal-v1",
+          "implementation_id": "std/kernel-text-literal@1",
+          "artifact_id": "conduit-std-host/text-literal@1",
+          "realization_characteristics": [],
+          "limits": {
+            "max_active_instances": 16,
+            "max_queue_items": 4,
+            "max_queue_bytes": 256
+          },
+          "inputs": [],
+          "outputs": [
+            {
+              "port_id": "text",
+              "value_kind": "value/text",
+              "direction": "Output",
+              "temporal": "Value"
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "value",
+                "default_value": {
+                  "Text": ""
+                },
+                "rule": {
+                  "TextBytes": {
+                    "maximum": 256
+                  }
+                }
+              }
+            ],
+            "laws": [
+              {
+                "Terminal": "EmitsOnce"
+              }
+            ]
+          },
+          "host_calls": [],
+          "resources": [],
+          "authority": [],
+          "pool_references": []
+        },
+        {
+          "placement_id": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145",
+          "gear_id": "real_speech/voice",
+          "kind_id": "speech/synthesize",
+          "kind_contract_revision": "conduit.speech/synthesize@1",
+          "source_span": {
+            "start": 27,
+            "end": 75,
+            "line": 2,
+            "column": 9,
+            "end_line": 2,
+            "end_column": 57
+          },
+          "execution_profile_id": "std/espeak-ng-s16le-22050-mono@1",
+          "configuration": [
+            {
+              "key": "maximum-output-bytes",
+              "value": {
+                "U64": 131072
+              }
+            }
+          ],
+          "host_id": "std-host-1",
+          "boot_id": "boot-18dacb01d905ad29-1",
+          "offer_generation": 1,
+          "capability_id": "std/espeak-ng-speech@1",
+          "implementation_id": "std/espeak-ng-speech@1",
+          "artifact_id": "conduit-std-host/espeak-ng-speech@1",
+          "realization_characteristics": [],
+          "limits": {
+            "max_active_instances": 1,
+            "max_queue_items": 1,
+            "max_queue_bytes": 131072
+          },
+          "inputs": [
+            {
+              "port_id": "text",
+              "value_kind": "value/text",
+              "direction": "Input",
+              "temporal": "Value"
+            }
+          ],
+          "outputs": [
+            {
+              "port_id": "audio",
+              "value_kind": "audio/pcm-frames@1",
+              "direction": "Output",
+              "temporal": "Value"
+            }
+          ],
+          "semantic_contract": {
+            "configuration": [
+              {
+                "key": "maximum-output-bytes",
+                "default_value": {
+                  "U64": 131072
+                },
+                "rule": {
+                  "U64Range": {
+                    "minimum": 1,
+                    "maximum": 131072
+                  }
+                }
+              }
+            ],
+            "laws": []
+          },
+          "host_calls": [
+            {
+              "contract_id": "conduit.host/espeak-ng-speech-next@1",
+              "target_kind": "audio/pcm-frames@1",
+              "maximum_in_flight": 1,
+              "maximum_input_bytes": 256,
+              "maximum_output_bytes": 79
+            }
+          ],
+          "resources": [
+            {
+              "pool_id": "std/espeak-ng/de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+              "class_id": "conduit.resource/espeak-ng-provider@1",
+              "units": 1,
+              "protected": null,
+              "compute": null,
+              "content": {
+                "contract": {
+                  "identity": [
+                    222,
+                    82,
+                    145,
+                    136,
+                    54,
+                    136,
+                    133,
+                    41,
+                    32,
+                    115,
+                    104,
+                    250,
+                    229,
+                    29,
+                    78,
+                    36,
+                    133,
+                    239,
+                    157,
+                    237,
+                    61,
+                    240,
+                    218,
+                    83,
+                    33,
+                    73,
+                    122,
+                    205,
+                    0,
+                    119,
+                    21,
+                    20
+                  ],
+                  "version": [
+                    222,
+                    82,
+                    145,
+                    136,
+                    54,
+                    136,
+                    133,
+                    41,
+                    32,
+                    115,
+                    104,
+                    250,
+                    229,
+                    29,
+                    78,
+                    36,
+                    133,
+                    239,
+                    157,
+                    237,
+                    61,
+                    240,
+                    218,
+                    83,
+                    33,
+                    73,
+                    122,
+                    205,
+                    0,
+                    119,
+                    21,
+                    20
+                  ],
+                  "content_profile": "std/espeak-ng-provider-closure@1",
+                  "maximum_bytes": 24690843,
+                  "maximum_items": 515,
+                  "retention": "Boot",
+                  "sharing": "ImmutableReadMany",
+                  "access": "ReadPublished",
+                  "generation_slots": 1,
+                  "reader_leases": 1,
+                  "publication_slots": 0,
+                  "sensitive": false
+                },
+                "owner_host": "std-host-1",
+                "owner_boot": "boot-18dacb01d905ad29-1",
+                "base_id": "base/espeak-provider",
+                "residence_profile": "std/espeak-ng-local-files@1"
+              }
+            }
+          ],
+          "authority": [
+            {
+              "grant_id": "grant/xtask-real-speech",
+              "contract_id": "conduit.authority/process-execute@1",
+              "host_call_contract_id": "conduit.host/espeak-ng-speech-next@1",
+              "subject_kind": "audio/pcm-frames@1",
+              "host_id": "std-host-1",
+              "boot_id": "boot-18dacb01d905ad29-1",
+              "capability_id": "std/espeak-ng-speech@1"
+            }
+          ],
+          "pool_references": []
+        }
+      ],
+      "execution_regions": [],
+      "execution_fusions": [],
+      "connections": [
+        {
+          "connection_id": "78f6cea9c3c0628680df4e8b4dc8e262163eca5b94d81741cebc8b68b72975fb",
+          "source_placement_id": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4",
+          "source_port_id": "converted",
+          "sink_placement_id": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1",
+          "sink_port_id": "audio",
+          "value_kind": "audio/pcm-frames@1",
+          "track": "payload",
+          "temporal": "Value",
+          "pressure_policy": "preserve-order",
+          "selected_line": null,
+          "admitted_lines": [],
+          "item_capacity": 1,
+          "byte_capacity": 249
+        },
+        {
+          "connection_id": "a84d41bff285ec1820027039053a60b9e7649681b31b48764978dda6fed42daa",
+          "source_placement_id": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29",
+          "source_port_id": "text",
+          "sink_placement_id": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145",
+          "sink_port_id": "text",
+          "value_kind": "value/text",
+          "track": "payload",
+          "temporal": "Value",
+          "pressure_policy": "preserve-order",
+          "selected_line": null,
+          "admitted_lines": [],
+          "item_capacity": 1,
+          "byte_capacity": 249
+        },
+        {
+          "connection_id": "1bc698fa4fbeae3b838fa4daafad4fa01945ff97c307273f9550a9b98d9284c9",
+          "source_placement_id": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145",
+          "source_port_id": "audio",
+          "sink_placement_id": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4",
+          "sink_port_id": "audio",
+          "value_kind": "audio/pcm-frames@1",
+          "track": "payload",
+          "temporal": "Value",
+          "pressure_policy": "preserve-order",
+          "selected_line": null,
+          "admitted_lines": [],
+          "item_capacity": 1,
+          "byte_capacity": 249
+        }
+      ],
+      "shared_pools": [],
+      "startup_dependencies": [
+        {
+          "prerequisite_placement_id": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1",
+          "dependent_placement_id": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4"
+        },
+        {
+          "prerequisite_placement_id": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145",
+          "dependent_placement_id": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29"
+        },
+        {
+          "prerequisite_placement_id": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4",
+          "dependent_placement_id": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145"
+        }
+      ],
+      "startup_order": [
+        "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1",
+        "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4",
+        "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145",
+        "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29"
+      ],
+      "cancellation_policy": "CancelAllAndRejectLateCompletion",
+      "terminal_policy": "RequireAllPlacementsAndConnections",
+      "expected_terminals": [
+        {
+          "PlacementCompleted": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1"
+        },
+        {
+          "PlacementCompleted": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4"
+        },
+        {
+          "PlacementCompleted": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29"
+        },
+        {
+          "PlacementCompleted": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145"
+        },
+        {
+          "ConnectionCompleted": "78f6cea9c3c0628680df4e8b4dc8e262163eca5b94d81741cebc8b68b72975fb"
+        },
+        {
+          "ConnectionCompleted": "a84d41bff285ec1820027039053a60b9e7649681b31b48764978dda6fed42daa"
+        },
+        {
+          "ConnectionCompleted": "1bc698fa4fbeae3b838fa4daafad4fa01945ff97c307273f9550a9b98d9284c9"
+        },
+        "PlanCompleted"
+      ],
+      "expected_sign": [
+        "PlanFragmentReceived",
+        {
+          "PlacementPrepared": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1"
+        },
+        {
+          "PlacementPrepared": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4"
+        },
+        {
+          "PlacementPrepared": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29"
+        },
+        {
+          "PlacementPrepared": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145"
+        },
+        {
+          "PlacementTerminal": "070d4103c0e80b4ebbdee4703e4bf1fbcce5870d42b3451059742d85b4cb41c1"
+        },
+        {
+          "PlacementTerminal": "98f31b0387115dc664801c30c2980788631b824ab03acabf33a15ea4511dfbb4"
+        },
+        {
+          "PlacementTerminal": "f0ebdf74964d78ddf5bc1dd88d1214757b4976f7c3efac78bf5733841727da29"
+        },
+        {
+          "PlacementTerminal": "8b41a245633225a643658db2119db440c4935516544512a5d9703146642cb145"
+        },
+        {
+          "ConnectionTerminal": "78f6cea9c3c0628680df4e8b4dc8e262163eca5b94d81741cebc8b68b72975fb"
+        },
+        {
+          "ConnectionTerminal": "a84d41bff285ec1820027039053a60b9e7649681b31b48764978dda6fed42daa"
+        },
+        {
+          "ConnectionTerminal": "1bc698fa4fbeae3b838fa4daafad4fa01945ff97c307273f9550a9b98d9284c9"
+        },
+        "PlanTerminal"
+      ],
+      "sign_storage_budget": {
+        "item_capacity": 13,
+        "byte_capacity": 717
+      },
+      "plan_fragments": [
+        {
+          "host_id": "std-host-1",
+          "fragment_id": "e6172014feef6cedff896311b9e12fc3bd264973e764c3028b82e8a9ca326c25"
+        }
+      ]
+    }
+  ]
+}

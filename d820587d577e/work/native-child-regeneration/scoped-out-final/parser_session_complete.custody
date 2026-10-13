@@ -1,0 +1,9 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=52d6dcafddd9e3643344b0a22393639869dd85a355d244121881db564e267bd9
+expanded=b8a75a7b31c71a60e8af317f3c98110590814041b996d66eae318984af6d222e
+input=language-parser-session-complete/inline-06aae3710f3a-0/expression-c4ec50f06a33-0:input
+output=language-parser-session-complete/inline-8350464970b4-0/expression-b0a5e39ac551-0:output
+gear=language-parser-session-complete/inline-06aae3710f3a-0/expression-c4ec50f06a33-0:conduitese/pure-expression/1cf7ec56ebe48417ef0f9b1f118165d593e766ef9e06d959cab66accb32fa275:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-session-complete/inline-06aae3710f3a-0/expression-c4ec50f06a33-0:output>language-parser-session-complete/inline-8350464970b4-0/expression-b0a5e39ac551-0:input:value/bool
+gear=language-parser-session-complete/inline-8350464970b4-0/expression-b0a5e39ac551-0:conduitese/pure-expression/2e4a7d2e0d0fb1f47e5df44340973b593691cef16e8ef973d37f441588c06037:conduitese/pure-expression-operation@1:input:output

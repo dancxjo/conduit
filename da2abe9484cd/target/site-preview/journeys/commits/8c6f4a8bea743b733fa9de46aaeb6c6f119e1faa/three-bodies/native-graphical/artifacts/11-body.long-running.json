@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "8c6f4a8bea743b733fa9de46aaeb6c6f119e1faa",
+  "track": "native-graphical",
+  "step_id": "body.long-running",
+  "assertion": "body-long-running",
+  "source_facts": {
+    "active_play_id": "body-play/sha256:b81e6442d20b9434465c045371b6af3b9e581cc826e27f3b3b21db18914537f8",
+    "remained_alive": true,
+    "result_sign_id": "conduitos/product/result/body-play/sha256:98fa08f5545a35d84672648523b75396e4586ac995b393eed79b93ce3f6c3329/1/8"
+  }
+}

@@ -1,0 +1,874 @@
+{
+  "scope": "exact fingerprint-linked runtime dependency graph of actual BOTH build80424 and passing Source/Plan numeric67266; read-only shared artifacts; no rebuild",
+  "build_exit": 0,
+  "build_elapsed": "13m43s",
+  "actual_numeric_source_target_exit": 0,
+  "actual_numeric_model_calls": 2,
+  "libraries": {
+    "serde_json": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libserde_json-a99dd1068303bcee.rlib",
+      "features": "[\"alloc\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/serde_json-a99dd1068303bcee/lib-serde_json.json",
+      "deps": {
+        "build_script_build": 1545127974900327472,
+        "itoa": 4396559293284466328,
+        "serde_core": 13593618421392580437,
+        "memchr": 12411661797651068093,
+        "zmij": 12889059921258470970
+      }
+    },
+    "zmij": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libzmij-4e7cde0676d7e427.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/zmij-4e7cde0676d7e427/lib-zmij.json",
+      "deps": {
+        "build_script_build": 17818666181280563532
+      }
+    },
+    "memchr": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libmemchr-243635fb78efc467.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/memchr-243635fb78efc467/lib-memchr.json",
+      "deps": {}
+    },
+    "serde_core": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libserde_core-b963fc14535b8015.rlib",
+      "features": "[\"alloc\", \"result\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/serde_core-b963fc14535b8015/lib-serde_core.json",
+      "deps": {
+        "build_script_build": 15506836548887628827
+      }
+    },
+    "itoa": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libitoa-8ade534ac5c7f564.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/itoa-8ade534ac5c7f564/lib-itoa.json",
+      "deps": {}
+    },
+    "conduit_planner": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_planner-53a26db1c1ffbb48.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-planner-53a26db1c1ffbb48/lib-conduit_planner.json",
+      "deps": {
+        "conduit_language": 155173831935613712,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "sha2": 6298400643788733277,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "cf4611c403952c242e30f006273cf2615749952418782c692fa1b25fb1a8ac40"
+    },
+    "conduit_core": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_core-4ef03007210cad9a.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-core-4ef03007210cad9a/lib-conduit_core.json",
+      "deps": {
+        "serde": 6016107132265254977,
+        "conduit_assigned_plan": 5807120896875060504,
+        "libm": 7288810659266820324,
+        "sha2": 6298400643788733277
+      },
+      "sha256": "15e74336c990260cbc844cc3e616614a3ac4ef543be6bb535a72b34b229cb45b"
+    },
+    "sha2": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libsha2-674c3cc0496069e5.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/sha2-674c3cc0496069e5/lib-sha2.json",
+      "deps": {
+        "cfg_if": 10071993037419587669,
+        "digest": 12159521284938244353,
+        "cpufeatures": 9763305873435340489
+      }
+    },
+    "cpufeatures": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcpufeatures-3d7dbd9b4c6ef4ff.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/cpufeatures-3d7dbd9b4c6ef4ff/lib-cpufeatures.json",
+      "deps": {}
+    },
+    "digest": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libdigest-8f5bc2b02c1b8d8e.rlib",
+      "features": "[\"block-buffer\", \"core-api\", \"default\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/digest-8f5bc2b02c1b8d8e/lib-digest.json",
+      "deps": {
+        "crypto_common": 3027822684137533791,
+        "block_buffer": 11122462649742283666
+      }
+    },
+    "block_buffer": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libblock_buffer-e3864c347c7f8227.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/block-buffer-e3864c347c7f8227/lib-block_buffer.json",
+      "deps": {
+        "generic_array": 9716424514632406801
+      }
+    },
+    "generic_array": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libgeneric_array-7373b9a6ba1a4bd9.rlib",
+      "features": "[\"more_lengths\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/generic-array-7373b9a6ba1a4bd9/lib-generic_array.json",
+      "deps": {
+        "typenum": 16372506900955653795,
+        "build_script_build": 12374983875695100103
+      }
+    },
+    "typenum": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libtypenum-aa2ca32923679fb6.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/typenum-aa2ca32923679fb6/lib-typenum.json",
+      "deps": {}
+    },
+    "crypto_common": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcrypto_common-ca03cc6abafdbaa4.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/crypto-common-ca03cc6abafdbaa4/lib-crypto_common.json",
+      "deps": {
+        "typenum": 16372506900955653795,
+        "generic_array": 9716424514632406801
+      }
+    },
+    "cfg_if": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcfg_if-189139af139bd65e.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/cfg-if-189139af139bd65e/lib-cfg_if.json",
+      "deps": {}
+    },
+    "libm": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/liblibm-71cd2fc3aaa02817.rlib",
+      "features": "[\"arch\", \"default\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/libm-71cd2fc3aaa02817/lib-libm.json",
+      "deps": {
+        "build_script_build": 9026263166002135946
+      }
+    },
+    "conduit_assigned_plan": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_assigned_plan-64b7e3f69548d035.rlib",
+      "features": "[\"default\", \"serde\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-assigned-plan-64b7e3f69548d035/lib-conduit_assigned_plan.json",
+      "deps": {
+        "serde": 6016107132265254977
+      },
+      "sha256": "72671bd969f9160c313566b8108ceb24c4df97d5ce5ef331f32b1d817b37c537"
+    },
+    "serde": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libserde-5f44959b6a965050.rlib",
+      "features": "[\"alloc\", \"derive\", \"serde_derive\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/serde-5f44959b6a965050/lib-serde.json",
+      "deps": {
+        "build_script_build": 1869317013912620465,
+        "serde_core": 13593618421392580437,
+        "serde_derive": 3218950888396571481
+      }
+    },
+    "conduit_plot": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_plot-80b2617ccc91da4f.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-plot-80b2617ccc91da4f/lib-conduit_plot.json",
+      "deps": {
+        "serde": 6016107132265254977,
+        "sha2": 6298400643788733277,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "1e13a5b2cfd2938ca7dfe760fd82ff8475987b47d5ca60a5575f7cccaeeed848"
+    },
+    "conduit_language": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_language-55670bec4770deea.rlib",
+      "features": "[\"parser-model-selection\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-language-55670bec4770deea/lib-conduit_language.json",
+      "deps": {
+        "build_script_build": 15068278969695588726,
+        "serde_json": 5631299593269651823,
+        "conduit_plot": 4321491900087691674,
+        "conduit_ai": 11774519967529379197,
+        "conduit_data": 11651467183603747292,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "8abc718fa3d09601e84a7fc4cf34b128eda5d87210525800e1b7e18e0cee457d"
+    },
+    "conduit_data": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_data-b52b3b59db35e542.rlib",
+      "features": "[\"default\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-data-b52b3b59db35e542/lib-conduit_data.json",
+      "deps": {
+        "conduit_time": 8773328212666051854,
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 4454021332391717132,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "b6449b17f599021347a292c5dbc047dd5dc3379e6dbd7d4dbb7e89546c2ea597"
+    },
+    "conduit_time": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_time-ef0ca13661d6a39a.rlib",
+      "features": "[\"default\", \"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-time-ef0ca13661d6a39a/lib-conduit_time.json",
+      "deps": {
+        "build_script_build": 15017999217647983328,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "dc34dd2de4c43a390a0e4a27e38a7295309d230efe3df90127fdd5bd05d5c373"
+    },
+    "conduit_ai": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_ai-7e238c9a76f0016b.rlib",
+      "features": "[\"kernel-operation-owners\", \"kernel-step\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-ai-7e238c9a76f0016b/lib-conduit_ai.json",
+      "deps": {
+        "conduit_kernel": 4383927821635778618,
+        "serde_json": 5631299593269651823,
+        "conduit_time": 8773328212666051854,
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 8572742083654213821,
+        "serde": 6016107132265254977,
+        "libm": 7288810659266820324,
+        "sha2": 6298400643788733277,
+        "conduit_data": 11651467183603747292,
+        "conduit_core": 10583939192420702978,
+        "conduit_plan_lowering": 16291389620433421369,
+        "conduit_composite": 12034660123276960080
+      },
+      "sha256": "f04b984fc3142857ed2c1059c64eca5293426bbc9c6d7233a5bdc970a82c0409"
+    },
+    "conduit_composite": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_composite-d78f6fb38c2450b4.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-composite-d78f6fb38c2450b4/lib-conduit_composite.json",
+      "deps": {
+        "conduit_kernel": 4383927821635778618,
+        "conduit_plot": 4321491900087691674,
+        "conduit_core": 10583939192420702978,
+        "conduit_plan_lowering": 16291389620433421369
+      },
+      "sha256": "959c69d51395ad9bd7f1712c340ccd94dbdaad0418d85a4259e0127c30cb7312"
+    },
+    "conduit_plan_lowering": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_plan_lowering-2d5c78dad9dcddba.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-plan-lowering-2d5c78dad9dcddba/lib-conduit_plan_lowering.json",
+      "deps": {
+        "conduit_kernel": 4383927821635778618,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "b37df7ffa75a9ec1270faec38a94800957d1b9227a6dd086ee05e7366e298bca"
+    },
+    "conduit_kernel": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_kernel-15a60009aa2ab2e6.rlib",
+      "features": "[\"alloc\", \"default\", \"step-test-support\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-kernel-15a60009aa2ab2e6/lib-conduit_kernel.json",
+      "deps": {
+        "conduit_assigned_plan": 5807120896875060504
+      },
+      "sha256": "bb2114cb57ea821ee8272680005f948a53d55423126cbe76207b61d484874856"
+    },
+    "conduitos": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduitos-f2ee7410b27fe78f.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduitos-f2ee7410b27fe78f/lib-conduitos.json",
+      "deps": {
+        "conduit_synth": 17249435715493418280,
+        "patchbay_application": 6526105670120082376,
+        "conduit_audio": 3252840224494504109,
+        "conduit_kernel": 4383927821635778618,
+        "ed25519_dalek": 8823514871882617088,
+        "serde_json": 5631299593269651823,
+        "conduit_time": 8773328212666051854,
+        "conduit_semantic_catalog": 7634903363597304739,
+        "conduit_tutorial_plot": 13809614262543673425,
+        "conduit_observatory": 14275176774148025224,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "limine": 2123630889552420007,
+        "conduit_conduitos_mask_offer": 1834143083909204894,
+        "conduit_planner": 13098185161291696784,
+        "conduit_wire": 11170715786495314154,
+        "conduit_tour_model": 14596580457080910445,
+        "patchbay_graph": 3310649859631608518,
+        "conduit_protected_line": 9587571313140020537,
+        "conduit_presentation": 4745957587332799135,
+        "patchbay_control": 10950459290860829526,
+        "conduit_text": 17183317271578799305,
+        "conduit_web": 16185360155877688921,
+        "sha2": 6298400643788733277,
+        "conduit_body": 1945597245011872920,
+        "conduit_core": 10583939192420702978,
+        "conduit_home_model": 4308925740838491283,
+        "conduit_human": 12408403931402996027,
+        "build_script_build": 7648121975992077243,
+        "conduit_birth_plot": 13512726491905386928,
+        "conduit_robotics": 17274460018868043244,
+        "conduit_plan_lowering": 16291389620433421369,
+        "conduit_composite": 12034660123276960080
+      },
+      "sha256": "e6c2776d314780f1a643ad74a96b307fccc2a00caedbfb61581d9100645f58f7"
+    },
+    "conduit_robotics": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_robotics-99ac590b31d7f266.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-robotics-99ac590b31d7f266/lib-conduit_robotics.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_core": 10583939192420702978,
+        "build_script_build": 2463174253659449938
+      },
+      "sha256": "d3240b1746a6c704c75131162659d17ed3186de4e1324f33afcf945c5650fc19"
+    },
+    "conduit_presentation": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_presentation-b35d3e4e65c84186.rlib",
+      "features": "[\"default\", \"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-presentation-b35d3e4e65c84186/lib-conduit_presentation.json",
+      "deps": {
+        "serde_json": 5631299593269651823,
+        "conduit_time": 8773328212666051854,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "build_script_build": 13340287334912664374,
+        "sha2": 6298400643788733277,
+        "conduit_body": 1945597245011872920,
+        "conduit_core": 10583939192420702978,
+        "conduit_human": 12408403931402996027
+      },
+      "sha256": "c3b1d942887361c7e1d2540ed99b11c0896cd3a2a3c7840c406b1cacf649557a"
+    },
+    "conduit_human": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_human-e136dd90ff28cd3d.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-human-e136dd90ff28cd3d/lib-conduit_human.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "sha2": 6298400643788733277,
+        "conduit_core": 10583939192420702978,
+        "build_script_build": 11528002002815318854
+      },
+      "sha256": "332183036ac93657dcc88c3b98d988ff6bffc6594be2cf0cdb00a39be11732d7"
+    },
+    "conduit_body": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_body-39a4508b8c4ab654.rlib",
+      "features": "[\"authenticated-admission\", \"default\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-body-39a4508b8c4ab654/lib-conduit_body.json",
+      "deps": {
+        "minicbor": 14664039092837513242,
+        "ed25519_dalek": 8823514871882617088,
+        "serde": 6016107132265254977,
+        "sha2": 6298400643788733277,
+        "conduit_core": 10583939192420702978,
+        "postcard": 382717639897427848
+      },
+      "sha256": "5933c431f522439a3e903001537d05be8ad6cc8fa8c71f3717e2f6c9d0c8c657"
+    },
+    "postcard": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libpostcard-9eddeb5491c70e07.rlib",
+      "features": "[\"alloc\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/postcard-9eddeb5491c70e07/lib-postcard.json",
+      "deps": {
+        "serde": 6016107132265254977,
+        "cobs": 13051184324272091872
+      }
+    },
+    "cobs": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcobs-b9c49e96e8dc0cb8.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/cobs-b9c49e96e8dc0cb8/lib-cobs.json",
+      "deps": {
+        "thiserror": 13275237180658044076
+      }
+    },
+    "thiserror": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libthiserror-bd272e2f4e472876.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/thiserror-bd272e2f4e472876/lib-thiserror.json",
+      "deps": {
+        "build_script_build": 15044241948192074548,
+        "thiserror_impl": 5221864513911590029
+      }
+    },
+    "ed25519_dalek": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libed25519_dalek-375ffad742dafded.rlib",
+      "features": "[\"alloc\", \"zeroize\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/ed25519-dalek-375ffad742dafded/lib-ed25519_dalek.json",
+      "deps": {
+        "zeroize": 12330866799792362387,
+        "sha2": 6298400643788733277,
+        "curve25519_dalek": 8604807391301617013,
+        "ed25519": 11451893058943265391,
+        "subtle": 9759560521625692676
+      }
+    },
+    "subtle": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libsubtle-02b7c3278408aad5.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/subtle-02b7c3278408aad5/lib-subtle.json",
+      "deps": {}
+    },
+    "ed25519": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libed25519-fa36d331138ed495.rlib",
+      "features": "[\"alloc\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/ed25519-fa36d331138ed495/lib-ed25519.json",
+      "deps": {
+        "signature": 8090000954600984018
+      }
+    },
+    "signature": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libsignature-e40a6679c2612a12.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/signature-e40a6679c2612a12/lib-signature.json",
+      "deps": {}
+    },
+    "curve25519_dalek": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcurve25519_dalek-39f41683925f81d9.rlib",
+      "features": "[\"alloc\", \"digest\", \"zeroize\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/curve25519-dalek-39f41683925f81d9/lib-curve25519_dalek.json",
+      "deps": {
+        "curve25519_dalek_derive": 3570392292903820817,
+        "zeroize": 12330866799792362387,
+        "build_script_build": 14137847746645233727,
+        "cfg_if": 10071993037419587669,
+        "subtle": 9759560521625692676,
+        "digest": 12159521284938244353,
+        "cpufeatures": 9763305873435340489
+      }
+    },
+    "zeroize": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libzeroize-569ae8e87976f117.rlib",
+      "features": "[\"alloc\", \"zeroize_derive\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/zeroize-569ae8e87976f117/lib-zeroize.json",
+      "deps": {
+        "zeroize_derive": 12307824026371097538
+      }
+    },
+    "minicbor": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libminicbor-e2fd2b28e482b8d5.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/minicbor-e2fd2b28e482b8d5/lib-minicbor.json",
+      "deps": {}
+    },
+    "conduit_birth_plot": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_birth_plot-730bc00370d4cba1.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-birth-plot-730bc00370d4cba1/lib-conduit_birth_plot.json",
+      "deps": {
+        "serde_json": 5631299593269651823,
+        "serde": 6016107132265254977,
+        "conduit_presentation": 4745957587332799135,
+        "sha2": 6298400643788733277,
+        "conduit_body": 1945597245011872920,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "d877423110b3742149730dc4525a4f807355309639e7cf5598d9b4b694c44c53"
+    },
+    "conduit_home_model": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_home_model-5fc519a26aaa3b6e.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-home-model-5fc519a26aaa3b6e/lib-conduit_home_model.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_core": 10583939192420702978,
+        "build_script_build": 14334641467505934287
+      },
+      "sha256": "584fb9d6f82daea9c89ce14525f4207fd9a34cf790ddb3857213bd4114f758fb"
+    },
+    "conduit_web": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_web-dc3105834afe4716.rlib",
+      "features": "[\"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-web-dc3105834afe4716/lib-conduit_web.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "build_script_build": 1097219974384770796,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "7a205e2e44952f002155c28275b4623888647d45630fe639a30116f0b28d0863"
+    },
+    "conduit_text": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_text-0368f08d66b9e49b.rlib",
+      "features": "[\"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-text-0368f08d66b9e49b/lib-conduit_text.json",
+      "deps": {
+        "serde_json": 5631299593269651823,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "build_script_build": 10890518429567633486,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "2922d349dcd0041f6e2b4a5259f4e5432f619953c4eda88049521ed2fef88c27"
+    },
+    "patchbay_control": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libpatchbay_control-8d394dd9883c13ca.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/patchbay-control-8d394dd9883c13ca/lib-patchbay_control.json",
+      "deps": {
+        "serde": 6016107132265254977
+      }
+    },
+    "conduit_protected_line": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_protected_line-78b20268e6f6a340.rlib",
+      "features": "[\"noise-session\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-protected-line-78b20268e6f6a340/lib-conduit_protected_line.json",
+      "deps": {
+        "noise_rust_crypto": 4438816472738327700,
+        "x25519_dalek": 14545955282779002619,
+        "noise_protocol": 9703586137660506848
+      },
+      "sha256": "7e2c3fe3cf14b104a1e9e86c05aea8f120e39ab5c1e0fb264085790d4542fce8"
+    },
+    "noise_protocol": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libnoise_protocol-bc6650af76d374d5.rlib",
+      "features": "[\"use_alloc\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/noise-protocol-bc6650af76d374d5/lib-noise_protocol.json",
+      "deps": {
+        "arrayvec": 18333128871633208041
+      }
+    },
+    "arrayvec": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libarrayvec-378c1b8b97d670e3.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/arrayvec-378c1b8b97d670e3/lib-arrayvec.json",
+      "deps": {}
+    },
+    "x25519_dalek": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libx25519_dalek-ce757db91dc732b9.rlib",
+      "features": "[\"static_secrets\", \"zeroize\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/x25519-dalek-ce757db91dc732b9/lib-x25519_dalek.json",
+      "deps": {
+        "zeroize": 12330866799792362387,
+        "curve25519_dalek": 8604807391301617013,
+        "rand_core": 14426094593946645593
+      }
+    },
+    "rand_core": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/librand_core-eb1ce62e5d878516.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/rand_core-eb1ce62e5d878516/lib-rand_core.json",
+      "deps": {}
+    },
+    "noise_rust_crypto": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libnoise_rust_crypto-2cd7868c57bd3f2a.rlib",
+      "features": "[\"chacha20poly1305\", \"sha2\", \"use-chacha20poly1305\", \"use-sha2\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/noise-rust-crypto-2cd7868c57bd3f2a/lib-noise_rust_crypto.json",
+      "deps": {
+        "zeroize": 12330866799792362387,
+        "sha2": 6298400643788733277,
+        "noise_protocol": 9703586137660506848,
+        "chacha20poly1305": 8562477379870146029
+      }
+    },
+    "chacha20poly1305": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libchacha20poly1305-b5b97e82cc84b99b.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/chacha20poly1305-b5b97e82cc84b99b/lib-chacha20poly1305.json",
+      "deps": {
+        "poly1305": 16239681870680215295,
+        "zeroize": 12330866799792362387,
+        "cipher": 14105533541474694373,
+        "chacha20": 14961538418294585726,
+        "aead": 10414692940419490214
+      }
+    },
+    "aead": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libaead-fe5d72b50362fe52.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/aead-fe5d72b50362fe52/lib-aead.json",
+      "deps": {
+        "crypto_common": 3027822684137533791,
+        "generic_array": 9716424514632406801
+      }
+    },
+    "chacha20": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libchacha20-fa3d80e04c692c13.rlib",
+      "features": "[\"zeroize\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/chacha20-fa3d80e04c692c13/lib-chacha20.json",
+      "deps": {
+        "cipher": 14105533541474694373,
+        "cfg_if": 10071993037419587669,
+        "cpufeatures": 9763305873435340489
+      }
+    },
+    "cipher": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libcipher-272de73d0adf9b8c.rlib",
+      "features": "[\"zeroize\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/cipher-272de73d0adf9b8c/lib-cipher.json",
+      "deps": {
+        "crypto_common": 3027822684137533791,
+        "inout": 12300343002704617165,
+        "zeroize": 12330866799792362387
+      }
+    },
+    "inout": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libinout-43b14b180e17717d.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/inout-43b14b180e17717d/lib-inout.json",
+      "deps": {
+        "generic_array": 9716424514632406801
+      }
+    },
+    "poly1305": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libpoly1305-1bb0a51052799c3f.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/poly1305-1bb0a51052799c3f/lib-poly1305.json",
+      "deps": {
+        "universal_hash": 14138909429460413146,
+        "opaque_debug": 12859895036505292193,
+        "cpufeatures": 9763305873435340489
+      }
+    },
+    "opaque_debug": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libopaque_debug-042308b572963d22.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/opaque-debug-042308b572963d22/lib-opaque_debug.json",
+      "deps": {}
+    },
+    "universal_hash": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libuniversal_hash-17b0752816e81304.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/universal-hash-17b0752816e81304/lib-universal_hash.json",
+      "deps": {
+        "crypto_common": 3027822684137533791,
+        "subtle": 9759560521625692676
+      }
+    },
+    "patchbay_graph": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libpatchbay_graph-1512c06d5fbb52c2.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/patchbay-graph-1512c06d5fbb52c2/lib-patchbay_graph.json",
+      "deps": {
+        "conduit_semantic_catalog": 7634903363597304739,
+        "conduit_plot": 4321491900087691674,
+        "conduit_core": 10583939192420702978,
+        "conduit_human": 12408403931402996027
+      }
+    },
+    "conduit_semantic_catalog": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_semantic_catalog-d5615a3877c7c546.rlib",
+      "features": "[\"kernel-step\", \"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-semantic-catalog-d5615a3877c7c546/lib-conduit_semantic_catalog.json",
+      "deps": {
+        "conduit_audio": 3252840224494504109,
+        "conduit_kernel": 4383927821635778618,
+        "conduit_time": 8773328212666051854,
+        "conduit_plot": 4321491900087691674,
+        "conduit_alife": 1690672987020856402,
+        "serde": 6016107132265254977,
+        "conduit_education": 12823053398482019445,
+        "conduit_process": 10579439536725877108,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_text": 17183317271578799305,
+        "conduit_web": 16185360155877688921,
+        "conduit_data": 11651467183603747292,
+        "conduit_core": 10583939192420702978,
+        "conduit_human": 12408403931402996027,
+        "conduit_midi": 16185990961803872477,
+        "conduit_net": 12099193985612764769,
+        "conduit_robotics": 17274460018868043244,
+        "conduit_purpose": 3833716167627346160
+      },
+      "sha256": "1c8b7a3fb0c00e07a3354790705573eb0975aba767ba5afb1b5d11ee2ba1ac4e"
+    },
+    "conduit_purpose": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_purpose-8e3669a0cd3702e9.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-purpose-8e3669a0cd3702e9/lib-conduit_purpose.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "conduit_core": 10583939192420702978,
+        "build_script_build": 12061453032646091066
+      },
+      "sha256": "b24152b1e3b2105ae64eddf027ca1dd1811bf4a79f05078dd3d2913dfa50ccf3"
+    },
+    "conduit_net": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_net-0c86d3793495a3ab.rlib",
+      "features": "[\"plot-catalog\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-net-0c86d3793495a3ab/lib-conduit_net.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "conduit_core": 10583939192420702978,
+        "build_script_build": 7633858390247851609
+      },
+      "sha256": "8459df9062e7c7946c03a15af81ee5dceea76a97a05702854c5fab936fc59227"
+    },
+    "conduit_midi": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_midi-1ac6343b0cf83cc2.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-midi-1ac6343b0cf83cc2/lib-conduit_midi.json",
+      "deps": {
+        "conduit_audio": 3252840224494504109,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "655f05249c8c854c8f1060117dddd02df3140c64dd27f3e32520a752268fd12c"
+    },
+    "conduit_audio": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_audio-3148b94345a4b50d.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-audio-3148b94345a4b50d/lib-conduit_audio.json",
+      "deps": {
+        "build_script_build": 4809684350338589877,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "libm": 7288810659266820324,
+        "conduit_data": 11651467183603747292,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "682bb15783bd08b354dba67de9bccb4f2bbb45bbc6721f0d8177b1fb82997871"
+    },
+    "conduit_process": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_process-65996382a5847ca9.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-process-65996382a5847ca9/lib-conduit_process.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 2808763267740906268,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "304c002ef9b75d708e1c8ada90e5149855b5940dbb11d66bcec4026136066320"
+    },
+    "conduit_education": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_education-69154957935b895a.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-education-69154957935b895a/lib-conduit_education.json",
+      "deps": {
+        "conduit_audio": 3252840224494504109,
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 12466963871833016089,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "15a327095d56606da45aa792bc1b039095820847861b705881a85006c8436fe7"
+    },
+    "conduit_alife": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_alife-1527e6459dff3b8d.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-alife-1527e6459dff3b8d/lib-conduit_alife.json",
+      "deps": {
+        "conduit_time": 8773328212666051854,
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 3753316311948440480,
+        "conduit_presentation": 4745957587332799135,
+        "sha2": 6298400643788733277,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "486e6f5694343144e8ba1ec7325f0a075c058a06c4924bb3c324a13a1579ec0f"
+    },
+    "conduit_tour_model": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_tour_model-d47fa36e98df7f1a.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-tour-model-d47fa36e98df7f1a/lib-conduit_tour_model.json",
+      "deps": {
+        "conduit_semantic_catalog": 7634903363597304739,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "f79beb6835ce25ce978b2120b61dc48be1924328e15824e4f418315137b6ff1e"
+    },
+    "conduit_wire": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_wire-6aad2d9769f44548.rlib",
+      "features": "[\"default\"]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-wire-6aad2d9769f44548/lib-conduit_wire.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "build_script_build": 6385507945088455426,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "7cca0b77234205e76076746bcb56ac5159fcc6e7def9fc8753ebf4befb9f9223"
+    },
+    "conduit_conduitos_mask_offer": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_conduitos_mask_offer-9341774fb900beea.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-conduitos-mask-offer-9341774fb900beea/lib-conduit_conduitos_mask_offer.json",
+      "deps": {
+        "conduit_plot": 4321491900087691674,
+        "conduit_planner": 13098185161291696784,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "90b7c2694d637b327dfe932a5171704f9f56f4fdb35cfac9593224a48e7e8f7e"
+    },
+    "limine": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/liblimine-b74c3cbd2459025a.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/limine-b74c3cbd2459025a/lib-limine.json",
+      "deps": {
+        "bitflags": 14565143802872084510
+      }
+    },
+    "bitflags": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libbitflags-8ec9ae4b6a9ab37e.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/bitflags-8ec9ae4b6a9ab37e/lib-bitflags.json",
+      "deps": {}
+    },
+    "conduit_observatory": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_observatory-d285673efa88e1ce.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-observatory-d285673efa88e1ce/lib-conduit_observatory.json",
+      "deps": {
+        "conduit_kernel": 4383927821635778618,
+        "serde": 6016107132265254977,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "66947d013a71253cb81f59481cf5662da4a1b9333b9a231acda7c520fdf48961"
+    },
+    "conduit_tutorial_plot": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_tutorial_plot-97bffa9b141e6ec5.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-tutorial-plot-97bffa9b141e6ec5/lib-conduit_tutorial_plot.json",
+      "deps": {
+        "build_script_build": 4930267222375409265,
+        "conduit_plot": 4321491900087691674,
+        "conduit_ai": 11774519967529379197,
+        "serde": 6016107132265254977,
+        "conduit_presentation": 4745957587332799135,
+        "conduit_body": 1945597245011872920,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "fab458287831b7de099ec208a12f542ca4d575ba2344580d5ab9e6fba9bb7b03"
+    },
+    "patchbay_application": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libpatchbay_application-e627ab4a97cad886.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/patchbay-application-e627ab4a97cad886/lib-patchbay_application.json",
+      "deps": {
+        "conduit_kernel": 4383927821635778618,
+        "conduit_plot": 4321491900087691674,
+        "serde": 6016107132265254977,
+        "patchbay_graph": 3310649859631608518,
+        "conduit_presentation": 4745957587332799135,
+        "patchbay_control": 10950459290860829526,
+        "conduit_body": 1945597245011872920,
+        "conduit_core": 10583939192420702978
+      }
+    },
+    "conduit_synth": {
+      "path": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/deps/libconduit_synth-063f61bd61e63168.rlib",
+      "features": "[]",
+      "fingerprint_json": "/home/dancxjo/conduit-4907-evaluation-identity/target/debug/.fingerprint/conduit-synth-063f61bd61e63168/lib-conduit_synth.json",
+      "deps": {
+        "conduit_audio": 3252840224494504109,
+        "conduit_core": 10583939192420702978
+      },
+      "sha256": "af23caaf3cb2caae0183148016a7984f764f1a2cd319ef7c5f529a5d37053a46"
+    }
+  },
+  "unresolved_non_rlib_dependencies": [
+    [
+      "serde",
+      "serde_derive",
+      3218950888396571481
+    ],
+    [
+      "thiserror",
+      "thiserror_impl",
+      5221864513911590029
+    ],
+    [
+      "curve25519_dalek",
+      "curve25519_dalek_derive",
+      3570392292903820817
+    ],
+    [
+      "zeroize",
+      "zeroize_derive",
+      12307824026371097538
+    ]
+  ]
+}

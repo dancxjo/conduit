@@ -1,0 +1,19 @@
+# Private Source-derived active protection slots constrain lexical proposals.
+# Compact carriers are never a public replacement for full fact/model custody.
+type LanguageParserIndependentBranchContext = {
+ branch: LanguageParserJointProtectedBranchQuery
+ retained: LanguageParserProtectedSetProposal
+ where .retained.basis == .branch.branch.hypothesis.hypothesis.parser.state.basis
+ where .retained.active.0 ? (.retained.edge0.current_basis == .retained.basis && .retained.edge0.dependent < .branch.branch.hypothesis.hypothesis.parser.state.token_count && .retained.edge0.head <= 4 && (.branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge0.dependent ? .branch.branch.choice == .retained.edge0.dependent_choice : true) && (.retained.edge0.head < 4 && .branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge0.head ? .branch.branch.choice == .retained.edge0.head_choice : true)) : true
+ where .retained.active.1 ? (.retained.edge1.current_basis == .retained.basis && .retained.edge1.dependent < .branch.branch.hypothesis.hypothesis.parser.state.token_count && .retained.edge1.head <= 4 && (.branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge1.dependent ? .branch.branch.choice == .retained.edge1.dependent_choice : true) && (.retained.edge1.head < 4 && .branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge1.head ? .branch.branch.choice == .retained.edge1.head_choice : true)) : true
+ where .retained.active.2 ? (.retained.edge2.current_basis == .retained.basis && .retained.edge2.dependent < .branch.branch.hypothesis.hypothesis.parser.state.token_count && .retained.edge2.head <= 4 && (.branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge2.dependent ? .branch.branch.choice == .retained.edge2.dependent_choice : true) && (.retained.edge2.head < 4 && .branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge2.head ? .branch.branch.choice == .retained.edge2.head_choice : true)) : true
+ where .retained.active.3 ? (.retained.edge3.current_basis == .retained.basis && .retained.edge3.dependent < .branch.branch.hypothesis.hypothesis.parser.state.token_count && .retained.edge3.head <= 4 && (.branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge3.dependent ? .branch.branch.choice == .retained.edge3.dependent_choice : true) && (.retained.edge3.head < 4 && .branch.branch.hypothesis.hypothesis.parser.state.unread == .retained.edge3.head ? .branch.branch.choice == .retained.edge3.head_choice : true)) : true
+}
+plot language-parser-independent-branch-query (
+ input: LanguageParserIndependentBranchContext...| >> query: LanguageParserJointProtectedBranchQuery...|
+) = .branch
+plot language-parser-independent-branch (
+ input: LanguageParserIndependentBranchContext...| >> result: LanguageParserJointBranchResult...|
+) {
+ input >> language-parser-independent-branch-query() >> language-parser-joint-protected-branch() >> result
+}

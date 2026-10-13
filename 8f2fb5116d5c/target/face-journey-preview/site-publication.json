@@ -1,0 +1,10 @@
+{
+  "schema": "conduit.site-publication/v1",
+  "sourceCommit": "6c406a4295b098a4e7a0001dc65418d5914aab51",
+  "conduitos": {
+    "sourceCommit": "6c406a4295b098a4e7a0001dc65418d5914aab51",
+    "proofClass": "freestanding-emulator",
+    "imageSha256": "c5caedab53169c37ee2cc701e7d0ae3576fbda1ed40003e6bc3a5ad734eae046",
+    "path": "journeys/current/conduitos/x86_64/"
+  }
+}

@@ -1,0 +1,37 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"1:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"4:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"shift\",\"type\":\"qcode\"}},\"type\":\"key\"},{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:creche-focus-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:creche-focus-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f4\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"9:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"9:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f4\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"10:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"11:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"11:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f5\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"12:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"12:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f6\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"13:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"13:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f6\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"14:creche-body-lifecycle\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"14:creche-body-lifecycle\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"15:run-control-key\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"15:run-control-key\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"16:run-control-key-release\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"16:run-control-key-release\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f9\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"17:run-control-key\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"17:run-control-key\"}\r\n"}

@@ -1,0 +1,216 @@
+{
+  "schema": "conduit.browser/two-profile-capstone@1",
+  "distribution_sha256": "sha256:c116e9feade3073cd51aa1d5d85bf8bd3a844d7355adcd9232d7fd9ad43b963a",
+  "viewer": {
+    "configuration_id": "sha256:9c847e95250fda82528cc0e21a474f4747d7c93e43aa8ac529805d64592dc086",
+    "configuration_source": "host creche-browser-page {\n  schema = 1\n  target = {architecture: \"wasm32\", machine: \"page\"}\n  base = {kind: \"browser/dom\", implementation: \"browser/dom@1\"}\n  base = {kind: \"presentation/graphical\", implementation: \"browser/dom-presentation@1\"}\n  limits = {static_memory_bytes: 67108864, heap_arena_bytes: 67108864, queue_items: 65536, buffered_bytes: 67108864, active_instances: 4096, operation_slots: 4096, timer_slots: 4096, line_sessions: 1024, evidence_items: 65536}\n}\n",
+    "profile_id": "sha256:cf1e176c094c9690d8354635fe00759d0db671d585288cc409a487817eb276be",
+    "build_id": "build:sha256:914577cdc2dd23504249c1fd836b8b22ec9f0c8377a20120b6a64f4c9eb15f77",
+    "image_id": "image:sha256:545b4127c1c1bab4f4784f34f2a027efc3f77d572a699d854b9651d2a09d7905",
+    "spore_id": "spore:sha256:c87c7e2f6a58d1063327020b7409e2ca4fa47f81cb8abba505dcb937e181ae43",
+    "host_id": "browser/9fdd2a8f-5750-4fea-b6ee-c0cbd9edf830",
+    "boot_id": "browser-boot/3ddf23aa-d649-4ec0-8843-310e01320f45",
+    "runtime_sha256": "sha256:54f9689f3bb6116ddc957ac8b19b2dee92f4e1dc1255c014050c006c5f892730",
+    "boot_module_sha256": "sha256:4ca50de2f934269f81b02e6b90632a3c828508c80d1f3333c963da004eb4974e",
+    "implementations": [
+      {
+        "id": "browser/dom-presentation@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/dom@1",
+        "revision": 1
+      }
+    ],
+    "inspection": [
+      {
+        "implementation_id": "browser/dom-presentation@1",
+        "implementation_revision": 1,
+        "offer_id": "presentation/graphical",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/dom@1",
+        "implementation_revision": 1,
+        "offer_id": "browser/dom@1",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      }
+    ],
+    "active_use": {
+      "pointer": "UnsupportedInput",
+      "storage": "ImplementationNotSelected"
+    }
+  },
+  "rich": {
+    "configuration_id": "sha256:93500e3ce35b9a3f4fedfe87fd53b5ffee5e5825bd7dee59ad39a1781a05c829",
+    "configuration_source": "host creche-browser-page {\n  schema = 1\n  target = {architecture: \"wasm32\", machine: \"page\"}\n  base = {kind: \"browser/dom\", implementation: \"browser/dom@1\"}\n  base = {kind: \"device/serial\", implementation: \"browser/webserial@1\"}\n  base = {kind: \"human/keyboard\", implementation: \"browser/keyboard-events@1\"}\n  base = {kind: \"human/pointer\", implementation: \"browser/pointer-events@1\"}\n  base = {kind: \"line/websocket\", implementation: \"browser/websocket@1\"}\n  base = {kind: \"presentation/graphical\", implementation: \"browser/dom-presentation@1\"}\n  base = {kind: \"storage/durable\", implementation: \"browser/indexeddb@1\"}\n  limits = {static_memory_bytes: 67108864, heap_arena_bytes: 67108864, queue_items: 65536, buffered_bytes: 67108864, active_instances: 4096, operation_slots: 4096, timer_slots: 4096, line_sessions: 1024, evidence_items: 65536}\n}\n",
+    "profile_id": "sha256:c53bbeb52fc6cd1840463e7f152b61cd9ca3ac568ea67668a0370f24f7855bc9",
+    "build_id": "build:sha256:88bca2aa3a48c18901b355634d625edb9050134fa3b1faf49ab0aed95bf1ece6",
+    "image_id": "image:sha256:7eca584aae1d9e57b89fdd531c2c69a4b6698d88824e4910185831cc94930496",
+    "spore_id": "spore:sha256:406f0399da00f3ed0c4d28d9c100ecdfbce12be998fa80c3dead77aca46f45f6",
+    "host_id": "browser/b97a69d6-794f-4ae4-9479-15873c126bb3",
+    "boot_id": "browser-boot/24e3d711-9691-41b4-9c92-4ea1b10da13d",
+    "runtime_sha256": "sha256:54f9689f3bb6116ddc957ac8b19b2dee92f4e1dc1255c014050c006c5f892730",
+    "boot_module_sha256": "sha256:4ca50de2f934269f81b02e6b90632a3c828508c80d1f3333c963da004eb4974e",
+    "implementations": [
+      {
+        "id": "browser/dom-presentation@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/dom@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/indexeddb@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/keyboard-events@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/pointer-events@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/webserial@1",
+        "revision": 1
+      },
+      {
+        "id": "browser/websocket@1",
+        "revision": 1
+      }
+    ],
+    "inspection": [
+      {
+        "implementation_id": "browser/dom-presentation@1",
+        "implementation_revision": 1,
+        "offer_id": "presentation/graphical",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/dom@1",
+        "implementation_revision": 1,
+        "offer_id": "browser/dom@1",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/indexeddb@1",
+        "implementation_revision": 1,
+        "offer_id": "storage/indexeddb@1",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/keyboard-events@1",
+        "implementation_revision": 1,
+        "offer_id": "input/keyboard",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/pointer-events@1",
+        "implementation_revision": 1,
+        "offer_id": "input/pointer-source",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/webserial@1",
+        "implementation_revision": 1,
+        "offer_id": "device/acquire-webserial@1",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": true,
+        "offered": true,
+        "resource_identity": null,
+        "refusal": null
+      },
+      {
+        "implementation_id": "browser/websocket@1",
+        "implementation_revision": 1,
+        "offer_id": "line/websocket@1",
+        "configured": true,
+        "admitted": true,
+        "initialized": true,
+        "resource_ready": false,
+        "offered": false,
+        "resource_identity": null,
+        "refusal": "EndpointUnavailable"
+      }
+    ],
+    "active_use": {
+      "pointer": {
+        "schema": "input/pointer-event@1",
+        "position_x": 500000,
+        "position_y": 500000,
+        "delta_x": 540000,
+        "delta_y": 1000000,
+        "primary_pressed": false,
+        "coalesced": 0,
+        "dropped": 0,
+        "queue_capacity": 1,
+        "sequence": 0,
+        "owner": {
+          "host_id": "browser/b97a69d6-794f-4ae4-9479-15873c126bb3",
+          "boot_id": "browser-boot/24e3d711-9691-41b4-9c92-4ea1b10da13d",
+          "offer_generation": 1
+        },
+        "plan_id": "plan/rich/pointer"
+      },
+      "storage": {
+        "plan_id": "plan/rich/storage",
+        "value": {
+          "count": 1
+        }
+      }
+    }
+  },
+  "prerequisite_refresh": {
+    "implementation_id": "browser/websocket@1",
+    "before": "EndpointUnavailable",
+    "after": "line/websocket@1",
+    "image_id_unchanged": true
+  }
+}

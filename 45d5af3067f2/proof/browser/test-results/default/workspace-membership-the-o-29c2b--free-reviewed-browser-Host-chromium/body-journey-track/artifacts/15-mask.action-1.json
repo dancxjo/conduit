@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "83152fb94b93af3a0cd71c8a3d90985f492a21c9",
+  "track": "browser-graphical",
+  "step_id": "mask.action-1",
+  "assertion": "mask-mask.wear-alternate",
+  "source_facts": {
+    "action_id": "mask.wear-alternate",
+    "concrete_event": "wardrobe revision 1 wore alternate Mask",
+    "selected_mask_plot_id": "a6d57202597ef16f5e33ebbc75f7ac36ac987d629760ad5b552ab385d1794ae6",
+    "plan_id": "body-plan/sha256:f78bf71dcc3d71358be05002bc14d30a4756b691a559b07c7dc3ef2627de3a61",
+    "selected_route_id": "route/browser-graphical",
+    "show_id": null,
+    "receipt_ids": [
+      "wardrobe-revision/1"
+    ],
+    "face_id": "90f292bb5896d5b049e2117b6cbbf24279ffd2218afd06355cfacd634a908177"
+  }
+}

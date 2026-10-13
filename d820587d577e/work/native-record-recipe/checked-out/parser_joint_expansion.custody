@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=244bf9b5ffef57342b126e3ea10362b5d07d0b2f6b4e8af57a8efbc966f19495
+expanded=a5341820b71c0531c4dc3327a645175f385d97c0006637ad3f5db3181425bef6
+input=language-parser-joint-expansion/expression-f076ca391cbb-0:input
+output=language-parser-joint-expansion/expression-f076ca391cbb-0:output
+gear=language-parser-joint-expansion/expression-f076ca391cbb-0:conduitese/pure-expression/db68d3e54784298b4f2d0283f0948f292a2465e58b0a77fddd79458ce0c5d69f:conduitese/pure-expression-operation@1:input:output

@@ -1,0 +1,12 @@
+
+running 4 tests
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test original_source_query_resource_custody_and_capacity ... port_receipt=LexicalProposerPortReceipt { retained_heap_bytes_bound: 43272453, preparation_peak_heap_bytes_bound: 83846352, admission_peak_heap_bytes_bound: 135023782, response_requested_bytes_bound: 41681710, native: PreparedNativeFamilyStorageReceipt { types: 30, retained_heap_bytes_bound: 40383281, preparation_peak_heap_bytes_bound: 40518320, conversion_requested_bytes_bound: 41156678 }, source: PreparedExpressionStorageReceipt { decoded_program_heap_bytes: 74043, preparation_requested_bytes_bound: 640401, retained_heap_bytes_bound: 582779 }, dictionary: LexicalDictionaryStorageReceipt { shards: 1, entries: 1, retained_heap_bytes_bound: 2302691, preparation_peak_heap_bytes_bound: 11215632, lookup_requested_bytes_bound: 8912941 } }
+port preparation_peak_observed=40093529 admission_peak_observed=19176 response_retained_observed=18694
+ok
+test resource_structural_peak_covers_measured_preparation_and_lookup ... dictionary preparation_peak_observed=208056 lookup_peak_observed=1380 receipt=LexicalDictionaryStorageReceipt { shards: 2, entries: 2, retained_heap_bytes_bound: 2304940, preparation_peak_heap_bytes_bound: 11217881, lookup_requested_bytes_bound: 8912941 }
+ok
+test reviewed_resource_exact_entry_and_shard_custody ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.68s
+

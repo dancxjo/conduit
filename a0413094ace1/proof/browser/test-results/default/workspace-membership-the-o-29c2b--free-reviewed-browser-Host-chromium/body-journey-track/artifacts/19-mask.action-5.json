@@ -1,0 +1,19 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "ef8751f5f2346722ee61184fd9e07d3b44f6bbbe",
+  "track": "browser-graphical",
+  "step_id": "mask.action-5",
+  "assertion": "mask-mask.add-face-host",
+  "source_facts": {
+    "action_id": "mask.add-face-host",
+    "concrete_event": "Host browser/0a400291-8496-43aa-80a0-1ae95304a87e Boot browser-boot/addee1e4-ccb2-4c78-9de1-355e34a77aa0/mask-replacement offered replacement realization",
+    "selected_mask_plot_id": null,
+    "plan_id": "body-plan/sha256:337f3028e89f1734375930b2cfb23d8d2316e407cc8ec9af4341a322346b618a",
+    "selected_route_id": null,
+    "show_id": null,
+    "receipt_ids": [
+      "browser-boot/addee1e4-ccb2-4c78-9de1-355e34a77aa0/mask-replacement"
+    ],
+    "face_id": "60b8e14494d6a85158f7b902c937b6a4f9ff3c14cea7632946312bb7d7867ceb"
+  }
+}

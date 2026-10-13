@@ -1,0 +1,9 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1.28s
+     Running tests/parser_window8_stability_profile_probe.rs (target/debug/deps/parser_window8_stability_profile_probe-00f652b01ebf7e82)
+
+running 1 test
+test immutable_profile_requires_exact_explicit_producer_text_and_scalar_extent ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 4 filtered out; finished in 0.00s
+

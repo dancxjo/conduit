@@ -1,0 +1,283 @@
+{"direction":"response","message":"{\"QMP\": {\"version\": {\"qemu\": {\"micro\": 1, \"minor\": 2, \"major\": 10}, \"package\": \"Debian 1:10.2.1+ds-1ubuntu3.2\"}, \"capabilities\": [\"oob\"]}}\r\n"}
+{"direction":"command","message":"{\"execute\":\"qmp_capabilities\",\"id\":\"0:capabilities\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"0:capabilities\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/front-door-ready.ppm\"},\"execute\":\"screendump\",\"id\":\"1:front-door-ready\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"1:front-door-ready\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"2:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"2:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"3:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"3:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"4:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"4:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"5:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"5:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"6:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"6:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"7:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"7:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"8:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"8:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"9:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"9:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"10:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"10:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"11:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"11:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"12:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"12:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"13:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"13:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"14:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"14:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"15:creche-select-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"15:creche-select-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"16:creche-omit-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"16:creche-omit-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"17:creche-omit-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"17:creche-omit-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f3\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"18:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"18:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f3\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"19:creche-birth\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"19:creche-birth\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/body-awake.ppm\"},\"execute\":\"screendump\",\"id\":\"20:body-awake\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"20:body-awake\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"21:home-select-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"21:home-select-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"22:home-select-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"22:home-select-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"23:home-select-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"23:home-select-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"24:home-select-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"24:home-select-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"25:home-open-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"25:home-open-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"26:home-open-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"26:home-open-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/home-plots.ppm\"},\"execute\":\"screendump\",\"id\":\"27:home-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"27:home-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"28:home-leave-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"28:home-leave-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"29:home-leave-plots\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"29:home-leave-plots\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"30:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"30:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"31:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"31:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"32:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"32:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"33:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"33:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"34:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"34:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"35:home-select-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"35:home-select-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"36:home-open-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"36:home-open-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"37:home-open-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"37:home-open-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/home-prompt.ppm\"},\"execute\":\"screendump\",\"id\":\"38:home-prompt\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"38:home-prompt\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"39:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"39:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"40:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"40:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"u\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"41:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"41:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"u\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"42:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"42:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"n\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"43:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"43:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"n\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"44:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"44:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"45:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"45:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"46:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"46:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"k\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"47:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"47:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"k\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"48:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"48:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"49:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"49:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"50:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"50:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"y\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"51:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"51:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"y\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"52:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"52:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"b\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"53:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"53:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"b\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"54:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"54:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"55:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"55:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"56:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"56:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"57:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"57:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"58:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"58:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"59:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"59:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"r\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"60:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"60:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"d\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"61:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"61:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"d\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"62:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"62:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"63:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"63:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"spc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"64:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"64:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"c\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"65:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"65:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"c\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"66:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"66:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"67:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"67:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"68:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"68:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"n\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"69:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"69:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"n\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"70:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"70:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"v\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"71:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"71:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"v\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"72:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"72:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"73:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"73:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"a\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"74:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"74:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"s\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"75:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"75:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"s\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"76:home-type-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"76:home-type-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"77:home-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"77:home-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"78:home-run-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"78:home-run-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/home-play-observed.ppm\"},\"execute\":\"screendump\",\"id\":\"79:home-play-observed\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"79:home-play-observed\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"80:home-return-after-play\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"80:home-return-after-play\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"81:home-return-after-play\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"81:home-return-after-play\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"82:home-select-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"82:home-select-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"tab\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"83:home-select-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"83:home-select-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"84:home-open-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"84:home-open-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"85:home-open-patchbay\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"85:home-open-patchbay\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/home-patchbay-open.ppm\"},\"execute\":\"screendump\",\"id\":\"86:home-patchbay-open\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"86:home-patchbay-open\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"87:patchbay-return-home\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"87:patchbay-return-home\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"88:patchbay-return-home\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"88:patchbay-return-home\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/home-returned.ppm\"},\"execute\":\"screendump\",\"id\":\"89:home-returned\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"89:home-returned\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"right\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"90:home-select-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"90:home-select-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"right\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"91:home-select-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"91:home-select-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"right\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"92:home-select-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"92:home-select-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"right\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"93:home-select-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"93:home-select-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"94:home-open-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"94:home-open-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"95:home-open-plots-again\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"95:home-open-plots-again\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"96:home-open-keyboard\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"96:home-open-keyboard\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"ret\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"97:home-open-keyboard\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"97:home-open-keyboard\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"98:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"98:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"99:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"99:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"100:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"100:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"101:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"101:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"102:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"102:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"103:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"103:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"104:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"104:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"105:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"105:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"106:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"106:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"107:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"107:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"108:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"108:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"109:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"109:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/host-current-offers.ppm\"},\"execute\":\"screendump\",\"id\":\"110:host-current-offers\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"110:host-current-offers\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"111:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"111:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"112:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"112:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"113:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"113:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"114:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"114:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"115:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"115:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"116:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"116:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"117:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"117:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"118:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"118:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"119:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"119:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"120:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"120:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"121:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"121:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"122:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"122:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"123:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"123:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f2\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"124:planned-detail\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"124:planned-detail\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"125:leave-details\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"125:leave-details\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"esc\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"126:leave-details\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"126:leave-details\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/quiescent-awaiting-input.ppm\"},\"execute\":\"screendump\",\"id\":\"127:quiescent-awaiting-input\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"127:quiescent-awaiting-input\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"h\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"128:standing-input-down\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"128:standing-input-down\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"h\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"129:standing-input-up\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"129:standing-input-up\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"130:standing-input-down\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"130:standing-input-down\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"e\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"131:standing-input-up\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"131:standing-input-up\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"132:standing-input-down\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"132:standing-input-down\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"133:standing-input-up\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"133:standing-input-up\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"134:standing-input-down\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"134:standing-input-down\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"l\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"135:standing-input-up\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"135:standing-input-up\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"136:standing-input-down\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"136:standing-input-down\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"o\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"137:standing-input-up\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"137:standing-input-up\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"filename\":\"/home/dancxjo/conduit-native-planned-line/target/conduitos/x86_64/journey-frames/input-continued.ppm\"},\"execute\":\"screendump\",\"id\":\"138:input-continued\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"138:input-continued\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":true,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"139:admit-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"139:admit-plot\"}\r\n"}
+{"direction":"command","message":"{\"arguments\":{\"events\":[{\"data\":{\"down\":false,\"key\":{\"data\":\"f8\",\"type\":\"qcode\"}},\"type\":\"key\"}]},\"execute\":\"input-send-event\",\"id\":\"140:admit-plot\"}"}
+{"direction":"response","message":"{\"return\": {}, \"id\": \"140:admit-plot\"}\r\n"}

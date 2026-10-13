@@ -1,0 +1,592 @@
+<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; connect-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' blob: 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'none'"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Current language surface · Conduit handbook</title><style>:root {
+  color-scheme: dark;
+  --conduit-background: #05070b;
+  --conduit-reading-paper: #0c121c;
+  --conduit-workbench-canvas: #05070b;
+  --conduit-bootstrap-surface: #090d16;
+  --conduit-surface: #090d16;
+  --conduit-structure-primary: #0dd8f6;
+  --conduit-structure-secondary: #0a1f87;
+  --conduit-text-primary: #93d2f7;
+  --conduit-text-secondary: #578ec9;
+  --conduit-emphasis: #e9a325;
+  --conduit-focus: #f4c400;
+  --conduit-warning: #f2bd71;
+  --conduit-failure: #ff7272;
+  --conduit-success: #63d69b;
+  --conduit-muted: #8c4c19;
+  /* Short aliases remain available while browser layout styles migrate to semantic names. */
+  --ink: var(--conduit-text-primary);
+  --muted: var(--conduit-text-secondary);
+  --paper: var(--conduit-background);
+  --panel: var(--conduit-reading-paper);
+  --field: var(--conduit-bootstrap-surface);
+  --line: #183d61;
+  --green: var(--conduit-structure-primary);
+  --green-dark: var(--conduit-text-primary);
+  --amber: var(--conduit-emphasis);
+  --focus: var(--conduit-focus);
+  --failure: var(--conduit-failure);
+  --conduit-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --conduit-font-editorial: Georgia, "Times New Roman", serif;
+  --conduit-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --conduit-type-body: 16px;
+  --conduit-type-small: 14px;
+  --conduit-line-height: 150%;
+  --conduit-space-unit: 4px;
+  --conduit-space-control-inline: 10px;
+  --conduit-space-control-block: 7px;
+  --conduit-space-panel: 13px;
+  --conduit-radius-control: 6px;
+  --conduit-radius-panel: 9px;
+  --conduit-focus-width: 3px;
+  --conduit-responsive-breakpoint: 720px;
+  --conduit-responsive-grid-min: 260px;
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --conduit-background: #eef5f8;
+    --conduit-reading-paper: #ffffff;
+    --conduit-workbench-canvas: #e5eff4;
+    --conduit-bootstrap-surface: #f7fbfd;
+    --conduit-surface: #ffffff;
+    --conduit-structure-primary: #00758c;
+    --conduit-structure-secondary: #9ab8d1;
+    --conduit-text-primary: #17364d;
+    --conduit-text-secondary: #496b82;
+    --conduit-emphasis: #9a5b00;
+    --conduit-focus: #775d00;
+    --conduit-warning: #8a5200;
+    --conduit-failure: #a32d37;
+    --conduit-success: #08784e;
+    --conduit-muted: #7b654f;
+    --line: #b8cfdd;
+    --green-dark: #174f68;
+    color-scheme: light;
+  }
+}
+:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+.conduit-skip-link {
+  position: fixed; z-index: 2147483647; inset-block-start: var(--conduit-space-unit); inset-inline-start: var(--conduit-space-unit);
+  padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); border: 2px solid var(--conduit-focus);
+  border-radius: var(--conduit-radius-control); color: var(--conduit-background); background: var(--conduit-focus);
+  font: 700 var(--conduit-type-small)/1.2 var(--conduit-font-body); text-decoration: none; transform: translateY(calc(-100% - 1rem));
+}
+.conduit-skip-link:focus { outline: var(--conduit-focus-width) solid var(--conduit-background); outline-offset: 2px; transform: none; }
+.visually-hidden { position:absolute!important; inline-size:1px!important; block-size:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip-path:inset(50%)!important; white-space:nowrap!important; border:0!important; }
+:where([data-application-syntax="conduit"]) { position: relative; min-width: 0; }
+:where([data-application-syntax="conduit"] .syntax-editor) { position: relative; width: 100%; height: 100%; min-width: 0; color:#e9f1ec; background:#071018; }
+:where([data-application-syntax="conduit"] .syntax-highlight) {
+  position: absolute; inset: 0; z-index: 0; margin: 0; padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
+  white-space: pre-wrap; overflow-wrap: normal;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea {
+  display: block; width: 100%; border: 0;
+  padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
+  -webkit-text-fill-color: transparent;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea::selection {
+  /* Selection paints readable glyphs above the backdrop. */
+  color: #fff; background: rgb(119 218 168 / 45%); -webkit-text-fill-color: #fff;
+}
+:where(.syntax-comment) { color: #91aa9d; font-style: italic; }
+:where(.syntax-keyword) { color: #ffcf70; font-weight: 750; }
+:where(.syntax-name) { color: #e9f1ec; }
+:where(.syntax-identity) { color: #8ddfc0; }
+:where(.syntax-string) { color: #ffd7a0; }
+:where(.syntax-number, .syntax-literal) { color: #d9b8ff; }
+:where(.syntax-operator) { color: #ff9f8f; }
+:where(.syntax-delimiter) { color: #b9cbc1; }
+:where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="choice-group"]) { display:grid; gap:var(--conduit-space-unit); min-inline-size:0; margin:0; padding:0; border:0; }
+:where([data-application-component="choice-group-label"]) { margin-block-end:var(--conduit-space-unit); font-weight:700; }
+:where([data-application-component="choice-option-label"]) { display:flex; align-items:center; gap:var(--conduit-space-unit); width:max-content; cursor:pointer; }
+:where(input[type="checkbox"], input[type="radio"])[data-application-component] { appearance:auto; inline-size:1.1rem; block-size:1.1rem; margin:0; padding:0; accent-color:var(--conduit-emphasis); cursor:pointer; }
+:where([data-application-component="choice-option-label"]):has(input:focus-visible) { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:2px; }
+:where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
+:where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
+:where([data-application-key="product-masthead"]) { min-height:3.75rem; padding:.7rem max(1.25rem,calc((100vw - 96rem)/2)); display:flex; align-items:center; justify-content:space-between; gap:1.5rem; color:var(--conduit-text-primary); background:var(--conduit-surface); border-bottom:1px solid var(--conduit-structure-secondary); font-size:.82rem; }
+:where([data-application-key="product-navigation"]) { position:static; inset:auto; flex:1; width:auto; max-width:none; margin:0; padding:0; display:flex; align-items:center; flex-wrap:wrap; gap:1.35rem; border:0; background:transparent; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]) { color:var(--conduit-text-secondary); text-decoration:none; font-weight:720; letter-spacing:.02em; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):hover { color:var(--conduit-text-primary); }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
+:where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
+:where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
+:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:var(--conduit-font-mono); letter-spacing:.08em; }
+:where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
+@media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }
+:where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
+  padding: var(--conduit-space-panel);
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-panel);
+  background: var(--conduit-surface);
+}
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component] {
+  padding: var(--conduit-space-control-block, .65rem) var(--conduit-space-control-inline, 1rem);
+  color: inherit;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-control, .6rem);
+  background: var(--conduit-surface);
+  font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] input:not([type="checkbox"]):not([type="radio"]), [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary) {
+  min-height: 2.5rem; padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); color: inherit;
+  border: 1px solid var(--conduit-structure-secondary); border-radius: var(--conduit-radius-control); background: var(--conduit-surface); font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] select) { font-weight: 650; cursor: pointer; }
+:where([data-application-theme] button, [data-application-theme] select):disabled { cursor: not-allowed; opacity: .48; }
+:where([data-application-theme] button, [data-application-theme] input, [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary, [data-application-theme] a):focus-visible {
+  border-color: var(--conduit-focus); outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: 2px;
+}
+:where(button[data-application-component]) {
+  min-height: 2.5rem;
+  border-color: color-mix(in srgb, var(--conduit-structure-primary) 58%, var(--conduit-structure-secondary));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--conduit-structure-primary) 10%, var(--conduit-surface)), var(--conduit-surface));
+  box-shadow: inset 0 1px rgb(255 255 255 / 10%), 0 2px 0 color-mix(in srgb, var(--conduit-structure-secondary) 72%, #000);
+  font-weight: 720;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+:where(button[data-application-component]:not(:disabled)):hover { color:var(--conduit-emphasis); border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000),0 0 1rem color-mix(in srgb,var(--conduit-structure-primary) 16%,transparent); transform:translateY(-1px); }
+:where(button[data-application-component]:not(:disabled)):active { box-shadow:inset 0 1px 4px rgb(0 0 0 / 35%); transform:translateY(1px); }
+:where(button[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(select[data-application-component]) {
+  min-height:2.5rem; appearance:none; padding-inline-end:2.7rem;
+  border-color:color-mix(in srgb,var(--conduit-structure-primary) 58%,var(--conduit-structure-secondary));
+  background-image:linear-gradient(45deg,transparent 50%,var(--conduit-emphasis) 50%),linear-gradient(135deg,var(--conduit-emphasis) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 10%,var(--conduit-surface)),var(--conduit-surface));
+  background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat;
+  box-shadow:inset 0 1px rgb(255 255 255 / 10%),0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 72%,#000); font-weight:650; cursor:pointer;
+  transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease;
+}
+:where(select[data-application-component]:not(:disabled)):hover { border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000); transform:translateY(-1px); }
+:where(select[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component]:focus-visible {
+  border-color: var(--conduit-focus);
+  outline: var(--conduit-focus-width) solid var(--conduit-focus);
+  outline-offset: 2px;
+}
+:where([data-application-status="ordinary"]) { color: var(--conduit-text-secondary); }
+:where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
+:where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
+:where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
+:where([data-application-theme][data-conduit-contrast="high"]) {
+  --conduit-surface: var(--conduit-background) !important;
+  --conduit-text-secondary: var(--conduit-text-primary) !important;
+  --conduit-structure-secondary: var(--conduit-focus) !important;
+}
+@media (max-width: 720px) {
+  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
+
+/* Shared by the homepage, handbook, and every documentary page. */
+* { box-sizing: border-box; }
+html { color-scheme: dark light; scroll-behavior: smooth; }
+body { margin: 0; background: var(--conduit-background); color: var(--conduit-text-primary); font: 400 1rem/1.65 var(--conduit-font-body, system-ui, sans-serif); }
+a { color: var(--conduit-emphasis); text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
+.site-header { width: 100%; display: flex; align-items: center; gap: 2rem; padding: 1rem max(1.25rem, calc((100vw - 88rem)/2)); background: var(--conduit-surface); border-bottom: 1px solid var(--conduit-structure-secondary); }
+.site-header a { color: var(--conduit-text-secondary); text-decoration: none; font-size: .9rem; white-space: nowrap; }
+.site-header .site-brand { color: var(--conduit-text-primary); font-size: 1.15rem; font-weight: 750; }
+.site-header nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.4rem; margin: 0; }
+.site-header .site-source { margin-left: auto; }
+.site-header a:hover, .site-header a[aria-current="page"] { color: var(--conduit-emphasis); }
+.site-header a[aria-current="page"] { text-decoration: underline; text-underline-offset: .45em; }
+.site-content { width: min(78rem, calc(100% - 3rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 5rem) 0; }
+.site-content h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; letter-spacing: -.04em; margin: .4rem 0 1.4rem; }
+.site-content h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.2; }
+.site-content .lede { max-width: 65ch; font-size: 1.2rem; color: var(--conduit-text-secondary); }
+.site-content .eyebrow { font-size: .8rem; color: var(--conduit-text-secondary); }
+.site-content img, .site-content video { display: block; width: 100%; height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.site-content figure { margin: 1.5rem 0; }
+.site-content figcaption { color: var(--conduit-text-secondary); font-size: .95rem; margin-top: .6rem; }
+.site-content details { border-top: 1px solid var(--conduit-structure-secondary); padding: 1rem 0; margin-top: 1.5rem; overflow-wrap: anywhere; }
+.site-content summary { cursor: pointer; }
+.journey-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin: 2rem 0 3rem; }
+.journey-card { padding: 1.5rem; background: var(--conduit-surface); border: 1px solid var(--conduit-structure-secondary); border-radius: .6rem; }
+.journey-card h2, .journey-card h3 { margin-top: 0; }
+.journey-steps { list-style: none; padding: 0; counter-reset: journey-step; }
+.journey-step { counter-increment: journey-step; padding: 2rem 0; border-top: 1px solid var(--conduit-structure-secondary); }
+.journey-step h2::before { content: counter(journey-step, decimal-leading-zero) "  "; color: var(--conduit-text-secondary); }
+.journey-step p { max-width: 70ch; }
+.recording-note { color: var(--conduit-text-secondary); font-size: .95rem; }
+@media (max-width: 50rem) { .site-header { gap: .8rem 1.2rem; flex-wrap: wrap; } .site-header nav { order: 3; width: 100%; gap: .65rem 1.2rem; } .site-content { width: calc(100% - 2rem); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style><link rel="stylesheet" href="handbook.css"><link rel="stylesheet" href="svg-viewport.css"><script type="module" src="handbook.mjs"></script></head><body class="handbook-page handbook-page-Current-language-surface" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="site-header"><a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a><nav aria-label="Main navigation"><a data-section="home" href="/conduit/">Home</a><a data-section="journeys" href="/conduit/journeys/">Journeys</a><a data-section="handbook" aria-current="page" href="/conduit/handbook/">Handbook</a><a data-section="downloads" href="/conduit/#get-conduit">Downloads</a><a data-section="workspace" href="/conduit/workspace/">Open Conduit</a></nav><a class="site-source" href="https://github.com/dancxjo/conduit">Source</a></header>
+<div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Units-and-quantities.html">Units and quantities</a></li>
+<li><a href="Conduitese-feature-coverage.html">Feature example index</a></li>
+<li><a href="Plot-diagrams.html">Plot diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li>
+<p><a href="Creating-models.html">Creating models: teach Conduit to speak</a></p>
+</li>
+<li>
+<p><a href="Start-here.html">Start here</a></p>
+</li>
+<li>
+<p><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></p>
+</li>
+<li>
+<p><a href="State-time-and-data.html">State, time and data</a></p>
+</li>
+<li>
+<p><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></p>
+</li>
+<li>
+<p><a href="Face-Mask-and-Show.html">Face, mask and show</a></p>
+</li>
+<li>
+<p><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></p>
+</li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a aria-current="page" href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Plots-and-flow.html">Plots and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Section 17 of 26</p><h1 id="current-language-surface">Current language surface</h1>
+<p>This reference describes the checked development surface reviewed on
+<strong>9 October 2026</strong>. The <a href="Conduitese-feature-coverage.html">feature example index</a>
+maps the complete reviewed surface and distinguishes the open language proposals.
+Source tests linked below establish grammar and checking;
+target tests establish the named execution paths. Published products can lag
+<code>dev</code>. Detailed semantic laws live on the topic pages in the sidebar.</p>
+<h2 id="declarations-and-status">Declarations and status</h2>
+<ul>
+<li><code>plot</code> declares executable composition; its parenthesized <strong>fore</strong> is the callable signature</li>
+<li><code>type</code> declares semantic value meaning</li>
+<li><code>form</code> declares a portable representation, separate from type identity</li>
+<li><code>host</code>, <code>body</code>, and <code>pack</code> declare construction or shipment truth, not live runtime state</li>
+</ul>
+<p>The paired executable <code>form</code> to <code>plot</code> and representation <code>code</code> to <code>form</code>
+migration is implemented on <code>dev</code> by <a href="https://github.com/dancxjo/conduit/pull/4800">#4800</a>.
+Both former declaration spellings are rejected rather than retained as aliases. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/surface_parser.rs">parser</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs">syntax tests</a>.</p>
+<h2 id="callable-composition">Callable composition</h2>
+<h3 id="named-type-parameters">Named type parameters</h3>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-name">identity</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">value</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">result</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">value</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>type</code> is the canonical compile-time parameter declaration. When inference is insufficient, explicit application uses ordinary named arguments such as <code>identity(item = Text)</code>. This plot-parameter surface does not require runtime erasure, implicit <code>any</code>, or hidden closures. Owner: #4059.</p>
+<h3 id="explicit-current-sampling">Explicit Current sampling</h3>
+<p>There is no implicit <code>$T -&gt; T</code> coercion. <code>current/sample</code> samples one Current value for each accepted semantic trigger; <code>$T</code> yields <code>T</code>, and <code>$T?</code> yields <code>T?</code>. The sampled generation is the exact current generation causally visible when the trigger is consumed. It is distinct from cadence-driven <code>time/sample</code>.</p>
+<p>Canonical concise spelling:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">note</span><span class="syntax-whitespace"> </span><span class="syntax-operator">@</span><span class="syntax-whitespace"> </span><span class="syntax-name">save-request</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">save.value</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Owner: #4064; first persistence proof: #4116.</p>
+<h3 id="finite-variants">Finite variants</h3>
+<p>Construction is qualified by exact variant type:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-identity">MusicEvent.note</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">{</span><span class="syntax-whitespace"> </span><span class="syntax-name">velocity</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">96</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">pitches</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-number">60</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">62</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">MusicEvent.rest</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Graph matching is:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">event</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">?</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.note</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">play-note</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">[</span><span class="syntax-identity">MusicEvent.rest</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">keep-silence</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The route carries the selected case payload to the destination. Within a pure
+expression that consumes it, <code>.</code> denotes that payload. Current route arms use
+<code>&gt;&gt;</code>; the optional leading <code>_</code> stage is a carried-value placeholder, not a
+discard. Payloadless constructors omit empty-call ceremony. Closed variants
+remain exhaustive. Owner: #4002. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/structured_selectors.rs">selector tests</a>.</p>
+<h3 id="gear-glyphs">gear glyphs</h3>
+<p>A gear may have an ordinary word name or a lexical glyph name. A glyph names an already-defined kind or one configured gear occurrence; it does not define an operator, precedence, associativity, fixity, parser rule, overload set, effect, or runtime.</p>
+<p>For a one-input / one-output fore:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">input</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace"> </span><span class="syntax-name">output</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>has the exact checked meaning of <code>input &gt;&gt; text/upper &gt;&gt; output</code>.</p>
+<p>For exact multi-input fores, glyph operands bind in canonical fore order. A reviewed variadic homogeneous fore may flatten repeated use into one gear occurrence, e.g. <code>a &gt;&lt; b &gt;&lt; c &gt;&gt; merged</code>.</p>
+<p>The standard glyph prelude is in lexical scope by default:</p>
+<pre><code class="language-text">&gt;&lt;   flow/merge
+&amp;&gt;   flow/zip
+?&gt;   flow/race
+&lt;&gt;   state/combine-latest
+@    current/sample
+</code></pre>
+<p>A source file may opt out at its header:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">sans</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">glyphs</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Explicit glyph imports remain legal afterward. One glyph has one lexical referent; there is no type-directed overloading. Mixed adjacent glyphs require explicit grouping. The prelude is versioned with the language surface and participates in checked source identity; it is not a mutable ambient pack dependency.</p>
+<p>Checked expansion, plans and signs expose the ordinary gear behind every glyph. There is no glyph runtime. Owner: #4335.</p>
+<h3 id="checked-refinements-and-portable-patterns">Checked refinements and portable patterns</h3>
+<p><code>when(...)</code> remains runtime graph filtering. Checked type refinements are written directly as relations on the type:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">choice</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;x&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;y&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;z&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span><span class="syntax-name">count</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Count</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1..</span><span class="syntax-operator">=</span><span class="syntax-number">100</span><span class="syntax-whitespace">
+</span><span class="syntax-name">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">64B</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/matches</span><span class="syntax-delimiter">(</span><span class="syntax-operator">?</span><span class="syntax-operator">:</span><span class="syntax-name">lookahead</span><span class="syntax-delimiter">)</span><span class="syntax-delimiter">(</span><span class="syntax-operator">?&lt;</span><span class="syntax-name">name</span><span class="syntax-operator">&gt;</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-name">+</span><span class="syntax-delimiter">)</span><span class="syntax-identity">/i</span><span class="syntax-whitespace">
+</span><span class="syntax-name">name</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">not</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;admin&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;root&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace">
+</span><span class="syntax-name">excluded</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-operator">!</span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-identity">/i</span><span class="syntax-whitespace">
+</span><span class="syntax-name">probability</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">F32</span><span class="syntax-whitespace"> </span><span class="syntax-name">finite</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-identity">0.0..</span><span class="syntax-operator">=</span><span class="syntax-identity">1.0</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Adjacent refinement relations are conjunctive:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">code</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8B</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">in</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">[</span><span class="syntax-string">&quot;AB12&quot;</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-string">&quot;CD34&quot;</span><span class="syntax-delimiter">]</span><span class="syntax-whitespace"> </span><span class="syntax-operator">~</span><span class="syntax-whitespace"> </span><span class="syntax-identity">/</span><span class="syntax-delimiter">[</span><span class="syntax-name">A-Z</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-delimiter">[</span><span class="syntax-name">0-9</span><span class="syntax-delimiter">]</span><span class="syntax-delimiter">{</span><span class="syntax-number">2</span><span class="syntax-delimiter">}</span><span class="syntax-identity">/</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>in [a, b, c]</code> is finite membership. <code>in a..b</code> is lower-inclusive / upper-exclusive; <code>in a..=b</code> is inclusive at both ends. Missing range ends express semantic openness: <code>Count in 4..</code> has no authored upper endpoint, while <code>Scalar in ..=1.000000</code> has no authored lower endpoint. This does not reserve infinite storage; each actual value still needs a finite admitted carrier. <code>in ..</code> adds no refinement and is rejected. See the <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/refinement_tests.rs">range tests</a>.</p>
+<p><code>~ /.../flags</code> is the canonical portable text-pattern relation. Slash literals use Conduit's bounded regular language, not a host-selected regex dialect. The admitted language includes ordinary regular constructs plus non-capturing groups, named groups, and bounded-compilable positive/negative lookahead; it excludes backreferences, recursion, embedded code and any construct whose work cannot be admitted finitely.</p>
+<p><code>~ /pattern/</code> succeeds when the pattern has a match within the bounded text. Authors use canonical anchors when whole-value matching is intended. Flags are a finite reviewed Conduit set and participate in checked identity; a Boolean refinement does not admit a meaningless global-iteration flag.</p>
+<p><code>!~</code> excludes matching text. <code>not in</code> excludes membership. <code>finite</code> refines
+only <code>F32</code>/<code>F64</code>, excluding infinity and NaN; a numeric range is a separate law.
+These examples are Fore fragments. Complete checked fixtures and refusals are
+in the <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/refinement_tests.rs">refinement tests</a>.</p>
+<p>The older <code>where pattern(...)</code>, <code>where range(...)</code> and <code>where member(...)</code> spellings are migration targets, not compatibility aliases. Owner: #4199.</p>
+<h2 id="native-types-forms-and-record-laws">Native types, Forms, and record laws</h2>
+<h3 id="quantities-and-finite-containers">Quantities and finite containers</h3>
+<p>The native suffix <code>250ms</code> needs no notation import. Current development also
+provides explicit <code>units/convert</code>, <code>units/compare</code>, temperature-difference
+operations, all 24 SI prefixes and a separately admitted exact quantity
+profile. <a href="Units-and-quantities.html">Units and quantities</a> contains complete plots,
+prefix examples and precise representation/refusal boundaries.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Samples</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">collection</span><span class="syntax-whitespace"> </span><span class="syntax-name">U16</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Labels</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">sequence</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">2</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>An exact collection has two items; this sequence has zero to two. Element
+constraints, actual count and named Type identity remain checked. See
+<a href="Conduitese-by-example.html#finite-collections-and-variable-length-sequences">container construction and indexing</a>.</p>
+<h3 id="generic-native-types">Generic native types</h3>
+<p>Native type declarations can bind checked type parameters using angle brackets:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Pair</span><span class="syntax-operator">&lt;</span><span class="syntax-name">T</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">left</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">T</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">right</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">T</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">TextPair</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Pair</span><span class="syntax-operator">&lt;</span><span class="syntax-name">Text</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">16B</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>This differs from a plot's named <code>item: type</code> parameter above. Checking
+substitutes each argument through the complete finite structure and its laws.
+The concrete identity includes the exact generic declaration and arguments;
+play receives no open parameter, runtime closure, or dynamic dispatcher.
+Invalid arity, unused/duplicate parameters, unknown applications, and recursive
+or unbounded instantiation refuse. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/syntax_check_tests.rs">generic type tests</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/native_type/generic.rs">checker</a>.</p>
+<p>A real current family is
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/data/types.conduit"><code>DataGenerationValue&lt;T&gt;</code></a>,
+whose text specialization is bounded to 4096 bytes. This language support does
+not mean all generic domain families have already migrated.</p>
+<h3 id="compact-forms">Compact Forms</h3>
+<p>This <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/alife/types.conduit">checked-in declaration</a>
+keeps semantic alternatives separate from byte tags:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">work</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">|</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">form</span><span class="syntax-whitespace"> </span><span class="syntax-identity">alife/lenia-region-chunk-kind</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">LeniaRegionChunkKind</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">u8</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">from</span><span class="syntax-whitespace"> </span><span class="syntax-number">1</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The compact form assigns consecutive <code>u8</code> tags beginning at 1. The checked
+mapping owns finite extent/work, compatibility identity, and invalid-tag
+refusal; generated bindings do not independently restate the mapping. This
+example does not claim every proposed record or wire-layout encoding exists.</p>
+<h3 id="record-laws">Record laws</h3>
+<p>Records can own pure Boolean laws over the complete value:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">type</span><span class="syntax-whitespace"> </span><span class="syntax-name">Interval</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">start</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">end</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">U32</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">where</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.start</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&lt;</span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">.end</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>where</code> laws participate in type identity and are enforced at generated
+construction and decode boundaries. They use the finite checked expression
+language. Real declarations include
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/language/types.conduit">linguistic spans</a>
+and <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/audio/types.conduit">audio frame laws</a>.
+The <a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/rust_binding/generate_tests.rs">generated-binding tests</a>
+cover refusal and independent bindings.</p>
+<p><code>variant/tag(value)</code> returns ordinary <code>Text</code>. A comparison such as
+<code>variant/tag(.direction) == "mono"</code> is checked as text equality; the compared
+literal is not validated against the variant alternatives. A typo can therefore
+remain well-typed while making a law false. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/expression_semantic_call.rs">semantic call checker</a>
+and the record-law syntax tests.</p>
+<p>Construction-time enforcement is implemented by
+<a href="https://github.com/dancxjo/conduit/pull/4638">#4638</a>. Completed
+<a href="https://github.com/dancxjo/conduit/issues/4639">#4639</a> carries applicable record
+and scalar invariant facts into consuming-plot arithmetic proofs. For example,
+<code>.end - .start</code> is proven safe when the input type establishes <code>.start &lt;= .end</code>;
+<code>.end + 1</code> remains checked without a sufficient upper bound. The
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/canonical_expansion_tests.rs">portable arithmetic tests</a>
+cover both outcomes. This is bounded proof propagation, not permission to erase
+arbitrary arithmetic checks.</p>
+<h2 id="bounded-each-select-fold-and-scan">Bounded each, select, fold, and scan</h2>
+<p>These are checked activation coordinators around exact selected behavior,
+not general loops or runtime closures. The following wrapper is copied from
+<a href="https://github.com/dancxjo/conduit/blob/dev/architecture/plot/src/activation_tests.rs">activation conformance source</a>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">plot</span><span class="syntax-whitespace"> </span><span class="syntax-identity">flow/each</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">item</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">result</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">type</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">transform</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">kind</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">value</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">values</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">item</span><span class="syntax-operator">...|</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-operator">...|</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">each</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">activate</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">values</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">each.value</span><span class="syntax-whitespace">
+    </span><span class="syntax-identity">each.mapped</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">mapped</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Here <code>flow/each</code> is a <strong>source-defined wrapper</strong>, not an implicit installed
+catalog kind. With an exact checked <code>text/normalize</code> plot in scope, the fixture
+specializes it with:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">mapped</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-identity">flow/each</span><span class="syntax-delimiter">(</span><span class="syntax-name">item</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">Text</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">transform</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/normalize</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>The same test file defines these body fragments within full declared fores:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">selection</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">select</span><span class="syntax-delimiter">(</span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-name">predicate</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">values</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">selection.value</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">selection.selected</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">selected</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">folder</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">fold</span><span class="syntax-delimiter">(</span><span class="syntax-name">initial</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-identity">integer/add</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">folder.item</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">folder.combined</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">result</span><span class="syntax-whitespace">
+
+</span><span class="syntax-name">scanner</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">scan</span><span class="syntax-delimiter">(</span><span class="syntax-name">initial</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">maximum-items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-identity">integer/add</span><span class="syntax-delimiter">(</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+</span><span class="syntax-name">items</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-identity">scanner.item</span><span class="syntax-whitespace">
+</span><span class="syntax-identity">scanner.combined</span><span class="syntax-whitespace"> </span><span class="syntax-operator">&gt;</span><span class="syntax-operator">&gt;</span><span class="syntax-whitespace"> </span><span class="syntax-name">accumulators</span><span class="syntax-whitespace">
+</span></code></pre>
+<ul>
+<li><code>activate</code> requires exact value-input/value-output behavior; a flow behavior is refused</li>
+<li><code>select</code> calls a Boolean predicate and emits the retained original item through <code>selected</code> when true</li>
+<li><code>fold</code> and <code>scan</code> require two value inputs, <code>accumulator</code> and <code>item</code>, and one <code>combined</code> output; the fixtures use exact <code>U64 &lt;= 28B</code> ports and an <code>initial: U64</code> parameter</li>
+<li><code>fold</code> returns one value on normal close; <code>scan</code> exposes the closing-flow progression</li>
+<li><code>maximum-items</code> is a positive exact <code>u16</code> admission bound, not an unbounded iterator</li>
+</ul>
+<p>The predicate/combine declarations in the checking fixtures are contract
+fixtures, not complete useful algorithms. Their execution is proved separately
+through the selected target backs.</p>
+<p><a href="https://github.com/dancxjo/conduit/issues/4378#issuecomment-5923888244">#4378 is complete</a>
+for each/select/fold/scan and bounded collection from a closing flow. Evidence
+covers <a href="https://github.com/dancxjo/conduit/blob/dev/targets/std/src/flow_activation/tests.rs">std activation</a>,
+<a href="https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests.rs">browser runtime activation</a>,
+<a href="https://github.com/dancxjo/conduit/blob/dev/targets/browser/runtime/src/flow_activation/tests/installed_inventory.rs">installed browser behavior</a>,
+and <a href="https://github.com/dancxjo/conduit/blob/dev/semantics/data/src/flow_collect_back_tests.rs">shared collect laws</a>.
+Pressure, cancellation, abnormal termination, bounds, and receipt identity stay
+explicit. Browser runtime/WASM proof is not browser interaction/E2E proof.
+Embedded applicability was audited, but current admitted ConduitOS resident
+plots do not exercise these combinators; this is not universal embedded
+execution evidence.</p>
+<h2 id="resources-and-construction">Resources and construction</h2>
+<h3 id="runtime-bound-resources">Runtime-bound resources</h3>
+<p>Canonical authored type spelling is <code>resource T</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-name">region</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/memory/mmio/region</span><span class="syntax-whitespace">
+</span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Keep distinct:</p>
+<pre><code class="language-text">{ address, length }   forgeable descriptive info
+&amp;T                    ordinary info naming immutable data
+resource T            admitted runtime possession
+</code></pre>
+<p>There are no resource literals and no parallel <code>capability T</code> wrapper. Owner: #4065.</p>
+<h3 id="imports-and-packs">Imports and packs</h3>
+<p>Source imports use <code>with</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">audio/plots/tone</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry/</span><span class="syntax-delimiter">{</span><span class="syntax-name">vector2</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">matrix2</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors/temperature</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">room-temperature</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">text/upper</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^^</span><span class="syntax-whitespace">
+</span></code></pre>
+<p>Aliases may be ordinary names or admitted gear glyphs.</p>
+<p>The authored ecosystem noun is <strong>pack</strong>. Pack authoring uses <code>pack.conduit</code>:</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">pack</span><span class="syntax-whitespace"> </span><span class="syntax-identity">house/sensors</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">version</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">1.4.0</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">ship</span><span class="syntax-whitespace"> </span><span class="syntax-name">temperature</span><span class="syntax-whitespace">
+    </span><span class="syntax-keyword">need</span><span class="syntax-whitespace"> </span><span class="syntax-identity">math/geometry</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-operator">^</span><span class="syntax-identity">2.1</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>package</code> is not an authored compatibility keyword. Resolution produces generated exact lock truth in <code>conduit.lock</code>. Pack/version/module/source/content/distribution identities remain distinct from semantic kind identity. Imports grant no runtime authority and execute no code. Owner: #4055.</p>
+<h3 id="body-wardrobe">body wardrobe</h3>
+<p>mask remains an ordinary plot role; there is no <code>mask</code> declaration.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/native-graphical</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace">
+</span><span class="syntax-keyword">with</span><span class="syntax-whitespace"> </span><span class="syntax-identity">masks/spoken</span><span class="syntax-whitespace"> </span><span class="syntax-keyword">as</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+
+</span><span class="syntax-keyword">body</span><span class="syntax-whitespace"> </span><span class="syntax-name">roseau</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">wear</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">want</span><span class="syntax-whitespace"> </span><span class="syntax-name">graphical</span><span class="syntax-whitespace"> </span><span class="syntax-name">over</span><span class="syntax-whitespace"> </span><span class="syntax-name">spoken</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>wear a, b</code> is an unordered bounded set of permitted masks; comma order carries no preference. <code>want</code> is optional ordered policy only among eligible alternatives. Same-plan selection may use only exact routes already sealed by that plan; otherwise loss requires ordinary replacement planning. The legacy <code>wear a else b</code> spelling is rejected because its ordered fallback meaning cannot be silently migrated into unordered eligibility. Runtime <code>wear</code> and <code>doff</code> request planning where required and never mutate an immutable plan in place. Owner: #4115.</p>
+<p>Body construction schema 2 owns this wardrobe shape. Schema 1 remains a
+distinct legacy contract and is not reinterpreted as unordered eligibility.</p>
+<h3 id="host-source">host source</h3>
+<p>host source is limited to construction truth: construction parameters, finite declared <code>resource</code> pools, concrete <code>base</code> boundaries, reviewed <code>back</code> realizations, and explicit policy/bounds.</p>
+<pre class="syntax-example" data-application-syntax="conduit" tabindex="0" aria-label="Read-only Conduit example"><code><span class="syntax-keyword">host</span><span class="syntax-whitespace"> </span><span class="syntax-name">conduitos-native</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">target</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-identity">conduitos/x86_64/pc</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">build</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">release</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">loader</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">limine</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">)</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+    </span><span class="syntax-name">surface</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">resource</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/surface</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">slots</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">4</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">bytes</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-number">8MiB</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">mmio</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">base</span><span class="syntax-whitespace"> </span><span class="syntax-identity">machine/mmio</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">framebuffer</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">display/linear-framebuffer</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">memory</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">mmio</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">graphics</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">back</span><span class="syntax-whitespace"> </span><span class="syntax-identity">presentation/graphics</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">(</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">surface</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">surface</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">display</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-name">framebuffer</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">)</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">policy</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">authority</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-name">explicit</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">ambient</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-literal">false</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+
+    </span><span class="syntax-name">bounds</span><span class="syntax-whitespace"> </span><span class="syntax-operator">=</span><span class="syntax-whitespace"> </span><span class="syntax-delimiter">{</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">heap</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">16MiB</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">calls</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">64</span><span class="syntax-delimiter">,</span><span class="syntax-whitespace">
+        </span><span class="syntax-name">signs</span><span class="syntax-operator">:</span><span class="syntax-whitespace"> </span><span class="syntax-number">1024</span><span class="syntax-whitespace">
+    </span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span><span class="syntax-delimiter">}</span><span class="syntax-whitespace">
+</span></code></pre>
+<p><code>driver</code> and <code>facility</code> are not separate source ontologies. host source does not author current HostId, BootId, offers, device instances, authority, observations, lines, plans or plays. A line remains current connectivity realization, not profile source. Owner: #4117.</p>
+<hr />
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue reading</span><a href="Architecture.html">Architecture<b aria-hidden="true">→</b></a></nav></main></div></body></html>

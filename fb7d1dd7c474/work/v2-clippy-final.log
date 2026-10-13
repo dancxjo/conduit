@@ -1,0 +1,42 @@
+    Blocking waiting for file lock on build directory
+    Checking conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+error[E0277]: the trait bound `[u8; 2]: std::convert::TryFrom<&[u8; 2]>` is not satisfied
+   --> semantics/language/tests/parser_joint_v2_model.rs:43:47
+    |
+ 43 |         .map(|bytes| i16::from_le_bytes(bytes.try_into().unwrap()).unsigned_abs() as u64)
+    |                                               ^^^^^^^^ the trait `std::convert::From<&[u8; 2]>` is not implemented for `[u8; 2]`
+    |
+help: `[u8; 2]` implements trait `std::convert::From<T>`
+   --> /home/dancxjo/.cargo/registry/src/index.crates.io-1949cf8c6b5b557f/zerocopy-0.8.57/src/byteorder.rs:629:9
+    |
+629 |           impl<O: ByteOrder> From<$name<O>> for [u8; $bytes] {
+    |           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+    |           |
+    |           `std::convert::From<zerocopy::byteorder::I16<O>>`
+    |           `std::convert::From<zerocopy::byteorder::U16<O>>`
+...
+736 | / define_type!(
+737 | |     A,
+738 | |     "A 16-bit unsigned integer",
+739 | |     U16,
+...   |
+751 | |     [U32, U64, U128, Usize]
+752 | | );
+    | |_- in this macro invocation
+...
+821 | / define_type!(
+822 | |     An,
+823 | |     "A 16-bit signed integer",
+824 | |     I16,
+...   |
+836 | |     [I32, I64, I128, Isize]
+837 | | );
+    | |_- in this macro invocation
+    = note: required for `&[u8; 2]` to implement `std::convert::Into<[u8; 2]>`
+    = note: required for `[u8; 2]` to implement `std::convert::TryFrom<&[u8; 2]>`
+    = note: required for `&[u8; 2]` to implement `std::convert::TryInto<[u8; 2]>`
+    = note: this error originates in the macro `define_type` (in Nightly builds, run with -Z macro-backtrace for more info)
+
+For more information about this error, try `rustc --explain E0277`.
+error: could not compile `conduit-language` (test "parser_joint_v2_model") due to 1 previous error
+warning: build failed, waiting for other jobs to finish...

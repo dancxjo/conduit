@@ -1,0 +1,9 @@
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `test` profile [unoptimized] target(s) in 6.59s
+     Running tests/record_access_storage.rs (work/native-reuse-sdk-target/debug/deps/record_access_storage-8a90e17bb245d046)
+
+running 1 test
+test exact_record_recipes_preflight_and_preserve_every_field ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

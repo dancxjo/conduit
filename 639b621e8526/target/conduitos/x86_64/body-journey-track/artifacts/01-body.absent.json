@@ -1,0 +1,12 @@
+{
+  "schema": "conduit.evidence/semantic-step-receipt@2",
+  "git_commit": "818dbe625fb2cd21c5357ca356e5a6d52dce0533",
+  "track": "native-graphical",
+  "step_id": "body.absent",
+  "assertion": "body-absent",
+  "source_facts": {
+    "boot_id": "d70e523d209820450b095feaac7042896a0e1e1709b3daf5c3bc777f2781ae23",
+    "host_id": "e12756f7759f0bbbf06e2bde279619939072ed530d9389142099c6daaa88629b",
+    "open_effects": 0
+  }
+}

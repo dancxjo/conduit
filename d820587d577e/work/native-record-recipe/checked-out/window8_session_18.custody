@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=d0d8ccb1a2aeb55029714826b93fa66ecd8259891fbf85684694cfbbd1a15a55
+expanded=02777a7812ea7b98b38817d6e09dff11c3015f7928d816bc855f6a6d16108a10
+input=language-window8-independent-commit-initialize/expression-b284dd7e7d3e-0:input
+output=language-window8-independent-commit-initialize/expression-b284dd7e7d3e-0:output
+gear=language-window8-independent-commit-initialize/expression-b284dd7e7d3e-0:conduitese/pure-expression/ac1a1ab383f0361f1719b8ec60f7ce9fa8ac4f33c09a9b9b4eb1a1beb25665b6:conduitese/pure-expression-operation@1:input:output

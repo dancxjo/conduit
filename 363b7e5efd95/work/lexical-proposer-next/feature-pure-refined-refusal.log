@@ -1,0 +1,4 @@
+
+thread 'main' (171219) panicked at work/lexical-proposer-next/feature_port_probe.rs:9:88:
+called `Result::unwrap()` on an `Err` value: CanonicalExpansionDiagnostic { code: "CND-FRM-046", message: "pure construction of a refined native Type requires an admitted law validator" }
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace

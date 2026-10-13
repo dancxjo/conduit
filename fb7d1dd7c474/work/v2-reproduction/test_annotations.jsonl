@@ -1,0 +1,82 @@
+{"forms": ["..."], "heads": [4], "id": "weblog-blogspot.com_floppingaces_20050313182621_ENG_20050313_182621-0009", "pos": [14], "relations": ["root"]}
+{"forms": ["John", ","], "heads": [4, 0], "id": "email-enronsent27_02-0003", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Good", "luck", ","], "heads": [1, 4, 1], "id": "email-enronsent27_02-0013", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"forms": ["Mike"], "heads": [4], "id": "email-enronsent27_02-0014", "pos": [11], "relations": ["root"]}
+{"forms": ["Hi", "David", ":"], "heads": [1, 4, 1], "id": "email-enronsent04_02-0007", "pos": [6, 11, 12], "relations": ["discourse", "root", "punct"]}
+{"forms": ["Best", ","], "heads": [4, 0], "id": "email-enronsent04_02-0009", "pos": [0, 12], "relations": ["root", "punct"]}
+{"forms": ["Jeff"], "heads": [4], "id": "email-enronsent04_02-0010", "pos": [11], "relations": ["root"]}
+{"forms": ["Hi", "."], "heads": [4, 0], "id": "email-enronsent04_02-0014", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince", ","], "heads": [4, 0], "id": "email-enronsent18_01-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent18_01-0016", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Sara", ","], "heads": [4, 0], "id": "email-enronsent36_01-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "-"], "heads": [4, 0], "id": "email-enronsent36_01-0007", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent36_01-0012", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent36_01-0017", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Sara", ","], "heads": [4, 0], "id": "email-enronsent36_01-0019", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent36_01-0028", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Sara"], "heads": [4], "id": "email-enronsent36_01-0029", "pos": [11], "relations": ["root"]}
+{"forms": ["Hi", "Sara", ","], "heads": [4, 0, 0], "id": "email-enronsent36_01-0031", "pos": [6, 11, 12], "relations": ["root", "vocative", "punct"]}
+{"forms": ["Thanks", "."], "heads": [4, 0], "id": "email-enronsent09_02-0009", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Mike"], "heads": [4], "id": "email-enronsent09_02-0010", "pos": [11], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent09_02-0015", "pos": [7], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent09_02-0034", "pos": [12], "relations": ["root"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent09_02-0036", "pos": [12], "relations": ["root"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent09_02-0045", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "!"], "heads": [4, 0], "id": "email-enronsent29_02-0015", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["thanks"], "heads": [4], "id": "email-enronsent04_01-0025", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent32_01-0005", "pos": [7], "relations": ["root"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent32_01-0018", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["Thank", "you", "."], "heads": [4, 0, 0], "id": "email-enronsent32_01-0037", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}
+{"forms": ["?"], "heads": [4], "id": "email-enronsent32_01-0042", "pos": [12], "relations": ["root"]}
+{"forms": ["Mark"], "heads": [4], "id": "email-enronsent32_01-0051", "pos": [11], "relations": ["root"]}
+{"forms": ["Mark"], "heads": [4], "id": "email-enronsent32_01-0055", "pos": [11], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent32_01-0057", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent32_01-0064", "pos": [7], "relations": ["root"]}
+{"forms": ["Vince", ","], "heads": [4, 0], "id": "email-enronsent18_02-0001", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0007", "pos": [11], "relations": ["root"]}
+{"forms": ["Vince", ":"], "heads": [4, 0], "id": "email-enronsent18_02-0009", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0018", "pos": [11], "relations": ["root"]}
+{"forms": ["David", ","], "heads": [4, 0], "id": "email-enronsent18_02-0019", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0025", "pos": [11], "relations": ["root"]}
+{"forms": ["Mike"], "heads": [4], "id": "email-enronsent18_02-0033", "pos": [11], "relations": ["root"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0041", "pos": [11], "relations": ["root"]}
+{"forms": ["Best", ","], "heads": [4, 0], "id": "email-enronsent18_02-0046", "pos": [0, 12], "relations": ["root", "punct"]}
+{"forms": ["Good", "luck", "."], "heads": [1, 4, 1], "id": "email-enronsent18_02-0057", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0058", "pos": [11], "relations": ["root"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0063", "pos": [11], "relations": ["root"]}
+{"forms": ["Vince", ":"], "heads": [4, 0], "id": "email-enronsent18_02-0065", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Vince"], "heads": [4], "id": "email-enronsent18_02-0077", "pos": [11], "relations": ["root"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent18_02-0080", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0003", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent21_02-0009", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Hey", ","], "heads": [4, 0], "id": "email-enronsent21_02-0011", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Jeff"], "heads": [4], "id": "email-enronsent21_02-0024", "pos": [11], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0029", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0041", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0045", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks", ","], "heads": [4, 0], "id": "email-enronsent21_02-0053", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0060", "pos": [7], "relations": ["root"]}
+{"forms": ["Ed", ","], "heads": [4, 0], "id": "email-enronsent21_02-0062", "pos": [11, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0066", "pos": [7], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "email-enronsent21_02-0074", "pos": [7], "relations": ["root"]}
+{"forms": ["Hello", ","], "heads": [4, 0], "id": "newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0001", "pos": [6, 12], "relations": ["root", "punct"]}
+{"forms": ["Regards"], "heads": [4], "id": "newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0004", "pos": [7], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_HumorUniversity_00dd93cc9545deb3_ENG_20051130_122700-0007", "pos": [12], "relations": ["root"]}
+{"forms": ["Best", ","], "heads": [4, 0], "id": "newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0004", "pos": [0, 12], "relations": ["root", "punct"]}
+{"forms": ["Cindy"], "heads": [4], "id": "newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0005", "pos": [11], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_CognitiveScienceNews_05a0175fc6ece48b_ENG_20050828_091900-0005", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_f50294175d32a8ac_ENG_20041120_152800-0010", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_1fd8f731ae7ffaa0_ENG_20050214_192900-0014", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_88969236563fa748_ENG_20050215_173600-0015", "pos": [12], "relations": ["root"]}
+{"forms": ["--"], "heads": [4], "id": "newsgroup-groups.google.com_hiddennook_e21e429b3ad58235_ENG_20050830_214700-0012", "pos": [12], "relations": ["root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "answers-20111108102612AASRNao_ans-0005", "pos": [7], "relations": ["root"]}
+{"forms": ["thanks"], "heads": [4], "id": "answers-20111108081519AAdHz5c_ans-0005", "pos": [7], "relations": ["root"]}
+{"forms": ["Thank", "you"], "heads": [4, 0], "id": "answers-20111108100703AAo53QA_ans-0006", "pos": [15, 10], "relations": ["root", "obj"]}
+{"forms": ["Good", "luck", "!"], "heads": [1, 4, 1], "id": "answers-20081218053636AA9vV0u_ans-0010", "pos": [0, 7, 12], "relations": ["amod", "root", "punct"]}
+{"forms": ["thanks", "!"], "heads": [4, 0], "id": "answers-20111108074455AAiMwmn_ans-0006", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "!"], "heads": [4, 0], "id": "reviews-034858-0002", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Thanks", "!"], "heads": [4, 0], "id": "reviews-192399-0004", "pos": [7, 12], "relations": ["root", "punct"]}
+{"forms": ["Great", "service"], "heads": [1, 4], "id": "reviews-131965-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Thanks"], "heads": [4], "id": "reviews-354474-0005", "pos": [7], "relations": ["root"]}
+{"forms": ["Great", "service"], "heads": [1, 4], "id": "reviews-163250-0001", "pos": [0, 7], "relations": ["amod", "root"]}
+{"forms": ["Thank", "you", "!"], "heads": [4, 0, 0], "id": "reviews-210875-0004", "pos": [15, 10, 12], "relations": ["root", "obj", "punct"]}

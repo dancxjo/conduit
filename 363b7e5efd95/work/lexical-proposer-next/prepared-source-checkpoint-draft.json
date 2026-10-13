@@ -1,0 +1,31 @@
+{
+  "scope": "Opt-in exact26-program Window8 prepared Source bank; default Reference retained. Ordinary Native input construction/encoding and whole parser/model outside receipt.",
+  "gates": {
+    "all_nonignored_bank_tests": {
+      "pass": 5,
+      "ignored": 2,
+      "seconds": 269.26
+    },
+    "actual76_context": {
+      "full_native_parity": true,
+      "reference_us": 27477664,
+      "prepared_us": 3729567,
+      "preparation_us": 6318130
+    },
+    "allocation_probe": {
+      "retained_requested_bytes": 182573995,
+      "retained_bound": 205260178,
+      "preparation_peak_requested_bytes": 192674364,
+      "preparation_peak_bound": 237823029
+    }
+  },
+  "pending": [
+    "scoped Clippy25931",
+    "all26 malformed/foreign unit probe test-only Type fix and rerun"
+  ],
+  "claims": {
+    "whole_parser_speedup": false,
+    "real_time": false,
+    "new27_model_adoption": false
+  }
+}

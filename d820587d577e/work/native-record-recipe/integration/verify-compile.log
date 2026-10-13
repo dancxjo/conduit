@@ -1,0 +1,10 @@
+warning: unused imports: `ImplItem` and `spanned::Spanned`
+  --> work/native-record-recipe/integration/verify-regenerated-record-access.rs:10:11
+   |
+10 | use syn::{spanned::Spanned, Expr, ImplItem, Item, ItemImpl, Type};
+   |           ^^^^^^^^^^^^^^^^        ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: 1 warning emitted
+

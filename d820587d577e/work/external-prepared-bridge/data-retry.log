@@ -1,0 +1,39 @@
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/semantics/data)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/plots/little-seismograph/fixture)
+    Finished `test` profile [unoptimized] target(s) in 6.78s
+     Running tests/native_data_types.rs (work/native-reuse-sdk-target/debug/deps/native_data_types-92943d9b8eae5004)
+
+running 20 tests
+test math_scalar_refusals_round_trip_through_their_exact_native_type ... ok
+test clock_relation_quality_keeps_duration_meaning_in_the_native_type ... ok
+test measurement_threshold_policy_round_trips_exact_quantities ... ok
+test measurement_sample_uses_the_native_temporal_instant ... ok
+test measurement_range_and_hysteresis_profile_are_native_records ... ok
+test normalized_quantity_refusals_round_trip_through_their_exact_native_type ... ok
+test measurement_policy_variants_round_trip_through_exact_native_types ... ok
+test quantity_mapping_vocabulary_round_trips_through_exact_native_types ... ok
+test data_text_terminals_round_trip_through_exact_native_types ... ok
+test dataset_split_membership_uses_native_bounded_identity_pages ... ok
+test sampled_signal_continuity_owns_its_identity_bounds ... ok
+test clock_relation_round_trips_exact_native_bounds ... ok
+test scalar_comparisons_round_trip_through_their_exact_native_type ... ok
+test tensor_axis_roles_keep_bounded_other_meaning_in_the_native_type ... ok
+test measurement_refusals_round_trip_through_exact_native_types ... ok
+test tensor_elements_round_trip_through_their_exact_native_type ... ok
+test sampled_signal_terminal_round_trips_through_its_exact_native_type ... ok
+test sampled_signal_start_uses_the_native_temporal_instant ... ok
+test tensor_family_round_trips_native_shape_axes_units_and_backing ... ok
+test sampled_signal_family_round_trips_native_cadence_and_tensor_meaning ... ok
+
+test result: ok. 20 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_tensor_descriptors.rs (work/native-reuse-sdk-target/debug/deps/prepared_tensor_descriptors-74e5cbf2522c1c94)
+
+running 3 tests
+test tensor_descriptor_family_refuses_one_under_preparation_and_retained_limits ... ok
+test prepared_tensor_variants_refuse_foreign_types_and_empty_other_identity ... ok
+test data_owned_prepared_variants_preserve_every_tensor_tag_and_payload ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

@@ -1,0 +1,8 @@
+
+running 3 tests
+test preparation_one_under_refuses_before_source_plan_verification_or_load ... ok
+test unchanged_basis_stop_unload_use_normal_driver_actions ... ok
+test foreign_equal_material_owners_stop_without_foreign_actions ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.16s
+

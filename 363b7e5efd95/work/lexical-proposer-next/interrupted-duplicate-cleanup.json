@@ -1,0 +1,13 @@
+{
+  "scope": "Interrupted wrong-feature own duplicate only; no live processes/fuser holders; coherent generated outputs preserved",
+  "removed": [
+    {
+      "path": "target/debug/build/conduit-language-f95ed8e1c0781b94",
+      "file_bytes": 25906236
+    },
+    {
+      "path": "target/debug/build/conduit-language-0bb89673e6946e8d",
+      "file_bytes": 48
+    }
+  ]
+}

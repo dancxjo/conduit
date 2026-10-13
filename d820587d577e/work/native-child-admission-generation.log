@@ -1,0 +1,229 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 10.48s
+     Running unittests src/lib.rs (work/native-reuse-sdk-target/debug/deps/conduit_plot-2300a7f06de0e279)
+
+running 1 test
+
+thread 'rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library' (1471535) panicked at architecture/plot/src/rust_binding/generate_tests.rs:865:5:
+generated Rust failed to compile:
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1478:5
+     |
+1478 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1479 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1480 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1481 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1484 | |         Ok(Self(decoded))
+1485 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1515:5
+     |
+1515 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1516 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1517 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1518 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1521 | |         Ok(Self { notes: __conduit_prepared_field_0 })
+1522 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1546:5
+     |
+1546 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1547 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1548 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1549 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1553 | |         Ok(Self { end: __conduit_prepared_field_0, start: __conduit_prepared_field_1 })
+1554 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1581:5
+     |
+1581 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1582 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1583 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1584 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1587 | |         Ok(Self(decoded))
+1588 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1615:5
+     |
+1615 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1616 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1617 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1618 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1621 | |         Ok(Self(decoded))
+1622 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1650:5
+     |
+1650 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1651 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1652 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1653 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1656 | |         Ok(Self(decoded))
+1657 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1689:5
+     |
+1689 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1690 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1691 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1692 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1697 | |         Ok(Self { ancestors: __conduit_prepared_field_0, identity: __conduit_prepared_field_1, source: __conduit_prepared_field_...
+1698 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1736:5
+     |
+1736 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1737 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1738 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1739 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1746 | |         Ok(candidate)
+1747 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0407]: method `from_borrowed_prepared_with_children` is not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1778:5
+     |
+1778 | /     fn from_borrowed_prepared_with_children(value: conduit_core::ValidatedCanonicalStructuredValue<'_>, family: &mut conduit_plo...
+1779 | |         family.check_type(Self::PREPARED_DESCRIPTOR, value)?;
+1780 | |         let __conduit_node_scope = scope.for_node(family, Self::PREPARED_DESCRIPTOR, value)?;
+1781 | |         let __conduit_child_scope = __conduit_node_scope.child_scope()?;
+...    |
+1788 | |         Ok(candidate)
+1789 | |     }
+     | |_____^ not a member of trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1478:204
+     |
+1478 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1515:204
+     |
+1515 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1519:497
+     |
+1519 | ...tBinding>::from_borrowed_prepared_with_children(item, family, &__conduit_child_scope)?); } let result: [Note; 3] = result.try_i...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1546:204
+     |
+1546 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1581:204
+     |
+1581 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1615:204
+     |
+1615 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1619:292
+     |
+1619 | ...tBinding>::from_borrowed_prepared_with_children(payload, family, &__conduit_child_scope)?), None => None } };
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1650:204
+     |
+1650 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1654:403
+     |
+1654 | ...tBinding>::from_borrowed_prepared_with_children(item, family, &__conduit_child_scope)?).map_err(|_| NativeBindingRefusal::Inval...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1689:204
+     |
+1689 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1693:112
+     |
+1693 | ...tBinding>::from_borrowed_prepared_with_children(value.record_field("ancestors").map_err(NativeBindingRefusal::InvalidValue)?.ok...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1694:109
+     |
+1694 | ...tBinding>::from_borrowed_prepared_with_children(value.record_field("identity").map_err(NativeBindingRefusal::InvalidValue)?.ok_...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1695:117
+     |
+1695 | ...tBinding>::from_borrowed_prepared_with_children(value.record_field("source").map_err(NativeBindingRefusal::InvalidValue)?.ok_or...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1736:204
+     |
+1736 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error[E0576]: cannot find method or associated constant `from_borrowed_prepared_with_children` in trait `conduit_plot::rust_binding::PreparedNativeRustBinding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1741:740
+     |
+1741 | ...tBinding>::from_borrowed_prepared_with_children(item, family, &__conduit_child_scope)?).map_err(|_| NativeBindingRefusal::Inval...
+     |               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding::PreparedNativeRustBinding`
+
+error[E0425]: cannot find type `NativeChildAdmissionScope` in module `conduit_plot::rust_binding`
+    --> /tmp/conduit-rust-bindings-1471534/bindings.rs:1778:204
+     |
+1778 | ... &conduit_plot::rust_binding::NativeChildAdmissionScope<'_>) -> Result<Self, NativeBindingRefusal> {
+     |                                  ^^^^^^^^^^^^^^^^^^^^^^^^^ not found in `conduit_plot::rust_binding`
+
+error: aborting due to 25 previous errors
+
+Some errors have detailed explanations: E0407, E0425, E0576.
+For more information about an error, try `rustc --explain E0407`.
+
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+test rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library ... FAILED
+
+failures:
+
+failures:
+    rust_binding::generate_tests::generated_bindings_compile_as_an_independent_rust_library
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 325 filtered out; finished in 0.31s
+
+error: test failed, to rerun pass `-p conduit-plot --lib`

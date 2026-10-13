@@ -1,0 +1,5 @@
+PASS checked_native_types=115
+CanonicalExpansionDiagnostic {
+    code: "CND-FRM-046",
+    message: "pure construction of a refined native Type requires an admitted law validator",
+}

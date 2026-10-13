@@ -1,0 +1,73 @@
+{
+  "removed_bytes": 91113360,
+  "classes": "inactive regenerable standalone test ELFs only",
+  "preserved": "all published sources, commands, logs, receipts, immutable SDKs, model/carrier evidence, Cargo cache",
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/tests",
+      "bytes": 16649360,
+      "source": "semantics/ai/tests/guard_back_preparation.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "7bcb79774ea08959ac77dbea560abd90888fc2ed1bed17456476f6864b1bbbb4",
+      "source_sha256": "0e23515e3c73005be653f8b6b11df14b09bb5dc61edf1f6f4757970e0d3f620f",
+      "removed": true
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/tests",
+      "bytes": 16726464,
+      "source": "semantics/ai/tests/weakening_back_preparation.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "1f6fec5f2ccb43a6397eeb847e555cfd375dd91a1d71abc6afd62b0c7f8ffe3d",
+      "source_sha256": "24ad90388147c065d4c20633a43a40f61657c0003e8564022969153742f3ae20",
+      "removed": true
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/pair-back-preparation/tests",
+      "bytes": 16722456,
+      "source": "semantics/ai/tests/pair_back_preparation.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "4302dc9fee905b363d2d249aaafd021281f2e4eae429080e6cf3a3f0ddb51351",
+      "source_sha256": "f28938ff727752fde6fee87b79242219f4b4e8447d40ca6c30f7f86ab7f6d170",
+      "removed": true
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/u16-back-preparation/tests",
+      "bytes": 16707672,
+      "source": "semantics/ai/tests/u16_back_preparation.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "c5d0d2961506961fae6fffdfbbb0d98ce70406190083054c8600495b9b9bbc3c",
+      "source_sha256": "b5c46f42b91c3b3b0f66c9d9f22a3fac5a843101a8985ef659a521fba99144f9",
+      "removed": true
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/tests",
+      "bytes": 16399944,
+      "source": "semantics/ai/tests/model_resource_preparation.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "22605dae6aab8dc1543c1b7d27ea42db908152869a77f4ee4224812e09b17515",
+      "source_sha256": "397aa27ee723ef071368dd74ed5e5a5651c848510b8f15cdb75061b3ff6854f5",
+      "removed": true
+    },
+    {
+      "path": "/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/tests",
+      "bytes": 7907464,
+      "source": "architecture/kernel/tests/scheduler_box_storage.rs",
+      "source_at_published_HEAD": true,
+      "fuser_inactive": true,
+      "command_sdk_logs_retained": true,
+      "sha256": "823b404849015dfb81202125d1465a738fdcc3158843a29bf5e92241b3bce874",
+      "source_sha256": "7949c8d131c990738f4f100a78cc51acf7ea51cace82bdb34c9d654d4d4f0370",
+      "removed": true
+    }
+  ]
+}

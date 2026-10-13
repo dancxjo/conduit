@@ -1,0 +1,6 @@
+plot logic-demo {
+    source: boolean/literal(true)
+    invert: logic/not
+    show: presentation/bool-value
+    source >> invert >> show
+}.

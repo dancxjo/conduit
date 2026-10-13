@@ -1,0 +1,71 @@
+{
+  "dev": {
+    "all_original_rows": {
+      "rows": 822,
+      "tokens": 3500,
+      "complete": 821,
+      "incomplete_search_rows": 1,
+      "correct_heads": 2589,
+      "correct_base_las": 2187,
+      "correct_pos": 2662,
+      "exact_graph_and_pos": 232,
+      "vocative_tp": 1,
+      "vocative_fp": 10,
+      "vocative_fn": 9,
+      "uas": 0.7397142857142858,
+      "base_las": 0.6248571428571429,
+      "pos_accuracy": 0.7605714285714286
+    },
+    "fullTRAIN_and_teaching_sequence_disjoint": {
+      "rows": 756,
+      "tokens": 3377,
+      "complete": 755,
+      "incomplete_search_rows": 1,
+      "correct_heads": 2471,
+      "correct_base_las": 2073,
+      "correct_pos": 2550,
+      "exact_graph_and_pos": 173,
+      "vocative_tp": 1,
+      "vocative_fp": 10,
+      "vocative_fn": 9,
+      "uas": 0.7317145395321291,
+      "base_las": 0.6138584542493337,
+      "pos_accuracy": 0.7551080840983121
+    }
+  },
+  "test": {
+    "all_original_rows": {
+      "rows": 933,
+      "tokens": 3864,
+      "complete": 930,
+      "incomplete_search_rows": 3,
+      "correct_heads": 2631,
+      "correct_base_las": 2301,
+      "correct_pos": 2912,
+      "exact_graph_and_pos": 287,
+      "vocative_tp": 7,
+      "vocative_fp": 22,
+      "vocative_fn": 4,
+      "uas": 0.6809006211180124,
+      "base_las": 0.5954968944099379,
+      "pos_accuracy": 0.7536231884057971
+    },
+    "fullTRAIN_and_teaching_sequence_disjoint": {
+      "rows": 839,
+      "tokens": 3699,
+      "complete": 836,
+      "incomplete_search_rows": 3,
+      "correct_heads": 2466,
+      "correct_base_las": 2144,
+      "correct_pos": 2760,
+      "exact_graph_and_pos": 204,
+      "vocative_tp": 6,
+      "vocative_fp": 22,
+      "vocative_fn": 4,
+      "uas": 0.6666666666666666,
+      "base_las": 0.5796161124628277,
+      "pos_accuracy": 0.7461476074614761
+    }
+  },
+  "scope": "External numerical reference diagnostic on frozen TRAIN-selected candidate; all original row/token denominators retained. Not actual Source/Native/model acceptance, stable-fact or public Session evidence. No tuning on these metrics."
+}

@@ -1,0 +1,8 @@
+plot real_speech {
+ voice: speech/synthesize(maximum-output-bytes = 131072)
+ convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right")
+ artifact: audio/play
+ "Hello. I am Conduit." >> voice.text
+ voice.audio >> convert.audio
+ convert.converted >> artifact.audio
+}.

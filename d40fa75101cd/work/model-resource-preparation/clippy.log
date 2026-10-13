@@ -1,0 +1,5 @@
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/kernel)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/plan-lowering)
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/architecture/composite)
+    Checking conduit-ai v0.1.0 (/home/dancxjo/conduit-4898-pair-storage/semantics/ai)
+    Finished `dev` profile [unoptimized] target(s) in 6.80s

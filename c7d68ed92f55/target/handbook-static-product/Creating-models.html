@@ -1,0 +1,521 @@
+<!doctype html><html lang="en"><head><meta http-equiv="Content-Security-Policy" content="default-src 'none'; base-uri 'none'; object-src 'none'; frame-src 'none'; form-action 'none'; connect-src 'self'; script-src 'self' blob: 'wasm-unsafe-eval'; style-src 'self' blob: 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self' data:; media-src 'self' blob:; worker-src 'none'"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><meta name="color-scheme" content="dark light"><title>Creating models: teach Conduit to speak · Conduit handbook</title><style>:root {
+  color-scheme: dark;
+  --conduit-background: #05070b;
+  --conduit-reading-paper: #0c121c;
+  --conduit-workbench-canvas: #05070b;
+  --conduit-bootstrap-surface: #090d16;
+  --conduit-surface: #090d16;
+  --conduit-structure-primary: #0dd8f6;
+  --conduit-structure-secondary: #0a1f87;
+  --conduit-text-primary: #93d2f7;
+  --conduit-text-secondary: #578ec9;
+  --conduit-emphasis: #e9a325;
+  --conduit-focus: #f4c400;
+  --conduit-warning: #f2bd71;
+  --conduit-failure: #ff7272;
+  --conduit-success: #63d69b;
+  --conduit-muted: #8c4c19;
+  /* Short aliases remain available while browser layout styles migrate to semantic names. */
+  --ink: var(--conduit-text-primary);
+  --muted: var(--conduit-text-secondary);
+  --paper: var(--conduit-background);
+  --panel: var(--conduit-reading-paper);
+  --field: var(--conduit-bootstrap-surface);
+  --line: #183d61;
+  --green: var(--conduit-structure-primary);
+  --green-dark: var(--conduit-text-primary);
+  --amber: var(--conduit-emphasis);
+  --focus: var(--conduit-focus);
+  --failure: var(--conduit-failure);
+  --conduit-font-body: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --conduit-font-editorial: Georgia, "Times New Roman", serif;
+  --conduit-font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --conduit-type-body: 16px;
+  --conduit-type-small: 14px;
+  --conduit-line-height: 150%;
+  --conduit-space-unit: 4px;
+  --conduit-space-control-inline: 10px;
+  --conduit-space-control-block: 7px;
+  --conduit-space-panel: 13px;
+  --conduit-radius-control: 6px;
+  --conduit-radius-panel: 9px;
+  --conduit-focus-width: 3px;
+  --conduit-responsive-breakpoint: 720px;
+  --conduit-responsive-grid-min: 260px;
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+:where([data-application-theme]) {
+  box-sizing: border-box;
+  color: var(--conduit-text-primary);
+  background: var(--conduit-background);
+  font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
+}
+@media (prefers-color-scheme: light) {
+  :root {
+    --conduit-background: #eef5f8;
+    --conduit-reading-paper: #ffffff;
+    --conduit-workbench-canvas: #e5eff4;
+    --conduit-bootstrap-surface: #f7fbfd;
+    --conduit-surface: #ffffff;
+    --conduit-structure-primary: #00758c;
+    --conduit-structure-secondary: #9ab8d1;
+    --conduit-text-primary: #17364d;
+    --conduit-text-secondary: #496b82;
+    --conduit-emphasis: #9a5b00;
+    --conduit-focus: #775d00;
+    --conduit-warning: #8a5200;
+    --conduit-failure: #a32d37;
+    --conduit-success: #08784e;
+    --conduit-muted: #7b654f;
+    --line: #b8cfdd;
+    --green-dark: #174f68;
+    color-scheme: light;
+  }
+}
+:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+.conduit-skip-link {
+  position: fixed; z-index: 2147483647; inset-block-start: var(--conduit-space-unit); inset-inline-start: var(--conduit-space-unit);
+  padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); border: 2px solid var(--conduit-focus);
+  border-radius: var(--conduit-radius-control); color: var(--conduit-background); background: var(--conduit-focus);
+  font: 700 var(--conduit-type-small)/1.2 var(--conduit-font-body); text-decoration: none; transform: translateY(calc(-100% - 1rem));
+}
+.conduit-skip-link:focus { outline: var(--conduit-focus-width) solid var(--conduit-background); outline-offset: 2px; transform: none; }
+.visually-hidden { position:absolute!important; inline-size:1px!important; block-size:1px!important; padding:0!important; margin:-1px!important; overflow:hidden!important; clip-path:inset(50%)!important; white-space:nowrap!important; border:0!important; }
+:where([data-application-syntax="conduit"]) { position: relative; min-width: 0; }
+:where([data-application-syntax="conduit"] .syntax-editor) { position: relative; width: 100%; height: 100%; min-width: 0; color:#e9f1ec; background:#071018; }
+:where([data-application-syntax="conduit"] .syntax-highlight) {
+  position: absolute; inset: 0; z-index: 0; margin: 0; padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  overflow: hidden; color: #e9f1ec; background: transparent; pointer-events: none;
+  white-space: pre-wrap; overflow-wrap: normal;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea {
+  display: block; width: 100%; border: 0;
+  padding: var(--conduit-syntax-padding, var(--conduit-space-control-block) var(--conduit-space-control-inline));
+  position: relative; z-index: 1; color: transparent; caret-color: #fff; background: transparent;
+  -webkit-text-fill-color: transparent;
+  font: 500 var(--conduit-syntax-size, .91rem)/var(--conduit-syntax-line-height, 1.65) var(--conduit-font-mono); tab-size: 4;
+}
+[data-application-syntax="conduit"] .syntax-editor > textarea::selection {
+  /* Selection paints readable glyphs above the backdrop. */
+  color: #fff; background: rgb(119 218 168 / 45%); -webkit-text-fill-color: #fff;
+}
+:where(.syntax-comment) { color: #91aa9d; font-style: italic; }
+:where(.syntax-keyword) { color: #ffcf70; font-weight: 750; }
+:where(.syntax-name) { color: #e9f1ec; }
+:where(.syntax-identity) { color: #8ddfc0; }
+:where(.syntax-string) { color: #ffd7a0; }
+:where(.syntax-number, .syntax-literal) { color: #d9b8ff; }
+:where(.syntax-operator) { color: #ff9f8f; }
+:where(.syntax-delimiter) { color: #b9cbc1; }
+:where([data-application-component="stack"], [data-application-component="form-field"]) { display: grid; gap: var(--conduit-space-unit); }
+:where([data-application-component="choice-group"]) { display:grid; gap:var(--conduit-space-unit); min-inline-size:0; margin:0; padding:0; border:0; }
+:where([data-application-component="choice-group-label"]) { margin-block-end:var(--conduit-space-unit); font-weight:700; }
+:where([data-application-component="choice-option-label"]) { display:flex; align-items:center; gap:var(--conduit-space-unit); width:max-content; cursor:pointer; }
+:where(input[type="checkbox"], input[type="radio"])[data-application-component] { appearance:auto; inline-size:1.1rem; block-size:1.1rem; margin:0; padding:0; accent-color:var(--conduit-emphasis); cursor:pointer; }
+:where([data-application-component="choice-option-label"]):has(input:focus-visible) { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:2px; }
+:where([data-application-component="grid"]) { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--conduit-responsive-grid-min)), 1fr)); gap: var(--conduit-space-panel); }
+:where([data-application-component="action-group"], [data-application-component="navigation"], [data-application-component="stepper"]) { display: flex; flex-wrap: wrap; gap: var(--conduit-space-unit); }
+:where([data-application-key="product-masthead"]) { min-height:3.75rem; padding:.7rem max(1.25rem,calc((100vw - 96rem)/2)); display:flex; align-items:center; justify-content:space-between; gap:1.5rem; color:var(--conduit-text-primary); background:var(--conduit-surface); border-bottom:1px solid var(--conduit-structure-secondary); font-size:.82rem; }
+:where([data-application-key="product-navigation"]) { position:static; inset:auto; flex:1; width:auto; max-width:none; margin:0; padding:0; display:flex; align-items:center; flex-wrap:wrap; gap:1.35rem; border:0; background:transparent; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]) { color:var(--conduit-text-secondary); text-decoration:none; font-weight:720; letter-spacing:.02em; }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):hover { color:var(--conduit-text-primary); }
+:where([data-application-component="navigation-link"], [data-application-component="link"]):focus-visible { outline:var(--conduit-focus-width) solid var(--conduit-focus); outline-offset:3px; }
+:where([data-application-component="navigation-link"])[aria-current="page"] { color:var(--conduit-emphasis); }
+:where([data-application-component="navigation-link"])[aria-current="page"]:hover { color:var(--conduit-text-primary); }
+:where([data-application-key="home"]) { margin-inline-end:auto; color:var(--conduit-structure-primary); font-family:var(--conduit-font-mono); letter-spacing:.08em; }
+:where([data-application-key="product-status"]) { margin-inline-start:auto; color:var(--conduit-text-secondary); text-align:end; }
+@media (max-width:650px) { :where([data-application-key="product-masthead"]) { align-items:flex-start; flex-wrap:wrap; gap:.55rem 1rem; } :where([data-application-key="product-navigation"]) { order:3; width:100%; } }
+:where([data-application-component="panel"], [data-application-component="artifact"], [data-application-evidence]) {
+  padding: var(--conduit-space-panel);
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-panel);
+  background: var(--conduit-surface);
+}
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component] {
+  padding: var(--conduit-space-control-block, .65rem) var(--conduit-space-control-inline, 1rem);
+  color: inherit;
+  border: 1px solid var(--conduit-structure-secondary);
+  border-radius: var(--conduit-radius-control, .6rem);
+  background: var(--conduit-surface);
+  font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] input:not([type="checkbox"]):not([type="radio"]), [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary) {
+  min-height: 2.5rem; padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); color: inherit;
+  border: 1px solid var(--conduit-structure-secondary); border-radius: var(--conduit-radius-control); background: var(--conduit-surface); font: inherit;
+}
+:where([data-application-theme] button, [data-application-theme] select) { font-weight: 650; cursor: pointer; }
+:where([data-application-theme] button, [data-application-theme] select):disabled { cursor: not-allowed; opacity: .48; }
+:where([data-application-theme] button, [data-application-theme] input, [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary, [data-application-theme] a):focus-visible {
+  border-color: var(--conduit-focus); outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: 2px;
+}
+:where(button[data-application-component]) {
+  min-height: 2.5rem;
+  border-color: color-mix(in srgb, var(--conduit-structure-primary) 58%, var(--conduit-structure-secondary));
+  background: linear-gradient(180deg, color-mix(in srgb, var(--conduit-structure-primary) 10%, var(--conduit-surface)), var(--conduit-surface));
+  box-shadow: inset 0 1px rgb(255 255 255 / 10%), 0 2px 0 color-mix(in srgb, var(--conduit-structure-secondary) 72%, #000);
+  font-weight: 720;
+  letter-spacing: .01em;
+  cursor: pointer;
+  transition: color 140ms ease, border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+:where(button[data-application-component]:not(:disabled)):hover { color:var(--conduit-emphasis); border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000),0 0 1rem color-mix(in srgb,var(--conduit-structure-primary) 16%,transparent); transform:translateY(-1px); }
+:where(button[data-application-component]:not(:disabled)):active { box-shadow:inset 0 1px 4px rgb(0 0 0 / 35%); transform:translateY(1px); }
+:where(button[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(select[data-application-component]) {
+  min-height:2.5rem; appearance:none; padding-inline-end:2.7rem;
+  border-color:color-mix(in srgb,var(--conduit-structure-primary) 58%,var(--conduit-structure-secondary));
+  background-image:linear-gradient(45deg,transparent 50%,var(--conduit-emphasis) 50%),linear-gradient(135deg,var(--conduit-emphasis) 50%,transparent 50%),linear-gradient(180deg,color-mix(in srgb,var(--conduit-structure-primary) 10%,var(--conduit-surface)),var(--conduit-surface));
+  background-position:calc(100% - 1rem) 50%,calc(100% - .7rem) 50%,0 0; background-size:.36rem .36rem,.36rem .36rem,100% 100%; background-repeat:no-repeat;
+  box-shadow:inset 0 1px rgb(255 255 255 / 10%),0 2px 0 color-mix(in srgb,var(--conduit-structure-secondary) 72%,#000); font-weight:650; cursor:pointer;
+  transition:border-color 140ms ease,box-shadow 140ms ease,transform 140ms ease;
+}
+:where(select[data-application-component]:not(:disabled)):hover { border-color:var(--conduit-emphasis); box-shadow:inset 0 1px rgb(255 255 255 / 14%),0 3px 0 color-mix(in srgb,var(--conduit-emphasis) 40%,#000); transform:translateY(-1px); }
+:where(select[data-application-component]:disabled) { cursor:not-allowed; opacity:.48; box-shadow:none; }
+:where(button, input:not([type="checkbox"]):not([type="radio"]), select, textarea, summary)[data-application-component]:focus-visible {
+  border-color: var(--conduit-focus);
+  outline: var(--conduit-focus-width) solid var(--conduit-focus);
+  outline-offset: 2px;
+}
+:where([data-application-status="ordinary"]) { color: var(--conduit-text-secondary); }
+:where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
+:where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
+:where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
+:where([data-application-theme][data-conduit-contrast="high"]) {
+  --conduit-surface: var(--conduit-background) !important;
+  --conduit-text-secondary: var(--conduit-text-primary) !important;
+  --conduit-structure-secondary: var(--conduit-focus) !important;
+}
+@media (max-width: 720px) {
+  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+}
+@media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
+
+/* Shared by the homepage, handbook, and every documentary page. */
+* { box-sizing: border-box; }
+html { color-scheme: dark light; scroll-behavior: smooth; }
+body { margin: 0; background: var(--conduit-background); color: var(--conduit-text-primary); font: 400 1rem/1.65 var(--conduit-font-body, system-ui, sans-serif); }
+a { color: var(--conduit-emphasis); text-underline-offset: .2em; }
+a:focus-visible, button:focus-visible, input:focus-visible, summary:focus-visible { outline: 3px solid var(--conduit-focus); outline-offset: 4px; }
+.site-header { width: 100%; display: flex; align-items: center; gap: 2rem; padding: 1rem max(1.25rem, calc((100vw - 88rem)/2)); background: var(--conduit-surface); border-bottom: 1px solid var(--conduit-structure-secondary); }
+.site-header a { color: var(--conduit-text-secondary); text-decoration: none; font-size: .9rem; white-space: nowrap; }
+.site-header .site-brand { color: var(--conduit-text-primary); font-size: 1.15rem; font-weight: 750; }
+.site-header nav { display: flex; flex-wrap: wrap; align-items: center; gap: .5rem 1.4rem; margin: 0; }
+.site-header .site-source { margin-left: auto; }
+.site-header a:hover, .site-header a[aria-current="page"] { color: var(--conduit-emphasis); }
+.site-header a[aria-current="page"] { text-decoration: underline; text-underline-offset: .45em; }
+.site-content { width: min(78rem, calc(100% - 3rem)); margin: 0 auto; padding: clamp(2rem, 5vw, 5rem) 0; }
+.site-content h1 { font-size: clamp(2.5rem, 6vw, 4.8rem); line-height: 1.08; letter-spacing: -.04em; margin: .4rem 0 1.4rem; }
+.site-content h2 { font-size: clamp(1.65rem, 3vw, 2.4rem); line-height: 1.2; }
+.site-content .lede { max-width: 65ch; font-size: 1.2rem; color: var(--conduit-text-secondary); }
+.site-content .eyebrow { font-size: .8rem; color: var(--conduit-text-secondary); }
+.site-content img, .site-content video { display: block; width: 100%; height: auto; border: 1px solid var(--conduit-structure-secondary); border-radius: .5rem; }
+.site-content figure { margin: 1.5rem 0; }
+.site-content figcaption { color: var(--conduit-text-secondary); font-size: .95rem; margin-top: .6rem; }
+.site-content details { border-top: 1px solid var(--conduit-structure-secondary); padding: 1rem 0; margin-top: 1.5rem; overflow-wrap: anywhere; }
+.site-content summary { cursor: pointer; }
+.journey-cards { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 20rem), 1fr)); gap: 1.25rem; margin: 2rem 0 3rem; }
+.journey-card { padding: 1.5rem; background: var(--conduit-surface); border: 1px solid var(--conduit-structure-secondary); border-radius: .6rem; }
+.journey-card h2, .journey-card h3 { margin-top: 0; }
+.journey-steps { list-style: none; padding: 0; counter-reset: journey-step; }
+.journey-step { counter-increment: journey-step; padding: 2rem 0; border-top: 1px solid var(--conduit-structure-secondary); }
+.journey-step h2::before { content: counter(journey-step, decimal-leading-zero) "  "; color: var(--conduit-text-secondary); }
+.journey-step p { max-width: 70ch; }
+.recording-note { color: var(--conduit-text-secondary); font-size: .95rem; }
+@media (max-width: 50rem) { .site-header { gap: .8rem 1.2rem; flex-wrap: wrap; } .site-header nav { order: 3; width: 100%; gap: .65rem 1.2rem; } .site-content { width: calc(100% - 2rem); } }
+@media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } }
+</style><link rel="stylesheet" href="handbook.css"><link rel="stylesheet" href="svg-viewport.css"><script type="module" src="handbook.mjs"></script><meta name="conduit-application-package" content="application.application.json"></head><body class="handbook-page handbook-page-Creating-models" data-application-theme="conduit.presentation/phosphor@1"><a class="conduit-skip-link" href="#handbook-content">Skip to content</a><header class="site-header"><a class="site-brand" href="/conduit/" aria-label="Conduit home">Conduit</a><nav aria-label="Main navigation"><a data-section="home" href="/conduit/">Home</a><a data-section="journeys" href="/conduit/journeys/">Journeys</a><a data-section="handbook" aria-current="page" href="/conduit/handbook/">Handbook</a><a data-section="downloads" href="/conduit/#get-conduit">Downloads</a><a data-section="workspace" href="/conduit/workspace/">Open Conduit</a></nav><a class="site-source" href="https://github.com/dancxjo/conduit">Source</a></header>
+<div class="handbook-layout"><aside class="handbook-sidebar" aria-label="Handbook navigation"><h3 id="learn">Learn</h3>
+<ul>
+<li><a href="index.html">Home</a></li>
+<li><a href="Why-Conduit.html">Why Conduit</a></li>
+<li><a href="Architecture-tour.html">Architecture tour</a></li>
+<li><a href="Conduitese.html">Conduitese</a></li>
+<li><a href="Conduitese-by-example.html">Conduitese by example</a></li>
+<li><a href="Units-and-quantities.html">Units and quantities</a></li>
+<li><a href="Conduitese-feature-coverage.html">Feature example index</a></li>
+<li><a href="Plot-diagrams.html">Plot diagrams</a></li>
+<li><a href="Glossary.html">Glossary</a></li>
+</ul>
+<h3 id="use">Use</h3>
+<ul>
+<li>
+<p><a aria-current="page" href="Creating-models.html">Creating models: teach Conduit to speak</a></p>
+</li>
+<li>
+<p><a href="Start-here.html">Start here</a></p>
+</li>
+<li>
+<p><a href="Bodies-hosts-plans-and-plays.html">Bodies, hosts, plans and plays</a></p>
+</li>
+<li>
+<p><a href="State-time-and-data.html">State, time and data</a></p>
+</li>
+<li>
+<p><a href="Lines-networking-and-replanning.html">Lines, networking and replanning</a></p>
+</li>
+<li>
+<p><a href="Face-Mask-and-Show.html">Face, mask and show</a></p>
+</li>
+<li>
+<p><a href="ConduitOS-and-real-machines.html">ConduitOS and real machines</a></p>
+</li>
+</ul>
+<h3 id="reference">Reference</h3>
+<ul>
+<li><a href="Current-language-surface.html">Current language surface</a></li>
+<li><a href="Architecture.html">Architecture</a></li>
+<li><a href="Plots-and-flow.html">Plots and flow</a></li>
+<li><a href="Types-and-state.html">Types and state</a></li>
+<li><a href="Terminals-and-concurrency.html">Terminals and concurrency</a></li>
+<li><a href="Effects-and-realization.html">Effects and realization</a></li>
+<li><a href="Packs-hosts-and-bodies.html">Packs, hosts and bodies</a></li>
+</ul>
+<h3 id="status-and-governance">Status and governance</h3>
+<ul>
+<li><a href="Evidence-and-proof.html">Evidence and proof</a></li>
+<li><a href="Project-status-and-roadmap.html">Project status and roadmap</a></li>
+<li><a href="Canon-governance.html">Canon governance</a></li>
+</ul>
+</aside><main id="handbook-content" class="handbook-article" tabindex="-1"><p class="handbook-progress">Section 10 of 26</p><h1 id="creating-models-teach-conduit-to-speak">Creating models: teach Conduit to speak</h1>
+<p><strong>Development journey for #5205–#5207.</strong> The hosted Burn library foundation is
+implemented and tested. The generic regression journey also has an ordinary model-work Plot/HostCall
+path. ConduitVoice and corpus preparation remain proposed. Proposed examples are promises to test;
+the adjacent regression proof does not establish the voice journey.</p>
+<p>This chapter is for a Rust contributor who understands ordinary plots, plans,
+and plays. Build, train, evaluate, checkpoint, offer, and use one learned model:</p>
+<pre><code class="language-text">committed linguistic facts → ConduitVoice → FARGAN features → FARGAN → PCM → Mask
+</code></pre>
+<p>Conduit owns meaning, identity, planning, bounds, and evidence. A selected back
+owns numerical realization. Burn supplies tensors, autodiff, optimizer internals,
+and device kernels inside that Rust back.</p>
+<h2 id="choose-an-on-ramp">Choose an on-ramp</h2>
+<p>A host can realize meaning at different levels. A whole-model Rust/Burn back
+may implement bounded acoustic prediction. A checked plot back may compose
+duration, prosody, and spectral prediction. Lower-level numerical backs may
+realize authored tensor operations, as the existing FARGAN work does. Another
+framework, service, or future mechanism can enter at any exact contract it
+truthfully satisfies. Burn is one on-ramp, not the model ontology.</p>
+<p>Every substitution still requires the same kind and fore, exact input/output
+meaning, finite bounds, current offers, authority, and compatible numeric
+profiles. Selecting a smaller seam does not erase identity or provenance.
+Native plots do not have to reproduce Burn's autodiff machinery. An opaque
+provider does not have to expose a portable gear for every internal operation.</p>
+<p>Off-ramps are equally explicit: export inference weights, resume bundles,
+dataset/derived observations, predictions, and evaluation evidence for use by
+another tool. Local representation and external identity stay distinct from
+Conduit meaning. Re-import checks format/schema, content identity, compatibility,
+provenance, and authority; an exported checkpoint is data, not executable
+authority. Numerical similarity alone does not make two artifacts identical.</p>
+<h2 id="define-a-model-contract">Define a model contract</h2>
+<p>Keep architecture/config, model artifact, mutable training state, immutable
+checkpoint, and runtime realization distinct. A filesystem path locates data;
+it is not portable dataset identity. Framework tensors/autograd graphs remain
+host-private rather than becoming portable Conduit values.</p>
+<p>ConduitVoice accepts bounded committed English phone occurrences with stress,
+context, and syllable/word/phrase boundaries. Available explicit prosody remains
+input; missing prosody is not zero. Unsupported phones, languages, shapes, and
+profiles refuse rather than approximate silently.</p>
+<p>Output is the exact selected FARGAN conditioning contract: 20 features per
+10 ms epoch plus admitted period. Features 0–17 follow its spectral conventions;
+18–19 follow its pitch/correlation conventions. Cadence, window/history,
+startup, delay, scaling, period range, and boundary rules are part of that
+profile. An arbitrary mel spectrogram cannot substitute.</p>
+<p>The Rust authoring seam declares architecture/version, bounded signatures,
+parameter groups, trainable/frozen policy, checkpoint schema, supported
+precision/device profiles, and a finite resource estimate. See the
+<a href="https://github.com/dancxjo/conduit/blob/dev/targets/std/model-authoring.md">hosted authoring contract</a> and existing
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/ai/src/model_compute.rs">model-compute semantics</a>.</p>
+<h2 id="implement-the-model-once">Implement the model once</h2>
+<p>ConduitVoice v0 uses phone embeddings, a small convolutional encoder,
+duration/pitch/energy/voicing heads, explicit length regulation at 100 Hz,
+and a compact acoustic decoder with an exact FARGAN projection. Configuration
+is versioned data. One model definition serves training and inference;
+inference needs no optimizer or trainer-only modules.</p>
+<p>Its training forward participates in the existing
+<a href="https://github.com/dancxjo/conduit/blob/dev/semantics/ai/src/training.rs">training semantics</a>. The tiny tutorial uses
+the same model with a smaller configuration. A tiny adjacent regression model
+demonstrates generic reuse without replacing the voice walkthrough.</p>
+<p>For a complete small implementation, read the executable
+<a href="https://github.com/dancxjo/conduit/blob/dev/mechanisms/implementations/burn-model/tests/common/mod.rs">regression model definition</a>
+and its <a href="https://github.com/dancxjo/conduit/blob/dev/mechanisms/implementations/burn-model/tests/retained_journey.rs">retained journey</a>.
+It learns <code>y = 2x + 1</code> with a single Burn linear layer, an explicit bounded
+signature, one parameter group, and mean-square objective. Its synthetic dataset
+and identities are fixtures. Copy the authoring pattern, then supply your own
+semantic contract and truthful preparation evidence.</p>
+<p>The following Rust helpers compile against the public hosted library seam:</p>
+<pre><code class="language-rust,no_run">use conduit_burn_model::{BurnAdapter, BurnModelDefinition, DeviceRequest, Error,
+    OptimizerRecipe, PreparedBurnModel, TrainingContext};
+
+fn prepare&lt;D: BurnModelDefinition&gt;(definition: D) -&gt; Result&lt;PreparedBurnModel&lt;D&gt;, Error&gt; {
+    PreparedBurnModel::initialize(definition, DeviceRequest::Cpu,
+        OptimizerRecipe { learning_rate: 0.001, weight_decay: 0.01,
+            gradient_clip: 1.0, seed: 42 })
+}
+fn start&lt;D: BurnModelDefinition&gt;(prepared: PreparedBurnModel&lt;D&gt;, context: TrainingContext)
+    -&gt; Result&lt;BurnAdapter&lt;D&gt;, Error&gt;
+{
+    // Host preparation publishes prepared.weights(), then constructs the existing
+    // artifact/session identities from prepared.content_identity().
+    BurnAdapter::from_prepared(prepared, context)
+}
+</code></pre>
+<p><code>PreparedBurnModel</code> retains the initialized module so creating its content-bound
+artifact does not initialize a random model a second time. Admission checks that
+its SafeTensors bytes match the base artifact's digest and extent. Host preparation
+still owns durable publication and truthful dataset/build/resource evidence.</p>
+<p>An exported checkpoint has a separate inference entrance. Its context contains
+artifact and host runtime evidence, without any dataset, training session, or
+optimizer recipe. The loader verifies the descriptor and SafeTensors members:</p>
+<pre><code class="language-rust,no_run">use conduit_burn_model::{BurnModelDefinition, DeviceRequest, DirectoryCheckpointStore,
+    Error, InferenceBurnAdapter, InferenceContext};
+fn reload&lt;D: BurnModelDefinition&gt;(definition: D, context: InferenceContext,
+    store: &amp;DirectoryCheckpointStore, checkpoint: &amp;[u8; 32])
+    -&gt; Result&lt;InferenceBurnAdapter&lt;D&gt;, Error&gt;
+{
+    InferenceBurnAdapter::load(definition, DeviceRequest::Cpu, context, store, checkpoint)
+}
+</code></pre>
+<p>The capstone call is <strong>proposed</strong>, pending ConduitVoice and its exact FARGAN gate:</p>
+<pre><code class="language-rust,ignore">let definition = ConduitVoiceDefinition::new(ConduitVoiceConfig::tiny());
+let prepared = prepare(definition)?;
+// Publish the base artifact, prepare checked speech data and construct context.
+let mut model = start(prepared, context)?;
+</code></pre>
+<h2 id="prepare-truthful-data">Prepare truthful data</h2>
+<p>Use <a href="https://keithito.com/LJ-Speech-Dataset/">LJ Speech 1.1</a>, a single-speaker
+English corpus whose publisher identifies text, audio, and annotations as
+public domain. Keep the full corpus outside Git. Retain source/version/content
+identity, permissions, speaker/session scope, transcript provenance, original
+audio geometry, preprocessing, and stable split membership.</p>
+<p>Resampling 22,050 Hz audio to 16,000 Hz creates a derived observation. Pinned
+Montreal Forced Aligner English ARPA alignment is derived evidence, not committed
+linguistic truth. Record tool/model/dictionary/mapping identities and attribution;
+reject unsupported mappings. Group duplicate transcripts and overlapping source
+segments before deterministic split assignment. Fit normalization on training
+data only. The checked excerpt retains alignment and requires no aligner in CI.</p>
+<p><strong>Before acoustic training</strong>, extract reference features from recorded speech
+and reconstruct through existing authored FARGAN. Compare against the pinned
+upstream analysis reference; retain original/reconstructed WAVs and listening
+evidence. Fix or report a profile mismatch before proceeding. The formant
+spectral approximation is not the training target.</p>
+<h2 id="write-a-bounded-recipe">Write a bounded recipe</h2>
+<p>Name model/config, fresh initialization or base checkpoint, dataset/splits,
+batch/shuffle seed, optimizer/scheduler, clipping, weighted objectives,
+step/work bounds, evaluation/checkpoint cadence, and reproducibility profile.
+CPU/CUDA is realization selection unless a numeric difference is explicitly
+material. An exact unavailable device request refuses.</p>
+<p>Admission includes committed/candidate parameters and optimizer state,
+autodiff/temporary storage, batch input/output, queueing, checkpoint bytes, and
+finite work. A seed is not a promise of cross-device bitwise reproducibility.</p>
+<h2 id="train-as-ordinary-conduit-work">Train as ordinary Conduit work</h2>
+<p>The hosted library foundation has a runnable repository proof entrance. It
+executes the adjacent regression contract tests, not the proposed voice path:</p>
+<!-- model-authoring-command -->
+<pre><code class="language-sh">cargo xtask prove model-authoring --output work/model-authoring
+</code></pre>
+<p>Verify the documented command itself with
+<code>cargo xtask prove model-authoring --documented-command --output work/model-authoring-docs</code>.
+The producer extracts the marked command, substitutes only the host-local evidence
+directory, executes it through <code>cargo xtask</code>, and retains document identity and logs.</p>
+<p>Run the generic Plot journey with:</p>
+<pre><code class="language-sh">cargo xtask prove model-authoring --plot-journey --output work/model-authoring-plot
+</code></pre>
+<p>The <a href="https://github.com/dancxjo/conduit/blob/dev/plots/model-authoring/main.conduit">authored Plot</a>
+accepts canonical model-work byte envelopes through public external Fores. The
+prepared Host offers the model session; ordinary planning selects it, and the
+installed kernel dispatches each operation through its admitted Host Call.
+The regression journey trains, evaluates, checkpoints, exports, reloads for
+inference, restores a fresh training runtime, and advances the recorded step.
+It checks the actual Kernel request/completion records and exact inference output
+across reload. The byte envelope is a transport codec; its decoder retains the
+existing semantic training requests, tensors and receipts as payload authority.</p>
+<p>The CPU fixture uses F32 and constant-rate AdamW. Host preparation owns the
+compiled definition, checkpoint store and device. The Plot contains no filesystem
+or device bindings. Normal public CLI setup for arbitrary model families and the
+voice composition remain separate work.</p>
+<p>Inspect Plan/Play/Sign evidence as well as console progress: exact selected
+back/device/precision, admitted bounds, dataset/batch/objective identities,
+generation, consumed work, metrics, and terminal outcome.</p>
+<h2 id="cancel-without-a-half-step">Cancel without a half-step</h2>
+<p>Compute candidate parameters and optimizer state without replacing committed
+state. Publish both through the semantic state boundary only after validation
+and successful work. Cancellation/refusal/failure retains the prior generation.
+Output pressure cannot apply an update twice. Candidate snapshots count toward
+the admitted memory bound.</p>
+<h2 id="evaluate-components">Evaluate components</h2>
+<p>Evaluation updates neither parameters, optimizer, random cursor, nor running
+statistics. Report duration error, voiced/unvoiced performance, voiced pitch
+error, per-feature reconstruction error, and combined validation objective.
+Retain held-out formant→FARGAN, recorded-features→FARGAN, and predicted-features
+→FARGAN WAVs. Record intelligibility/pronunciation listening separately from
+loss. Measure first-audio latency, steady RTF, model bytes, and peak memory.</p>
+<h2 id="checkpoint-stop-and-resume">Checkpoint, stop, and resume</h2>
+<p>Inference weights use SafeTensors with a versioned Conduit descriptor. Resume
+bundles additionally retain optimizer/scheduler/scaler state where supported,
+randomness, batch cursor, generation, and exact recipe/data/config identities.
+Inference export is an off-ramp that omits resume-only machinery.</p>
+<p>Publish and sync immutable objects before atomically advancing the durable
+checkpoint/cursor reference. In-memory committed progress and the last durable
+resume point remain distinct. Best/latest reference immutable snapshots. A write
+failure cannot advertise an incomplete bundle. Reload validates content/schema
+and compatibility; stale recipes, corruption, and unsupported schemas refuse.</p>
+<p>The tiny proof stops, creates a fresh runtime, resumes the recorded cursor,
+advances work, exports, reloads, and compares inference within declared tolerance.</p>
+<h2 id="offer-and-use-the-capability">Offer and use the capability</h2>
+<p>Ordinary artifact/admission machinery loads the checkpoint and offers a bounded
+model back. The planner selects it and composes feature epochs with existing
+plot-authored FARGAN and audio presentation. No private ConduitVoice runner
+bypasses discovery, planning, or kernel execution.</p>
+<p>Swap model/back where exact contracts permit. Formant, ConduitVoice→FARGAN,
+compatible reference voices, and hosted speech retain separate realization
+facts. Neither speech nor model meaning is defined by one backend.</p>
+<h2 id="make-your-own">Make your own</h2>
+<p>Define semantic inputs/outputs; version architecture/config; implement the Rust
+seam; identify data/derived evidence; write a bounded recipe; train/evaluate;
+checkpoint; offer an inference back; compose it in plots.</p>
+<p>A sensor anomaly detector maps bounded calibrated windows to explicit anomaly
+scores. A motion predictor maps admitted pose histories to bounded trajectories
+with declared uncertainty. Each can enter through Burn, native composition, or
+another back and export evidence through the same explicit artifact boundary.</p>
+<h2 id="promises-and-executable-proof">Promises and executable proof</h2>
+<p>These proof cases distinguish hosted-library evidence from the proposed capstone.
+The <a href="https://github.com/dancxjo/conduit/blob/dev/proof/model-authoring/README.md">evidence guide</a> records proof scope and
+the separately pinned FARGAN dependency inspection.
+<a href="https://github.com/dancxjo/conduit/blob/dev/proof/model-authoring/evidence/0d8aca837/README.md">Retained clean-source proof</a>
+includes real regression resume/inference artifacts, CPU loss improvement, and
+separate CUDA training/inference comparisons. It does not establish a voice.</p>
+<table><thead><tr><th>Promise</th><th>Proof</th><th>Status</th></tr></thead><tbody>
+<tr><td>Honest bounded authoring</td><td><code>authoring_contract_refuses_invalid_profiles</code></td><td>hosted library tested</td></tr>
+<tr><td>Real CPU autodiff learns</td><td><code>burn_cpu_loss_decreases</code></td><td>hosted library tested</td></tr>
+<tr><td>Cancellation retains parameters/optimizer</td><td><code>cancelled_step_retains_parameters_and_optimizer</code></td><td>hosted library tested</td></tr>
+<tr><td>Invalid evaluation identity refuses before work</td><td><code>invalid_evaluation_batch_refuses_before_objective_execution</code></td><td>hosted library tested</td></tr>
+<tr><td>Signature batch bounds fit realization</td><td><code>signature_batch_bound_cannot_exceed_realization_admission</code></td><td>hosted library tested</td></tr>
+<tr><td>Evaluation is read-only</td><td><code>evaluation_preserves_training_state</code></td><td>hosted library tested</td></tr>
+<tr><td>Inference reload needs no training context</td><td><code>inference_export_reloads_without_dataset_session_or_optimizer</code></td><td>hosted library tested</td></tr>
+<tr><td>Nonfinite updates never commit</td><td><code>finite_loss_with_nonfinite_gradient_never_commits_candidate</code></td><td>hosted library tested</td></tr>
+<tr><td>Frozen groups survive resume</td><td><code>frozen_parameter_group_remains_frozen_after_resume</code></td><td>hosted library tested</td></tr>
+<tr><td>Optimizer state belongs to these parameters</td><td><code>foreign_optimizer_parameter_ids_refuse_even_with_valid_content_digests</code></td><td>hosted library tested</td></tr>
+<tr><td>Safe reload preserves inference</td><td><code>checkpoint_reload_preserves_inference</code></td><td>hosted library tested</td></tr>
+<tr><td>Durable objects precede cursor</td><td><code>checkpoint_failure_retains_durable_cursor</code></td><td>hosted library tested</td></tr>
+<tr><td>Fresh runtime resumes next step</td><td><code>fresh_runtime_resumes_recorded_step_cursor</code></td><td>hosted library tested; corpus cursor proposed</td></tr>
+<tr><td>Snapshot staging is exclusive</td><td><code>BurnAdapter::checkpoint</code> / <code>export_inference</code> compile-fail examples</td><td>hosted library tested</td></tr>
+<tr><td>Explicit CUDA learns and resumes</td><td><code>admitted_cuda_training_and_resume</code></td><td>local RTX 3060 tested; fixture tolerance <code>1e-3</code></td></tr>
+<tr><td>Natural targets match reference</td><td><code>natural_speech_reference_feature_differential</code></td><td>proposed</td></tr>
+<tr><td>Recorded features reconstruct</td><td><code>recorded_features_authored_fargan_reconstruction</code></td><td>proposed</td></tr>
+<tr><td>Ordinary planner selects voice</td><td><code>planned_conduitvoice_feature_contract</code></td><td>proposed</td></tr>
+<tr><td>Interchange refuses incompatible meaning</td><td><code>model_interchange_preserves_contract_and_provenance</code></td><td>proposed</td></tr>
+<tr><td>Docs commands stay executable</td><td><code>model_authoring_documented_commands</code></td><td>hosted command extracted and executed</td></tr>
+</tbody></table>
+<p>The <a href="https://github.com/dancxjo/conduit/blob/dev/targets/std/model-authoring.md">hosted contract</a> records current v1 limits,
+including the explicit resume-device refusal and missing corpus cursor/held-out
+split/best-checkpoint integration. Its inference off-ramp now reaches the existing
+std-host model-compute interface; ordinary plot selection remains proposed.</p>
+<p>Cheap CPU proof belongs in CI. Corpus training, CUDA, complete FARGAN synthesis,
+and attended listening retain separate proof classes. FARGAN readiness and
+weight redistribution permission remain dependencies; this chapter grants neither.</p>
+<nav class="handbook-continue" aria-label="Continue reading"><span>Continue reading</span><a href="Start-here.html">Start here<b aria-hidden="true">→</b></a></nav></main></div><script type="module" src="host/assets/browser-application-loader.mjs"></script></body></html>

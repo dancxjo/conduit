@@ -1,0 +1,11 @@
+    Finished `test` profile [unoptimized] target(s) in 0.19s
+     Running tests/parser_joint_v2_decode.rs (target/debug/deps/parser_joint_v2_decode-73599d9fc15cf379)
+
+running 1 test
+joint Source prepare language-parser-joint-branch elapsed_ms=13825
+test learned_reviewed_vocative_teaching_graphs_run_native_width_four_pipeline has been running for over 60 seconds
+joint Source prepare language-parser-v2-pos elapsed_ms=134576
+error: test failed, to rerun pass `-p conduit-language --test parser_joint_v2_decode`
+
+Caused by:
+  process didn't exit successfully: `/home/dancxjo/conduit-4907-incremental/target/debug/deps/parser_joint_v2_decode-73599d9fc15cf379 learned_reviewed_vocative_teaching_graphs_run_native_width_four_pipeline --nocapture` (signal: 15, SIGTERM: termination signal)

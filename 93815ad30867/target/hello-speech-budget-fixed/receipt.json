@@ -1,0 +1,49 @@
+{
+  "active_play": {
+    "active_play_id": "c4b8a3c2132c6ca7cdae5f309752f341617b4e5e86ca307978ece4b75a939291",
+    "boot_id": "boot-18dacbb4467aebcd-1",
+    "host_id": "std-host-1",
+    "plan_id": "0119bb1a8b93eeb1608d5a83f38ac6a013ab320b9d03ddfde6d8864d8bd69e29",
+    "play_sequence": 0
+  },
+  "active_play_id": "c4b8a3c2132c6ca7cdae5f309752f341617b4e5e86ca307978ece4b75a939291",
+  "boot_id": "boot-18dacbb4467aebcd-1",
+  "checked_plot_id": "c8a35d7c6b822883f6ffa2a7bef1079d004a882db23b9ef68891c3d2a6f83434",
+  "dry_run": false,
+  "effects_performed": true,
+  "host_id": "std-host-1",
+  "human_listening_proved": false,
+  "observations": [
+    {
+      "active_play_id": "c4b8a3c2132c6ca7cdae5f309752f341617b4e5e86ca307978ece4b75a939291",
+      "boot_id": "boot-18dacbb4467aebcd-1",
+      "connection_id": null,
+      "host_id": "std-host-1",
+      "kind": {
+        "PlanTerminal": {
+          "disposition": "Completed"
+        }
+      },
+      "placement_id": null,
+      "plan_id": "0119bb1a8b93eeb1608d5a83f38ac6a013ab320b9d03ddfde6d8864d8bd69e29",
+      "presentation_id": null,
+      "sign_id": "ead47ce5485b578123b898c51ee22880f488d7a07fbdcc072dec8306510d8375"
+    }
+  ],
+  "plan_id": "0119bb1a8b93eeb1608d5a83f38ac6a013ab320b9d03ddfde6d8864d8bd69e29",
+  "playback_performed": false,
+  "proof_class": "host-execution-audio-artifact",
+  "provider_sha256": "de52918836888529207368fae51d4e2485ef9ded3df0da5321497acd00771514",
+  "schema": "conduit.tools/real-speech-proof@1",
+  "source_document_id": "4751480594c7bd75167b1f06d4c520c380e52b3f2d177b2cdf22d2fd1ed5ccbf",
+  "text_sha256": "be36a53392dfb5f037de731ca31958eb7722684cd31f2a02da912b141164f8b9",
+  "wav": {
+    "blocks": 1647,
+    "bytes": 358508,
+    "completed": true,
+    "frames": 89616,
+    "path": "speech.wav",
+    "pcm_bytes": 358464,
+    "sha256": "232a20e5926528ca92ec8fe69843300d4231a40382ebb5ffeecfc303d40c576d"
+  }
+}

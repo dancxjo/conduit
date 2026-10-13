@@ -1,0 +1,21 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=553c238ca3898e43e4198eb9ebb8e9b72c5a02d2a777daf91098ff1b701bc08e
+expanded=dc4b832b7dc1a231b66af7e63a1685d9f858703481709728db1f3257e37b2f36
+input=language-parser-joint-consensus/inline-2e1290630d84-0/expression-5ac41a89f9a9-0:input
+output=language-parser-joint-consensus/inline-857bc00228c3-0/expression-33cbbd569f32-0:output
+gear=language-parser-joint-consensus/inline-2e1290630d84-0/expression-5ac41a89f9a9-0:conduitese/pure-expression/5f36dee8f9b51db6ad685456d7fc49eb163f2a4c935f1c492945daf0a403e8b5:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-2e1290630d84-0/expression-5ac41a89f9a9-0:output>language-parser-joint-consensus/inline-5ac0dcea4593-0/expression-1ce1d6650d50-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-5ac0dcea4593-0/expression-1ce1d6650d50-0:conduitese/pure-expression/2620e62baa2dcff9f04620fdae1b92f3cf066f32cea0822d16702f82916b3aad:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-5ac0dcea4593-0/expression-1ce1d6650d50-0:output>language-parser-joint-consensus/inline-bff62ce995d2-0/expression-059052a2c57e-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-bff62ce995d2-0/expression-059052a2c57e-0:conduitese/pure-expression/6afd8e6f7cc1f722212b41bf01813051a50c1fa301b24942849c9c95d22b96bd:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-bff62ce995d2-0/expression-059052a2c57e-0:output>language-parser-joint-consensus/inline-b50b5d92dda9-0/expression-60f8a4ff9034-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-b50b5d92dda9-0/expression-60f8a4ff9034-0:conduitese/pure-expression/1a95e75034be775259a37f6d90da71e3098ac668c016c5b0f4d18f8926cf2213:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-b50b5d92dda9-0/expression-60f8a4ff9034-0:output>language-parser-joint-consensus/inline-2fdcec215ad8-0/expression-6518e4b898f7-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-2fdcec215ad8-0/expression-6518e4b898f7-0:conduitese/pure-expression/dcdefdbeb62d7df5b5e606b8a1a3d5a61668d083cf44a3948fcafb0715173a27:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-2fdcec215ad8-0/expression-6518e4b898f7-0:output>language-parser-joint-consensus/inline-8ae72e05d447-0/expression-193ec6d084b9-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-8ae72e05d447-0/expression-193ec6d084b9-0:conduitese/pure-expression/9bc2eb37b74745e2a261e8c6e7776e2263a56a1a7e5353b303d6d5814eef4c0d:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-8ae72e05d447-0/expression-193ec6d084b9-0:output>language-parser-joint-consensus/inline-44347fc06db2-0/expression-fb9561bfeb86-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-44347fc06db2-0/expression-fb9561bfeb86-0:conduitese/pure-expression/f634d1f55259cabe82871e9e61a6ee1cdff3cb9d7fae079dd106c7089c91d6fb:conduitese/pure-expression-operation@1:input:output
+cord=language-parser-joint-consensus/inline-44347fc06db2-0/expression-fb9561bfeb86-0:output>language-parser-joint-consensus/inline-857bc00228c3-0/expression-33cbbd569f32-0:input:structured-info/profile-a3249be7b4a90cb1f1e74d698ab4541ba7e268283d0384d4569f44e780162069@1
+gear=language-parser-joint-consensus/inline-857bc00228c3-0/expression-33cbbd569f32-0:conduitese/pure-expression/9cb51a12f9de2d5fdef83210f901d7ba7d19e9f43ab85c8b23826f282da61974:conduitese/pure-expression-operation@1:input:output

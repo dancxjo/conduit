@@ -1,0 +1,21 @@
+
+running 3 tests
+test foreign_profile_refuses_without_catalog_allocation ... ok
+profile numeric/flow-pair40x164 requested=62111349 peak=1009957 retained=7741
+back numeric/flow-pair40x164 requested=10100 peak=8880 retained=8880 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 11329, preparation_peak_bytes_bound: 11329, retained_heap_bytes_bound: 10109, retained_accounted_heap_bytes: 0 }
+profile numeric/flow-pair40-164x160 requested=62452439 peak=1009957 retained=13535
+back numeric/flow-pair40-164x160 requested=17389 peak=15479 retained=15479 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 20667, preparation_peak_bytes_bound: 20667, retained_heap_bytes_bound: 18757, retained_accounted_heap_bytes: 0 }
+profile numeric/flow-pair40-164-160x128 requested=62715651 peak=1009957 retained=17961
+back numeric/flow-pair40-164-160x128 requested=23846 peak=21246 retained=21246 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 28349, preparation_peak_bytes_bound: 28349, retained_heap_bytes_bound: 25749, retained_accounted_heap_bytes: 0 }
+profile numeric/flow-pair40-164-160-128x128 requested=62988441 peak=1009957 retained=21363
+back numeric/flow-pair40-164-160-128x128 requested=30303 peak=27013 retained=27013 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 35007, preparation_peak_bytes_bound: 35007, retained_heap_bytes_bound: 31717, retained_accounted_heap_bytes: 0 }
+profile numeric/flow-pair40-164-160-128-128x256 requested=63509877 peak=1009989 retained=31683
+back numeric/flow-pair40-164-160-128-128x256 requested=40088 peak=36108 retained=36108 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 49657, preparation_peak_bytes_bound: 49657, retained_heap_bytes_bound: 45677, retained_accounted_heap_bytes: 0 }
+profile numeric/flow-pair40-164-160-128-128-256x1 requested=63575483 peak=1009989 retained=30051
+back numeric/flow-pair40-164-160-128-128-256x1 requested=43227 peak=38561 retained=38561 reservation=FlowPairStorageReceipt { preparation_requested_bytes_bound: 50128, preparation_peak_bytes_bound: 50128, retained_heap_bytes_bound: 45462, retained_accounted_heap_bytes: 0 }
+test all_six_original_profiles_and_backs_are_reserved ... ok
+actual archived 6ed037aa2c464bd0072284389b19ef97ddaf972a10fd20a99e0830ece3ab2fef: Back requested=10604 peak=9384 retained=9384 profile retained=7741 (factory/Plan upstream preparation separately charged)
+test actual_archived_plan_factory_uses_matching_prepared_profile ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 38.79s
+

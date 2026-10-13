@@ -1,0 +1,52 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/language)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/architecture/planner)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/host)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/tongues)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/signal)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/offers)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/patchbay/application)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/plots/tour)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/avr/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/make/body)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/raspberry-pi/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/orange-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/rp2040/make)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/browser/runtime)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/semantics/speech)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/network-r1)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos/mask-offer)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/std)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-evaluation-identity/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 3m 24s
+     Running tests/lexical_proposer_resource.rs (target/debug/deps/lexical_proposer_resource-10d12dfb3816f393)
+
+running 2 tests
+test resource_structural_peak_covers_measured_preparation_and_lookup ... ok
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.01s
+
+     Running tests/lexical_proposer_revision.rs (target/debug/deps/lexical_proposer_revision-d74db8993408b394)
+
+running 8 tests
+test resource_structural_peak_covers_measured_preparation_and_lookup ... ok
+test complete_shard_lookup_foreign_duplicate_and_quota_refusals ... ok
+test revision_scalar_limit_and_committed_frontier_refusals ... ok
+test distinct_proposal_model_declaration_full_material_and_foreign_refusals ... ok
+test complete_original_revision_successor_custody_and_atomic_refusal ... ok
+test original_source_unknown_reviewed_and_partial_production ... ok
+test whole_preparation_and_response_allocation_bounds_and_one_under ... ok
+test whole_revision_resource_peak_retained_and_one_under ... ok
+
+test result: ok. 8 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.57s
+

@@ -1,0 +1,7 @@
+fixed Source chain v1
+source=ff6653e5e8bbece55d43f8ae92620293673df8c95238d861107793c17a95fa64
+checked=cd69dc615ec121e3757917f025d1df04ae325b149d251765cb59d3e215beb9b4
+expanded=ee835e1d95768bcc2edc660da7d684b33ef02b9cf75e902f9938dafda5cf318a
+input=language-window8-qualified-lexical-rebase-scalars/expression-88e9506b8559-0:input
+output=language-window8-qualified-lexical-rebase-scalars/expression-88e9506b8559-0:output
+gear=language-window8-qualified-lexical-rebase-scalars/expression-88e9506b8559-0:conduitese/pure-expression/eb14f2c632c7e9559b953446e45426885a006850885db587f781f79675ecd77f:conduitese/pure-expression-operation@1:input:output

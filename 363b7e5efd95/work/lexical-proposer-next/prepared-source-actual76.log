@@ -1,0 +1,7 @@
+
+running 1 test
+actual76 preparedSource full Native parity preparation_us=6318130 reference_us=27477664 prepared_us=3729567 receipt=Window8PreparedSourceReceipt { retained_heap_bytes_bound: 205260178, preparation_peak_heap_bytes_bound: 237823029, programs: 26, native: PreparedNativeFamilyStorageReceipt { types: 53, retained_heap_bytes_bound: 152388690, preparation_peak_heap_bytes_bound: 154611605, conversion_requested_bytes_bound: 639893585 } }; excludes context/class preparation and model inference; ordinary input encode included
+test actual_retained_context_all76_prepared_source_proposals_match_reference ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 6 filtered out; finished in 46.29s
+

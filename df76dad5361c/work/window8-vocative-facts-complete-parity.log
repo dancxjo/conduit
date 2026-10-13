@@ -1,0 +1,9 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-admission/semantics/language)
+    Finished `test` profile [unoptimized] target(s) in 1.15s
+     Running tests/parser_window8_cached_corpus_model.rs (target/debug/deps/parser_window8_cached_corpus_model-a0684c2a8dd1523d)
+
+running 1 test
+test facts::fact_source_retains_exact_generated_types_and_ordered_laws ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 2 filtered out; finished in 51.02s
+

@@ -1,0 +1,291 @@
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/core/src/structured_info/storage.rs:9:
+     pub fn owned_heap_bytes(&self) -> usize {
+         match &self.0 {
+             StructuredInfoTypeNode::Leaf(kind) => kind.0.capacity(),
+-            StructuredInfoTypeNode::Nominal { schema, representation } => schema.0.capacity()
++            StructuredInfoTypeNode::Nominal {
++                schema,
++                representation,
++            } => schema
++                .0
++                .capacity()
+                 .saturating_add(size_of::<Self>())
+                 .saturating_add(representation.owned_heap_bytes()),
+             StructuredInfoTypeNode::Collection { element, .. }
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/core/src/structured_info/storage.rs:16:
+-            | StructuredInfoTypeNode::Sequence { element, .. } => size_of::<Self>()
+-                .saturating_add(element.owned_heap_bytes()),
++            | StructuredInfoTypeNode::Sequence { element, .. } => {
++                size_of::<Self>().saturating_add(element.owned_heap_bytes())
++            }
+             StructuredInfoTypeNode::Record { schema, fields } => fields.iter().fold(
+-                schema.0.capacity().saturating_add(fields.capacity().saturating_mul(size_of::<super::StructuredFieldType>())),
+-                |total, field| total.saturating_add(field.name.capacity()).saturating_add(field.value_type.owned_heap_bytes()),
++                schema.0.capacity().saturating_add(
++                    fields
++                        .capacity()
++                        .saturating_mul(size_of::<super::StructuredFieldType>()),
++                ),
++                |total, field| {
++                    total
++                        .saturating_add(field.name.capacity())
++                        .saturating_add(field.value_type.owned_heap_bytes())
++                },
+             ),
+             StructuredInfoTypeNode::Variant { schema, cases } => cases.iter().fold(
+-                schema.0.capacity().saturating_add(cases.capacity().saturating_mul(size_of::<super::StructuredVariantCase>())),
+-                |total, case| total.saturating_add(case.tag.capacity()).saturating_add(case.payload_type.owned_heap_bytes()),
++                schema.0.capacity().saturating_add(
++                    cases
++                        .capacity()
++                        .saturating_mul(size_of::<super::StructuredVariantCase>()),
++                ),
++                |total, case| {
++                    total
++                        .saturating_add(case.tag.capacity())
++                        .saturating_add(case.payload_type.owned_heap_bytes())
++                },
+             ),
+         }
+     }
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/byte_observation.rs:73:
+ 
+ impl PreparedByteObservation {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+-        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(self.index.as_ref().map_or(0, |index| super::storage::boxed(index.as_ref(), index.owned_heap_bytes())))
++        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(
++            self.index.as_ref().map_or(0, |index| {
++                super::storage::boxed(index.as_ref(), index.owned_heap_bytes())
++            }),
++        )
+     }
+ }
+ 
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/equality.rs:241:
+ impl PreparedEquality {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+         super::storage::boxed(self.left.as_ref(), self.left.owned_heap_bytes())
+-            .saturating_add(super::storage::boxed(self.right.as_ref(), self.right.owned_heap_bytes()))
+-            .saturating_add(self.expected.capacity()).saturating_add(self.shape.owned_heap_bytes())
++            .saturating_add(super::storage::boxed(
++                self.right.as_ref(),
++                self.right.owned_heap_bytes(),
++            ))
++            .saturating_add(self.expected.capacity())
++            .saturating_add(self.shape.owned_heap_bytes())
+     }
+ }
+ impl Shape {
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/equality.rs:249:
+     fn owned_heap_bytes(&self) -> usize {
+         match self {
+             Self::Primitive(_) => 0,
+-            Self::Collection(element) => super::storage::boxed(element.as_ref(), element.owned_heap_bytes()),
+-            Self::Record(fields) | Self::Variant(fields) => fields.iter().fold(fields.capacity().saturating_mul(core::mem::size_of::<(String, Shape)>()), |total, (name, shape)| total.saturating_add(name.capacity()).saturating_add(shape.owned_heap_bytes())),
++            Self::Collection(element) => {
++                super::storage::boxed(element.as_ref(), element.owned_heap_bytes())
++            }
++            Self::Record(fields) | Self::Variant(fields) => fields.iter().fold(
++                fields
++                    .capacity()
++                    .saturating_mul(core::mem::size_of::<(String, Shape)>()),
++                |total, (name, shape)| {
++                    total
++                        .saturating_add(name.capacity())
++                        .saturating_add(shape.owned_heap_bytes())
++                },
++            ),
+         }
+     }
+ }
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/inspection.rs:117:
+ 
+ impl PreparedInspection {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+-        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(match &self.operation { Operation::VariantIs(tag) => tag.capacity(), Operation::VariantTag | Operation::Length => 0 })
++        super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes()).saturating_add(
++            match &self.operation {
++                Operation::VariantIs(tag) => tag.capacity(),
++                Operation::VariantTag | Operation::Length => 0,
++            },
++        )
+     }
+ }
+ 
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/member_selection.rs:190:
+ 
+ impl PreparedMemberSelection {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+-        let steps = self.steps.iter().fold(self.steps.capacity().saturating_mul(core::mem::size_of::<Member>()), |total, step| total.saturating_add(match step { Member::Field(name) | Member::Variant(name) => name.capacity(), Member::Index(_) => 0 }));
+-        steps.saturating_add(self.output_type.capacity()).saturating_add(self.output.capacity()).saturating_add(self.source.as_ref().map_or(0, |source| super::storage::boxed(source.as_ref(), source.owned_heap_bytes())))
++        let steps = self.steps.iter().fold(
++            self.steps
++                .capacity()
++                .saturating_mul(core::mem::size_of::<Member>()),
++            |total, step| {
++                total.saturating_add(match step {
++                    Member::Field(name) | Member::Variant(name) => name.capacity(),
++                    Member::Index(_) => 0,
++                })
++            },
++        );
++        steps
++            .saturating_add(self.output_type.capacity())
++            .saturating_add(self.output.capacity())
++            .saturating_add(self.source.as_ref().map_or(0, |source| {
++                super::storage::boxed(source.as_ref(), source.owned_heap_bytes())
++            }))
+     }
+ }
+ 
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/sequence_selection.rs:90:
+ impl PreparedSequenceSelection {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+         super::storage::boxed(self.source.as_ref(), self.source.owned_heap_bytes())
+-            .saturating_add(super::storage::boxed(self.index.as_ref(), self.index.owned_heap_bytes()))
+-            .saturating_add(self.output_type.capacity()).saturating_add(self.output.capacity())
++            .saturating_add(super::storage::boxed(
++                self.index.as_ref(),
++                self.index.owned_heap_bytes(),
++            ))
++            .saturating_add(self.output_type.capacity())
++            .saturating_add(self.output.capacity())
+     }
+ }
+ 
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/storage.rs:1:
+ //! Conservative requested heap accounting; shared bytes are counted per owner.
+-use super::{PreparedInput, PreparedNode, PreparedOperation, PreparedPortableExpressionEvaluator, PreparedRoot};
++use super::{
++    PreparedInput, PreparedNode, PreparedOperation, PreparedPortableExpressionEvaluator,
++    PreparedRoot,
++};
+ use core::mem::size_of;
+ 
+ pub(super) fn boxed<T>(value: &T, heap: usize) -> usize {
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/storage.rs:15:
+     /// and the evaluator value itself are excluded. Includes all spare capacity.
+     pub fn owned_heap_bytes(&self) -> usize {
+         let input = match &self.input {
+-            PreparedInput::Primitive { nominal_type, .. } => nominal_type.as_ref().map_or(0, shared),
++            PreparedInput::Primitive { nominal_type, .. } => {
++                nominal_type.as_ref().map_or(0, shared)
++            }
+             PreparedInput::Structured(bytes) => shared(bytes),
+         };
+         let root = match &self.root {
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/storage.rs:22:
+-            PreparedRoot::Primitive { node, nominal_type } => node.owned_heap_bytes()
++            PreparedRoot::Primitive { node, nominal_type } => node
++                .owned_heap_bytes()
+                 .saturating_add(nominal_type.as_ref().map_or(0, |bytes| bytes.capacity())),
+             PreparedRoot::Structured(value) => value.owned_heap_bytes(),
+         };
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/storage.rs:26:
+-        input.saturating_add(root).saturating_add(self.output.capacity())
++        input
++            .saturating_add(root)
++            .saturating_add(self.output.capacity())
+     }
+ }
+ impl PreparedNode {
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/storage.rs:33:
+             PreparedOperation::Literal(bytes) => bytes.capacity(),
+             PreparedOperation::Unary { operand, .. }
+             | PreparedOperation::Widen(operand)
+-            | PreparedOperation::TextMaterial(operand) => boxed(operand.as_ref(), operand.owned_heap_bytes()),
+-            PreparedOperation::Binary { left, right, .. } => boxed(left.as_ref(), left.owned_heap_bytes())
+-                .saturating_add(boxed(right.as_ref(), right.owned_heap_bytes())),
+-            PreparedOperation::Conditional { condition, when_true, when_false } => boxed(condition.as_ref(), condition.owned_heap_bytes())
++            | PreparedOperation::TextMaterial(operand) => {
++                boxed(operand.as_ref(), operand.owned_heap_bytes())
++            }
++            PreparedOperation::Binary { left, right, .. } => {
++                boxed(left.as_ref(), left.owned_heap_bytes())
++                    .saturating_add(boxed(right.as_ref(), right.owned_heap_bytes()))
++            }
++            PreparedOperation::Conditional {
++                condition,
++                when_true,
++                when_false,
++            } => boxed(condition.as_ref(), condition.owned_heap_bytes())
+                 .saturating_add(boxed(when_true.as_ref(), when_true.owned_heap_bytes()))
+                 .saturating_add(boxed(when_false.as_ref(), when_false.owned_heap_bytes())),
+             PreparedOperation::Projection(value) => value.owned_heap_bytes(),
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/structured.rs:297:
+ 
+ impl PreparedStructuredExpression {
+     pub(super) fn owned_heap_bytes(&self) -> usize {
+-        self.type_prefix.capacity().saturating_add(match &self.shape {
+-            PreparedShape::Input => 0,
+-            PreparedShape::Constant(value) => value.capacity(),
+-            PreparedShape::Selected(value) => value.owned_heap_bytes(),
+-            PreparedShape::SequenceSelected(value) => value.owned_heap_bytes(),
+-            PreparedShape::Record(fields) => fields.iter().fold(fields.capacity().saturating_mul(core::mem::size_of::<PreparedField>()), |total, field| total.saturating_add(field.name.capacity()).saturating_add(field.value.owned_heap_bytes())),
+-            PreparedShape::Collection(values) => values.iter().fold(values.capacity().saturating_mul(core::mem::size_of::<PreparedChild>()), |total, value| total.saturating_add(value.owned_heap_bytes())),
+-            PreparedShape::Variant { tag, payload } => tag.capacity().saturating_add(super::storage::boxed(payload.as_ref(), payload.owned_heap_bytes())),
+-            PreparedShape::Conditional { condition, when_true, when_false } => super::storage::boxed(condition.as_ref(), condition.owned_heap_bytes()).saturating_add(super::storage::boxed(when_true.as_ref(), when_true.owned_heap_bytes())).saturating_add(super::storage::boxed(when_false.as_ref(), when_false.owned_heap_bytes())),
+-        })
++        self.type_prefix
++            .capacity()
++            .saturating_add(match &self.shape {
++                PreparedShape::Input => 0,
++                PreparedShape::Constant(value) => value.capacity(),
++                PreparedShape::Selected(value) => value.owned_heap_bytes(),
++                PreparedShape::SequenceSelected(value) => value.owned_heap_bytes(),
++                PreparedShape::Record(fields) => fields.iter().fold(
++                    fields
++                        .capacity()
++                        .saturating_mul(core::mem::size_of::<PreparedField>()),
++                    |total, field| {
++                        total
++                            .saturating_add(field.name.capacity())
++                            .saturating_add(field.value.owned_heap_bytes())
++                    },
++                ),
++                PreparedShape::Collection(values) => values.iter().fold(
++                    values
++                        .capacity()
++                        .saturating_mul(core::mem::size_of::<PreparedChild>()),
++                    |total, value| total.saturating_add(value.owned_heap_bytes()),
++                ),
++                PreparedShape::Variant { tag, payload } => tag.capacity().saturating_add(
++                    super::storage::boxed(payload.as_ref(), payload.owned_heap_bytes()),
++                ),
++                PreparedShape::Conditional {
++                    condition,
++                    when_true,
++                    when_false,
++                } => super::storage::boxed(condition.as_ref(), condition.owned_heap_bytes())
++                    .saturating_add(super::storage::boxed(
++                        when_true.as_ref(),
++                        when_true.owned_heap_bytes(),
++                    ))
++                    .saturating_add(super::storage::boxed(
++                        when_false.as_ref(),
++                        when_false.owned_heap_bytes(),
++                    )),
++            })
+     }
+ }
+ impl PreparedChild {
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared/structured.rs:313:
+     fn owned_heap_bytes(&self) -> usize {
+-        self.value_type.owned_heap_bytes().saturating_add(self.type_prefix.capacity()).saturating_add(self.evaluator.owned_heap_bytes())
++        self.value_type
++            .owned_heap_bytes()
++            .saturating_add(self.type_prefix.capacity())
++            .saturating_add(self.evaluator.owned_heap_bytes())
+     }
+ }
+ 
+Diff in /home/dancxjo/conduit-4907-native-admission/architecture/plot/src/expression_prepared.rs:25:
+ mod sequence_selection;
+ use member_selection::PreparedMemberSelection;
+ mod primitive;
+-mod storage_bound;
+ mod storage;
++mod storage_bound;
+ mod structured;
+ mod structured_contract;
+ use primitive::{decode_bool, evaluate_binary, evaluate_unary, PrimitiveValue};

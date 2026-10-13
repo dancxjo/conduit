@@ -1,0 +1,7 @@
+
+running 1 test
+complete scheduler root requested=1480 retained=1480
+test complete_fixed_root_is_reserved_before_boxing_and_guards_are_retained ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+

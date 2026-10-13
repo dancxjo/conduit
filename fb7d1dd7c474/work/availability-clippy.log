@@ -1,0 +1,189 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/assigned-plan)
+    Checking typenum v1.20.1
+    Checking serde_core v1.0.229
+    Checking zeroize v1.9.0
+    Checking subtle v2.6.1
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/core)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/kernel)
+    Checking generic-array v0.14.7
+    Checking crypto-common v0.1.7
+    Checking block-buffer v0.10.4
+    Checking digest v0.10.7
+    Checking itoa v1.0.18
+    Checking sha2 v0.10.9
+    Checking serde v1.0.229
+    Checking thiserror v2.0.20
+    Checking curve25519-dalek v4.1.3
+    Checking zmij v1.0.23
+    Checking memchr v2.8.3
+    Checking serde_json v1.0.151
+    Checking signature v2.2.0
+    Checking ed25519 v2.2.3
+    Checking cobs v0.3.0
+    Checking postcard v1.1.3
+    Checking ed25519-dalek v2.2.0
+    Checking minicbor v2.3.0
+    Checking libc v0.2.189
+    Checking hashbrown v0.17.1
+    Checking equivalent v1.0.2
+    Checking toml_datetime v0.6.11
+    Checking serde_spanned v0.6.9
+    Checking winnow v0.7.15
+    Checking indexmap v2.14.2
+    Checking toml_write v0.1.2
+    Checking hybrid-array v0.4.15
+    Checking getrandom v0.2.17
+    Checking toml_edit v0.22.27
+    Checking cpufeatures v0.3.1
+    Checking crypto-common v0.2.2
+    Checking block-buffer v0.12.1
+    Checking const-oid v0.10.2
+    Checking digest v0.11.3
+    Checking siphasher v1.0.3
+    Checking phf_shared v0.11.3
+    Checking byteorder v1.5.0
+    Checking toml v0.8.23
+    Checking option-ext v0.2.0
+    Checking dirs-sys v0.5.0
+    Checking hash32 v0.3.1
+    Checking str-newtype v2.0.0
+    Checking static-automata v1.0.3
+    Checking phf v0.11.3
+    Checking stable_deref_trait v1.2.1
+    Checking tinyvec v1.13.3
+    Checking isolang v2.4.0
+    Checking unicode-normalization v0.1.25
+    Checking heapless v0.8.0
+    Checking langtag v1.1.0
+    Checking anyhow v1.0.104
+    Checking dirs v6.0.0
+    Checking sha2 v0.11.0
+    Checking rand_core v0.6.4
+    Checking inout v0.1.4
+    Checking ryu v1.0.23
+    Checking unicode-segmentation v1.13.3
+    Checking serde-json-core v0.6.0
+    Checking speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+    Checking cipher v0.4.4
+    Checking universal-hash v0.5.1
+    Checking opaque-debug v0.3.1
+    Checking poly1305 v0.8.0
+    Checking chacha20 v0.9.1
+    Checking crossbeam-utils v0.8.23
+    Checking aead v0.5.2
+    Checking rustls-pki-types v1.15.1
+    Checking arrayvec v0.7.8
+    Checking noise-protocol v0.2.1
+    Checking chacha20poly1305 v0.10.1
+    Checking crossbeam-epoch v0.9.21
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/plot)
+    Checking conduit-body v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/body)
+    Checking conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/plan-lowering)
+    Checking zerocopy v0.8.57
+    Checking log v0.4.34
+    Checking rand_core v0.10.1
+    Checking bytes v1.12.1
+    Checking untrusted v0.9.0
+    Checking ring v0.17.14
+    Checking http v1.5.0
+    Checking ppv-lite86 v0.2.21
+    Checking crossbeam-deque v0.8.8
+    Checking noise-rust-crypto v0.6.2
+    Checking httparse v1.10.1
+    Checking x25519-dalek v2.0.1
+    Checking patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/patchbay)
+    Checking scopeguard v1.2.0
+    Checking smallvec v1.16.1
+    Checking lock_api v0.4.14
+    Checking parking_lot_core v0.9.12
+    Checking conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/protected-line)
+    Checking rayon-core v1.13.0
+    Checking num-traits v0.2.19
+    Checking rustls-webpki v0.103.15
+    Checking rand_chacha v0.3.1
+    Checking getrandom v0.4.3
+    Checking chacha20 v0.10.2
+    Checking conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/composite)
+    Checking base64 v0.23.1
+    Checking once_cell v1.21.4
+    Checking either v1.18.0
+    Checking rustls v0.23.45
+    Checking rayon v1.12.0
+    Checking ureq-proto v0.6.4
+    Checking rand v0.10.2
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/time)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/human)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/alife)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/net)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/text)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/purpose)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/robotics)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/chat)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/wire)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/data)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/presentation)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/signal)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/tutorial)
+    Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/protocols/midi)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/education)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/ai)
+    Checking conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/protocols/bluetooth)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/body-invitation)
+    Checking conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/implementations/synth)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/home)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/finance)
+    Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/little-seismograph/fixture)
+    Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/birth)
+    Checking rand v0.8.8
+    Checking ordered-float v3.9.2
+    Checking parking_lot v0.12.5
+    Checking webpki-roots v1.0.9
+    Checking sha1 v0.11.0
+    Checking num_cpus v1.17.0
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos)
+    Checking percent-encoding v2.3.2
+    Checking qrcode v0.14.1
+    Checking bitflags v2.13.2
+    Checking data-encoding v2.11.1
+    Checking utf8-zero v0.8.1
+    Checking ureq v3.4.2
+    Checking tungstenite v0.30.0
+    Checking limine v0.5.0
+    Checking instant-distance v0.6.1
+    Checking getrandom v0.3.4
+    Checking conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/rp2040/network-realization)
+    Checking conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/observatory)
+    Checking rustls-pemfile v2.2.0
+    Checking conduit-emergency-keyword-spotter v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/implementations/emergency-keyword-spotter)
+    Checking conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-incremental/architecture/planner)
+    Checking conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/catalog)
+    Checking conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/alife-distributed)
+    Checking conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos/mask-offer)
+    Checking conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/make/host)
+    Checking patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/patchbay/graph)
+    Checking patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/patchbay/application)
+    Checking conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std/offers)
+    Checking conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/signal)
+    Checking conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-incremental/plots/tour)
+    Checking conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/make)
+    Checking conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/mask-offer)
+    Checking conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/avr/make)
+    Checking conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std/make)
+    Checking conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/conduitos/make)
+    Checking conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/make/body)
+    Checking conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/raspberry-pi/make)
+    Checking conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/mechanisms/implementations/linear-framebuffer-make)
+    Checking conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/orange-pi/make)
+    Checking conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/esp32/make)
+    Checking conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/rp2040/make)
+    Checking conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-incremental/proof/conformance/network-r1)
+    Checking conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/browser/runtime)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-incremental/semantics/speech)
+    Checking conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-incremental/targets/std)
+    Finished `dev` profile [unoptimized] target(s) in 5m 30s

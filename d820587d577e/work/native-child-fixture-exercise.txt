@@ -1,0 +1,51 @@
+static SCOPED_VALIDATIONS: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
+#[test]
+fn immutable_child_capabilities_keep_parent_laws_fresh() {
+ use conduit_plot::rust_binding::{AdmittedNativeChild,NativeChildAdmissionScope,PreparedNativeFamily,PreparedNativeFamilyLimits,PreparedNativeRustBinding};
+ use std::rc::Rc;
+ use std::sync::atomic::Ordering;
+ let limits=PreparedNativeFamilyLimits { maximum_types:64,maximum_laws_per_type:64,maximum_input_bytes:262144,maximum_retained_bytes:64*1024*1024,maximum_preparation_peak_bytes:128*1024*1024,maximum_conversion_requested_bytes:usize::MAX };
+ let mut family=PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,limits).unwrap();
+ let low=GuardedChild::new(3).unwrap();let high=GuardedChild::new(7).unwrap();let other=GuardedChild::new(9).unwrap();
+ let frame:Rc<[u8]>=Rc::from(low.clone().encode().unwrap());let reservation=AdmittedNativeChild::storage_reservation(frame.len()).unwrap();
+ assert!(family.decode_admitted::<GuardedChild>(frame.clone(),reservation.combined_bytes_bound-1).is_err());
+ let (_,lo)=family.decode_admitted::<GuardedChild>(frame,reservation.combined_bytes_bound).unwrap();
+ let (_,hi)=family.decode_admitted::<GuardedChild>(Rc::from(high.clone().encode().unwrap()),usize::MAX).unwrap();
+ let (_,ot)=family.decode_admitted::<GuardedChild>(Rc::from(other.clone().encode().unwrap()),usize::MAX).unwrap();
+ let parent=GuardedParent::new(low.clone(),high.clone()).unwrap();
+ let grand=GuardedGrandparent::new(parent.clone(),other).unwrap();let encoded=grand.clone().encode().unwrap();
+ let scratch=NativeChildAdmissionScope::maximum_scope_state_bytes();
+ SCOPED_VALIDATIONS.store(0,Ordering::SeqCst);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),5);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo,&hi,&ot],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),2,"only unchanged children reuse admission; both parent laws stay fresh");
+ assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo],scratch-1).is_err());
+ assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo;17],scratch).is_err());
+ // The same Type at another path matches only its complete original value.
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),4);
+ let mut foreign=PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,limits).unwrap();
+ let (_,foreign_lo)=foreign.decode_admitted::<GuardedChild>(Rc::from(low.clone().encode().unwrap()),usize::MAX).unwrap();
+ assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&foreign_lo],scratch).is_err());
+ let parent_type=GuardedParent::semantic_type().unwrap();
+ let invalid_parent=StructuredInfoValue::record(parent_type,vec![StructuredFieldValue::new("left",high.into_structured().unwrap()).unwrap(),StructuredFieldValue::new("right",low.into_structured().unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+ assert_eq!(family.decode_with_admitted_children::<GuardedParent>(&invalid_parent,&[&lo,&hi],scratch),GuardedParent::decode(&invalid_parent));
+ assert!(family.decode_with_admitted_children::<GuardedParent>(&invalid_parent,&[&lo,&hi],scratch).is_err());
+ let child_type=GuardedChild::semantic_type().unwrap();let value_type=conduit_plot::rust_binding::record_field_type(&child_type,"value").unwrap();
+ let invalid_child=StructuredInfoValue::record(child_type,vec![StructuredFieldValue::new("value",conduit_plot::rust_binding::primitive_into_structured(value_type,&129u32).unwrap()).unwrap()]).unwrap();
+ let invalid=StructuredInfoValue::record(GuardedParent::semantic_type().unwrap(),vec![StructuredFieldValue::new("left",invalid_child).unwrap(),StructuredFieldValue::new("right",GuardedChild::new(7).unwrap().into_structured().unwrap()).unwrap()]).unwrap().canonical_bytes().unwrap();
+ assert_eq!(family.decode_with_admitted_children::<GuardedParent>(&invalid,&[&lo,&hi],scratch),GuardedParent::decode(&invalid));
+ assert!(family.decode_with_admitted_children::<GuardedParent>(&invalid,&[&lo,&hi],scratch).is_err());
+ let (_,whole)=family.decode_admitted::<GuardedGrandparent>(Rc::from(encoded.clone()),usize::MAX).unwrap();
+ SCOPED_VALIDATIONS.store(0,Ordering::SeqCst);
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&whole],scratch).unwrap(),grand);
+ assert_eq!(SCOPED_VALIDATIONS.swap(0,Ordering::SeqCst),5,"root is never skipped");
+ let mut malformed=encoded.clone();malformed.pop();assert!(family.decode_with_admitted_children::<GuardedGrandparent>(&malformed,&[&lo,&hi,&ot],scratch).is_err());
+ // All scopes are immutable stack values: failure cannot leave a bypass behind.
+ assert!(family.decode::<GuardedParent>(&invalid).is_err());
+ assert_eq!(family.decode_with_admitted_children::<GuardedGrandparent>(&encoded,&[&lo,&hi,&ot],scratch).unwrap(),grand);
+ let receipt=family.storage_receipt();
+ assert!(PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,PreparedNativeFamilyLimits{maximum_retained_bytes:receipt.retained_heap_bytes_bound-1,..limits}).is_err());
+ assert!(PreparedNativeFamily::prepare_with_child_admission(PREPARED_NATIVE_FAMILY_ROOTS,PreparedNativeFamilyLimits{maximum_preparation_peak_bytes:receipt.preparation_peak_heap_bytes_bound-1,..limits}).is_err());
+}

@@ -1,0 +1,50 @@
+[
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/guard-back-preparation/tests",
+    "bytes": 16649360,
+    "source": "semantics/ai/tests/guard_back_preparation.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/weakening-back-preparation/tests",
+    "bytes": 16726464,
+    "source": "semantics/ai/tests/weakening_back_preparation.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/pair-back-preparation/tests",
+    "bytes": 16722456,
+    "source": "semantics/ai/tests/pair_back_preparation.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/u16-back-preparation/tests",
+    "bytes": 16707672,
+    "source": "semantics/ai/tests/u16_back_preparation.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/numeric-resource-owners/tests",
+    "bytes": 16399944,
+    "source": "semantics/ai/tests/model_resource_preparation.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage/work/scheduler-box-preparation/tests",
+    "bytes": 7907464,
+    "source": "architecture/kernel/tests/scheduler_box_storage.rs",
+    "source_at_published_HEAD": true,
+    "fuser_inactive": true,
+    "command_sdk_logs_retained": true
+  }
+]
