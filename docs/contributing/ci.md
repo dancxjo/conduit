@@ -16,7 +16,8 @@ failure. GitHub still prevents merging a draft until it is marked ready.
 
 PR admission runs workspace Clippy with warnings denied and the owning workspace
 packages' unit, integration and doc tests, with one test thread. Both sides of
-renames are scanned. Unknown paths, removed packages, shared files and empty
+renames are scanned against the actual dev parent of the tested merge preview;
+GitHub's PR metadata can retain an older base SHA after dev advances. Unknown paths, removed packages, shared files and empty
 diffs select all workspace packages. CI scripts and workflow changes run tooling
 package tests and the preflight pipeline tests. Recognized prose needs only preflight.
 Authored plots and their inventory select the product and catalog tooling consumers.

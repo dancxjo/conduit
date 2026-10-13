@@ -68,3 +68,10 @@ test('required candidate accepts healthy drafts and rejects unsuccessful proof',
   for (const result of ['failure', 'cancelled', 'skipped', '']) assert.equal(passes('false', result), false);
 
 });
+
+test('PR scopes use the actual merge-preview parent, including admission', () => {
+  assert.match(job(ci, 'preflight'), /proof_base=\$\(git rev-parse "\$SHA\^1"\)/);
+  assert.match(job(ci, 'preflight'), /git merge-base --is-ancestor "\$BASE" "\$proof_base"/);
+  assert.match(job(ci, 'preflight'), /BASE: \$\{\{ steps\.base\.outputs\.sha \}\}/);
+  assert.match(job(ci, 'admission'), /BASE: \$\{\{ needs\.preflight\.outputs\.base \}\}/);
+});
