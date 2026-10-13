@@ -46,6 +46,8 @@ struct Operation {
     input: ValuePayload,
     #[serde(default)]
     service_estimate: Option<calibration::Estimate>,
+    #[serde(default)]
+    reuse_service_calibration: bool,
 }
 #[derive(Deserialize)]
 #[serde(tag = "command", rename_all = "snake_case", deny_unknown_fields)]
@@ -201,6 +203,7 @@ pub(super) fn run() -> Result<(), String> {
         Box::new(adapter),
     )?;
     let mut sampler = sampling::prepare(&host)?;
+    let mut service_history = None;
     let initial_sample = sampling::observe(&host, &mut sampler)?;
     document(
         &mut writer,
@@ -285,6 +288,22 @@ pub(super) fn run() -> Result<(), String> {
             ];
         let demand = CostDemand::admit_with_catalog(gear, &inputs, &[], &codecs)
             .map_err(|_| "operation demand refused")?;
+        let service_forecast = match calibration::prepare(
+            &host,
+            op.service_estimate.as_ref(),
+            op.reuse_service_calibration,
+            service_history.as_ref(),
+            demand,
+        ) {
+            Ok(value) => value,
+            Err(reason) => {
+                document(
+                    &mut writer,
+                    &serde_json::json!({"phase":"service-forecast-refused","reason":reason}),
+                )?;
+                continue;
+            }
+        };
         let mut member = host.prepare_local_model_pool_member_with_demand(
             &op.plan,
             op.selection,
@@ -299,7 +318,6 @@ pub(super) fn run() -> Result<(), String> {
                 return Err("session exceeds worker frame budget".into());
             }
         }
-        let service_forecast = calibration::prepare(&host, op.service_estimate.as_ref())?;
         let mut input = vec![0; FRAME_BYTES];
         let mut output = vec![0; FRAME_BYTES];
         let mut result = Vec::with_capacity(65_536);
@@ -388,7 +406,13 @@ pub(super) fn run() -> Result<(), String> {
             )?;
         }
         let completed_work = completion::prepare(&member);
-        let service_calibration = calibration::finish(&host, &member, demand, service_forecast.as_ref());
+        let service_calibration = calibration::finish(
+            &host,
+            &member,
+            demand,
+            service_forecast.as_ref(),
+            &mut service_history,
+        );
         host.release_local_model_pool_member(member)?;
         document(
             &mut writer,

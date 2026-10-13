@@ -1,7 +1,9 @@
 //! Optional adapter-service-only calibration; never a whole-fulfillment model.
+mod history;
 use conduit_core::*;
 use conduit_planner::resource_cost::*;
 use conduit_std_host::{AdmittedLocalModelPoolMember, StdHost, ThreadTimer, TimerAdapter};
+pub(super) use history::Retained;
 use serde::Deserialize;
 use serde_json::{json, Value};
 
@@ -14,6 +16,7 @@ pub(super) struct Estimate {
 pub(super) struct Prepared {
     forecast: FulfillmentCostForecast,
     window: CostObservationWindow,
+    origin: Option<SignId>,
 }
 fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
     if value.value_kind.as_str() != RATIONAL_QUANTITY_ID {
@@ -24,7 +27,19 @@ fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<Rationa
 pub(super) fn prepare(
     host: &StdHost,
     estimate: Option<&Estimate>,
+    reuse: bool,
+    retained: Option<&Retained>,
+    demand: CostDemand<'_>,
 ) -> Result<Option<Prepared>, String> {
+    if reuse {
+        if estimate.is_some() {
+            return Err("service estimate and retained calibration are mutually exclusive".into());
+        }
+        return retained
+            .ok_or("retained service calibration absent")?
+            .prepare(host, demand)
+            .map(Some);
+    }
     let Some(estimate) = estimate else {
         return Ok(None);
     };
@@ -73,7 +88,11 @@ pub(super) fn prepare(
     .map_err(|e| format!("service expiry: {e:?}"))?;
     let window = CostObservationWindow::admit(observed, expires)
         .map_err(|e| format!("service window: {e:?}"))?;
-    Ok(Some(Prepared { forecast, window }))
+    Ok(Some(Prepared {
+        forecast,
+        window,
+        origin: None,
+    }))
 }
 fn encoded(quantity: RationalQuantity) -> Result<Value, String> {
     let mut bytes = [0; RATIONAL_QUANTITY_MAX_ENCODED_BYTES];
@@ -87,6 +106,7 @@ pub(super) fn finish(
     member: &AdmittedLocalModelPoolMember,
     demand: CostDemand<'_>,
     prepared: Option<&Prepared>,
+    retained: &mut Option<Retained>,
 ) -> Value {
     let Some(prepared) = prepared else {
         return json!({"phase":"service-calibration-not-requested"});
@@ -110,7 +130,10 @@ pub(super) fn finish(
                 receipt.selection().operation_id.as_str()
             ))
         };
-        let forecast_sign = sign("service-forecast");
+        let forecast_sign = prepared
+            .origin
+            .clone()
+            .unwrap_or_else(|| sign("service-forecast"));
         let completion_sign = sign("service-completion");
         let source = CostEvidenceSource::bind(
             owner,
@@ -189,8 +212,7 @@ pub(super) fn finish(
             .stages()
             .service
             .ok_or("service forecast absent")?;
-        Ok(
-            json!({"phase":"adapter-service-calibrated","scope":"adapter_call_only","condition":"Unknown","updates":model.updates(),"schema":"conduit.proof/adapter-service-calibration@1",
+        let value = json!({"phase":"adapter-service-calibrated","scope":"adapter_call_only","condition":"Unknown","updates":model.updates(),"schema":"conduit.proof/adapter-service-calibration@1",
                 "estimated_at":estimated_at,
                 "estimate_lower":encoded(estimate.duration().lower().original())?,
                 "estimate_upper":encoded(estimate.duration().upper().original())?,
@@ -200,8 +222,16 @@ pub(super) fn finish(
                 "estimate_claim":"bounded mean estimate, not a future-outcome confidence bound",
                 "selection":receipt.selection(),"input_digest":receipt.input_digest(),
                 "forecast_source":attribution(&source),"completion_source":attribution(&completion),
-                "predicted_lower":encoded(predicted.lower().original())?,"predicted_upper":encoded(predicted.upper().original())?,"measured_lower":encoded(record.measured().lower().original())?,"measured_upper":encoded(record.measured().upper().original())?,"error_lower":encoded(lower_error)?,"error_upper":encoded(upper_error)?,"numeric_work":work.spent()}),
-        )
+                "predicted_lower":encoded(predicted.lower().original())?,"predicted_upper":encoded(predicted.upper().original())?,"measured_lower":encoded(record.measured().lower().original())?,"measured_upper":encoded(record.measured().upper().original())?,"error_lower":encoded(lower_error)?,"error_upper":encoded(upper_error)?,"numeric_work":work.spent()});
+        *retained = Some(Retained::capture(
+            owner,
+            receipt,
+            demand,
+            estimate.duration(),
+            completion.window().clone(),
+            prepared.forecast.stages(),
+        )?);
+        Ok(value)
     })();
     match result {
         Ok(value) => value,
