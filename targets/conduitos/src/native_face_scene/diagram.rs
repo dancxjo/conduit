@@ -11,11 +11,7 @@ const PORT_ROW: u16 = 27;
 const MAX_VISIBLE_LINKS: usize = 12;
 
 fn columns(width: u16) -> usize {
-    if width >= 520 {
-        2
-    } else {
-        1
-    }
+    if width >= 520 { 2 } else { 1 }
 }
 
 fn rows(height: u16, gears: usize, columns: usize) -> usize {
@@ -436,12 +432,14 @@ mod tests {
                 .count(),
             12
         );
-        assert!(frame
-            .scene
-            .commands()
-            .iter()
-            .any(|command| command.payload()
-                == "12/15 cords shown · 3 omitted · F2 all facts · F3 return"));
+        assert!(
+            frame
+                .scene
+                .commands()
+                .iter()
+                .any(|command| command.payload()
+                    == "12/15 cords shown · 3 omitted · F2 all facts · F3 return")
+        );
         assert!(
             frame.hits.is_empty(),
             "drawing cords must not invent action mappings"

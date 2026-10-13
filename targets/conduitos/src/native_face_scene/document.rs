@@ -4,8 +4,8 @@
 use super::*;
 use alloc::{format, string::String};
 use conduit_face::{
-    plan_face_utterances, readable_finite_text_choices, FaceActionAvailability,
-    FaceDisclosureLevel, FacePropertyValue, FaceRole, FaceUtteranceProvenance as Provenance,
+    FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
+    FaceUtteranceProvenance as Provenance, plan_face_utterances, readable_finite_text_choices,
 };
 
 pub(super) struct Item {
