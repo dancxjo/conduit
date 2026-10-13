@@ -15,7 +15,7 @@ mod request_binding;
 mod request_custody;
 pub use completion::{
     LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal, LocalModelMeasurementRefusal,
-    LocalModelPreparedCalibration,
+    LocalModelPreparedCalibration, OwnedLocalModelCompletedWork,
 };
 pub use request_custody::{NativePoolCustodyRefusal, NativePoolRequestCustody};
 mod request_queue;

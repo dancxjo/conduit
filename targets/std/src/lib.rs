@@ -195,7 +195,7 @@ pub use local_model_pool_member::{
     AdmittedLocalModelPoolMember, LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal,
     LocalModelMeasurementRefusal, LocalModelPreparedCalibration, NativePoolCustodyRefusal,
     NativePoolDispatch, NativePoolPreparedCosts, NativePoolQueueError, NativePoolRequestCustody,
-    NativePoolRequestQueue,
+    NativePoolRequestQueue, OwnedLocalModelCompletedWork,
 };
 pub mod pool_webchat;
 pub mod r1_control;

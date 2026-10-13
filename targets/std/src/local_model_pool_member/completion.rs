@@ -4,7 +4,9 @@
 //! does not separately measure queue/transport/warmup, predict completion, assert
 //! residency, or grant authority to publish a cost observation.
 mod calibration;
+mod owned;
 pub use calibration::{LocalModelCompletionCalibrationRefusal, LocalModelPreparedCalibration};
+pub use owned::OwnedLocalModelCompletedWork;
 
 use crate::{hosted_local_model::LocalModelAdapterTerminal, ThreadTimer, TimerAdapter};
 use conduit_core::{
