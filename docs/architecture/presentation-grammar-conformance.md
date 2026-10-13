@@ -751,3 +751,25 @@ limits or silently changing a running Host. Compilation and three focused compat
 additional installation path pass. Strict all-target product Clippy with warnings
 denied also passes. Fresh exact-source release/installed execution remains
 required.
+
+### Released retained Todo comparison
+
+Fresh Linux, browser and Handbook packages from `cd3fd71ef` passed their
+supported release commands. The installed owner was upgraded while idle with
+the same retained Body-state reference and explicit finite artifact limits.
+Both checked spoken Looks completed through actual installed selection and
+same-Host execution on one exact retained Face: brief 55 frames/4871 bytes,
+expanded 56 frames/4918 bytes and 111 distinct Plays. Wording coverage and WAV
+digests pass; no speaker delivery or human hearing is claimed.
+
+The corrected retained browser producer passed generic/compact/spacious Look
+and DOM mutation/stale-return checks. Its actual verified owner execution was
+captured before reconstruction. The first consumer refused `InvalidIdentity`
+because JavaScript rounded the numeric u64 revision; the capture also retained
+the owner's exact decimal revision. The consumer now checks that decimal against
+the numeric carrier and validates the original Face content identity. It does
+not invent a new Face or replay owner actions. Two precision/refusal tests and
+the actual retained native/linear/utterance reconstruction pass against the
+unchanged producer and execution records. Product all-target Clippy with warnings
+denied, formatting and patch hygiene pass. These are software browser/action
+and semantic reconstruction proofs, not native scanout or audible delivery.

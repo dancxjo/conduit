@@ -1,6 +1,5 @@
 //! Evidence checks for three actual browser Looks of one retained canonical Face.
 //! Route custody and recorded DOM observations, not native/audio/human enactment.
-use conduit_presentation::Presentation;
 use serde_json::Value;
 
 fn text(value: &Value) -> &str {
@@ -12,8 +11,7 @@ fn text(value: &Value) -> &str {
 pub(super) fn verify(record: &Value) {
     let comparison = &record["retained_look_selection"];
     let source = &comparison["source"];
-    let canonical: Presentation = serde_json::from_value(source["presentation"].clone()).unwrap();
-    canonical.validate().unwrap();
+    let canonical = super::recorded_owner_face::decode(source).unwrap();
     let body = text(&record["body_id"]);
     assert_eq!(canonical.basis.body_id.as_ref().unwrap().as_str(), body);
     let observations = comparison["observations"].as_array().unwrap();

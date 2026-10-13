@@ -6,6 +6,9 @@ use conduit_presentation::{
 };
 use serde_json::Value;
 
+#[path = "recorded_owner_face.rs"]
+mod recorded_owner_face;
+
 #[path = "retained_look_reconstruction.rs"]
 mod retained_look_reconstruction;
 
@@ -19,9 +22,7 @@ fn evidence(variable: &str) -> Value {
 }
 
 fn occurrence(value: &Value, body: &str) -> Presentation {
-    let face: Presentation =
-        serde_json::from_value(value["owner"]["presentation"].clone()).unwrap();
-    face.validate().unwrap();
+    let face = recorded_owner_face::decode(&value["owner"]).unwrap();
     assert_eq!(face.basis.body_id.as_ref().unwrap().as_str(), body);
     assert!(face.basis.active_play_id.is_none());
     assert_eq!(value["view"]["body_id"], body);
@@ -315,8 +316,8 @@ fn actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meani
     let retained = evidence("CONDUIT_RETAINED_DOM_VERIFIED_RECEIPT");
     assert_eq!(retained["source_commit"], expected_source);
     assert_eq!(
-        exchange["after_stale_owner"]["presentation"],
-        serde_json::to_value(&after).unwrap(),
+        recorded_owner_face::decode(&exchange["after_stale_owner"]).unwrap(),
+        after,
         "actual observation before browser cleanup must preserve exact post-stale Face"
     );
     assert_eq!(
