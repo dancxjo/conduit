@@ -494,3 +494,6 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         Ok(())
     }
 }
+
+#[cfg(all(test, target_arch = "x86_64"))]
+mod recovery_tests;
