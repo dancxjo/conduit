@@ -85,6 +85,9 @@ fn host(algorithm: NumericalAlgorithm, id: &str) -> HostAdvertisement {
     }
 }
 fn plan() -> Plan {
+    plan_for(NumericalAlgorithm::OutwardI64)
+}
+fn plan_for(approximation: NumericalAlgorithm) -> Plan {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_numerical_catalogs(&mut startup, &mut profile).unwrap();
@@ -103,7 +106,7 @@ fn plan() -> Plan {
         &startup, &profile).unwrap();
     plot.validate_identities().unwrap();
     let hosts = [
-        host(NumericalAlgorithm::OutwardI64, "a-integer"),
+        host(approximation, "a-integer"),
         host(NumericalAlgorithm::ExactRational, "z-rational"),
     ];
     let mut choices = std::collections::BTreeMap::new();
@@ -224,6 +227,7 @@ fn runtime_preparation_rechecks_selected_algorithm_ports_and_certificate() {
         let other = match p.algorithm() {
             NumericalAlgorithm::ExactRational => NumericalAlgorithm::OutwardI64,
             NumericalAlgorithm::OutwardI64 => NumericalAlgorithm::ExactRational,
+            NumericalAlgorithm::Binary64 { .. } => NumericalAlgorithm::ExactRational,
         };
         assert!(NumericalRealizationBack::prepare(gear, other).is_err());
         let mut changed = gear.clone();
@@ -244,3 +248,60 @@ fn runtime_preparation_rechecks_selected_algorithm_ports_and_certificate() {
 #[cfg(feature = "kernel-step")]
 #[path = "numerical_realization/execution.rs"]
 mod execution;
+
+#[cfg(feature = "kernel-step")]
+#[test]
+fn binary64_receipt_keeps_ieee_bits_rounding_status_and_error_kind() {
+    let prepared = PreparedNumericalRealization::prepare(
+        &source(),
+        NumericalAlgorithm::Binary64 {
+            rounding: Binary64Rounding::NearestTiesEven,
+        },
+        ExactRational::ONE,
+        &mut ExactNumericWork::new(100_000_000),
+    )
+    .unwrap();
+    let receipt = numerical_result_value(&prepared).unwrap();
+    let StructuredInfoValueShape::Record(fields) = receipt.shape() else {
+        panic!();
+    };
+    let representation = fields
+        .iter()
+        .find(|f| f.name() == "representation")
+        .unwrap()
+        .value();
+    let StructuredInfoValueShape::Variant { tag, payload } = representation.shape() else {
+        panic!();
+    };
+    assert_eq!(tag, "binary64");
+    let StructuredInfoValueShape::Record(fields) = payload.shape() else {
+        panic!();
+    };
+    let target = fields
+        .iter()
+        .find(|f| f.name() == "target")
+        .unwrap()
+        .value();
+    let StructuredInfoValueShape::Leaf(bytes) = target.shape() else {
+        panic!();
+    };
+    assert_eq!(IeeeF64::decode(bytes).unwrap().bits(), 0x3fd3333333333333);
+    let rounding = fields
+        .iter()
+        .find(|f| f.name() == "rounding")
+        .unwrap()
+        .value();
+    assert!(
+        matches!(rounding.shape(),StructuredInfoValueShape::Variant {tag,..} if tag=="nearest_ties_even")
+    );
+    let inexact = fields
+        .iter()
+        .find(|f| f.name() == "any-inexact")
+        .unwrap()
+        .value();
+    assert!(matches!(inexact.shape(),StructuredInfoValueShape::Leaf(bytes) if bytes == [1]));
+    assert_eq!(
+        StructuredInfoValue::from_canonical_bytes(&receipt.canonical_bytes().unwrap()).unwrap(),
+        receipt
+    );
+}

@@ -401,6 +401,7 @@ participates in the std capacity account. Product tests exercise the ordinary
 source-to-Plan-to-Play path and compare typed presentation receipts with the
 selected certificates. These are hosted product proofs, not stable-main or
 hardware acceptance and not proofs of an IEEE arithmetic algorithm.
+
 ## Prepared finite binary64 algorithms (development)
 
 `PreparedBinary64Projection` rounds an exact rational with integer arithmetic,
@@ -445,3 +446,31 @@ policy/forgery refusal and independent native nearest-even operation comparisons
 These are portable core preparation proofs. Numerical offer/Plan/Play integration,
 irrational source strategies, dynamic DSP/tensor execution and their performance
 and exact-main acceptance gates remain open.
+
+## Float certificate admission and receipt transport (development)
+
+The existing numerical realization property now carries finite binary64 programs,
+rounding direction, step/storage/work bounds, raw IEEE result bits and error-claim
+kind. Its decoder reconstructs the full operation order and recomputes every
+rounding and end-to-end error under the verifier's independent work ceiling.
+Claimed source must match the program's mathematical denotation. Rejected
+recomputations spend the outer work meter as well as successful ones. Property
+extent limits also apply before allocating decoded contents.
+
+The ordinary std Host offers its initialized nearest-even point strategy along
+with rational and outward-integer strategies. Exact precision retains rational
+selection; the specimen's `10^-15` tolerance admits binary64 and excludes the
+coarser integer enclosure. The same mathematical source remains in every receipt.
+Native binary64 representation payloads retain the IEEE target, rounding mode,
+any inexact/tiny-inexact operation, step count and exact-distance/certified-bound
+classification. Mathematical endpoints alone do not replace those IEEE bits.
+
+The selected property is sealed in the ordinary Plan. The portable cached Back
+rechecks it before freezing its receipt; existing transactional kernel emission
+then delivers the selected typed value without allocation during Play. Product
+and actual CLI/report tests inspect the rational and binary64 selections and
+correlated presentation Signs. Closed multi-operation certificates transport
+through the property codec with their original order; the std factory currently
+installs the point strategy and refuses relabelling an arbitrary program as that
+initialized strategy. Dynamic IEEE execution, irrational strategies, angle/trig
+and DSP/tensor performance and stable-main acceptance remain separate open gates.

@@ -57,7 +57,15 @@ impl StepBack<PORTS> for Back {
 }
 #[test]
 fn selected_receipts_run_on_actual_plan_lowered_kernel_routes() {
-    let plan = plan();
+    run_selected(plan());
+}
+#[test]
+fn binary64_receipt_runs_on_selected_plan_routes_without_play_allocation() {
+    run_selected(plan_for(NumericalAlgorithm::Binary64 {
+        rounding: Binary64Rounding::NearestTiesEven,
+    }));
+}
+fn run_selected(plan: Plan) {
     assert_eq!(plan.fragments.len(), 2);
     for fragment in &plan.fragments {
         let (lowered, _) = conduit_plan_lowering::lowering::lower_plan_fragment_from_plan(

@@ -29,7 +29,7 @@ fn preparing_offers_changes_generation_once_and_refusal_is_transactional() {
             .iter()
             .filter(|o| o.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_REALIZE_KIND)
             .count(),
-        2
+        3
     );
     host.prepare_numerical_realizations(&rational).unwrap();
     assert_eq!(host.advertisement(), &offered);
@@ -49,7 +49,7 @@ fn preparing_offers_changes_generation_once_and_refusal_is_transactional() {
             .iter()
             .filter(|o| o.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_REALIZE_KIND)
             .count(),
-        2
+        3
     );
 }
 #[test]

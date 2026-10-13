@@ -1,12 +1,14 @@
 use super::*;
 fn placement() -> PlannedGear {
+    placement_for("0")
+}
+fn placement_for(error: &str) -> PlannedGear {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profiles = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles).unwrap();
     let document = conduit_plot::check_syntax_document(
-        &conduit_plot::parse_syntax_document(
-            "plot exact {\n value: math/realize(request={value:0.3,maximum-error:0})\n}\n",
-        ),
+        &conduit_plot::parse_syntax_document(&format!(
+            "plot exact {{\n value: math/realize(request={{value:0.3,maximum-error:{error}}})\n}}\n")),
         &startup,
     )
     .unwrap();
@@ -79,4 +81,41 @@ fn initialized_factory_rejects_relabelled_or_changed_selected_offer() {
         prepare(&correct, &mut values).unwrap(),
         InstalledBack::Numerical(_)
     ));
+}
+
+#[test]
+fn point_factory_accepts_its_float_but_rejects_relabelled_arithmetic_order() {
+    let correct = placement_for("0.000000000000001");
+    assert_eq!(correct.implementation_id.as_str(), FLOAT);
+    assert!(admitted(&correct).is_ok());
+    let source = MathematicalValue::parse_literal("0.3", &mut ExactNumericWork::new(WORK)).unwrap();
+    let a = ExactRational::parse_decimal("0.1", &mut ExactNumericWork::new(WORK)).unwrap();
+    let b = ExactRational::parse_decimal("0.2", &mut ExactNumericWork::new(WORK)).unwrap();
+    let tolerance =
+        ExactRational::parse_decimal("0.000000000000001", &mut ExactNumericWork::new(WORK))
+            .unwrap();
+    let custom = PreparedNumericalRealization::prepare_binary64(
+        &source,
+        &[
+            Binary64Operation::Constant(Box::new(a)),
+            Binary64Operation::Constant(Box::new(b)),
+            Binary64Operation::Add { left: 0, right: 1 },
+        ],
+        Binary64Rounding::NearestTiesEven,
+        tolerance,
+        Binary64AlgorithmLimits {
+            maximum_steps: 32,
+            maximum_retained_bytes: 1_000_000,
+        },
+        &mut ExactNumericWork::new(WORK),
+    )
+    .unwrap();
+    let relabelled = offer(&custom).unwrap();
+    let mut forged = correct;
+    forged.capability_id = relabelled.capability_id;
+    forged.realization_properties = relabelled.realization_properties;
+    assert!(
+        admitted(&forged).is_err(),
+        "a point implementation cannot claim a different valid arithmetic program"
+    );
 }
