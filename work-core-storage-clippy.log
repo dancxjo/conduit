@@ -1,0 +1,8 @@
+    Checking serde v1.0.229
+    Checking thiserror v2.0.20
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+    Checking cobs v0.3.0
+    Checking postcard v1.1.3
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/kernel)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `dev` profile [unoptimized] target(s) in 14.35s

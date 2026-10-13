@@ -1,0 +1,36 @@
+phase=original_native_beam_decode elapsed_nanos=50738514
+phase=complete_bank_preparation elapsed_nanos=6822178701
+phase=original_complete_forest_admission elapsed_nanos=265593467
+phase=original_completion elapsed_nanos=2378260
+phase=original_move_context elapsed_nanos=26647285
+PASS relation_basis_foreign_bank_cycle_reference_refusal_parity Native(ViolatedInvariant { index: 9 })
+PASS zero_allocation_lookup_move_changed_six_fields_one_under_retained_peak retained_bytes=7160
+phase=exact_proof_lookup elapsed_nanos=2622
+phase=original_complete_76_class_derivation elapsed_nanos=314038827
+class_retained_bytes=3040
+phase=all_76_original_class_output_parity elapsed_nanos=1402878708
+PASS class_move_lookup_zero_alloc_one_under_retained_peak_foreign_context retained_bytes=3096
+PASS exact_original_outputs_foreign_context_and_class_refusal
+	Command being timed: "work/profile_reuse_origin_gates /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/outputs/native-admission-family/proposal411-teaching-r3/chunk-01/result.json"
+	User time (seconds): 10.88
+	System time (seconds): 0.06
+	Percent of CPU this job got: 99%
+	Elapsed (wall clock) time (h:mm:ss or m:ss): 0:10.96
+	Average shared text size (kbytes): 0
+	Average unshared data size (kbytes): 0
+	Average stack size (kbytes): 0
+	Average total size (kbytes): 0
+	Maximum resident set size (kbytes): 295464
+	Average resident set size (kbytes): 0
+	Major (requiring I/O) page faults: 0
+	Minor (reclaiming a frame) page faults: 51294
+	Voluntary context switches: 1
+	Involuntary context switches: 396
+	Swaps: 0
+	File system inputs: 0
+	File system outputs: 8
+	Socket messages sent: 0
+	Socket messages received: 0
+	Signals delivered: 0
+	Page size (bytes): 4096
+	Exit status: 0

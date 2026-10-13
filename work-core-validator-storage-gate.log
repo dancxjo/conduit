@@ -1,0 +1,58 @@
+   Compiling proc-macro2 v1.0.107
+   Compiling quote v1.0.47
+   Compiling syn v3.0.6
+   Compiling serde_derive v1.0.229
+   Compiling thiserror v2.0.20
+   Compiling serde v1.0.229
+   Compiling thiserror-impl v2.0.20
+   Compiling cobs v0.3.0
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/kernel)
+   Compiling postcard v1.1.3
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+error[E0308]: mismatched types
+   --> architecture/core/src/structured_info/validation/storage.rs:91:81
+    |
+ 90 |         fields.push(StructuredFieldType::new("numbers", numbers.clone()));
+    |         ------      ---------------------------------------------------- this argument has type `Result<structured_info::StructuredFieldType, structured_info::StructuredInfoRefusal>`...
+    |         |
+    |         ... which causes `fields` to have type `alloc::vec::Vec<Result<structured_info::StructuredFieldType, structured_info::StructuredInfoRefusal>>`
+ 91 |         let ty = StructuredInfoType::record(KindId::new("test/storage-record"), fields).unwrap();
+    |                  --------------------------                                     ^^^^^^ expected `Vec<StructuredFieldType>`, found `Vec<Result<StructuredFieldType, ...>>`
+    |                  |
+    |                  arguments to this function are incorrect
+    |
+    = note: expected struct `alloc::vec::Vec<structured_info::StructuredFieldType>`
+               found struct `alloc::vec::Vec<Result<structured_info::StructuredFieldType, structured_info::StructuredInfoRefusal>>`
+note: associated function defined here
+   --> architecture/core/src/structured_info.rs:302:12
+    |
+302 |     pub fn record(
+    |            ^^^^^^
+303 |         schema: KindId,
+304 |         mut fields: Vec<StructuredFieldType>,
+    |         ------------------------------------
+help: consider using `Result::expect` to unwrap the `Result<structured_info::StructuredFieldType, structured_info::StructuredInfoRefusal>` value, panicking if the value is a `Result::Err`
+    |
+ 90 |         fields.push(StructuredFieldType::new("numbers", numbers.clone()).expect("REASON"));
+    |                                                                         +++++++++++++++++
+
+error[E0308]: mismatched types
+   --> architecture/core/src/structured_info/validation/storage.rs:101:18
+    |
+101 |               vec![StructuredFieldValue::new(
+    |  __________________^
+102 | |                 "numbers",
+103 | |                 StructuredInfoValue::collection(numbers, vec![n(1), n(2)]).unwrap(),
+104 | |             )],
+    | |_____________^ expected `StructuredFieldValue`, found `Result<StructuredFieldValue, ...>`
+    |
+    = note: expected struct `structured_info::StructuredFieldValue`
+                 found enum `Result<structured_info::StructuredFieldValue, structured_info::StructuredInfoRefusal>`
+help: consider using `Result::expect` to unwrap the `Result<structured_info::StructuredFieldValue, structured_info::StructuredInfoRefusal>` value, panicking if the value is a `Result::Err`
+    |
+104 |             ).expect("REASON")],
+    |              +++++++++++++++++
+
+For more information about this error, try `rustc --explain E0308`.
+error: could not compile `conduit-core` (lib test) due to 2 previous errors

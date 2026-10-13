@@ -1,0 +1,5 @@
+    Checking serde_core v1.0.229
+    Checking serde v1.0.229
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-reuse/architecture/core)
+    Finished `dev` profile [unoptimized] target(s) in 7.48s
