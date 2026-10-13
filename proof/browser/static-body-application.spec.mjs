@@ -391,6 +391,30 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
   }
 });
 
+test("Handbook checker spans identify edited source without replacing the active Play", async ({}, testInfo) => {
+  const site = await stageStaticApplications();
+  const session = await openStaticProfile(testInfo.outputPath("checker-span-profile"), new URL(site.url).origin);
+  try {
+    const page = await session.context.newPage();
+    await page.goto(new URL("handbook/", site.url).href);
+    const before = await ready(page);
+    const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+    await editor.fill("clock {");
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    const diagnostic = page.locator("[data-check]");
+    await expect(diagnostic).toContainText("edited source clock-demo — checking refused");
+    await expect(diagnostic).toContainText("line 1, column 1");
+    await expect(editor).toBeEnabled();
+    await expect(editor).toHaveValue("clock {");
+    const after = await current(page);
+    for (const key of ["bodyId", "planId", "playId"]) expect(after[key]).toBe(before[key]);
+    session.assertClean();
+  } finally {
+    await session.context.close();
+    await site.close();
+  }
+});
+
 for (const position of ["first", "middle"]) {
   test(`malformed ${position} Handbook lesson preserves independent source inspection and checks`, async ({}, testInfo) => {
     testInfo.setTimeout(120_000);
@@ -400,6 +424,7 @@ for (const position of ["first", "middle"]) {
       const page = await session.context.newPage();
       await page.goto(new URL("broken/", site.url).href);
       await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-055");
+      await expect(page.locator("[data-session-status]")).toContainText("Packaged source checking refused");
       const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
       const chooser = page.getByLabel("Choose an example", { exact: true });
       await expect(chooser).toBeEnabled();
@@ -413,6 +438,7 @@ for (const position of ["first", "middle"]) {
       await chooser.selectOption({ label: `${malformed.title} (packaged)` });
       await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
       await expect(page.locator("[data-check]")).toContainText("CND-FRM-055");
+      await expect(page.locator("[data-check]")).toContainText(`packaged source ${malformed.name}`);
       const sibling = site.sourceInspection.find(plot => plot.lesson && !plot.malformed);
       await chooser.selectOption({ label: `${sibling.title} (packaged)` });
       await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
@@ -457,6 +483,7 @@ test("refused Handbook recovery preserves original state until explicit replacem
     await page.getByRole("button", { name: "Release this tab", exact: true }).click();
     await page.reload();
     await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
+    await expect(page.locator("[data-session-status]")).toContainText("Retained Body recovery refused");
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     await expect(editor).toBeEnabled();
     await expect(editor).toHaveValue(retained.refusedSource);
@@ -474,6 +501,7 @@ test("refused Handbook recovery preserves original state until explicit replacem
     expect(await continuity()).toEqual(retained.record);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect(page.locator("[data-check]")).toContainText("CND-FRM-051");
+    await expect(page.locator("[data-check]")).toContainText("retained source convert-pitch-demo");
     expect(await continuity()).toEqual(retained.record);
     await expect(editor).toBeEnabled();
     const repaired = (await editor.inputValue()).replace('source = "1kHz"', "source = 1kHz");
