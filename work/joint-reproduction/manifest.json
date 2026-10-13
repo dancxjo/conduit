@@ -1,0 +1,91 @@
+{
+  "artifact_sha256": "4e80ea237f27d03b77a228cad5149a7e14de5f26ada0800d68ece776860deebc",
+  "calibration": "raw structured ranking scores; no probability or lexical confidence claim",
+  "commit": "b7711cce01cdd4f5fcc0a8199b8a50d951b16c0c",
+  "conditional_gold_action_lexical_and_gold_state_joint_diagnostics": {
+    "dev": {
+      "ambiguous_pos_correct": 1,
+      "ambiguous_tokens": 1,
+      "joint_context_action_correct": 180,
+      "oracle_steps": 184,
+      "pos_correct": 92,
+      "tokens": 92
+    },
+    "test": {
+      "ambiguous_pos_correct": 7,
+      "ambiguous_tokens": 7,
+      "joint_context_action_correct": 255,
+      "oracle_steps": 262,
+      "pos_correct": 131,
+      "tokens": 131
+    },
+    "train": {
+      "ambiguous_pos_correct": 39,
+      "ambiguous_tokens": 39,
+      "joint_context_action_correct": 1343,
+      "oracle_steps": 1364,
+      "pos_correct": 682,
+      "tokens": 682
+    }
+  },
+  "corpus_profile_exclusions": {
+    "dev": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1538
+    },
+    "test": {
+      "multiword_or_empty_node": 9,
+      "over_four_tokens": 1535
+    },
+    "train": {
+      "multiword_or_empty_node": 19,
+      "over_four_tokens": 10539
+    }
+  },
+  "corpus_sha256": {
+    "dev": "39239e0a60db3ae68f4b7036189f11b6692741d10ff8240dd91f74f2760d90f8",
+    "test": "fa024f43dc5da3c5ac02563bc9bd0e974f46cbb1560823976a8f342a37dc494a",
+    "train": "d68e06122a702464c613076523d56740f047e5bbe89dd90ec32737e04d952143"
+  },
+  "dataset": "UD_English-EWT",
+  "eligible_sentences": {
+    "dev": 454,
+    "test": 533,
+    "train": 1986
+  },
+  "epochs": 12,
+  "feature_class_contract_identity": "0aae9add33a46122a5f8f513d055b657a4c6f424bfc59bcb85ff8cc56091b986",
+  "features": 374,
+  "joint_choice_contract_identity": "1478761780cfd27bba1c4bb2103c0984296a26a050ff50330f797d3b065406e1",
+  "lexical_coverage_exclusions": {
+    "dev": {
+      "profile_oov": 400
+    },
+    "test": {
+      "profile_oov": 451
+    },
+    "train": {
+      "profile_oov": 1572
+    }
+  },
+  "lexical_profile_covered_sentences": {
+    "dev": 54,
+    "test": 82,
+    "train": 414
+  },
+  "lexical_profile_identity": "84e4eb92a6ffba58781445dbafbc31952aafc68aee149aa3cb1420b4cf33458a",
+  "lexical_profile_selection": "64 most frequent exact FORM strings from eligible TRAIN only; <=4 TRAIN-observed UPOS alternatives; exact-case",
+  "license": "CC BY-SA 4.0",
+  "lookups": 7,
+  "model_bytes": 56868,
+  "model_content_identity": "bf8770e9bd5fd425e40205c1722491d85401f4bf2e8fe12ecd510f620e17a229",
+  "native_decode_metrics": "not evaluated by this training script; diagnostics condition on gold state/action and are not blind POS or attachment accuracy",
+  "outputs": 76,
+  "precision": "i16-weights-i64-sums",
+  "quantization_scale": 256,
+  "seed": 4907,
+  "training_examples": 1364,
+  "training_steps": 16368,
+  "ud_release": "2.18",
+  "weights_tensor_content_identity": "d30db74f34669c6385ff8b9ca30408f57d2bb9097cfb2fceef9967ee584e1be8"
+}

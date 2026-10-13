@@ -1,0 +1,86 @@
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-joint/semantics/language)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-joint/architecture/planner)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-joint/semantics/catalog)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/conduitos/mask-offer)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-joint/proof/conformance/alife-distributed)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-joint/make/host)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-joint/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-joint/semantics/tongues)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/std/offers)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-joint/plots/patchbay/graph)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-joint/plots/patchbay/application)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-joint/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-joint/plots/tour)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-joint/semantics/speech)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/std/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/orange-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/esp32/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-joint/make/body)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-joint/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/conduitos/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/raspberry-pi/make)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-joint/proof/conformance/network-r1)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/conduitos)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-joint/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 3m 33s
+     Running tests/parser_joint_decode.rs (target/debug/deps/parser_joint_decode-cb90376f2933e6d1)
+
+running 1 test
+joint Source prepare language-parser-joint-branch elapsed_ms=5111
+joint Source prepare language-parser-joint-pos elapsed_ms=21344
+joint Source prepare language-parser-model-features elapsed_ms=32786
+joint Source prepare language-parser-legal-mask elapsed_ms=34963
+joint Source prepare language-parser-score-proposal elapsed_ms=39330
+joint Source prepare language-parser-transition elapsed_ms=42147
+joint Source prepare language-parser-joint-expansion elapsed_ms=47882
+test learned_heldout_joint_pos_and_attachment_evidence has been running for over 60 seconds
+joint Source prepare language-parser-joint-runtime-merge elapsed_ms=63251
+joint native decode email-enronsent27_02-0014 prepared_ms=115822
+joint native decode email-enronsent04_02-0010 prepared_ms=115822
+joint native decode email-enronsent36_01-0029 prepared_ms=115822
+joint native decode email-enronsent09_02-0010 prepared_ms=115822
+joint native decode email-enronsent09_02-0015 prepared_ms=115822
+joint native decode email-enronsent04_01-0025 prepared_ms=115822
+joint native decode email-enronsent32_01-0005 prepared_ms=115822
+joint native decode email-enronsent32_01-0051 prepared_ms=115822
+joint native sentences=8
+joint native decode email-enronsent32_01-0055 prepared_ms=220308
+joint native decode email-enronsent32_01-0057 prepared_ms=220308
+joint native decode email-enronsent32_01-0064 prepared_ms=220308
+joint native decode email-enronsent18_02-0007 prepared_ms=220308
+joint native decode email-enronsent18_02-0018 prepared_ms=220308
+joint native decode email-enronsent18_02-0025 prepared_ms=220308
+joint native decode email-enronsent18_02-0033 prepared_ms=220308
+joint native decode email-enronsent18_02-0041 prepared_ms=220308
+joint native sentences=16
+joint native decode email-enronsent18_02-0058 prepared_ms=321390
+joint native decode email-enronsent18_02-0063 prepared_ms=321390
+joint native decode email-enronsent18_02-0077 prepared_ms=321390
+joint native decode email-enronsent21_02-0003 prepared_ms=321390
+joint native decode email-enronsent21_02-0024 prepared_ms=321390
+joint native decode email-enronsent21_02-0029 prepared_ms=321390
+joint native decode email-enronsent21_02-0041 prepared_ms=321390
+joint native decode email-enronsent21_02-0045 prepared_ms=321390
+joint native sentences=24
+joint native decode email-enronsent21_02-0060 prepared_ms=425784
+joint native decode email-enronsent21_02-0066 prepared_ms=425784
+joint native decode email-enronsent21_02-0074 prepared_ms=425784
+joint native decode newsgroup-groups.google.com_JyotishRemedies_cc96334336b9368b_ENG_20050623_013400-0004 prepared_ms=425784
+joint native decode newsgroup-groups.google.com_APassionforRats_207517af35c166ef_ENG_20050526_150700-0005 prepared_ms=425784
+joint native decode answers-20111108102612AASRNao_ans-0005 prepared_ms=425784
+joint native decode answers-20111108081519AAdHz5c_ans-0005 prepared_ms=425784
+joint native decode answers-20111108100703AAo53QA_ans-0006 prepared_ms=425784
+joint native sentences=32
+joint native decode reviews-131965-0001 prepared_ms=539448
+joint native decode reviews-354474-0005 prepared_ms=539448
+joint native decode reviews-163250-0001 prepared_ms=539448
+JOINT_NATIVE_METRICS {"ambiguous_pos_correct":2,"ambiguous_tokens":2,"canonical_exclusions":{"canonical_profile_lookup_missing":40,"canonical_tokenization_mismatch":7},"complete_sentences":35,"conditional_gold_pos":false,"decode_max_ms":18471,"decode_ms":198798,"elapsed_ms":868559,"eligible_heldout_sentences":82,"host_memory":"VmHWM:\t 2172568 kB; VmRSS:\t 1889508 kB","last_scope_flow_timing":[{"calls":44,"entry":"language-parser-joint-branch","maximum_nanos":19523217,"nanos":819871593},{"calls":28,"entry":"language-parser-joint-pos","maximum_nanos":56486923,"nanos":1511397802},{"calls":25,"entry":"language-parser-model-features","maximum_nanos":2368026,"nanos":52856531},{"calls":25,"entry":"language-parser-legal-mask","maximum_nanos":58047324,"nanos":1428946324},{"calls":43,"entry":"language-parser-score-proposal","maximum_nanos":5367515,"nanos":207253135},{"calls":43,"entry":"language-parser-transition","maximum_nanos":45856307,"nanos":1917614262},{"calls":43,"entry":"language-parser-joint-expansion","maximum_nanos":2585884,"nanos":102653518},{"calls":55,"entry":"language-parser-joint-runtime-merge","maximum_nanos":113407034,"nanos":6022166137}],"limitations":"finite full-tape beam proof; no incremental revision, stabilization/commitment latency or broad English accuracy; score outputs are not calibrated lexical confidence","model_content_identity":"bf8770e9bd5fd425e40205c1722491d85401f4bf2e8fe12ecd510f620e17a229","ordinary_plan_preparation_ms":539448,"pos_correct":38,"profile":"TRAIN-only64 lexical entries; four-token complete immutable tape; blind learned joint decode","proof":"actual Source Flow POS/branch/features/mask/proposal/transition/score/width4 merge with recursive native admission and exact hosted learned artifact","selected_occurrence":null,"sentences":35,"source_preparation_ms":83752,"tokens":38,"uas_correct":38,"universal_base_las_correct":38,"vocative_correct":0,"vocative_gold":0}
+test learned_heldout_joint_pos_and_attachment_evidence ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 1 filtered out; finished in 868.88s
+

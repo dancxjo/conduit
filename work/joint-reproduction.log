@@ -1,0 +1,33 @@
+{
+  "lexical_profile_covered_sentences": {
+    "train": 414,
+    "dev": 54,
+    "test": 82
+  },
+  "conditional_gold_action_lexical_and_gold_state_joint_diagnostics": {
+    "train": {
+      "tokens": 682,
+      "pos_correct": 682,
+      "ambiguous_tokens": 39,
+      "ambiguous_pos_correct": 39,
+      "oracle_steps": 1364,
+      "joint_context_action_correct": 1343
+    },
+    "dev": {
+      "tokens": 92,
+      "pos_correct": 92,
+      "oracle_steps": 184,
+      "joint_context_action_correct": 180,
+      "ambiguous_tokens": 1,
+      "ambiguous_pos_correct": 1
+    },
+    "test": {
+      "tokens": 131,
+      "pos_correct": 131,
+      "ambiguous_tokens": 7,
+      "ambiguous_pos_correct": 7,
+      "oracle_steps": 262,
+      "joint_context_action_correct": 255
+    }
+  }
+}
