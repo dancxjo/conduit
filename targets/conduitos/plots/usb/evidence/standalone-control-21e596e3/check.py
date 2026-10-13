@@ -1,8 +1,15 @@
 """Check retained canonical control result against the external device wire."""
+import hashlib
 import json
 from pathlib import Path
 from canonical_decoder import Decoder
 base = Path(__file__).resolve().parent
+digests = json.loads((base / 'sha256.json').read_text())
+for relative, digest in digests.items():
+    assert hashlib.sha256((base / relative).read_bytes()).hexdigest() == digest, relative
+image = json.loads((base / 'image-receipt.json').read_text())
+root = json.loads((base / 'root.json').read_text())
+assert hashlib.sha256((base / 'package.json').read_bytes()).hexdigest() == root['package_sha256']
 lines = (base / 'run/serial.log').read_text().splitlines()
 indices = [i for i, line in enumerate(lines) if line.startswith('CONDUIT_PROTOCOL_OUTPUT port=results ')]
 assert len(indices) == 1
@@ -20,6 +27,7 @@ assert any(item['direction'] == 'device-to-qemu' and bytes.fromhex(item['wire_he
 allocation = next(line for line in lines if line.startswith('CONDUIT_PROTOCOL_PLAY_ALLOCATIONS '))
 stop = next(line for line in lines if line.startswith('CONDUIT_PROTOCOL_PLAY_STOPPED '))
 assert 'alloc=0 realloc=0' in allocation
+assert index < lines.index(allocation) < lines.index(stop) < len(lines) - 1
 for field in ('body', 'plan', 'play'):
     def selected(line):
         return next(word for word in line.split() if word.startswith(field + '='))
