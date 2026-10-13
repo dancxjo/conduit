@@ -78,6 +78,26 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             }
             protocol
         }
+        BrowserAdmissionEgress::FaceWardrobeResponse {
+            protocol,
+            request_id,
+            accepted,
+            code,
+            report,
+        } => {
+            if !valid_wardrobe_request_id(request_id)
+                || code.len() > 128
+                || (*accepted && (!code.is_empty() || report.is_none()))
+                || (!*accepted && (code.is_empty() || report.is_some()))
+                || serde_json::to_vec(report)
+                    .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?
+                    .len()
+                    > 64 * 1024
+            {
+                return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
+            }
+            protocol
+        }
         BrowserAdmissionEgress::SelectedSpeechResponse {
             protocol,
             request_id,

@@ -8,7 +8,9 @@ use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::{OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_presentation::{
+    MaskWardrobeAction, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
+};
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
 use std::path::Path;
 use std::{io::Write, os::unix::net::UnixStream};
@@ -114,6 +116,7 @@ fn call(state_dir: &Path, request: impl FnOnce(Vec<u8>) -> Request) -> Result<Re
         | Request::BodyBrowserOffer { token, .. }
         | Request::BodyBrowserMaskRoute { token, .. }
         | Request::BodyBrowserShow { token, .. }
+        | Request::BodyBrowserWardrobe { token, .. }
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserLeave { token, .. }
         | Request::BodyBrowserCancel { token, .. } => token.fill(0),
@@ -236,6 +239,34 @@ pub(crate) fn acknowledge_show(
         Response::BodyBrowserShowAccepted { protocol: PROTOCOL } => Ok(()),
         Response::Refused { code, .. } => Err(code),
         _ => Err("Body owner returned the wrong browser Show response".into()),
+    }
+}
+
+pub(crate) fn wardrobe(
+    state_dir: &Path,
+    window_id: &str,
+    binding: LinkBindingId,
+    request: OwnerFaceSnapshotRequest,
+    owner_plan_id: Option<conduit_core::PlanId>,
+    basis_revision: u64,
+    action: Option<MaskWardrobeAction>,
+) -> Result<serde_json::Value, String> {
+    match call(state_dir, |token| Request::BodyBrowserWardrobe {
+        protocol: PROTOCOL,
+        token,
+        window_id: window_id.into(),
+        binding,
+        request,
+        owner_plan_id,
+        basis_revision,
+        action,
+    })? {
+        Response::BodyBrowserWardrobeReport {
+            protocol: PROTOCOL,
+            report,
+        } => Ok(*report),
+        Response::Refused { code, .. } => Err(code),
+        _ => Err("Body owner returned the wrong wardrobe response".into()),
     }
 }
 
