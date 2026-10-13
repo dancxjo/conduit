@@ -12,6 +12,8 @@ mod evaluation;
 mod freshness;
 #[path = "native_pool_coordinator/identity.rs"]
 mod identity;
+#[path = "native_pool_coordinator/model_source.rs"]
+mod model_source;
 #[path = "native_pool_coordinator/overlap.rs"]
 mod overlap;
 #[path = "native_pool_coordinator/planning.rs"]

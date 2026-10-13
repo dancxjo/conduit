@@ -37,9 +37,11 @@ fn send(writer: &mut impl Write, value: serde_json::Value) -> Result<(), String>
         .and_then(|_| writer.flush())
         .map_err(|_| "batch receipt unavailable".into())
 }
+#[allow(clippy::too_many_arguments)]
 pub(super) fn run<'a>(
     input: &Input,
     initial: &[samples::CheckedSample<'_>],
+    sources: &[Vec<CostEvidenceSource<'_>>],
     costs: &[NativePoolPreparedCosts<'a>],
     mut queue: NativePoolRequestQueue<'a, 2, 64, 32>,
     reader: &mut impl Read,
@@ -117,14 +119,34 @@ pub(super) fn run<'a>(
                 .collect::<Result<Vec<_>, _>>()?;
             let revisions = current
                 .iter()
-                .map(|s| {
-                    let revision = s.source().calibration();
-                    PoolCostCalibrationRevision::new(
-                        revision.identity().clone(),
-                        revision.revision(),
-                    )
-                    .map(|r| [r])
-                    .map_err(|e| format!("batch calibration: {e:?}"))
+                .enumerate()
+                .map(|(index, s)| {
+                    input.operations[slot]
+                        .models
+                        .iter()
+                        .zip(&sources[slot])
+                        .filter(|(model, _)| usize::from(model.realization) == index)
+                        .map(|(_, source)| {
+                            let revision = source.calibration();
+                            PoolCostCalibrationRevision::new(
+                                revision.identity().clone(),
+                                revision.revision(),
+                            )
+                            .map_err(|e| format!("batch model calibration: {e:?}"))
+                        })
+                        .chain(core::iter::once({
+                            let revision = s.source().calibration();
+                            PoolCostCalibrationRevision::new(
+                                revision.identity().clone(),
+                                revision.revision(),
+                            )
+                            .map_err(|e| format!("batch sample calibration: {e:?}"))
+                        }))
+                        .collect::<Result<Vec<_>, String>>()
+                        .map(|mut revisions| {
+                            revisions.dedup();
+                            revisions
+                        })
                 })
                 .collect::<Result<Vec<_>, _>>()?;
             let evaluations = current

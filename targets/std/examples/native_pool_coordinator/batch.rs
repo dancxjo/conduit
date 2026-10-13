@@ -14,6 +14,8 @@ mod lifecycle;
 struct Model {
     realization: u16,
     stages: super::costs::Stages,
+    #[serde(default)]
+    model_source: Option<super::model_source::Request>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -177,6 +179,22 @@ fn prepare(input: &Input, reader: &mut impl Read, writer: &mut impl Write) -> Re
                 .collect::<Result<Vec<_>, String>>()
         })
         .collect::<Result<Vec<_>, _>>()?;
+    let sources = input
+        .operations
+        .iter()
+        .map(|op| {
+            op.models
+                .iter()
+                .map(|model| {
+                    let slot = usize::from(model.realization);
+                    model.model_source.as_ref().map_or_else(
+                        || Ok(samples[slot].source().clone()),
+                        |source| source.admit(samples[slot].source(), &now[slot]),
+                    )
+                })
+                .collect::<Result<Vec<_>, String>>()
+        })
+        .collect::<Result<Vec<_>, String>>()?;
     let forecasts = input
         .operations
         .iter()
@@ -186,12 +204,13 @@ fn prepare(input: &Input, reader: &mut impl Read, writer: &mut impl Write) -> Re
             op.models
                 .iter()
                 .zip(estimates)
-                .map(|(model, estimate)| {
+                .enumerate()
+                .map(|(model_index, (_model, estimate))| {
                     estimate
                         .as_ref()
                         .map(|estimate| {
                             CostedForecast::bind(
-                                samples[usize::from(model.realization)].source(),
+                                &sources[index][model_index],
                                 demands[index],
                                 estimate,
                             )
@@ -224,7 +243,7 @@ fn prepare(input: &Input, reader: &mut impl Read, writer: &mut impl Write) -> Re
                             request: demands[index],
                             forecast,
                             current_host: samples[slot].source().host(),
-                            current_calibration: samples[slot].source().calibration(),
+                            current_calibration: forecast.source().calibration(),
                             now: &now[slot],
                             current_execution: Some(&executions[slot]),
                             tolerance,
@@ -255,7 +274,7 @@ fn prepare(input: &Input, reader: &mut impl Read, writer: &mut impl Write) -> Re
             .enqueue(request, &input.queued_at)
             .map_err(|e| format!("batch enqueue: {e:?}"))?;
     }
-    lifecycle::run(input, &samples, &prepared, queue, reader, writer)
+    lifecycle::run(input, &samples, &sources, &prepared, queue, reader, writer)
 }
 pub(super) fn run() -> Result<(), String> {
     let mut reader = std::io::stdin().lock();

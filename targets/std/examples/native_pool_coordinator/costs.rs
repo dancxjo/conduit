@@ -30,6 +30,8 @@ struct Candidate {
     realization: u16,
     sample: super::samples::Request,
     stages: Stages,
+    #[serde(default)]
+    model_source: Option<super::model_source::Request>,
 }
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -49,7 +51,10 @@ struct Input {
     #[serde(default)]
     admission: Option<super::dispatch::Admission>,
 }
-pub(super) fn quantity(value: &ValuePayload, work: &mut ExactNumericWork) -> Result<RationalQuantity, String> {
+pub(super) fn quantity(
+    value: &ValuePayload,
+    work: &mut ExactNumericWork,
+) -> Result<RationalQuantity, String> {
     if value.value_kind.as_str() != RATIONAL_QUANTITY_ID {
         return Err("forecast quantity semantic type changed".into());
     }
@@ -70,7 +75,10 @@ fn range(
         })
         .transpose()
 }
-pub(super) fn stages(value: &Stages, work: &mut ExactNumericWork) -> Result<FulfillmentCostForecast, String> {
+pub(super) fn stages(
+    value: &Stages,
+    work: &mut ExactNumericWork,
+) -> Result<FulfillmentCostForecast, String> {
     if [&value.setup, &value.queue, &value.service, &value.transfer]
         .iter()
         .any(|stage| stage.is_none())
@@ -193,13 +201,24 @@ fn prepare(
             }
         })
         .collect::<Result<Vec<_>, String>>()?;
-    let forecasts = samples
+    let sources = input
+        .candidates
+        .iter()
+        .enumerate()
+        .map(|(index, candidate)| {
+            candidate.model_source.as_ref().map_or_else(
+                || Ok(samples[index].source().clone()),
+                |model| model.admit(samples[index].source(), &now[index]),
+            )
+        })
+        .collect::<Result<Vec<_>, String>>()?;
+    let forecasts = sources
         .iter()
         .zip(&estimates)
         .map(|(s, e)| {
             e.as_ref()
                 .map(|e| {
-                    CostedForecast::bind(s.source(), demand, e)
+                    CostedForecast::bind(s, demand, e)
                         .map_err(|error| format!("request forecast: {error:?}"))
                 })
                 .transpose()
@@ -226,7 +245,7 @@ fn prepare(
                 request: demand,
                 forecast,
                 current_host: samples[index].source().host(),
-                current_calibration: samples[index].source().calibration(),
+                current_calibration: forecast.source().calibration(),
                 now: &now[index],
                 current_execution: Some(&executions[index]),
                 tolerance,
@@ -264,10 +283,10 @@ fn prepare(
             .iter()
             .map(|s| s.current_upper_bound())
             .collect::<Result<Vec<_>, _>>()?;
-        let revisions = current
+        let revisions = sources
             .iter()
-            .map(|sample| {
-                let revision = sample.source().calibration();
+            .map(|source| {
+                let revision = source.calibration();
                 PoolCostCalibrationRevision::new(revision.identity().clone(), revision.revision())
                     .map(|value| [value])
                     .map_err(|e| format!("native current calibration: {e:?}"))
