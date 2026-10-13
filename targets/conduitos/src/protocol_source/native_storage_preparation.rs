@@ -13,6 +13,7 @@ pub(crate) struct NativeStoragePreparation {
     pub maximum_retained_bytes: u64,
     pub authorize: NativeProtocolIssuer,
     pub settle: NativeProtocolIssuer,
+    pub additional: Option<Box<NativeStoragePreparation>>,
 }
 impl NativeStoragePreparation {
     pub(super) fn append(
@@ -30,11 +31,13 @@ impl NativeStoragePreparation {
                 .resources
                 .iter()
                 .any(|resource| resource.pool_id == self.pool)
+            || self
+                .additional
+                .as_ref()
+                .is_some_and(|next| next.additional.is_some())
             || advertisement.capabilities.iter().any(|capability| {
-                matches!(
-                    capability.capability_id.as_str(),
-                    AUTHORIZE_IMPLEMENTATION | SETTLE_IMPLEMENTATION
-                )
+                capability.capability_id == self.authorize.grant().capability_id
+                    || capability.capability_id == self.settle.grant().capability_id
             })
         {
             return Err(E::InvalidPlan);
@@ -60,16 +63,24 @@ impl NativeStoragePreparation {
                 enforcement_class: BaseEnforcementClass::Cooperative,
                 lifecycle: BaseLifecycle::Ready,
                 capabilities: vec![
-                    offer(
-                        StorageTransactionRole::Authorize,
-                        &contract,
-                        self.artifact.clone(),
-                    ),
-                    offer(
-                        StorageTransactionRole::Settle,
-                        &contract,
-                        self.artifact.clone(),
-                    ),
+                    {
+                        let mut offer = offer(
+                            StorageTransactionRole::Authorize,
+                            &contract,
+                            self.artifact.clone(),
+                        );
+                        offer.capability_id = self.authorize.grant().capability_id.clone();
+                        offer
+                    },
+                    {
+                        let mut offer = offer(
+                            StorageTransactionRole::Settle,
+                            &contract,
+                            self.artifact.clone(),
+                        );
+                        offer.capability_id = self.settle.grant().capability_id.clone();
+                        offer
+                    },
                 ],
                 // Two finite roles share the independently backed association envelope.
                 resources: vec![resource_offer(self.pool.as_str(), TRANSACTION_RESOURCE, 2)],
@@ -77,6 +88,10 @@ impl NativeStoragePreparation {
             .map_err(|_| E::InvalidPlan)?;
         registry
             .project_ready_into(advertisement)
-            .map_err(|_| E::InvalidPlan)
+            .map_err(|_| E::InvalidPlan)?;
+        if let Some(additional) = &self.additional {
+            additional.append(advertisement)?;
+        }
+        Ok(())
     }
 }
