@@ -207,3 +207,131 @@ fn missing_port_facts_are_not_inferred_from_misleading_wording() {
     );
     assert_eq!(scene.presentation(), &face);
 }
+
+#[test]
+fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
+    let (mut face, _, _, _) = fan_face();
+    let original = face.clone();
+    let graph_ids: alloc::vec::Vec<_> = original
+        .subjects
+        .iter()
+        .filter(|s| {
+            matches!(
+                s.role,
+                PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord
+            )
+        })
+        .map(|s| s.identity.clone())
+        .collect();
+    for group in 1..4 {
+        let prefix = format!("group{group}/");
+        for subject in original
+            .subjects
+            .iter()
+            .filter(|s| graph_ids.contains(&s.identity))
+        {
+            let mut subject = subject.clone();
+            subject.identity = format!("{prefix}{}", subject.identity);
+            face.subjects.push(subject);
+        }
+        for property in original
+            .properties
+            .iter()
+            .filter(|p| graph_ids.contains(&p.subject))
+        {
+            if !matches!(
+                property.name.as_str(),
+                "semantic-id" | "direction" | "value-kind" | "source-port" | "sink-port"
+            ) {
+                continue;
+            }
+            let mut property = property.clone();
+            property.subject = format!("{prefix}{}", property.subject);
+            if matches!(
+                property.name.as_str(),
+                "semantic-id" | "source-port" | "sink-port"
+            ) {
+                if let PresentationPropertyValue::Identity(value) = &mut property.value {
+                    *value = format!("{prefix}{value}");
+                }
+            }
+            face.properties.push(property);
+        }
+        for relation in original
+            .relationships
+            .iter()
+            .filter(|r| graph_ids.contains(&r.source) && graph_ids.contains(&r.target))
+        {
+            let mut relation = relation.clone();
+            relation.source = format!("{prefix}{}", relation.source);
+            relation.target = format!("{prefix}{}", relation.target);
+            face.relationships.push(relation);
+        }
+    }
+    let face = Presentation::new_with_semantics(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
+    )
+    .unwrap();
+    let total = face
+        .subjects
+        .iter()
+        .filter(|s| s.role == PresentationRole::Cord)
+        .count();
+    assert_eq!(total, 12);
+    for (width, height) in [(320, 240), (640, 720)] {
+        let mut scene = NativeFaceScene::prepare(face.clone(), width, height).unwrap();
+        scene.show_diagram(true);
+        assert!(scene.pages() > 1);
+        for _ in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+            let shown = frame
+                .scene
+                .commands()
+                .iter()
+                .filter(|c| c.kind == GraphicsCommandKind::OrthogonalPath)
+                .count();
+            let notice = format!(
+                "{shown}/{total} cords shown · {} omitted · F2 all facts · F3 return",
+                total - shown
+            );
+            assert!(frame.scene.commands().iter().any(|c| c.payload() == notice));
+            scene.turn_page(true);
+        }
+        scene.show_details(true);
+        let mut visible = alloc::vec::Vec::new();
+        for _ in 0..scene.pages() {
+            let frame = scene.frame().unwrap();
+            assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+            visible.extend(
+                frame
+                    .scene
+                    .commands()
+                    .iter()
+                    .map(|c| c.payload().to_owned()),
+            );
+            scene.turn_page(true);
+        }
+        for subject in face.subjects.iter().filter(|s| {
+            matches!(
+                s.role,
+                PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord
+            )
+        }) {
+            let fact = format!("{:?} identity: {}", subject.role, subject.identity);
+            assert!(
+                visible.iter().any(|text| text == &fact),
+                "missing {} at {width}x{height}",
+                subject.identity
+            );
+        }
+        assert_eq!(scene.presentation(), &face);
+    }
+}
