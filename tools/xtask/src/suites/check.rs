@@ -7,6 +7,12 @@ pub use browser_check::BROWSER_CHECK_STEPS;
 /// Authoritative definition of the normal Rust workspace check gate.
 pub const WORKSPACE_STEPS: &[Step] = &[
     Step::new(
+        "check.committed-todo-mask-exchange",
+        "Prove fresh owner checkpoint Faces through native, linear, aural and checked browser Masks",
+        "node",
+        &["proof/conformance/presentation-waist/committed-todo-exchange.mjs"],
+    ),
+    Step::new(
         "check.fmt",
         "Check formatting across workspace",
         "cargo",

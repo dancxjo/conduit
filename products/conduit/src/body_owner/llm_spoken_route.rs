@@ -41,6 +41,7 @@ impl Owner {
         let direct = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?;
@@ -88,6 +89,7 @@ impl Owner {
         let direct = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?;
@@ -138,6 +140,7 @@ impl Owner {
         let direct = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?;
@@ -240,6 +243,7 @@ impl Owner {
         let direct = Self::current_direct_spoken_route(
             &self.host,
             self.direct_spoken_route.as_ref(),
+            self.direct_spoken_template.as_ref(),
             &self.session,
             &face,
         )?;

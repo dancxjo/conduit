@@ -2,18 +2,14 @@
 //! This gate supplies configuration to a Back; schema and recipe realization
 //! remain separate checks, and legacy unconfigured Mask admission is unchanged.
 use crate::{MaskPlot, PlannedMaskPlot};
-use alloc::{collections::BTreeMap, string::String, vec::Vec};
+use alloc::{string::String, vec::Vec};
 use conduit_core::{
-    BaseImplementationId, CheckedPlotId, ConfigurationValue, HostAdvertisement, KindId,
-    PlannedGear, SourceDocumentId, StructuredConfigurationValue,
-};
-use conduit_planner::{
-    plan_expanded_authoring_with_options, ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices,
-    PlanningOptions,
+    CheckedPlotId, ConfigurationValue, KindId, PlannedGear, SourceDocumentId,
+    StructuredConfigurationValue,
 };
 use conduit_plot::{
-    expand_canonical_plot_for_authoring_with_backs, CanonicalBackCatalog, CanonicalStartupValue,
-    CheckedSyntaxDocument, ExpandedAuthoringPlot, ExpandedGearProvenance, ProfileCatalog,
+    CanonicalBackCatalog, CanonicalStartupValue, CheckedSyntaxDocument, ExpandedAuthoringPlot,
+    ExpandedGearProvenance, ProfileCatalog,
 };
 use serde::Serialize;
 
@@ -48,15 +44,8 @@ pub struct PreparedConfiguredMask<'a> {
     pub expression: &'a StructuredConfigurationValue,
 }
 
-/// The same retained ordinary planning inputs used by the production Mask offer.
-/// Hosts and choices come from the Host-owned offer, never the Look request.
-pub struct ConfiguredMaskPlanningInputs<'a> {
-    pub hosts: &'a [HostAdvertisement],
-    pub placements: &'a PlacementChoices,
-    pub bases: &'a [BaseImplementationId],
-    pub options: PlanningOptions<'a>,
-    pub boundary_limits: &'a BTreeMap<ForeBoundaryKey, ConnectionQueueLimits>,
-}
+/// Compatibility name for the shared compiler/planner custody inputs.
+pub type ConfiguredMaskPlanningInputs<'a> = crate::CheckedSourcePlanInputs<'a>;
 
 /// Independently reproduce expansion from the checked source before following
 /// provenance. A copied source/Fore digest or self-consistent forged expansion
@@ -70,32 +59,15 @@ pub fn prepare_configured_mask<'a>(
     selection: ConfiguredMaskPlanningInputs<'_>,
     renderer_kind: &KindId,
 ) -> Result<PreparedConfiguredMask<'a>, ConfiguredMaskRefusal> {
-    let reproduced = expand_canonical_plot_for_authoring_with_backs(
-        document,
-        &expanded.expanded.name,
-        catalog,
-        backs,
-    )
-    .map_err(|_| ConfiguredMaskRefusal::SourceExpansion)?;
-    if reproduced != *expanded {
-        return Err(ConfiguredMaskRefusal::SourceExpansion);
-    }
+    let reproduced =
+        crate::checked_source_plan::reproduce_checked_expansion(document, expanded, catalog, backs)
+            .map_err(|_| ConfiguredMaskRefusal::SourceExpansion)?;
     let mask = MaskPlot::admit(expanded).map_err(|_| ConfiguredMaskRefusal::MaskPlan)?;
     if mask != planned.mask || PlannedMaskPlot::admit(&mask, &planned.plan).is_err() {
         return Err(ConfiguredMaskRefusal::MaskPlan);
     }
-    let reproduced_plan = plan_expanded_authoring_with_options(
-        &reproduced,
-        selection.hosts,
-        selection.placements,
-        selection.bases,
-        selection.options,
-        selection.boundary_limits,
-    )
-    .map_err(|_| ConfiguredMaskRefusal::BackPreparation)?;
-    if reproduced_plan != planned.plan {
-        return Err(ConfiguredMaskRefusal::BackPreparation);
-    }
+    crate::checked_source_plan::require_selected_source_plan(&reproduced, &planned.plan, selection)
+        .map_err(|_| ConfiguredMaskRefusal::BackPreparation)?;
     let mut renderers = expanded
         .expanded
         .gears

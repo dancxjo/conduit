@@ -26,6 +26,10 @@ use std::io::Write;
 
 mod clock_observation;
 mod fore_route;
+mod parsec_acknowledged_map;
+mod parsec_sources;
+mod parsec_terminal_owner;
+pub(crate) use parsec_terminal_owner::QualifiedParsecInstruction;
 mod scan_route;
 use crate::body_execution::ObservedKernelEvent;
 use clock_observation::KernelClockObservations;
@@ -37,6 +41,7 @@ pub(crate) struct BodyKernel<'a> {
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
+    input_origin: Option<super::keyboard_input_binding::KeyboardRequestAdmission>,
     typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
     image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
     image_text_record_hosts: Vec<Option<super::image_text_record_back::ImageTextRecordHost>>,
@@ -45,6 +50,9 @@ pub(crate) struct BodyKernel<'a> {
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
     supported_pure_scan: bool,
+    supported_parsec_input_scan: bool,
+    parsec_map: Option<parsec_acknowledged_map::ParsecAcknowledgedMap>,
+    parsec_terminal: Option<parsec_terminal_owner::ParsecTerminalOwner>,
     todo_checkpoint: Option<crate::todo_checkpoint_call::TodoCheckpointHost>,
     todo_checkpoint_read: Option<crate::todo_checkpoint_read_call::TodoCheckpointReadHost>,
 }
@@ -141,6 +149,7 @@ fn presentation(operation: &LoweredHostCall) -> bool {
 }
 
 impl<'a> BodyKernel<'a> {
+    #[cfg(test)]
     pub(crate) fn prepare(
         partitions: &[BodyPlotPlan],
         has_keyboard: bool,
@@ -157,19 +166,57 @@ impl<'a> BodyKernel<'a> {
             sequential_fore,
             has_fore_output,
             None,
+            None,
         )
     }
 
-    pub(crate) fn prepare_live(
+    pub(crate) fn prepare_on_host(
         partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
+        parent_play: &conduit_core::ActivePlayId,
+        fore_inputs: &'a [ExternalForeInput],
+        sequential_fore: bool,
+        has_fore_output: bool,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<Self, String> {
+        let sources = parsec_sources::prepare(partitions, host)?;
+        Self::prepare_with_live(
+            partitions,
+            has_keyboard,
+            parent_play,
+            fore_inputs,
+            sequential_fore,
+            has_fore_output,
+            None,
+            sources.as_ref(),
+        )
+    }
+
+    pub(crate) fn prepare_live_on_host(
+        partitions: &[BodyPlotPlan],
+        has_keyboard: bool,
         parent_play: &conduit_core::ActivePlayId,
         queue: &BodyLiveForeQueue,
         control: &RunControl,
+        host: &conduit_core::HostAdvertisement,
     ) -> Result<Self, String> {
         if partitions.len() != 1 || !queue.matches_plan(&partitions[0].plan, control) {
             return Err("live Fore queue differs from the exact Body Plan or stop control".into());
         }
-        Self::prepare_with_live(partitions, false, parent_play, &[], true, true, Some(queue))
+        if has_keyboard {
+            BodyLiveForeQueue::validate_parsec_input_plan(&partitions[0].plan, host)?;
+        }
+        let sources = parsec_sources::prepare(partitions, host)?;
+        Self::prepare_with_live(
+            partitions,
+            has_keyboard,
+            parent_play,
+            &[],
+            true,
+            true,
+            Some(queue),
+            sources.as_ref(),
+        )
     }
 
     #[allow(clippy::too_many_arguments)]
@@ -181,6 +228,7 @@ impl<'a> BodyKernel<'a> {
         sequential_fore: bool,
         has_fore_output: bool,
         live: Option<&BodyLiveForeQueue>,
+        parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
     ) -> Result<Self, String> {
         let fragments = partitions
             .iter()
@@ -196,7 +244,11 @@ impl<'a> BodyKernel<'a> {
         // Activation coordinators belong to the whole sealed Plan. Bind each
         // entry to its exact local fragment before lowering ordinary nodes.
         let activations = bind_body_activations(partitions, &fragments)?;
-        let mut scans = scan_route::prepare(partitions, parent_play)?;
+        let mut scans = if parsec_sources.is_some() {
+            scan_route::prepare_with_parsec_sources(partitions, parent_play, parsec_sources)?
+        } else {
+            scan_route::prepare(partitions, parent_play)?
+        };
         if scans.len() == 1 {
             let conduit_core::PlannedActivationEntry::Scan(planned) =
                 &partitions[scans[0].partition].plan.activations[0]
@@ -215,6 +267,11 @@ impl<'a> BodyKernel<'a> {
             && has_fore_output
             && (live.is_some() || fore_inputs.len() <= 256)
             && fragments[0].placements[0].host_calls.is_empty();
+        let supported_parsec_input_scan = has_keyboard
+            && live.is_some()
+            && scans.len() == 1
+            && partitions.len() == 1
+            && parsec_sources.is_some();
         let plans = partitions
             .iter()
             .map(|partition| &partition.plan)
@@ -364,6 +421,7 @@ impl<'a> BodyKernel<'a> {
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            input_origin: None,
             fore,
             activations,
             operations: lowered
@@ -384,9 +442,87 @@ impl<'a> BodyKernel<'a> {
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_pure_scan,
+            supported_parsec_input_scan,
+            parsec_map: None,
+            parsec_terminal: None,
             todo_checkpoint: None,
             todo_checkpoint_read: None,
         })
+    }
+
+    /// Prepare input origin descriptors without granting issued-Play authority.
+    pub(crate) fn prepare_input_origin(
+        &mut self,
+        advertisement: &conduit_core::HostAdvertisement,
+        plan: &conduit_body::BodyPlan,
+        prospective: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), String> {
+        if !super::keyboard_input_binding::has_input_source(&self.operations) {
+            // Ordinary non-input admission retains its own refusals and ordering.
+            return Ok(());
+        }
+        if self.input_origin.is_some() {
+            return Err("Body input origin was prepared twice".into());
+        }
+        self.input_origin = Some(
+            super::keyboard_input_binding::KeyboardRequestAdmission::prepare_body(
+                advertisement,
+                plan,
+                prospective,
+                &self.partitions,
+                &self.operations,
+            )?,
+        );
+        if self.supported_parsec_input_scan {
+            self.input_origin
+                .as_mut()
+                .ok_or("Parsec input origin is absent")?
+                .enable_completed_event_custody()?;
+            self.parsec_map = Some(parsec_acknowledged_map::ParsecAcknowledgedMap::prepare(
+                plan,
+                advertisement,
+                prospective,
+                self.partitions
+                    .first()
+                    .ok_or("Parsec map partition is absent")?,
+            )?);
+        }
+        Ok(())
+    }
+
+    pub(crate) fn confirm_input_play(
+        &mut self,
+        advertisement: &conduit_core::HostAdvertisement,
+        issued: &conduit_body::BodyPlayIdentity,
+    ) -> Result<(), String> {
+        match self.input_origin.as_mut() {
+            Some(origin) => origin.confirm_body_play(advertisement, issued),
+            None if !super::keyboard_input_binding::has_input_source(&self.operations) => Ok(()),
+            None => Err("Body input origin was not prepared".into()),
+        }?;
+        if let Some(map) = self.parsec_map.as_mut() {
+            map.confirm(advertisement, issued)?;
+        }
+        Ok(())
+    }
+
+    pub(crate) fn attach_parsec_terminal(
+        &mut self,
+        plan: &conduit_body::BodyPlan,
+        host: &conduit_core::HostAdvertisement,
+        columns: usize,
+        rows: usize,
+    ) -> Result<(), String> {
+        if !self.supported_parsec_input_scan
+            || self.parsec_map.is_none()
+            || self.parsec_terminal.is_some()
+        {
+            return Err("terminal attachment requires the exact prepared Parsec input Body".into());
+        }
+        self.parsec_terminal = Some(parsec_terminal_owner::ParsecTerminalOwner::prepare(
+            plan, host, columns, rows,
+        )?);
+        Ok(())
     }
 
     /// Bind at most one selected reader and publisher to their exact lowered
@@ -454,9 +590,9 @@ impl<'a> BodyKernel<'a> {
         Ok(())
     }
 
-    /// Only the exact finite pure Todo coordinator has an installed Body
-    /// route, with preloaded or admitted live typed Fore values. Face action
-    /// routing and other activations remain separate or refused.
+    /// Exact finite pure scans and the separately validated live Parsec input
+    /// profile have installed Body routes. This admits execution shape only;
+    /// Face action grants and current input-map authority remain separate.
     pub(crate) fn require_supported_execution(&self) -> Result<(), String> {
         if self.operations.iter().any(|operation| {
             operation.contract_id.as_str() == conduit_std_offers::TODO_CHECKPOINT_PUBLISH_CALL
@@ -477,6 +613,7 @@ impl<'a> BodyKernel<'a> {
             .iter()
             .any(|bound| !bound.entries.is_empty())
             && !self.supported_pure_scan
+            && !self.supported_parsec_input_scan
         {
             return Err("Body activation coordinator is not installed".into());
         }
@@ -499,6 +636,7 @@ impl<'a> BodyKernel<'a> {
             conduit_core::MonotonicDuration,
         )>,
         admitted_clock_quality: Option<BodyTimeQuality>,
+        mut terminal: Option<crate::body_execution::ParsecTerminalAttachment<'_>>,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -506,13 +644,78 @@ impl<'a> BodyKernel<'a> {
                 .iter()
                 .map(|operation| &operation.contract_id),
         );
+        if let Some(admission) = self.input_origin.take() {
+            // Installation can only fail for a reused or already-active host;
+            // this host is freshly constructed before its first request.
+            keys.install_request_admission(admission)
+                .expect("fresh Body keyboard input host");
+        }
         let mut deadlines = super::deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
         let mut clock_quality = admitted_clock_quality;
         let mut kernel_failure = None;
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
-                self.fore.drain(&mut self.scheduler, &mut fore_output)?;
+                self.fore.drain(
+                    &mut self.scheduler,
+                    &mut fore_output,
+                    self.supported_parsec_input_scan.then_some(&mut keys),
+                    self.parsec_map.as_mut(),
+                )?;
+                if !cancelling && !control.stop_requested() {
+                    if let (Some(owner), Some(map), Some(attachment)) = (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_mut(),
+                    ) {
+                        if owner.ensure_present(map, &attachment.host, attachment.output)? {
+                            let (face, show) = owner.current_face_show(map, &attachment.host)?;
+                            attachment.observer.showed(face, show)?;
+                        }
+                    }
+                }
+                // Drain every source state before checking an input. An event
+                // observed against an earlier Show must never be reinterpreted
+                // against a newer source map merely because Fore order differs.
+                while let Some(observed) = self.fore.take_acknowledged_input() {
+                    if cancelling || control.stop_requested() {
+                        continue;
+                    }
+                    if let (Some(owner), Some(map), Some(attachment)) = (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_mut(),
+                    ) {
+                        let input_plan = keys.require_completed_event_scope(
+                            &observed.event,
+                            owner.body_plan(),
+                            map.current_play()?,
+                            &attachment.host,
+                        )?;
+                        if input_plan != &owner.body_plan().plots[0].plan.plan_id {
+                            return Err(
+                                "Parsec completed event belongs to a different input Plan".into()
+                            );
+                        }
+                        if !owner.authorize_prompted_event(
+                            map,
+                            &attachment.host,
+                            &keys,
+                            &observed.event,
+                        )? {
+                            owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
+                            continue;
+                        }
+                        owner.admit_completed_input(
+                            map,
+                            &attachment.host,
+                            &observed.event,
+                            self.fore.acknowledged_input_bytes(&observed),
+                            attachment.queue,
+                        )?;
+                        owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
+                    }
+                }
                 self.clock_observations.capture_new(
                     self.scheduler.signs().events(),
                     clock,
@@ -524,6 +727,16 @@ impl<'a> BodyKernel<'a> {
                         .cancel()
                         .map_err(|error| format!("Body cancel: {error:?}"))?;
                     keys.cancel();
+                    // No acknowledged map remains current while the owning
+                    // Body Play is being cancelled.
+                    if let (Some(owner), Some(attachment)) =
+                        (self.parsec_terminal.as_mut(), terminal.as_mut())
+                    {
+                        owner.withdraw_prompt(attachment.output)?;
+                    }
+                    keys.set_input_view_epoch(None);
+                    self.parsec_map = None;
+                    self.parsec_terminal = None;
                     deadlines.clear();
                     cancelling = true;
                 }
@@ -975,6 +1188,36 @@ impl<'a> BodyKernel<'a> {
                     host_id,
                     boot_id,
                 );
+                // Snapshot the privately owned, acknowledged Show immediately
+                // before any adapter poll. This is observation metadata only;
+                // later action admission must still recheck exact current custody.
+                let input_view_epoch = if !cancelling && !control.stop_requested() {
+                    match (
+                        self.parsec_terminal.as_mut(),
+                        self.parsec_map.as_ref(),
+                        terminal.as_mut(),
+                    ) {
+                        (Some(owner), Some(map), Some(attachment)) => {
+                            if owner.sync_prompt(map, &attachment.host, &keys, attachment.output)? {
+                                if let Some(observation) =
+                                    owner.instruction_observation(map, &attachment.host, &keys)?
+                                {
+                                    attachment.observer.instruction_observed(&observation)?;
+                                }
+                            }
+                            owner.prompt_input_view_epoch(map, &attachment.host, &keys)?
+                        }
+                        _ => None,
+                    }
+                } else {
+                    if let (Some(owner), Some(attachment)) =
+                        (self.parsec_terminal.as_mut(), terminal.as_mut())
+                    {
+                        owner.withdraw_prompt(attachment.output)?;
+                    }
+                    None
+                };
+                keys.set_input_view_epoch(input_view_epoch);
                 match status {
                     SchedulerStatus::Drained => {
                         self.fore.require_normal_terminal(&self.scheduler)?;
@@ -996,9 +1239,13 @@ impl<'a> BodyKernel<'a> {
                         {
                             continue;
                         }
-                        if let Some(observed) = live_observed {
-                            if self.fore.wait_for_activity(observed)? {
-                                continue;
+                        // A pending admitted keyboard request owns progress even
+                        // when no command has reached the live Fore queue yet.
+                        if !keys.is_pending() {
+                            if let Some(observed) = live_observed {
+                                if self.fore.wait_for_activity(observed)? {
+                                    continue;
+                                }
                             }
                         }
                         if !keys.is_pending() && deadlines.is_empty() {
@@ -1015,6 +1262,14 @@ impl<'a> BodyKernel<'a> {
             host_id,
             boot_id,
         );
+        // Revoke the prompt on every terminal outcome, including failures
+        // before the next adapter poll. A withdrawal failure is itself a failure.
+        let withdrawal = match (self.parsec_terminal.as_mut(), terminal.as_mut()) {
+            (Some(owner), Some(attachment)) => owner.withdraw_prompt(attachment.output).map(|_| ()),
+            _ => Ok(()),
+        };
+        keys.set_input_view_epoch(None);
+        let result = result.and_then(|outcome| withdrawal.map(|()| outcome));
         let mut cleanup_failure = None;
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
@@ -1118,3 +1373,11 @@ mod todo_core_replay_tests;
 #[cfg(test)]
 #[path = "body_kernel/thermostat_live_fore_tests.rs"]
 mod thermostat_live_fore_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/parsec_live_fore_tests.rs"]
+mod parsec_live_fore_tests;
+
+#[cfg(test)]
+#[path = "body_kernel/parsec_instruction_source_tests.rs"]
+mod parsec_instruction_source_tests;

@@ -4,6 +4,7 @@ use conduit_plot::rust_binding::{
 };
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{env, fs, path::PathBuf};
+mod parsec_map_build;
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
@@ -39,6 +40,20 @@ fn main() {
         &catalog,
     )
     .expect("presentation semantic Types must check");
+    for name in [
+        "GeneratedActionAffordance",
+        "ActionInputBindingProposalInfo",
+    ] {
+        let owner = checked
+            .native_types
+            .iter()
+            .find(|ty| ty.name == name)
+            .expect("input policy owner Type exists");
+        assert!(
+            owner.invariants.is_empty(),
+            "input policy checked import must retain newly authored owner/nested where laws"
+        );
+    }
     let external_identity =
         |value_type: &conduit_plot::rust_binding::semantic_core::StructuredInfoType| {
             match value_type.shape() {
@@ -94,8 +109,16 @@ fn main() {
                 "VisualImpressionDisposition".into(),
             ]
             .into(),
-            serde_record_types: ["GeneratedActionAffordance".into()].into(),
-            serde_deny_unknown_record_types: ["GeneratedActionAffordance".into()].into(),
+            serde_record_types: [
+                "GeneratedActionAffordance".into(),
+                "ActionInputBindingProposalInfo".into(),
+            ]
+            .into(),
+            serde_deny_unknown_record_types: [
+                "GeneratedActionAffordance".into(),
+                "ActionInputBindingProposalInfo".into(),
+            ]
+            .into(),
             copy_record_types: [
                 "GraphicsPoint".into(),
                 "LayoutFrame".into(),
@@ -227,4 +250,7 @@ fn main() {
     let output = PathBuf::from(env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"))
         .join("semantic_types.rs");
     fs::write(output, generated.source).expect("write generated presentation bindings");
+    parsec_map_build::generate(&PathBuf::from(
+        env::var_os("OUT_DIR").expect("Cargo supplies OUT_DIR"),
+    ));
 }

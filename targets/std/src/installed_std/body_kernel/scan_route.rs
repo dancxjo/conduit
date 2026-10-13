@@ -18,6 +18,14 @@ pub(super) fn prepare(
     partitions: &[BodyPlotPlan],
     parent_play: &ActivePlayId,
 ) -> Result<Vec<PreparedBodyScan>, String> {
+    prepare_with_parsec_sources(partitions, parent_play, None)
+}
+
+pub(super) fn prepare_with_parsec_sources(
+    partitions: &[BodyPlotPlan],
+    parent_play: &ActivePlayId,
+    parsec_sources: Option<&std::sync::Arc<crate::flow_activation::ParsecSourcePlans>>,
+) -> Result<Vec<PreparedBodyScan>, String> {
     let mut scans = Vec::new();
     for (partition_index, partition) in partitions.iter().enumerate() {
         if partition.plan.activations.is_empty() {
@@ -40,12 +48,17 @@ pub(super) fn prepare(
             .iter()
             .find(|placement| placement.placement_id == planned.owner_placement_id)
             .ok_or("installed scan has no exact owner placement")?;
+        let parsec =
+            planned.item_input.value_kind == crate::flow_activation::parsec_command_kind()?;
         if owner.kind_id.as_str() != conduit_semantic_catalog::FLOW_SCAN_KIND
             || !owner.host_calls.is_empty()
             || !owner.resources.is_empty()
             || !owner.authority.is_empty()
             || planned.limits.maximum_items
-                > if planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND
+                > if parsec {
+                    32
+                } else if planned.item_input.value_kind.as_str()
+                    == conduit_thermostat_plot::COMMAND_KIND
                 {
                     256
                 } else {
@@ -56,7 +69,9 @@ pub(super) fn prepare(
         }
         let thermostat =
             planned.item_input.value_kind.as_str() == conduit_thermostat_plot::COMMAND_KIND;
-        if thermostat {
+        if parsec {
+            crate::flow_activation::validate_planned_parsec_scan(owner, planned)?;
+        } else if thermostat {
             crate::flow_activation::validate_planned_thermostat_scan(owner, planned)?;
         } else {
             crate::flow_activation::validate_planned_todo_scan(owner, planned)?;
@@ -66,13 +81,19 @@ pub(super) fn prepare(
             boot_id: fragment.boot_id.clone(),
             offer_generation: fragment.offer_generation,
         };
-        let mut host = crate::flow_activation::StdActivationHost::new(
-            identity,
-            crate::flow_activation::standard_child_registry()?,
-        );
+        let registry = if parsec {
+            crate::flow_activation::parsec_child_registry(std::sync::Arc::clone(
+                parsec_sources.ok_or("Parsec scan has no current computational source custody")?,
+            ))?
+        } else {
+            crate::flow_activation::standard_child_registry()?
+        };
+        let mut host = crate::flow_activation::StdActivationHost::new(identity, registry);
         let mut prepared = prepare_plan_on_hosts(&partition.plan, &mut [&mut host])
             .map_err(|error| format!("prepare exact scan Plan: {error:?}"))?;
-        let install = if thermostat {
+        let install = if parsec {
+            crate::flow_activation::install_pure_parsec_scan
+        } else if thermostat {
             crate::flow_activation::install_pure_thermostat_scan
         } else {
             crate::flow_activation::install_pure_todo_scan

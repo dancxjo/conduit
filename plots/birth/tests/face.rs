@@ -5,6 +5,68 @@ use conduit_birth_plot::{
 use conduit_body::ResidentPlot;
 use conduit_presentation::ApplicationEventKind;
 
+#[test]
+fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
+    use conduit_birth_plot::HostOwnedBirthFaceBasis;
+    use conduit_presentation::{
+        PresentationActionAvailability, plan_face_utterances, render_linear_presentation,
+    };
+    let draft = draft();
+    let selection = draft.selection(draft.revision()).unwrap();
+    let face = draft
+        .host_owned_face(&HostOwnedBirthFaceBasis {
+            host_id: "host/prebirth-conformance".into(),
+            boot_id: "boot/prebirth-conformance".into(),
+            encounter_id: "encounter/prebirth-conformance".into(),
+        })
+        .unwrap();
+    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
+        "../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    ))
+    .unwrap();
+    assert_eq!(specimen, face);
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.wake_id.is_none());
+    assert!(face.basis.plan_id.is_none());
+    assert!(face.basis.active_play_id.is_none());
+    let linear = render_linear_presentation(&face).unwrap();
+    let aural = plan_face_utterances(&face).unwrap();
+    assert_eq!(linear.presentation_id, face.identity);
+    assert_eq!(aural.source_face_identity, face.identity.as_str());
+    assert_eq!(linear.revision, face.revision);
+    assert_eq!(aural.source_face_revision, face.revision);
+    let lines = linear.lines.join("\n");
+    let spoken = aural
+        .clauses
+        .iter()
+        .map(|clause| clause.text.as_str())
+        .collect::<Vec<_>>()
+        .join("\n");
+    for choice in draft.choices() {
+        assert!(lines.contains(&choice.title));
+        assert!(spoken.contains(&choice.title));
+        if let Some(reason) = &choice.refusal {
+            assert!(lines.contains(reason));
+            assert!(spoken.contains(reason));
+        }
+    }
+    let unavailable = face
+        .actions
+        .iter()
+        .find(|action| {
+            matches!(
+                action.availability,
+                PresentationActionAvailability::Unavailable { .. }
+            )
+        })
+        .unwrap();
+    assert!(matches!(
+        face.resolve_action(face.revision, &unavailable.identity),
+        Err(conduit_presentation::PresentationActionRefusal::Unavailable { .. })
+    ));
+    assert_eq!(draft.selection(draft.revision()).unwrap(), selection);
+}
+
 fn draft() -> BirthDraft {
     BirthDraft::new(
         "550e8400-e29b-41d4-a716-446655440000".into(),

@@ -26,6 +26,9 @@ pub struct DirectSpokenMaskPreparation {
     pub available_sign: conduit_core::SignId,
     encoded_face: Vec<u8>,
     wording: std::collections::VecDeque<Vec<u8>>,
+    checked_template: Option<conduit_presentation::SpokenTemplateOpeningEvidence>,
+    template_host: Option<conduit_core::HostAdvertisement>,
+    template_mask: Option<PlannedMaskPlot>,
 }
 
 pub struct DirectSpokenMaskSession {
@@ -73,7 +76,85 @@ impl DirectSpokenMaskPreparation {
             available_sign,
             encoded_face,
             wording,
+            checked_template: None,
+            template_host: None,
+            template_mask: None,
         })
+    }
+
+    /// Only the opaque, internally source-selected Mask preparation calls this.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn new_checked_template_opening(
+        host: &crate::StdHost,
+        presentation: Presentation,
+        planned_mask: PlannedMaskPlot,
+        front_subject: String,
+        target_subject: String,
+        prepared_sign: conduit_core::SignId,
+        available_sign: conduit_core::SignId,
+        reading: &crate::spoken_template_reading::PreparedSpokenTemplateReading,
+    ) -> Result<Self, String> {
+        let mut prepared = Self::new(
+            presentation,
+            planned_mask,
+            front_subject,
+            target_subject,
+            prepared_sign,
+            available_sign,
+        )?;
+        reading.validate_current(host, &prepared.presentation)?;
+        prepared.template_host = Some(host.advertisement().clone());
+        prepared.template_mask = Some(prepared.planned_mask.clone());
+        let opening = reading.opening_wording();
+        if opening.is_empty() || opening.len() > MAX_OPENING_BYTES {
+            return Err("checked template opening exceeds admitted Mask wording".into());
+        }
+        prepared.wording = std::collections::VecDeque::from([opening.as_bytes().to_vec()]);
+        prepared.checked_template = Some(conduit_presentation::SpokenTemplateOpeningEvidence {
+            wording: reading.receipt().clone(),
+            opening_wording: opening.into(),
+            frame_count: u16::try_from(reading.frames_count())
+                .map_err(|_| "checked template frame count exceeds admitted range")?,
+        });
+        Ok(prepared)
+    }
+
+    pub(crate) fn validate_template_host(
+        &self,
+        host: &conduit_core::HostAdvertisement,
+    ) -> Result<(), String> {
+        let name = self.planned_mask.mask.plot_name.as_str();
+        match (&self.checked_template, &self.template_host) {
+            (Some(evidence), Some(selected))
+                if selected == host && self.template_mask.as_ref() == Some(&self.planned_mask) =>
+            {
+                let expected = match evidence.wording.template_identity.as_str() {
+                    "spoken/brief@1" => "owner_spoken_brief_template_mask",
+                    "spoken/expanded@1" => "owner_spoken_expanded_template_mask",
+                    _ => return Err("unknown checked spoken template selection".into()),
+                };
+                if name != expected {
+                    return Err("checked template differs from selected Mask namespace".into());
+                }
+                evidence
+                    .validate(&self.presentation)
+                    .map_err(|error| format!("checked template opening: {error:?}"))
+            }
+            (None, None)
+                if self.template_mask.is_none()
+                    && !matches!(
+                        name,
+                        "owner_spoken_brief_template_mask" | "owner_spoken_expanded_template_mask"
+                    ) =>
+            {
+                Ok(())
+            }
+            _ => Err("checked spoken template has no exact current Host/selection custody".into()),
+        }
+    }
+
+    pub fn checked_template(&self) -> Option<&conduit_presentation::SpokenTemplateOpeningEvidence> {
+        self.checked_template.as_ref()
     }
 
     pub fn prepare_session(
@@ -166,6 +247,7 @@ impl DirectSpokenMaskSession {
         let shown = DirectArtifactAcknowledgedSpokenShow {
             show: available,
             artifact,
+            checked_template: self.prepared.checked_template.clone(),
         };
         shown
             .validate(&self.prepared.presentation)
