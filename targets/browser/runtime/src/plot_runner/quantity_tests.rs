@@ -68,11 +68,11 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
     assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
     assert_eq!(
         placement.host_calls[0].maximum_output_bytes,
-        conduit_core::QUANTITY_ENCODED_LEN as u32
+        conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
     );
     let value = crate::installed_browser::transform_quantity(
-        crate::installed_browser::prepare_quantity_mapping(placement).unwrap(),
-        &conduit_core::Scalar::from_raw_microunits(-1).encode(),
+        &crate::installed_browser::prepare_quantity_mapping(placement).unwrap(),
+        &conduit_core::Scalar::from_decimal_parts(-1, -6).unwrap().canonical_bytes().unwrap(),
     )
     .unwrap()
     .unwrap();
@@ -85,8 +85,8 @@ fn browser_quantity_realization_preserves_canonical_value_and_refuses_identity_d
     altered.artifact_id = "wrong/browser-quantity".into();
     let mut values = HostedValueStore::new(
         4,
-        conduit_core::QUANTITY_ENCODED_LEN as u32,
-        (conduit_core::QUANTITY_ENCODED_LEN * 4) as u32,
+        conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
+        (conduit_core::MAX_QUANTITY_ENCODED_BYTES * 4) as u32,
     )
     .unwrap();
     assert!((installation.prepare)(&altered, &mut values).is_err());

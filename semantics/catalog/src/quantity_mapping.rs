@@ -2,7 +2,6 @@
 
 #[cfg(feature = "plot-catalog")]
 use alloc::format;
-#[cfg(feature = "plot-catalog")]
 use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 #[cfg(feature = "plot-catalog")]
@@ -10,7 +9,7 @@ use conduit_core::QuantityDimension;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, PortDescriptor, PortDirection,
     PortTemporal, Quantity, Scalar, Unit, DISTANCE_INFO_ID, FREQUENCY_INFO_ID,
-    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, SCALAR_INFO_ID,
+    MAX_QUANTITY_ENCODED_BYTES, QUANTITY_INFO_ID, SCALAR_INFO_ID,
 };
 pub use conduit_data::{QuantityMappingRefusal, QuantizationPolicy, RangePolicy};
 
@@ -25,7 +24,7 @@ pub const DISTANCE_FREQUENCY_MAP_REVISION: &str = "conduit.std/math-map-distance
 pub const NORMALIZED_DISTANCE_MAP_KIND: &str = "math/map-normalized-distance";
 pub const NORMALIZED_DISTANCE_MAP_REVISION: &str = "conduit.std/math-map-normalized-distance@1";
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct QuantityMapping {
     pub source_minimum: Scalar,
     pub source_maximum: Scalar,
@@ -38,9 +37,13 @@ pub struct QuantityMapping {
 }
 
 impl QuantityMapping {
-    pub fn validate(self) -> Result<Self, QuantityMappingRefusal> {
+    pub fn validate(&self) -> Result<&Self, QuantityMappingRefusal> {
         let target_span = i128::from(self.target_maximum) - i128::from(self.target_minimum);
-        if self.source_minimum >= self.source_maximum
+        if self
+            .source_minimum
+            .compare(&self.source_maximum)
+            .map_err(|_| QuantityMappingRefusal::InvalidRange)?
+            != Some(core::cmp::Ordering::Less)
             || self.target_minimum > self.target_maximum
             || self.target_granularity <= 0
             || target_span.rem_euclid(i128::from(self.target_granularity)) != 0
@@ -50,54 +53,69 @@ impl QuantityMapping {
         Ok(self)
     }
 
-    pub fn map(self, input: Scalar) -> Result<Quantity, QuantityMappingRefusal> {
-        let mapping = self.validate()?;
-        let input = if input < mapping.source_minimum || input > mapping.source_maximum {
-            match mapping.range_policy {
+    /// Quantization applies only at the declared target integer grid.
+    pub fn map(&self, input: Scalar) -> Result<Quantity, QuantityMappingRefusal> {
+        self.validate()?;
+        let compare = |a: &Scalar, b: &Scalar| {
+            a.compare(b)
+                .map_err(|_| QuantityMappingRefusal::Overflow)?
+                .ok_or(QuantityMappingRefusal::Inexact)
+        };
+        let input = if compare(&input, &self.source_minimum)? == core::cmp::Ordering::Less {
+            match self.range_policy {
                 RangePolicy::Refuse => return Err(QuantityMappingRefusal::OutOfRange),
-                RangePolicy::Clamp => input
-                    .max(mapping.source_minimum)
-                    .min(mapping.source_maximum),
+                RangePolicy::Clamp => self.source_minimum.clone(),
+            }
+        } else if compare(&input, &self.source_maximum)? == core::cmp::Ordering::Greater {
+            match self.range_policy {
+                RangePolicy::Refuse => return Err(QuantityMappingRefusal::OutOfRange),
+                RangePolicy::Clamp => self.source_maximum.clone(),
             }
         } else {
             input
         };
-        let source_span = i128::from(mapping.source_maximum.raw_microunits())
-            - i128::from(mapping.source_minimum.raw_microunits());
-        let source_offset = i128::from(input.raw_microunits())
-            - i128::from(mapping.source_minimum.raw_microunits());
-        let target_span = i128::from(mapping.target_maximum) - i128::from(mapping.target_minimum);
-        let numerator = source_offset
-            .checked_mul(target_span)
-            .ok_or(QuantityMappingRefusal::Overflow)?;
-        let step = i128::from(mapping.target_granularity);
-        let denominator = source_span
-            .checked_mul(step)
-            .ok_or(QuantityMappingRefusal::Overflow)?;
-        let lower_steps = numerator.div_euclid(denominator);
-        let remainder = numerator.rem_euclid(denominator);
-        let steps = match mapping.quantization {
-            QuantizationPolicy::Exact if remainder != 0 => {
-                return Err(QuantityMappingRefusal::Inexact)
+        let arithmetic = |_| QuantityMappingRefusal::Overflow;
+        let span = self
+            .source_maximum
+            .checked_sub(&self.source_minimum)
+            .map_err(arithmetic)?;
+        let offset = input
+            .checked_sub(&self.source_minimum)
+            .map_err(arithmetic)?;
+        let target_span = Scalar::from_integer_decimal(
+            &(i128::from(self.target_maximum) - i128::from(self.target_minimum)).to_string(),
+        )
+        .map_err(arithmetic)?;
+        let steps = offset
+            .checked_mul(&target_span)
+            .map_err(arithmetic)?
+            .checked_div(&span)
+            .map_err(arithmetic)?
+            .checked_div(&Scalar::integer(self.target_granularity))
+            .map_err(arithmetic)?;
+        let steps = match self.quantization {
+            QuantizationPolicy::Exact => {
+                conduit_core::MathValueRef::validate(&steps.canonical_bytes().map_err(arithmetic)?)
+                    .map_err(arithmetic)?
+                    .checked_i64()
+                    .map_err(|_| QuantityMappingRefusal::Inexact)?
             }
-            QuantizationPolicy::Exact => lower_steps,
-            QuantizationPolicy::Nearest if remainder * 2 >= denominator => lower_steps + 1,
-            QuantizationPolicy::Nearest => lower_steps,
+            QuantizationPolicy::Nearest => steps
+                .checked_add(&Scalar::parse_decimal("0.5").expect("exact half"))
+                .map_err(arithmetic)?
+                .checked_floor_i64()
+                .map_err(|_| QuantityMappingRefusal::Overflow)?,
         };
-        let mapped = i128::from(mapping.target_minimum)
+        let mapped = i128::from(self.target_minimum)
             .checked_add(
-                steps
-                    .checked_mul(step)
+                i128::from(steps)
+                    .checked_mul(i128::from(self.target_granularity))
                     .ok_or(QuantityMappingRefusal::Overflow)?,
             )
-            .ok_or(QuantityMappingRefusal::Overflow)?
-            .clamp(
-                i128::from(mapping.target_minimum),
-                i128::from(mapping.target_maximum),
-            );
+            .ok_or(QuantityMappingRefusal::Overflow)?;
         Ok(Quantity::new(
             i64::try_from(mapped).map_err(|_| QuantityMappingRefusal::Overflow)?,
-            mapping.target_unit,
+            self.target_unit.clone(),
         ))
     }
 }
@@ -113,7 +131,7 @@ pub fn quantity_map_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
+            max_queue_bytes: MAX_QUANTITY_ENCODED_BYTES as u32,
         },
         terminal_behavior: KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
@@ -142,7 +160,7 @@ pub fn distance_frequency_map_contract() -> StandardKindContract {
             // Admit the complete exact Quantity capsule while retaining the
             // ordinary shared Cord tier when it is larger.
             max_queue_bytes: conduit_core::DEFAULT_CONNECTION_BYTE_CAPACITY
-                .max(QUANTITY_ENCODED_LEN as u32),
+                .max(MAX_QUANTITY_ENCODED_BYTES as u32),
         },
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
@@ -309,8 +327,20 @@ fn configuration_fields() -> Vec<KindConfigurationField> {
         },
     };
     vec![
-        number("source-minimum", 0),
-        number("source-maximum", Scalar::SCALE),
+        KindConfigurationField {
+            key: "source-minimum".into(),
+            default_value: ConfigurationValue::Scalar(Scalar::ZERO),
+            rule: KindConfigurationRule::Scalar {
+                profile: conduit_core::PortableNumericProfile::MAXIMAL,
+            },
+        },
+        KindConfigurationField {
+            key: "source-maximum".into(),
+            default_value: ConfigurationValue::Scalar(Scalar::ONE),
+            rule: KindConfigurationRule::Scalar {
+                profile: conduit_core::PortableNumericProfile::MAXIMAL,
+            },
+        },
         number("target-minimum", 0),
         number("target-maximum", 100),
         number("target-granularity", 1),
@@ -362,11 +392,11 @@ mod tests {
             Ok(Quantity::new(20_000, Unit::Hertz))
         );
         assert_eq!(
-            value.map(Scalar::from_raw_microunits(500_000)),
+            value.map(Scalar::from_decimal_parts(500_000, -6).unwrap()),
             Ok(Quantity::new(10_010, Unit::Hertz))
         );
         assert_eq!(
-            value.map(Scalar::from_raw_microunits(2_000_000)),
+            value.map(Scalar::from_decimal_parts(2_000_000, -6).unwrap()),
             Ok(Quantity::new(20_000, Unit::Hertz))
         );
     }
@@ -375,12 +405,12 @@ mod tests {
     fn refusal_and_quantization_failures_remain_distinct() {
         assert_eq!(
             mapping(RangePolicy::Refuse, QuantizationPolicy::Nearest)
-                .map(Scalar::from_raw_microunits(-1)),
+                .map(Scalar::from_decimal_parts(-1, -6).unwrap()),
             Err(QuantityMappingRefusal::OutOfRange)
         );
         assert_eq!(
             mapping(RangePolicy::Refuse, QuantizationPolicy::Exact)
-                .map(Scalar::from_raw_microunits(1)),
+                .map(Scalar::from_decimal_parts(1, -6).unwrap()),
             Err(QuantityMappingRefusal::Inexact)
         );
         let mut invalid = mapping(RangePolicy::Refuse, QuantizationPolicy::Exact);
@@ -423,6 +453,9 @@ mod tests {
             .startup_parameters
             .iter()
             .all(|parameter| parameter.has_default));
-        assert_eq!(contract.limits.max_queue_bytes, QUANTITY_ENCODED_LEN as u32);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            MAX_QUANTITY_ENCODED_BYTES as u32
+        );
     }
 }

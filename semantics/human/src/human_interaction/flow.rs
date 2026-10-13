@@ -131,7 +131,7 @@ impl ScalarRealizationMapping {
         let (unit, minimum, minimum_bound, maximum, maximum_bound, granularity) =
             match &contract.family {
                 InteractionFamily::Scalar(value) => (
-                    *value.unit(),
+                    value.unit().clone(),
                     *value.minimum(),
                     *value.minimum_bound(),
                     *value.maximum(),
@@ -232,7 +232,7 @@ impl ScalarRealizationMapping {
         let mapped = i64::try_from(mapped).map_err(|_| InteractionRefusal::OutOfRange)?;
         InteractionValue::new(
             KindId::from(QUANTITY_INFO_ID),
-            Quantity::new(mapped, self.semantic_unit).encode().to_vec(),
+            Quantity::new(mapped, self.semantic_unit.clone()).encode().to_vec(),
         )
     }
 }

@@ -118,7 +118,7 @@ fn detection_slot(
     color: Option<(u64, u64, u64, i64, i64)>,
 ) -> Result<VisionDetectionSlot, VisionInfoRefusal> {
     let confidence = Quantity::new(confidence, Unit::Millionth);
-    validate_confidence(confidence).map_err(VisionInfoRefusal::InvalidConfidence)?;
+    validate_confidence(confidence.clone()).map_err(VisionInfoRefusal::InvalidConfidence)?;
     VisionDetectionSlot::detection(
         label.into(),
         color_sample(color)?,

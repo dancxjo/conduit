@@ -16,8 +16,8 @@ pub const FLOW_FIRST_MAXIMUM_PENDING_VALUES: u16 = 2;
 
 pub fn flow_first_scalar_contract() -> StandardKindContract {
     let value = CheckedValueContract::new(
-        kind_id(conduit_core::SCALAR_INFO_ID),
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        kind_id(&crate::scalar_info_id()),
+        crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
         Vec::new(),
     )
     .expect("Scalar has one canonical finite envelope");
@@ -42,8 +42,8 @@ pub fn flow_first_scalar_contract() -> StandardKindContract {
 pub fn flow_first_scalar_semantic_contract() -> Kind {
     flow_first_contract(
         &CheckedValueContract::new(
-            kind_id(conduit_core::SCALAR_INFO_ID),
-            conduit_core::SCALAR_ENCODED_LEN as u32,
+            kind_id(&crate::scalar_info_id()),
+            crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
             Vec::new(),
         )
         .expect("Scalar has one canonical finite envelope"),
@@ -185,7 +185,7 @@ mod tests {
 
         let scalar_port = |name: &str, direction, temporal| PortDescriptor {
             port_id: port_id(name),
-            value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+            value_kind: kind_id(&crate::scalar_info_id()),
             direction,
             temporal,
             abnormal_kind: None,
@@ -218,7 +218,7 @@ mod tests {
             limits: CapabilityLimits {
                 max_active_instances: 2,
                 max_queue_items: 1,
-                max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                max_queue_bytes: crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
             },
         };
         source
@@ -285,7 +285,7 @@ mod tests {
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                    max_queue_bytes: crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
                 },
             })
             .unwrap();

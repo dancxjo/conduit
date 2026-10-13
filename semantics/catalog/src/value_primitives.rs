@@ -22,13 +22,12 @@ pub fn scalar_literal_contract() -> StandardKindContract {
         SCALAR_INFO_ID,
         KindConfigurationField {
             key: "value".into(),
-            default_value: ConfigurationValue::I64(0),
-            rule: KindConfigurationRule::I64Range {
-                minimum: i64::MIN,
-                maximum: i64::MAX,
+            default_value: ConfigurationValue::Scalar(conduit_core::MathValue::ZERO),
+            rule: KindConfigurationRule::Scalar {
+                profile: conduit_core::PortableNumericProfile::MAXIMAL,
             },
         },
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
     )
 }
 
@@ -51,7 +50,7 @@ pub fn scalar_value_presentation_contract() -> StandardKindContract {
         SCALAR_VALUE_PRESENTATION_KIND,
         "Present scalar value",
         SCALAR_INFO_ID,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
     )
 }
 

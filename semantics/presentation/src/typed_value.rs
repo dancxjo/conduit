@@ -2,7 +2,7 @@
 use alloc::{format, string::String};
 use conduit_core::{primitive_info_kind, CheckedValueContract, PrimitiveInfoKind, Quantity, Unit};
 
-pub const MAX_FACE_VALUE_BYTES: u32 = 1024;
+pub const MAX_FACE_VALUE_BYTES: u32 = 4096;
 
 pub(crate) fn validate(contract: &CheckedValueContract, bytes: &[u8]) -> Result<(), ()> {
     if contract.maximum_bytes == 0
@@ -27,9 +27,14 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         return "Invalid typed value".into();
     }
     let primitive = primitive_info_kind(contract.value_kind.as_str());
+    if primitive == Some(PrimitiveInfoKind::MathematicalNumber) {
+        return conduit_core::MathValue::decode(bytes)
+            .and_then(|value| exact_wording(&value))
+            .unwrap_or_else(|_| "Unrenderable exact mathematical value".into());
+    }
     if primitive == Some(PrimitiveInfoKind::Unit) {
         let unit = Unit::decode(bytes).expect("validated canonical unit");
-        return unit.canonical_symbol();
+        return unit.symbol().into();
     }
     if matches!(
         primitive,
@@ -46,13 +51,12 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         )
     ) {
         let quantity = Quantity::decode(bytes).expect("validated canonical quantity");
-        let number = decimal(quantity);
-        let unit = match (quantity.unit(), spoken) {
-            (Unit::Celsius, false) => "°C".into(),
-            (Unit::Celsius, true) => "degrees Celsius".into(),
-            (Unit::Fahrenheit, false) => "°F".into(),
-            (Unit::Fahrenheit, true) => "degrees Fahrenheit".into(),
-            (unit, _) => unit.canonical_symbol(),
+        let number = decimal(&quantity);
+        let symbol = quantity.unit().symbol();
+        let unit = match (symbol, spoken) {
+            ("°C", true) => "degrees Celsius",
+            ("°F", true) => "degrees Fahrenheit",
+            _ => symbol,
         };
         return format!("{number} {unit}");
     }
@@ -62,26 +66,17 @@ fn wording(contract: &CheckedValueContract, bytes: &[u8], spoken: bool) -> Strin
         bytes.len()
     )
 }
-fn decimal(quantity: Quantity) -> String {
-    let coefficient = quantity.coefficient();
-    let mut digits = coefficient.unsigned_abs().to_string();
-    let exponent = quantity.exponent();
-    if exponent.unsigned_abs() > 256 {
-        return format!("{coefficient}e{exponent}");
-    }
-    if exponent >= 0 {
-        digits.extend(core::iter::repeat_n('0', exponent as usize));
-    } else {
-        let places = usize::from(exponent.unsigned_abs());
-        if places >= digits.len() {
-            digits = format!("0.{}{}", "0".repeat(places - digits.len()), digits);
-        } else {
-            digits.insert(digits.len() - places, '.');
-        }
-    }
-    if coefficient < 0 {
-        digits.insert(0, '-');
-    }
-    digits
+fn decimal(quantity: &Quantity) -> String {
+    quantity
+        .coordinate()
+        .to_owned()
+        .and_then(|value| exact_wording(&value))
+        .unwrap_or_else(|_| "Unrenderable exact quantity".into())
 }
-use alloc::string::ToString;
+
+fn exact_wording(value: &conduit_core::MathValue) -> Result<String, conduit_core::NumericRefusal> {
+    match value.terminating_decimal_literal(MAX_FACE_VALUE_BYTES as usize)? {
+        Some(decimal) => Ok(decimal),
+        None => value.source_expression(),
+    }
+}

@@ -284,8 +284,8 @@ mod tests {
         assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
         let canonical =
             conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
-                vitality: Scalar::from_raw_microunits(500_000),
-                activity: Scalar::from_raw_microunits(250_000),
+                vitality: Scalar::from_decimal_parts(500_000, -6).unwrap(),
+                activity: Scalar::from_decimal_parts(250_000, -6).unwrap(),
                 step: 3,
             })
             .unwrap()

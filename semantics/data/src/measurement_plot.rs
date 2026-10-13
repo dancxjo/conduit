@@ -55,37 +55,15 @@ impl MeasurementPlotSeries {
         {
             return Err(MeasurementPlotRefusal::Full);
         }
-        let lower = window.profile().range.minimum;
-        let upper = window.profile().range.maximum;
-        let exponent = samples
-            .iter()
-            .map(|sample| sample.value)
-            .chain([lower, upper])
-            .filter(|value| value.coefficient() != 0)
-            .map(|value| value.exponent())
-            .min()
-            .unwrap_or(0);
-        let align = |value: conduit_core::Quantity| -> Result<i128, MeasurementPlotRefusal> {
-            if value.coefficient() == 0 {
-                return Ok(0);
-            }
-            let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
-                .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
-            value
-                .coefficient()
-                .checked_mul(
-                    10_i128
-                        .checked_pow(power)
-                        .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?,
-                )
-                .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)
-        };
-        let minimum = align(lower)?;
-        let maximum = align(upper)?;
-        let span = maximum
-            .checked_sub(minimum)
-            .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?;
-        if span == 0 {
+        let unit = window.profile().range.minimum.unit().to_owned();
+        let minimum = window.profile().range.minimum.coordinate().to_owned()
+            .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+        let maximum = window.profile().range.maximum.convert_to_unit(&unit)
+            .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+        let span = maximum.checked_sub(&minimum)
+            .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+        if span.mathematical_equality(&conduit_core::MathValue::ZERO)
+            .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)? == conduit_core::MathematicalEquality::Equal {
             return Err(MeasurementPlotRefusal::DegenerateValueRange);
         }
 
@@ -93,10 +71,15 @@ impl MeasurementPlotSeries {
         let mut points = Vec::with_capacity(point_capacity);
         for output_index in 0..retained {
             let source_index = selected_index(output_index, retained, samples.len());
-            let value_offset = align(samples[source_index].value)?
-                .checked_sub(minimum)
-                .ok_or(MeasurementPlotRefusal::ArithmeticOverflow)?;
-            let value_millionths = scaled(value_offset, span)?;
+            let coordinate = samples[source_index].value.convert_to_unit(&unit)
+                .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+            let projected = coordinate.checked_sub(&minimum)
+                .and_then(|offset| offset.checked_div(&span))
+                .and_then(|ratio| ratio.checked_mul(&conduit_core::MathValue::integer(PLOT_AXIS_MILLIONTHS)))
+                .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
+            // This plot profile explicitly projects to a finite millionth grid.
+            let value_millionths = projected.checked_floor_i64()
+                .map_err(|_| MeasurementPlotRefusal::ArithmeticOverflow)?;
             let time_millionths = if samples.len() == 1 {
                 0
             } else {

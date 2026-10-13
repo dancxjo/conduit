@@ -456,6 +456,10 @@ fn constraint_literal(constraint: &ValueConstraint) -> String {
             "conduit_core::ValueConstraint::SignedRange {{ minimum: {minimum:?}, maximum: {maximum:?}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
         ),
+        ValueConstraint::MathematicalRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
+            "conduit_core::ValueConstraint::MathematicalRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
+            optional_bytes_literal(minimum), optional_bytes_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)
+        ),
         ValueConstraint::FixedIntegerRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => format!(
             "conduit_core::ValueConstraint::FixedIntegerRange {{ minimum: {}, maximum: {}, minimum_endpoint: {}, maximum_endpoint: {} }}",
             optional_bytes_literal(minimum), optional_bytes_literal(maximum), endpoint_literal(*minimum_endpoint), endpoint_literal(*maximum_endpoint)

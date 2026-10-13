@@ -3,6 +3,7 @@ use conduit_core::{
     ExactTemperatureDifferenceRefusal, Quantity as Point, QuantityConversionRefusal,
     ResolvedQuantitySuffix,
 };
+use conduit_core::{MathValue, Unit};
 use core::cmp::Ordering;
 
 #[test]
@@ -30,29 +31,27 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
         let difference = receipt.source();
         let result = receipt.result().unwrap();
         assert_eq!(
-            (result.coefficient(), result.exponent()),
-            (coefficient, exponent)
+            result.coordinate(),
+            &MathValue::from_decimal_parts(coefficient, exponent).unwrap()
         );
         assert_eq!(receipt.original(), authored);
         assert_eq!(result.target().source(), target);
-        assert_eq!(
+        assert!(
             receipt
                 .source()
                 .storage_coordinate()
                 .unit()
                 .exact_offset(conduit_core::QuantityRole::Delta)
                 .unwrap()
-                .numerator,
-            0
+                .is_zero()
         );
-        assert_eq!(
+        assert!(
             receipt
                 .target()
                 .unit()
                 .exact_offset(conduit_core::QuantityRole::Delta)
                 .unwrap()
-                .numerator,
-            0
+                .is_zero()
         );
         assert_ne!(
             difference.semantic_digest(),
@@ -66,14 +65,14 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
     assert_eq!(
         Difference::parse_plot_literal("TemperatureDelta(9, °F)")
             .unwrap()
-            .compare(Difference::parse_plot_literal("TemperatureDelta(5, K)").unwrap()),
-        Ok(Ordering::Equal)
+            .compare(&Difference::parse_plot_literal("TemperatureDelta(5, K)").unwrap()),
+        Ok(Some(Ordering::Equal))
     );
     assert_eq!(
         Difference::parse_plot_literal("TemperatureDelta(1, °C)")
             .unwrap()
-            .compare(Difference::parse_plot_literal("TemperatureDelta(0, K)").unwrap()),
-        Ok(Ordering::Greater)
+            .compare(&Difference::parse_plot_literal("TemperatureDelta(0, K)").unwrap()),
+        Ok(Some(Ordering::Greater))
     );
     assert_eq!(
         Difference::parse_plot_literal("TemperatureDelta(1, °C)")
@@ -81,23 +80,27 @@ fn point_and_difference_have_distinct_identity_and_affine_laws() {
             .convert_to_target(ResolvedQuantitySuffix::resolve("m").unwrap()),
         Err(QuantityConversionRefusal::IncompatibleDimensions)
     );
-    let largest = Difference::new(10_i128.pow(38) - 1, 128, conduit_core::Unit::Kelvin).unwrap();
-    assert_eq!(
-        largest.convert_to_target(ResolvedQuantitySuffix::resolve("qK").unwrap()),
-        Err(QuantityConversionRefusal::Overflow)
+    let largest = Difference::new(10_i128.pow(38) - 1, 128, Unit::Kelvin).unwrap();
+    assert!(
+        largest
+            .convert_to_target(ResolvedQuantitySuffix::resolve("qK").unwrap())
+            .is_ok()
     );
-    let smallest = Difference::new(1, -128, conduit_core::Unit::Kelvin).unwrap();
-    assert_eq!(
-        smallest.convert_to_target(ResolvedQuantitySuffix::resolve("QK").unwrap()),
-        Err(QuantityConversionRefusal::Overflow)
+    let smallest = Difference::new(1, -128, Unit::Kelvin).unwrap();
+    assert!(
+        smallest
+            .convert_to_target(ResolvedQuantitySuffix::resolve("QK").unwrap())
+            .is_ok()
     );
-    assert_eq!(largest.compare(smallest), Ok(Ordering::Greater));
-    // Existing point meanings and the old exceptional milli-Celsius law survive.
+    assert_eq!(largest.compare(&smallest), Ok(Some(Ordering::Greater)));
     let point = Point::parse_plot_literal("1m°C")
         .unwrap()
         .convert_to_target(ResolvedQuantitySuffix::resolve("K").unwrap())
         .unwrap();
-    assert_eq!((point.coefficient(), point.exponent()), (273151, -3));
+    assert_eq!(
+        point.coordinate(),
+        &MathValue::parse_decimal("273.151").unwrap()
+    );
 }
 
 #[test]
@@ -109,30 +112,28 @@ fn both_roles_match_independent_unbounded_fraction_reference() {
     for case in cases {
         let source = case["source"].as_str().unwrap();
         let target = ResolvedQuantitySuffix::resolve(case["target"].as_str().unwrap()).unwrap();
+        let point = Point::parse_plot_literal(source).unwrap();
         let result = if case["role"] == "point" {
-            Point::parse_plot_literal(source)
+            point
+                .convert_to_target(target)
+                .unwrap()
+                .coordinate()
+                .clone()
+        } else {
+            let unit = point.unit().to_owned();
+            Difference::from_math(point.coordinate().to_owned().unwrap(), &unit)
                 .unwrap()
                 .convert_to_target(target)
-                .map(|value| (value.coefficient(), value.exponent()))
-        } else {
-            Difference::new(
-                Point::parse_plot_literal(source).unwrap().coefficient(),
-                Point::parse_plot_literal(source).unwrap().exponent(),
-                Point::parse_plot_literal(source).unwrap().unit(),
-            )
+                .unwrap()
+                .coordinate()
+                .clone()
+        };
+        let expected = MathValue::from_integer_decimal(case["numerator"].as_str().unwrap())
             .unwrap()
-            .convert_to_target(target)
-            .map(|value| (value.coefficient(), value.exponent()))
-        };
-        let expected = match case["refusal"].as_str() {
-            Some("inexact") => Err(QuantityConversionRefusal::Inexact),
-            Some("overflow") => Err(QuantityConversionRefusal::Overflow),
-            None => Ok((
-                case["coefficient"].as_str().unwrap().parse().unwrap(),
-                case["exponent"].as_i64().unwrap() as i16,
-            )),
-            other => panic!("unexpected reference refusal {other:?}"),
-        };
+            .checked_div(
+                &MathValue::from_integer_decimal(case["denominator"].as_str().unwrap()).unwrap(),
+            )
+            .unwrap();
         assert_eq!(result, expected, "{case}");
     }
 }

@@ -124,6 +124,7 @@ fn standard_configuration(
             key: field.key,
             default_value: field.default_value,
             rule: match field.rule {
+                conduit_plot::KindConfigurationRule::Scalar { profile } => KindConfigurationRule::Scalar { profile },
                 conduit_plot::KindConfigurationRule::Any => KindConfigurationRule::Any,
                 conduit_plot::KindConfigurationRule::Quantity => KindConfigurationRule::Quantity,
                 conduit_plot::KindConfigurationRule::Unit => KindConfigurationRule::Unit,

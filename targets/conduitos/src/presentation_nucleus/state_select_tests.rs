@@ -8,7 +8,7 @@ use super::{
 };
 
 fn scalar(raw: i64) -> Scalar {
-    Scalar::from_raw_microunits(raw)
+    Scalar::from_decimal_parts(raw as i128, -6).unwrap()
 }
 
 fn value(slot: u16, byte_len: u32) -> ValueRef {
@@ -114,19 +114,21 @@ fn malformed_and_cancelled_selector_inputs_fail_without_state_make() {
     );
 
     let selector = InfoBool::FALSE.encode();
-    let false_value = scalar(10).encode();
-    let true_value = scalar(20).encode();
+    let false_value = scalar(10).canonical_bytes().unwrap();
+    let true_value = scalar(20).canonical_bytes().unwrap();
     assert_eq!(
         back.accept_for_test(PortId(0), value(1, 1), &selector),
         Ok(None)
     );
     assert_eq!(
-        back.accept_for_test(PortId(1), value(2, 8), &false_value),
+        back.accept_for_test(PortId(1), value(2, false_value.len() as u32), &false_value),
         Ok(None)
     );
     assert_eq!(
-        back.accept_for_test(PortId(2), value(3, 8), &true_value),
-        Ok(Some(false_value))
+        back.accept_for_test(PortId(2), value(3, true_value.len() as u32), &true_value),
+        Ok(Some(
+            super::scalar_bytes::ScalarBytes::new(&false_value).unwrap()
+        ))
     );
 
     let prepared = prepare_state_select(

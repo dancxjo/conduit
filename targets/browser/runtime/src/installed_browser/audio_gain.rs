@@ -1,7 +1,7 @@
 //! Finite PCM amplitude scaling through exact admitted browser Host Calls.
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserBack;
-use conduit_core::{HostCallContractId, HostCallRequirement, PlannedGear, Scalar};
+use conduit_core::{HostCallContractId, HostCallRequirement, MathValueRef, PlannedGear};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -44,7 +44,7 @@ fn offer() -> conduit_core::CapabilityOffer {
                     conduit_semantic_catalog::AUDIO_GAIN_KIND,
                 )),
                 maximum_in_flight: 1,
-                maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                maximum_input_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
                 maximum_output_bytes: 0,
             },
         ],
@@ -115,7 +115,8 @@ impl<const PORTS: usize> StepBack<PORTS> for GainBack {
             let Some(next) = self.next_request.checked_add(1) else {
                 return fail(11);
             };
-            let Ok(bounded) = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
+            let Ok(bounded) =
+                BoundedValueRef::new(value, conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32)
             else {
                 return fail(14);
             };
@@ -193,7 +194,9 @@ impl PreparedAudioGain {
         Ok(Some(Self { amplitude: None }))
     }
     pub(crate) fn update(&mut self, encoded: &[u8]) -> Result<(), Failure> {
-        let amplitude = Scalar::decode(encoded)
+        let amplitude = MathValueRef::validate(encoded)
+            .map_err(|_| failure(2))?
+            .checked_microscalar()
             .map_err(|_| failure(2))?
             .raw_microunits();
         if !(0..=1_000_000).contains(&amplitude) {
@@ -239,11 +242,31 @@ mod tests {
     #[test]
     fn admitted_scaler_handles_a_continuous_pcm_block() {
         let mut gain = PreparedAudioGain { amplitude: None };
-        gain.update(&Scalar::from_raw_microunits(500_000).encode())
-            .unwrap();
+        gain.update(
+            &conduit_core::MathValue::parse_decimal("0.5")
+                .unwrap()
+                .canonical_bytes()
+                .unwrap(),
+        )
+        .unwrap();
         let tone = crate::installed_browser::audio_tone::test_block();
         let (scaled, length) = gain.scale(&tone).unwrap();
         assert_eq!(length, BLOCK_BYTES);
         assert_ne!(scaled, tone);
     }
+    #[test]
+    fn mathematical_gain_refuses_nonrepresentable_fraction_without_replacing_admitted_control() {
+        let mut gain = PreparedAudioGain { amplitude: None };
+        let half = conduit_core::MathValue::parse_decimal("0.5").unwrap().canonical_bytes().unwrap();
+        gain.update(&half).unwrap();
+        let third = conduit_core::MathValue::integer(1).checked_div(&conduit_core::MathValue::integer(3)).unwrap().canonical_bytes().unwrap();
+        let failure = gain.update(&third).unwrap_err();
+        assert_eq!(failure.detail, 2);
+        assert_eq!(gain.amplitude, Some(500_000));
+        let tone = crate::installed_browser::audio_tone::test_block();
+        let (scaled, length) = gain.scale(&tone).unwrap();
+        assert_eq!(length, BLOCK_BYTES);
+        assert_ne!(scaled, tone);
+    }
+
 }

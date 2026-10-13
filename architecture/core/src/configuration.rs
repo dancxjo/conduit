@@ -55,8 +55,9 @@ impl<'de> Deserialize<'de> for StructuredConfigurationValue {
 pub enum ConfigurationValue {
     Bool(bool),
     U64(#[serde(with = "human_u64")] u64),
-    /// Signed fixed-point scalar microunits, matching `value/scalar`.
+    /// Explicit signed MicroScalar realization microunits.
     I64(#[serde(with = "human_i64")] i64),
+    Scalar(crate::MathValue),
     Text(String),
     /// Exact dimensional startup value; the unit remains part of configuration truth.
     Quantity(crate::QuantityConfigurationValue),
@@ -72,7 +73,8 @@ impl ConfigurationValue {
         crate::kind_id(match self {
             Self::Bool(_) => crate::BOOL_INFO_ID,
             Self::U64(_) => crate::COUNT_INFO_ID,
-            Self::I64(_) => crate::SCALAR_INFO_ID,
+            Self::I64(_) => crate::MICRO_SCALAR_INFO_ID,
+            Self::Scalar(_) => crate::SCALAR_INFO_ID,
             Self::Text(_) => crate::TEXT_INFO_ID,
             Self::Quantity(_) => crate::QUANTITY_INFO_ID,
             Self::Unit(_) => crate::UNIT_INFO_ID,
@@ -140,6 +142,7 @@ impl KindSemanticContract {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum KindConfigurationRule {
     Any,
+    Scalar { profile: crate::PortableNumericProfile },
     U64Range {
         #[serde(with = "human_u64")]
         minimum: u64,

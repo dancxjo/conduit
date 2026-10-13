@@ -9,7 +9,7 @@ pub(crate) const MAXIMUM_BROWSER_CORDS: usize = 48;
 pub(crate) const MAXIMUM_BROWSER_VALUE_BYTES: usize = 4_096;
 // Four canonical position/delta quantities plus bounded record metadata.
 pub(crate) const NORMALIZED_POINTER_VALUE_BYTES: usize =
-    4 * conduit_core::QUANTITY_ENCODED_LEN + 2048;
+    4 * conduit_core::MAX_QUANTITY_ENCODED_BYTES + 2048;
 pub(crate) const MAXIMUM_BROWSER_STORED_VALUE_BYTES: usize = 8_192;
 pub(crate) const BROWSER_PORTS_PER_GEAR: usize =
     conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;

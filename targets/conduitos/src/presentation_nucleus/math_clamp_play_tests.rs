@@ -5,24 +5,24 @@ use conduit_core::{ArtifactId, Scalar};
 fn ordinary_clamp_plot_handles_below_inside_and_above_boundaries() {
     for (input, expected) in [
         (
-            Scalar::from_raw_microunits(-2_000_000),
-            Scalar::from_raw_microunits(-1_000_000),
+            Scalar::from_decimal_parts(-2_000_000 as i128, -6).unwrap(),
+            Scalar::from_decimal_parts(-1_000_000 as i128, -6).unwrap(),
         ),
         (
-            Scalar::from_raw_microunits(-1_000_000),
-            Scalar::from_raw_microunits(-1_000_000),
+            Scalar::from_decimal_parts(-1_000_000 as i128, -6).unwrap(),
+            Scalar::from_decimal_parts(-1_000_000 as i128, -6).unwrap(),
         ),
         (Scalar::ZERO, Scalar::ZERO),
         (
-            Scalar::from_raw_microunits(1_000_000),
-            Scalar::from_raw_microunits(1_000_000),
+            Scalar::from_decimal_parts(1_000_000 as i128, -6).unwrap(),
+            Scalar::from_decimal_parts(1_000_000 as i128, -6).unwrap(),
         ),
         (
-            Scalar::from_raw_microunits(2_000_000),
-            Scalar::from_raw_microunits(1_000_000),
+            Scalar::from_decimal_parts(2_000_000 as i128, -6).unwrap(),
+            Scalar::from_decimal_parts(1_000_000 as i128, -6).unwrap(),
         ),
     ] {
-        let prepared = prepare_clamp("clamp-host", "clamp-boot", input).unwrap();
+        let prepared = prepare_clamp("clamp-host", "clamp-boot", input.clone()).unwrap();
         let placement = prepared.plan.fragments[0]
             .placements
             .iter()
@@ -49,8 +49,8 @@ fn invalid_configuration_and_mutated_plan_identity_are_refused() {
     assert_eq!(
         conduit_semantic_catalog::clamp_scalar(
             Scalar::ZERO,
-            Scalar::from_raw_microunits(1),
-            Scalar::from_raw_microunits(-1),
+            Scalar::from_decimal_parts(1 as i128, -6).unwrap(),
+            Scalar::from_decimal_parts(-1 as i128, -6).unwrap(),
         ),
         Err(conduit_semantic_catalog::MathScalarRefusal::InvalidConfiguration)
     );

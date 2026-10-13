@@ -10,11 +10,11 @@ use crate::{
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_BYTES: usize = MAXIMUM_MEASUREMENT_WINDOW_SAMPLES
-    * (2 * conduit_core::QUANTITY_ENCODED_LEN + 256)
-    + 2 * conduit_core::QUANTITY_ENCODED_LEN
+    * (2 * (2048 + 2) + 256)
+    + 2 * (2048 + 2)
     + 256;
 pub const MAXIMUM_MEASUREMENT_PLOT_SERIES_BYTES: usize = 1_024;
-pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 4 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
+pub const MAXIMUM_MEASUREMENT_SUMMARY_BYTES: usize = 4 * (2048 + 2) + 1_024;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum MeasurementWireRefusal {
@@ -32,8 +32,8 @@ pub fn encode_measurement_window(
     bytes.push(1);
     bytes.push(profile.capacity);
     bytes.extend_from_slice(&FullWindowPolicyForm::encode(profile.full_policy));
-    bytes.extend_from_slice(&profile.range.minimum.encode());
-    bytes.extend_from_slice(&profile.range.maximum.encode());
+    put_quantity(&mut bytes, &profile.range.minimum)?;
+    put_quantity(&mut bytes, &profile.range.maximum)?;
     put_text(&mut bytes, &profile.clock_basis)?;
     bytes.extend_from_slice(&window.discarded_samples().to_le_bytes());
     bytes.push(
@@ -41,12 +41,12 @@ pub fn encode_measurement_window(
             .map_err(|_| MeasurementWireRefusal::CapacityExceeded)?,
     );
     for sample in window.samples() {
-        bytes.extend_from_slice(&sample.value.encode());
+        put_quantity(&mut bytes, &sample.value)?;
         put_instant(&mut bytes, &sample.observed_at)?;
-        match sample.uncertainty {
+        match &sample.uncertainty {
             Some(value) => {
                 bytes.push(1);
-                bytes.extend_from_slice(&value.encode());
+                put_quantity(&mut bytes, &value)?;
             }
             None => bytes.push(0),
         }
@@ -146,12 +146,12 @@ pub fn encode_measurement_summary(
     put_instant(&mut bytes, &summary.first_observed_at)?;
     put_instant(&mut bytes, &summary.last_observed_at)?;
     for quantity in [
-        summary.minimum,
-        summary.maximum,
-        summary.range,
-        summary.mean,
+        &summary.minimum,
+        &summary.maximum,
+        &summary.range,
+        &summary.mean,
     ] {
-        bytes.extend_from_slice(&quantity.encode());
+        put_quantity(&mut bytes, &quantity)?;
     }
     if bytes.len() > MAXIMUM_MEASUREMENT_SUMMARY_BYTES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
@@ -204,66 +204,35 @@ fn validate_summary(summary: &MeasurementSummary) -> Result<(), MeasurementWireR
     if summary.minimum.role() == conduit_core::QuantityRole::Point {
         return Err(MeasurementWireRefusal::Malformed);
     }
-    let difference = |left: conduit_core::Quantity,
-                      right: conduit_core::Quantity|
-     -> Result<conduit_core::Quantity, MeasurementWireRefusal> {
-        let exponent = if left.coefficient() == 0 {
-            right.exponent()
-        } else if right.coefficient() == 0 {
-            left.exponent()
-        } else {
-            left.exponent().min(right.exponent())
-        };
-        let align = |value: conduit_core::Quantity| -> Result<i128, MeasurementWireRefusal> {
-            if value.coefficient() == 0 {
-                return Ok(0);
-            }
-            let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
-                .map_err(|_| MeasurementWireRefusal::Malformed)?;
-            value
-                .coefficient()
-                .checked_mul(
-                    10_i128
-                        .checked_pow(power)
-                        .ok_or(MeasurementWireRefusal::Malformed)?,
-                )
-                .ok_or(MeasurementWireRefusal::Malformed)
-        };
-        conduit_core::Quantity::from_decimal_role(
-            align(left)?
-                .checked_sub(align(right)?)
-                .ok_or(MeasurementWireRefusal::Malformed)?,
-            exponent,
-            unit,
-            left.role(),
-        )
-        .map_err(|_| MeasurementWireRefusal::Malformed)
-    };
+    let difference = summary.maximum.coordinate().to_owned()
+        .and_then(|maximum| summary.minimum.coordinate().to_owned().and_then(|minimum| maximum.checked_sub(&minimum)))
+        .map_err(|_| MeasurementWireRefusal::Malformed)?;
+    let range = summary.range.coordinate().to_owned().map_err(|_| MeasurementWireRefusal::Malformed)?;
     if summary.sample_count == 0
         || [
-            summary.minimum,
-            summary.maximum,
-            summary.range,
-            summary.mean,
+            &summary.minimum,
+            &summary.maximum,
+            &summary.range,
+            &summary.mean,
         ]
         .iter()
-        .any(|quantity| quantity.unit() != unit)
+        .any(|quantity| !quantity.unit().same_physical_definition(unit))
         || summary
             .minimum
-            .compare(summary.maximum)
+            .as_ref().compare_borrowed(summary.maximum.as_ref())
             .map_err(|_| MeasurementWireRefusal::Malformed)?
-            == core::cmp::Ordering::Greater
+            .ok_or(MeasurementWireRefusal::Malformed)? == core::cmp::Ordering::Greater
         || summary
             .mean
-            .compare(summary.minimum)
+            .as_ref().compare_borrowed(summary.minimum.as_ref())
             .map_err(|_| MeasurementWireRefusal::Malformed)?
-            == core::cmp::Ordering::Less
+            .ok_or(MeasurementWireRefusal::Malformed)? == core::cmp::Ordering::Less
         || summary
             .mean
-            .compare(summary.maximum)
+            .as_ref().compare_borrowed(summary.maximum.as_ref())
             .map_err(|_| MeasurementWireRefusal::Malformed)?
-            == core::cmp::Ordering::Greater
-        || difference(summary.maximum, summary.minimum)? != summary.range
+            .ok_or(MeasurementWireRefusal::Malformed)? == core::cmp::Ordering::Greater
+        || difference.mathematical_equality(&range).map_err(|_| MeasurementWireRefusal::Malformed)? != conduit_core::MathematicalEquality::Equal
     {
         return Err(MeasurementWireRefusal::Malformed);
     }
@@ -369,7 +338,9 @@ impl<'a> Input<'a> {
         ))
     }
     fn quantity(&mut self) -> Result<Quantity, MeasurementWireRefusal> {
-        Quantity::decode(self.take(conduit_core::QUANTITY_ENCODED_LEN)?)
+        { let length = usize::from(u16::from_le_bytes(self.take(2)?.try_into().map_err(|_| MeasurementWireRefusal::Malformed)?));
+            if length > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+            Quantity::decode(self.take(length)?) }
             .map_err(|_| MeasurementWireRefusal::Malformed)
     }
     fn text(&mut self) -> Result<String, MeasurementWireRefusal> {
@@ -512,4 +483,12 @@ mod tests {
             Err(MeasurementWireRefusal::Malformed)
         );
     }
+}
+
+fn put_quantity(bytes: &mut Vec<u8>, quantity: &Quantity) -> Result<(), MeasurementWireRefusal> {
+    let encoded = quantity.encoded();
+    if encoded.len() > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+    bytes.extend_from_slice(&(encoded.len() as u16).to_le_bytes());
+    bytes.extend_from_slice(encoded);
+    Ok(())
 }

@@ -307,6 +307,15 @@ pub(super) fn expanded_identity(
                     push(&mut canonical, "u64");
                     push(&mut canonical, &value.to_string());
                 }
+                conduit_core::ConfigurationValue::Scalar(ref value) => {
+                    push(&mut canonical, "scalar");
+                    push(
+                        &mut canonical,
+                        &hex(&value
+                            .canonical_bytes()
+                            .expect("admitted Scalar has canonical bytes")),
+                    );
+                }
                 conduit_core::ConfigurationValue::I64(value) => {
                     push(&mut canonical, "i64-scalar-microunits");
                     push(&mut canonical, &value.to_string());

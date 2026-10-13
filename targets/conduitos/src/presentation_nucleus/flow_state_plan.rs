@@ -36,7 +36,7 @@ pub fn prepare_flow_state(
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut catalog)
         .map_err(|_| FlowStateError::Catalog)?;
     for offer in [
-        source_offer(value),
+        source_offer(value.clone()),
         sink_offer(LEFT_SINK_KIND),
         sink_offer(RIGHT_SINK_KIND),
     ] {
@@ -54,7 +54,7 @@ pub fn prepare_flow_state(
         "plot flow_state {{\n source: {SOURCE_KIND}\n latest: state/latest\n tee: flow/tee\n left: {LEFT_SINK_KIND}\n right: {RIGHT_SINK_KIND}\n source.value >> latest.in\n latest.out >> tee.in\n tee.left >> left.value\n tee.right >> right.value\n}}\n"
     );
     let plot = parse(&source, &catalog).map_err(|_| FlowStateError::Plot)?;
-    let advertisement = advertisement(host, boot, value);
+    let advertisement = advertisement(host, boot, value.clone());
     let hosts = [advertisement.clone()];
     let placements = default_placements(&plot, &hosts).map_err(|_| FlowStateError::Placement)?;
     let plan = plan_with_options(
@@ -66,7 +66,7 @@ pub fn prepare_flow_state(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            connection_byte_capacity: 128 as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -94,7 +94,7 @@ fn advertisement(host: &str, boot: &str, value: Scalar) -> HostAdvertisement {
         resources: Vec::new(),
         planner_capabilities: Vec::new(),
         capabilities: vec![
-            source_offer(value),
+            source_offer(value.clone()),
             crate::functional_offers::state_latest_scalar_offer(),
             crate::functional_offers::flow_tee_scalar_offer(),
             sink_offer(LEFT_SINK_KIND),
@@ -110,7 +110,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(format!(
             "conduitos-fixture-flow-source-{}@1",
-            value.raw_microunits()
+            super::scalar_bytes::digest_hex(value.representation_identity().expect("canonical scalar"))
         )),
         kind_id: kind_id(SOURCE_KIND),
         kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
@@ -118,7 +118,7 @@ fn source_offer(value: Scalar) -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
-            value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+            value_kind: kind_id(&conduit_semantic_catalog::scalar_info_id()),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: true },
             abnormal_kind: None,
@@ -145,7 +145,7 @@ fn sink_offer(kind: &str) -> CapabilityOffer {
             contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            maximum_input_bytes: 128 as u32,
             maximum_output_bytes: 0,
         }],
         resource_requirements: Vec::new(),
@@ -167,7 +167,7 @@ fn fixture_implementation(id: &str) -> conduit_core::ImplementationOffer {
 fn scalar_port(name: &str, direction: PortDirection) -> PortDescriptor {
     PortDescriptor {
         port_id: port_id(name),
-        value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+        value_kind: kind_id(&conduit_semantic_catalog::scalar_info_id()),
         direction,
         temporal: PortTemporal::Current,
         abnormal_kind: None,
@@ -178,6 +178,6 @@ fn limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: 1,
-        max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        max_queue_bytes: 128 as u32,
     }
 }

@@ -9,6 +9,7 @@ import hashlib
 import json
 import re
 from fractions import Fraction
+from math_bootstrap import Exact, scalar, encode_unit, origin as encode_origin
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -57,7 +58,7 @@ def family(type_name, type_fields, points):
     return body + digest('physical/quantity-family@1',body)
 
 def rational(value):
-    return Fraction(value)
+    return scalar(value)
 
 def policy(fields, prefixes):
     enabled = fields.get('prefixes','none').strip('[]').replace(' ','').split(',')
@@ -109,10 +110,6 @@ def regenerate():
             if origin:anchor=None
             else:
                 previous=units[ref];scale=scale*previous['scale'];offset=offset*previous['scale']+previous['offset'];anchor=previous['anchor']
-            import math
-            sn,sd,se=canonical_scalar(scale);on,od,oe=canonical_scalar(offset)
-            common=math.lcm(sd,od);sn*=common//sd;on*=common//od
-            reduction=math.gcd(math.gcd(sn,abs(on)),common);sn//=reduction;on//=reduction;common//=reduction
             if scale<=0 or (type_name not in points and offset):raise ValueError('invalid transform '+symbol)
             if type_name in points:
                 delta_fields=members(fields['delta'][1:-1]);delta_ref=delta_fields['reference'];ds=rational(delta_fields['scale'])
@@ -120,23 +117,11 @@ def regenerate():
                 if delta_ref!='origin':
                     if delta_ref not in units:continue
                     ds*=units[delta_ref]['scale']
-                if ds!=scale or rational(delta_fields.get('offset','0'))!=0:raise ValueError('point/delta scale mismatch')
-            body=b'\x01'+family_bytes+name(symbol)+integer(sn,16)+integer(on,16)+integer(common,16)+integer(se,2)+integer(oe,2)+policy(fields,prefixes)+bytes(3)+bytes([1 if type_name in points else 0])
-            if anchor is None:
-                def scalar_identity(value):
-                    if not value:return bytes(41)
-                    n=abs(value.numerator);d=value.denominator;twos=0;fives=0
-                    while n%2==0:n//=2;twos+=1
-                    while d%2==0:d//=2;twos-=1
-                    while n%5==0:n//=5;fives+=1
-                    while d%5==0:d//=5;fives-=1
-                    return bytes([2 if value<0 else 1])+n.to_bytes(16,'little')+d.to_bytes(16,'little')+integer(twos,4)+integer(fives,4)
-                anchor=digest('physical/reference-origin@1',family_bytes[-32:]+name(symbol)+scalar_identity(scale)+scalar_identity(offset))
-                if ref.startswith('origin('):
-                    anchor=digest('physical/named-reference-origin@1',anchor+name(ref[7:-1]))
-            body+=anchor;capsule=body+digest('physical/unit-definition@1',body)
-            if len(capsule)!=768:raise ValueError('unexpected codec width')
-            units[symbol]={'scale':scale,'offset':offset,'anchor':anchor,'capsule':capsule};bindings[binding]={'symbol':symbol,'capsule':capsule.hex()};pending.remove(item)
+                if ds!=scale or bool(rational(delta_fields.get('offset','0'))):raise ValueError('point/delta scale mismatch')
+            if anchor is None:anchor=encode_origin(family_bytes,symbol,scale,offset,ref[7:-1] if ref.startswith('origin(') else None)
+            policy_bytes=policy(fields,prefixes)
+            capsule=encode_unit(family_bytes,name(symbol),scale,offset,policy_bytes,bytes(3),1 if type_name in points else 0,anchor)
+            units[symbol]={'scale':scale,'offset':offset,'anchor':anchor,'capsule':capsule,'family':family_bytes,'policy':policy_bytes,'role':1 if type_name in points else 0};bindings[binding]={'symbol':symbol,'capsule':capsule.hex()};pending.remove(item)
         if len(pending)==count:raise ValueError('cyclic or unresolved unit references')
     for binding,symbol in synthesized:
         candidates=[]
@@ -145,20 +130,24 @@ def regenerate():
             if not symbol.startswith(prefix_symbol):continue
             base=symbol[len(prefix_symbol):]
             if base not in units:continue
-            previous=units[base];capsule=previous['capsule'];pos=1+493+129+48
-            dm=int.from_bytes(capsule[pos+4:pos+12],'little');bm=int.from_bytes(capsule[pos+12:pos+28],'little')
+            previous=units[base];policy_bytes=previous['policy']
+            dm=int.from_bytes(policy_bytes[:8],'little');bm=int.from_bytes(policy_bytes[8:24],'little')
             enabled=(dm & (1 << (-exponent-1 if exponent<0 else exponent+29))) if group=='si' else (bm & (1 << (exponent-1)))
             if not enabled:continue
-            body=bytearray(capsule[:-32]);body[1+493:1+493+129]=name(symbol);body[pos+29]=1 if group=='si' else 2;body[pos+30]=exponent&255
-            derived=bytes(body)+digest('physical/unit-definition@1',body);candidates.append(derived)
+            multiplier=Exact(Fraction(10 if group=='si' else 2))**(exponent*policy_bytes[24])
+            prefix=bytes([1 if group=='si' else 2])+integer(exponent,2)
+            candidates.append(encode_unit(previous['family'],name(symbol),previous['scale']*multiplier,previous['offset'],policy_bytes,prefix,previous['role'],previous['anchor']))
         if len(candidates)!=1:raise ValueError('ambiguous or unresolved generated binding: '+symbol)
         bindings[binding]={'symbol':symbol,'capsule':candidates[0].hex()}
     defaults={type_name:binding for binding,symbol,type_name,fields in raw_units if fields['reference']=='origin'}
-    artifact={'default_units':dict(sorted(defaults.items())),'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'unit_encoded_len':768,'quantity_encoded_len':788,'families':{k:v.hex() for k,v in sorted(family_caps.items())},'prefixes':[{'group':g,'symbol':s,'exponent':e,'alias':a} for g,s,e,a in prefixes],'units':dict(sorted(bindings.items()))}
+    artifact={'default_units':dict(sorted(defaults.items())),'source_sha256':hashlib.sha256(source.encode()).hexdigest(),'unit_codec':'physical/unit-definition@2','quantity_codec':'value/quantity@2','families':{k:v.hex() for k,v in sorted(family_caps.items())},'prefixes':[{'group':g,'symbol':s,'exponent':e,'alias':a} for g,s,e,a in prefixes],'units':dict(sorted(bindings.items()))}
     return json.dumps(artifact,ensure_ascii=False,indent=2)+'\n'
 
 def rust_artifact(encoded):
     data=json.loads(encoded);lines=['//! Generated from definitions/physical.conduit; do not edit.','use super::*;','pub const BUILTIN_PHYSICAL_SOURCE: &str = include_str!("../../definitions/physical.conduit");']
+    for family_name,capsule_hex in data['families'].items():
+        identifier='BUILTIN_'+re.sub(r'(?<!^)(?=[A-Z])','_',family_name).upper()+'_FAMILY'
+        lines += ['#[rustfmt::skip]',f'pub const {identifier}: QuantityFamilyDefinition = QuantityFamilyDefinition::from_generated(&['+','.join(str(x) for x in bytes.fromhex(capsule_hex))+'],0);']
     identifiers=[]
     for binding,item in data['units'].items():
         identifier='BUILTIN_'+re.sub(r'(?<!^)(?=[A-Z])','_',binding).upper();identifiers.append((identifier,item['symbol']))

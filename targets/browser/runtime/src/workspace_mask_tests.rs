@@ -6,7 +6,7 @@ use conduit_body::{
 use conduit_core::{
     bind_sign, encode_count, kind_id, CheckedPlotId, CheckedValueContract, ExpandedPlotId,
     IntervalEndpoint, OfferGeneration, PlanId, Quantity, SourceDocumentId, Unit, ValueConstraint,
-    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, MAX_QUANTITY_ENCODED_BYTES,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -154,7 +154,7 @@ fn presentation() -> Presentation {
                     value_name: "Inspection distance from one through two meters".into(),
                     contract: CheckedValueContract::new(
                         DISTANCE_INFO_ID.into(),
-                        QUANTITY_ENCODED_LEN as u32,
+                        MAX_QUANTITY_ENCODED_BYTES as u32,
                         vec![ValueConstraint::QuantityRange {
                             minimum: Some(Quantity::new(1, Unit::Meter).into()),
                             maximum: Some(Quantity::new(2, Unit::Meter).into()),

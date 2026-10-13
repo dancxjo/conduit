@@ -57,8 +57,21 @@ pub(super) fn binary(
         )?;
         return Ok(expected);
     }
+    let expected = if matches!(
+        operator,
+        BinaryOperator::Equal
+            | BinaryOperator::NotEqual
+            | BinaryOperator::Less
+            | BinaryOperator::LessOrEqual
+            | BinaryOperator::Greater
+            | BinaryOperator::GreaterOrEqual
+    ) {
+        None
+    } else {
+        expected
+    };
     let checkpoint = node_types.len();
-    let left_type = match infer(left, expected, context, node_types) {
+    let mut left_type = match infer(left, expected, context, node_types) {
         Ok(value_type) => value_type,
         Err(left_error) => {
             node_types.truncate(checkpoint);
@@ -70,7 +83,21 @@ pub(super) fn binary(
             }
         }
     };
-    let right_type = infer(right, Some(&left_type), context, node_types)?;
+    let mut right_type = infer(right, Some(&left_type), context, node_types)?;
+    if left_type != right_type
+        && expected.is_none()
+        && left_type.value_kind().is_some_and(|kind| {
+            conduit_core::primitive_info_kind(kind.as_str())
+                == Some(conduit_core::PrimitiveInfoKind::MathematicalNumber)
+        })
+        && is_fixed_integer(&right_type, context)
+    {
+        // An authored discrete field supplies literal context in predicates.
+        // Both uncontextualized numeric operands retain ordinary Scalar meaning.
+        node_types.truncate(checkpoint);
+        left_type = infer(left, Some(&right_type), context, node_types)?;
+        right_type = infer(right, Some(&left_type), context, node_types)?;
+    }
     require(
         right_type,
         &left_type,

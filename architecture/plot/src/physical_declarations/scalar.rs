@@ -182,3 +182,36 @@ fn gcd(mut a: u128, mut b: u128) -> u128 {
     }
     a
 }
+
+/// Physical laws use the same mathematical AST and denotation as ordinary Scalar.
+pub(crate) fn check_mathematical_scalar(
+    value: &ExpressionSyntax,
+) -> Result<conduit_core::MathValue> {
+    if matches!(value, ExpressionSyntax::Record { .. }) {
+        let rational = check_exact_scalar(value)?;
+        return conduit_core::MathValue::from_decimal_parts(
+            rational.numerator,
+            rational.decimal_exponent,
+        )
+        .and_then(|numerator| {
+            numerator.checked_div(&conduit_core::MathValue::from_decimal_parts(
+                rational.denominator,
+                0,
+            )?)
+        })
+        .map_err(|error| {
+            refusal(
+                value.span(),
+                alloc::format!("invalid exact physical scalar: {error:?}"),
+            )
+        });
+    }
+    crate::expression_scalar::checked_scalar_expression(value)
+        .map(|(value, _)| value)
+        .map_err(|message| {
+            refusal(
+                value.span(),
+                alloc::format!("invalid exact physical scalar: {message}"),
+            )
+        })
+}

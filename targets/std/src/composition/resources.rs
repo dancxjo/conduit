@@ -26,6 +26,9 @@ pub(super) fn offers(
         }
         _ => false,
     });
+    if composition.math {
+        resources.push(resource_offer("std/runtime-memory", conduit_core::RUNTIME_MEMORY_RESOURCE_CLASS, 8 * 1024 * 1024));
+    }
     if composition.time {
         resources.push(resource_offer(
             "std/monotonic-deadline",

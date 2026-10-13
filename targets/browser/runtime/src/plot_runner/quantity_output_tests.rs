@@ -71,7 +71,7 @@ fn quantity_presenter_refuses_a_different_structured_leaf_type() {
             .unwrap();
     let value = conduit_core::StructuredInfoValue::leaf(
         value_type,
-        conduit_core::Scalar::ONE.encode().to_vec(),
+        conduit_core::Scalar::ONE.canonical_bytes().unwrap(),
     )
     .unwrap()
     .canonical_bytes()

@@ -228,6 +228,8 @@ pub(super) enum InstalledBack {
     RecordQueue(RecordQueueBack),
     RecordDeliveryStatus(RecordDeliveryStatusBack),
     RecordTranscript(RecordTranscriptBack),
+    NumericEvaluation(Box<conduit_semantic_catalog::NumericEvaluationBack>),
+    NumericTensor(Box<conduit_semantic_catalog::NumericTensorBack>),
     StructuredSelector(StructuredSelectorBack),
     PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),

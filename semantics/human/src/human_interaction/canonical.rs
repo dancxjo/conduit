@@ -25,7 +25,7 @@ pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
             output.push(4);
             encode_quantity_profile(
                 output,
-                *value.unit(),
+                value.unit().clone(),
                 *value.minimum(),
                 *value.maximum(),
                 *value.granularity(),
@@ -37,7 +37,7 @@ pub(super) fn encode_family(output: &mut Vec<u8>, family: &InteractionFamily) {
             output.push(5);
             encode_quantity_profile(
                 output,
-                *value.unit(),
+                value.unit().clone(),
                 *value.minimum_delta(),
                 *value.maximum_delta(),
                 *value.granularity(),

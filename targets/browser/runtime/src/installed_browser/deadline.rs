@@ -48,7 +48,7 @@ fn prepare(
     };
     let duration_ms = quantity
         .value()
-        .convert_to_u64(Unit::Millisecond)
+        .convert_to_u64(&Unit::Millisecond)
         .map_err(|_| "time/deadline duration must be exact nonnegative milliseconds")?;
     if duration_ms > BROWSER_TIMER_MAXIMUM_MILLIS {
         return Err("time/deadline exceeds the browser timer bound".into());

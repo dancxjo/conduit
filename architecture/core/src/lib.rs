@@ -9,6 +9,11 @@ use alloc::vec::Vec;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 
+pub mod numeric;
+mod numeric_computation;
+pub use numeric_computation::*;
+pub use numeric::*;
+
 mod activation_contract;
 mod base_capability;
 mod base_registry;
@@ -1915,3 +1920,8 @@ pub mod projection;
 
 mod realization_properties;
 pub use realization_properties::*;
+
+pub mod numeric_realization;
+
+pub mod numeric_projection;
+pub use numeric_projection::*;

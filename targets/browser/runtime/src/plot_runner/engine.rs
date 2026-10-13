@@ -339,7 +339,7 @@ fn drive_with_boundary<'a>(
             if operation.contract_id.as_str() == crate::installed_browser::pitch_tone::HOST_CALL {
                 let quantity = conduit_core::Quantity::decode(&input)
                     .map_err(|error| format!("pitch tone quantity: {error:?}"))?
-                    .to_i64(conduit_core::Unit::Hertz)
+                    .to_i64(&conduit_core::Unit::Hertz)
                     .map_err(|error| format!("pitch tone frequency: {error:?}"))?;
                 let hertz = u32::try_from(quantity)
                     .map_err(|_| "pitch tone frequency must be positive".to_string())?;

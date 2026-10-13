@@ -83,6 +83,7 @@ fn graph_projection_exposes_the_ordinary_gear_behind_a_relational_glyph() {
         stages: vec![CheckedCordStage::RelationalGear {
             operands: vec!["left.out".into(), "right.out".into()],
             gear: conduit_plot::CheckedCanonicalGear {
+                numeric_computation: None,
                 name: None,
                 kind: "flow/zip".into(),
                 startup_parameters: vec![],

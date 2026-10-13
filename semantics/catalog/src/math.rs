@@ -9,11 +9,16 @@ use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, ExternalEffectBehavior, Kind,
-    KindSemanticLaw, PortDescriptor, PortDirection, PortTemporal, ReplayBehavior, Scalar,
-    SemanticDependence, SuspensionBehavior, TemporalStateBehavior, VariabilityBehavior,
-    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    KindSemanticLaw, NumericRefusal, PortDescriptor, PortDirection, PortTemporal,
+    PortableNumericProfile, ReplayBehavior, Scalar, SemanticDependence, SuspensionBehavior,
+    TemporalStateBehavior, VariabilityBehavior, MAX_NUMERIC_ENCODED_BYTES, SCALAR_INFO_ID,
 };
-pub use conduit_data::MathScalarRefusal;
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum MathScalarRefusal {
+    InvalidConfiguration,
+    Arithmetic(NumericRefusal),
+    UnresolvedComparison,
+}
 
 pub const MATH_CLAMP_KIND: &str = "math/clamp";
 pub const MATH_SCALE_KIND: &str = "math/scale";
@@ -30,39 +35,57 @@ pub const CLAMP_MAXIMUM_KEY: &str = "maximum";
 pub const SCALE_GAIN_KEY: &str = "gain";
 pub const DEADBAND_RADIUS_KEY: &str = "radius";
 
-pub const DEFAULT_CLAMP_MINIMUM: i64 = -Scalar::SCALE;
-pub const DEFAULT_CLAMP_MAXIMUM: i64 = Scalar::SCALE;
-pub const DEFAULT_SCALE_GAIN: i64 = Scalar::SCALE;
-pub const DEFAULT_DEADBAND_RADIUS: i64 = 50_000;
+pub const DEFAULT_CLAMP_MINIMUM: Scalar = Scalar::integer(-1);
+pub const DEFAULT_CLAMP_MAXIMUM: Scalar = Scalar::ONE;
+pub const DEFAULT_SCALE_GAIN: Scalar = Scalar::ONE;
+
+fn compare(left: &Scalar, right: &Scalar) -> Result<core::cmp::Ordering, MathScalarRefusal> {
+    left.compare(right)
+        .map_err(MathScalarRefusal::Arithmetic)?
+        .ok_or(MathScalarRefusal::UnresolvedComparison)
+}
 
 pub fn clamp_scalar(
     input: Scalar,
     minimum: Scalar,
     maximum: Scalar,
 ) -> Result<Scalar, MathScalarRefusal> {
-    if minimum > maximum {
+    use core::cmp::Ordering;
+    if compare(&minimum, &maximum)? == Ordering::Greater {
         return Err(MathScalarRefusal::InvalidConfiguration);
     }
-    Ok(input.max(minimum).min(maximum))
+    if compare(&input, &minimum)? == Ordering::Less {
+        return Ok(minimum);
+    }
+    if compare(&input, &maximum)? == Ordering::Greater {
+        return Ok(maximum);
+    }
+    Ok(input)
 }
 
 pub fn scale_scalar(input: Scalar, gain: Scalar) -> Result<Scalar, MathScalarRefusal> {
     input
-        .checked_mul(gain)
-        .map_err(|_| MathScalarRefusal::Overflow)
+        .checked_mul(&gain)
+        .map_err(MathScalarRefusal::Arithmetic)
 }
 
 pub fn deadband_scalar(input: Scalar, radius: Scalar) -> Result<Scalar, MathScalarRefusal> {
-    let radius = radius.raw_microunits();
-    if radius < 0 {
+    use core::cmp::Ordering;
+    if compare(&radius, &Scalar::ZERO)? == Ordering::Less {
         return Err(MathScalarRefusal::InvalidConfiguration);
     }
-    let raw = input.raw_microunits();
-    Ok(if raw >= -radius && raw <= radius {
-        Scalar::ZERO
-    } else {
-        input
-    })
+    let lower = radius
+        .checked_neg()
+        .map_err(MathScalarRefusal::Arithmetic)?;
+    Ok(
+        if compare(&input, &lower)? != Ordering::Less
+            && compare(&input, &radius)? != Ordering::Greater
+        {
+            Scalar::ZERO
+        } else {
+            input
+        },
+    )
 }
 
 pub fn math_clamp_contract() -> StandardKindContract {
@@ -71,10 +94,10 @@ pub fn math_clamp_contract() -> StandardKindContract {
         "Clamp scalar",
         "Limit one scalar to an inclusive configured minimum and maximum.",
         vec![
-            scalar_field(CLAMP_MINIMUM_KEY, DEFAULT_CLAMP_MINIMUM, i64::MIN, i64::MAX),
-            scalar_field(CLAMP_MAXIMUM_KEY, DEFAULT_CLAMP_MAXIMUM, i64::MIN, i64::MAX),
+            scalar_field(CLAMP_MINIMUM_KEY, DEFAULT_CLAMP_MINIMUM),
+            scalar_field(CLAMP_MAXIMUM_KEY, DEFAULT_CLAMP_MAXIMUM),
         ],
-        "clamp: math/clamp(minimum = -1000000, maximum = 1000000)",
+        "clamp: math/clamp(minimum = -1, maximum = 1)",
     )
 }
 
@@ -82,14 +105,9 @@ pub fn math_scale_contract() -> StandardKindContract {
     contract(
         MATH_SCALE_KIND,
         "Scale scalar",
-        "Multiply one scalar by a configured fixed-point gain with checked overflow.",
-        vec![scalar_field(
-            SCALE_GAIN_KEY,
-            DEFAULT_SCALE_GAIN,
-            i64::MIN,
-            i64::MAX,
-        )],
-        "scale: math/scale(gain = 1000000)",
+        "Multiply exact mathematical scalars with checked numeric bounds.",
+        vec![scalar_field(SCALE_GAIN_KEY, DEFAULT_SCALE_GAIN)],
+        "scale: math/scale(gain = 1)",
     )
 }
 
@@ -100,11 +118,9 @@ pub fn math_deadband_contract() -> StandardKindContract {
         "Emit zero inside an inclusive symmetric radius and preserve values outside it.",
         vec![scalar_field(
             DEADBAND_RADIUS_KEY,
-            DEFAULT_DEADBAND_RADIUS,
-            0,
-            i64::MAX,
+            Scalar::from_decimal_parts(5, -2).expect("exact default radius"),
         )],
-        "deadband: math/deadband(radius = 50000)",
+        "deadband: math/deadband(radius = 0.05)",
     )
 }
 
@@ -153,7 +169,7 @@ fn contract(
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: SCALAR_ENCODED_LEN as u32,
+            max_queue_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
         },
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
@@ -164,11 +180,13 @@ fn contract(
     }
 }
 
-fn scalar_field(key: &str, default: i64, minimum: i64, maximum: i64) -> KindConfigurationField {
+fn scalar_field(key: &str, default: Scalar) -> KindConfigurationField {
     KindConfigurationField {
         key: key.to_string(),
-        default_value: ConfigurationValue::I64(default),
-        rule: KindConfigurationRule::I64Range { minimum, maximum },
+        default_value: ConfigurationValue::Scalar(default),
+        rule: KindConfigurationRule::Scalar {
+            profile: PortableNumericProfile::MAXIMAL,
+        },
     }
 }
 
@@ -201,9 +219,11 @@ pub fn install_math_catalogs(
                 .map(|field| StartupParameterSignature {
                     name: field.key.clone(),
                     value_type: "Scalar".to_string(),
-                    default: Some(match field.default_value {
-                        ConfigurationValue::I64(value) => value.to_string(),
-                        _ => unreachable!("math configuration is signed scalar microunits"),
+                    default: Some(match &field.default_value {
+                        ConfigurationValue::Scalar(value) => {
+                            value.source_expression().expect("bounded Scalar default")
+                        }
+                        _ => unreachable!("math configuration is an exact Scalar"),
                     }),
                 })
                 .collect(),
@@ -220,47 +240,29 @@ mod tests {
     use super::*;
 
     #[test]
-    fn scalar_boundaries_and_overflow_are_exact() {
-        let one = Scalar::ONE;
-        let negative_one = Scalar::from_raw_microunits(-Scalar::SCALE);
+    fn exact_scalar_algorithms_do_not_truncate_to_micro_grid() {
+        let third = Scalar::rational("1", "3").unwrap();
         assert_eq!(
-            clamp_scalar(Scalar::MIN, negative_one, one),
-            Ok(negative_one)
+            scale_scalar(third.clone(), Scalar::integer(3)),
+            Ok(Scalar::ONE)
         );
-        assert_eq!(clamp_scalar(Scalar::MAX, negative_one, one), Ok(one));
+        let tiny = Scalar::parse_decimal("0.0000001").unwrap();
+        assert_eq!(scale_scalar(tiny.clone(), Scalar::ONE), Ok(tiny));
         assert_eq!(
-            clamp_scalar(one, one, negative_one),
+            clamp_scalar(third.clone(), Scalar::ZERO, Scalar::ONE),
+            Ok(third)
+        );
+        assert_eq!(
+            clamp_scalar(Scalar::ZERO, Scalar::ONE, Scalar::ZERO),
             Err(MathScalarRefusal::InvalidConfiguration)
         );
+        let radius = Scalar::parse_decimal("0.05").unwrap();
         assert_eq!(
-            scale_scalar(
-                Scalar::from_raw_microunits(500_000),
-                Scalar::from_raw_microunits(2_000_000)
-            ),
-            Ok(one)
-        );
-        assert_eq!(
-            scale_scalar(Scalar::MAX, Scalar::from_raw_microunits(2_000_000)),
-            Err(MathScalarRefusal::Overflow)
-        );
-    }
-
-    #[test]
-    fn deadband_is_inclusive_and_minimum_remains_representable() {
-        let radius = Scalar::from_raw_microunits(50_000);
-        assert_eq!(
-            deadband_scalar(Scalar::from_raw_microunits(-50_000), radius),
+            deadband_scalar(radius.clone(), radius.clone()),
             Ok(Scalar::ZERO)
         );
-        assert_eq!(
-            deadband_scalar(Scalar::from_raw_microunits(50_000), radius),
-            Ok(Scalar::ZERO)
-        );
-        assert_eq!(
-            deadband_scalar(Scalar::from_raw_microunits(50_001), radius),
-            Ok(Scalar::from_raw_microunits(50_001))
-        );
-        assert_eq!(deadband_scalar(Scalar::MIN, Scalar::MAX), Ok(Scalar::MIN));
+        let outside = Scalar::parse_decimal("0.0500001").unwrap();
+        assert_eq!(deadband_scalar(outside.clone(), radius), Ok(outside));
     }
 
     #[cfg(feature = "plot-catalog")]
@@ -294,12 +296,12 @@ mod tests {
         .expect("signed scalar configuration checks");
         assert_eq!(
             checked.gears[0].configuration[0].value,
-            ConfigurationValue::I64(-7)
+            ConfigurationValue::Scalar(Scalar::integer(-7))
         );
         assert!(conduit_plot::parse(
             "plot math {\n scale: math/scale(gain = 9223372036854775808)\n}\n",
             &profile,
         )
-        .is_err());
+        .is_ok());
     }
 }

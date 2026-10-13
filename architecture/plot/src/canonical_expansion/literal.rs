@@ -33,6 +33,8 @@ pub(super) fn expand_literal(
     let name = format!("literal-{}-{count}", &hash_string(&key)[..12]);
     *count += 1;
     let gear = CheckedCanonicalGear {
+        numeric_computation: None,
+        tensor_computations: None,
         name: None,
         kind: "text/literal".to_string(),
         startup_parameters: vec![conduit_core::FrontStartupParameter {

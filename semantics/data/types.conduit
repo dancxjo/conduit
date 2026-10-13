@@ -67,19 +67,19 @@ type MeasurementThresholdState =
     | above
 
 type MeasurementThresholdPolicy = {
-    lower: Quantity
-    upper: Quantity
+    lower: Quantity <= 2048B
+    upper: Quantity <= 2048B
 }
 
 type MeasurementRange = {
-    minimum: Quantity
-    maximum: Quantity
+    minimum: Quantity <= 2048B
+    maximum: Quantity <= 2048B
 }
 
 type MeasurementSample = {
-    value: Quantity
+    value: Quantity <= 2048B
     observed-at: TemporalInstant
-    uncertainty: Quantity?
+    uncertainty: Quantity <= 2048B?
 }
 
 type MeasurementWindowProfile = {
@@ -98,10 +98,10 @@ type MeasurementSummary = {
     sample-count: U64 in 1..=18446744073709551615
     first-observed-at: TemporalInstant
     last-observed-at: TemporalInstant
-    minimum: Quantity
-    maximum: Quantity
-    range: Quantity
-    mean: Quantity
+    minimum: Quantity <= 2048B
+    maximum: Quantity <= 2048B
+    range: Quantity <= 2048B
+    mean: Quantity <= 2048B
 }
 
 type MeasurementThresholdTransition =
@@ -111,7 +111,7 @@ type MeasurementThresholdTransition =
 type MeasurementThresholdDecision = {
     state: MeasurementThresholdState
     transition: MeasurementThresholdTransition?
-    evaluated-value: Quantity
+    evaluated-value: Quantity <= 2048B
     first-observed-at: TemporalInstant
     last-observed-at: TemporalInstant
 }
@@ -144,7 +144,7 @@ type TensorAxisRole =
 type TensorAxis = {
     role: TensorAxisRole
     identity: Text <= 64B not in [""]?
-    unit: Unit?
+    unit: Unit <= 2048B?
 }
 
 type TensorBacking =
@@ -173,7 +173,7 @@ type TensorSummary = {
 type ClockRelationQuality =
     exact
     | estimated {
-        maximum-error: Duration
+        maximum-error: Duration <= 2048B
     }
 
 type ClockRelation = {
@@ -239,7 +239,7 @@ type SignalSummary = {
 type SignalCadence =
     regular {
         samples: U64 in 1..=18446744073709551615
-        per: Quantity
+        per: Quantity <= 2048B
     }
     | irregular {
         coordinates: TensorValue
@@ -302,7 +302,7 @@ type CoordinateAxisName = Text <= 128B not in [""]
 type CoordinateFrame = {
     identity: Text <= 128B not in [""]
     axes: sequence CoordinateAxisName in 1..=4
-    unit: Unit
+    unit: Unit <= 2048B
 }
 
 type CalibrationTransform = {
@@ -568,14 +568,14 @@ type TabularQueryOutcomeFour =
     | materialized ResourceRef
 
 type FileCopyOutcome =
-    cancelled Quantity
-    | cleanup_failed Quantity
+    cancelled Quantity <= 2048B
+    | cleanup_failed Quantity <= 2048B
     | denied
     | destination_exists
-    | oversized Quantity
-    | partial Quantity
+    | oversized Quantity <= 2048B
+    | partial Quantity <= 2048B
     | stale
-    | success Quantity
+    | success Quantity <= 2048B
 
 type FileCopyResult = {
     outcome: FileCopyOutcome

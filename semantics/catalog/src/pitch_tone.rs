@@ -5,7 +5,7 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
-    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID,
+    MAX_QUANTITY_ENCODED_BYTES, QUANTITY_INFO_ID,
 };
 
 pub const PITCH_TONE_KIND: &str = "sound/pitch-tone";
@@ -30,7 +30,7 @@ pub fn pitch_tone_contract() -> StandardKindContract {
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: QUANTITY_ENCODED_LEN as u32,
+            max_queue_bytes: MAX_QUANTITY_ENCODED_BYTES as u32,
         },
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
@@ -73,7 +73,7 @@ mod tests {
         assert_eq!(contract.inputs[0].direction, PortDirection::Input);
         assert_eq!(contract.inputs[0].temporal, PortTemporal::Value);
         assert_eq!(contract.limits.max_queue_items, 1);
-        assert_eq!(contract.limits.max_queue_bytes, QUANTITY_ENCODED_LEN as u32);
+        assert_eq!(contract.limits.max_queue_bytes, MAX_QUANTITY_ENCODED_BYTES as u32);
         assert!(contract.outputs.is_empty());
         assert!(contract.configuration.is_empty());
         for forbidden in ["browser", "Web Audio", "AudioContext", "oscillator", "gain"] {

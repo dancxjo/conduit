@@ -28,7 +28,7 @@ const SOURCE_REVISION: &str = "conduitos/fixture-select-source@1";
 const SINK_REVISION: &str = "conduitos/fixture-select-sink@1";
 const FIXTURE_ARTIFACT: &str = "conduitos/state-select-fixture@1";
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub struct StateSelectSequence {
     pub selectors: [Option<InfoBool>; 2],
     pub when_false: [Option<Scalar>; 2],
@@ -36,7 +36,7 @@ pub struct StateSelectSequence {
 }
 
 impl StateSelectSequence {
-    pub const fn one(selector: InfoBool, when_false: Scalar, when_true: Scalar) -> Self {
+    pub fn one(selector: InfoBool, when_false: Scalar, when_true: Scalar) -> Self {
         Self {
             selectors: [Some(selector), None],
             when_false: [Some(when_false), None],
@@ -61,7 +61,7 @@ pub fn prepare_state_select(
     let mut catalog = ProfileCatalog::new();
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut catalog)
         .map_err(|_| StateSelectError::Catalog)?;
-    for offer in source_and_sink_offers(sequence) {
+    for offer in source_and_sink_offers(sequence.clone()) {
         catalog
             .insert(conduit_plot::KindProjection {
                 kind_id: offer.kind_id,
@@ -76,7 +76,7 @@ pub fn prepare_state_select(
         "plot state_select {{\n selector: {SELECTOR_SOURCE_KIND}\n when_false: {FALSE_SOURCE_KIND}\n when_true: {TRUE_SOURCE_KIND}\n select: state/select\n sink: {SINK_KIND}\n selector.value >> select.selector\n when_false.value >> select.when-false\n when_true.value >> select.when-true\n select.out >> sink.value\n}}\n"
     );
     let plot = parse(&source, &catalog).map_err(|_| StateSelectError::Plot)?;
-    let advertisement = advertisement(host, boot, sequence);
+    let advertisement = advertisement(host, boot, sequence.clone());
     let hosts = [advertisement.clone()];
     let placements = default_placements(&plot, &hosts).map_err(|_| StateSelectError::Placement)?;
     let plan = plan_with_options(
@@ -88,7 +88,7 @@ pub fn prepare_state_select(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            connection_byte_capacity: 128 as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -108,8 +108,8 @@ pub fn prepare_state_select(
 fn validate_sequence(sequence: &StateSelectSequence) -> Result<(), StateSelectError> {
     for values_present in [
         sequence.selectors.map(|value| value.is_some()),
-        sequence.when_false.map(|value| value.is_some()),
-        sequence.when_true.map(|value| value.is_some()),
+        sequence.when_false.each_ref().map(|value| value.is_some()),
+        sequence.when_true.each_ref().map(|value| value.is_some()),
     ] {
         if !values_present[0] {
             return Err(StateSelectError::Value);
@@ -159,14 +159,25 @@ fn bool_source_offer(values: [Option<InfoBool>; 2]) -> CapabilityOffer {
 }
 
 fn scalar_source_offer(kind: &str, values: [Option<Scalar>; 2]) -> CapabilityOffer {
+    let mut canonical = Vec::new();
+    for value in values {
+        match value {
+            Some(value) => {
+                canonical.push(1);
+                let wire = value.canonical_bytes().expect("canonical scalar");
+                canonical.extend_from_slice(&(wire.len() as u32).to_le_bytes());
+                canonical.extend_from_slice(&wire);
+            }
+            None => canonical.push(0),
+        }
+    }
     source_offer(
         kind,
-        conduit_core::SCALAR_INFO_ID,
-        values
-            .map(|value| {
-                value.map_or_else(|| "none".into(), |value| value.raw_microunits().to_string())
-            })
-            .join("-"),
+        &conduit_semantic_catalog::scalar_info_id(),
+        super::scalar_bytes::digest_hex(conduit_core::semantic_digest(
+            "conduitos.scalar-sequence@1",
+            &canonical,
+        )),
     )
 }
 
@@ -191,7 +202,7 @@ fn source_offer(kind: &str, value_kind: &str, identity: String) -> CapabilityOff
             contract_id: conduit_core::HostCallContractId::from(SOURCE_ADVANCE_HOST_CALL),
             target_kind: Some(kind_id(kind)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            maximum_input_bytes: 128 as u32,
             maximum_output_bytes: 0,
         }],
         resource_requirements: Vec::new(),
@@ -211,7 +222,7 @@ fn sink_offer() -> CapabilityOffer {
         implementation: fixture_implementation("conduitos.fixture/state-select-sink@1"),
         inputs: vec![PortDescriptor {
             port_id: port_id("value"),
-            value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+            value_kind: kind_id(&conduit_semantic_catalog::scalar_info_id()),
             direction: PortDirection::Input,
             temporal: PortTemporal::Current,
             abnormal_kind: None,
@@ -221,7 +232,7 @@ fn sink_offer() -> CapabilityOffer {
             contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            maximum_input_bytes: 128 as u32,
             maximum_output_bytes: 0,
         }],
         resource_requirements: Vec::new(),
@@ -244,6 +255,6 @@ fn limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: 1,
-        max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        max_queue_bytes: 128 as u32,
     }
 }

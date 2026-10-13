@@ -7,7 +7,7 @@ use common::{
 };
 use conduit_core::{
     encode_count, CheckedValueContract, IntervalEndpoint, Quantity, Unit, ValueConstraint,
-    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
+    COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -129,7 +129,7 @@ fn ranged_and_member_arguments() -> Vec<FaceActionArgument> {
             value_name: "Distance from one through two meters".into(),
             contract: CheckedValueContract::new(
                 DISTANCE_INFO_ID.into(),
-                QUANTITY_ENCODED_LEN as u32,
+                conduit_presentation::MAX_FACE_VALUE_BYTES,
                 vec![ValueConstraint::QuantityRange {
                     minimum: Some(Quantity::new(1, Unit::Meter).into()),
                     maximum: Some(Quantity::new(2, Unit::Meter).into()),

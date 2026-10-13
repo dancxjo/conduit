@@ -15,6 +15,32 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if let Some(result) = context.literal_types.get(&format!("constructor:{}", name.text)) {
+        if arguments.len() != 2 {
+            return Err(diagnostic(span, "quantity constructor requires coordinate and captured Unit"));
+        }
+        let scalar = CheckedExpressionType::semantic(conduit_core::SCALAR_INFO_ID);
+        if check_argument(&arguments[0], Some(&scalar))? != scalar {
+            return Err(diagnostic(span, "quantity coordinate must be an ordinary Scalar"));
+        }
+        // The source catalogue collector checked and captured the second operand.
+        return Ok(result.clone());
+    }
+    if let Some(result) = crate::expression_mathematical_call::check(
+        &name.text, arguments, span, &mut check_argument,
+    ) {
+        if let Some(kind) = context.semantic_kinds.get(&name.text) {
+            conduit_core::pure_expression_facts(kind).map_err(|reason| diagnostic(name.span,
+                &format!("mathematical Kind is ineligible for pure use: {reason:?}")))?;
+            check_front(kind, arguments.len(), span)?;
+            if let Ok(value) = &result {
+                if value.value_kind() != Some(&kind.outputs[0].value_kind) {
+                    return Err(diagnostic(span, "registered mathematical Kind has a conflicting result contract"));
+                }
+            }
+        }
+        return result;
+    }
     if let Some(target) = integer_widening_target(&name.text) {
         if arguments.len() != 1 {
             return Err(diagnostic(

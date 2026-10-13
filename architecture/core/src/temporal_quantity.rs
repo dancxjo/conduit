@@ -25,11 +25,11 @@ impl MonotonicDuration {
         quantity: Quantity,
         scale: TemporalScale,
     ) -> Result<Self, TemporalQuantityRefusal> {
-        if quantity.coefficient() < 0 {
+        if quantity.coordinate().compare(crate::MathValueRef::validate(&[1,1,0,0,0,0,0,0,0,0]).expect("canonical zero")).is_ok_and(|order|order==Some(core::cmp::Ordering::Less)) {
             return Err(TemporalQuantityRefusal::NegativeQuantity);
         }
         let ticks = quantity
-            .convert_to_u64(scale.quantity_unit())
+            .to_u64(&scale.quantity_unit())
             .map_err(TemporalQuantityRefusal::QuantityConversion)?;
         Ok(Self::new(ticks, scale))
     }

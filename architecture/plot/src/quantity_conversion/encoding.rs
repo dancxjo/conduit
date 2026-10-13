@@ -29,22 +29,18 @@ pub(super) fn prepare(
         StructuredInfoValue::leaf(leaf(identity), bytes).map_err(R::Receipt)
     };
     let text = |text: &str| value(TEXT_INFO_ID, text.as_bytes().to_vec());
-    let result = match coordinate.convert_to_unit(target.value()) {
-        Ok((coefficient, exponent)) => {
+    let result = match coordinate.convert_to_unit(&target.value()) {
+        Ok(amount) => {
             let coordinate = StructuredInfoValue::record(
                 coordinate_type(profile),
-                vec![
-                    StructuredFieldValue::new(
-                        "coefficient",
-                        value("value/i128", coefficient.to_le_bytes().to_vec())?,
-                    )
-                    .map_err(R::Receipt)?,
-                    StructuredFieldValue::new(
-                        "exponent",
-                        value("value/i16", exponent.to_le_bytes().to_vec())?,
-                    )
-                    .map_err(R::Receipt)?,
-                ],
+                vec![StructuredFieldValue::new(
+                    "amount",
+                    value(
+                        SCALAR_INFO_ID,
+                        amount.canonical_bytes().map_err(|_| R::ForgedReceipt)?,
+                    )?,
+                )
+                .map_err(R::Receipt)?],
             )
             .map_err(R::Receipt)?;
             StructuredInfoValue::variant(result_type(profile), "converted", coordinate)

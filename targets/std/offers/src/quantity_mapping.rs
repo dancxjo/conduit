@@ -2,8 +2,7 @@
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
-    HostCallContractId, HostCallRequirement, ImplementationId, QUANTITY_ENCODED_LEN,
-    SCALAR_ENCODED_LEN,
+    HostCallContractId, HostCallRequirement, ImplementationId,
 };
 
 pub const QUANTITY_MAP_IMPLEMENTATION: &str = "std/kernel-map-quantity@1";
@@ -13,6 +12,12 @@ pub const DISTANCE_FREQUENCY_MAP_IMPLEMENTATION: &str = "std/kernel-map-distance
 pub fn quantity_map_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::quantity_map_semantic_contract();
     let target_kind = Some(contract.kind_id.clone());
+    let maximum_input_bytes =
+        conduit_core::intrinsic_numeric_maximum_bytes(contract.inputs[0].value_kind.as_str())
+            .expect("mapping has a finite mathematical input profile") as u32;
+    let maximum_output_bytes =
+        conduit_core::intrinsic_numeric_maximum_bytes(contract.outputs[0].value_kind.as_str())
+            .expect("mapping has a finite physical output profile") as u32;
     BackOfferBuilder::new(
         contract,
         Back {
@@ -24,8 +29,8 @@ pub fn quantity_map_offer() -> CapabilityOffer {
                 contract_id: HostCallContractId::from(QUANTITY_MAP_HOST_CALL),
                 target_kind,
                 maximum_in_flight: 1,
-                maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
-                maximum_output_bytes: QUANTITY_ENCODED_LEN as u32,
+                maximum_input_bytes: maximum_input_bytes,
+                maximum_output_bytes: maximum_output_bytes,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),

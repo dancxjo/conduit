@@ -1,6 +1,6 @@
 //! Configuration and bounded transformation for the installed quantity mapper.
 
-use conduit_core::{ConfigurationValue, PlannedGear, Scalar, QUANTITY_ENCODED_LEN};
+use conduit_core::{ConfigurationValue, PlannedGear, Scalar};
 use conduit_kernel::{Failure, FailureCode};
 use conduit_semantic_catalog::{
     QuantityMapping, QuantityMappingRefusal, QuantizationPolicy, RangePolicy,
@@ -21,6 +21,23 @@ pub(super) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             })
             .ok_or_else(|| format!("quantity mapping requires integer '{key}'"))
     };
+    let scalar = |key: &str| {
+        placement
+            .configuration
+            .iter()
+            .find_map(|field| {
+                if field.key == key {
+                    if let ConfigurationValue::Scalar(value) = &field.value {
+                        Some(value.clone())
+                    } else {
+                        None
+                    }
+                } else {
+                    None
+                }
+            })
+            .ok_or_else(|| format!("quantity mapping requires exact Scalar '{key}'"))
+    };
     let text = |key: &str| {
         placement
             .configuration
@@ -35,9 +52,9 @@ pub(super) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             })
             .ok_or_else(|| format!("quantity mapping requires text '{key}'"))
     };
-    QuantityMapping {
-        source_minimum: Scalar::from_raw_microunits(number("source-minimum")?),
-        source_maximum: Scalar::from_raw_microunits(number("source-maximum")?),
+    let mapping = QuantityMapping {
+        source_minimum: scalar("source-minimum")?,
+        source_maximum: scalar("source-maximum")?,
         target_minimum: number("target-minimum")?,
         target_maximum: number("target-maximum")?,
         target_granularity: number("target-granularity")?,
@@ -63,15 +80,14 @@ pub(super) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             "nearest" => QuantizationPolicy::Nearest,
             _ => return Err("unknown quantity mapping quantization policy".into()),
         },
-    }
-    .validate()
-    .map_err(|error| format!("quantity mapping configuration: {error:?}"))
+    };
+    mapping
+        .validate()
+        .map_err(|error| format!("quantity mapping configuration: {error:?}"))?;
+    Ok(mapping)
 }
 
-pub(super) fn transform(
-    mapping: QuantityMapping,
-    input: &[u8],
-) -> Result<[u8; QUANTITY_ENCODED_LEN], Failure> {
+pub(super) fn transform(mapping: &QuantityMapping, input: &[u8]) -> Result<Vec<u8>, Failure> {
     let input = Scalar::decode(input).map_err(|_| Failure {
         code: FailureCode::InvalidInput,
         detail: 1,

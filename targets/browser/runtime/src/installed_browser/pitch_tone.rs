@@ -3,7 +3,7 @@ use super::{
     factory::{validate_placement, BrowserInstallation},
     BrowserBack,
 };
-use conduit_core::{kind_id, HostCallRequirement, PlannedGear, QUANTITY_ENCODED_LEN};
+use conduit_core::{kind_id, HostCallRequirement, PlannedGear, MAX_QUANTITY_ENCODED_BYTES};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, HostedValueStore,
@@ -33,7 +33,7 @@ fn offer() -> conduit_core::CapabilityOffer {
             contract_id: HOST_CALL.into(),
             target_kind: Some(kind_id("sound/optional-bounded-pitch-tone")),
             maximum_in_flight: 1,
-            maximum_input_bytes: QUANTITY_ENCODED_LEN as u32,
+            maximum_input_bytes: MAX_QUANTITY_ENCODED_BYTES as u32,
             maximum_output_bytes: 0,
         }],
         vec![conduit_core::resource_requirement(
@@ -97,7 +97,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PitchTone {
         }
         if let Some(value) = io.input(PortId(0)) {
             if self.pending.is_none() {
-                let Ok(input) = BoundedValueRef::new(value, QUANTITY_ENCODED_LEN as u32) else {
+                let Ok(input) = BoundedValueRef::new(value, value.byte_len) else {
                     return invalid(1);
                 };
                 let request = RequestId(self.next);

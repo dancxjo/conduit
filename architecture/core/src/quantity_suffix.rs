@@ -1,6 +1,6 @@
 //! Borrowed evidence paired with a standalone admitted Unit descriptor.
 use crate::{Unit, UnitRefusal};
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ResolvedQuantitySuffix<'a> {
     source: &'a str,
     unit: Unit,
@@ -23,10 +23,10 @@ impl<'a> ResolvedQuantitySuffix<'a> {
         }
         Ok(Self { source, unit })
     }
-    pub const fn source(self) -> &'a str {
+    pub const fn source(&self) -> &'a str {
         self.source
     }
-    pub const fn unit(self) -> Unit {
-        self.unit
+    pub fn unit(&self) -> Unit {
+        self.unit.clone()
     }
 }

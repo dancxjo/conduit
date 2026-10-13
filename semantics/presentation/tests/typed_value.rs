@@ -2,7 +2,7 @@
 use conduit_core::{
     kind_id, BoundedResourceRef, CheckedValueContract, Quantity, ResourceClassId, ResourceExtent,
     ResourceLifetime, ResourceSemanticIdentity, ResourceVersionIdentity, Unit, ValueConstraint,
-    QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID, TEMPERATURE_INFO_ID,
+    QUANTITY_INFO_ID, TEMPERATURE_INFO_ID,
 };
 use conduit_presentation::{
     display_typed_value, plan_face_utterances, render_linear_presentation, spoken_typed_value,
@@ -14,7 +14,7 @@ fn contract(kind: &str, maximum: u32) -> CheckedValueContract {
 }
 fn quantity(coefficient: i128, exponent: i16) -> PresentationPropertyValue {
     PresentationPropertyValue::TypedValue {
-        contract: contract(QUANTITY_INFO_ID, QUANTITY_ENCODED_LEN as u32),
+        contract: contract(QUANTITY_INFO_ID, 2048),
         bytes: Quantity::from_decimal(coefficient, exponent, Unit::Celsius)
             .unwrap()
             .encode()
@@ -99,7 +99,7 @@ fn inline_values_admit_only_finite_contracts_and_matching_canonical_bytes() {
     // violating its declared application contract: this must fail Face admission.
     let constrained = CheckedValueContract::new(
         kind_id(QUANTITY_INFO_ID),
-        22,
+        2048,
         vec![ValueConstraint::CanonicalMembership {
             negated: false,
             members: vec![Quantity::from_decimal(21, 0, Unit::Celsius)
@@ -170,12 +170,12 @@ fn face_identity_binds_the_value_kind_contract_and_exact_coordinate() {
     assert_ne!(baseline.identity, face(changed).unwrap().identity);
     let bytes = Quantity::new(21, Unit::Celsius).encode().to_vec();
     let unqualified = face(PresentationPropertyValue::TypedValue {
-        contract: contract(QUANTITY_INFO_ID, 22),
+        contract: contract(QUANTITY_INFO_ID, 2048),
         bytes: bytes.clone(),
     })
     .unwrap();
     let temperature = face(PresentationPropertyValue::TypedValue {
-        contract: contract(TEMPERATURE_INFO_ID, 22),
+        contract: contract(TEMPERATURE_INFO_ID, 2048),
         bytes,
     })
     .unwrap();
@@ -262,13 +262,16 @@ fn graphical_and_spoken_wording_keep_exact_negative_and_extreme_decimals() {
 fn physical_units_and_dimension_specific_quantities_have_semantic_wording() {
     let unit_contract = contract(
         conduit_core::UNIT_INFO_ID,
-        conduit_core::UNIT_ENCODED_LEN as u32,
+        conduit_presentation::MAX_FACE_VALUE_BYTES,
     );
     for symbol in ["kHz", "°C"] {
         let bytes = Unit::resolve(symbol).unwrap().encode();
         assert_eq!(display_typed_value(&unit_contract, &bytes), symbol);
     }
-    let frequency_contract = contract(conduit_core::FREQUENCY_INFO_ID, QUANTITY_ENCODED_LEN as u32);
+    let frequency_contract = contract(
+        conduit_core::FREQUENCY_INFO_ID,
+        conduit_presentation::MAX_FACE_VALUE_BYTES,
+    );
     let frequency = Quantity::parse_plot_literal("1kHz").unwrap();
     assert_eq!(
         display_typed_value(&frequency_contract, &frequency.encode()),
@@ -278,4 +281,18 @@ fn physical_units_and_dimension_specific_quantities_have_semantic_wording() {
         display_typed_value(&frequency_contract, &Quantity::new(1, Unit::Meter).encode()),
         "Invalid typed value"
     );
+}
+
+#[test]
+fn mathematical_values_render_exact_source_without_decimal_approximation() {
+    let exact = conduit_core::MathValue::rational("1", "3").unwrap();
+    let encoded = exact.canonical_bytes().unwrap();
+    let contract = contract(
+        conduit_core::SCALAR_INFO_ID,
+        conduit_presentation::MAX_FACE_VALUE_BYTES,
+    );
+    let authored = exact.source_expression().unwrap();
+    assert_eq!(display_typed_value(&contract, &encoded), authored);
+    assert_eq!(spoken_typed_value(&contract, &encoded), authored);
+    assert!(authored.contains('/'));
 }

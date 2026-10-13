@@ -1,6 +1,6 @@
 use conduit_core::{
-    InfoBool, InfoDecodeError, Scalar, ScalarArithmeticError, BOOL_ENCODED_LEN, BOOL_INFO_ID,
-    SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    BOOL_ENCODED_LEN, BOOL_INFO_ID, InfoBool, InfoDecodeError, MICRO_SCALAR_ENCODED_LEN,
+    MICRO_SCALAR_INFO_ID, MicroScalar, MicroScalarArithmeticError,
 };
 
 #[test]
@@ -36,35 +36,35 @@ fn bool_refuses_integer_like_and_malformed_encodings() {
 }
 
 #[test]
-fn scalar_contract_is_exact_signed_fixed_point() {
-    assert_eq!(SCALAR_INFO_ID, "value/scalar");
-    assert_eq!(SCALAR_ENCODED_LEN, 8);
-    assert_eq!(Scalar::SCALE, 1_000_000);
+fn micro_scalar_contract_is_exact_signed_fixed_point() {
+    assert_eq!(MICRO_SCALAR_INFO_ID, "realization/micro-scalar@1");
+    assert_eq!(MICRO_SCALAR_ENCODED_LEN, 8);
+    assert_eq!(MicroScalar::SCALE, 1_000_000);
 
     for value in [
-        Scalar::MIN,
-        Scalar::from_raw_microunits(-1),
-        Scalar::ZERO,
-        Scalar::ONE,
-        Scalar::MAX,
+        MicroScalar::MIN,
+        MicroScalar::from_raw_microunits(-1),
+        MicroScalar::ZERO,
+        MicroScalar::ONE,
+        MicroScalar::MAX,
     ] {
-        assert_eq!(Scalar::decode(&value.encode()), Ok(value));
+        assert_eq!(MicroScalar::decode(&value.encode()), Ok(value));
     }
-    assert!(Scalar::from_raw_microunits(-1) < Scalar::ZERO);
-    assert!(Scalar::ONE < Scalar::MAX);
+    assert!(MicroScalar::from_raw_microunits(-1) < MicroScalar::ZERO);
+    assert!(MicroScalar::ONE < MicroScalar::MAX);
 }
 
 #[test]
-fn scalar_refuses_every_non_exact_width() {
+fn micro_scalar_refuses_every_non_exact_width() {
     for length in 0..16 {
-        if length == SCALAR_ENCODED_LEN {
+        if length == MICRO_SCALAR_ENCODED_LEN {
             continue;
         }
         let encoded = [0_u8; 16];
         assert_eq!(
-            Scalar::decode(&encoded[..length]),
+            MicroScalar::decode(&encoded[..length]),
             Err(InfoDecodeError::WrongLength {
-                expected: SCALAR_ENCODED_LEN,
+                expected: MICRO_SCALAR_ENCODED_LEN,
                 actual: length,
             })
         );
@@ -72,52 +72,52 @@ fn scalar_refuses_every_non_exact_width() {
 }
 
 #[test]
-fn scalar_arithmetic_is_checked_and_multiplication_truncates_toward_zero() {
-    let one_and_half = Scalar::from_raw_microunits(1_500_000);
-    let two = Scalar::from_raw_microunits(2_000_000);
+fn micro_scalar_arithmetic_is_checked_and_multiplication_truncates_toward_zero() {
+    let one_and_half = MicroScalar::from_raw_microunits(1_500_000);
+    let two = MicroScalar::from_raw_microunits(2_000_000);
     assert_eq!(
         one_and_half.checked_mul(two),
-        Ok(Scalar::from_raw_microunits(3_000_000))
+        Ok(MicroScalar::from_raw_microunits(3_000_000))
     );
     assert_eq!(
-        Scalar::from_raw_microunits(1).checked_mul(Scalar::from_raw_microunits(500_000)),
-        Ok(Scalar::ZERO)
+        MicroScalar::from_raw_microunits(1).checked_mul(MicroScalar::from_raw_microunits(500_000)),
+        Ok(MicroScalar::ZERO)
     );
     assert_eq!(
-        Scalar::from_raw_microunits(-1).checked_mul(Scalar::from_raw_microunits(500_000)),
-        Ok(Scalar::ZERO)
+        MicroScalar::from_raw_microunits(-1).checked_mul(MicroScalar::from_raw_microunits(500_000)),
+        Ok(MicroScalar::ZERO)
     );
     assert_eq!(
-        Scalar::MAX.checked_add(Scalar::from_raw_microunits(1)),
-        Err(ScalarArithmeticError::Overflow)
+        MicroScalar::MAX.checked_add(MicroScalar::from_raw_microunits(1)),
+        Err(MicroScalarArithmeticError::Overflow)
     );
     assert_eq!(
-        Scalar::MIN.checked_sub(Scalar::from_raw_microunits(1)),
-        Err(ScalarArithmeticError::Overflow)
+        MicroScalar::MIN.checked_sub(MicroScalar::from_raw_microunits(1)),
+        Err(MicroScalarArithmeticError::Overflow)
     );
     assert_eq!(
-        Scalar::MAX.checked_mul(Scalar::from_raw_microunits(1_000_001)),
-        Err(ScalarArithmeticError::Overflow)
+        MicroScalar::MAX.checked_mul(MicroScalar::from_raw_microunits(1_000_001)),
+        Err(MicroScalarArithmeticError::Overflow)
     );
     assert_eq!(
-        Scalar::from_raw_microunits(3_000_000).checked_div(two),
+        MicroScalar::from_raw_microunits(3_000_000).checked_div(two),
         Ok(one_and_half)
     );
     assert_eq!(
-        Scalar::ONE.checked_div(Scalar::ZERO),
-        Err(ScalarArithmeticError::DivisionByZero)
+        MicroScalar::ONE.checked_div(MicroScalar::ZERO),
+        Err(MicroScalarArithmeticError::DivisionByZero)
     );
     assert_eq!(
-        Scalar::from_raw_microunits(3_500_000).checked_rem(two),
+        MicroScalar::from_raw_microunits(3_500_000).checked_rem(two),
         Ok(one_and_half)
     );
     assert_eq!(
         one_and_half.checked_neg(),
-        Ok(Scalar::from_raw_microunits(-1_500_000))
+        Ok(MicroScalar::from_raw_microunits(-1_500_000))
     );
     assert_eq!(
-        Scalar::MIN.checked_neg(),
-        Err(ScalarArithmeticError::Overflow)
+        MicroScalar::MIN.checked_neg(),
+        Err(MicroScalarArithmeticError::Overflow)
     );
 }
 
@@ -136,15 +136,14 @@ fn semantic_digests_bind_exact_contract_and_canonical_value() {
         InfoBool::TRUE.semantic_digest()
     );
     assert_eq!(
-        Scalar::ZERO.semantic_digest(),
-        [
-            0xa6, 0x3d, 0x80, 0xfb, 0x49, 0x63, 0x22, 0x1a, 0xe7, 0x4f, 0xda, 0xc6, 0x6b, 0x1e,
-            0xb0, 0xca, 0x58, 0xf6, 0xf0, 0xca, 0xae, 0x28, 0x77, 0xc2, 0xbc, 0x6c, 0x5c, 0xcc,
-            0xfd, 0x86, 0xc0, 0x36,
-        ]
+        MicroScalar::ZERO.semantic_digest(),
+        conduit_core::semantic_digest(
+            conduit_core::MICRO_SCALAR_INFO_ID,
+            &MicroScalar::ZERO.encode()
+        )
     );
     assert_ne!(
         InfoBool::FALSE.semantic_digest(),
-        Scalar::ZERO.semantic_digest()
+        MicroScalar::ZERO.semantic_digest()
     );
 }

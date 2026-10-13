@@ -6,7 +6,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
-    PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    PortTemporal, BOOL_INFO_ID,
 };
 pub use conduit_data::ScalarComparison;
 
@@ -30,7 +30,7 @@ pub fn parse_scalar_comparison(value: &str) -> Option<ScalarComparison> {
     }
 }
 
-pub const fn select_scalar(
+pub fn select_scalar(
     selector: bool,
     when_false: conduit_core::Scalar,
     when_true: conduit_core::Scalar,
@@ -52,20 +52,56 @@ pub const SELECT_TRUE_PORT: &str = "when-true";
 pub const COMPARE_OPERATOR_KEY: &str = "operator";
 pub const COMPARISON_OPERATORS: [&str; 6] = ["lt", "le", "eq", "ne", "ge", "gt"];
 
+/// Finite semantic refusal, distinct from a mechanism failure or a false result.
+pub fn scalar_comparison_refusal_type() -> conduit_core::StructuredInfoType {
+    use conduit_core::{StructuredInfoType, StructuredVariantCase};
+    let empty = StructuredInfoType::leaf(kind_id("value/empty")).expect("empty");
+    StructuredInfoType::variant(
+        kind_id("numeric/compare-refusal"),
+        ["unknown", "budget", "domain"]
+            .into_iter()
+            .map(|tag| StructuredVariantCase::new(tag, empty.clone()).expect("refusal case"))
+            .collect(),
+    )
+    .expect("bounded refusal")
+}
+
+pub fn scalar_comparison_refusal_bytes(error: conduit_core::NumericRefusal) -> Vec<u8> {
+    let tag = match error {
+        conduit_core::NumericRefusal::IndeterminateDomain => "unknown",
+        conduit_core::NumericRefusal::IntegerBudget | conduit_core::NumericRefusal::NodeBudget | conduit_core::NumericRefusal::DepthBudget | conduit_core::NumericRefusal::StorageBudget | conduit_core::NumericRefusal::WorkBudget => "budget",
+        _ => "domain",
+    };
+    let payload = conduit_core::StructuredInfoValue::leaf(
+        conduit_core::StructuredInfoType::leaf(kind_id("value/empty")).expect("empty"),
+        Vec::new(),
+    )
+    .expect("empty value");
+    conduit_core::StructuredInfoValue::variant(scalar_comparison_refusal_type(), tag, payload)
+        .expect("checked refusal")
+        .canonical_bytes()
+        .expect("bounded refusal")
+}
+
 pub fn logic_compare_scalar_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(LOGIC_COMPARE_KIND),
         plain_name: "Compare scalars".to_string(),
         summary: "Compare two exact scalar values with one finite configured operator.".to_string(),
         inputs: vec![
-            value_port(COMPARE_LEFT_PORT, SCALAR_INFO_ID, PortDirection::Input),
-            value_port(COMPARE_RIGHT_PORT, SCALAR_INFO_ID, PortDirection::Input),
+            value_port(COMPARE_LEFT_PORT, &scalar_info_id(), PortDirection::Input),
+            value_port(COMPARE_RIGHT_PORT, &scalar_info_id(), PortDirection::Input),
         ],
-        outputs: vec![value_port(
-            LOGIC_OUTPUT_PORT,
-            BOOL_INFO_ID,
-            PortDirection::Output,
-        )],
+        outputs: vec![PortDescriptor {
+            abnormal_kind: Some(
+                scalar_comparison_refusal_type()
+                    .profile()
+                    .expect("refusal profile")
+                    .value_kind()
+                    .clone(),
+            ),
+            ..value_port(LOGIC_OUTPUT_PORT, BOOL_INFO_ID, PortDirection::Output)
+        }],
         configuration: vec![KindConfigurationField {
             key: COMPARE_OPERATOR_KEY.to_string(),
             default_value: ConfigurationValue::Text("eq".to_string()),
@@ -73,7 +109,7 @@ pub fn logic_compare_scalar_contract() -> StandardKindContract {
                 values: comparison_operator_values(),
             },
         }],
-        limits: limits(),
+        limits: scalar_limits(),
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
@@ -116,16 +152,16 @@ pub fn logic_select_scalar_contract() -> StandardKindContract {
         summary: "Select one of two exact scalar values using one exact Boolean.".to_string(),
         inputs: vec![
             value_port(SELECT_SELECTOR_PORT, BOOL_INFO_ID, PortDirection::Input),
-            value_port(SELECT_FALSE_PORT, SCALAR_INFO_ID, PortDirection::Input),
-            value_port(SELECT_TRUE_PORT, SCALAR_INFO_ID, PortDirection::Input),
+            value_port(SELECT_FALSE_PORT, &scalar_info_id(), PortDirection::Input),
+            value_port(SELECT_TRUE_PORT, &scalar_info_id(), PortDirection::Input),
         ],
         outputs: vec![value_port(
             LOGIC_OUTPUT_PORT,
-            SCALAR_INFO_ID,
+            &scalar_info_id(),
             PortDirection::Output,
         )],
         configuration: Default::default(),
-        limits: limits(),
+        limits: scalar_limits(),
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
         hosted_implementation_required: true,
@@ -142,6 +178,14 @@ fn value_port(name: &str, info: &str, direction: PortDirection) -> PortDescripto
         direction,
         temporal: PortTemporal::Value,
         abnormal_kind: None,
+    }
+}
+
+fn scalar_limits() -> CapabilityLimits {
+    CapabilityLimits {
+        max_active_instances: 16,
+        max_queue_items: 1,
+        max_queue_bytes: SCALAR_LOGIC_MAXIMUM_BYTES as u32,
     }
 }
 
@@ -166,6 +210,7 @@ pub fn install_logic_catalogs(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_plot::KindSignature;
+    startup.ensure_structured_type("ScalarComparisonRefusal", scalar_comparison_refusal_type())?;
     for (contract, revision) in [
         (
             logic_compare_scalar_contract(),
@@ -206,7 +251,7 @@ mod tests {
     #[test]
     fn logic_contracts_are_exact_one_shot_and_finite() {
         let compare = logic_compare_scalar_contract();
-        assert_eq!(compare.inputs[0].value_kind.as_str(), SCALAR_INFO_ID);
+        assert_eq!(compare.inputs[0].value_kind.as_str(), scalar_info_id());
         assert_eq!(compare.outputs[0].value_kind.as_str(), BOOL_INFO_ID);
         assert!(compare
             .inputs
@@ -228,6 +273,16 @@ mod tests {
         assert!(select.inputs[1..]
             .iter()
             .chain(select.outputs.iter())
-            .all(|port| port.value_kind.as_str() == SCALAR_INFO_ID));
+            .all(|port| port.value_kind.as_str() == scalar_info_id()));
     }
+}
+
+/// Exact ordinary Scalar subset used by finite comparison and selection Backs.
+pub const SCALAR_LOGIC_MAXIMUM_BYTES: usize = 128;
+pub fn scalar_info_id() -> alloc::string::String {
+    let mut profile = conduit_core::PortableNumericProfile::MAXIMAL;
+    profile.maximum_encoded_bytes = SCALAR_LOGIC_MAXIMUM_BYTES as u32;
+    profile
+        .info_id()
+        .expect("finite mathematical Scalar profile")
 }

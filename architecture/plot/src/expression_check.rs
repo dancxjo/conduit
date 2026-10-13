@@ -182,6 +182,10 @@ fn encode_hex(bytes: &[u8]) -> String {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct CheckedExpression {
     pub(crate) canonical_literals: BTreeMap<(usize, usize), Vec<u8>>,
+    pub(crate) numeric_frequency_references: Option<[conduit_core::Unit; 2]>,
+    pub(crate) quantity_construction_units: BTreeMap<(usize, usize), conduit_core::Unit>,
+    /// Immutable Angle reference captured at checking, never looked up during evaluation.
+    pub(crate) numeric_angle_reference: Option<conduit_core::Unit>,
     pub syntax: ExpressionSyntax,
     pub input_type: CheckedExpressionType,
     pub value_type: CheckedExpressionType,
@@ -266,6 +270,9 @@ pub(crate) fn check_expression_as(
         .collect();
     Ok(CheckedExpression {
         canonical_literals: BTreeMap::new(),
+        quantity_construction_units: BTreeMap::new(),
+        numeric_frequency_references: None,
+        numeric_angle_reference: Some(conduit_core::builtin_angle_unit()),
         syntax: syntax.clone(),
         input_type: context.input.clone(),
         value_type,

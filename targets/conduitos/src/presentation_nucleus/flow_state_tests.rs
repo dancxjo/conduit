@@ -4,8 +4,8 @@ use super::{prepare_flow_state, run_flow_state};
 
 #[test]
 fn ordinary_latest_and_tee_plan_and_run_through_the_fixed_kernel() {
-    let value = Scalar::from_raw_microunits(42);
-    let prepared = prepare_flow_state("flow-host", "flow-boot", value).unwrap();
+    let value = Scalar::from_decimal_parts(42 as i128, -6).unwrap();
+    let prepared = prepare_flow_state("flow-host", "flow-boot", value.clone()).unwrap();
     let fragment = &prepared.plan.fragments[0];
     for (kind, implementation) in [
         (

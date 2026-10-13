@@ -243,13 +243,35 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => open_range_fact("unsigned-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
+        } => open_range_fact(
+            "unsigned-range",
+            minimum,
+            maximum,
+            *minimum_endpoint,
+            *maximum_endpoint,
+        ),
         ValueConstraint::SignedRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => open_range_fact("signed-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
+        } => open_range_fact(
+            "signed-range",
+            minimum,
+            maximum,
+            *minimum_endpoint,
+            *maximum_endpoint,
+        ),
+        ValueConstraint::MathematicalRange {
+            minimum,
+            maximum,
+            minimum_endpoint,
+            maximum_endpoint,
+        } => format!(
+            "constraint mathematical-range minimum={}({minimum_endpoint:?}) maximum={}({maximum_endpoint:?})",
+            mathematical_bound_fact(minimum),
+            mathematical_bound_fact(maximum),
+        ),
         ValueConstraint::FixedIntegerRange {
             minimum,
             maximum,
@@ -257,15 +279,27 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             maximum_endpoint,
         } => format!(
             "constraint fixed-integer-range minimum={}({minimum_endpoint:?}) maximum={}({maximum_endpoint:?})",
-            minimum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
-            maximum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
+            minimum
+                .as_ref()
+                .map(|value| format!("0x{}", hex_bytes(value)))
+                .unwrap_or_else(|| "open".into()),
+            maximum
+                .as_ref()
+                .map(|value| format!("0x{}", hex_bytes(value)))
+                .unwrap_or_else(|| "open".into()),
         ),
         ValueConstraint::QuantityRange {
             minimum,
             maximum,
             minimum_endpoint,
             maximum_endpoint,
-        } => open_range_fact("quantity-range", minimum, maximum, *minimum_endpoint, *maximum_endpoint),
+        } => open_range_fact(
+            "quantity-range",
+            minimum,
+            maximum,
+            *minimum_endpoint,
+            *maximum_endpoint,
+        ),
         ValueConstraint::FloatFinite => "constraint ieee-float finite=true".into(),
         ValueConstraint::FloatRange {
             minimum,
@@ -274,8 +308,14 @@ fn constraint_fact(constraint: &ValueConstraint) -> String {
             maximum_endpoint,
         } => format!(
             "constraint ieee-float-range minimum={}({minimum_endpoint:?}) maximum={}({maximum_endpoint:?})",
-            minimum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
-            maximum.as_ref().map(|value| format!("0x{}", hex_bytes(value))).unwrap_or_else(|| "open".into()),
+            minimum
+                .as_ref()
+                .map(|value| format!("0x{}", hex_bytes(value)))
+                .unwrap_or_else(|| "open".into()),
+            maximum
+                .as_ref()
+                .map(|value| format!("0x{}", hex_bytes(value)))
+                .unwrap_or_else(|| "open".into()),
         ),
         ValueConstraint::CanonicalMembership { members, negated } => format!(
             "constraint canonical-membership negated={negated} values={} bytes={}",
@@ -312,7 +352,9 @@ fn open_range_fact<T: core::fmt::Debug>(
         .as_ref()
         .map(|value| format!("{value:?}"))
         .unwrap_or_else(|| "open".into());
-    format!("constraint {name} minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})")
+    format!(
+        "constraint {name} minimum={minimum}({minimum_endpoint:?}) maximum={maximum}({maximum_endpoint:?})"
+    )
 }
 
 fn hex_bytes(bytes: &[u8]) -> String {
@@ -323,8 +365,8 @@ fn hex_bytes(bytes: &[u8]) -> String {
 mod tests {
     use super::*;
     use conduit_core::{
-        encode_count, kind_id, port_id, CheckedPlotId, ExpandedPlotId, IntervalEndpoint,
-        PortDescriptor, PortTemporal, SourceDocumentId, ValueConstraintRefusal,
+        CheckedPlotId, ExpandedPlotId, IntervalEndpoint, PortDescriptor, PortTemporal,
+        SourceDocumentId, ValueConstraintRefusal, encode_count, kind_id, port_id,
     };
 
     fn graph() -> PatchbayGraph {
@@ -415,5 +457,14 @@ mod tests {
             graph.preflight_value("front/input/count", &encode_count(2)),
             Err(PatchbayGraphError::NoValueContract)
         );
+    }
+}
+
+fn mathematical_bound_fact(bound: &Option<Vec<u8>>) -> String {
+    match bound {
+        None => "open".into(),
+        Some(bytes) => conduit_core::MathValue::decode(bytes)
+            .and_then(|value| value.source_expression())
+            .unwrap_or_else(|error| format!("unrenderable({error:?})")),
     }
 }

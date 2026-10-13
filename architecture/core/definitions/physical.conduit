@@ -54,6 +54,7 @@ type Temperature = quantity { point: TemperatureDelta }
 type Charge = quantity { dimension: { current: 1, time: 1 } }
 type Distance = quantity { dimension: length }
 type Angle = quantity { dimension: angle }
+type AngularFrequency = quantity { dimension: { angle: 1, time: -1 } }
 type Ratio = quantity { dimension: {} }
 type DataSize = quantity { dimension: datasize }
 type PixelCount = quantity { dimension: pixelcount }
@@ -168,7 +169,11 @@ unit gon : Angle = { reference: °, scale: 9/10 }
 # binding Turn
 unit turn : Angle = { reference: origin, scale: 1 }
 # binding Radian
-unit rad : Angle = { reference: origin(radian), scale: 1, prefixes: si }
+unit rad : Angle = { reference: turn, scale: 1/(2*pi), prefixes: si }
+# binding TurnPerSecond
+unit turn/s : AngularFrequency = { reference: origin, scale: 1 }
+# binding RadianPerSecond
+unit rad/s : AngularFrequency = { reference: turn/s, scale: 1/(2*pi), prefixes: si }
 # binding Millionth
 unit ppm : Ratio = { reference: one, scale: 1/1000000 }
 # binding PartPerBillion

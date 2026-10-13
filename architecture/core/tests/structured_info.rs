@@ -15,7 +15,7 @@ fn optional_info_is_exactly_the_finite_none_or_some_variant() {
     let some = StructuredInfoValue::variant(
         optional.clone(),
         "some",
-        StructuredInfoValue::leaf(scalar, Scalar::from_raw_microunits(7).encode().to_vec())
+        StructuredInfoValue::leaf(scalar, Scalar::from_decimal_parts(7, -6).unwrap().canonical_bytes().unwrap().to_vec())
             .unwrap(),
     )
     .unwrap();
@@ -25,7 +25,7 @@ fn optional_info_is_exactly_the_finite_none_or_some_variant() {
         some.canonical_bytes().unwrap()
     );
     assert_eq!(
-        StructuredInfoValue::variant(optional, "none", leaf("value/scalar", &[0; 8])),
+        StructuredInfoValue::variant(optional, "none", leaf("value/scalar", &Scalar::ZERO.canonical_bytes().unwrap())),
         Err(StructuredInfoRefusal::WrongType)
     );
 }
@@ -34,7 +34,7 @@ fn optional_info_is_exactly_the_finite_none_or_some_variant() {
 fn prepared_optional_encoding_matches_the_canonical_variant_without_growth() {
     let scalar = leaf_type("value/scalar");
     let optional = optional_info_type(scalar.clone()).unwrap();
-    let scalar_bytes = Scalar::from_raw_microunits(7).encode();
+    let scalar_bytes = Scalar::from_decimal_parts(7, -6).unwrap().canonical_bytes().unwrap();
     let expected_some = StructuredInfoValue::variant(
         optional.clone(),
         "some",
@@ -91,7 +91,7 @@ fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
         vec![
             StructuredFieldValue::new(
                 "velocity",
-                leaf("value/scalar", &Scalar::from_raw_microunits(80).encode()),
+                leaf("value/scalar", &Scalar::from_decimal_parts(80, -6).unwrap().canonical_bytes().unwrap()),
             )
             .unwrap(),
             StructuredFieldValue::new("pitch", leaf("sound/pitch@1", &[60])).unwrap(),
@@ -104,7 +104,7 @@ fn record_field_order_is_canonically_irrelevant_and_digest_stable() {
             StructuredFieldValue::new("pitch", leaf("sound/pitch@1", &[60])).unwrap(),
             StructuredFieldValue::new(
                 "velocity",
-                leaf("value/scalar", &Scalar::from_raw_microunits(80).encode()),
+                leaf("value/scalar", &Scalar::from_decimal_parts(80, -6).unwrap().canonical_bytes().unwrap()),
             )
             .unwrap(),
         ],
@@ -389,7 +389,7 @@ fn validated_llm_extraction_uses_the_same_nominal_record_model() {
             StructuredFieldValue::new("topic", leaf("value/text", b"rhythm")).unwrap(),
             StructuredFieldValue::new(
                 "confidence",
-                leaf("value/scalar", &Scalar::from_raw_microunits(75).encode()),
+                leaf("value/scalar", &Scalar::from_decimal_parts(75, -6).unwrap().canonical_bytes().unwrap()),
             )
             .unwrap(),
         ],
@@ -448,7 +448,7 @@ fn exact_collection_lengths_and_record_members_are_checked() {
         StructuredInfoValue::record(
             record,
             vec![
-                StructuredFieldValue::new("y", leaf("value/scalar", &Scalar::ZERO.encode()),)
+                StructuredFieldValue::new("y", leaf("value/scalar", &Scalar::ZERO.canonical_bytes().unwrap()),)
                     .unwrap()
             ],
         ),

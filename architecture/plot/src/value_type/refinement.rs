@@ -167,7 +167,22 @@ fn checked_range(
                 maximum_endpoint,
             })
         }
-        conduit_core::SCALAR_INFO_ID => {
+        kind if conduit_core::primitive_info_kind(kind) == Some(PrimitiveInfoKind::MathematicalNumber) => {
+            let endpoint = |value: &crate::SpannedText| {
+                let (amount, _) = crate::expression_scalar::checked_scalar_source(&value.text)
+                    .map_err(&invalid)?;
+                let bytes = amount.canonical_bytes().map_err(|error| invalid(format!("invalid mathematical endpoint: {error:?}")))?;
+                conduit_core::validate_primitive_info(kind, &bytes)
+                    .map_err(|error| invalid(format!("mathematical endpoint exceeds selected Type: {error:?}")))?;
+                Ok(bytes)
+            };
+            let minimum = minimum.as_ref().map(endpoint).transpose()?;
+            let maximum = maximum.as_ref().map(endpoint).transpose()?;
+            minimum_endpoint = endpoint_or_inclusive(minimum.is_some(), minimum_endpoint);
+            maximum_endpoint = endpoint_or_inclusive(maximum.is_some(), maximum_endpoint);
+            Ok(ValueConstraint::MathematicalRange { minimum, maximum, minimum_endpoint, maximum_endpoint })
+        }
+        conduit_core::MICRO_SCALAR_INFO_ID => {
             let minimum = minimum
                 .as_ref()
                 .map(|minimum| {
@@ -335,10 +350,17 @@ fn checked_member(
             .map(conduit_core::encode_count)
             .map(|value| value.to_vec())
             .map_err(|_| invalid("expected a nonnegative decimal integer"))?,
-        Some(PrimitiveInfoKind::Scalar) => {
+        Some(PrimitiveInfoKind::MathematicalNumber) => {
+            crate::expression_scalar::checked_scalar_source(&member.text)
+                .map_err(|reason| invalid(&reason))?
+                .0
+                .canonical_bytes()
+                .map_err(|reason| invalid(&alloc::format!("invalid Scalar encoding: {reason:?}")))?
+        }
+        Some(PrimitiveInfoKind::MicroScalar) => {
             crate::structured_startup::parse_scalar_literal(&member.text)
                 .map(|value| value.encode().to_vec())
-                .ok_or_else(|| invalid("expected an exact six-decimal Scalar"))?
+                .ok_or_else(|| invalid("expected an exact six-decimal MicroScalar"))?
         }
         Some(PrimitiveInfoKind::Text) => crate::text_value::parse_quoted_text(&member.text)
             .map(|value| value.into_bytes())
@@ -398,9 +420,6 @@ pub(crate) fn checked_float_literal(value_kind: &str, literal: &str) -> Result<V
         .skip_while(|byte| *byte == b'0')
         .count()
         .max(1);
-    if significant_digits > 17 {
-        return Err(());
-    }
     match conduit_core::primitive_info_kind(value_kind) {
         Some(PrimitiveInfoKind::F32) => {
             if significant_digits > 9 {
@@ -413,11 +432,11 @@ pub(crate) fn checked_float_literal(value_kind: &str, literal: &str) -> Result<V
                 .ok_or(())
         }
         Some(PrimitiveInfoKind::F64) => {
-            let value = literal.parse::<f64>().map_err(|_| ())?;
-            value
-                .is_finite()
-                .then(|| conduit_core::IeeeF64::from(value).encode().to_vec())
-                .ok_or(())
+            let value = conduit_core::MathValue::parse_decimal(literal).map_err(|_| ())?;
+            let conduit_core::NumericComputationOperation::IeeeRoundedLiteral { bits, flags, .. } = conduit_core::ieee_rounded_literal(&value).map_err(|_| ())? else { return Err(()) };
+            if flags.overflow || flags.invalid { return Err(()); }
+            Ok(bits.to_le_bytes().to_vec())
+
         }
         _ => Err(()),
     }
@@ -448,11 +467,17 @@ fn checked_integer_member(
 }
 
 fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
+    if let Some(maximum) = conduit_core::intrinsic_numeric_maximum_bytes(value_kind) {
+        return u32::try_from(maximum).ok();
+    }
     match conduit_core::primitive_info_kind(value_kind)? {
         PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest => Some(0),
         PrimitiveInfoKind::Bool => Some(conduit_core::BOOL_ENCODED_LEN as u32),
         PrimitiveInfoKind::Count => Some(conduit_core::COUNT_ENCODED_LEN as u32),
-        PrimitiveInfoKind::Scalar => Some(conduit_core::SCALAR_ENCODED_LEN as u32),
+        PrimitiveInfoKind::MicroScalar => Some(conduit_core::MICRO_SCALAR_ENCODED_LEN as u32),
+        PrimitiveInfoKind::MathematicalNumber => {
+            Some(conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32)
+        }
         PrimitiveInfoKind::Quantity
         | PrimitiveInfoKind::Distance
         | PrimitiveInfoKind::Frequency
@@ -461,8 +486,8 @@ fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         | PrimitiveInfoKind::Temperature
         | PrimitiveInfoKind::Angle
         | PrimitiveInfoKind::Ratio
-        | PrimitiveInfoKind::PixelCount => Some(conduit_core::QUANTITY_ENCODED_LEN as u32),
-        PrimitiveInfoKind::Unit => Some(conduit_core::UNIT_ENCODED_LEN as u32),
+        | PrimitiveInfoKind::PixelCount => Some(conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32),
+        PrimitiveInfoKind::Unit => Some(conduit_core::MAX_UNIT_ENCODED_BYTES as u32),
         kind @ (PrimitiveInfoKind::U8
         | PrimitiveInfoKind::U16
         | PrimitiveInfoKind::U32
@@ -483,7 +508,7 @@ fn constraint_rank(constraint: &ValueConstraint) -> u8 {
     match constraint {
         ValueConstraint::ByteLength { .. } => 0,
         ValueConstraint::UnsignedRange { .. } => 1,
-        ValueConstraint::SignedRange { .. } => 2,
+        ValueConstraint::SignedRange { .. } | ValueConstraint::MathematicalRange { .. } => 2,
         ValueConstraint::FixedIntegerRange { .. } => 3,
         ValueConstraint::QuantityRange { .. } => 4,
         ValueConstraint::FloatFinite => 5,

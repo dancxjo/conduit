@@ -19,6 +19,7 @@ pub(super) enum PresentationBack {
     },
     LogicInputs {
         input_count: u8,
+        refusals: Option<[conduit_kernel::CanonicalValue; 3]>,
         seen: u8,
         next_request: u32,
         pending: bool,
@@ -49,11 +50,20 @@ impl StepBack<PORTS> for PresentationBack {
             } => step_transform(*maximum_input_bytes, pending, emitted, io),
             Self::LogicInputs {
                 input_count,
+                refusals,
                 seen,
                 next_request,
                 pending,
                 emitted,
-            } => step_logic_inputs(*input_count, seen, next_request, pending, emitted, io),
+            } => step_logic_inputs(
+                *input_count,
+                refusals.as_ref(),
+                seen,
+                next_request,
+                pending,
+                emitted,
+                io,
+            ),
             Self::RoboticsSource(operation) => operation.step(io),
             Self::RoboticsDrive(operation) => operation.step(io, input_bytes),
             Self::RoboticsDiscard(operation) => operation.step(io),
@@ -148,6 +158,7 @@ fn step_transform(
 
 fn step_logic_inputs(
     input_count: u8,
+    refusals: Option<&[conduit_kernel::CanonicalValue; 3]>,
     seen: &mut u8,
     next_request: &mut u32,
     pending: &mut bool,
@@ -161,6 +172,21 @@ fn step_logic_inputs(
         let Some((_request, outcome)) = io.host_completion() else {
             return StepOutcome::Await;
         };
+        if let (HostCallDisposition::Failed, Some(failure), Some(refusals)) =
+            (outcome.disposition, outcome.failure, refusals)
+        {
+            if failure.code == conduit_kernel::FailureCode::HostCallFailed && failure.detail < 3 {
+                if io.consume_host_completion().is_err() {
+                    return invalid(4);
+                }
+                *pending = false;
+                *emitted = true;
+                return StepOutcome::Abnormal {
+                    port: PortId(0),
+                    terminal: refusals[usize::from(failure.detail)],
+                };
+            }
+        }
         if outcome.disposition != HostCallDisposition::Completed || outcome.failure.is_some() {
             return invalid(4);
         }
@@ -190,7 +216,7 @@ fn step_logic_inputs(
         if *seen & bit != 0 {
             return invalid(5);
         }
-        let Ok(input) = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32) else {
+        let Ok(input) = BoundedValueRef::new(value, value.byte_len) else {
             return invalid(5);
         };
         let request = RequestId(*next_request * 4 + u32::from(port.0));

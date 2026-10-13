@@ -7,7 +7,7 @@ use conduit_core::{
 use crate::{RoboticsStructuredRefusal, MAXIMUM_ROBOTICS_IDENTITY_BYTES};
 
 pub(super) fn require_uncertainty(
-    value: Quantity,
+    value: &Quantity,
     dimension: QuantityDimension,
     canonical: Unit,
     field: &'static str,
@@ -19,7 +19,7 @@ pub(super) fn require_uncertainty(
 }
 
 pub(super) fn require_nonnegative(
-    value: Quantity,
+    value: &Quantity,
     dimension: QuantityDimension,
     canonical: Unit,
     field: &'static str,
@@ -31,7 +31,7 @@ pub(super) fn require_nonnegative(
 }
 
 pub(super) fn require_exact(
-    value: Quantity,
+    value: &Quantity,
     dimension: QuantityDimension,
     canonical: Unit,
     field: &'static str,
@@ -40,7 +40,7 @@ pub(super) fn require_exact(
         return Err(RoboticsStructuredRefusal::IncompatibleDimension { field });
     }
     value
-        .to_i64(canonical)
+        .to_i64(&canonical)
         .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field })
 }
 

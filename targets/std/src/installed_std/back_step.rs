@@ -13,6 +13,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transductions(operation.as_ref()),
@@ -38,6 +40,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::terminal_transduction(operation.as_ref()),
@@ -63,6 +67,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::TypedState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::DurableState(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step_committed(operation.as_mut()),
@@ -90,6 +96,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::TypedState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::DurableState(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::step(operation.as_mut(), io, input_bytes),
@@ -113,6 +121,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
                     Self::TypedState(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
                     Self::DurableState(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::prepared_output(operation.as_ref(), port),
@@ -136,6 +146,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::TypedState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::DurableState(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::accepts_input_while_host_call_pending(operation.as_ref()),
@@ -165,6 +177,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::TypedState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::DurableState(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::retains_host_call_input(operation.as_ref(), request, value),
@@ -188,6 +202,8 @@ macro_rules! installed_step_dispatch {
                 match self {
                     Self::NativeSpeech(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::ConvertedEquals(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::NumericEvaluation(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
+                    Self::NumericTensor(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::TypedState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::DurableState(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),
                     Self::ButtonMapper(operation) => StepBack::<PORTS>::cancel(operation.as_mut()),

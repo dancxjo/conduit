@@ -1,7 +1,7 @@
 //! Fixed-capacity production-kernel execution for portable `state/select`.
 
 use alloc::vec::Vec;
-use conduit_core::{InfoBool, SCALAR_ENCODED_LEN, Scalar};
+use conduit_core::{InfoBool, Scalar};
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, FixedSignLog, FixedValueStore, HostCallDisposition,
@@ -22,7 +22,7 @@ const CORDS: usize = 4;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 12;
-const MAX_VALUE_BYTES: usize = SCALAR_ENCODED_LEN;
+const MAX_VALUE_BYTES: usize = 128;
 const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 256;
 const MAXIMUM_OUTPUTS: usize = 4;
@@ -41,7 +41,7 @@ type Kernel = FixedScheduler<
     NODES,
 >;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum StateSelectError {
     Catalog,
     Plot,
@@ -86,7 +86,7 @@ pub fn run_state_select(
         return Err(StateSelectError::Shape);
     }
     let mut scheduler = scheduler(fragment, &lowered, prepared)?;
-    let mut outputs = [None; MAXIMUM_OUTPUTS];
+    let mut outputs = core::array::from_fn(|_| None);
     let mut output_count = 0;
     let mut maximum_cord_items = 0;
     loop {
@@ -115,7 +115,9 @@ pub fn run_state_select(
     }
     Ok(StateSelectProof {
         plan_id: prepared.plan.plan_id.clone(),
-        outputs,
+        outputs: outputs.map(|value| {
+            value.map(|value| Scalar::decode(value.encoded()).expect("checked scalar transport"))
+        }),
         output_count,
         decisions: scheduler.kernel.decisions(),
         maximum_cord_items,
@@ -158,7 +160,7 @@ pub(super) fn cancel_state_select(
 fn capture(
     scheduler: &mut Scheduler,
     request: HostCallRequest,
-    outputs: &mut [Option<Scalar>; MAXIMUM_OUTPUTS],
+    outputs: &mut [Option<super::scalar_bytes::ScalarBytes>; MAXIMUM_OUTPUTS],
     output_count: &mut usize,
 ) -> Result<(), StateSelectError> {
     if request.node != scheduler.sink {
@@ -179,7 +181,7 @@ fn capture(
         return Err(StateSelectError::Shape);
     }
     outputs[*output_count] = Some(
-        Scalar::decode(
+        super::scalar_bytes::ScalarBytes::new(
             scheduler
                 .kernel
                 .host_value(request.input.value)
@@ -245,8 +247,8 @@ fn scheduler(
     let mut values = FixedValueStore::<VALUES, MAX_VALUE_BYTES>::new(VALUE_BYTES as u32)
         .map_err(|_| StateSelectError::Value)?;
     let selector_values = store_bool_sequence(&mut values, prepared.sequence.selectors)?;
-    let false_values = store_scalar_sequence(&mut values, prepared.sequence.when_false)?;
-    let true_values = store_scalar_sequence(&mut values, prepared.sequence.when_true)?;
+    let false_values = store_scalar_sequence(&mut values, prepared.sequence.when_false.clone())?;
+    let true_values = store_scalar_sequence(&mut values, prepared.sequence.when_true.clone())?;
     let mut sink = None;
     let backs = fragment
         .placements
@@ -320,7 +322,11 @@ fn store_scalar_sequence(
         value
             .map(|value| {
                 values
-                    .store(&value.encode())
+                    .store(
+                        &value
+                            .canonical_bytes()
+                            .map_err(|_| StateSelectError::Value)?,
+                    )
                     .map_err(|_| StateSelectError::Value)
             })
             .transpose()

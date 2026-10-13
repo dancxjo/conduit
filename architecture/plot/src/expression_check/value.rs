@@ -92,6 +92,13 @@ pub(super) fn atomic(
             span,
         );
     }
+    if expected.is_none()
+        && (matches!(text, "pi" | "π") || conduit_core::MathValue::parse_decimal(text).is_ok())
+    {
+        return Ok(CheckedExpressionType::semantic(
+            conduit_core::MATH_VALUE_INFO_ID,
+        ));
+    }
     let Some(expected) = expected else {
         return refuse(
             span,
@@ -114,6 +121,24 @@ pub(super) fn atomic(
             _ => None,
         })
         .unwrap_or(kind.as_str());
+    if conduit_core::primitive_info_kind(represented_kind)
+        == Some(conduit_core::PrimitiveInfoKind::MathematicalNumber)
+    {
+        if text != "pi" && text != "π" {
+            conduit_core::MathValue::parse_decimal(text)
+                .map_err(|reason| diagnostic(span, &format!("invalid exact number: {reason:?}")))?;
+        }
+        return Ok(expected.clone());
+    }
+    if represented_kind == conduit_core::MICRO_SCALAR_INFO_ID {
+        crate::structured_startup::parse_scalar_literal(text).ok_or_else(|| {
+            diagnostic(
+                span,
+                "MicroScalar requires an exact bounded six-decimal value",
+            )
+        })?;
+        return Ok(expected.clone());
+    }
     if represented_kind == conduit_core::F32_INFO_ID {
         crate::ieee_literal::f32_bits(text).map_err(|message| diagnostic(span, &message))?;
         return Ok(expected.clone());

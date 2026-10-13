@@ -1,7 +1,5 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use conduit_core::{
-    ConfigurationValue, InfoBool, PlannedGear, Scalar, BOOL_ENCODED_LEN, SCALAR_ENCODED_LEN,
-};
+use conduit_core::{ConfigurationValue, InfoBool, MathValueRef, PlannedGear, BOOL_ENCODED_LEN};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     HostedValueStore, PortId, ValueRef, ValueStorage,
@@ -48,8 +46,10 @@ impl DecisionValues {
 
 pub(super) struct LogicCompareScalarBack {
     operator: CompareOperator,
-    operands: [Option<Scalar>; 2],
+    operands: [Vec<u8>; 2],
+    operand_lengths: [Option<usize>; 2],
     decisions: DecisionValues,
+    refusals: [conduit_kernel::CanonicalValue; 3],
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for LogicCompareScalarBack {
@@ -58,11 +58,33 @@ impl<const PORTS: usize> StepBack<PORTS> for LogicCompareScalarBack {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
-        if let [Some(left), Some(right)] = self.operands {
+        if let [Some(left_len), Some(right_len)] = self.operand_lengths {
             if !io.output_ready(PortId(0)) {
                 return StepOutcome::Await;
             }
-            let selected = usize::from(self.operator.evaluate(left, right));
+            let relation = MathValueRef::validate(&self.operands[0][..left_len])
+                .and_then(|left| {
+                    MathValueRef::validate(&self.operands[1][..right_len])
+                        .and_then(|right| left.compare(right))
+                })
+                .and_then(|ordering| self.operator.evaluate_order(ordering));
+            let relation = match relation {
+                Ok(value) => value,
+                Err(error) => {
+                    for decision in &mut self.decisions.values {
+                        if let Some(value) = decision.take() {
+                            io.discard(value)
+                                .expect("unused refused comparison decision");
+                        }
+                    }
+                    let index = match error { conduit_core::NumericRefusal::IndeterminateDomain => 0, conduit_core::NumericRefusal::IntegerBudget | conduit_core::NumericRefusal::NodeBudget | conduit_core::NumericRefusal::DepthBudget | conduit_core::NumericRefusal::StorageBudget | conduit_core::NumericRefusal::WorkBudget => 2, _ => 1 };
+                    return StepOutcome::Abnormal {
+                        port: PortId(0),
+                        terminal: self.refusals[index],
+                    };
+                }
+            };
+            let selected = usize::from(relation);
             let unused = usize::from(selected == 0);
             let Some(output) = self.decisions.values[selected].take() else {
                 return StepOutcome::Fail(logic_failure(20));
@@ -79,20 +101,26 @@ impl<const PORTS: usize> StepBack<PORTS> for LogicCompareScalarBack {
         for port in [PortId(0), PortId(1)] {
             let index = usize::from(port.0);
             if let Some(value) = io.input(port) {
-                if self.operands[index].is_some() || value.byte_len != SCALAR_ENCODED_LEN as u32 {
+                if self.operand_lengths[index].is_some()
+                    || value.byte_len > conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32
+                {
                     return StepOutcome::Fail(logic_failure(20));
                 }
                 let Some(canonical) = input_bytes.input(port) else {
                     return StepOutcome::Fail(logic_failure(20));
                 };
-                let Ok(scalar) = Scalar::decode(canonical) else {
+                if canonical.len() != value.byte_len as usize {
+                    return StepOutcome::Fail(logic_failure(20));
+                }
+                let Ok(_) = MathValueRef::validate(canonical) else {
                     return StepOutcome::Fail(logic_failure(20));
                 };
                 io.consume(port).expect("present scalar-comparison input");
-                self.operands[index] = Some(scalar);
+                self.operands[index][..canonical.len()].copy_from_slice(canonical);
+                self.operand_lengths[index] = Some(canonical.len());
                 return StepOutcome::Progress;
             }
-            if io.input_closed(port) && self.operands[index].is_none() {
+            if io.input_closed(port) && self.operand_lengths[index].is_none() {
                 let [first, second] = &mut self.decisions.values;
                 let Some(first) = first.take() else {
                     return StepOutcome::Fail(logic_failure(20));
@@ -111,7 +139,7 @@ impl<const PORTS: usize> StepBack<PORTS> for LogicCompareScalarBack {
     }
 
     fn cancel(&mut self) {
-        self.operands = [None; 2];
+        self.operand_lengths = [None; 2];
         self.decisions.cancel();
     }
 }
@@ -243,9 +271,13 @@ impl<const PORTS: usize> StepBack<PORTS> for LogicSelectScalarBack {
                         io.consume(port).expect("present scalar selector");
                         self.selector = Some(selector.get());
                     }
-                    PortId(1) | PortId(2) if value.byte_len == SCALAR_ENCODED_LEN as u32 => {
+                    PortId(1) | PortId(2)
+                        if value.byte_len
+                            <= conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32 =>
+                    {
                         let index = usize::from(port.0 - 1);
-                        if self.candidate_seen[index] || Scalar::decode(canonical).is_err() {
+                        if self.candidate_seen[index] || MathValueRef::validate(canonical).is_err()
+                        {
                             return StepOutcome::Fail(logic_failure(22));
                         }
                         let retained = io.take_input(port).expect("present scalar candidate");
@@ -330,7 +362,7 @@ fn select_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         value_bytes: 0,
         host_requests: 0,
         sign_items: 96,
-        maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
     })
 }
 
@@ -340,7 +372,7 @@ fn decision_budget() -> BackBudget {
         value_bytes: (BOOL_ENCODED_LEN * 2) as u32,
         host_requests: 0,
         sign_items: 96,
-        maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
+        maximum_value_bytes: conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
     }
 }
 
@@ -355,7 +387,21 @@ fn prepare_compare(
     )?;
     Ok(InstalledBack::LogicCompareScalar(LogicCompareScalarBack {
         operator: comparison_operator(placement)?,
-        operands: [None; 2],
+        operands: core::array::from_fn(|_| {
+            vec![0; conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES]
+        }),
+        operand_lengths: [None; 2],
+        refusals: [
+            conduit_core::NumericRefusal::IndeterminateDomain,
+            conduit_core::NumericRefusal::InvalidProfile,
+            conduit_core::NumericRefusal::WorkBudget,
+        ]
+        .map(|error| {
+            conduit_kernel::CanonicalValue::new(
+                &conduit_semantic_catalog::scalar_comparison_refusal_bytes(error),
+            )
+            .expect("finite comparison refusal")
+        }),
         decisions: DecisionValues::prepare(store)?,
     }))
 }

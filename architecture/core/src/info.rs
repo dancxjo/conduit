@@ -12,7 +12,9 @@ use crate::{kind_id, KindId};
 pub const BOOL_INFO_ID: &str = "value/bool";
 pub const BOOL_ENCODED_LEN: usize = 1;
 pub const SCALAR_INFO_ID: &str = "value/scalar";
-pub const SCALAR_ENCODED_LEN: usize = 8;
+pub type Scalar = crate::MathValue;
+pub const MICRO_SCALAR_INFO_ID: &str = "realization/micro-scalar@1";
+pub const MICRO_SCALAR_ENCODED_LEN: usize = 8;
 
 const SEMANTIC_DIGEST_DOMAIN: &[u8] = b"conduit.info.semantic.v1";
 
@@ -50,7 +52,7 @@ pub enum InfoDecodeError {
 }
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
-pub enum ScalarArithmeticError {
+pub enum MicroScalarArithmeticError {
     Overflow,
     DivisionByZero,
 }
@@ -104,9 +106,9 @@ impl InfoBool {
 /// exact scaled result cannot fit. Multiplication truncates toward zero when
 /// the mathematical result is between representable micro-units.
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
-pub struct Scalar(i64);
+pub struct MicroScalar(i64);
 
-impl Scalar {
+impl MicroScalar {
     pub const SCALE: i64 = 1_000_000;
     pub const MIN: Self = Self(i64::MIN);
     pub const MAX: Self = Self(i64::MAX);
@@ -121,71 +123,71 @@ impl Scalar {
         self.0
     }
 
-    pub const fn encode(self) -> [u8; SCALAR_ENCODED_LEN] {
+    pub const fn encode(self) -> [u8; MICRO_SCALAR_ENCODED_LEN] {
         self.0.to_le_bytes()
     }
 
     pub fn decode(encoded: &[u8]) -> Result<Self, InfoDecodeError> {
-        let bytes: [u8; SCALAR_ENCODED_LEN] =
+        let bytes: [u8; MICRO_SCALAR_ENCODED_LEN] =
             encoded
                 .try_into()
                 .map_err(|_| InfoDecodeError::WrongLength {
-                    expected: SCALAR_ENCODED_LEN,
+                    expected: MICRO_SCALAR_ENCODED_LEN,
                     actual: encoded.len(),
                 })?;
         Ok(Self(i64::from_le_bytes(bytes)))
     }
 
-    pub const fn checked_add(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+    pub const fn checked_add(self, rhs: Self) -> Result<Self, MicroScalarArithmeticError> {
         match self.0.checked_add(rhs.0) {
             Some(value) => Ok(Self(value)),
-            None => Err(ScalarArithmeticError::Overflow),
+            None => Err(MicroScalarArithmeticError::Overflow),
         }
     }
 
-    pub const fn checked_sub(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+    pub const fn checked_sub(self, rhs: Self) -> Result<Self, MicroScalarArithmeticError> {
         match self.0.checked_sub(rhs.0) {
             Some(value) => Ok(Self(value)),
-            None => Err(ScalarArithmeticError::Overflow),
+            None => Err(MicroScalarArithmeticError::Overflow),
         }
     }
 
-    pub fn checked_mul(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+    pub fn checked_mul(self, rhs: Self) -> Result<Self, MicroScalarArithmeticError> {
         let scaled = (i128::from(self.0) * i128::from(rhs.0)) / i128::from(Self::SCALE);
         i64::try_from(scaled)
             .map(Self)
-            .map_err(|_| ScalarArithmeticError::Overflow)
+            .map_err(|_| MicroScalarArithmeticError::Overflow)
     }
 
-    pub fn checked_div(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+    pub fn checked_div(self, rhs: Self) -> Result<Self, MicroScalarArithmeticError> {
         if rhs.0 == 0 {
-            return Err(ScalarArithmeticError::DivisionByZero);
+            return Err(MicroScalarArithmeticError::DivisionByZero);
         }
         let scaled = i128::from(self.0) * i128::from(Self::SCALE) / i128::from(rhs.0);
         i64::try_from(scaled)
             .map(Self)
-            .map_err(|_| ScalarArithmeticError::Overflow)
+            .map_err(|_| MicroScalarArithmeticError::Overflow)
     }
 
-    pub const fn checked_rem(self, rhs: Self) -> Result<Self, ScalarArithmeticError> {
+    pub const fn checked_rem(self, rhs: Self) -> Result<Self, MicroScalarArithmeticError> {
         if rhs.0 == 0 {
-            return Err(ScalarArithmeticError::DivisionByZero);
+            return Err(MicroScalarArithmeticError::DivisionByZero);
         }
         match self.0.checked_rem(rhs.0) {
             Some(value) => Ok(Self(value)),
-            None => Err(ScalarArithmeticError::Overflow),
+            None => Err(MicroScalarArithmeticError::Overflow),
         }
     }
 
-    pub const fn checked_neg(self) -> Result<Self, ScalarArithmeticError> {
+    pub const fn checked_neg(self) -> Result<Self, MicroScalarArithmeticError> {
         match self.0.checked_neg() {
             Some(value) => Ok(Self(value)),
-            None => Err(ScalarArithmeticError::Overflow),
+            None => Err(MicroScalarArithmeticError::Overflow),
         }
     }
 
     pub fn semantic_digest(self) -> [u8; 32] {
-        semantic_digest(SCALAR_INFO_ID, &self.encode())
+        semantic_digest(MICRO_SCALAR_INFO_ID, &self.encode())
     }
 }
 
@@ -194,10 +196,15 @@ impl Scalar {
 /// Domain semantic owners use this generic mechanism without moving their
 /// value families back into `conduit-core`.
 pub fn semantic_digest(info_id: &str, encoded: &[u8]) -> [u8; 32] {
+    semantic_digest_parts(info_id, &[encoded])
+}
+/// Hashes bounded canonical pieces exactly as their concatenation, without
+/// allocating a concatenated buffer. Piece boundaries carry no extra meaning.
+pub fn semantic_digest_parts(info_id:&str, pieces:&[&[u8]]) -> [u8;32] {
     let mut hash = Sha256::new();
     hash.update(SEMANTIC_DIGEST_DOMAIN);
     hash.update((info_id.len() as u16).to_le_bytes());
     hash.update(info_id.as_bytes());
-    hash.update(encoded);
+    for piece in pieces {hash.update(piece);}
     hash.finalize().into()
 }

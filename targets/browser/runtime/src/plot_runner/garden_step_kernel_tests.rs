@@ -216,7 +216,7 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
         .unwrap();
     let prior =
         conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
-            vitality: Scalar::from_raw_microunits(400_000),
+            vitality: Scalar::from_decimal_parts(400_000, -6).unwrap(),
             activity: Scalar::ZERO,
             step: 0,
         })
@@ -225,7 +225,7 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
         .unwrap();
     let clock = conduit_semantic_catalog::garden_clock_observation_value(
         conduit_semantic_catalog::GardenClockObservation {
-            phase: Scalar::from_raw_microunits(800_000),
+            phase: Scalar::from_decimal_parts(800_000, -6).unwrap(),
         },
     )
     .unwrap()
@@ -246,8 +246,8 @@ fn canonical_minimal_reducer_executes_through_the_production_kernel() {
         panic!("expected Garden state manifestation")
     };
     let next = conduit_semantic_catalog::decode_garden_state(&output.canonical_value).unwrap();
-    assert_eq!(next.vitality.raw_microunits(), 500_000);
-    assert_eq!(next.activity.raw_microunits(), 400_000);
+    assert_eq!(next.vitality, conduit_core::Scalar::from_decimal_parts(500_000, -6).unwrap());
+    assert_eq!(next.activity, conduit_core::Scalar::from_decimal_parts(400_000, -6).unwrap());
     assert_eq!(next.step, 1);
     assert_eq!(
         decode_manifestation(output).unwrap().2.as_deref(),
@@ -279,7 +279,7 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
     let mut scheduler = prepare_scheduler(&fragment, &lowered).unwrap();
     let prior =
         conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
-            vitality: Scalar::from_raw_microunits(400_000),
+            vitality: Scalar::from_decimal_parts(400_000, -6).unwrap(),
             activity: Scalar::ZERO,
             step: 0,
         })
@@ -288,7 +288,7 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
         .unwrap();
     let clock = conduit_semantic_catalog::garden_clock_observation_value(
         conduit_semantic_catalog::GardenClockObservation {
-            phase: Scalar::from_raw_microunits(800_000),
+            phase: Scalar::from_decimal_parts(800_000, -6).unwrap(),
         },
     )
     .unwrap()
@@ -296,7 +296,7 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
     .unwrap();
     let contact = conduit_semantic_catalog::garden_contact_observation_value(
         conduit_semantic_catalog::GardenContactObservation {
-            intensity: Scalar::from_raw_microunits(800_000),
+            intensity: Scalar::from_decimal_parts(800_000, -6).unwrap(),
         },
     )
     .unwrap()
@@ -334,8 +334,8 @@ fn canonical_interactive_reducer_composes_contact_through_one_production_kernel(
         panic!("expected enriched Garden state manifestation")
     };
     let next = conduit_semantic_catalog::decode_garden_state(&output.canonical_value).unwrap();
-    assert_eq!(next.vitality.raw_microunits(), 600_000);
-    assert_eq!(next.activity.raw_microunits(), 400_000);
+    assert_eq!(next.vitality, conduit_core::Scalar::from_decimal_parts(600_000, -6).unwrap());
+    assert_eq!(next.activity, conduit_core::Scalar::from_decimal_parts(400_000, -6).unwrap());
     assert_eq!(next.step, 1);
     assert_eq!(
         decode_manifestation(output).unwrap().2.as_deref(),

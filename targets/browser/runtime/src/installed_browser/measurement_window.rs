@@ -490,7 +490,7 @@ mod tests {
             window
                 .samples()
                 .iter()
-                .map(|sample| sample.value.to_i64(sample.value.unit()).unwrap())
+                .map(|sample| sample.value.coordinate().to_owned().unwrap().as_rational().unwrap().as_i64().unwrap())
                 .collect::<Vec<_>>(),
             [50, 100]
         );

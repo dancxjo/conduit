@@ -15,7 +15,8 @@ pub(crate) fn projected_startup_parameter(
             ) => canonical_unit.dimension().info_id(),
             (_, ConfigurationValue::Bool(_)) => "Boolean",
             (_, ConfigurationValue::U64(_)) => "Count",
-            (_, ConfigurationValue::I64(_)) => "Scalar",
+            (_, ConfigurationValue::Scalar(_)) => "Scalar",
+            (_, ConfigurationValue::I64(_)) => "MicroScalar",
             (_, ConfigurationValue::Text(_)) => "Text",
             (_, ConfigurationValue::Structured(value)) => value.profile().as_str(),
             (_, ConfigurationValue::Quantity(_)) => "Quantity",
@@ -33,6 +34,9 @@ pub(crate) fn render_value(value: &ConfigurationValue) -> String {
     match value {
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::U64(value) => value.to_string(),
+        ConfigurationValue::Scalar(value) => value
+            .source_expression()
+            .expect("admitted Scalar has a bounded source expression"),
         ConfigurationValue::I64(value) => value.to_string(),
         ConfigurationValue::Text(value) => format!("{value:?}"),
         ConfigurationValue::Structured(value) => alloc::format!(

@@ -889,7 +889,7 @@ pub(in crate::plot_runner) fn complete_transform(
     }
     if operation.contract_id.as_str() == crate::installed_browser::QUANTITY_HOST_CALL {
         let encoded = crate::installed_browser::transform_quantity(
-            scheduler.mappings[usize::from(request.node.0)]
+            scheduler.mappings[usize::from(request.node.0)].as_ref()
                 .ok_or("quantity mapping was not prepared before Play")?,
             scheduler
                 .host_value(request.input.value)
@@ -901,7 +901,7 @@ pub(in crate::plot_runner) fn complete_transform(
                 HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(
-                        BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                        BoundedValueRef::new(value, bytes.len() as u32)
                             .map_err(debug_error)?,
                     ),
                     failure: None,
@@ -941,7 +941,7 @@ pub(in crate::plot_runner) fn complete_transform(
                 output: Some(
                     BoundedValueRef::new(
                         scheduler.store_host_value(&bytes).map_err(debug_error)?,
-                        conduit_core::SCALAR_ENCODED_LEN as u32,
+                        bytes.len() as u32,
                     )
                     .map_err(debug_error)?,
                 ),

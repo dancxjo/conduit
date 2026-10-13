@@ -18,6 +18,10 @@ mod entry;
 mod graph;
 mod identity;
 mod literal;
+mod mathematical_evaluation;
+mod tensor_evaluation;
+pub use tensor_evaluation::{checked_gear_tensor_computations, planned_gear_tensor_computations, CheckedTensorComputations};
+pub use mathematical_evaluation::{checked_gear_numeric_computation, planned_gear_numeric_computation};
 mod retained;
 mod shared_pool;
 mod startup;
@@ -737,23 +741,10 @@ fn instantiate_gear(
                     value: conduit_core::ConfigurationValue::U64(
                         retained
                             .maximum_bytes
-                            .unwrap_or(conduit_core::QUANTITY_ENCODED_LEN as u64),
+                            .unwrap_or(conduit_core::MAX_QUANTITY_ENCODED_BYTES as u64),
                     ),
                 },
             ];
-            if retained
-                .maximum_bytes
-                .is_some_and(|maximum| maximum < conduit_core::QUANTITY_ENCODED_LEN as u64)
-            {
-                return Err(CanonicalExpansionDiagnostic::new(
-                    "CND-FRM-041",
-                    format!(
-                        "KEEP '{}' bound is smaller than its {}-byte canonical quantity encoding",
-                        value_kind.as_str(),
-                        conduit_core::QUANTITY_ENCODED_LEN
-                    ),
-                ));
-            }
             if let Some(initial) = retained.initial.as_ref() {
                 let CanonicalStartupValue::Quantity(quantity) = initial else {
                     return Err(CanonicalExpansionDiagnostic::new(
@@ -764,6 +755,9 @@ fn instantiate_gear(
                         ),
                     ));
                 };
+                if retained.maximum_bytes.is_some_and(|maximum| quantity.value().encoded().len() as u64 > maximum) {
+                    return Err(CanonicalExpansionDiagnostic::new("CND-FRM-041", "retained initializer exceeds its admitted byte bound".into()));
+                }
                 if quantity.value().dimension() != expected_dimension {
                     return Err(CanonicalExpansionDiagnostic::new(
                         "CND-FRM-040",
@@ -868,9 +862,20 @@ fn instantiate_gear(
             )
         })?
     };
+    let numeric_specialization =
+        mathematical_evaluation::specialize(gear, environment, definition)?
+            .or(tensor_evaluation::specialize(gear, environment, definition)?);
+    let definition = numeric_specialization
+        .as_ref()
+        .map_or(definition, |(definition, _)| definition);
     let semantic_kind = catalog
         .canonical_kind_for_arity(&kind_id, relational_input_arity)
         .map_err(|message| CanonicalExpansionDiagnostic::new("CND-FRM-043", message))?;
+    let semantic_kind = if numeric_specialization.is_some() {
+        None
+    } else {
+        semantic_kind
+    };
     let terminal_transductions = semantic_kind
         .as_ref()
         .map(|kind| kind.terminal_transductions().cloned().collect())
@@ -916,13 +921,34 @@ fn instantiate_gear(
             format!("expanded gear path '{}' is not unique", gear_id.as_str()),
         ));
     }
-    let configuration = configuration(gear, environment, definition)?;
+    let configuration = if let Some((_, configuration)) = &numeric_specialization {
+        configuration.clone()
+    } else {
+        configuration(gear, environment, definition)?
+    };
     let pool_references = pool_references(gear, environment)?;
+    let startup_parameters = if numeric_specialization.is_some() {
+        definition
+            .configuration
+            .iter()
+            .map(|field| conduit_core::FrontStartupParameter {
+                name: field.key.clone(),
+                value_type: match &field.default_value {
+                    ConfigurationValue::Structured(value) => value.profile().clone(),
+                    ConfigurationValue::Text(_) => conduit_core::kind_id(conduit_core::TEXT_INFO_ID),
+                    _ => unreachable!("numeric specialization seals typed structured fields"),
+                },
+                has_default: true,
+            })
+            .collect()
+    } else {
+        gear.startup_parameters.clone()
+    };
     gears.push(crate::checked_gear_from_parts! {
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id.clone(),
         kind_contract_revision: definition.kind_contract_revision.clone(),
-        startup_parameters: gear.startup_parameters.clone(),
+        startup_parameters,
         shorthand: match (definition.inputs.as_slice(), definition.outputs.as_slice()) {
             ([input], [output]) => Some((input.port_id.clone(), output.port_id.clone())),
             _ => None,
@@ -934,7 +960,12 @@ fn instantiate_gear(
             .map(conduit_core::Kind::semantic_contract)
             .unwrap_or_else(|| conduit_core::KindSemanticContract {
                 configuration: definition.configuration.clone(),
-                laws: Vec::new(),
+                laws: if numeric_specialization.is_some() {
+                    vec![conduit_core::KindSemanticLaw::RealizationRequirement {
+                        property_profile: conduit_core::numeric_realization_offer_profile(),
+                        configuration_key: if gear.kind == "tensor/evaluate" {"tensor_requirement"} else {"numeric_requirement"}.into(),
+                    }]
+                } else { Vec::new() },
             }),
         terminal_transductions: terminal_transductions.clone(),
         resource_ports: semantic_kind

@@ -3,7 +3,7 @@
 use crate::prelude::*;
 
 use conduit_core::{
-    ConfigurationValue, InfoBool, KindId, Quantity, Unit, BOOL_INFO_ID, QUANTITY_INFO_ID,
+    BOOL_INFO_ID, ConfigurationValue, InfoBool, KindId, QUANTITY_INFO_ID, Quantity, Unit,
 };
 use conduit_human::{
     BoundKind, InteractionContract, InteractionCurrentState, InteractionDomain, InteractionFamily,
@@ -212,7 +212,7 @@ fn project_interaction(
             };
             (
                 InteractionFamily::scalar_range(
-                    unit,
+                    unit.clone(),
                     minimum,
                     BoundKind::Inclusive,
                     maximum,
@@ -245,14 +245,14 @@ fn project_interaction(
         ) => {
             let value = value
                 .value()
-                .to_i64(**canonical_unit)
+                .to_i64(canonical_unit)
                 .map_err(|_| PatchbayGraphError::InvalidConfigurationContract)?;
             if value < *minimum || value > *maximum {
                 return Ok(None);
             }
             (
                 InteractionFamily::scalar_range(
-                    **canonical_unit,
+                    (**canonical_unit).clone(),
                     *minimum,
                     BoundKind::Inclusive,
                     *maximum,
@@ -260,7 +260,7 @@ fn project_interaction(
                     1,
                 ),
                 None,
-                quantity_value(value, **canonical_unit)?,
+                quantity_value(value, (**canonical_unit).clone())?,
             )
         }
         (ConfigurationValue::Text(value), KindConfigurationRule::TextBytes { maximum }) => (

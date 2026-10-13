@@ -211,12 +211,8 @@ fn index(command: &[(String, JsonValue)], length: usize) -> Result<usize, JsonCo
     let JsonValue::Number(number) = field(command, "index")? else {
         return Err(JsonCollectionRefusal::InvalidIndex);
     };
-    let raw = number.raw_microunits();
-    if raw < 0 || raw % 1_000_000 != 0 {
-        return Err(JsonCollectionRefusal::InvalidIndex);
-    }
-    let index =
-        usize::try_from(raw / 1_000_000).map_err(|_| JsonCollectionRefusal::InvalidIndex)?;
+    let integer = number.as_rational().and_then(|value| value.as_i64()).ok_or(JsonCollectionRefusal::InvalidIndex)?;
+    let index = usize::try_from(integer).map_err(|_| JsonCollectionRefusal::InvalidIndex)?;
     if index >= length {
         return Err(JsonCollectionRefusal::MissingIndex);
     }

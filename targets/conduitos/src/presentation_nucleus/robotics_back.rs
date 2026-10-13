@@ -1,6 +1,6 @@
 //! Fixed-storage Backs for the canonical PREWAKE robotics simulation.
 
-use conduit_core::Scalar;
+use conduit_core::MicroScalar;
 use conduit_kernel::scheduler::{StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{Failure, FailureCode, PortId, ValueRef};
 
@@ -8,7 +8,10 @@ const PORTS: usize = conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum RoboticsDriveEffect {
-    Projected { linear: Scalar, angular: Scalar },
+    Projected {
+        linear: MicroScalar,
+        angular: MicroScalar,
+    },
     Suppressed,
     Cancelled,
 }
@@ -58,8 +61,8 @@ impl RoboticsSourceBack {
 }
 
 pub(super) struct RoboticsDriveBack {
-    linear: Option<Scalar>,
-    angular: Option<Scalar>,
+    linear: Option<MicroScalar>,
+    angular: Option<MicroScalar>,
     closed: [bool; 2],
     effect: Option<RoboticsDriveEffect>,
 }
@@ -145,6 +148,15 @@ impl RoboticsDriveBack {
         StepOutcome::Await
     }
 
+    #[cfg(test)]
+    pub(super) fn accept_for_test(
+        &mut self,
+        port: PortId,
+        value: ValueRef,
+        canonical: &[u8],
+    ) -> Result<(), Failure> {
+        self.accept(port, value, canonical)
+    }
     fn accept(&mut self, port: PortId, value: ValueRef, canonical: &[u8]) -> Result<(), Failure> {
         let index = usize::from(port.0);
         if index >= self.closed.len() || self.closed[index] {
@@ -152,14 +164,14 @@ impl RoboticsDriveBack {
         }
         let decoded = match index {
             0 if self.linear.is_none()
-                && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 =>
+                && value.byte_len == conduit_core::MICRO_SCALAR_ENCODED_LEN as u32 =>
             {
-                Scalar::decode(canonical).map(|decoded| self.linear = Some(decoded))
+                MicroScalar::decode(canonical).map(|decoded| self.linear = Some(decoded))
             }
             1 if self.angular.is_none()
-                && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32 =>
+                && value.byte_len == conduit_core::MICRO_SCALAR_ENCODED_LEN as u32 =>
             {
-                Scalar::decode(canonical).map(|decoded| self.angular = Some(decoded))
+                MicroScalar::decode(canonical).map(|decoded| self.angular = Some(decoded))
             }
             _ => return Err(failure(FailureCode::InvalidInput, 46)),
         };

@@ -209,6 +209,19 @@ pub(crate) fn offers_for_expanded_pure_expressions(
             offers.push(offer);
         }
     }
+    for gear in &expanded.gears {
+        if gear
+            .kind_id
+            .as_str()
+            .starts_with("conduitese/math/evaluate/")
+            || gear
+                .kind_id
+                .as_str()
+                .starts_with("conduitese/tensor/evaluate/")
+        {
+            offers.extend(super::numeric_evaluation::offers(gear)?);
+        }
+    }
     Ok(offers)
 }
 

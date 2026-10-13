@@ -12,6 +12,8 @@ use conduit_core::{
 pub(crate) mod family;
 mod generic;
 mod identity;
+mod numeric_profile;
+use numeric_profile::primitive_representation_kind;
 mod invariant;
 mod use_contract;
 use identity::{schema_identity, schema_identity_for_record, schema_identity_for_variant};
@@ -328,13 +330,14 @@ fn compile_expression(
                 arguments.is_empty(),
                 "generic applications are resolved before checking"
             );
-            let representation = crate::value_type::checked_value_type(&value_type.text, catalog)
+            let mut representation = crate::value_type::checked_value_type(&value_type.text, catalog)
                 .map_err(|_| {
                 diagnostic(
                     value_type.span,
                     alloc::format!("semantic value Type '{}' is not in scope", value_type.text),
                 )
             })?;
+            representation = numeric_profile::bounded_representation(representation, *maximum_bytes, *span)?;
             let mut contracts = catalog
                 .structured_type_contracts(&value_type.text)
                 .map_or_else(Vec::new, <[NativeTypeValueContract]>::to_vec);
@@ -462,15 +465,6 @@ fn compile_expression(
     }
 }
 
-fn primitive_representation_kind(value_type: &StructuredInfoType) -> Option<&KindId> {
-    match value_type.shape() {
-        conduit_core::StructuredInfoTypeShape::Leaf(kind) => Some(kind),
-        conduit_core::StructuredInfoTypeShape::Nominal { representation, .. } => {
-            primitive_representation_kind(representation)
-        }
-        _ => None,
-    }
-}
 
 fn prefix_contracts(
     contracts: Vec<NativeTypeValueContract>,

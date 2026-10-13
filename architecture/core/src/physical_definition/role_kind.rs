@@ -49,14 +49,19 @@ pub fn parse_quantity_role_info_id(kind: &str) -> Option<([u8; 32], QuantityRole
     Some((identity, role))
 }
 pub const fn builtin_temperature_family() -> QuantityFamilyDefinition {
-    BUILTIN_KELVIN.family()
+    crate::BUILTIN_TEMPERATURE_FAMILY
 }
 pub fn temperature_delta_info_id() -> String {
     quantity_role_info_id(builtin_temperature_family(), QuantityRole::Delta)
         .expect("source-declared paired temperature role")
 }
+/// Semantic family/role retained by a selected physical profile. Admission of
+/// its coordinate and law budgets remains a separate intrinsic codec check.
+pub fn parse_quantity_semantic_role(kind:&str)->Option<([u8;32],QuantityRole)> {
+    parse_quantity_role_info_id(kind).or_else(||crate::PhysicalNumericProfile::parse_info_id(kind).map(|(family,role,_)|(family,role)))
+}
 
 /// Canonical Angle coordinate comes from the source-declared default origin.
-pub const fn builtin_angle_unit() -> crate::Unit {
+pub fn builtin_angle_unit() -> crate::Unit {
     crate::Unit::from_definition(BUILTIN_ANGLE_DEFAULT_UNIT)
 }

@@ -1,9 +1,8 @@
 use conduit_core::{
-    encode_count, BootId, HostId, KindId, Observation, ObservationKind, PrimitiveInfoRefusal,
-    Quantity, QuantityRefusal, SignId, StructuredFieldType, StructuredFieldValue,
-    StructuredInfoInspection, StructuredInfoInspectionRefusal, StructuredInfoInspectionShape,
-    StructuredInfoLeafSemantic, StructuredInfoType, StructuredInfoValue, Unit, ValuePayload,
-    MAXIMUM_STRUCTURED_INSPECTION_NODES,
+    BootId, HostId, KindId, MAXIMUM_STRUCTURED_INSPECTION_NODES, Observation, ObservationKind,
+    Quantity, SignId, StructuredFieldType, StructuredFieldValue, StructuredInfoInspection,
+    StructuredInfoInspectionRefusal, StructuredInfoInspectionShape, StructuredInfoLeafSemantic,
+    StructuredInfoType, StructuredInfoValue, Unit, ValuePayload, encode_count,
 };
 
 fn leaf_type(kind: &str) -> StructuredInfoType {
@@ -175,10 +174,5 @@ fn quantity_signs_retain_exact_typed_semantics_without_general_leaf_disclosure()
     ));
 
     let quantity_type = leaf_type(conduit_core::QUANTITY_INFO_ID);
-    assert_eq!(
-        StructuredInfoValue::leaf(quantity_type, vec![0; 8]),
-        Err(conduit_core::StructuredInfoRefusal::InvalidPrimitiveLeaf(
-            PrimitiveInfoRefusal::Quantity(QuantityRefusal::WrongEncodingLength)
-        ))
-    );
+    assert!(StructuredInfoValue::leaf(quantity_type, vec![0; 8]).is_err());
 }

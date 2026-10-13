@@ -178,7 +178,7 @@ silently treated as an absolute temperature point.
 ## All 24 decimal SI prefixes
 
 Each row can be used as `source` in `units/convert`, with `to = m`.
-The exact conversion profile preserves a finite coefficient and exponent;
+The exact conversion profile preserves a bounded mathematical coordinate;
 these examples do not promise that every integer realization can store it.
 
 | Prefix | Example | Metres |
@@ -225,14 +225,14 @@ and prefix policies are authored in Conduitese. The checked
 [`physical.conduit`](../architecture/core/definitions/physical.conduit) library is
 the builtin authority; a document can add `unit smoot : Distance = { reference: m,
 scale: 1.7018 }` without changing Rust. Prefixes are disabled unless the declaration
-explicitly opts into source-defined groups. Unit capsules occupy 768 bytes and
-retain their checked laws independently of later catalogue changes.
+explicitly opts into source-defined groups. Unit capsules have a versioned variable-length encoding with an admitted finite
+numeric profile. They retain their checked laws independently of later catalogue
+changes.
 
 `Angle` uses `turn` as its canonical, reference, and default Unit. Degrees have
-an exact scale of `1/360turn`, so `90°` is exactly `0.25turn`. Radians currently
-retain an independent named origin; radian/turn conversion returns typed
-`Inexact` until #5392 supplies the symbolic `2π` relation. No decimal approximation
-stands in for that relation.
+an exact scale of `1/360turn`, so `90°` is exactly `0.25turn`. The radian law is symbolically exact: `1turn = 2πrad`. No decimal approximation
+stands in for that relation. A consumer needing concrete digits selects an
+admitted numerical realization; see [mathematical values and realizations](Mathematical-values-and-realizations.md).
 
 Reference anchors bind the family, source root symbol, and exact root law.
 Changing the root law creates a distinct anchor, preserving the meaning of old
@@ -250,10 +250,10 @@ plot extreme-distance (
 }.
 ```
 
-The exact coordinate has coefficient 1 and decimal exponent 60 in the target
-unit. The public `Quantity` Type carries an exact decimal coordinate and the full
-resolved Unit in one versioned 788-byte codec. There is no second narrow quantity
-family. Recognized extreme scales remain ordinary Quantities; an integer domain
+The exact coordinate is the integer 10⁶⁰ in the target unit. The public
+`Quantity` Type carries an exact mathematical coordinate and the full resolved
+Unit in one versioned, profile-bounded variable-length codec. There is one
+canonical quantity family. Recognized extreme scales remain ordinary Quantities; an integer domain
 projection has its own finite precision and range. Recognizing a suffix does not make its value fit
 every consumer. A fractional or overflowing integer projection refuses admission.
 
@@ -270,7 +270,7 @@ This Fore/default example checks the wider profile without performing an
 effect. Changing `Quantity` to `Distance` retains the same codec and requires the
 length dimension. A consumer requiring integer metres must explicitly project
 and refuse overflow for this extreme value. The [exact-profile tests](https://github.com/dancxjo/conduit/blob/dev/architecture/plot/tests/quantity_exact_profile.rs)
-also cover direct literals and the canonical 788-byte carrier.
+also cover direct literals and the canonical mathematical carrier.
 
 ## Refusal is an inspectable result
 

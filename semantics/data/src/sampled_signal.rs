@@ -44,7 +44,7 @@ impl SampledSignal {
         match &self.cadence {
             SignalCadence::Regular(regular) => {
                 if *regular.samples() == 0
-                    || regular.per().coefficient() <= 0
+                    || !regular.per().coordinate().proven_positive()
                     || regular.per().dimension() != QuantityDimension::Time
                 {
                     return Err(SampledSignalRefusal::InvalidCadence);
@@ -102,13 +102,11 @@ impl SampledSignal {
             SignalStart::Instant(instant) => match &self.cadence {
                 SignalCadence::Regular(regular)
                     if *regular.samples() == 1
-                        && regular.per().unit()
-                            == conduit_core::TemporalScale::from(*instant.value().scale())
-                                .quantity_unit() =>
+                        && regular.per().unit().same_physical_definition(conduit_core::TemporalScale::from(*instant.value().scale()).quantity_unit().as_ref()) =>
                 {
                     let delta = regular
                         .per()
-                        .convert_to_u64(regular.per().unit())
+                        .coordinate().checked_i64().ok().and_then(|value| u64::try_from(value).ok()).ok_or(SampledSignalRefusal::TemporalOverflow)
                         .map_err(|_| SampledSignalRefusal::TemporalOverflow)?
                         .checked_mul(offset)
                         .ok_or(SampledSignalRefusal::TemporalOverflow)?;

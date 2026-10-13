@@ -20,7 +20,7 @@ const CORDS: usize = 4;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 4;
-const MAX_VALUE_BYTES: usize = conduit_core::SCALAR_ENCODED_LEN;
+const MAX_VALUE_BYTES: usize = 128;
 const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 96;
 
@@ -38,7 +38,7 @@ type Kernel = FixedScheduler<
     NODES,
 >;
 
-#[derive(Clone, Copy, Debug, Eq, PartialEq)]
+#[derive(Clone, Debug, Eq, PartialEq)]
 pub enum FlowStateError {
     Catalog,
     Plot,
@@ -76,7 +76,7 @@ pub fn run_flow_state(prepared: &PreparedFlowState) -> Result<FlowStateProof, Fl
     {
         return Err(FlowStateError::Shape);
     }
-    let mut scheduler = scheduler(fragment, &lowered, prepared.value)?;
+    let mut scheduler = scheduler(fragment, &lowered, prepared.value.clone())?;
     let mut left = None;
     let mut right = None;
     loop {
@@ -99,6 +99,8 @@ pub fn run_flow_state(prepared: &PreparedFlowState) -> Result<FlowStateProof, Fl
     let (Some(left), Some(right)) = (left, right) else {
         return Err(FlowStateError::Shape);
     };
+    let left = Scalar::decode(left.encoded()).map_err(|_| FlowStateError::Value)?;
+    let right = Scalar::decode(right.encoded()).map_err(|_| FlowStateError::Value)?;
     if left != prepared.value || right != prepared.value {
         return Err(FlowStateError::Shape);
     }
@@ -112,10 +114,10 @@ pub fn run_flow_state(prepared: &PreparedFlowState) -> Result<FlowStateProof, Fl
 fn capture(
     scheduler: &mut Scheduler,
     request: HostCallRequest,
-    left: &mut Option<Scalar>,
-    right: &mut Option<Scalar>,
+    left: &mut Option<super::scalar_bytes::ScalarBytes>,
+    right: &mut Option<super::scalar_bytes::ScalarBytes>,
 ) -> Result<(), FlowStateError> {
-    let value = Scalar::decode(
+    let value = super::scalar_bytes::ScalarBytes::new(
         scheduler
             .kernel
             .host_value(request.input.value)
@@ -193,7 +195,7 @@ fn scheduler(
         .map(|(index, placement)| match placement.kind_id.as_str() {
             SOURCE_KIND => Ok(FlowStateBack::Source {
                 value: values
-                    .store(&value.encode())
+                    .store(&value.canonical_bytes().map_err(|_| FlowStateError::Value)?)
                     .map_err(|_| FlowStateError::Value)?,
                 emitted: false,
             }),

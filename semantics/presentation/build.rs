@@ -12,7 +12,24 @@ fn main() {
         .insert_value_kind_alias(
             "Quantity",
             conduit_plot::rust_binding::semantic_core::kind_id(
-                conduit_plot::rust_binding::semantic_core::QUANTITY_INFO_ID,
+                &conduit_plot::rust_binding::semantic_core::PhysicalNumericProfile {
+                    coordinate: conduit_plot::rust_binding::semantic_core::PortableNumericProfile {
+                        forms: conduit_plot::rust_binding::semantic_core::NumericForms::ALL,
+                        maximum_integer_limbs: 128,
+                        maximum_symbolic_nodes: 16,
+                        maximum_symbolic_depth: 16,
+                        maximum_encoded_bytes: 512,
+                    },
+                    unit_law: conduit_plot::rust_binding::semantic_core::PortableNumericProfile {
+                        forms: conduit_plot::rust_binding::semantic_core::NumericForms::ALL,
+                        maximum_integer_limbs: 128,
+                        maximum_symbolic_nodes: 16,
+                        maximum_symbolic_depth: 16,
+                        maximum_encoded_bytes: 256,
+                    },
+                }
+                .generic_info_id()
+                .expect("finite geometry numeric profile"),
             ),
         )
         .expect("Quantity is one exact portable leaf");

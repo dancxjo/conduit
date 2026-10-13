@@ -156,11 +156,11 @@ impl BatteryObservation {
             .expect("quantity bounds match generated contracts"))
     }
 
-    pub const fn charge(self) -> Quantity {
+    pub fn charge(self) -> Quantity {
         Quantity::new(self.charge_permille() as i64, Unit::Permille)
     }
 
-    pub const fn voltage(self) -> Quantity {
+    pub fn voltage(self) -> Quantity {
         Quantity::new(self.millivolts() as i64, Unit::Millivolt)
     }
 
@@ -241,7 +241,7 @@ fn quantity_u32(
     maximum: u32,
 ) -> Result<u32, InfoDecodeError> {
     let converted = quantity
-        .to_i64(unit)
+        .to_i64(&unit)
         .map_err(InfoDecodeError::QuantityConversion)?;
     let value = u32::try_from(converted).map_err(|_| InfoDecodeError::OutOfRange {
         field,
@@ -260,7 +260,7 @@ fn quantity_u16(
     maximum: u16,
 ) -> Result<u16, InfoDecodeError> {
     let converted = quantity
-        .to_i64(unit)
+        .to_i64(&unit)
         .map_err(InfoDecodeError::QuantityConversion)?;
     let value = u16::try_from(converted).map_err(|_| InfoDecodeError::OutOfRange {
         field,

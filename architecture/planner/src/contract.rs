@@ -65,6 +65,8 @@ pub struct PlanningOptions<'a> {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PlannerError {
+    NumericRealizationUnsatisfied(alloc::boxed::Box<crate::NumericRealizationUnsatisfied>),
+    InvalidNumericRequirement(conduit_core::GearId),
     UnsupportedRealizationRequirement {
         gear_id: conduit_core::GearId,
         property_profile: conduit_core::KindId,
@@ -127,6 +129,15 @@ pub enum PlannerError {
 impl core::fmt::Display for PlannerError {
     fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
         match self {
+            Self::InvalidNumericRequirement(gear) => {
+                write!(f, "gear '{}' has invalid numerical custody", gear.as_str())
+            }
+            Self::NumericRealizationUnsatisfied(evidence) => write!(
+                f,
+                "gear '{}' has no numerically eligible realization ({} rejected candidates)",
+                evidence.gear_id.as_str(),
+                evidence.candidates.len()
+            ),
             Self::UnsupportedRealizationRequirement {
                 gear_id,
                 property_profile,

@@ -462,3 +462,6 @@ fn finite_connection_limits(
         })
         .collect()
 }
+
+#[cfg(test)]
+mod numeric_evaluation_tests;

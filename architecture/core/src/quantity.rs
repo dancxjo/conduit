@@ -1,22 +1,20 @@
 //! Typed finite quantities with exact-only conversions.
 
-mod conversion_law;
 mod exact;
-mod magnitude;
+pub(crate) mod numeric_quantity;
 mod receipt;
 mod target;
 mod temperature_difference;
-mod wide_conversion;
 
 pub use exact::*;
 pub use receipt::*;
 pub use target::*;
 pub use temperature_difference::*;
 
-use crate::Unit;
 use serde::{Deserialize, Serialize};
 pub const DISTANCE_INFO_ID: &str = crate::BUILTIN_DISTANCE_INFO_ID;
 pub const FREQUENCY_INFO_ID: &str = crate::BUILTIN_FREQUENCY_INFO_ID;
+pub const ANGULAR_FREQUENCY_INFO_ID:&str=crate::BUILTIN_ANGULAR_FREQUENCY_INFO_ID;
 pub const DURATION_INFO_ID: &str = crate::BUILTIN_DURATION_INFO_ID;
 pub const VOLTAGE_INFO_ID: &str = crate::BUILTIN_VOLTAGE_INFO_ID;
 pub const TEMPERATURE_INFO_ID: &str = crate::BUILTIN_TEMPERATURE_INFO_ID;
@@ -26,26 +24,26 @@ pub const PIXEL_COUNT_INFO_ID: &str = crate::BUILTIN_PIXEL_COUNT_INFO_ID;
 pub type QuantityDimension = crate::DimensionDefinition;
 #[allow(non_upper_case_globals)]
 impl crate::DimensionDefinition {
-    pub const Time: Self = crate::BUILTIN_SECOND.family().dimension();
-    pub const Frequency: Self = crate::BUILTIN_HERTZ.family().dimension();
-    pub const Voltage: Self = crate::BUILTIN_VOLT.family().dimension();
-    pub const Current: Self = crate::BUILTIN_AMPERE.family().dimension();
-    pub const Temperature: Self = crate::BUILTIN_KELVIN.family().dimension();
-    pub const Charge: Self = crate::BUILTIN_AMPERE_HOUR.family().dimension();
-    pub const Length: Self = crate::BUILTIN_METER.family().dimension();
-    pub const Angle: Self = crate::BUILTIN_ANGLE_DEFAULT_UNIT.family().dimension();
-    pub const Ratio: Self = crate::BUILTIN_ONE.family().dimension();
-    pub const DataSize: Self = crate::BUILTIN_BYTE.family().dimension();
-    pub const PixelCount: Self = crate::BUILTIN_PIXEL.family().dimension();
-    pub const Mass: Self = crate::BUILTIN_GRAM.family().dimension();
-    pub const Area: Self = crate::BUILTIN_SQUARE_METER.family().dimension();
-    pub const Volume: Self = crate::BUILTIN_CUBIC_METER.family().dimension();
-    pub const Speed: Self = crate::BUILTIN_METER_PER_SECOND.family().dimension();
-    pub const Acceleration: Self = crate::BUILTIN_METER_PER_SECOND_SQUARED.family().dimension();
-    pub const Force: Self = crate::BUILTIN_NEWTON.family().dimension();
-    pub const Energy: Self = crate::BUILTIN_JOULE.family().dimension();
-    pub const Power: Self = crate::BUILTIN_WATT.family().dimension();
-    pub const Pressure: Self = crate::BUILTIN_PASCAL.family().dimension();
+    pub const Time: Self = crate::BUILTIN_DURATION_FAMILY.dimension();
+    pub const Frequency: Self = crate::BUILTIN_FREQUENCY_FAMILY.dimension();
+    pub const Voltage: Self = crate::BUILTIN_VOLTAGE_FAMILY.dimension();
+    pub const Current: Self = crate::BUILTIN_CURRENT_FAMILY.dimension();
+    pub const Temperature: Self = crate::BUILTIN_TEMPERATURE_FAMILY.dimension();
+    pub const Charge: Self = crate::BUILTIN_CHARGE_FAMILY.dimension();
+    pub const Length: Self = crate::BUILTIN_DISTANCE_FAMILY.dimension();
+    pub const Angle: Self = crate::BUILTIN_ANGLE_FAMILY.dimension();
+    pub const Ratio: Self = crate::BUILTIN_RATIO_FAMILY.dimension();
+    pub const DataSize: Self = crate::BUILTIN_DATA_SIZE_FAMILY.dimension();
+    pub const PixelCount: Self = crate::BUILTIN_PIXEL_COUNT_FAMILY.dimension();
+    pub const Mass: Self = crate::BUILTIN_MASS_FAMILY.dimension();
+    pub const Area: Self = crate::BUILTIN_AREA_FAMILY.dimension();
+    pub const Volume: Self = crate::BUILTIN_VOLUME_FAMILY.dimension();
+    pub const Speed: Self = crate::BUILTIN_SPEED_FAMILY.dimension();
+    pub const Acceleration: Self = crate::BUILTIN_ACCELERATION_FAMILY.dimension();
+    pub const Force: Self = crate::BUILTIN_FORCE_FAMILY.dimension();
+    pub const Energy: Self = crate::BUILTIN_ENERGY_FAMILY.dimension();
+    pub const Power: Self = crate::BUILTIN_POWER_FAMILY.dimension();
+    pub const Pressure: Self = crate::BUILTIN_PRESSURE_FAMILY.dimension();
     pub fn info_id(self) -> &'static str {
         if self == Self::Time {
             return DURATION_INFO_ID;
@@ -108,4 +106,12 @@ pub enum QuantityConversionRefusal {
     IncompatibleQuantityRoles,
     Inexact,
     Overflow,
+    UnlinkedOrigin,
+    EqualityUnknown,
+    Numeric(crate::NumericRefusal),
+}
+
+impl From<numeric_quantity::QuantityNumericRefusal> for QuantityConversionRefusal {
+ fn from(value:numeric_quantity::QuantityNumericRefusal)->Self {use numeric_quantity::QuantityNumericRefusal as R;match value {
+ R::IncompatibleDimension=>Self::IncompatibleDimensions,R::IncompatibleFamily=>Self::IncompatibleQuantityFamilies,R::IncompatibleRole|R::InvalidRole=>Self::IncompatibleQuantityRoles,R::UnlinkedOrigin=>Self::UnlinkedOrigin,R::EqualityUnknown=>Self::EqualityUnknown,R::Numeric(n)=>Self::Numeric(n),_=>Self::Inexact}}
 }

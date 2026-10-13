@@ -260,7 +260,7 @@ fn transform(
         }
     };
     let scale = required(values, "scale", at)?.clone();
-    check_exact_scalar(&scale)?;
+    check_mathematical_scalar(&scale)?;
     let offset = field(values, "offset").cloned();
     if difference && offset.is_some() {
         return Err(refusal(
@@ -269,7 +269,7 @@ fn transform(
         ));
     }
     if let Some(offset) = &offset {
-        check_exact_scalar(offset)?;
+        check_mathematical_scalar(offset)?;
     }
     Ok(UnitTransformSyntax {
         reference,

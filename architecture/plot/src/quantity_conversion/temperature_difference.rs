@@ -38,13 +38,7 @@ pub fn validate_source_value(
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(R::ForgedReceipt);
     };
-    let coordinate = Quantity::decode(bytes).map_err(|error| {
-        R::Request(
-            ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource(
-                ExactTemperatureDifferenceRefusal::Coordinate(error),
-            ),
-        )
-    })?;
+    let coordinate = Quantity::decode(bytes).map_err(|_| R::ForgedReceipt)?;
     ExactTemperatureDifference::from_quantity(coordinate).map_err(|error| {
         R::Request(ExactQuantityConversionRequestRefusal::TemperatureDifferenceSource(error))
     })

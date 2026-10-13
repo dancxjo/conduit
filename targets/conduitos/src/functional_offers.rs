@@ -52,7 +52,7 @@ pub fn logic_compare_scalar_offer() -> CapabilityOffer {
         ),
         "conduit.host/logic-compare-scalar@1",
         conduit_semantic_catalog::LOGIC_COMPARE_KIND,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        128,
         conduit_core::BOOL_ENCODED_LEN as u32,
     )
 }
@@ -82,8 +82,8 @@ pub fn logic_select_scalar_offer() -> CapabilityOffer {
         ),
         "conduit.host/logic-select-scalar@1",
         conduit_semantic_catalog::LOGIC_SELECT_KIND,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        128,
+        128,
     )
 }
 
@@ -96,8 +96,8 @@ pub fn math_clamp_offer() -> CapabilityOffer {
         ),
         "conduit.host/math-clamp-scalar@1",
         conduit_semantic_catalog::MATH_CLAMP_KIND,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
     )
 }
 
@@ -110,8 +110,8 @@ pub fn math_scale_offer() -> CapabilityOffer {
         ),
         "conduit.host/math-scale-scalar@1",
         conduit_semantic_catalog::MATH_SCALE_KIND,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
     )
 }
 
@@ -124,8 +124,8 @@ pub fn math_deadband_offer() -> CapabilityOffer {
         ),
         "conduit.host/math-deadband-scalar@1",
         conduit_semantic_catalog::MATH_DEADBAND_KIND,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
-        conduit_core::SCALAR_ENCODED_LEN as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
+        conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
     )
 }
 

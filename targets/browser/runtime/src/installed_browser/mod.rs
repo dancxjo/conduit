@@ -63,6 +63,7 @@ pub(crate) mod startup_chime;
 mod state_time;
 pub(crate) mod stroke_capture;
 pub(crate) mod structured_selector;
+pub(crate) mod numeric_evaluation;
 pub(crate) mod template_storage;
 mod text;
 pub(crate) mod text_state;

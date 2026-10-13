@@ -125,6 +125,12 @@ impl Kind {
             // Front independently owns whether authors may omit it.
             let semantic_kind = match (&field.rule, &field.default_value) {
                 (crate::KindConfigurationRule::Any, _) => front.value_type.clone(),
+                (crate::KindConfigurationRule::Scalar { profile }, crate::ConfigurationValue::Scalar(value)) => {
+                    let bytes=value.canonical_bytes().map_err(|_|KindValidationError::ConfigurationFrontMismatch)?;
+                    profile.validate(&bytes).map_err(|_|KindValidationError::ConfigurationFrontMismatch)?;
+                    if *profile==crate::PortableNumericProfile::MAXIMAL {crate::kind_id(crate::SCALAR_INFO_ID)}
+                    else {crate::kind_id(&profile.info_id().map_err(|_|KindValidationError::ConfigurationFrontMismatch)?)}
+                },
                 (
                     crate::KindConfigurationRule::QuantityRange { canonical_unit, .. },
                     crate::ConfigurationValue::Quantity(_),

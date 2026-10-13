@@ -2,9 +2,9 @@
 use super::Refusal;
 use crate::{BinaryOperator, UnaryOperator};
 use conduit_core::{
-    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, Scalar, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
-    MAXIMUM_STRUCTURED_LEAF_BYTES, SCALAR_INFO_ID,
+    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, MicroScalar,
+    PrimitiveInfoKind, StructuredInfoTypeShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    MAXIMUM_STRUCTURED_LEAF_BYTES, MICRO_SCALAR_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -63,8 +63,8 @@ pub(super) fn evaluate_unary(
         UnaryOperator::Not => {
             PrimitiveValue::new(expected, &InfoBool::new(!decode_bool(operand)?).encode())
         }
-        UnaryOperator::Negate if operand.kind == PrimitiveInfoKind::Scalar => {
-            let encoded = Scalar::decode(operand.as_slice())
+        UnaryOperator::Negate if operand.kind == PrimitiveInfoKind::MicroScalar => {
+            let encoded = MicroScalar::decode(operand.as_slice())
                 .map_err(|_| Refusal::InvalidProgram)?
                 .checked_neg()
                 .map_err(|_| Refusal::Arithmetic)?
@@ -108,10 +108,10 @@ pub(super) fn evaluate_binary(
     ) && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
     {
         let equal = if left.kind == PrimitiveInfoKind::Unit {
-            conduit_core::Unit::decode(left.as_slice())
+            conduit_core::UnitRef::validate(left.as_slice())
                 .map_err(|_| Refusal::InvalidProgram)?
                 .same_physical_definition(
-                    conduit_core::Unit::decode(right.as_slice())
+                    conduit_core::UnitRef::validate(right.as_slice())
                         .map_err(|_| Refusal::InvalidProgram)?,
                 )
         } else {
@@ -168,9 +168,9 @@ pub(super) fn evaluate_binary(
         .ok_or(Refusal::Arithmetic)?;
         return PrimitiveValue::new(expected, &encode_count(result));
     }
-    if left.kind == PrimitiveInfoKind::Scalar {
-        let left = Scalar::decode(left.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
-        let right = Scalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
+    if left.kind == PrimitiveInfoKind::MicroScalar {
+        let left = MicroScalar::decode(left.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
+        let right = MicroScalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?;
         let result = match operator {
             BinaryOperator::Multiply => left.checked_mul(right),
             BinaryOperator::Divide => left.checked_div(right),
@@ -217,13 +217,17 @@ fn compare(left: &PrimitiveValue<'_>, right: &PrimitiveValue<'_>) -> Result<Orde
         PrimitiveInfoKind::Count => Ok(decode_count(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
             .cmp(&decode_count(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
-        PrimitiveInfoKind::Scalar => Ok(Scalar::decode(left.as_slice())
+        PrimitiveInfoKind::MicroScalar => Ok(MicroScalar::decode(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
-            .cmp(&Scalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
-        kind if quantity_kind(kind) => Quantity::decode(left.as_slice())
+            .cmp(&MicroScalar::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)),
+        kind if quantity_kind(kind) => conduit_core::QuantityRef::validate(left.as_slice())
             .map_err(|_| Refusal::InvalidProgram)?
-            .compare(Quantity::decode(right.as_slice()).map_err(|_| Refusal::InvalidProgram)?)
-            .map_err(|_| Refusal::Arithmetic),
+            .compare_borrowed(
+                conduit_core::QuantityRef::validate(right.as_slice())
+                    .map_err(|_| Refusal::InvalidProgram)?,
+            )
+            .map_err(|_| Refusal::Arithmetic)?
+            .ok_or(Refusal::Arithmetic),
         kind if fixed_integer(kind) => decode_integer(left)?
             .compare(decode_integer(right)?)
             .map_err(|_| Refusal::InvalidProgram),
@@ -358,7 +362,7 @@ pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::Text => conduit_core::TEXT_INFO_ID,
         PrimitiveInfoKind::F32 => conduit_core::F32_INFO_ID,
         PrimitiveInfoKind::Count => COUNT_INFO_ID,
-        PrimitiveInfoKind::Scalar => SCALAR_INFO_ID,
+        PrimitiveInfoKind::MicroScalar => MICRO_SCALAR_INFO_ID,
         PrimitiveInfoKind::U8 => "value/u8",
         PrimitiveInfoKind::U16 => "value/u16",
         PrimitiveInfoKind::U32 => "value/u32",

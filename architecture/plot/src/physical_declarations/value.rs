@@ -15,7 +15,7 @@ pub(crate) fn parse_value(
     let physical = &catalog.physical;
     let invalid = |reason: String| SyntaxCheckError::QuantityLiteral(reason);
     let value = if let Some(definition) = physical.units.get(text) {
-        let unit = Unit::from_definition(*definition);
+        let unit = Unit::from_definition(definition.clone());
         Some(V::Unit(
             UnitConfigurationValue::new(unit, text.into())
                 .ok_or_else(|| invalid("unit source evidence differs from its capsule".into()))?,
@@ -37,7 +37,7 @@ pub(crate) fn parse_value(
                         "quantity constructor Unit belongs to another family".into(),
                     ));
                 }
-                Some((Unit::from_definition(*definition), role.role))
+                Some((Unit::from_definition(definition.clone()), role.role))
             } else {
                 None
             }
@@ -58,7 +58,7 @@ pub(crate) fn parse_value(
                 .max_by_key(|(symbol, _)| symbol.len())
                 .map(|(_, definition)| {
                     (
-                        Unit::from_definition(*definition),
+                        Unit::from_definition(definition.clone()),
                         definition.declared_role(),
                     )
                 })

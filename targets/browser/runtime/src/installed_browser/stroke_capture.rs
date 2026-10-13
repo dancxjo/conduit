@@ -20,7 +20,7 @@ const IMPLEMENTATION: &str = "browser/bounded-stroke-capture@1";
 const MAXIMUM_POINTS: u32 = 4;
 // Four bounded 2D points carry two canonical quantities each plus type/frame metadata.
 pub(crate) const MAXIMUM_PATH_BYTES: usize =
-    MAXIMUM_POINTS as usize * 2 * conduit_core::QUANTITY_ENCODED_LEN + 1024;
+    MAXIMUM_POINTS as usize * 2 * conduit_core::MAX_QUANTITY_ENCODED_BYTES + 1024;
 const FINISH_INPUT: &[u8] = b"conduit.stroke-capture/finish@1";
 const FINISH_REQUEST: RequestId = RequestId(MAXIMUM_POINTS + 1);
 

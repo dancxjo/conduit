@@ -2,7 +2,7 @@ use conduit_core::{
     kind_id, BaseImplementationId, BoundedResourceRef, CheckedValueContract, IntervalEndpoint,
     Quantity, ResourceClassId, ResourceExtent, ResourceLifetime, ResourceSemanticIdentity,
     ResourceVersionIdentity, Unit, ValueConstraint, COUNT_ENCODED_LEN, COUNT_INFO_ID,
-    DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN, SCALAR_ENCODED_LEN, SCALAR_INFO_ID,
+    DISTANCE_INFO_ID, SCALAR_INFO_ID,
 };
 use conduit_plot::TextPatternExpression;
 use conduit_presentation::{
@@ -383,10 +383,18 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                     "Sample offset",
                     CheckedValueContract::new(
                         SCALAR_INFO_ID.into(),
-                        SCALAR_ENCODED_LEN as u32,
-                        vec![ValueConstraint::SignedRange {
-                            minimum: Some(-2),
-                            maximum: Some(2),
+                        conduit_presentation::MAX_FACE_ACTION_ARGUMENT_BYTES,
+                        vec![ValueConstraint::MathematicalRange {
+                            minimum: Some(
+                                conduit_core::MathValue::integer(-2)
+                                    .canonical_bytes()
+                                    .unwrap(),
+                            ),
+                            maximum: Some(
+                                conduit_core::MathValue::integer(2)
+                                    .canonical_bytes()
+                                    .unwrap(),
+                            ),
                             minimum_endpoint: IntervalEndpoint::Exclusive,
                             maximum_endpoint: IntervalEndpoint::Inclusive,
                         }],
@@ -398,7 +406,7 @@ fn participation_face(pattern_maximum: u16) -> Presentation {
                     "Sampling distance",
                     CheckedValueContract::new(
                         DISTANCE_INFO_ID.into(),
-                        QUANTITY_ENCODED_LEN as u32,
+                        conduit_presentation::MAX_FACE_VALUE_BYTES,
                         vec![ValueConstraint::QuantityRange {
                             minimum: Some(Quantity::new(1, Unit::Meter).into()),
                             maximum: Some(Quantity::new(2, Unit::Meter).into()),
@@ -456,7 +464,7 @@ fn exact_inward_participation_contract_survives_aural_projection() {
         ),
         (
             "sample/distance",
-            "a quantity from inclusive 1 length/meter through inclusive 2 length/meter",
+            "a quantity from inclusive 1 m through inclusive 2 m",
         ),
         (
             "sample/mode",

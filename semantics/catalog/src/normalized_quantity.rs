@@ -1,7 +1,7 @@
 //! Exact selected Millionth Quantity leaf to normalized Scalar conversion.
 
 use alloc::vec::Vec;
-use conduit_core::{Kind, Quantity, Scalar, Unit, QUANTITY_ENCODED_LEN};
+use conduit_core::{Kind, Quantity, Scalar, Unit};
 pub use conduit_data::NormalizedQuantityRefusal;
 
 pub const NORMALIZED_QUANTITY_KIND: &str = "math/normalized-quantity-scalar";
@@ -17,7 +17,7 @@ pub fn normalized_quantity_contract() -> crate::StandardKindContract {
         .unwrap()
         .value_kind()
         .clone();
-    contract.outputs[0].value_kind = conduit_core::kind_id(conduit_core::SCALAR_INFO_ID);
+    contract.outputs[0].value_kind = conduit_core::kind_id(&conduit_core::PortableNumericProfile { maximum_encoded_bytes: crate::QUANTITY_INFO_MAXIMUM_BYTES as u32, ..conduit_core::PortableNumericProfile::MAXIMAL }.info_id().expect("bounded Scalar"));
     contract.example = "normalize: math/normalized-quantity-scalar".into();
     contract
 }
@@ -97,18 +97,13 @@ impl PreparedNormalizedQuantity {
     }
 
     pub fn ratio() -> Self {
-        let quantity = Quantity::new(0, Unit::Millionth).encode();
-        let mut prefix = conduit_core::StructuredInfoValue::leaf(
-            conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
-                conduit_core::RATIO_INFO_ID,
-            ))
-            .expect("canonical Ratio leaf"),
-            quantity.to_vec(),
-        )
-        .expect("valid Ratio")
+        let mut prefix = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
+            conduit_core::RATIO_INFO_ID,
+        ))
+        .expect("Ratio type")
         .canonical_bytes()
-        .expect("bounded Ratio envelope");
-        prefix.truncate(prefix.len() - QUANTITY_ENCODED_LEN);
+        .expect("checked type");
+        prefix.push(0);
         Self { prefix }
     }
 
@@ -116,23 +111,45 @@ impl PreparedNormalizedQuantity {
     /// Millionth and Scalar microunits are identical integer scales: valid
     /// inputs cannot incur rounding, inexact conversion, or arithmetic overflow.
     pub fn convert(&self, input: &[u8]) -> Result<Scalar, NormalizedQuantityRefusal> {
-        if input.len() != self.prefix.len() + QUANTITY_ENCODED_LEN
-            || !input.starts_with(&self.prefix)
-        {
+        let node = input
+            .strip_prefix(self.prefix.as_slice())
+            .ok_or(NormalizedQuantityRefusal::MalformedOrWrongType)?;
+        let length_bytes: [u8; 4] = node
+            .get(..4)
+            .and_then(|x| x.try_into().ok())
+            .ok_or(NormalizedQuantityRefusal::MalformedOrWrongType)?;
+        let length = u32::from_le_bytes(length_bytes) as usize;
+        let payload = node
+            .get(4..)
+            .ok_or(NormalizedQuantityRefusal::MalformedOrWrongType)?;
+        if payload.len() != length || input.len() > crate::QUANTITY_INFO_MAXIMUM_BYTES {
             return Err(NormalizedQuantityRefusal::MalformedOrWrongType);
         }
-        let quantity = Quantity::decode(&input[self.prefix.len()..])
+        let quantity = Quantity::decode(payload)
             .map_err(|_| NormalizedQuantityRefusal::MalformedOrWrongType)?;
-        if quantity.unit() != Unit::Millionth {
+        if !quantity
+            .unit()
+            .same_physical_definition(Unit::Millionth.as_ref())
+        {
             return Err(NormalizedQuantityRefusal::IncompatibleUnit);
         }
         let coordinate = quantity
-            .to_i64(Unit::Millionth)
+            .convert_to_unit(&Unit::One)
             .map_err(|_| NormalizedQuantityRefusal::OutOfDomain)?;
-        if !(0..=1_000_000).contains(&coordinate) {
+        if coordinate
+            .compare(&Scalar::ZERO)
+            .map_err(|_| NormalizedQuantityRefusal::OutOfDomain)?
+            == Some(core::cmp::Ordering::Less)
+            || coordinate
+                .compare(&Scalar::ONE)
+                .map_err(|_| NormalizedQuantityRefusal::OutOfDomain)?
+                != Some(core::cmp::Ordering::Less)
+                && coordinate != Scalar::ONE
+        {
             return Err(NormalizedQuantityRefusal::OutOfDomain);
         }
-        Ok(Scalar::from_raw_microunits(coordinate))
+        if coordinate.canonical_bytes().map_err(|_| NormalizedQuantityRefusal::OutOfDomain)?.len() > crate::QUANTITY_INFO_MAXIMUM_BYTES { return Err(NormalizedQuantityRefusal::OutOfDomain); }
+        Ok(coordinate)
     }
 }
 
@@ -144,7 +161,7 @@ mod tests {
     fn leaf(value: i64, unit: Unit) -> Vec<u8> {
         StructuredInfoValue::leaf(
             crate::wrapped_quantity_type(),
-            Quantity::new(value, unit).encode().to_vec(),
+            Quantity::new(value, unit.clone()).encode().to_vec(),
         )
         .unwrap()
         .canonical_bytes()
@@ -154,13 +171,13 @@ mod tests {
     #[test]
     fn normalized_ratio_preserves_bounds_and_refuses_quantity_identity() {
         let converter = PreparedNormalizedQuantity::ratio();
-        let ratio = |value, unit| {
+        let ratio = |value: i64, unit: Unit| {
             StructuredInfoValue::leaf(
                 conduit_core::StructuredInfoType::leaf(conduit_core::kind_id(
                     conduit_core::RATIO_INFO_ID,
                 ))
                 .unwrap(),
-                Quantity::new(value, unit).encode().to_vec(),
+                Quantity::new(value, unit.clone()).encode().to_vec(),
             )
             .unwrap()
             .canonical_bytes()
@@ -169,7 +186,7 @@ mod tests {
         for value in [0, 1, 250_000, 999_999, 1_000_000] {
             assert_eq!(
                 converter.convert(&ratio(value, Unit::Millionth)),
-                Ok(Scalar::from_raw_microunits(value))
+                Ok(Scalar::from_decimal_parts(i128::from(value), -6).unwrap())
             );
         }
         for value in [-1, 1_000_001] {
@@ -205,7 +222,7 @@ mod tests {
         for value in [0, 1, 250_000, 500_000, 999_999, 1_000_000] {
             assert_eq!(
                 converter.convert(&leaf(value, Unit::Millionth)),
-                Ok(Scalar::from_raw_microunits(value))
+                Ok(Scalar::from_decimal_parts(i128::from(value), -6).unwrap())
             );
         }
     }

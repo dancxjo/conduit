@@ -52,10 +52,10 @@ impl MusicalPitch {
         detune_microcents: i32,
     ) -> Result<Self, SoundInfoError> {
         let frequency = frequency
-            .convert_to_u64(Unit::Millihertz)
+            .convert_to_u64(&Unit::Millihertz)
             .map_err(SoundInfoError::QuantityConversion)?;
         let a4_reference = a4_reference
-            .convert_to_u64(Unit::Millihertz)
+            .convert_to_u64(&Unit::Millihertz)
             .map_err(SoundInfoError::QuantityConversion)?;
         let frequency_millihertz = frequency;
         let a4_reference_millihertz = a4_reference;
@@ -96,11 +96,11 @@ impl MusicalPitch {
             .map_err(|_| SoundInfoError::OutOfRange("musical-pitch"))
     }
 
-    pub const fn frequency(self) -> Quantity {
+    pub fn frequency(self) -> Quantity {
         Quantity::new(self.frequency_millihertz() as i64, Unit::Millihertz)
     }
 
-    pub const fn a4_reference(self) -> Quantity {
+    pub fn a4_reference(self) -> Quantity {
         Quantity::new(self.a4_reference_millihertz() as i64, Unit::Millihertz)
     }
 

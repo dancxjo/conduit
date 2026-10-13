@@ -72,6 +72,20 @@ pub fn bool_presentation_offer() -> CapabilityOffer {
     )
 }
 
+/// One immutable Boolean Value uses the same bounded stdout manifestation mechanism.
+pub fn bool_value_presentation_offer() -> CapabilityOffer {
+    presentation_offer(
+        conduit_semantic_catalog::bool_value_presentation_contract(),
+        conduit_semantic_catalog::VALUE_PRIMITIVE_CONTRACT_REVISION,
+        "std-bool-value-presentation-v1",
+        BOOL_PRESENTATION_EXECUTION_PROFILE,
+        BOOL_PRESENTATION_IMPLEMENTATION,
+        BOOL_PRESENTATION_ARTIFACT,
+        BOOL_PRESENTATION_TARGET,
+        conduit_core::BOOL_ENCODED_LEN as u32,
+    )
+}
+
 pub fn text_presentation_offer() -> CapabilityOffer {
     presentation_offer(
         conduit_semantic_catalog::text_presentation_contract(),

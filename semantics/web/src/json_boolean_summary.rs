@@ -53,7 +53,7 @@ pub fn json_boolean_summary(
         }
     }
     let count =
-        |value: usize| JsonValue::Number(Scalar::from_raw_microunits(value as i64 * 1_000_000));
+        |value: usize| JsonValue::Number(Scalar::integer(value as i64));
     Ok(JsonValue::Object(vec![
         ("false".to_string(), count(records.len() - true_count)),
         ("total".to_string(), count(records.len())),

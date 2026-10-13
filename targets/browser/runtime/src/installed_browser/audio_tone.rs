@@ -49,7 +49,7 @@ fn offer() -> conduit_core::CapabilityOffer {
                         conduit_semantic_catalog::AUDIO_CONTINUOUS_TONE_KIND,
                     )),
                     maximum_in_flight: 1,
-                    maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+                    maximum_input_bytes: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
                     maximum_output_bytes: 0,
                 },
                 HostCallRequirement {
@@ -175,7 +175,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
                 return fail(19);
             };
             let Ok(bounded) =
-                BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                BoundedValueRef::new(value, value.byte_len)
             else {
                 return fail(22);
             };
@@ -230,15 +230,7 @@ impl<const PORTS: usize> StepBack<PORTS> for AudioToneBack {
 }
 
 fn frequency_millihertz(value: Quantity) -> Option<i128> {
-    let converted = value.convert(Unit::Millihertz).ok()?;
-    let coefficient = converted.coefficient();
-    let exponent = converted.exponent();
-    if exponent >= 0 {
-        coefficient.checked_mul(10_i128.checked_pow(exponent as u32)?)
-    } else {
-        let divisor = 10_i128.checked_pow(u32::from(exponent.unsigned_abs()))?;
-        (coefficient % divisor == 0).then_some(coefficient / divisor)
-    }
+    value.convert_to_u64(&Unit::Millihertz).ok().map(i128::from)
 }
 fn render(frequency: i128, phase: u32, start_frame: u64) -> Option<([u8; BLOCK_BYTES], u32)> {
     let increment = (frequency.checked_mul(1_i128 << 32)? / (i128::from(SAMPLE_RATE) * 1_000))

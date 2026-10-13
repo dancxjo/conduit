@@ -1,5 +1,5 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use conduit_core::{ConfigurationValue, PlannedGear, Scalar, SCALAR_ENCODED_LEN};
+use conduit_core::{ConfigurationValue, PlannedGear, Scalar, MAX_NUMERIC_ENCODED_BYTES};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId,
@@ -33,7 +33,7 @@ pub(super) static QUANTITY_INFO_FACTORY: BackFactory = BackFactory {
     prepare: prepare_quantity_info,
 };
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub(super) enum MathTransform {
     Clamp { minimum: Scalar, maximum: Scalar },
     Scale { gain: Scalar },
@@ -62,7 +62,7 @@ impl<const PORTS: usize> StepBack<PORTS> for MathScalarBack {
             let Some(output) = outcome.output else {
                 return StepOutcome::Fail(math_failure());
             };
-            if output.admitted_bytes != self.output_bytes
+            if output.admitted_bytes > self.output_bytes
                 || output.value.byte_len != self.output_bytes
             {
                 return StepOutcome::Fail(math_failure());
@@ -144,7 +144,7 @@ pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, St
                 scalar_configuration(placement, conduit_semantic_catalog::CLAMP_MINIMUM_KEY)?;
             let maximum =
                 scalar_configuration(placement, conduit_semantic_catalog::CLAMP_MAXIMUM_KEY)?;
-            conduit_semantic_catalog::clamp_scalar(Scalar::ZERO, minimum, maximum)
+            conduit_semantic_catalog::clamp_scalar(Scalar::ZERO, minimum.clone(), maximum.clone())
                 .map_err(|_| "math/clamp minimum exceeds maximum".to_string())?;
             Ok(MathTransform::Clamp { minimum, maximum })
         }
@@ -154,7 +154,7 @@ pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, St
         conduit_semantic_catalog::MATH_DEADBAND_KIND => {
             let radius =
                 scalar_configuration(placement, conduit_semantic_catalog::DEADBAND_RADIUS_KEY)?;
-            conduit_semantic_catalog::deadband_scalar(Scalar::ZERO, radius)
+            conduit_semantic_catalog::deadband_scalar(Scalar::ZERO, radius.clone())
                 .map_err(|_| "math/deadband radius must be nonnegative".to_string())?;
             Ok(MathTransform::Deadband { radius })
         }
@@ -162,15 +162,13 @@ pub(super) fn transform_for(placement: &PlannedGear) -> Result<MathTransform, St
     }
 }
 
-pub(super) fn transform_bytes(
-    placement: &PlannedGear,
-    input: &[u8],
-) -> Result<[u8; SCALAR_ENCODED_LEN], String> {
+pub(super) fn transform_bytes(placement: &PlannedGear, input: &[u8]) -> Result<Vec<u8>, String> {
     let input = Scalar::decode(input)
         .map_err(|error| format!("math input is not canonical value/scalar: {error:?}"))?;
     transform_for(placement)?
         .apply(input)
-        .map(Scalar::encode)
+        .map_err(|error| format!("math scalar transform failed: {error:?}"))?
+        .canonical_bytes()
         .map_err(|error| format!("math scalar transform failed: {error:?}"))
 }
 
@@ -179,9 +177,7 @@ fn scalar_configuration(placement: &PlannedGear, key: &str) -> Result<Scalar, St
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::I64(value)) if found == key => {
-                Some(Scalar::from_raw_microunits(*value))
-            }
+            (found, ConfigurationValue::Scalar(value)) if found == key => Some(value.clone()),
             _ => None,
         })
         .ok_or_else(|| format!("math scalar configuration '{key}' is missing"))
@@ -208,10 +204,10 @@ fn deadband_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
 fn budget() -> BackBudget {
     BackBudget {
         value_items: 1,
-        value_bytes: SCALAR_ENCODED_LEN as u32,
+        value_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
         host_requests: 1,
         sign_items: 64,
-        maximum_value_bytes: SCALAR_ENCODED_LEN as u32,
+        maximum_value_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
     }
 }
 
@@ -243,8 +239,8 @@ fn operation() -> InstalledBack {
     InstalledBack::MathScalar(MathScalarBack {
         pending: None,
         completed: false,
-        input_bytes: SCALAR_ENCODED_LEN as u32,
-        output_bytes: SCALAR_ENCODED_LEN as u32,
+        input_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
+        output_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
     })
 }
 
@@ -252,8 +248,8 @@ fn quantity_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &conduit_std_offers::quantity_map_offer(), 8)?;
     super::quantity_mapping::configuration(placement)?;
     Ok(BackBudget {
-        value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
-        maximum_value_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        value_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
+        maximum_value_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
         ..budget()
     })
 }
@@ -266,8 +262,8 @@ fn prepare_quantity(
     Ok(InstalledBack::MathScalar(MathScalarBack {
         pending: None,
         completed: false,
-        input_bytes: SCALAR_ENCODED_LEN as u32,
-        output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        input_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
+        output_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
     }))
 }
 
@@ -288,9 +284,9 @@ fn prepare_quantity_info(
     Ok(InstalledBack::MathScalar(MathScalarBack {
         pending: None,
         completed: false,
-        input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+        input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
         output_bytes: (conduit_semantic_catalog::quantity_info_prefix().len()
-            + conduit_core::QUANTITY_ENCODED_LEN) as u32,
+            + conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES) as u32,
     }))
 }
 

@@ -178,6 +178,11 @@ pub(super) fn prepare(
                 host.capabilities.push(offer);
             }
         }
+        if let Some(offer) = crate::installed_browser::numeric_evaluation::offer_for_placement(gear)? {
+            if !host.capabilities.iter().any(|current| current.capability_id == offer.capability_id) {
+                host.capabilities.push(offer);
+            }
+        }
         if let Some(offer) = crate::installed_browser::pure_expression::offer_for_placement(gear)? {
             if !host
                 .capabilities

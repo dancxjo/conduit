@@ -26,10 +26,8 @@ pub fn combine_garden_observations(
 pub fn garden_contact_observation_value(
     observation: GardenContactObservation,
 ) -> Result<StructuredInfoValue, StructuredInfoRefusal> {
-    let intensity = observation.intensity;
-    if !(0..=conduit_core::Scalar::SCALE).contains(&intensity.raw_microunits()) {
-        return Err(StructuredInfoRefusal::MalformedCanonicalEncoding);
-    }
+    crate::signal_garden::validate_scalar(&observation.intensity)
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
     observation
         .into_structured()
         .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)

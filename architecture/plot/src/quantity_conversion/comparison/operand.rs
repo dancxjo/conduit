@@ -41,8 +41,8 @@ impl<'a> Operand<'a> {
             ) => (value.source(), Coordinate::Difference(value.value())),
             _ => return Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch),
         };
-        let value = match coordinate {
-            Coordinate::Quantity(value) => value,
+        let value = match &coordinate {
+            Coordinate::Quantity(value) => value.clone(),
             Coordinate::Difference(value) => value.storage_coordinate(),
         };
         if !value.matches_literal_evidence(original) {
@@ -54,19 +54,20 @@ impl<'a> Operand<'a> {
         })
     }
     pub(super) fn compare(&self, other: &Self) -> Result<Ordering, QuantityConversionRefusal> {
-        match (&self.coordinate, &other.coordinate) {
-            (Coordinate::Quantity(left), Coordinate::Quantity(right)) => left.compare(*right),
-            (Coordinate::Difference(left), Coordinate::Difference(right)) => left.compare(*right),
+        let ordering = match (&self.coordinate, &other.coordinate) {
+            (Coordinate::Quantity(left), Coordinate::Quantity(right)) => left.compare(right),
+            (Coordinate::Difference(left), Coordinate::Difference(right)) => left.compare(right),
             _ => Err(QuantityConversionRefusal::IncompatibleDimensions),
-        }
+        }?;
+        ordering.ok_or(QuantityConversionRefusal::EqualityUnknown)
     }
     pub(super) fn encode(
         &self,
         profile: ConversionProfile,
     ) -> Result<StructuredInfoValue, QuantityConversionPreparationRefusal> {
         use QuantityConversionPreparationRefusal as R;
-        let coordinate = match self.coordinate {
-            Coordinate::Quantity(value) => value,
+        let coordinate = match &self.coordinate {
+            Coordinate::Quantity(value) => value.clone(),
             Coordinate::Difference(value) => value.storage_coordinate(),
         };
         StructuredInfoValue::record(

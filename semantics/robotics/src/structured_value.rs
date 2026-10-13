@@ -127,19 +127,19 @@ pub fn pose_sample_value(
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(frame)?;
     require_exact(
-        heading,
+        &heading,
         QuantityDimension::Angle,
         Unit::Microdegree,
         "heading",
     )?;
     require_uncertainty(
-        position_uncertainty,
+        &position_uncertainty,
         QuantityDimension::Length,
         Unit::Micrometer,
         "position_uncertainty",
     )?;
     require_uncertainty(
-        heading_uncertainty,
+        &heading_uncertainty,
         QuantityDimension::Angle,
         Unit::Microdegree,
         "heading_uncertainty",
@@ -179,7 +179,7 @@ pub fn range_sample_value(
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(frame)?;
     let distance_mm = require_exact(
-        distance,
+        &distance,
         QuantityDimension::Length,
         Unit::Millimeter,
         "distance",
@@ -188,7 +188,7 @@ pub fn range_sample_value(
         return Err(RoboticsStructuredRefusal::OutsideRange { field: "distance" });
     }
     require_uncertainty(
-        uncertainty,
+        &uncertainty,
         QuantityDimension::Length,
         Unit::Millimeter,
         "uncertainty",
@@ -262,22 +262,22 @@ pub fn power_telemetry_value(
     voltage: Quantity,
     voltage_uncertainty: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_nonnegative(charge, QuantityDimension::Ratio, Unit::Millionth, "charge")?;
+    require_nonnegative(&charge, QuantityDimension::Ratio, Unit::Millionth, "charge")?;
     if charge
-        .to_i64(Unit::Millionth)
+        .to_i64(&Unit::Millionth)
         .map_err(|_| RoboticsStructuredRefusal::InexactPrecision { field: "charge" })?
         > 1_000_000
     {
         return Err(RoboticsStructuredRefusal::OutsideRange { field: "charge" });
     }
     require_nonnegative(
-        voltage,
+        &voltage,
         QuantityDimension::Voltage,
         Unit::Microvolt,
         "voltage",
     )?;
     require_uncertainty(
-        voltage_uncertainty,
+        &voltage_uncertainty,
         QuantityDimension::Voltage,
         Unit::Microvolt,
         "voltage_uncertainty",
@@ -310,7 +310,7 @@ pub fn twist_interval_value(
         });
     }
     let converted = require_exact(
-        interval,
+        &interval,
         QuantityDimension::Time,
         Unit::Millisecond,
         "interval",
@@ -322,7 +322,7 @@ pub fn twist_interval_value(
         return Err(RoboticsStructuredRefusal::OutsideRange { field: "interval" });
     }
     require_exact(
-        angular_delta,
+        &angular_delta,
         QuantityDimension::Angle,
         Unit::Microdegree,
         "angular_delta",
@@ -346,7 +346,7 @@ pub fn motion_request_value(
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(request_identity)?;
     let converted = require_exact(
-        expires_after,
+        &expires_after,
         QuantityDimension::Time,
         Unit::Millisecond,
         "expires_after",
@@ -376,7 +376,7 @@ fn sample_context_value(
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
     require_identity(source_identity)?;
     require_nonnegative(
-        sample_time_since_boot,
+        &sample_time_since_boot,
         QuantityDimension::Time,
         Unit::Millisecond,
         "sample_time_since_boot",
@@ -400,8 +400,8 @@ fn coordinate_value(
     x: Quantity,
     y: Quantity,
 ) -> Result<StructuredInfoValue, RoboticsStructuredRefusal> {
-    require_exact(x, QuantityDimension::Length, Unit::Micrometer, "linear_x")?;
-    require_exact(y, QuantityDimension::Length, Unit::Micrometer, "linear_y")?;
+    require_exact(&x, QuantityDimension::Length, Unit::Micrometer, "linear_x")?;
+    require_exact(&y, QuantityDimension::Length, Unit::Micrometer, "linear_y")?;
     record_value(
         value_type,
         vec![

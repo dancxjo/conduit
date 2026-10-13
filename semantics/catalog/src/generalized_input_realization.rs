@@ -77,7 +77,7 @@ fn validate_ratio(
         return Err(GeneralizedInputRefusal::NonRatio);
     }
     let normalized = value
-        .to_i64(Unit::Millionth)
+        .to_i64(&Unit::Millionth)
         .map_err(|_| GeneralizedInputRefusal::OutsideNormalizedRange)?;
     if !(minimum..=maximum).contains(&normalized) {
         return Err(GeneralizedInputRefusal::OutsideNormalizedRange);
@@ -199,7 +199,7 @@ fn ratio(value: i64) -> Quantity {
 
 fn axis(identity: &str, normalized: i64) -> Result<InputAxisSlot, GeneralizedInputRefusal> {
     let value = ratio(normalized);
-    validate_normalized_axis(value)?;
+    validate_normalized_axis(value.clone())?;
     InputAxisSlot::axis(
         identity.to_string(),
         NORMALIZED_BIPOLAR_AXIS_PROFILE.to_string(),

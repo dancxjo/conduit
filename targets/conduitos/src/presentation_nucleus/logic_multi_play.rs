@@ -22,7 +22,7 @@ const CORDS: usize = 6;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 8;
-const MAX_VALUE_BYTES: usize = conduit_core::SCALAR_ENCODED_LEN;
+const MAX_VALUE_BYTES: usize = 128;
 const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 96;
 
@@ -50,6 +50,7 @@ pub enum LogicMultiError {
     Shape,
     Kernel,
     Value,
+    Numerical(conduit_core::NumericRefusal),
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -66,13 +67,36 @@ struct Scheduler {
     sink: NodeId,
 }
 
+#[derive(Clone, Copy)]
+struct ScalarBytes {
+    bytes: [u8; MAX_VALUE_BYTES],
+    length: usize,
+}
+impl ScalarBytes {
+    fn new(value: &[u8]) -> Result<Self, LogicMultiError> {
+        if value.len() > MAX_VALUE_BYTES {
+            return Err(LogicMultiError::Value);
+        }
+        conduit_core::MathValueRef::validate(value).map_err(|_| LogicMultiError::Value)?;
+        let mut bytes = [0; MAX_VALUE_BYTES];
+        bytes[..value.len()].copy_from_slice(value);
+        Ok(Self {
+            bytes,
+            length: value.len(),
+        })
+    }
+    fn encoded(&self) -> &[u8] {
+        &self.bytes[..self.length]
+    }
+}
 #[derive(Default)]
 struct HostState {
-    compare: [Option<Scalar>; 2],
+    compare: [Option<ScalarBytes>; 2],
     selector: Option<InfoBool>,
-    candidates: [Option<Scalar>; 2],
+    candidates: [Option<ScalarBytes>; 2],
     decision: Option<InfoBool>,
-    captured: Option<Scalar>,
+    refusal: Option<conduit_core::NumericRefusal>,
+    captured: Option<ScalarBytes>,
 }
 
 pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof, LogicMultiError> {
@@ -90,29 +114,30 @@ pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof,
     }
     let mut scheduler = scheduler(fragment, &lowered, prepared)?;
     let mut state = HostState::default();
-    loop {
-        if let Some(request) = scheduler.kernel.next_host_request() {
-            service(&mut scheduler, request, &mut state, prepared.comparison)?;
-            continue;
-        }
-        match scheduler
-            .kernel
-            .step()
-            .map_err(|_| LogicMultiError::Kernel)?
-        {
-            SchedulerStatus::Progress { .. } => {}
-            SchedulerStatus::Drained => break,
-            SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
-                return Err(LogicMultiError::Kernel);
-            }
-        }
+    #[cfg(test)]
+    {
+        let mut result = Ok(());
+        let allocations = crate::test_allocations::allocations(|| {
+            result = execute(&mut scheduler, &mut state, prepared.comparison);
+        });
+        assert_eq!(
+            allocations, 0,
+            "prepared exact logic kernel loop allocates no memory"
+        );
+        result?;
+    }
+    #[cfg(not(test))]
+    execute(&mut scheduler, &mut state, prepared.comparison)?;
+    if let Some(refusal) = state.refusal {
+        return Err(LogicMultiError::Numerical(refusal));
     }
     let decision = state.decision.ok_or(LogicMultiError::Shape)?;
-    let output = state.captured.ok_or(LogicMultiError::Shape)?;
+    let captured = state.captured.ok_or(LogicMultiError::Shape)?;
+    let output = Scalar::decode(captured.encoded()).map_err(|_| LogicMultiError::Value)?;
     let expected = conduit_semantic_catalog::select_scalar(
         decision.get(),
-        prepared.when_false,
-        prepared.when_true,
+        prepared.when_false.clone(),
+        prepared.when_true.clone(),
     );
     if output != expected {
         return Err(LogicMultiError::Shape);
@@ -122,6 +147,43 @@ pub fn run_logic_multi(prepared: &PreparedLogicMulti) -> Result<LogicMultiProof,
         decision,
         output,
     })
+}
+
+fn execute(
+    scheduler: &mut Scheduler,
+    state: &mut HostState,
+    comparison: conduit_semantic_catalog::ScalarComparison,
+) -> Result<(), LogicMultiError> {
+    loop {
+        if let Some(request) = scheduler.kernel.next_host_request() {
+            service(scheduler, request, state, comparison)?;
+            continue;
+        }
+        match scheduler
+            .kernel
+            .step()
+            .map_err(|error| match (error, state.refusal) {
+                (
+                    conduit_kernel::scheduler::SchedulerError::SemanticAbnormal {
+                        node,
+                        port,
+                        terminal,
+                    },
+                    Some(refusal),
+                ) if node == scheduler.compare && port == conduit_kernel::PortId(0) => {
+                    let _ = terminal;
+                    LogicMultiError::Numerical(refusal)
+                }
+                _ => LogicMultiError::Kernel,
+            })? {
+            SchedulerStatus::Progress { .. } => {}
+            SchedulerStatus::Drained => break,
+            SchedulerStatus::Idle | SchedulerStatus::Cancelled => {
+                return Err(LogicMultiError::Kernel);
+            }
+        }
+    }
+    Ok(())
 }
 
 fn service(
@@ -139,32 +201,40 @@ fn service(
         if index >= 2 || state.compare[index].is_some() {
             return Err(LogicMultiError::Shape);
         }
-        state.compare[index] = Some(Scalar::decode(bytes).map_err(|_| LogicMultiError::Value)?);
+        state.compare[index] = Some(ScalarBytes::new(bytes)?);
         let output = match state.compare {
             [Some(left), Some(right)] => {
-                let decision = InfoBool::new(comparison.evaluate(left, right));
+                let relation = conduit_core::MathValueRef::validate(left.encoded())
+                    .and_then(|left| {
+                        conduit_core::MathValueRef::validate(right.encoded())
+                            .and_then(|right| left.compare(right))
+                    })
+                    .and_then(|relation| comparison.evaluate_order(relation));
+                let decision = match relation {
+                    Ok(decision) => InfoBool::new(decision),
+                    Err(error) => {
+                        state.refusal = Some(error);
+                        scheduler
+                            .kernel
+                            .complete_host_call(
+                                request.node,
+                                request.request,
+                                HostCallOutcome {
+                                    disposition: HostCallDisposition::Failed,
+                                    output: None,
+                                    failure: Some(conduit_kernel::Failure {
+                                        code: conduit_kernel::FailureCode::HostCallFailed,
+                                        detail: refusal_index(error),
+                                    }),
+                                },
+                            )
+                            .map_err(|_| LogicMultiError::Kernel)?;
+                        return Ok(());
+                    }
+                };
                 state.decision = Some(decision);
-                Some(decision.encode().to_vec())
+                Some(decision.encode())
             }
-            _ => None,
-        };
-        complete(&mut scheduler.kernel, request, output.as_deref())
-    } else if request.node == scheduler.select {
-        match request.request.0 % 4 {
-            0 if state.selector.is_none() => {
-                state.selector = Some(InfoBool::decode(bytes).map_err(|_| LogicMultiError::Value)?);
-            }
-            port @ (1 | 2) if state.candidates[(port - 1) as usize].is_none() => {
-                state.candidates[(port - 1) as usize] =
-                    Some(Scalar::decode(bytes).map_err(|_| LogicMultiError::Value)?);
-            }
-            _ => return Err(LogicMultiError::Shape),
-        }
-        let output = match (state.selector, state.candidates) {
-            (Some(selector), [Some(when_false), Some(when_true)]) => Some(
-                conduit_semantic_catalog::select_scalar(selector.get(), when_false, when_true)
-                    .encode(),
-            ),
             _ => None,
         };
         complete(
@@ -172,8 +242,31 @@ fn service(
             request,
             output.as_ref().map(|bytes| bytes.as_slice()),
         )
+    } else if request.node == scheduler.select {
+        match request.request.0 % 4 {
+            0 if state.selector.is_none() => {
+                state.selector = Some(InfoBool::decode(bytes).map_err(|_| LogicMultiError::Value)?);
+            }
+            port @ (1 | 2) if state.candidates[(port - 1) as usize].is_none() => {
+                state.candidates[(port - 1) as usize] = Some(ScalarBytes::new(bytes)?);
+            }
+            _ => return Err(LogicMultiError::Shape),
+        }
+        let output = match (state.selector, state.candidates) {
+            (Some(selector), [Some(when_false), Some(when_true)]) => Some(if selector.get() {
+                when_true
+            } else {
+                when_false
+            }),
+            _ => None,
+        };
+        complete(
+            &mut scheduler.kernel,
+            request,
+            output.as_ref().map(ScalarBytes::encoded),
+        )
     } else if request.node == scheduler.sink && state.captured.is_none() {
-        state.captured = Some(Scalar::decode(bytes).map_err(|_| LogicMultiError::Value)?);
+        state.captured = Some(ScalarBytes::new(bytes)?);
         complete(&mut scheduler.kernel, request, None)
     } else {
         Err(LogicMultiError::Shape)
@@ -253,14 +346,35 @@ fn scheduler(
         .enumerate()
         .map(|(index, placement)| {
             let operation = match placement.kind_id.as_str() {
-                LEFT_KIND => source(&mut values, prepared.left)?,
-                RIGHT_KIND => source(&mut values, prepared.right)?,
-                FALSE_KIND => source(&mut values, prepared.when_false)?,
-                TRUE_KIND => source(&mut values, prepared.when_true)?,
+                LEFT_KIND => source(&mut values, prepared.left.clone())?,
+                RIGHT_KIND => source(&mut values, prepared.right.clone())?,
+                FALSE_KIND => source(&mut values, prepared.when_false.clone())?,
+                TRUE_KIND => source(&mut values, prepared.when_true.clone())?,
                 conduit_semantic_catalog::LOGIC_COMPARE_KIND => {
                     compare = Some(NodeId(index as u16));
                     PresentationBack::LogicInputs {
                         input_count: 2,
+                        refusals: Some([
+                            conduit_kernel::CanonicalValue::new(
+                                &conduit_semantic_catalog::scalar_comparison_refusal_bytes(
+                                    conduit_core::NumericRefusal::IndeterminateDomain,
+                                ),
+                            )
+                            .map_err(|_| LogicMultiError::Value)?,
+                            conduit_kernel::CanonicalValue::new(
+                                &conduit_semantic_catalog::scalar_comparison_refusal_bytes(
+                                    conduit_core::NumericRefusal::WorkBudget,
+                                ),
+                            )
+                            .map_err(|_| LogicMultiError::Value)?,
+                            conduit_kernel::CanonicalValue::new(
+                                &conduit_semantic_catalog::scalar_comparison_refusal_bytes(
+                                    conduit_core::NumericRefusal::Domain,
+                                )
+                                .as_slice(),
+                            )
+                            .map_err(|_| LogicMultiError::Value)?,
+                        ]),
                         seen: 0,
                         next_request: 0,
                         pending: false,
@@ -271,6 +385,7 @@ fn scheduler(
                     select = Some(NodeId(index as u16));
                     PresentationBack::LogicInputs {
                         input_count: 3,
+                        refusals: None,
                         seen: 0,
                         next_request: 0,
                         pending: false,
@@ -280,7 +395,7 @@ fn scheduler(
                 SINK_KIND => {
                     sink = Some(NodeId(index as u16));
                     PresentationBack::Sink {
-                        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                        maximum_input_bytes: 128 as u32,
                         pending: false,
                         complete: false,
                     }
@@ -315,8 +430,25 @@ fn source(
 ) -> Result<PresentationBack, LogicMultiError> {
     Ok(PresentationBack::Source {
         value: values
-            .store(&value.encode())
+            .store(
+                &value
+                    .canonical_bytes()
+                    .map_err(|_| LogicMultiError::Value)?,
+            )
             .map_err(|_| LogicMultiError::Value)?,
         emitted: false,
     })
+}
+
+fn refusal_index(error: conduit_core::NumericRefusal) -> u16 {
+    use conduit_core::NumericRefusal;
+    match error {
+        NumericRefusal::IndeterminateDomain => 0,
+        NumericRefusal::IntegerBudget
+        | NumericRefusal::NodeBudget
+        | NumericRefusal::DepthBudget
+        | NumericRefusal::StorageBudget
+        | NumericRefusal::WorkBudget => 1,
+        _ => 2,
+    }
 }

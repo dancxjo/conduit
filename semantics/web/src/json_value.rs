@@ -25,7 +25,7 @@ pub const JSON_MAXIMUM_ENCODED_BYTES: usize = 4_096;
 pub enum JsonValue {
     Null,
     Bool(bool),
-    /// A signed fixed-point number with exactly the `Scalar` six-decimal profile.
+    /// An exact finite decimal number; mathematical values without finite decimal form refuse JSON output.
     Number(Scalar),
     String(String),
     Array(Vec<JsonValue>),
@@ -187,7 +187,10 @@ fn encode_binary(value: &JsonValue, out: &mut Vec<u8>) -> Result<(), JsonRefusal
         JsonValue::Bool(true) => out.push(2),
         JsonValue::Number(value) => {
             out.push(3);
-            out.extend_from_slice(&value.encode());
+            let bytes = value.canonical_bytes().map_err(|_| JsonRefusal::NumericOverflow)?;
+            let length = u16::try_from(bytes.len()).map_err(|_| JsonRefusal::NumericOverflow)?;
+            out.extend_from_slice(&length.to_le_bytes());
+            out.extend_from_slice(&bytes);
         }
         JsonValue::String(value) => {
             out.push(4);
@@ -255,7 +258,8 @@ impl BinaryCursor<'_> {
             1 => Ok(JsonValue::Bool(false)),
             2 => Ok(JsonValue::Bool(true)),
             3 => Ok(JsonValue::Number(
-                Scalar::decode(self.take(8)?).map_err(|_| JsonRefusal::NonCanonicalValue)?,
+                { let length = u16::from_le_bytes(self.take(2)?.try_into().unwrap()) as usize;
+                    Scalar::decode(self.take(length)?).map_err(|_| JsonRefusal::NonCanonicalValue)? },
             )),
             4 => Ok(JsonValue::String(self.string()?)),
             5 => {
@@ -290,7 +294,7 @@ fn encode_text_value(value: &JsonValue, out: &mut Vec<u8>) -> Result<(), JsonRef
         JsonValue::Null => out.extend_from_slice(b"null"),
         JsonValue::Bool(false) => out.extend_from_slice(b"false"),
         JsonValue::Bool(true) => out.extend_from_slice(b"true"),
-        JsonValue::Number(value) => encode_number(*value, out),
+        JsonValue::Number(value) => encode_number(value, out)?,
         JsonValue::String(value) => encode_string(value, out),
         JsonValue::Array(items) => {
             out.push(b'[');
@@ -322,28 +326,11 @@ fn encode_text_value(value: &JsonValue, out: &mut Vec<u8>) -> Result<(), JsonRef
     }
 }
 
-fn encode_number(value: Scalar, out: &mut Vec<u8>) {
-    use alloc::format;
-    let raw = value.raw_microunits();
-    if raw == 0 {
-        out.push(b'0');
-        return;
-    }
-    let negative = raw < 0;
-    let magnitude = i128::from(raw).abs();
-    if negative {
-        out.push(b'-');
-    }
-    out.extend_from_slice(format!("{}", magnitude / 1_000_000).as_bytes());
-    let fraction = magnitude % 1_000_000;
-    if fraction != 0 {
-        let mut text = format!("{fraction:06}");
-        while text.ends_with('0') {
-            text.pop();
-        }
-        out.push(b'.');
-        out.extend_from_slice(text.as_bytes());
-    }
+fn encode_number(value: &Scalar, out: &mut Vec<u8>) -> Result<(), JsonRefusal> {
+    let decimal = value.terminating_decimal_literal(JSON_MAXIMUM_ENCODED_BYTES)
+        .map_err(|_| JsonRefusal::NumericOverflow)?.ok_or(JsonRefusal::NumericOverflow)?;
+    out.extend_from_slice(decimal.as_bytes());
+    Ok(())
 }
 
 fn encode_string(value: &str, out: &mut Vec<u8>) {
@@ -574,7 +561,7 @@ impl Parser<'_> {
     }
     fn number(&mut self) -> Result<Scalar, JsonRefusal> {
         let start = self.offset;
-        let negative = self.eat(b'-');
+        self.eat(b'-');
         if self.eat(b'0') {
             if self.input.get(self.offset).is_some_and(u8::is_ascii_digit) {
                 return Err(JsonRefusal::MalformedSyntax);
@@ -588,18 +575,15 @@ impl Parser<'_> {
                 return Err(JsonRefusal::MalformedSyntax);
             }
         }
-        let mut fraction = 0_i32;
         if self.eat(b'.') {
             let digit_start = self.offset;
             while self.input.get(self.offset).is_some_and(u8::is_ascii_digit) {
                 self.offset += 1;
-                fraction += 1;
             }
             if self.offset == digit_start {
                 return Err(JsonRefusal::MalformedSyntax);
             }
         }
-        let mantissa_end = self.offset;
         let mut exponent = 0_i32;
         if matches!(self.input.get(self.offset), Some(b'e' | b'E')) {
             self.offset += 1;
@@ -618,40 +602,10 @@ impl Parser<'_> {
             if self.offset == digit_start {
                 return Err(JsonRefusal::MalformedSyntax);
             }
-            if exponent_negative {
-                exponent = -exponent;
-            }
         }
-        let digits = self.input[start..mantissa_end]
-            .iter()
-            .filter(|byte| byte.is_ascii_digit())
-            .try_fold(0_i128, |value, byte| {
-                value
-                    .checked_mul(10)
-                    .and_then(|value| value.checked_add(i128::from(*byte - b'0')))
-                    .ok_or(JsonRefusal::NumericOverflow)
-            })?;
-        let scale = fraction - exponent;
-        let coefficient = if scale <= 6 {
-            let multiplier = 10_i128
-                .checked_pow((6 - scale) as u32)
-                .ok_or(JsonRefusal::NumericOverflow)?;
-            digits
-                .checked_mul(multiplier)
-                .ok_or(JsonRefusal::NumericOverflow)?
-        } else {
-            let divisor = 10_i128
-                .checked_pow((scale - 6) as u32)
-                .ok_or(JsonRefusal::NumericOverflow)?;
-            if digits % divisor != 0 {
-                return Err(JsonRefusal::NumericOverflow);
-            }
-            digits / divisor
-        };
-        let signed = if negative { -coefficient } else { coefficient };
-        i64::try_from(signed)
-            .map(Scalar::from_raw_microunits)
-            .map_err(|_| JsonRefusal::NumericOverflow)
+        let source = core::str::from_utf8(&self.input[start..self.offset])
+            .map_err(|_| JsonRefusal::MalformedSyntax)?;
+        Scalar::parse_decimal(source).map_err(|_| JsonRefusal::NumericOverflow)
     }
 }
 

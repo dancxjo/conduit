@@ -8,7 +8,7 @@ use alloc::{boxed::Box, vec::Vec};
 use core::cmp::Ordering;
 use serde::{Deserialize, Serialize};
 
-use crate::{validate_primitive_info, KindId, PrimitiveInfoRefusal};
+use crate::{KindId, PrimitiveInfoRefusal, validate_primitive_info};
 
 pub const MAX_VALUE_CONSTRAINTS: usize = 16;
 pub const MAX_MEMBERSHIP_VALUES: usize = 64;
@@ -50,6 +50,12 @@ pub enum ValueConstraint {
         maximum_endpoint: IntervalEndpoint,
     },
     FixedIntegerRange {
+        minimum: Option<Vec<u8>>,
+        maximum: Option<Vec<u8>>,
+        minimum_endpoint: IntervalEndpoint,
+        maximum_endpoint: IntervalEndpoint,
+    },
+    MathematicalRange {
         minimum: Option<Vec<u8>>,
         maximum: Option<Vec<u8>>,
         minimum_endpoint: IntervalEndpoint,
@@ -111,6 +117,7 @@ pub enum ConstraintDefinitionError {
     InvalidSignedRange,
     InvalidFixedIntegerRange,
     InvalidQuantityRange,
+    InvalidMathematicalRange,
     InvalidFloatRange,
     EmptyMembership,
     TooManyMembershipValues,
@@ -138,6 +145,8 @@ pub enum ValueConstraintRefusal {
     SignedRange,
     FixedIntegerRange,
     QuantityRange,
+    MathematicalRange,
+    IndeterminateMathematicalRange,
     FloatFinite,
     FloatRange,
     Membership,
@@ -262,6 +271,22 @@ impl ValueConstraint {
                 canonical.push(*minimum_endpoint as u8);
                 canonical.push(*maximum_endpoint as u8);
             }
+            Self::MathematicalRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                canonical.push(10);
+                push_optional(canonical, minimum.as_ref(), |out, value| {
+                    push_bytes(out, value)
+                });
+                push_optional(canonical, maximum.as_ref(), |out, value| {
+                    push_bytes(out, value)
+                });
+                canonical.push(*minimum_endpoint as u8);
+                canonical.push(*maximum_endpoint as u8);
+            }
             Self::QuantityRange {
                 minimum,
                 maximum,
@@ -341,6 +366,7 @@ impl ValueConstraint {
             Self::FloatRange { .. } => 6,
             Self::CanonicalMembership { .. } => 7,
             Self::TextPattern { .. } => 8,
+            Self::MathematicalRange { .. } => 9,
         }
     }
 
@@ -388,7 +414,7 @@ impl ValueConstraint {
             {
                 Err(ConstraintDefinitionError::InvalidSignedRange)
             }
-            Self::SignedRange { .. } if value_kind != crate::SCALAR_INFO_ID => {
+            Self::SignedRange { .. } if value_kind != crate::MICRO_SCALAR_INFO_ID => {
                 Err(ConstraintDefinitionError::WrongConstraintKind)
             }
             Self::FixedIntegerRange {
@@ -423,6 +449,40 @@ impl ValueConstraint {
                     Ok(())
                 }
             }
+            Self::MathematicalRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                if !matches!(
+                    crate::primitive_info_kind(value_kind),
+                    Some(crate::PrimitiveInfoKind::MathematicalNumber)
+                ) || minimum
+                    .iter()
+                    .chain(maximum.iter())
+                    .any(|v| validate_primitive_info(value_kind, v).is_err())
+                {
+                    return Err(ConstraintDefinitionError::WrongConstraintKind);
+                }
+                if let (Some(low), Some(high)) = (minimum, maximum) {
+                    let low = crate::MathValueRef::validate(low)
+                        .map_err(|_| ConstraintDefinitionError::InvalidMathematicalRange)?;
+                    let high = crate::MathValueRef::validate(high)
+                        .map_err(|_| ConstraintDefinitionError::InvalidMathematicalRange)?;
+                    let order = low
+                        .compare(high)
+                        .map_err(|_| ConstraintDefinitionError::InvalidMathematicalRange)?;
+                    if !matches!(order, Some(Ordering::Less))
+                        && !(order == Some(Ordering::Equal)
+                            && *minimum_endpoint == IntervalEndpoint::Inclusive
+                            && *maximum_endpoint == IntervalEndpoint::Inclusive)
+                    {
+                        return Err(ConstraintDefinitionError::InvalidMathematicalRange);
+                    }
+                }
+                Ok(())
+            }
             Self::QuantityRange {
                 minimum,
                 maximum,
@@ -440,7 +500,9 @@ impl ValueConstraint {
             Self::QuantityRange {
                 minimum, maximum, ..
             } if (value_kind != crate::QUANTITY_INFO_ID
-                && crate::parse_quantity_role_info_id(value_kind).is_none())
+                && crate::parse_quantity_semantic_role(value_kind).is_none()
+                && crate::quantity_info_dimension(value_kind).is_none()
+                && crate::PhysicalNumericProfile::parse_generic_info_id(value_kind).is_none())
                 || minimum.iter().chain(maximum.iter()).any(|bound| {
                     crate::validate_primitive_info(value_kind, &bound.encode()).is_err()
                 }) =>
@@ -560,10 +622,10 @@ impl ValueConstraint {
                 minimum_endpoint,
                 maximum_endpoint,
             } => {
-                if value_kind != crate::SCALAR_INFO_ID {
+                if value_kind != crate::MICRO_SCALAR_INFO_ID {
                     return Err(ValueConstraintRefusal::WrongConstraintKind);
                 }
-                let value = crate::Scalar::decode(canonical)
+                let value = crate::MicroScalar::decode(canonical)
                     .map_err(|_| ValueConstraintRefusal::SignedRange)?
                     .raw_microunits();
                 (minimum
@@ -601,23 +663,57 @@ impl ValueConstraint {
                     .then_some(())
                     .ok_or(ValueConstraintRefusal::FixedIntegerRange)
             }
+            Self::MathematicalRange {
+                minimum,
+                maximum,
+                minimum_endpoint,
+                maximum_endpoint,
+            } => {
+                let value = crate::MathValueRef::validate(canonical)
+                    .map_err(|_| ValueConstraintRefusal::MathematicalRange)?;
+                for (bound, endpoint, lower) in [
+                    (minimum, minimum_endpoint, true),
+                    (maximum, maximum_endpoint, false),
+                ] {
+                    if let Some(bound) = bound {
+                        let bound = crate::MathValueRef::validate(bound)
+                            .map_err(|_| ValueConstraintRefusal::MathematicalRange)?;
+                        let order = value
+                            .compare(bound)
+                            .map_err(|_| ValueConstraintRefusal::MathematicalRange)?
+                            .ok_or(ValueConstraintRefusal::IndeterminateMathematicalRange)?;
+                        if !(if lower {
+                            lower_accepts(order, *endpoint)
+                        } else {
+                            upper_accepts(order, *endpoint)
+                        }) {
+                            return Err(ValueConstraintRefusal::MathematicalRange);
+                        }
+                    }
+                }
+                Ok(())
+            }
             Self::QuantityRange {
                 minimum,
                 maximum,
                 minimum_endpoint,
                 maximum_endpoint,
             } => {
-                let value = crate::Quantity::decode(canonical)
+                let value = crate::QuantityRef::validate(canonical)
                     .map_err(|_| ValueConstraintRefusal::QuantityRange)?;
                 let above_minimum = minimum.as_ref().is_none_or(|minimum| {
                     value
-                        .compare(**minimum)
-                        .is_ok_and(|order| lower_accepts(order, *minimum_endpoint))
+                        .compare_borrowed(minimum.as_ref().as_ref())
+                        .is_ok_and(|order| {
+                            order.is_some_and(|order| lower_accepts(order, *minimum_endpoint))
+                        })
                 });
                 let below_maximum = maximum.as_ref().is_none_or(|maximum| {
                     value
-                        .compare(**maximum)
-                        .is_ok_and(|order| upper_accepts(order, *maximum_endpoint))
+                        .compare_borrowed(maximum.as_ref().as_ref())
+                        .is_ok_and(|order| {
+                            order.is_some_and(|order| upper_accepts(order, *maximum_endpoint))
+                        })
                 });
                 (above_minimum && below_maximum)
                     .then_some(())
@@ -777,6 +873,12 @@ fn open_quantity_range_is_invalid(
     minimum_endpoint: IntervalEndpoint,
     maximum_endpoint: IntervalEndpoint,
 ) -> bool {
+    if minimum
+        .zip(maximum)
+        .is_some_and(|(minimum, maximum)| !matches!(minimum.compare(maximum), Ok(Some(_))))
+    {
+        return true;
+    }
     open_interval_is_invalid(
         minimum,
         maximum,
@@ -784,7 +886,9 @@ fn open_quantity_range_is_invalid(
         maximum_endpoint,
         |minimum, maximum| {
             minimum
-                .compare(*maximum)
+                .compare(maximum)
+                .ok()
+                .flatten()
                 .unwrap_or(core::cmp::Ordering::Equal)
         },
     ) || minimum
@@ -1049,6 +1153,43 @@ impl CheckedTextPattern {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn mathematical_ranges_keep_exact_rationals_and_refuse_unknown_order() {
+        use super::*;
+        let number = |s: &str| {
+            crate::MathValue::parse_decimal(s)
+                .unwrap()
+                .canonical_bytes()
+                .unwrap()
+        };
+        let third = crate::MathValue::integer(1)
+            .checked_div(&crate::MathValue::integer(3))
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let contract = CheckedValueContract::new(
+            KindId::new(crate::SCALAR_INFO_ID),
+            128,
+            vec![ValueConstraint::MathematicalRange {
+                minimum: Some(number("0")),
+                maximum: Some(number("1")),
+                minimum_endpoint: IntervalEndpoint::Inclusive,
+                maximum_endpoint: IntervalEndpoint::Exclusive,
+            }],
+        )
+        .unwrap();
+        assert_eq!(contract.validate(&third), Ok(()));
+        assert_eq!(
+            contract.validate(&number("1")),
+            Err(ValueConstraintRefusal::MathematicalRange)
+        );
+        let symbolic = crate::MathValue::pi().canonical_bytes().unwrap();
+        assert_eq!(
+            contract.validate(&symbolic),
+            Err(ValueConstraintRefusal::IndeterminateMathematicalRange)
+        );
+    }
+
     use super::*;
     use alloc::vec;
 
@@ -1168,8 +1309,8 @@ mod tests {
     #[test]
     fn signed_and_quantity_ranges_compare_semantic_values() {
         let scalar = CheckedValueContract::new(
-            crate::kind_id(crate::SCALAR_INFO_ID),
-            crate::SCALAR_ENCODED_LEN as u32,
+            crate::kind_id(crate::MICRO_SCALAR_INFO_ID),
+            crate::MICRO_SCALAR_ENCODED_LEN as u32,
             vec![ValueConstraint::SignedRange {
                 minimum: Some(-2_000_000),
                 maximum: Some(2_000_000),
@@ -1178,15 +1319,15 @@ mod tests {
             }],
         )
         .unwrap();
-        assert_eq!(scalar.validate(&crate::Scalar::ZERO.encode()), Ok(()));
+        assert_eq!(scalar.validate(&crate::MicroScalar::ZERO.encode()), Ok(()));
         assert_eq!(
-            scalar.validate(&crate::Scalar::from_raw_microunits(3_000_000).encode()),
+            scalar.validate(&crate::MicroScalar::from_raw_microunits(3_000_000).encode()),
             Err(ValueConstraintRefusal::SignedRange)
         );
 
         let distance = CheckedValueContract::new(
             crate::kind_id(crate::DISTANCE_INFO_ID),
-            crate::QUANTITY_ENCODED_LEN as u32,
+            crate::MAX_QUANTITY_ENCODED_BYTES as u32,
             vec![ValueConstraint::QuantityRange {
                 minimum: Some(crate::Quantity::new(1, crate::Unit::Meter).into()),
                 maximum: Some(crate::Quantity::new(2, crate::Unit::Meter).into()),
@@ -1208,8 +1349,8 @@ mod tests {
     #[test]
     fn open_semantic_ranges_keep_finite_carrier_admission_separate() {
         let positive = CheckedValueContract::new(
-            crate::kind_id(crate::SCALAR_INFO_ID),
-            crate::SCALAR_ENCODED_LEN as u32,
+            crate::kind_id(crate::MICRO_SCALAR_INFO_ID),
+            crate::MICRO_SCALAR_ENCODED_LEN as u32,
             vec![ValueConstraint::SignedRange {
                 minimum: Some(0),
                 maximum: None,
@@ -1220,18 +1361,18 @@ mod tests {
         .unwrap();
 
         assert_eq!(
-            positive.validate(&crate::Scalar::from_raw_microunits(1).encode()),
+            positive.validate(&crate::MicroScalar::from_raw_microunits(1).encode()),
             Ok(())
         );
         assert_eq!(
-            positive.validate(&crate::Scalar::from_raw_microunits(-1).encode()),
+            positive.validate(&crate::MicroScalar::from_raw_microunits(-1).encode()),
             Err(ValueConstraintRefusal::SignedRange)
         );
         assert_eq!(
-            positive.validate(&[0; crate::SCALAR_ENCODED_LEN + 1]),
+            positive.validate(&[0; crate::MICRO_SCALAR_ENCODED_LEN + 1]),
             Err(ValueConstraintRefusal::Oversize {
-                actual: (crate::SCALAR_ENCODED_LEN + 1) as u32,
-                maximum: crate::SCALAR_ENCODED_LEN as u32,
+                actual: (crate::MICRO_SCALAR_ENCODED_LEN + 1) as u32,
+                maximum: crate::MICRO_SCALAR_ENCODED_LEN as u32,
             })
         );
     }
@@ -1300,7 +1441,7 @@ mod tests {
         assert_eq!(
             CheckedValueContract::new(
                 crate::kind_id(crate::DISTANCE_INFO_ID),
-                crate::QUANTITY_ENCODED_LEN as u32,
+                crate::MAX_QUANTITY_ENCODED_BYTES as u32,
                 vec![ValueConstraint::QuantityRange {
                     minimum: Some(crate::Quantity::new(1, crate::Unit::Second).into()),
                     maximum: Some(crate::Quantity::new(2, crate::Unit::Second).into()),
@@ -1313,7 +1454,7 @@ mod tests {
         assert_eq!(
             CheckedValueContract::new(
                 crate::kind_id(crate::QUANTITY_INFO_ID),
-                crate::QUANTITY_ENCODED_LEN as u32,
+                crate::MAX_QUANTITY_ENCODED_BYTES as u32,
                 vec![ValueConstraint::QuantityRange {
                     minimum: Some(crate::Quantity::new(1, crate::Unit::Meter).into()),
                     maximum: Some(crate::Quantity::new(2, crate::Unit::Second).into()),

@@ -11,6 +11,9 @@ pub const QUANTITY_INFO_HOST_CALL: &str = "conduit.host/wrap-quantity@1";
 pub fn quantity_info_offer() -> CapabilityOffer {
     let contract = conduit_semantic_catalog::quantity_info_wrap_semantic_contract();
     let target_kind = Some(contract.kind_id.clone());
+    let maximum_input_bytes =
+        conduit_core::intrinsic_numeric_maximum_bytes(contract.inputs[0].value_kind.as_str())
+            .expect("quantity wrapper has an intrinsic finite physical profile") as u32;
     BackOfferBuilder::new(
         contract,
         Back {
@@ -22,7 +25,7 @@ pub fn quantity_info_offer() -> CapabilityOffer {
                 contract_id: HostCallContractId::from(QUANTITY_INFO_HOST_CALL),
                 target_kind,
                 maximum_in_flight: 1,
-                maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+                maximum_input_bytes: maximum_input_bytes,
                 maximum_output_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
             }],
             resource_requirements: Vec::new(),

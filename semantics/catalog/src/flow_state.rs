@@ -9,7 +9,7 @@ use alloc::string::ToString;
 use alloc::vec;
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, PortDescriptor,
-    PortDirection, PortTemporal, BOOL_INFO_ID, SCALAR_INFO_ID,
+    PortDirection, PortTemporal, BOOL_INFO_ID,
 };
 
 pub const STATE_LATEST_SCALAR_CONTRACT_REVISION: &str = "conduit.std/state-latest-scalar@2";
@@ -74,7 +74,7 @@ pub fn flow_gate_scalar_contract() -> StandardKindContract {
         inputs: vec![
             info_port(
                 IN_PORT,
-                SCALAR_INFO_ID,
+                &crate::scalar_info_id(),
                 PortDirection::Input,
                 PortTemporal::Current,
             ),
@@ -87,7 +87,7 @@ pub fn flow_gate_scalar_contract() -> StandardKindContract {
         ],
         outputs: vec![info_port(
             OUT_PORT,
-            SCALAR_INFO_ID,
+            &crate::scalar_info_id(),
             PortDirection::Output,
             PortTemporal::Current,
         )],
@@ -124,20 +124,20 @@ pub fn state_select_scalar_contract() -> StandardKindContract {
             ),
             info_port(
                 super::logic::SELECT_FALSE_PORT,
-                SCALAR_INFO_ID,
+                &crate::scalar_info_id(),
                 PortDirection::Input,
                 PortTemporal::Current,
             ),
             info_port(
                 super::logic::SELECT_TRUE_PORT,
-                SCALAR_INFO_ID,
+                &crate::scalar_info_id(),
                 PortDirection::Input,
                 PortTemporal::Current,
             ),
         ],
         outputs: vec![info_port(
             OUT_PORT,
-            SCALAR_INFO_ID,
+            &crate::scalar_info_id(),
             PortDirection::Output,
             PortTemporal::Current,
         )],
@@ -196,7 +196,7 @@ fn semantic_contract(contract: StandardKindContract, revision: &str) -> Kind {
 }
 
 fn port(name: &str, direction: PortDirection, temporal: PortTemporal) -> PortDescriptor {
-    info_port(name, SCALAR_INFO_ID, direction, temporal)
+    info_port(name, &crate::scalar_info_id(), direction, temporal)
 }
 
 fn info_port(
@@ -218,7 +218,7 @@ fn limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 16,
         max_queue_items: 4,
-        max_queue_bytes: 32,
+        max_queue_bytes: crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32,
     }
 }
 
@@ -285,10 +285,10 @@ mod tests {
         assert_eq!(tee.inputs[0].temporal, PortTemporal::Current);
         assert_eq!(tee.outputs.len(), 2);
         let gate = flow_gate_scalar_contract();
-        assert_eq!(gate.inputs[0].value_kind.as_str(), SCALAR_INFO_ID);
+        assert_eq!(gate.inputs[0].value_kind.as_str(), &crate::scalar_info_id());
         assert_eq!(gate.inputs[1].value_kind.as_str(), BOOL_INFO_ID);
         assert_eq!(gate.inputs[1].temporal, PortTemporal::Current);
-        assert_eq!(gate.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
+        assert_eq!(gate.outputs[0].value_kind.as_str(), &crate::scalar_info_id());
         assert_eq!(gate.configuration.len(), 1);
         let select = state_select_scalar_contract();
         assert!(select
@@ -300,7 +300,7 @@ mod tests {
         assert!(select.inputs[1..]
             .iter()
             .chain(select.outputs.iter())
-            .all(|port| port.value_kind.as_str() == SCALAR_INFO_ID));
+            .all(|port| port.value_kind.as_str() == &crate::scalar_info_id()));
 
         let gate_semantics = flow_gate_scalar_semantic_contract();
         assert_eq!(gate_semantics.startup_parameters.len(), 1);
@@ -317,7 +317,7 @@ mod tests {
             .chain(tee.inputs.iter())
             .chain(tee.outputs.iter())
         {
-            assert_eq!(port.value_kind.as_str(), SCALAR_INFO_ID);
+            assert_eq!(port.value_kind.as_str(), &crate::scalar_info_id());
         }
     }
 

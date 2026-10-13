@@ -107,8 +107,8 @@ impl PreparedConvertedEquals {
         if !converted {
             return Ok(false);
         }
-        match source.compare(self.expected) {
-            Ok(core::cmp::Ordering::Equal) => Ok(true),
+        match source.compare(&self.expected) {
+            Ok(Some(core::cmp::Ordering::Equal)) => Ok(true),
             Ok(_)
             | Err(
                 QuantityConversionRefusal::IncompatibleDimensions

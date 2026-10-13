@@ -114,12 +114,13 @@ fn configured(placement: &PlannedGear) -> Result<std::borrow::Cow<'_, [u8]>, Str
         return Err("structured literal requires one exact value".into());
     };
     if placement.kind_id.as_str() == conduit_semantic_catalog::SCALAR_LITERAL_KIND {
-        let ("value", ConfigurationValue::I64(value)) = (entry.key.as_str(), &entry.value) else {
-            return Err("Scalar literal requires one exact I64 value".into());
+        let ("value", ConfigurationValue::Scalar(value)) = (entry.key.as_str(), &entry.value)
+        else {
+            return Err("Scalar literal requires one exact mathematical value".into());
         };
-        return Ok(conduit_core::Scalar::from_raw_microunits(*value)
-            .encode()
-            .to_vec()
+        return Ok(value
+            .canonical_bytes()
+            .map_err(|error| format!("{error:?}"))?
             .into());
     }
     let ("value", ConfigurationValue::Structured(value)) = (entry.key.as_str(), &entry.value)

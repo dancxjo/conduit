@@ -241,7 +241,7 @@ fn validate_quantity(
         Quantity::decode(value.bytes()).map_err(|_| InteractionRefusal::MalformedValue)?;
     let (unit, minimum, minimum_bound, maximum, maximum_bound, granularity) = match family {
         InteractionFamily::Scalar(family) => (
-            *family.unit(),
+            family.unit().clone(),
             *family.minimum(),
             *family.minimum_bound(),
             *family.maximum(),
@@ -249,7 +249,7 @@ fn validate_quantity(
             *family.granularity(),
         ),
         InteractionFamily::RelativeAdjustment(family) => (
-            *family.unit(),
+            family.unit().clone(),
             *family.minimum_delta(),
             BoundKind::Inclusive,
             *family.maximum_delta(),
@@ -258,11 +258,11 @@ fn validate_quantity(
         ),
         _ => return Err(InteractionRefusal::WrongValueKind),
     };
-    if quantity.unit() != unit {
+    if !quantity.unit().same_physical_definition(unit.as_ref()) {
         return Err(InteractionRefusal::WrongValueKind);
     }
     let quantity = quantity
-        .to_i64(unit)
+        .to_i64(&unit)
         .map_err(|_| InteractionRefusal::UnsupportedGranularity)?;
     let below =
         quantity < minimum || (quantity == minimum && minimum_bound == BoundKind::Exclusive);

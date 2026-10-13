@@ -29,6 +29,16 @@ pub(super) fn canonical_leaf_literal(
             .map_err(|refusal| structured_diagnostic(span,
                 &format!("literal '{literal}' is incompatible with selected exact profile '{kind}': {refusal:?}")));
     }
+    if conduit_core::primitive_info_kind(kind)
+        == Some(conduit_core::PrimitiveInfoKind::MathematicalNumber)
+    {
+        let bytes = crate::expression_scalar::checked_scalar_source(literal)
+            .and_then(|(value, _)| value.canonical_bytes().map_err(|error| format!("{error:?}")))
+            .map_err(|message| structured_diagnostic(span, &message))?;
+        conduit_core::validate_primitive_info(kind, &bytes)
+            .map_err(|error| structured_diagnostic(span, &format!("{error:?}")))?;
+        return Ok(bytes);
+    }
     let canonical = match kind {
         "value/empty" if literal == "empty" => Some(Vec::new()),
         "value/text" => crate::text_value::parse_quoted_text(literal).map(|text| text.into_bytes()),
@@ -41,7 +51,9 @@ pub(super) fn canonical_leaf_literal(
             "true" => Some(conduit_core::InfoBool::TRUE.encode().to_vec()),
             _ => None,
         },
-        "value/scalar" => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
+        "value/scalar" => crate::expression_scalar::checked_scalar_source(literal)
+            .ok().and_then(|(value, _)| value.canonical_bytes().ok()),
+        conduit_core::MICRO_SCALAR_INFO_ID => parse_scalar_literal(literal).map(|value| value.encode().to_vec()),
         conduit_core::F32_INFO_ID | conduit_core::F64_INFO_ID => {
             crate::value_type::refinement::checked_float_literal(kind, literal).ok()
         }
@@ -95,7 +107,7 @@ pub(super) fn canonical_leaf_literal(
     })
 }
 
-pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> {
+pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::MicroScalar> {
     let (negative, value) = value
         .strip_prefix('-')
         .map_or((false, value), |value| (true, value));
@@ -121,7 +133,7 @@ pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> 
         parse_decimal_magnitude(fraction_digits)?
     };
     let magnitude = whole
-        .checked_mul(conduit_core::Scalar::SCALE as u64)
+        .checked_mul(conduit_core::MicroScalar::SCALE as u64)
         .and_then(|whole| {
             whole.checked_add(fraction * 10_u64.pow((6 - fraction_digits.len()) as u32))
         })?;
@@ -134,7 +146,7 @@ pub(crate) fn parse_scalar_literal(value: &str) -> Option<conduit_core::Scalar> 
     } else {
         i64::try_from(magnitude).ok()?
     };
-    Some(conduit_core::Scalar::from_raw_microunits(raw))
+    Some(conduit_core::MicroScalar::from_raw_microunits(raw))
 }
 
 fn parse_decimal_magnitude(value: &str) -> Option<u64> {

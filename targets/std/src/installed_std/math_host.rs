@@ -1,13 +1,14 @@
 //! Exact hosted math request matching and completion.
 
 use super::{math_backs, InstalledScheduler};
-use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment, SCALAR_ENCODED_LEN};
+use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment};
 use conduit_kernel::scheduler::HostCallRequest;
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome};
 
 pub(super) struct MathHost {
     bindings: [(HostCallContractId, KindId); 5],
     quantity_info_prefix: Vec<u8>,
+    quantity_info_kind: KindId,
     mappings: [Option<conduit_semantic_catalog::QuantityMapping>; super::MAX_NODES],
     failures: [Option<(HostCallRequest, conduit_kernel::Failure)>; super::MAX_NODES],
     terminal_failure: Option<(HostCallRequest, conduit_kernel::Failure)>,
@@ -15,7 +16,7 @@ pub(super) struct MathHost {
 
 impl MathHost {
     pub(super) fn prepare(fragment: &PlanFragment) -> Result<Self, String> {
-        let mut mappings = [None; super::MAX_NODES];
+        let mut mappings = core::array::from_fn(|_| None);
         for (index, placement) in fragment.placements.iter().enumerate() {
             if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
                 *mappings
@@ -27,6 +28,7 @@ impl MathHost {
         Ok(Self {
             mappings,
             quantity_info_prefix: conduit_semantic_catalog::quantity_info_prefix(),
+            quantity_info_kind: conduit_semantic_catalog::quantity_info_leaf_kind(),
             failures: [None; super::MAX_NODES],
             terminal_failure: None,
             bindings: [
@@ -78,7 +80,7 @@ impl MathHost {
             .host_value(request.input.value)
             .map_err(|error| format!("read math scalar input: {error:?}"))?;
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_INFO_WRAP_KIND {
-            let outcome = if conduit_core::Quantity::decode(input).is_err() {
+            let outcome = if conduit_core::validate_primitive_info(self.quantity_info_kind.as_str(), input).is_err() {
                 HostCallOutcome {
                     disposition: HostCallDisposition::Failed,
                     output: None,
@@ -90,9 +92,14 @@ impl MathHost {
             } else {
                 let mut encoded = [0; conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES];
                 let prefix_len = self.quantity_info_prefix.len();
-                let length = prefix_len + input.len();
+                let length = prefix_len + 4 + input.len();
+                if length > encoded.len() {
+                    return Err("Quantity envelope exceeds selected bound".into());
+                }
                 encoded[..prefix_len].copy_from_slice(&self.quantity_info_prefix);
-                encoded[prefix_len..length].copy_from_slice(input);
+                encoded[prefix_len..prefix_len + 4]
+                    .copy_from_slice(&(input.len() as u32).to_le_bytes());
+                encoded[prefix_len + 4..length].copy_from_slice(input);
                 let value = scheduler
                     .store_host_value(&encoded[..length])
                     .map_err(|error| format!("store structured Quantity: {error:?}"))?;
@@ -115,6 +122,7 @@ impl MathHost {
         }
         if placement.kind_id.as_str() == conduit_semantic_catalog::QUANTITY_MAP_KIND {
             let mapping = self.mappings[usize::from(request.node.0)]
+                .as_ref()
                 .ok_or("quantity mapping was not prepared before Play")?;
             let outcome = match super::quantity_mapping::transform(mapping, input) {
                 Ok(encoded) => {
@@ -124,7 +132,7 @@ impl MathHost {
                     HostCallOutcome {
                         disposition: HostCallDisposition::Completed,
                         output: Some(
-                            BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                            BoundedValueRef::new(value, encoded.len() as u32)
                                 .map_err(|error| format!("bound quantity output: {error:?}"))?,
                         ),
                         failure: None,
@@ -156,7 +164,7 @@ impl MathHost {
                 HostCallOutcome {
                     disposition: HostCallDisposition::Completed,
                     output: Some(
-                        BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
+                        BoundedValueRef::new(value, encoded.len() as u32)
                             .map_err(|error| format!("bound math scalar output: {error:?}"))?,
                     ),
                     failure: None,

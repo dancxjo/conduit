@@ -21,9 +21,9 @@ pub(crate) use parse::{
     parse_unit_declaration,
 };
 pub(crate) use registry::{check_physical_declarations, CheckedPhysicalCatalogue};
-pub(crate) use scalar::check_exact_scalar;
 #[cfg(test)]
 use scalar::ExactScalar;
+pub(crate) use scalar::{check_exact_scalar, check_mathematical_scalar};
 pub use syntax::*;
 
 use crate::prelude::*;

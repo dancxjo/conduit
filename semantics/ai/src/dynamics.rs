@@ -3,8 +3,8 @@
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::{PlannedStateBoundary, StateContinuation, Unit};
 use conduit_data::{
-    tensor_content_digest, SampledSignal, SignalCadence, SignalStart, TensorBacking, TensorElement,
-    TensorValue,
+    SampledSignal, SignalCadence, SignalStart, TensorBacking, TensorElement, TensorValue,
+    tensor_content_digest,
 };
 
 use crate::{
@@ -24,7 +24,7 @@ pub enum DynamicsProfile {
     },
 }
 
-#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone, PartialEq, Eq)]
 pub struct IntegrationInterval {
     pub start: i64,
     pub end: i64,
@@ -129,7 +129,7 @@ impl IntegrateContract {
         nonzero(self.identity)?;
         nonzero(self.vector_field_artifact_identity)?;
         self.interval.validate()?;
-        self.sampling.validate_for(self.interval, self.resources)?;
+        self.sampling.validate_for(&self.interval, self.resources)?;
         if !matches!(self.profile, DynamicsProfile::DeterministicOde) {
             return Err(DynamicsRefusal::UnsupportedStochasticProfile);
         }
@@ -169,7 +169,7 @@ impl IntegrateContract {
                 return Ok(IntegrationOutcome::NotCommitted {
                     terminal,
                     retained_generation: request.initial_state.generation,
-                })
+                });
             }
         };
         candidate.validate_for(self, request)?;
@@ -213,8 +213,8 @@ impl IntegrateContract {
 }
 
 impl IntegrationInterval {
-    fn validate(self) -> Result<(), DynamicsRefusal> {
-        if self.start >= self.end || !time_unit(self.unit) {
+    fn validate(&self) -> Result<(), DynamicsRefusal> {
+        if self.start >= self.end || !time_unit(&self.unit) {
             Err(DynamicsRefusal::InvalidTime)
         } else {
             Ok(())
@@ -225,7 +225,7 @@ impl IntegrationInterval {
 impl OutputSamplingGrid {
     fn validate_for(
         &self,
-        interval: IntegrationInterval,
+        interval: &IntegrationInterval,
         resources: IntegrationResourceEnvelope,
     ) -> Result<(), DynamicsRefusal> {
         text(&self.clock_identity)?;
@@ -330,7 +330,7 @@ impl IntegrationCandidate {
             .collect::<Vec<_>>();
         if coordinates.element != TensorElement::I64
             || coordinates.dimensions.as_slice() != [contract.sampling.coordinates.len() as u64]
-            || coordinates.axes[0].unit != Some(contract.interval.unit)
+            || coordinates.axes[0].unit != Some(contract.interval.unit.clone())
             || coordinates.content_digest != tensor_content_digest(&expected_coordinates)
             || !matches!(&coordinates.backing, TensorBacking::Inline(bytes) if bytes.as_slice() == expected_coordinates)
         {
@@ -400,11 +400,15 @@ impl SolverRealization {
     }
 }
 
-fn time_unit(unit: Unit) -> bool {
-    matches!(
-        unit,
-        Unit::Second | Unit::Millisecond | Unit::Microsecond | Unit::Nanosecond
-    )
+fn time_unit(unit: &Unit) -> bool {
+    [
+        Unit::Second,
+        Unit::Millisecond,
+        Unit::Microsecond,
+        Unit::Nanosecond,
+    ]
+    .iter()
+    .any(|allowed| unit.same_physical_definition(allowed))
 }
 
 fn text(value: &str) -> Result<(), DynamicsRefusal> {

@@ -1,6 +1,6 @@
 //! Fixed-storage Backs for the portable current Scalar selector.
 
-use conduit_core::{BOOL_ENCODED_LEN, InfoBool, SCALAR_ENCODED_LEN, Scalar};
+use conduit_core::{BOOL_ENCODED_LEN, InfoBool};
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::{CanonicalValue, PortId, ValueRef};
 
@@ -13,7 +13,7 @@ pub(super) enum StateSelectBack {
     },
     Select {
         selector: Option<bool>,
-        candidates: [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
+        candidates: [Option<super::scalar_bytes::ScalarBytes>; 2],
         closed: [bool; 3],
         input_cursor: usize,
     },
@@ -30,7 +30,7 @@ impl StateSelectBack {
         port: PortId,
         value: ValueRef,
         canonical: &[u8],
-    ) -> Result<Option<[u8; SCALAR_ENCODED_LEN]>, conduit_kernel::Failure> {
+    ) -> Result<Option<super::scalar_bytes::ScalarBytes>, conduit_kernel::Failure> {
         let Self::Select {
             selector,
             candidates,
@@ -120,7 +120,7 @@ fn step_source(
         .request_host_call(
             conduit_kernel::RequestId(0),
             conduit_kernel::HostCallId(0),
-            conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
+            conduit_kernel::BoundedValueRef::new(value, 128)
                 .expect("source values fit the Scalar upper bound"),
         )
         .is_err()
@@ -133,7 +133,7 @@ fn step_source(
 
 fn step_select(
     selector: &mut Option<bool>,
-    candidates: &mut [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
+    candidates: &mut [Option<super::scalar_bytes::ScalarBytes>; 2],
     closed: &mut [bool; 3],
     input_cursor: &mut usize,
     io: &mut StepIo<PORTS>,
@@ -168,7 +168,8 @@ fn step_select(
                 && io
                     .send_canonical(
                         PortId(0),
-                        CanonicalValue::new(&value).expect("Scalar fits the canonical value bound"),
+                        CanonicalValue::new(value.encoded())
+                            .expect("Scalar fits the canonical value bound"),
                     )
                     .is_err()
             {
@@ -196,23 +197,23 @@ fn step_select(
 
 fn accept_select(
     selector: &mut Option<bool>,
-    candidates: &mut [Option<[u8; SCALAR_ENCODED_LEN]>; 2],
+    candidates: &mut [Option<super::scalar_bytes::ScalarBytes>; 2],
     closed: &[bool; 3],
     port: PortId,
     value: ValueRef,
     canonical: &[u8],
-) -> Result<Option<[u8; SCALAR_ENCODED_LEN]>, conduit_kernel::Failure> {
+) -> Result<Option<super::scalar_bytes::ScalarBytes>, conduit_kernel::Failure> {
+    if value.byte_len as usize != canonical.len() {
+        return Err(failure(72));
+    }
     match port {
         PortId(0) if value.byte_len == BOOL_ENCODED_LEN as u32 && !closed[0] => {
             let decoded = InfoBool::decode(canonical).map_err(|_| failure(72))?;
             *selector = Some(decoded.get());
         }
-        PortId(1) | PortId(2)
-            if value.byte_len == SCALAR_ENCODED_LEN as u32 && !closed[usize::from(port.0)] =>
-        {
-            Scalar::decode(canonical).map_err(|_| failure(72))?;
+        PortId(1) | PortId(2) if value.byte_len <= 128 && !closed[usize::from(port.0)] => {
             candidates[usize::from(port.0 - 1)] =
-                Some(canonical.try_into().map_err(|_| failure(72))?);
+                Some(super::scalar_bytes::ScalarBytes::new(canonical).map_err(|_| failure(72))?);
         }
         _ => return Err(failure(72)),
     }
@@ -237,7 +238,7 @@ fn step_sink(pending: &mut bool, next_request: &mut u32, io: &mut StepIo<PORTS>)
         return StepOutcome::Progress;
     }
     if let Some(value) = io.input(PortId(0)) {
-        if value.byte_len != SCALAR_ENCODED_LEN as u32 {
+        if value.byte_len > 128 {
             return invalid(71);
         }
         let request = conduit_kernel::RequestId(*next_request);
@@ -246,7 +247,7 @@ fn step_sink(pending: &mut bool, next_request: &mut u32, io: &mut StepIo<PORTS>)
                 .request_host_call(
                     request,
                     conduit_kernel::HostCallId(0),
-                    conduit_kernel::BoundedValueRef::new(value, SCALAR_ENCODED_LEN as u32)
+                    conduit_kernel::BoundedValueRef::new(value, 128)
                         .expect("exact Scalar length is within the sink bound"),
                 )
                 .is_err()

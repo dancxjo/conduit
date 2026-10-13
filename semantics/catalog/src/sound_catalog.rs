@@ -133,6 +133,7 @@ fn configuration_source(value: &ConfigurationValue) -> String {
         ConfigurationValue::Text(value) => format!("{value:?}"),
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => value.to_string(),
+        ConfigurationValue::Scalar(value) => value.source_expression().expect("checked Scalar source"),
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(value) => format!(
             "<structured:{}:{}-bytes>",

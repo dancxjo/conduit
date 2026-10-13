@@ -46,12 +46,12 @@ pub fn prepare_logic_multi(
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut catalog)
         .map_err(|_| LogicMultiError::Catalog)?;
     let sources = [
-        (LEFT_KIND, left),
-        (RIGHT_KIND, right),
-        (FALSE_KIND, when_false),
-        (TRUE_KIND, when_true),
+        (LEFT_KIND, left.clone()),
+        (RIGHT_KIND, right.clone()),
+        (FALSE_KIND, when_false.clone()),
+        (TRUE_KIND, when_true.clone()),
     ];
-    for (kind, value) in sources {
+    for (kind, value) in sources.clone() {
         let offer = source_offer(kind, value);
         catalog
             .insert(conduit_plot::KindProjection {
@@ -96,7 +96,7 @@ pub fn prepare_logic_multi(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            connection_byte_capacity: 128 as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -152,7 +152,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
         capability_id: CapabilityId::from(format!(
             "conduitos-fixture-{}-{}@1",
             kind.rsplit('/').next().unwrap_or("logic"),
-            value.raw_microunits()
+            super::scalar_bytes::digest_hex(value.representation_identity().expect("canonical scalar"))
         )),
         kind_id: kind_id(kind),
         kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
@@ -166,7 +166,7 @@ fn source_offer(kind: &str, value: Scalar) -> CapabilityOffer {
         inputs: Vec::new(),
         outputs: vec![PortDescriptor {
             port_id: port_id("value"),
-            value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+            value_kind: kind_id(&conduit_semantic_catalog::scalar_info_id()),
             direction: PortDirection::Output,
             temporal: PortTemporal::Value,
             abnormal_kind: None,
@@ -186,7 +186,7 @@ fn sink_offer() -> CapabilityOffer {
         ImplementationId::from("conduitos.fixture/logic-sink@1");
     offer.inputs = vec![PortDescriptor {
         port_id: port_id("value"),
-        value_kind: kind_id(conduit_core::SCALAR_INFO_ID),
+        value_kind: kind_id(&conduit_semantic_catalog::scalar_info_id()),
         direction: PortDirection::Input,
         temporal: PortTemporal::Value,
         abnormal_kind: None,
@@ -196,7 +196,7 @@ fn sink_offer() -> CapabilityOffer {
         contract_id: conduit_core::HostCallContractId::from(SINK_HOST_CALL),
         target_kind: Some(kind_id(SINK_KIND)),
         maximum_in_flight: 1,
-        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        maximum_input_bytes: 128 as u32,
         maximum_output_bytes: 0,
     }];
     offer
@@ -206,6 +206,6 @@ fn limits() -> CapabilityLimits {
     CapabilityLimits {
         max_active_instances: 1,
         max_queue_items: 1,
-        max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+        max_queue_bytes: 128 as u32,
     }
 }

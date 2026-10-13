@@ -128,7 +128,7 @@ fn configured_duration(placement: &PlannedGear) -> Result<u64, String> {
     };
     value
         .value()
-        .convert_to_u64(Unit::Millisecond)
+        .convert_to_u64(&Unit::Millisecond)
         .map_err(|_| "time/window duration must be exact nonnegative milliseconds".to_string())
 }
 

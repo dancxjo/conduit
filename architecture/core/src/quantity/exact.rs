@@ -1,162 +1,115 @@
-//! One canonical bounded decimal Quantity representation.
-//!
-//! Numeric domain projections require explicit checked integer admission.
-//! This codec admits exact decimal coordinates, not arbitrary rational output
-//! or an implicit rounding policy. Target admission remains a separate contract.
-
-use crate::QuantityRole;
-use crate::{Unit, UnitRefusal};
-
-pub const QUANTITY_INFO_ID: &str = "value/quantity@1";
-pub const QUANTITY_ENCODED_LEN: usize = 20 + crate::UNIT_ENCODED_LEN;
-pub const QUANTITY_MAX_SIGNIFICANT_DIGITS: usize = 38;
+//! Exact mathematical Quantity construction and explicit local projections.
+pub use super::numeric_quantity::{
+    MAX_QUANTITY_ENCODED_BYTES, Quantity, QuantityNumericRefusal, QuantityRef,
+};
+use crate::{MathValue, NumericRefusal, QuantityRole, Unit, UnitRefusal};
+pub const QUANTITY_INFO_ID: &str = "value/quantity@2";
 pub const QUANTITY_MAX_NUMBER_BYTES: usize = 96;
 pub const QUANTITY_MAX_LITERAL_BYTES: usize = 384;
-pub const QUANTITY_MAX_EXPONENT: i16 = 128;
-const MAX_COEFFICIENT: i128 = 10_i128.pow(38) - 1;
-
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord)]
-pub struct Quantity {
-    coefficient: i128,
-    exponent: i16,
-    unit: Unit,
-    role: QuantityRole,
-}
-
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum QuantityRefusal {
     LiteralTooLong,
     NumberTooLong,
     InvalidNumber,
     UnsupportedExponentNotation,
-    SignificantDigitsExceeded,
-    ExponentOutOfRange,
-    Unit(UnitRefusal),
     InvalidRole,
-    WrongEncodingLength,
-    UnsupportedEncodingVersion(u8),
-    InvalidUnit(UnitRefusal),
-    NonCanonicalEncoding,
+    Unit(UnitRefusal),
+    Numeric(NumericRefusal),
+    Carrier(super::numeric_quantity::QuantityNumericRefusal),
 }
-
+impl From<NumericRefusal> for QuantityRefusal {
+    fn from(value: NumericRefusal) -> Self {
+        Self::Numeric(value)
+    }
+}
+impl From<super::numeric_quantity::QuantityNumericRefusal> for QuantityRefusal {
+    fn from(value: super::numeric_quantity::QuantityNumericRefusal) -> Self {
+        Self::Carrier(value)
+    }
+}
 impl Quantity {
-    /// Integer construction is exact; general decimal construction is checked.
-    pub const fn new(value: i64, unit: Unit) -> Self {
-        let mut coefficient = value as i128;
-        let mut exponent = 0;
-        if coefficient != 0 {
-            while coefficient % 10 == 0 {
-                coefficient /= 10;
-                exponent += 1;
-            }
-        }
-        Self {
-            coefficient,
-            exponent,
-            unit,
-            role: unit.declared_role(),
-        }
+    pub fn new(value: i64, unit: Unit) -> Self {
+        Self::from_math(MathValue::integer(value), &unit).expect("bounded integer quantity")
     }
-
-    /// Bounded canonical authored evidence. Values without an admitted literal
-    /// spelling refuse rather than inventing unsupported exponent notation.
-    pub fn canonical_literal(self) -> Result<alloc::string::String, QuantityRefusal> {
-        use alloc::string::ToString;
-        let digits = self.coefficient.unsigned_abs().to_string();
-        let negative = self.coefficient < 0;
-        let mut number = alloc::string::String::new();
-        if negative {
-            number.push('-');
-        }
-        if self.exponent >= 0 {
-            number.push_str(&digits);
-            for _ in 0..self.exponent {
-                number.push('0');
-            }
-        } else {
-            let places = self.exponent.unsigned_abs() as usize;
-            if places < digits.len() {
-                let position = digits.len() - places;
-                number.push_str(&digits[..position]);
-                number.push('.');
-                number.push_str(&digits[position..]);
-            } else {
-                number.push_str("0.");
-                for _ in 0..places - digits.len() {
-                    number.push('0');
-                }
-                number.push_str(&digits);
-            }
-        }
-        if number.len() > QUANTITY_MAX_NUMBER_BYTES {
-            return Err(QuantityRefusal::NumberTooLong);
-        }
-        if self.role != self.unit.declared_role() {
-            let family = self.unit.family();
-            let name = family
-                .role_name(self.role)
-                .map_err(|_| QuantityRefusal::InvalidRole)?;
-            number = alloc::format!("{}({}, {})", name, number, self.unit.symbol());
-        } else {
-            number.push_str(self.unit.symbol());
-        }
-        if number.len() > QUANTITY_MAX_LITERAL_BYTES {
-            return Err(QuantityRefusal::LiteralTooLong);
-        }
-        Ok(number)
-    }
-
-    /// The coordinate is `coefficient * 10^exponent` in the reviewed unit.
-    /// Every field is checked before admission; normalization is bounded and
-    /// never changes the reviewed unit or materializes a large power of ten.
     pub fn from_decimal(
-        mut coefficient: i128,
-        mut exponent: i16,
+        coefficient: i128,
+        exponent: i16,
         unit: Unit,
     ) -> Result<Self, QuantityRefusal> {
-        if !(-QUANTITY_MAX_EXPONENT..=QUANTITY_MAX_EXPONENT).contains(&exponent) {
-            return Err(QuantityRefusal::ExponentOutOfRange);
-        }
-        if coefficient == 0 {
-            exponent = 0;
-        } else {
-            while coefficient % 10 == 0 && exponent < QUANTITY_MAX_EXPONENT {
-                coefficient /= 10;
-                exponent += 1;
-            }
-        }
-        if !(-MAX_COEFFICIENT..=MAX_COEFFICIENT).contains(&coefficient) {
-            return Err(QuantityRefusal::SignificantDigitsExceeded);
-        }
-        Ok(Self {
-            coefficient,
-            exponent,
-            unit,
-            role: unit.declared_role(),
-        })
+        Ok(Self::from_math(
+            MathValue::from_decimal_parts(coefficient, exponent)?,
+            &unit,
+        )?)
     }
-
     pub fn from_decimal_role(
         coefficient: i128,
         exponent: i16,
         unit: Unit,
         role: QuantityRole,
     ) -> Result<Self, QuantityRefusal> {
-        if !unit.family().admits(role) {
-            return Err(QuantityRefusal::InvalidRole);
-        }
-        let mut value = Self::from_decimal(coefficient, exponent, unit)?;
-        value.role = role;
-        Ok(value)
+        Ok(Self::from_math_role(
+            MathValue::from_decimal_parts(coefficient, exponent)?,
+            &unit,
+            role,
+        )?)
     }
-    pub const fn role(self) -> QuantityRole {
-        self.role
+    pub fn family(&self) -> crate::QuantityFamilyDefinition {
+        self.unit().family()
     }
-    pub const fn family(self) -> crate::QuantityFamilyDefinition {
-        self.unit.family()
+    pub fn dimension(&self) -> crate::DimensionDefinition {
+        self.family().dimension()
     }
-    pub fn matches_literal_evidence(self, source: &str) -> bool {
-        Self::parse_with_unit_evidence(source, self.unit, self.role).ok() == Some(self)
+    pub fn semantic_digest(&self) -> [u8; 32] {
+        crate::semantic_digest(QUANTITY_INFO_ID, &self.as_ref().identity())
+    }
+    pub fn convert_to_unit(
+        &self,
+        target: &Unit,
+    ) -> Result<MathValue, crate::QuantityConversionRefusal> {
+        self.as_ref()
+            .convert(target.as_ref())
+            .map_err(crate::QuantityConversionRefusal::from)?
+            .coordinate()
+            .to_owned()
+            .map_err(crate::QuantityConversionRefusal::Numeric)
+    }
+    pub fn convert(&self, target: &Unit) -> Result<Self, crate::QuantityConversionRefusal> {
+        self.as_ref().convert(target.as_ref()).map_err(Into::into)
+    }
+    pub fn compare(
+        &self,
+        other: &Self,
+    ) -> Result<Option<core::cmp::Ordering>, crate::QuantityConversionRefusal> {
+        self.as_ref().compare(other.as_ref()).map_err(Into::into)
+    }
+    pub fn to_i64(&self, target: &Unit) -> Result<i64, crate::QuantityConversionRefusal> {
+        let coordinate = self.convert_to_unit(target)?;
+        let bytes = coordinate
+            .canonical_bytes()
+            .map_err(crate::QuantityConversionRefusal::Numeric)?;
+        crate::MathValueRef::validate(&bytes)
+            .map_err(crate::QuantityConversionRefusal::Numeric)?
+            .checked_i64()
+            .map_err(|error| match error {
+                crate::NumericProjectionRefusal::Overflow => {
+                    crate::QuantityConversionRefusal::Overflow
+                }
+                crate::NumericProjectionRefusal::Budget(n) => {
+                    crate::QuantityConversionRefusal::Numeric(n)
+                }
+                _ => crate::QuantityConversionRefusal::Inexact,
+            })
+    }
+    pub fn to_u64(&self, target: &Unit) -> Result<u64, crate::QuantityConversionRefusal> {
+        self.as_ref().project_u64_in_unit(target.as_ref())
+    }
+    pub fn convert_to_u64(&self, target: &Unit) -> Result<u64, crate::QuantityConversionRefusal> {
+        self.to_u64(target)
+    }
+    pub fn matches_literal_evidence(&self, source: &str) -> bool {
+        let unit = self.unit().to_owned();
+        Self::parse_with_unit_evidence(source, unit, self.role())
+            .is_ok_and(|value| value.coordinate().encoded() == self.coordinate().encoded())
     }
     pub fn parse_with_unit_evidence(
         source: &str,
@@ -167,105 +120,60 @@ impl Quantity {
             return Err(QuantityRefusal::LiteralTooLong);
         }
         let source = source.trim();
-        let literal = if let Ok(name) = unit.family().role_name(role) {
-            if let Some(body) = source
-                .strip_prefix(name)
-                .map(str::trim_start)
-                .and_then(|body| body.strip_prefix('('))
-                .and_then(|body| body.strip_suffix(')'))
-            {
-                let (number, symbol) =
-                    body.split_once(',').ok_or(QuantityRefusal::InvalidNumber)?;
-                if !unit.matches_source_evidence(symbol.trim()) {
-                    return Err(QuantityRefusal::InvalidNumber);
-                }
-                return Self::parse_coordinate(number.trim(), unit, role);
-            } else {
-                source
+        let family = unit.family();
+        let name = family
+            .role_name(role)
+            .map_err(|_| QuantityRefusal::InvalidRole)?;
+        if let Some(body) = source
+            .strip_prefix(name)
+            .map(str::trim_start)
+            .and_then(|body| body.strip_prefix('('))
+            .and_then(|body| body.strip_suffix(')'))
+        {
+            let (number, symbol) = body.split_once(',').ok_or(QuantityRefusal::InvalidNumber)?;
+            if !unit.matches_source_evidence(symbol.trim()) {
+                return Err(QuantityRefusal::InvalidNumber);
             }
-        } else {
-            return Err(QuantityRefusal::InvalidRole);
-        };
+            return Self::parse_coordinate(number.trim(), unit, role);
+        }
         if role != unit.declared_role() {
             return Err(QuantityRefusal::InvalidRole);
         }
-        let number = literal
+        let number = source
             .strip_suffix(unit.symbol())
             .ok_or(QuantityRefusal::InvalidNumber)?;
         Self::parse_coordinate(number, unit, role)
     }
-    pub const fn coefficient(self) -> i128 {
-        self.coefficient
-    }
-    pub const fn exponent(self) -> i16 {
-        self.exponent
-    }
-    pub const fn unit(self) -> Unit {
-        self.unit
-    }
-
-    pub const fn dimension(self) -> crate::DimensionDefinition {
-        self.unit.dimension()
-    }
-
-    pub fn semantic_digest(self) -> [u8; 32] {
-        crate::semantic_digest(QUANTITY_INFO_ID, &self.encode())
-    }
-
-    pub fn parse_plot_literal(literal: &str) -> Result<Self, QuantityRefusal> {
-        if literal.len() > QUANTITY_MAX_LITERAL_BYTES {
+    pub fn parse_plot_literal(source: &str) -> Result<Self, QuantityRefusal> {
+        if source.len() > QUANTITY_MAX_LITERAL_BYTES {
             return Err(QuantityRefusal::LiteralTooLong);
         }
-        if let Some((role_name, arguments)) = literal.split_once('(') {
-            let arguments = arguments
+        if let Some((name, args)) = source.split_once('(') {
+            let (number, symbol) = args
                 .strip_suffix(')')
-                .ok_or(QuantityRefusal::InvalidRole)?;
-            let (number, symbol) = arguments
-                .split_once(',')
-                .ok_or(QuantityRefusal::InvalidRole)?;
+                .and_then(|args| args.split_once(','))
+                .ok_or(QuantityRefusal::InvalidNumber)?;
             let unit = Unit::resolve(symbol.trim()).map_err(QuantityRefusal::Unit)?;
-            let family = unit.family();
             let role = [
                 QuantityRole::Linear,
                 QuantityRole::Point,
                 QuantityRole::Delta,
             ]
             .into_iter()
-            .find(|role| family.role_name(*role).ok() == Some(role_name.trim()))
+            .find(|role| unit.family().role_name(*role).ok() == Some(name.trim()))
             .ok_or(QuantityRefusal::InvalidRole)?;
             return Self::parse_coordinate(number.trim(), unit, role);
         }
-        if literal.len() > QUANTITY_MAX_LITERAL_BYTES {
-            return Err(QuantityRefusal::LiteralTooLong);
-        }
-        let value_end = literal
+        let end = source
             .char_indices()
-            .find_map(|(index, character)| {
-                (!(character.is_ascii_digit()
-                    || character == '.'
-                    || (index == 0 && character == '-')))
-                    .then_some(index)
+            .find_map(|(index, c)| {
+                (!(c.is_ascii_digit() || c == '.' || (index == 0 && c == '-'))).then_some(index)
             })
-            .unwrap_or(literal.len());
-        let (number, suffix) = literal.split_at(value_end);
-        if number.is_empty() || number == "-" {
-            return Err(QuantityRefusal::InvalidNumber);
-        }
-        if number.len() > QUANTITY_MAX_NUMBER_BYTES {
-            return Err(QuantityRefusal::NumberTooLong);
-        }
-        // Scientific exponent syntax is not a second interpretation of a unit
-        // suffix. In particular, `Em` remains the reviewed exa-meter spelling.
-        if matches!(suffix.as_bytes().first(), Some(b'e' | b'E'))
-            && suffix
-                .as_bytes()
-                .get(1)
-                .is_some_and(|byte| byte.is_ascii_digit() || *byte == b'+' || *byte == b'-')
-        {
-            return Err(QuantityRefusal::UnsupportedExponentNotation);
-        }
-        let unit = Unit::resolve(suffix).map_err(QuantityRefusal::Unit)?;
-        Self::parse_coordinate(number, unit, unit.declared_role())
+            .unwrap_or(source.len());
+        let (number, symbol) = source.split_at(end);
+        let unit = Unit::resolve(symbol).map_err(QuantityRefusal::Unit)?;
+        let role = unit.declared_role();
+        Self::parse_coordinate(number, unit, role)
     }
     fn parse_coordinate(
         number: &str,
@@ -275,158 +183,54 @@ impl Quantity {
         if number.len() > QUANTITY_MAX_NUMBER_BYTES {
             return Err(QuantityRefusal::NumberTooLong);
         }
-        if number.is_empty() || number == "-" {
-            return Err(QuantityRefusal::InvalidNumber);
-        }
-        let prefix_exponent = 0;
-        let magnitude = number.strip_prefix('-').unwrap_or(number);
-        let (whole, fraction) = match magnitude.split_once('.') {
-            Some((whole, fraction)) if !fraction.is_empty() => (whole, fraction),
-            Some(_) => return Err(QuantityRefusal::InvalidNumber),
-            None => (magnitude, ""),
-        };
-        if whole.is_empty()
-            || !whole
-                .bytes()
-                .chain(fraction.bytes())
-                .all(|byte| byte.is_ascii_digit())
+        if number.is_empty()
+            || !number
+                .char_indices()
+                .all(|(i, c)| c.is_ascii_digit() || c == '.' || (i == 0 && c == '-'))
         {
             return Err(QuantityRefusal::InvalidNumber);
         }
-        let digits = || whole.bytes().chain(fraction.bytes());
-        let last_nonzero = digits()
-            .enumerate()
-            .filter(|(_, byte)| *byte != b'0')
-            .map(|(index, _)| index)
-            .last();
-        let Some(last_nonzero) = last_nonzero else {
-            return Self::from_decimal_role(0, 0, unit, role);
-        };
-        let trailing_zeroes = whole.len() + fraction.len() - last_nonzero - 1;
-        let mut coefficient = 0_i128;
-        let mut significant_digits = 0;
-        for byte in digits().take(last_nonzero + 1) {
-            if coefficient != 0 || byte != b'0' {
-                significant_digits += 1;
-                if significant_digits > QUANTITY_MAX_SIGNIFICANT_DIGITS {
-                    return Err(QuantityRefusal::SignificantDigitsExceeded);
-                }
-            }
-            coefficient = coefficient * 10 + i128::from(byte - b'0');
-        }
-        if number.starts_with('-') {
-            coefficient = -coefficient;
-        }
-        // The input bounds make these lengths exactly representable by i16.
-        let mut exponent = prefix_exponent - fraction.len() as i16 + trailing_zeroes as i16;
-        // A literal's folded scale is not an encoded exponent field. Use the
-        // remaining coefficient capacity before refusing its exact coordinate.
-        // At most 38 iterations fit; the next multiplication refuses.
-        while exponent > QUANTITY_MAX_EXPONENT {
-            coefficient = coefficient
-                .checked_mul(10)
-                .filter(|value| (-MAX_COEFFICIENT..=MAX_COEFFICIENT).contains(value))
-                .ok_or(QuantityRefusal::SignificantDigitsExceeded)?;
-            exponent -= 1;
-        }
-        Self::from_decimal_role(coefficient, exponent, unit, role)
+        Ok(Self::from_math_role(
+            MathValue::parse_decimal(number)?,
+            &unit,
+            role,
+        )?)
     }
-
-    /// Admit an integer coordinate for a selected domain realization, refusing
-    /// fractional precision and signed range overflow explicitly.
-    pub fn to_i64(self, target: Unit) -> Result<i64, crate::QuantityConversionRefusal> {
-        crate::quantity::wide_conversion::to_i64(self, target)
-    }
-
-    pub fn convert(self, target: Unit) -> Result<Self, crate::QuantityConversionRefusal> {
-        self.convert_to_decimal(target)
-    }
-
-    /// Explicit conversion into the bounded exact decimal target profile.
-    /// A non-terminating decimal refuses rather than rounding.
-    pub fn convert_to_decimal(
-        self,
-        target: Unit,
-    ) -> Result<Self, crate::QuantityConversionRefusal> {
-        crate::quantity::wide_conversion::to_decimal(self, target)
-    }
-
-    /// Explicit unsigned integer projection in the requested reviewed unit.
-    /// Uses the same exact conversion law, then checks integer precision and
-    /// the full unsigned range. No negative value or fraction is rounded.
-    pub fn convert_to_u64(self, target: Unit) -> Result<u64, crate::QuantityConversionRefusal> {
-        use crate::QuantityConversionRefusal as R;
-        let converted = self.convert_to_decimal(target)?;
-        if converted.coefficient < 0 {
-            return Err(R::Overflow);
+    pub fn canonical_literal(&self) -> Result<alloc::string::String, QuantityRefusal> {
+        let number = self
+            .coordinate()
+            .to_owned()?
+            .terminating_decimal_literal(QUANTITY_MAX_NUMBER_BYTES)?
+            .ok_or(QuantityRefusal::InvalidNumber)?;
+        if number.len() > QUANTITY_MAX_NUMBER_BYTES
+            || !number
+                .char_indices()
+                .all(|(i, c)| c.is_ascii_digit() || c == '.' || (i == 0 && c == '-'))
+        {
+            return Err(QuantityRefusal::InvalidNumber);
         }
-        if converted.exponent < 0 {
-            return Err(R::Inexact);
+        if self.role() == self.unit().declared_role() {
+            Ok(alloc::format!("{number}{}", self.unit().symbol()))
+        } else {
+            Ok(alloc::format!(
+                "{}({number}, {})",
+                self.family()
+                    .role_name(self.role())
+                    .map_err(|_| QuantityRefusal::InvalidRole)?,
+                self.unit().symbol()
+            ))
         }
-        let coefficient = u64::try_from(converted.coefficient).map_err(|_| R::Overflow)?;
-        let scale = 10_u64
-            .checked_pow(converted.exponent as u32)
-            .ok_or(R::Overflow)?;
-        coefficient.checked_mul(scale).ok_or(R::Overflow)
-    }
-
-    /// Compare physical values in a common exact rational reference, without
-    /// selecting a lossy unit or increasing the fixed arithmetic capacity.
-    pub fn compare(
-        self,
-        other: Self,
-    ) -> Result<core::cmp::Ordering, crate::QuantityConversionRefusal> {
-        crate::quantity::wide_conversion::compare(self, other)
-    }
-
-    pub fn encode(self) -> [u8; QUANTITY_ENCODED_LEN] {
-        let mut bytes = [0; QUANTITY_ENCODED_LEN];
-        bytes[0] = 1;
-        bytes[1] = match self.role {
-            QuantityRole::Linear => 0,
-            QuantityRole::Point => 1,
-            QuantityRole::Delta => 2,
-        };
-        let end = 2 + crate::UNIT_ENCODED_LEN;
-        bytes[2..end].copy_from_slice(&self.unit.encode());
-        bytes[end..end + 2].copy_from_slice(&self.exponent.to_le_bytes());
-        bytes[end + 2..].copy_from_slice(&self.coefficient.to_le_bytes());
-        bytes
-    }
-    pub fn decode(bytes: &[u8]) -> Result<Self, QuantityRefusal> {
-        if bytes.len() != QUANTITY_ENCODED_LEN {
-            return Err(QuantityRefusal::WrongEncodingLength);
-        }
-        if bytes[0] != 1 {
-            return Err(QuantityRefusal::UnsupportedEncodingVersion(bytes[0]));
-        }
-        let role = match bytes[1] {
-            0 => QuantityRole::Linear,
-            1 => QuantityRole::Point,
-            2 => QuantityRole::Delta,
-            _ => return Err(QuantityRefusal::InvalidRole),
-        };
-        let end = 2 + crate::UNIT_ENCODED_LEN;
-        let unit = Unit::decode(&bytes[2..end]).map_err(QuantityRefusal::InvalidUnit)?;
-        let exponent = i16::from_le_bytes(bytes[end..end + 2].try_into().unwrap());
-        let coefficient = i128::from_le_bytes(bytes[end + 2..].try_into().unwrap());
-        let value = Self::from_decimal_role(coefficient, exponent, unit, role)?;
-        if value.encode() != bytes {
-            return Err(QuantityRefusal::NonCanonicalEncoding);
-        }
-        Ok(value)
     }
 }
-
 impl serde::Serialize for Quantity {
-    fn serialize<S: serde::Serializer>(&self, serializer: S) -> Result<S::Ok, S::Error> {
-        serde::Serialize::serialize(self.encode().as_slice(), serializer)
+    fn serialize<S: serde::Serializer>(&self, s: S) -> Result<S::Ok, S::Error> {
+        serde::Serialize::serialize(self.encoded(), s)
     }
 }
 impl<'de> serde::Deserialize<'de> for Quantity {
-    fn deserialize<D: serde::Deserializer<'de>>(deserializer: D) -> Result<Self, D::Error> {
+    fn deserialize<D: serde::Deserializer<'de>>(d: D) -> Result<Self, D::Error> {
         let bytes =
-            crate::physical_definition::deserialize_fixed::<D, QUANTITY_ENCODED_LEN>(deserializer)?;
-        Self::decode(&bytes).map_err(|_| serde::de::Error::custom("invalid canonical Quantity"))
+            crate::physical_definition::deserialize_bounded::<D, MAX_QUANTITY_ENCODED_BYTES>(d)?;
+        Self::decode(&bytes).map_err(|_| serde::de::Error::custom("invalid mathematical Quantity"))
     }
 }

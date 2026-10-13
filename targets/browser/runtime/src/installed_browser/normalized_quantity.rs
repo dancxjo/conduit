@@ -64,7 +64,7 @@ fn offer_for(ratio: bool) -> CapabilityOffer {
                 target_kind,
                 maximum_in_flight: 1,
                 maximum_input_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
-                maximum_output_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                maximum_output_bytes: conduit_semantic_catalog::QUANTITY_INFO_MAXIMUM_BYTES as u32,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -102,22 +102,22 @@ fn prepare_for(placement: &conduit_core::PlannedGear, ratio: bool) -> Result<Bro
     }))
 }
 
-pub(crate) fn transform(input: &[u8]) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
+pub(crate) fn transform(input: &[u8]) -> Result<Vec<u8>, Failure> {
     transform_with(input, &CONVERTER)
 }
 pub(crate) fn transform_ratio(
     input: &[u8],
-) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
+) -> Result<Vec<u8>, Failure> {
     transform_with(input, &RATIO_CONVERTER)
 }
 fn transform_with(
     input: &[u8],
     converter: &OnceLock<PreparedNormalizedQuantity>,
-) -> Result<[u8; conduit_core::SCALAR_ENCODED_LEN], Failure> {
+) -> Result<Vec<u8>, Failure> {
     let converter = converter.get().ok_or(failure(14))?;
     converter
         .convert(input)
-        .map(|value| value.encode())
+        .and_then(|value| value.canonical_bytes().map_err(|_| NormalizedQuantityRefusal::OutOfDomain))
         .map_err(|error| {
             failure(match error {
                 NormalizedQuantityRefusal::MalformedOrWrongType => 11,
@@ -223,7 +223,7 @@ mod tests {
         };
         assert_eq!(
             transform(&leaf(250_000, conduit_core::Unit::Millionth)),
-            Ok(conduit_core::Scalar::from_raw_microunits(250_000).encode())
+            Ok(conduit_core::Scalar::from_decimal_parts(250_000, -6).unwrap().canonical_bytes().unwrap())
         );
         for (bytes, detail) in [
             (Vec::new(), 11),

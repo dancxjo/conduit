@@ -28,13 +28,13 @@ impl MeasurementWindowProfile {
             return Err(MeasurementWindowRefusal::InvalidClockProfile);
         }
         if self.range.minimum.role() != self.range.maximum.role()
-            || self.range.minimum.unit() != self.range.maximum.unit()
+            || !self.range.minimum.unit().same_physical_definition(self.range.maximum.unit())
             || self
                 .range
                 .minimum
-                .compare(self.range.maximum)
+                .as_ref().compare_borrowed(self.range.maximum.as_ref())
                 .map_err(|_| MeasurementWindowRefusal::InvalidRange)?
-                == core::cmp::Ordering::Greater
+                .ok_or(MeasurementWindowRefusal::InvalidRange)? == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::InvalidRange);
         }
@@ -108,33 +108,33 @@ impl BoundedMeasurementWindow {
             .validate()
             .map_err(|_| MeasurementWindowRefusal::InvalidTimestamp)?;
         let unit = self.profile.range.minimum.unit();
-        if sample.value.role() != self.profile.range.minimum.role() || sample.value.unit() != unit {
+        if sample.value.role() != self.profile.range.minimum.role() || !sample.value.unit().same_physical_definition(unit) {
             return Err(MeasurementWindowRefusal::UnitMismatch);
         }
         if sample.observed_at.clock_basis != self.profile.clock_basis {
             return Err(MeasurementWindowRefusal::ClockMismatch);
         }
-        if let Some(uncertainty) = sample.uncertainty {
+        if let Some(uncertainty) = &sample.uncertainty {
             if sample.value.role() == conduit_core::QuantityRole::Point {
                 return Err(MeasurementWindowRefusal::PointDifferenceRequired);
             }
-            if uncertainty.role() != sample.value.role() || uncertainty.unit() != unit {
+            if uncertainty.role() != sample.value.role() || !uncertainty.unit().same_physical_definition(unit) {
                 return Err(MeasurementWindowRefusal::UncertaintyUnitMismatch);
             }
-            if uncertainty.coefficient() < 0 {
+            if !uncertainty.coordinate().proven_positive() && !uncertainty.coordinate().is_zero() {
                 return Err(MeasurementWindowRefusal::NegativeUncertainty);
             }
         }
         if sample
             .value
-            .compare(self.profile.range.minimum)
+            .as_ref().compare_borrowed(self.profile.range.minimum.as_ref())
             .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
-            == core::cmp::Ordering::Less
+            .ok_or(MeasurementWindowRefusal::OutOfRange)? == core::cmp::Ordering::Less
             || sample
                 .value
-                .compare(self.profile.range.maximum)
+                .as_ref().compare_borrowed(self.profile.range.maximum.as_ref())
                 .map_err(|_| MeasurementWindowRefusal::OutOfRange)?
-                == core::cmp::Ordering::Greater
+                .ok_or(MeasurementWindowRefusal::InvalidRange)? == core::cmp::Ordering::Greater
         {
             return Err(MeasurementWindowRefusal::OutOfRange);
         }

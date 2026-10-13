@@ -479,14 +479,9 @@ pub(super) fn decode_manifestation(
 }
 
 fn format_scalar(value: conduit_core::Scalar) -> String {
-    let raw = i128::from(value.raw_microunits());
-    let magnitude = raw.abs();
-    format!(
-        "{}{}.{:06}",
-        if raw < 0 { "-" } else { "" },
-        magnitude / i128::from(conduit_core::Scalar::SCALE),
-        magnitude % i128::from(conduit_core::Scalar::SCALE)
-    )
+    value
+        .source_expression()
+        .expect("admitted bounded mathematical Scalar")
 }
 
 pub(super) fn receipt(
@@ -530,9 +525,14 @@ pub(super) struct SnapshotEffect {
 }
 
 fn quantity_text(quantity: conduit_core::Quantity) -> String {
-    let magnitude = quantity
-        .to_i64(quantity.unit())
-        .map(|value| value.to_string())
-        .unwrap_or_else(|_| format!("{}e{}", quantity.coefficient(), quantity.exponent()));
-    format!("{magnitude} {}", quantity.unit().plot_suffix())
+    format!(
+        "{} {}",
+        quantity
+            .coordinate()
+            .to_owned()
+            .expect("admitted coordinate")
+            .source_expression()
+            .expect("bounded source"),
+        quantity.unit().symbol()
+    )
 }

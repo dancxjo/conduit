@@ -1,7 +1,5 @@
-use conduit_core::{
-    Quantity as Exact, Quantity, QuantityDimension, QuantityRefusal as Refusal, Unit,
-    QUANTITY_ENCODED_LEN,
-};
+use conduit_core::*;
+use core::cmp::Ordering;
 
 #[test]
 fn reviewed_units_and_prefixes_retain_coordinates_and_physical_equality() {
@@ -9,304 +7,134 @@ fn reviewed_units_and_prefixes_retain_coordinates_and_physical_equality() {
         "1Qm", "1qm", "1Qm³", "1qm³", "3.2m", "0.001km", "1000mm", "-1.50km", "440Hz", "250ms",
         "21°C", "1m°C", "1MiB", "1MB", "1um²",
     ] {
-        let quantity = Exact::parse_plot_literal(source).unwrap();
-        assert_eq!(Exact::decode(&quantity.encode()), Ok(quantity));
+        let quantity = Quantity::parse_plot_literal(source).unwrap();
+        assert_eq!(Quantity::decode(&quantity.encode()), Ok(quantity.clone()));
         assert_eq!(
-            quantity
-                .canonical_literal()
-                .and_then(|s| Exact::parse_plot_literal(&s)),
+            Quantity::parse_plot_literal(&quantity.canonical_literal().unwrap()),
             Ok(quantity)
         );
     }
-    let first = Exact::parse_plot_literal("1000mm").unwrap();
-    let second = Exact::parse_plot_literal("1m").unwrap();
+    let first = Quantity::parse_plot_literal("1000mm").unwrap();
+    let second = Quantity::parse_plot_literal("1m").unwrap();
     assert_ne!(first.encode(), second.encode());
-    assert_eq!(first.compare(second), Ok(core::cmp::Ordering::Equal));
+    assert_eq!(first.compare(&second), Ok(Some(Ordering::Equal)));
     assert_eq!(
-        second.compare(Exact::parse_plot_literal("0.001km").unwrap()),
-        Ok(core::cmp::Ordering::Equal)
+        second.compare(&Quantity::parse_plot_literal("0.001km").unwrap()),
+        Ok(Some(Ordering::Equal))
     );
 }
 
 #[test]
-fn all_reviewed_scales_match_the_independent_arbitrary_precision_corpus() {
+fn all_reviewed_scales_match_independent_arbitrary_precision_corpus() {
     let corpus: serde_json::Value =
         serde_json::from_str(include_str!("fixtures/quantity_prefix_scales.json")).unwrap();
-    let cases = corpus["cases"].as_array().unwrap();
-    assert_eq!(cases.len(), 456);
-    for case in cases {
-        let source = case["source"].as_str().unwrap();
-        let quantity = Exact::parse_plot_literal(source).unwrap();
-        let base = Unit::resolve(case["base"].as_str().unwrap()).unwrap();
-        let exponent =
-            quantity.exponent() + quantity.unit().decimal_exponent() - base.decimal_exponent();
-        let (numerator, denominator) = if exponent >= 0 {
-            (
-                format!(
-                    "{}{}",
-                    quantity.coefficient(),
-                    "0".repeat(exponent as usize)
-                ),
-                "1".to_owned(),
-            )
-        } else {
-            (
-                quantity.coefficient().to_string(),
-                format!("1{}", "0".repeat((-exponent) as usize)),
-            )
-        };
-        assert_eq!(
-            numerator,
-            case["relative_numerator"].as_str().unwrap(),
-            "{source}"
-        );
-        assert_eq!(
-            denominator,
-            case["relative_denominator"].as_str().unwrap(),
-            "{source}"
-        );
-    }
-}
-
-#[test]
-fn upper_exponent_literals_use_available_coefficient_capacity() {
-    for zeroes in [38, 39, 40, 75] {
-        for sign in [1_i128, -1] {
-            let literal = format!(
-                "{}1{}Qm³",
-                if sign < 0 { "-" } else { "" },
-                "0".repeat(zeroes)
-            );
-            let quantity = Exact::parse_plot_literal(&literal).unwrap();
-            let exponent = zeroes.min(128) as i16;
-            let coefficient = sign * 10_i128.pow((zeroes - exponent as usize) as u32);
-            assert_eq!(
-                quantity,
-                Exact::from_decimal(coefficient, exponent, Unit::resolve("Qm³").unwrap()).unwrap()
-            );
-            assert_eq!(Exact::decode(&quantity.encode()), Ok(quantity));
-            let receipt =
-                conduit_core::ExactQuantityConversionReceipt::check(&literal, "Qm³").unwrap();
-            assert_eq!(receipt.original(), literal);
-            assert_eq!(receipt.source(), quantity);
-            let projected = receipt.result().unwrap();
-            assert_eq!(
-                (projected.coefficient(), projected.exponent()),
-                (sign, zeroes as i16)
-            );
-        }
-    }
-    assert_eq!(
-        Exact::parse_plot_literal(&format!("1{}Qm³", "0".repeat(96))),
-        Err(Refusal::NumberTooLong)
-    );
-    // Codec fields remain bounded even when a literal can be rescaled exactly.
-    assert_eq!(
-        Exact::from_decimal(1, 129, Unit::CubicMeter),
-        Err(Refusal::ExponentOutOfRange)
-    );
-}
-
-#[test]
-fn bounded_precision_and_input_work_refuse_without_rounding() {
-    let largest = "9".repeat(38);
-    assert!(Exact::parse_plot_literal(&format!("{largest}m")).is_ok());
-    assert_eq!(
-        Exact::parse_plot_literal(&format!("{}m", "9".repeat(39))),
-        Err(Refusal::SignificantDigitsExceeded)
-    );
-    // Trailing zero padding consumes input work but not significand precision.
-    assert_eq!(
-        Exact::parse_plot_literal(&format!("1.{}m", "0".repeat(90))),
-        Exact::parse_plot_literal("1m")
-    );
-    assert_eq!(
-        Exact::parse_plot_literal(&format!("1.{}m", "0".repeat(95))),
-        Err(Refusal::NumberTooLong)
-    );
-    assert_eq!(
-        Exact::parse_plot_literal(&format!("{}m", "0".repeat(128))),
-        Err(Refusal::NumberTooLong)
-    );
-    assert_eq!(
-        Exact::from_decimal(1, -129, Unit::resolve("qm³").unwrap()),
-        Err(Refusal::ExponentOutOfRange)
-    );
-    for source in ["1e999999m", "1E+999m", "1e-999m"] {
-        assert_eq!(
-            Exact::parse_plot_literal(source),
-            Err(Refusal::UnsupportedExponentNotation)
-        );
-    }
-    assert_eq!(
-        Exact::parse_plot_literal("1Em")
-            .unwrap()
-            .unit()
-            .decimal_exponent(),
-        18
-    );
-    for source in ["", "-", "Hz", ".1m", "-.1m", "1.m", "1..2m"] {
-        assert_eq!(
-            Exact::parse_plot_literal(source),
-            Err(Refusal::InvalidNumber),
-            "{source}"
-        );
-    }
-    assert_eq!(
-        Exact::from_decimal(1, 129, Unit::Meter),
-        Err(Refusal::ExponentOutOfRange)
-    );
-    assert_eq!(
-        Exact::from_decimal(i128::MIN, 0, Unit::Meter),
-        Err(Refusal::SignificantDigitsExceeded)
-    );
-}
-
-#[test]
-fn versioned_encoding_is_canonical_and_rejects_other_codec_widths() {
-    let exact = Exact::parse_plot_literal("-0.000m").unwrap();
-    assert_eq!((exact.coefficient(), exact.exponent()), (0, 0));
-    let encoded = exact.encode();
-    assert_eq!(encoded.len(), QUANTITY_ENCODED_LEN);
-    assert_eq!(Exact::decode(&encoded), Ok(exact));
-    assert_eq!(Exact::decode(&[0; 9]), Err(Refusal::WrongEncodingLength));
-    let mut noncanonical = Exact::from_decimal(1, 0, Unit::Meter).unwrap().encode();
-    noncanonical[4 + conduit_core::UNIT_ENCODED_LEN..].copy_from_slice(&10_i128.to_le_bytes());
-    assert_eq!(
-        Exact::decode(&noncanonical),
-        Err(Refusal::NonCanonicalEncoding)
-    );
-    noncanonical[0] = 2;
-    assert_eq!(
-        Exact::decode(&noncanonical),
-        Err(Refusal::UnsupportedEncodingVersion(2))
-    );
-    let upper = Exact::from_decimal(100, 127, Unit::Meter).unwrap();
-    assert_eq!((upper.coefficient(), upper.exponent()), (10, 128));
-    assert_eq!(Exact::decode(&upper.encode()), Ok(upper));
-    assert_eq!(upper.dimension(), QuantityDimension::Length);
-}
-
-#[test]
-fn physical_conversion_and_comparison_keep_exact_scale_and_affine_laws() {
-    use conduit_core::QuantityConversionRefusal as Conversion;
-    use core::cmp::Ordering;
-    for (source, target, value) in [
-        ("1kHz", Unit::Hertz, 1000),
-        ("1µs", Unit::Nanosecond, 1000),
-        ("1cm²", Unit::SquareMillimeter, 100),
-        ("0°C", Unit::Millikelvin, 273150),
-        ("30°C", Unit::Fahrenheit, 86),
-        ("1m°C", Unit::Millikelvin, 273151),
-        ("1MiB", Unit::Byte, 1048576),
-        ("1MB", Unit::Byte, 1000000),
-        ("-9223372036854775808m", Unit::Meter, i64::MIN),
-    ] {
-        assert_eq!(
-            Exact::parse_plot_literal(source).unwrap().to_i64(target),
-            Ok(value),
-            "{source}"
-        );
-    }
-    for (left, right, ordering) in [
-        ("1000mm", "1m", Ordering::Equal),
-        ("0°C", "273.15K", Ordering::Equal),
-        ("30°C", "86°F", Ordering::Equal),
-        ("1Qm³", "1qm³", Ordering::Greater),
-        ("-1Qm³", "-1qm³", Ordering::Less),
-        ("1MB", "1MiB", Ordering::Less),
-    ] {
-        assert_eq!(
-            Exact::parse_plot_literal(left)
+    assert_eq!(corpus["cases"].as_array().unwrap().len(), 456);
+    for case in corpus["cases"].as_array().unwrap() {
+        let source = Quantity::parse_plot_literal(case["source"].as_str().unwrap()).unwrap();
+        let target = Unit::resolve(case["base"].as_str().unwrap()).unwrap();
+        let expected =
+            MathValue::from_integer_decimal(case["relative_numerator"].as_str().unwrap())
                 .unwrap()
-                .compare(Exact::parse_plot_literal(right).unwrap()),
-            Ok(ordering),
-            "{left} vs {right}"
-        );
-    }
-    for (source, target, refusal) in [
-        ("1Qm", Unit::Meter, Conversion::Overflow),
-        ("1qm", Unit::Meter, Conversion::Inexact),
-        ("0°C", Unit::Kelvin, Conversion::Inexact),
-        ("1m", Unit::Second, Conversion::IncompatibleDimensions),
-        ("1rad", Unit::Degree, Conversion::Inexact),
-    ] {
-        assert_eq!(
-            Exact::parse_plot_literal(source).unwrap().to_i64(target),
-            Err(refusal),
-            "{source}"
-        );
+                .checked_div(
+                    &MathValue::from_integer_decimal(
+                        case["relative_denominator"].as_str().unwrap(),
+                    )
+                    .unwrap(),
+                )
+                .unwrap();
+        assert_eq!(source.convert_to_unit(&target).unwrap(), expected, "{case}");
     }
 }
 
 #[test]
-fn extended_target_projection_admits_only_exact_bounded_decimals() {
-    use conduit_core::QuantityConversionRefusal as Conversion;
-    for (source, target, expected) in [
-        ("0°C", Unit::Kelvin, "273.15K"),
-        ("30°C", Unit::Fahrenheit, "86°F"),
-        ("86°F", Unit::Celsius, "30°C"),
-        ("1in", Unit::Meter, "0.0254m"),
-        ("1qm³", Unit::CubicMeter, "1qm³"),
-        ("1Qm³", Unit::CubicMeter, "1Qm³"),
-        ("0m", Unit::Inch, "0in"),
-        ("-273.15°C", Unit::Kelvin, "0K"),
-    ] {
-        let converted = Exact::parse_plot_literal(source)
-            .unwrap()
-            .convert_to_decimal(target)
-            .unwrap();
-        assert_eq!(converted.unit(), target);
-        assert_eq!(
-            converted.compare(Exact::parse_plot_literal(expected).unwrap()),
-            Ok(core::cmp::Ordering::Equal),
-            "{source}"
-        );
+fn mathematical_coordinates_exceed_the_old_decimal_exponent_and_coefficient_bounds() {
+    let huge = MathValue::integer(10)
+        .checked_pow(1000)
+        .unwrap()
+        .checked_add(&MathValue::integer(1))
+        .unwrap();
+    let q = Quantity::from_math(huge.clone(), &Unit::Meter).unwrap();
+    assert_eq!(q.convert_to_unit(&Unit::Meter), Ok(huge));
+    assert_eq!(Quantity::decode(q.encoded()), Ok(q));
+    assert!(Quantity::from_decimal(1, 500, Unit::Meter).is_ok());
+    assert!(Quantity::from_decimal(1, -500, Unit::Meter).is_ok());
+}
+
+#[test]
+fn native_literal_evidence_bounds_are_separate_from_mathematical_coordinates() {
+    assert!(Quantity::parse_plot_literal(&format!("{}m", "1".repeat(100))).is_err());
+    assert!(Quantity::parse_plot_literal("NaNm").is_err());
+    let third = MathValue::integer(1)
+        .checked_div(&MathValue::integer(3))
+        .unwrap();
+    let q = Quantity::from_math(third, &Unit::Meter).unwrap();
+    assert!(q.canonical_literal().is_err());
+    assert!(Quantity::decode(q.encoded()).is_ok());
+    assert!(Quantity::parse_plot_literal("1/3m").is_err());
+}
+
+#[test]
+fn canonical_codec_rejects_short_old_and_forged_encodings() {
+    for wire in [vec![], vec![0; 9], vec![0; 22], vec![0; 788]] {
+        assert!(Quantity::decode(&wire).is_err());
     }
+    let q = Quantity::parse_plot_literal("3.2m").unwrap();
+    let mut wire = q.encode();
+    wire[0] ^= 1;
+    assert!(Quantity::decode(&wire).is_err());
+    let mut wire = q.encode();
+    *wire.last_mut().unwrap() ^= 1;
+    assert!(Quantity::decode(&wire).is_err());
+    let mut wire = q.encode();
+    wire.push(0);
+    assert!(Quantity::decode(&wire).is_err());
+}
+
+#[test]
+fn exact_rational_affine_and_symbolic_relations_do_not_round() {
+    let inch = Quantity::parse_plot_literal("1m")
+        .unwrap()
+        .convert_to_unit(&Unit::Inch)
+        .unwrap();
     assert_eq!(
-        Exact::parse_plot_literal("1°F")
+        inch,
+        MathValue::integer(5000)
+            .checked_div(&MathValue::integer(127))
             .unwrap()
-            .convert_to_decimal(Unit::Celsius),
-        Err(Conversion::Inexact)
     );
+    let celsius = Quantity::parse_plot_literal("1°F")
+        .unwrap()
+        .convert_to_unit(&Unit::Celsius)
+        .unwrap();
     assert_eq!(
-        Exact::parse_plot_literal("1m")
+        celsius,
+        MathValue::integer(-155)
+            .checked_div(&MathValue::integer(9))
             .unwrap()
-            .convert_to_decimal(Unit::Inch),
-        Err(Conversion::Inexact)
     );
-    let largest = Exact::from_decimal(10_i128.pow(38) - 1, 128, Unit::Meter).unwrap();
-    assert_eq!(largest.convert_to_decimal(Unit::Meter), Ok(largest));
+    let turn = Quantity::from_math(
+        MathValue::pi().checked_div(&MathValue::integer(2)).unwrap(),
+        &Unit::Radian,
+    )
+    .unwrap();
     assert_eq!(
-        largest.convert_to_decimal(Unit::Millimeter),
-        Err(Conversion::Overflow)
-    );
-    let smallest = Exact::from_decimal(1, -128, Unit::Meter).unwrap();
-    assert_eq!(smallest.convert_to_decimal(Unit::Meter), Ok(smallest));
-    assert_eq!(
-        smallest.convert_to_decimal(Unit::Kilometer),
-        Err(Conversion::Overflow)
+        turn.convert_to_unit(&Unit::Turn),
+        Ok(MathValue::parse_decimal("0.25").unwrap())
     );
 }
 
 #[test]
-fn recognized_scales_are_values_and_integer_projection_is_explicit() {
-    for source in ["1Qm", "1qm", "1Qm³", "1qm³", "1um²", "1uW"] {
-        assert!(Quantity::parse_plot_literal(source).is_ok(), "{source}");
-    }
+fn integer_projection_is_explicit_and_checked() {
+    let q = Quantity::parse_plot_literal("1.5m").unwrap();
     assert_eq!(
-        Quantity::parse_plot_literal("1Qm")
-            .unwrap()
-            .to_i64(Unit::Meter),
-        Err(conduit_core::QuantityConversionRefusal::Overflow)
+        q.to_i64(&Unit::Meter),
+        Err(QuantityConversionRefusal::Inexact)
     );
+    assert_eq!(q.to_i64(&Unit::Millimeter), Ok(1500));
+    let negative = Quantity::parse_plot_literal("-1m").unwrap();
+    assert!(negative.to_u64(&Unit::Meter).is_err());
     assert_eq!(
-        Quantity::parse_plot_literal("1qm")
-            .unwrap()
-            .to_i64(Unit::Meter),
-        Err(conduit_core::QuantityConversionRefusal::Inexact)
+        q.convert_to_unit(&Unit::Hertz),
+        Err(QuantityConversionRefusal::IncompatibleDimensions)
     );
-    for source in ["1mkg", "1kkm", "1μm", "1qpx"] {
-        assert!(Quantity::parse_plot_literal(source).is_err());
-    }
 }

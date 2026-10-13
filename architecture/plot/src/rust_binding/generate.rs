@@ -604,7 +604,11 @@ pub(super) fn copy_type(value_type: &StructuredInfoType) -> bool {
     match value_type.shape() {
         StructuredInfoTypeShape::Leaf(kind) => !matches!(
             conduit_core::primitive_info_kind(kind.as_str()),
-            Some(PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes) | None
+            Some(PrimitiveInfoKind::Text | PrimitiveInfoKind::Bytes | PrimitiveInfoKind::MathematicalNumber
+                | PrimitiveInfoKind::Unit | PrimitiveInfoKind::Quantity | PrimitiveInfoKind::Distance
+                | PrimitiveInfoKind::Frequency | PrimitiveInfoKind::Duration | PrimitiveInfoKind::Voltage
+                | PrimitiveInfoKind::Temperature | PrimitiveInfoKind::Angle | PrimitiveInfoKind::Ratio
+                | PrimitiveInfoKind::PixelCount) | None
         ),
         StructuredInfoTypeShape::Nominal { representation, .. } => copy_type(representation),
         StructuredInfoTypeShape::Record { fields, .. } => {
@@ -708,7 +712,8 @@ pub(super) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         Some(PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest) => "()",
         Some(PrimitiveInfoKind::Bool) => "bool",
         Some(PrimitiveInfoKind::Count) => "u64",
-        Some(PrimitiveInfoKind::Scalar) => "conduit_core::Scalar",
+        Some(PrimitiveInfoKind::MicroScalar) => "conduit_core::MicroScalar",
+        Some(PrimitiveInfoKind::MathematicalNumber) => "conduit_core::MathValue",
         Some(PrimitiveInfoKind::Text) => "String",
         Some(PrimitiveInfoKind::Bytes) | None
             if identity.starts_with("data/generation-reference<") =>

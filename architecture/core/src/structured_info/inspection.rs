@@ -228,7 +228,7 @@ fn inspection_shape(
                 Some(alloc::boxed::Box::new(
                     StructuredInfoLeafSemantic::Quantity(
                         Quantity::decode(bytes)
-                            .map_err(StructuredInfoInspectionRefusal::InvalidQuantity)?,
+                            .map_err(|e|StructuredInfoInspectionRefusal::InvalidQuantity(e.into()))?,
                     ),
                 ))
             } else {

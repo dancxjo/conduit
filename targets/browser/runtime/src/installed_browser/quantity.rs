@@ -61,13 +61,13 @@ fn offer_for(
             contract_id: HOST_CALL.into(),
             target_kind,
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
-            maximum_output_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+            maximum_input_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
+            maximum_output_bytes: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
         }],
         Vec::new(),
         Vec::new(),
     );
-    offer.limits.max_queue_bytes = conduit_core::QUANTITY_ENCODED_LEN as u32;
+    offer.limits.max_queue_bytes = conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32;
     offer
 }
 
@@ -82,6 +82,7 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             })
             .ok_or_else(|| format!("quantity mapping requires integer '{key}'"))
     };
+    let scalar = |key: &str| placement.configuration.iter().find_map(|field| if field.key == key { if let ConfigurationValue::Scalar(value) = &field.value { Some(value.clone()) } else { None } } else { None }).ok_or_else(|| format!("quantity mapping requires exact Scalar '{key}'"));
     let text = |key: &str| {
         placement
             .configuration
@@ -92,9 +93,9 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             })
             .ok_or_else(|| format!("quantity mapping requires text '{key}'"))
     };
-    QuantityMapping {
-        source_minimum: Scalar::from_raw_microunits(number("source-minimum")?),
-        source_maximum: Scalar::from_raw_microunits(number("source-maximum")?),
+    let mapping = QuantityMapping {
+        source_minimum: scalar("source-minimum")?,
+        source_maximum: scalar("source-maximum")?,
         target_minimum: number("target-minimum")?,
         target_maximum: number("target-maximum")?,
         target_granularity: number("target-granularity")?,
@@ -120,9 +121,9 @@ pub(crate) fn configuration(placement: &PlannedGear) -> Result<QuantityMapping, 
             "nearest" => QuantizationPolicy::Nearest,
             _ => return Err("unknown quantity quantization policy".into()),
         },
-    }
-    .validate()
-    .map_err(|error| format!("quantity configuration: {error:?}"))
+    };
+    mapping.validate().map_err(|error| format!("quantity configuration: {error:?}"))?;
+    Ok(mapping)
 }
 
 fn prepare(
@@ -152,9 +153,9 @@ fn prepare(
 }
 
 pub(crate) fn transform(
-    mapping: QuantityMapping,
+    mapping: &QuantityMapping,
     input: &[u8],
-) -> Result<Result<[u8; conduit_core::QUANTITY_ENCODED_LEN], Failure>, String> {
+) -> Result<Result<Vec<u8>, Failure>, String> {
     Ok(Scalar::decode(input)
         .map_err(|_| failure(1))
         .and_then(|scalar| {
@@ -193,8 +194,8 @@ impl<const PORTS: usize> StepBack<PORTS> for QuantityBack {
             }
             match (outcome.disposition, outcome.output, outcome.failure) {
                 (HostCallDisposition::Completed, Some(output), None)
-                    if output.admitted_bytes == conduit_core::QUANTITY_ENCODED_LEN as u32
-                        && output.value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32 =>
+                    if output.admitted_bytes <= conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
+                        && output.value.byte_len <= conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32 =>
                 {
                     if !io.output_ready(PortId(0)) {
                         return StepOutcome::Await;
@@ -215,7 +216,7 @@ impl<const PORTS: usize> StepBack<PORTS> for QuantityBack {
         if let Some(value) = io.input(PortId(0)) {
             if !self.pending
                 && !self.cancelled
-                && value.byte_len == conduit_core::SCALAR_ENCODED_LEN as u32
+                && value.byte_len <= conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32
             {
                 let request = RequestId(self.next_request);
                 let Some(next_request) = self.next_request.checked_add(1) else {
@@ -224,7 +225,7 @@ impl<const PORTS: usize> StepBack<PORTS> for QuantityBack {
                         detail: 6,
                     });
                 };
-                let input = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
+                let input = BoundedValueRef::new(value, value.byte_len)
                     .expect("exact Scalar");
                 io.consume(PortId(0)).expect("present Scalar input");
                 io.request_host_call(request, HostCallId(0), input)
@@ -261,7 +262,7 @@ mod tests {
         let mut io = StepIo::test_frame(
             [None],
             [false],
-            [Some(conduit_core::QUANTITY_ENCODED_LEN as u32)],
+            [Some(conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32)],
             Some((RequestId(0), outcome)),
             4,
         );
@@ -284,7 +285,7 @@ mod tests {
         let mut io = StepIo::test_frame(
             [Some(input)],
             [false],
-            [Some(conduit_core::QUANTITY_ENCODED_LEN as u32)],
+            [Some(conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32)],
             None,
             4,
         );
@@ -299,14 +300,14 @@ mod tests {
         let output = ValueRef {
             slot: 1,
             generation: 1,
-            byte_len: conduit_core::QUANTITY_ENCODED_LEN as u32,
+            byte_len: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
         };
         let (result, io) = completion(
             &mut operation,
             HostCallOutcome {
                 disposition: HostCallDisposition::Completed,
                 output: Some(
-                    BoundedValueRef::new(output, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                    BoundedValueRef::new(output, conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32)
                         .unwrap(),
                 ),
                 failure: None,
@@ -355,9 +356,9 @@ mod tests {
                             ValueRef {
                                 slot: 0,
                                 generation: 1,
-                                byte_len: conduit_core::QUANTITY_ENCODED_LEN as u32
+                                byte_len: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
                             },
-                            conduit_core::QUANTITY_ENCODED_LEN as u32
+                            conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
                         )
                         .unwrap()
                     ),

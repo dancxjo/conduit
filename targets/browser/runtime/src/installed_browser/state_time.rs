@@ -163,7 +163,7 @@ fn quantity_millis_configuration(
         .find_map(|entry| match (entry.key.as_str(), &entry.value) {
             (found, ConfigurationValue::Quantity(value)) if found == key => value
                 .value()
-                .convert_to_u64(conduit_core::Unit::Millisecond)
+                .convert_to_u64(&conduit_core::Unit::Millisecond)
                 .ok()
                 .filter(|value| *value <= maximum),
             _ => None,

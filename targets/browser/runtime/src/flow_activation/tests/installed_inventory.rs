@@ -66,7 +66,7 @@ plot browser-predicate (
             compare,
             "left",
             conduit_core::SCALAR_INFO_ID,
-            conduit_core::SCALAR_ENCODED_LEN as u32,
+            conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
         ),
         front(
             "accepted",
@@ -193,8 +193,7 @@ fn installed_browser_predicate_executes_through_exact_receipt_and_definition() {
         .unwrap();
     assert!(prepared.subordinate_receipts().is_empty());
     let mut select = FlowSelectCoordinator::from_prepared_activation(unary).unwrap();
-    let input = conduit_core::Scalar::from_raw_microunits(750_000)
-        .encode()
+    let input = conduit_core::Scalar::from_decimal_parts(750_000, -6).unwrap().canonical_bytes().unwrap()
         .to_vec();
     select
         .admit(

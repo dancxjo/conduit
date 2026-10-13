@@ -37,10 +37,15 @@ pub(super) fn literal_value(
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?,
         )
         .to_vec(),
-        Some(PrimitiveInfoKind::Scalar) => crate::structured_startup::parse_scalar_literal(literal)
-            .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
-            .encode()
-            .to_vec(),
+        Some(PrimitiveInfoKind::MathematicalNumber) => crate::expression_scalar::checked_scalar_source(literal)
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?.0.canonical_bytes()
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?,
+        Some(PrimitiveInfoKind::MicroScalar) => {
+            crate::structured_startup::parse_scalar_literal(literal)
+                .ok_or(PortableExpressionEvaluationRefusal::InvalidLiteral)?
+                .encode()
+                .to_vec()
+        }
         Some(PrimitiveInfoKind::Unit) => conduit_core::Unit::resolve(literal)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidLiteral)?
             .encode()

@@ -1016,6 +1016,8 @@ fn hex(nibble: u8) -> char {
 mod tests;
 
 mod language_coverage;
+mod numeric_realization;
+pub use numeric_realization::{NumericCandidateEvidence, NumericRealizationUnsatisfied};
 pub use language_coverage::{
     inspect_language_coverage, LanguageCoverageCandidateEvidence, LanguageCoverageCheck,
     LanguageCoverageRequirement, LanguageCoverageUnsatisfied,

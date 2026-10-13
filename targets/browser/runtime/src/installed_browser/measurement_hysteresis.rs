@@ -357,10 +357,10 @@ mod tests {
                 sample_count: 1,
                 first_observed_at: instant.clone().try_into().unwrap(),
                 last_observed_at: instant.try_into().unwrap(),
-                minimum: Quantity::new(value, unit),
-                maximum: Quantity::new(value, unit),
-                range: Quantity::new(0, unit),
-                mean: Quantity::new(value, unit),
+                minimum: Quantity::new(value, unit.clone()),
+                maximum: Quantity::new(value, unit.clone()),
+                range: Quantity::new(0, unit.clone()),
+                mean: Quantity::new(value, unit.clone()),
             })
             .unwrap(),
         )

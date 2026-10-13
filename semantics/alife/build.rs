@@ -14,10 +14,6 @@ fn main() {
         &checked.type_forms,
         &RustBindingOptions {
             copy_record_types: [
-                "GardenClockObservation".into(),
-                "GardenContactObservation".into(),
-                "GardenEnrichedObservation".into(),
-                "GardenState".into(),
                 "GrayScottParameters".into(),
                 "LeniaParameters".into(),
                 "ReactionDiffusionCell".into(),

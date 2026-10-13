@@ -38,7 +38,7 @@ fn offer() -> conduit_core::CapabilityOffer {
                     contract_id: HOST_CALL.into(),
                     target_kind: Some(kind),
                     maximum_in_flight: 1,
-                    maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+                    maximum_input_bytes: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
                     maximum_output_bytes: super::measurement_limits::SAMPLE as u32,
                 }],
                 resource_requirements: Vec::new(),
@@ -148,9 +148,9 @@ impl<const PORTS: usize> StepBack<PORTS> for ObservationBack {
         if let Some(value) = io.input(PortId(0)) {
             if !self.pending
                 && !self.completed
-                && value.byte_len == conduit_core::QUANTITY_ENCODED_LEN as u32
+                && value.byte_len <= conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
             {
-                let input = BoundedValueRef::new(value, conduit_core::QUANTITY_ENCODED_LEN as u32)
+                let input = BoundedValueRef::new(value, value.byte_len)
                     .expect("exact Quantity");
                 io.consume(PortId(0)).expect("present measurement Quantity");
                 io.request_host_call(RequestId(0), HostCallId(0), input)

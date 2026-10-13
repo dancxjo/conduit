@@ -41,10 +41,10 @@ pub const AUDIO_TONE_PCM_FRAMES: u16 = 16;
 pub const AUDIO_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 32;
 // One queue profile admits the exact Frequency input and one finite PCM output.
 pub const AUDIO_TONE_QUEUE_BYTES: u32 =
-    if AUDIO_TONE_PCM_BLOCK_BYTES > conduit_core::QUANTITY_ENCODED_LEN as u32 {
+    if AUDIO_TONE_PCM_BLOCK_BYTES > conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32 {
         AUDIO_TONE_PCM_BLOCK_BYTES
     } else {
-        conduit_core::QUANTITY_ENCODED_LEN as u32
+        conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32
     };
 pub const AUDIO_CONTINUOUS_TONE_PCM_FRAMES: u16 = 2_000;
 pub const AUDIO_CONTINUOUS_TONE_PCM_BLOCK_BYTES: u32 = PCM_FRAME_HEADER_ENCODED_LEN as u32 + 4_000;

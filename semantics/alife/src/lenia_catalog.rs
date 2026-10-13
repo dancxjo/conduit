@@ -242,7 +242,8 @@ fn text_choice(key: &str, default: &str, values: &[&str]) -> KindConfigurationFi
 fn value_type(value: &ConfigurationValue) -> &'static str {
     match value {
         ConfigurationValue::U64(_) => "Count",
-        ConfigurationValue::I64(_) => "Scalar",
+        ConfigurationValue::I64(_) => "MicroScalar",
+        ConfigurationValue::Scalar(_) => "Scalar",
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::Bool(_) => "Boolean",
         ConfigurationValue::Structured(_) => "Structured",
@@ -256,6 +257,7 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
     match value {
         ConfigurationValue::U64(value) => value.to_string(),
         ConfigurationValue::I64(value) => render_scalar(*value),
+        ConfigurationValue::Scalar(value) => value.source_expression().expect("checked Scalar source"),
         ConfigurationValue::Text(value) => format!("\"{value}\""),
         ConfigurationValue::Bool(value) => value.to_string(),
         ConfigurationValue::Structured(_) => "structured".to_string(),
@@ -268,8 +270,8 @@ fn render_default(value: &ConfigurationValue) -> alloc::string::String {
 fn render_scalar(value: i64) -> alloc::string::String {
     let negative = value < 0;
     let magnitude = value.unsigned_abs();
-    let whole = magnitude / conduit_core::Scalar::SCALE as u64;
-    let fraction = magnitude % conduit_core::Scalar::SCALE as u64;
+    let whole = magnitude / conduit_core::MicroScalar::SCALE as u64;
+    let fraction = magnitude % conduit_core::MicroScalar::SCALE as u64;
     let sign = if negative { "-" } else { "" };
     if fraction == 0 {
         format!("{sign}{whole}.0")

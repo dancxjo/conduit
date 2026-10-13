@@ -2,9 +2,9 @@ use conduit_core::*;
 
 #[test]
 fn physical_unit_catalogue_codec_is_bounded_and_distinct() {
-    for &(_, definition) in BUILTIN_UNIT_DEFINITIONS {
-        let unit = Unit::from_definition(definition);
-        assert_eq!(Unit::decode(&unit.encode()), Ok(unit));
+    for (_, definition) in BUILTIN_UNIT_DEFINITIONS {
+        let unit = Unit::from_definition(definition.clone());
+        assert_eq!(Unit::decode(&unit.encode()), Ok(unit.clone()));
         assert_eq!(
             validate_primitive_info(UNIT_INFO_ID, &unit.encode()),
             Ok(())
@@ -12,9 +12,11 @@ fn physical_unit_catalogue_codec_is_bounded_and_distinct() {
         assert!(validate_primitive_info(QUANTITY_INFO_ID, &unit.encode()).is_err());
         assert!(validate_primitive_info(EMPTY_INFO_ID, &unit.encode()).is_err());
     }
-    assert!(Unit::resolve("um")
-        .unwrap()
-        .same_physical_definition(Unit::resolve("µm").unwrap()));
+    assert!(
+        Unit::resolve("um")
+            .unwrap()
+            .same_physical_definition(&Unit::resolve("µm").unwrap())
+    );
     assert_ne!(Unit::resolve("Hz"), Unit::resolve("kHz"));
     assert!(Unit::resolve("C").is_err());
     assert!(Unit::resolve("KHZ").is_err());
@@ -32,33 +34,48 @@ fn physical_unit_catalogue_codec_is_bounded_and_distinct() {
 fn owned_unit_retains_exact_prefix_and_affine_conversion_laws() {
     let source = Quantity::parse_plot_literal("1kHz").unwrap();
     let hz = Unit::resolve("Hz").unwrap();
-    assert_eq!(source.convert_to_unit(hz), Ok((1, 3)));
+    assert_eq!(source.convert_to_unit(&hz), Ok(MathValue::integer(1000)));
     assert_eq!(
-        source.convert_to_unit(Unit::resolve("QHz").unwrap()),
-        Ok((1, -27))
+        source.convert_to_unit(&Unit::resolve("QHz").unwrap()),
+        Ok(MathValue::parse_decimal("0.000000000000000000000000001").unwrap())
     );
     assert_eq!(
-        source.convert_to_unit(Unit::resolve("m").unwrap()),
+        source.convert_to_unit(&Unit::resolve("m").unwrap()),
         Err(QuantityConversionRefusal::IncompatibleDimensions)
     );
-    assert_eq!(Unit::resolve("Qm³").unwrap().decimal_exponent(), 90);
-    assert_eq!(Unit::resolve("QHz").unwrap().decimal_exponent(), 30);
+    assert_eq!(
+        Unit::resolve("Qm³")
+            .unwrap()
+            .exact_scale()
+            .to_owned()
+            .unwrap(),
+        MathValue::from_decimal_parts(1, 90).unwrap()
+    );
+    assert_eq!(
+        Unit::resolve("QHz")
+            .unwrap()
+            .exact_scale()
+            .to_owned()
+            .unwrap(),
+        MathValue::from_decimal_parts(1, 30).unwrap()
+    );
     let celsius = Quantity::parse_plot_literal("21°C").unwrap();
     assert_eq!(
-        celsius.convert_to_unit(Unit::resolve("°F").unwrap()),
-        Ok((698, -1))
+        celsius.convert_to_unit(&Unit::resolve("°F").unwrap()),
+        Ok(MathValue::parse_decimal("69.8").unwrap())
     );
     let difference =
         ExactTemperatureDifference::parse_plot_literal("TemperatureDelta(21, °C)").unwrap();
     assert_eq!(
-        difference.convert_to_unit(Unit::resolve("°F").unwrap()),
-        Ok((378, -1))
+        difference.convert_to_unit(&Unit::resolve("°F").unwrap()),
+        Ok(MathValue::parse_decimal("37.8").unwrap())
     );
-    let offset = Unit::resolve("°C")
-        .unwrap()
-        .exact_offset(QuantityRole::Point)
-        .unwrap();
-    assert!(offset.equivalent(DefinitionScalar::new(27315, 100, 0).unwrap()));
+    let celsius_unit = Unit::resolve("°C").unwrap();
+    let offset = celsius_unit.exact_offset(QuantityRole::Point).unwrap();
+    assert_eq!(
+        offset.to_owned().unwrap(),
+        MathValue::parse_decimal("273.15").unwrap()
+    );
 }
 
 #[test]
@@ -68,8 +85,8 @@ fn typed_configuration_separates_spelling_from_checked_semantics() {
     assert_ne!(source.source(), equivalent.source());
     assert_ne!(source.canonical_value(), equivalent.canonical_value());
     assert_eq!(
-        source.value().compare(equivalent.value()),
-        Ok(core::cmp::Ordering::Equal)
+        source.value().compare(&equivalent.value()),
+        Ok(Some(core::cmp::Ordering::Equal))
     );
     assert_eq!(
         ConfigurationValue::Quantity(source.clone()).semantic_kind(),
@@ -100,16 +117,19 @@ fn typed_receipt_construction_checks_evidence_without_using_it_as_conversion_inp
     let source = Quantity::parse_plot_literal("1kHz").unwrap();
     let target = Unit::resolve("Hz").unwrap();
     let receipt =
-        ExactQuantityConversionReceipt::from_checked(source, target, "1kHz", "Hz").unwrap();
-    assert_eq!(receipt.source(), source);
-    assert_eq!(receipt.result().unwrap().coefficient(), 1);
-    assert_eq!(receipt.result().unwrap().exponent(), 3);
+        ExactQuantityConversionReceipt::from_checked(source.clone(), target.clone(), "1kHz", "Hz")
+            .unwrap();
+    assert_eq!(receipt.source(), &source);
     assert_eq!(
-        ExactQuantityConversionReceipt::from_checked(source, target, "2kHz", "Hz"),
+        receipt.result().unwrap().coordinate(),
+        &MathValue::integer(1000)
+    );
+    assert_eq!(
+        ExactQuantityConversionReceipt::from_checked(source.clone(), target.clone(), "2kHz", "Hz"),
         Err(ExactQuantityConversionRequestRefusal::SourceEvidenceMismatch)
     );
     assert_eq!(
-        ExactQuantityConversionReceipt::from_checked(source, target, "1kHz", "kHz"),
+        ExactQuantityConversionReceipt::from_checked(source.clone(), target.clone(), "1kHz", "kHz"),
         Err(ExactQuantityConversionRequestRefusal::TargetEvidenceMismatch)
     );
     let difference =
@@ -121,8 +141,10 @@ fn typed_receipt_construction_checks_evidence_without_using_it_as_conversion_inp
         "°F",
     )
     .unwrap();
-    assert_eq!(receipt.result().unwrap().coefficient(), 378);
-    assert_eq!(receipt.result().unwrap().exponent(), -1);
+    assert_eq!(
+        receipt.result().unwrap().coordinate(),
+        &MathValue::parse_decimal("37.8").unwrap()
+    );
 }
 
 #[test]

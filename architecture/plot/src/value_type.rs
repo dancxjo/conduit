@@ -9,6 +9,7 @@ use conduit_core::{
 
 use crate::StartupCatalog;
 
+pub(crate) mod numeric_profile;
 pub(crate) mod refinement;
 use refinement::checked_refinements;
 
@@ -21,7 +22,8 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Tick" => kind_id("value/tick@1"),
         "Count" => kind_id("value/count"),
         "Boolean" => kind_id("value/bool"),
-        "Scalar" => kind_id("value/scalar"),
+        "Scalar" => kind_id(conduit_core::SCALAR_INFO_ID),
+        "MicroScalar" => kind_id(conduit_core::MICRO_SCALAR_INFO_ID),
         "Bytes" => kind_id("value/bytes"),
         "Empty" => kind_id("value/empty"),
         "Quantity" => kind_id(conduit_core::QUANTITY_INFO_ID),
@@ -116,16 +118,21 @@ pub(crate) fn checked_front(
         .map(|parameter| {
             Ok(FrontStartupParameter {
                 name: parameter.name.text.clone(),
-                value_type: checked_value_kind_with_modality(
-                    &parameter.value_type.text,
-                    parameter.optional,
-                    catalog,
-                )
-                .map_err(|_| SyntaxCheckDiagnostic {
-                    code: "CND-FRM-053",
-                    span: parameter.value_type.span,
-                    message: "structured startup parameter profile exceeds canonical bounds".into(),
-                })?,
+                value_type: numeric_profile::bounded_kind(
+                    &checked_value_kind_with_modality(
+                        &parameter.value_type.text,
+                        parameter.optional,
+                        catalog,
+                    )
+                    .map_err(|_| SyntaxCheckDiagnostic {
+                        code: "CND-FRM-053",
+                        span: parameter.value_type.span,
+                        message: "structured startup parameter profile exceeds canonical bounds"
+                            .into(),
+                    })?,
+                    parameter.maximum_bytes,
+                    parameter.value_type.span,
+                )?,
                 // Presence is callable compatibility: callers need to know
                 // whether omission is legal. The checked plot identity owns
                 // the canonical default expression and therefore its meaning.
@@ -167,7 +174,7 @@ pub(crate) fn checked_front(
     let mut inputs = Vec::new();
     let mut outputs = Vec::new();
     for port in &plot.front.runtime_ports {
-        let descriptor = PortDescriptor {
+        let mut descriptor = PortDescriptor {
             port_id: conduit_core::port_id(&port.name.text),
             value_kind: checked_value_kind_with_modality(
                 &port.value_type.text,
@@ -189,6 +196,11 @@ pub(crate) fn checked_front(
             temporal: canonical_port_temporal(port.temporal),
             abnormal_kind: None,
         };
+        descriptor.value_kind = numeric_profile::bounded_kind(
+            &descriptor.value_kind,
+            port.maximum_bytes,
+            port.value_type.span,
+        )?;
         if port.maximum_bytes.is_some() || !port.refinements.is_empty() {
             let (maximum_bytes, constraints) = checked_refinements(
                 &port.refinements,

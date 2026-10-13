@@ -66,7 +66,7 @@ impl Parser<'_> {
         }
         self.take(')')?;
         let span = self.from(start, self.offset);
-        if atom.text.contains('/') || arguments.len() == 2 && is_name(&atom.text) {
+        if atom.text.contains('/') || atom.text == "F64" || arguments.len() == 2 && is_name(&atom.text) {
             Ok(ExpressionSyntax::SemanticCall {
                 kind: atom,
                 arguments,

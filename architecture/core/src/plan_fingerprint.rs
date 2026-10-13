@@ -4,12 +4,12 @@
 //! executes or mutates Plans.
 
 use crate::{
-    characteristic, execution_fusion, hash_bytes, plan_realization, push_resource_binding,
-    push_string, push_u32, push_u64, AdmittedLine, BoundLink, CancellationPolicy, CheckedFront,
-    ConfigurationValue, ExpectedSign, ExpectedTerminal, FragmentCommitment, FragmentId,
-    LinkAuthorityReference, LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
+    AdmittedLine, BoundLink, CancellationPolicy, CheckedFront, ConfigurationValue, ExpectedSign,
+    ExpectedTerminal, FragmentCommitment, FragmentId, LinkAuthorityReference,
+    LinkCredentialReference, PlanFragment, PlanId, PlannedActivationEntry,
     PlannedActivationPreparationBinding, PlotBack, PlotIdentity, PortDescriptor, PortDirection,
-    PortTemporal, TerminalPolicy,
+    PortTemporal, TerminalPolicy, characteristic, execution_fusion, hash_bytes, plan_realization,
+    push_resource_binding, push_string, push_u32, push_u64,
 };
 use alloc::string::String;
 use alloc::vec::Vec;
@@ -84,6 +84,14 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                     canonical.push(3);
                     canonical.extend_from_slice(&value.to_le_bytes());
                 }
+                ConfigurationValue::Scalar(ref value) => {
+                    canonical.push(9);
+                    let bytes = value
+                        .canonical_bytes()
+                        .expect("checked mathematical configuration");
+                    push_u32(&mut canonical, bytes.len() as u32);
+                    canonical.extend_from_slice(&bytes);
+                }
                 ConfigurationValue::Text(ref value) => {
                     canonical.push(2);
                     push_string(&mut canonical, value);
@@ -96,13 +104,17 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
                 }
                 ConfigurationValue::Quantity(ref value) => {
                     canonical.push(6);
+                    push_u32(&mut canonical, value.canonical_value().len() as u32);
                     canonical.extend_from_slice(value.canonical_value());
                     push_string(&mut canonical, value.source());
+                    push_quantity_computation(&mut canonical, value);
                 }
                 ConfigurationValue::TemperatureDifference(ref value) => {
                     canonical.push(8);
+                    push_u32(&mut canonical, value.canonical_value().len() as u32);
                     canonical.extend_from_slice(value.canonical_value());
                     push_string(&mut canonical, value.source());
+                    push_quantity_computation(&mut canonical, value.quantity_configuration());
                 }
                 ConfigurationValue::Unit(ref value) => {
                     canonical.push(7);
@@ -431,6 +443,10 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
         push_configuration_value(canonical, &field.default_value);
         match &field.rule {
             Rule::Any => canonical.push(0),
+            Rule::Scalar { profile } => {
+                canonical.push(11);
+                canonical.extend_from_slice(&profile.encode().expect("checked scalar profile"));
+            }
             Rule::Quantity => canonical.push(8),
             Rule::Unit => canonical.push(9),
             Rule::TemperatureDifference => canonical.push(10),
@@ -731,6 +747,14 @@ fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue)
             canonical.push(1);
             push_u64(canonical, *value);
         }
+        ConfigurationValue::Scalar(value) => {
+            canonical.push(9);
+            let bytes = value
+                .canonical_bytes()
+                .expect("checked mathematical configuration");
+            push_u32(canonical, bytes.len() as u32);
+            canonical.extend_from_slice(&bytes);
+        }
         ConfigurationValue::Text(value) => {
             canonical.push(2);
             push_string(canonical, value);
@@ -747,13 +771,17 @@ fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue)
         }
         ConfigurationValue::Quantity(value) => {
             canonical.push(6);
+            push_u32(canonical, value.canonical_value().len() as u32);
             canonical.extend_from_slice(value.canonical_value());
             push_string(canonical, value.source());
+            push_quantity_computation(canonical, value);
         }
         ConfigurationValue::TemperatureDifference(value) => {
             canonical.push(8);
+            push_u32(canonical, value.canonical_value().len() as u32);
             canonical.extend_from_slice(value.canonical_value());
             push_string(canonical, value.source());
+            push_quantity_computation(canonical, value.quantity_configuration());
         }
         ConfigurationValue::Unit(value) => {
             canonical.push(7);
@@ -1100,6 +1128,18 @@ fn push_ports(canonical: &mut Vec<u8>, ports: &[PortDescriptor]) {
                 push_string(canonical, kind.as_str());
             }
             None => canonical.push(0),
+        }
+    }
+}
+
+fn push_quantity_computation(canonical: &mut Vec<u8>, value: &crate::QuantityConfigurationValue) {
+    match value.computation() {
+        None => canonical.push(0),
+        Some(proof) => {
+            canonical.push(1);
+            canonical.extend_from_slice(&proof.source_ast_identity());
+            push_u32(canonical, proof.graph().len() as u32);
+            canonical.extend_from_slice(proof.graph());
         }
     }
 }

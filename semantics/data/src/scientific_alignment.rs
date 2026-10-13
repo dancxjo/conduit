@@ -47,7 +47,7 @@ impl ClockRelation {
         }
         if let ClockRelationQuality::Estimated(estimated) = self.quality() {
             let maximum_error = estimated.maximum_error();
-            if maximum_error.coefficient() <= 0
+            if !maximum_error.coordinate().proven_positive()
                 || maximum_error.dimension() != QuantityDimension::Time
             {
                 return Err(ScientificAlignmentRefusal::InvalidRelation);

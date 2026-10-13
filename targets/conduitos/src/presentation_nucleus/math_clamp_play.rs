@@ -31,7 +31,7 @@ const CORDS: usize = 2;
 const ROUTES: usize = NODES * PORTS;
 const HOST_BINDINGS: usize = NODES * NODES;
 const VALUES: usize = 4;
-const MAX_VALUE_BYTES: usize = conduit_core::SCALAR_ENCODED_LEN;
+const MAX_VALUE_BYTES: usize = conduit_core::MAX_NUMERIC_ENCODED_BYTES;
 const VALUE_BYTES: usize = VALUES * MAX_VALUE_BYTES;
 const SIGNS: usize = 48;
 
@@ -52,6 +52,7 @@ type Kernel = FixedScheduler<
 pub struct PreparedMathClamp {
     pub advertisement: HostAdvertisement,
     pub plan: Plan,
+    input: Scalar,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -92,7 +93,7 @@ pub fn prepare_clamp(
             kind_id: kind_id(SOURCE_KIND),
             kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
             inputs: Vec::new(),
-            outputs: source_offer(input).outputs,
+            outputs: source_offer(input.clone()).outputs,
             configuration: Default::default(),
         })
         .map_err(|_| MathClampError::Catalog)?;
@@ -106,7 +107,7 @@ pub fn prepare_clamp(
         })
         .map_err(|_| MathClampError::Catalog)?;
     let plot = parse(PLOT, &catalog).map_err(|_| MathClampError::Plot)?;
-    let advertisement = advertisement(host, boot, input);
+    let advertisement = advertisement(host, boot, input.clone());
     let hosts = [advertisement.clone()];
     let placements = default_placements(&plot, &hosts).map_err(|_| MathClampError::Placement)?;
     let plan = plan_with_options(
@@ -118,7 +119,7 @@ pub fn prepare_clamp(
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: conduit_core::SCALAR_ENCODED_LEN as u32,
+            connection_byte_capacity: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -131,6 +132,7 @@ pub fn prepare_clamp(
     Ok(PreparedMathClamp {
         advertisement,
         plan,
+        input,
     })
 }
 
@@ -147,12 +149,7 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
     {
         return Err(MathClampError::Shape);
     }
-    let source = fragment
-        .placements
-        .iter()
-        .find(|p| p.kind_id.as_str() == SOURCE_KIND)
-        .ok_or(MathClampError::Shape)?;
-    let input = decode_source(source.capability_id.as_str())?;
+    let input = prepared.input.clone();
     let clamp = fragment
         .placements
         .iter()
@@ -160,7 +157,13 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
         .ok_or(MathClampError::Shape)?;
     let minimum = configured_scalar(clamp, conduit_semantic_catalog::CLAMP_MINIMUM_KEY)?;
     let maximum = configured_scalar(clamp, conduit_semantic_catalog::CLAMP_MAXIMUM_KEY)?;
-    let mut scheduler = scheduler(fragment, &lowered, input)?;
+    let minimum_bytes = minimum
+        .canonical_bytes()
+        .map_err(|_| MathClampError::Value)?;
+    let maximum_bytes = maximum
+        .canonical_bytes()
+        .map_err(|_| MathClampError::Value)?;
+    let mut scheduler = scheduler(fragment, &lowered, input.clone())?;
     let mut output = None;
     let mut captured = None;
     loop {
@@ -169,15 +172,43 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
                 .kernel
                 .host_value(request.input.value)
                 .map_err(|_| MathClampError::Value)?;
-            let value = Scalar::decode(bytes).map_err(|_| MathClampError::Value)?;
+            let value =
+                conduit_core::MathValueRef::validate(bytes).map_err(|_| MathClampError::Value)?;
             if request.node == scheduler.transform && output.is_none() {
-                let clamped = conduit_semantic_catalog::clamp_scalar(value, minimum, maximum)
+                let low = conduit_core::MathValueRef::validate(&minimum_bytes)
                     .map_err(|_| MathClampError::Value)?;
-                complete_transform(&mut scheduler.kernel, request, clamped)?;
-                output = Some(clamped);
-            } else if request.node == scheduler.sink && output == Some(value) && captured.is_none()
-            {
-                captured = Some(value);
+                let high = conduit_core::MathValueRef::validate(&maximum_bytes)
+                    .map_err(|_| MathClampError::Value)?;
+                let selected = if value
+                    .compare(low)
+                    .map_err(|_| MathClampError::Value)?
+                    .ok_or(MathClampError::Value)?
+                    == core::cmp::Ordering::Less
+                {
+                    minimum_bytes.as_slice()
+                } else if value
+                    .compare(high)
+                    .map_err(|_| MathClampError::Value)?
+                    .ok_or(MathClampError::Value)?
+                    == core::cmp::Ordering::Greater
+                {
+                    maximum_bytes.as_slice()
+                } else {
+                    bytes
+                };
+                let mut retained = [0; conduit_core::MAX_NUMERIC_ENCODED_BYTES];
+                retained[..selected.len()].copy_from_slice(selected);
+                let length = selected.len();
+                complete_transform(&mut scheduler.kernel, request, &retained[..length])?;
+                output = Some((retained, length));
+            } else if request.node == scheduler.sink && captured.is_none() {
+                if output
+                    .as_ref()
+                    .is_none_or(|(wire, length)| &wire[..*length] != bytes)
+                {
+                    return Err(MathClampError::Shape);
+                }
+                captured = Some(true);
                 complete_sink(&mut scheduler.kernel, request)?;
             } else {
                 return Err(MathClampError::Shape);
@@ -197,13 +228,13 @@ pub fn run_clamp(prepared: &PreparedMathClamp) -> Result<MathClampProof, MathCla
         }
     }
     let output = output.ok_or(MathClampError::Shape)?;
-    if captured != Some(output) {
+    if captured != Some(true) {
         return Err(MathClampError::Shape);
     }
     Ok(MathClampProof {
         plan_id: prepared.plan.plan_id.clone(),
         input,
-        output,
+        output: Scalar::decode(&output.0[..output.1]).map_err(|_| MathClampError::Value)?,
     })
 }
 
@@ -232,7 +263,7 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
         shorthand: None,
         capability_id: CapabilityId::from(alloc::format!(
             "conduitos-fixture-clamp-{}@1",
-            input.raw_microunits()
+            super::scalar_bytes::digest_hex(input.representation_identity().expect("canonical scalar"))
         )),
         kind_id: kind_id(SOURCE_KIND),
         kind_contract_revision: KindIdentity::from(SOURCE_REVISION),
@@ -257,7 +288,7 @@ fn source_offer(input: Scalar) -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            max_queue_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
         },
     }
 }
@@ -289,7 +320,7 @@ fn sink_offer() -> CapabilityOffer {
             contract_id: HostCallContractId::from(SINK_HOST_CALL),
             target_kind: Some(kind_id(SINK_KIND)),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            maximum_input_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
             maximum_output_bytes: 0,
         }],
         resource_requirements: Vec::new(),
@@ -297,18 +328,9 @@ fn sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+            max_queue_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
         },
     }
-}
-
-fn decode_source(capability: &str) -> Result<Scalar, MathClampError> {
-    capability
-        .strip_prefix("conduitos-fixture-clamp-")
-        .and_then(|value| value.strip_suffix("@1"))
-        .and_then(|value| value.parse::<i64>().ok())
-        .map(Scalar::from_raw_microunits)
-        .ok_or(MathClampError::Shape)
 }
 
 fn configured_scalar(
@@ -319,8 +341,8 @@ fn configured_scalar(
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (candidate, conduit_core::ConfigurationValue::I64(value)) if candidate == key => {
-                Some(Scalar::from_raw_microunits(*value))
+            (candidate, conduit_core::ConfigurationValue::Scalar(value)) if candidate == key => {
+                Some(value.clone())
             }
             _ => None,
         })
@@ -375,14 +397,14 @@ fn scheduler(
             let operation = match placement.kind_id.as_str() {
                 SOURCE_KIND => PresentationBack::Source {
                     value: values
-                        .store(&input.encode())
+                        .store(&input.canonical_bytes().map_err(|_| MathClampError::Value)?)
                         .map_err(|_| MathClampError::Value)?,
                     emitted: false,
                 },
                 conduit_semantic_catalog::MATH_CLAMP_KIND => {
                     transform = Some(NodeId(index as u16));
                     PresentationBack::Transform {
-                        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                        maximum_input_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
                         pending: false,
                         emitted: false,
                     }
@@ -390,7 +412,7 @@ fn scheduler(
                 SINK_KIND => {
                     sink = Some(NodeId(index as u16));
                     PresentationBack::Sink {
-                        maximum_input_bytes: conduit_core::SCALAR_ENCODED_LEN as u32,
+                        maximum_input_bytes: conduit_core::MAX_NUMERIC_ENCODED_BYTES as u32,
                         pending: false,
                         complete: false,
                     }
@@ -421,13 +443,13 @@ fn scheduler(
 fn complete_transform(
     kernel: &mut Kernel,
     request: HostCallRequest,
-    output: Scalar,
+    output: &[u8],
 ) -> Result<(), MathClampError> {
     let value = kernel
-        .store_host_value(&output.encode())
+        .store_host_value(output)
         .map_err(|_| MathClampError::Value)?;
-    let output = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32)
-        .map_err(|_| MathClampError::Value)?;
+    let output =
+        BoundedValueRef::new(value, output.len() as u32).map_err(|_| MathClampError::Value)?;
     kernel
         .complete_host_call(
             request.node,

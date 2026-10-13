@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use crate::rust_binding::{BoundedBytes, NativeBindingRefusal};
 use conduit_core::{
-    validate_primitive_info, IeeeF32, IeeeF64, InfoBool, Quantity, Scalar, StructuredInfoType,
+    validate_primitive_info, IeeeF32, IeeeF64, InfoBool, MicroScalar, Quantity, StructuredInfoType,
     StructuredInfoValue, StructuredInfoValueShape,
 };
 
@@ -10,7 +10,7 @@ use conduit_core::{
 /// The exact checked `StructuredInfoType` supplied alongside a value remains
 /// authoritative; implementing this trait cannot create semantic identity.
 pub trait NativePrimitive: Sized {
-    fn encode_primitive(&self) -> Vec<u8>;
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal>;
     fn decode_primitive(canonical: &[u8]) -> Option<Self>;
 }
 
@@ -18,7 +18,7 @@ pub fn primitive_into_structured<T: NativePrimitive>(
     value_type: StructuredInfoType,
     value: &T,
 ) -> Result<StructuredInfoValue, NativeBindingRefusal> {
-    StructuredInfoValue::leaf(value_type, value.encode_primitive())
+    StructuredInfoValue::leaf(value_type, value.encode_primitive()?)
         .map_err(NativeBindingRefusal::InvalidValue)
 }
 
@@ -53,8 +53,8 @@ fn primitive_kind(
 }
 
 impl NativePrimitive for () {
-    fn encode_primitive(&self) -> Vec<u8> {
-        Vec::new()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok(Vec::new())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -63,8 +63,8 @@ impl NativePrimitive for () {
 }
 
 impl NativePrimitive for InfoBool {
-    fn encode_primitive(&self) -> Vec<u8> {
-        (*self).encode().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok((*self).encode().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -73,8 +73,8 @@ impl NativePrimitive for InfoBool {
 }
 
 impl NativePrimitive for bool {
-    fn encode_primitive(&self) -> Vec<u8> {
-        InfoBool::new(*self).encode().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok(InfoBool::new(*self).encode().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -82,9 +82,9 @@ impl NativePrimitive for bool {
     }
 }
 
-impl NativePrimitive for Scalar {
-    fn encode_primitive(&self) -> Vec<u8> {
-        (*self).encode().to_vec()
+impl NativePrimitive for MicroScalar {
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok((*self).encode().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -93,8 +93,8 @@ impl NativePrimitive for Scalar {
 }
 
 impl NativePrimitive for Quantity {
-    fn encode_primitive(&self) -> Vec<u8> {
-        (*self).encode().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok((*self).encode().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -103,8 +103,8 @@ impl NativePrimitive for Quantity {
 }
 
 impl NativePrimitive for conduit_core::Unit {
-    fn encode_primitive(&self) -> Vec<u8> {
-        self.encode().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok(self.encode().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -113,8 +113,8 @@ impl NativePrimitive for conduit_core::Unit {
 }
 
 impl NativePrimitive for String {
-    fn encode_primitive(&self) -> Vec<u8> {
-        self.as_bytes().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok(self.as_bytes().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -123,8 +123,8 @@ impl NativePrimitive for String {
 }
 
 impl<const MAXIMUM: usize> NativePrimitive for BoundedBytes<MAXIMUM> {
-    fn encode_primitive(&self) -> Vec<u8> {
-        self.as_slice().to_vec()
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        Ok(self.as_slice().to_vec())
     }
 
     fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -135,8 +135,8 @@ impl<const MAXIMUM: usize> NativePrimitive for BoundedBytes<MAXIMUM> {
 macro_rules! fixed_integer {
     ($($value:ty),+ $(,)?) => {$ (
         impl NativePrimitive for $value {
-            fn encode_primitive(&self) -> Vec<u8> {
-                self.to_le_bytes().to_vec()
+            fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+                Ok(self.to_le_bytes().to_vec())
             }
 
             fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -151,8 +151,8 @@ fixed_integer!(u8, u16, u32, u64, u128, i8, i16, i32, i64, i128);
 macro_rules! ieee_float {
     ($($value:ty),+ $(,)?) => {$ (
         impl NativePrimitive for $value {
-            fn encode_primitive(&self) -> Vec<u8> {
-                self.encode().to_vec()
+            fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+                Ok(self.encode().to_vec())
             }
 
             fn decode_primitive(canonical: &[u8]) -> Option<Self> {
@@ -163,3 +163,16 @@ macro_rules! ieee_float {
 }
 
 ieee_float!(IeeeF32, IeeeF64);
+
+impl NativePrimitive for conduit_core::MathValue {
+    fn encode_primitive(&self) -> Result<Vec<u8>, NativeBindingRefusal> {
+        self.canonical_bytes().map_err(|reason| {
+            NativeBindingRefusal::InvalidPrimitive(
+                conduit_core::PrimitiveInfoRefusal::MathematicalNumber(reason),
+            )
+        })
+    }
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(canonical).ok()
+    }
+}

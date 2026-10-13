@@ -12,20 +12,42 @@ fn source_declared_prefix_groups_and_opt_in_are_exact() {
         let unit = Unit::resolve(&spelling).unwrap();
         assert_eq!(unit.symbol(), spelling);
         if group == "si" {
-            assert_eq!(unit.decimal_exponent(), i16::from(exponent));
+            assert_eq!(
+                unit.exact_scale().to_owned().unwrap(),
+                MathValue::from_decimal_parts(1, i16::from(exponent)).unwrap()
+            );
         } else {
-            assert_eq!(unit.binary_exponent(), exponent as u16);
+            assert_eq!(
+                unit.exact_scale().to_owned().unwrap(),
+                MathValue::integer(2).checked_pow(exponent.into()).unwrap()
+            );
         }
         assert_eq!(Unit::decode(&unit.encode()), Ok(unit));
     }
     for spelling in ["kmin", "kkHz", "kMiB", "kpx", "µ°C"] {
         assert!(Unit::resolve(spelling).is_err(), "{spelling}");
     }
-    assert_eq!(Unit::resolve("cm²").unwrap().decimal_exponent(), -4);
-    assert_eq!(Unit::resolve("Qm³").unwrap().decimal_exponent(), 90);
-    assert!(Unit::resolve("um")
-        .unwrap()
-        .same_physical_definition(Unit::resolve("µm").unwrap()));
+    assert_eq!(
+        Unit::resolve("cm²")
+            .unwrap()
+            .exact_scale()
+            .to_owned()
+            .unwrap(),
+        MathValue::from_decimal_parts(1, -4).unwrap()
+    );
+    assert_eq!(
+        Unit::resolve("Qm³")
+            .unwrap()
+            .exact_scale()
+            .to_owned()
+            .unwrap(),
+        MathValue::from_decimal_parts(1, 90).unwrap()
+    );
+    assert!(
+        Unit::resolve("um")
+            .unwrap()
+            .same_physical_definition(&Unit::resolve("µm").unwrap())
+    );
     assert_ne!(
         Unit::resolve("um").unwrap().encode(),
         Unit::resolve("µm").unwrap().encode()

@@ -15,7 +15,7 @@ pub(super) fn equal(
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
             let right = conduit_core::Unit::decode(&right.encoded)
                 .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-            return Ok(left.same_physical_definition(right));
+            return Ok(left.same_physical_definition(&right));
         }
         return if matches!(
             kind,
@@ -48,7 +48,7 @@ fn equal_structured(
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
                 let right = conduit_core::Unit::decode(b)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-                return Ok(left.same_physical_definition(right));
+                return Ok(left.same_physical_definition(&right));
             }
             if matches!(
                 kind,

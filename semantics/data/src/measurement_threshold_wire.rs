@@ -10,19 +10,19 @@ use crate::{
 };
 
 pub const MAXIMUM_MEASUREMENT_HYSTERESIS_PROFILE_BYTES: usize =
-    2 * conduit_core::QUANTITY_ENCODED_LEN + 256;
+    2 * (2048 + 2) + 256;
 pub const MAXIMUM_MEASUREMENT_THRESHOLD_DECISION_BYTES: usize =
-    conduit_core::QUANTITY_ENCODED_LEN + 1_024;
+    (2048 + 2) + 1_024;
 
 pub fn encode_measurement_hysteresis_profile(
     profile: MeasurementHysteresisProfile,
 ) -> Result<Vec<u8>, MeasurementWireRefusal> {
-    MeasurementHysteresis::new(profile.policy, profile.initial_state)
+    MeasurementHysteresis::new(profile.policy.clone(), profile.initial_state)
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
-    let mut bytes = Vec::with_capacity(2 + conduit_core::QUANTITY_ENCODED_LEN * 2);
+    let mut bytes = Vec::with_capacity(2 + (2048 + 2) * 2);
     bytes.push(1);
-    bytes.extend_from_slice(&profile.policy.lower().encode());
-    bytes.extend_from_slice(&profile.policy.upper().encode());
+    put_quantity(&mut bytes, &profile.policy.lower())?;
+    put_quantity(&mut bytes, &profile.policy.upper())?;
     bytes.push(state_byte(profile.initial_state));
     Ok(bytes)
 }
@@ -45,7 +45,7 @@ pub fn decode_measurement_hysteresis_profile(
     if !input.finished() {
         return Err(MeasurementWireRefusal::Malformed);
     }
-    encode_measurement_hysteresis_profile(profile)?;
+    encode_measurement_hysteresis_profile(profile.clone())?;
     Ok(profile)
 }
 
@@ -76,7 +76,7 @@ pub fn encode_measurement_threshold_decision(
         Some(MeasurementThresholdTransition::RoseAbove) => 1,
         Some(MeasurementThresholdTransition::FellBelow) => 2,
     });
-    bytes.extend_from_slice(&decision.evaluated_value.encode());
+    put_quantity(&mut bytes, &decision.evaluated_value)?;
     put_instant(&mut bytes, &decision.first_observed_at)?;
     put_instant(&mut bytes, &decision.last_observed_at)?;
     if bytes.len() > MAXIMUM_MEASUREMENT_THRESHOLD_DECISION_BYTES {
@@ -194,7 +194,9 @@ impl<'a> Input<'a> {
         ))
     }
     fn quantity(&mut self) -> Result<Quantity, MeasurementWireRefusal> {
-        Quantity::decode(self.take(conduit_core::QUANTITY_ENCODED_LEN)?)
+        { let length = usize::from(u16::from_le_bytes(self.take(2)?.try_into().map_err(|_| MeasurementWireRefusal::Malformed)?));
+            if length > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+            Quantity::decode(self.take(length)?) }
             .map_err(|_| MeasurementWireRefusal::Malformed)
     }
     fn text(&mut self) -> Result<String, MeasurementWireRefusal> {
@@ -227,4 +229,12 @@ impl<'a> Input<'a> {
     fn finished(&self) -> bool {
         self.offset == self.bytes.len()
     }
+}
+
+fn put_quantity(bytes: &mut Vec<u8>, quantity: &Quantity) -> Result<(), MeasurementWireRefusal> {
+    let encoded = quantity.encoded();
+    if encoded.len() > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+    bytes.extend_from_slice(&(encoded.len() as u16).to_le_bytes());
+    bytes.extend_from_slice(encoded);
+    Ok(())
 }

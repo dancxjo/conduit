@@ -112,7 +112,7 @@ impl<'a> Resolver<'a> {
                     ));
                 };
                 let unit = unit_value.value();
-                if unit.family() != role.family {
+                if unit.family() != role.family || !unit.admits_role(role.role) {
                     return Err(SyntaxCheckError::QuantityLiteral(
                         "quantity constructor Unit belongs to another family".into(),
                     ));
@@ -138,17 +138,59 @@ impl<'a> Resolver<'a> {
                     coordinate.to_string()
                 };
                 let evidence = format!("{}({}, {})", kind.text, resolved_coordinate, unit.symbol());
-                let quantity =
-                    conduit_core::Quantity::parse_with_unit_evidence(&evidence, unit, role.role)
-                        .map_err(|reason| {
+                let value = if let Ok(quantity) = conduit_core::Quantity::parse_with_unit_evidence(
+                    &evidence,
+                    unit.clone(),
+                    role.role,
+                ) {
+                    CanonicalStartupValue::Quantity(
+                        conduit_core::QuantityConfigurationValue::new(quantity, evidence)
+                            .expect("checked resolved constructor evidence"),
+                    )
+                } else {
+                    let syntax = crate::pure_expression::parse(&evidence, &evidence, 0)
+                        .map_err(|(message, _)| SyntaxCheckError::QuantityLiteral(message))?;
+                    let graph =
+                        crate::expression_scalar::checked_closed_numeric_expression_with_catalog(
+                            &syntax,
+                            Some(self.catalog),
+                        )
+                        .map_err(SyntaxCheckError::QuantityLiteral)?;
+                    let conduit_core::NumericComputedResult::Number(result) =
+                        graph.evaluate_exact(&[]).map_err(|error| {
                             SyntaxCheckError::QuantityLiteral(format!(
-                                "invalid constructor coordinate: {reason:?}"
+                                "constructor computation: {error:?}"
                             ))
-                        })?;
-                let value = CanonicalStartupValue::Quantity(
-                    conduit_core::QuantityConfigurationValue::new(quantity, evidence)
-                        .expect("checked resolved constructor evidence"),
-                );
+                        })?
+                    else {
+                        return Err(SyntaxCheckError::QuantityLiteral(
+                            "constructor coordinate is not mathematical".into(),
+                        ));
+                    };
+                    let quantity =
+                        conduit_core::Quantity::from_math_role(result.value, &unit, role.role)
+                            .map_err(|error| {
+                                SyntaxCheckError::QuantityLiteral(format!(
+                                    "constructor coordinate: {error:?}"
+                                ))
+                            })?;
+                    let source_identity = conduit_core::semantic_digest(
+                        "conduit.numeric.source-computation.v1",
+                        expression.text.as_bytes(),
+                    );
+                    let value = conduit_core::QuantityConfigurationValue::from_checked_computation(
+                        quantity,
+                        expression.text.clone(),
+                        source_identity,
+                        &graph,
+                    )
+                    .ok_or_else(|| {
+                        SyntaxCheckError::QuantityLiteral(
+                            "constructor computation evidence does not match its result".into(),
+                        )
+                    })?;
+                    CanonicalStartupValue::Quantity(value)
+                };
                 if expected.is_some_and(|ty| crate::authored_quantity::bytes(&value, ty).is_none())
                 {
                     return Err(SyntaxCheckError::QuantityLiteral(

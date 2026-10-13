@@ -155,6 +155,9 @@ pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
 ) -> Option<&'static BrowserInstallation> {
+    if implementation_id.as_str() == super::numeric_evaluation::IMPLEMENTATION {
+        return Some(&super::numeric_evaluation::INSTALLATION);
+    }
     if implementation_id.as_str() == super::structured_selector::IMPLEMENTATION {
         return Some(&super::structured_selector::INSTALLATION);
     }

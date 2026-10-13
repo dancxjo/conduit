@@ -47,12 +47,33 @@ pub fn pure_expression_definition(
     let output = expression
         .value_type
         .structured_info_type_with(&expression.semantic_structures)?;
-    expression_definition_from_encoding(
+    let mut definition = expression_definition_from_encoding(
         expression_port_kind(&input)?,
         expression_port_kind(&output)?,
-        encoded,
+        encoded.clone(),
         temporal,
-    )
+    )?;
+    if let Some(graph) = crate::checked_numeric_computation(expression)
+        .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)? {
+        let configuration = graph.configuration(numeric_program_identity(&encoded))
+            .map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        let graph_identity = graph.identity().map_err(|_| StructuredInfoRefusal::MalformedCanonicalEncoding)?;
+        let identity = expression_identity(&[
+            definition.kind_id.as_str(), &graph_identity.iter().map(|byte| format!("{byte:02x}")).collect::<alloc::string::String>(),
+        ]);
+        definition.kind_id = kind_id(&format!("conduitese/pure-expression/{identity}"));
+        definition.configuration.push(KindConfigurationField {
+            key: "numeric_computation".into(),
+            rule: KindConfigurationRule::Structured { profile: configuration.profile().clone() },
+            default_value: ConfigurationValue::Structured(configuration),
+        });
+    }
+    Ok(definition)
+}
+
+/// Couples numerical operation custody to the exact retained source program.
+pub fn numeric_program_identity(program: &str) -> [u8;32] {
+    conduit_core::semantic_digest("conduit.pure-expression.numeric-custody.v1", program.as_bytes())
 }
 
 /// Projects a checked Boolean predicate into canonical unary filtering. Flows

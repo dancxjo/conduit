@@ -15,10 +15,10 @@ use crate::{
 };
 use alloc::{string::String, vec::Vec};
 use conduit_core::{
-    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, PrimitiveInfoKind,
-    Quantity, Scalar, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
-    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID, COUNT_INFO_ID, SCALAR_INFO_ID,
-    TEXT_INFO_ID,
+    decode_count, encode_count, primitive_info_kind, FixedInteger, InfoBool, MicroScalar,
+    PrimitiveInfoKind, Quantity, StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, BOOL_INFO_ID, COUNT_INFO_ID,
+    MICRO_SCALAR_INFO_ID, TEXT_INFO_ID,
 };
 use core::cmp::Ordering;
 
@@ -168,8 +168,8 @@ fn unary(
     let encoded = match operator {
         UnaryOperator::Not => InfoBool::new(!decode_bool(&operand)?).encode().to_vec(),
         UnaryOperator::Negate => {
-            if leaf_kind(&operand.value_type)? == SCALAR_INFO_ID {
-                let value = Scalar::decode(&primitive_bytes(&operand)?)
+            if leaf_kind(&operand.value_type)? == MICRO_SCALAR_INFO_ID {
+                let value = MicroScalar::decode(&primitive_bytes(&operand)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
                 value
                     .checked_neg()
@@ -269,10 +269,10 @@ fn binary(
         }
         .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)?;
         encode_count(result).to_vec()
-    } else if leaf_kind(&left.value_type)? == SCALAR_INFO_ID {
-        let left = Scalar::decode(&primitive_bytes(&left)?)
+    } else if leaf_kind(&left.value_type)? == MICRO_SCALAR_INFO_ID {
+        let left = MicroScalar::decode(&primitive_bytes(&left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
-        let right = Scalar::decode(&primitive_bytes(&right)?)
+        let right = MicroScalar::decode(&primitive_bytes(&right)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
         match operator {
             BinaryOperator::Multiply => left.checked_mul(right),
@@ -333,11 +333,11 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
                 &decode_count(&primitive_bytes(right)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             ))
-    } else if kind == SCALAR_INFO_ID {
-        Ok(Scalar::decode(&primitive_bytes(left)?)
+    } else if kind == MICRO_SCALAR_INFO_ID {
+        Ok(MicroScalar::decode(&primitive_bytes(left)?)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
             .cmp(
-                &Scalar::decode(&primitive_bytes(right)?)
+                &MicroScalar::decode(&primitive_bytes(right)?)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             ))
     } else if conduit_core::quantity_info_dimension(kind).is_some()
@@ -348,10 +348,11 @@ fn compare(left: &Value, right: &Value) -> Result<Ordering, PortableExpressionEv
         Quantity::decode(&left.encoded)
             .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?
             .compare(
-                Quantity::decode(&right.encoded)
+                &Quantity::decode(&right.encoded)
                     .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?,
             )
-            .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)
+            .map_err(|_| PortableExpressionEvaluationRefusal::Arithmetic)?
+            .ok_or(PortableExpressionEvaluationRefusal::Arithmetic)
     } else {
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(
             kind.into(),

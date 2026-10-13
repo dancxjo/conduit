@@ -1,6 +1,8 @@
+//! Canonical captured mathematical unit law (staged replacement).
 use super::*;
-pub const UNIT_DEFINITION_ENCODED_LEN: usize =
-    1 + QUANTITY_FAMILY_ENCODED_LEN + DEFINITION_NAME_ENCODED_LEN + 48 + 4 + 25 + 3 + 1 + 32 + 32;
+use crate::{MathValue, MathValueRef, NumericRefusal, PortableNumericProfile};
+use alloc::{boxed::Box, vec::Vec};
+use core::hash::Hash;
 #[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
 pub struct PrefixPolicy {
     decimal_exponents: u64,
@@ -82,537 +84,675 @@ pub enum UnitPrefix {
     Decimal(i8),
     Binary(u8),
 }
-#[derive(Debug, Copy, Clone, PartialEq, Eq, PartialOrd, Ord, Hash)]
+const FAMILY_START: usize = 1;
+const SYMBOL_START: usize = FAMILY_START + QUANTITY_FAMILY_ENCODED_LEN;
+const POLICY_START: usize = SYMBOL_START + DEFINITION_NAME_ENCODED_LEN;
+const PREFIX_START: usize = POLICY_START + 25;
+const ROLE_START: usize = PREFIX_START + 3;
+const ANCHOR_START: usize = ROLE_START + 1;
+const PROFILE_START: usize = ANCHOR_START + 32;
+const LENGTH_START: usize = PROFILE_START + PortableNumericProfile::ENCODED_LEN;
+const LAW_START: usize = LENGTH_START + 8;
+pub const MAX_UNIT_DEFINITION_BYTES: usize = LAW_START + 2 * crate::MAX_NUMERIC_ENCODED_BYTES + 32;
+
+#[derive(Debug, Clone)]
+enum CanonicalCapsule {
+    Static(&'static [u8]),
+    Owned(Box<[u8]>),
+}
+impl CanonicalCapsule {
+    fn bytes(&self) -> &[u8] {
+        match self {
+            Self::Static(value) => value,
+            Self::Owned(value) => value,
+        }
+    }
+}
+/// Prepared ownership of a checked immutable unit. Static and owned capsules
+/// have exactly the same canonical representation and admission law.
+#[derive(Debug, Clone)]
 pub struct UnitDefinition {
     family: QuantityFamilyDefinition,
-    symbol: DefinitionName,
-    scale: i128,
-    offset: i128,
-    denominator: i128,
-    decimal_exponent: i16,
-    offset_exponent: i16,
-    policy: PrefixPolicy,
-    prefix: UnitPrefix,
-    declared_role: QuantityRole,
-    reference_anchor: [u8; 32],
-    identity: [u8; 32],
+    capsule: CanonicalCapsule,
 }
-impl UnitDefinition {
-    pub(crate) const fn from_generated(bytes: &[u8; UNIT_DEFINITION_ENCODED_LEN]) -> Self {
-        let symbol_start = 1 + QUANTITY_FAMILY_ENCODED_LEN;
-        let transform_start = symbol_start + DEFINITION_NAME_ENCODED_LEN;
-        let pos = transform_start + 48;
-        let mut dec = [0; 8];
-        let mut bin = [0; 16];
-        let mut i = 0;
-        while i < 16 {
-            bin[i] = bytes[pos + 12 + i];
-            if i < 8 {
-                dec[i] = bytes[pos + 4 + i];
-            }
-            i += 1;
-        }
-        Self {
-            family: QuantityFamilyDefinition::from_generated(bytes, 1),
-            symbol: DefinitionName::from_generated(bytes, symbol_start),
-            scale: generated_i128(bytes, transform_start),
-            offset: generated_i128(bytes, transform_start + 16),
-            denominator: generated_i128(bytes, transform_start + 32),
-            decimal_exponent: i16::from_le_bytes([bytes[pos], bytes[pos + 1]]),
-            offset_exponent: i16::from_le_bytes([bytes[pos + 2], bytes[pos + 3]]),
-            policy: PrefixPolicy {
-                decimal_exponents: u64::from_le_bytes(dec),
-                binary_exponents: u128::from_le_bytes(bin),
-                power: bytes[pos + 28],
-            },
-            prefix: match bytes[pos + 29] {
-                1 => UnitPrefix::Decimal(bytes[pos + 30] as i8),
-                2 => UnitPrefix::Binary(bytes[pos + 30]),
-                _ => UnitPrefix::None,
-            },
-            declared_role: match bytes[UNIT_DEFINITION_ENCODED_LEN - 65] {
-                0 => QuantityRole::Linear,
-                1 => QuantityRole::Point,
-                _ => QuantityRole::Delta,
-            },
-            reference_anchor: generated_digest(bytes, UNIT_DEFINITION_ENCODED_LEN - 64),
-            identity: generated_digest(bytes, UNIT_DEFINITION_ENCODED_LEN - 32),
-        }
+impl PartialEq for UnitDefinition {
+    fn eq(&self, rhs: &Self) -> bool {
+        self.encoded() == rhs.encoded()
     }
-    pub fn new(
-        family: QuantityFamilyDefinition,
-        symbol: &str,
-        scale: i128,
-        offset: i128,
-        denominator: i128,
-        decimal_exponent: i16,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if scale <= 0
-            || denominator <= 0
-            || (family.roles() == QuantityRoles::Linear && offset != 0)
-        {
-            return Err(PhysicalDefinitionRefusal::InvalidTransform);
+}
+impl Eq for UnitDefinition {}
+impl PartialOrd for UnitDefinition {
+    fn partial_cmp(&self, rhs: &Self) -> Option<core::cmp::Ordering> {
+        Some(self.cmp(rhs))
+    }
+}
+impl Ord for UnitDefinition {
+    fn cmp(&self, rhs: &Self) -> core::cmp::Ordering {
+        self.encoded().cmp(rhs.encoded())
+    }
+}
+impl core::hash::Hash for UnitDefinition {
+    fn hash<H: core::hash::Hasher>(&self, state: &mut H) {
+        self.encoded().hash(state);
+    }
+}
+#[derive(Debug, Copy, Clone)]
+pub struct UnitDefinitionRef<'a> {
+    bytes: &'a [u8],
+    family: QuantityFamilyDefinition,
+    scale_end: usize,
+    offset_end: usize,
+}
+fn numeric_refusal(error: NumericRefusal) -> PhysicalDefinitionRefusal {
+    PhysicalDefinitionRefusal::Numeric(error)
+}
+fn read_u32(bytes: &[u8], at: usize) -> Result<usize, PhysicalDefinitionRefusal> {
+    let slice = bytes
+        .get(at..at + 4)
+        .ok_or(PhysicalDefinitionRefusal::WrongEncodingLength)?;
+    Ok(u32::from_le_bytes(
+        slice
+            .try_into()
+            .map_err(|_| PhysicalDefinitionRefusal::WrongEncodingLength)?,
+    ) as usize)
+}
+fn role_from_byte(byte: u8) -> Result<QuantityRole, PhysicalDefinitionRefusal> {
+    match byte {
+        0 => Ok(QuantityRole::Linear),
+        1 => Ok(QuantityRole::Point),
+        2 => Ok(QuantityRole::Delta),
+        _ => Err(PhysicalDefinitionRefusal::InvalidRoles),
+    }
+}
+impl<'a> UnitDefinitionRef<'a> {
+    pub fn validate(bytes: &'a [u8]) -> Result<Self, PhysicalDefinitionRefusal> {
+        if bytes.len() < LAW_START + 52 || bytes.len() > MAX_UNIT_DEFINITION_BYTES {
+            return Err(PhysicalDefinitionRefusal::WrongEncodingLength);
         }
-        if !(-128..=128).contains(&decimal_exponent) {
-            return Err(PhysicalDefinitionRefusal::InvalidExponent);
+        if bytes[0] != 2 {
+            return Err(PhysicalDefinitionRefusal::UnsupportedVersion);
         }
-        if !(1..=8).contains(&policy.power) {
+        let family = QuantityFamilyDefinition::decode(&bytes[FAMILY_START..SYMBOL_START])?;
+        DefinitionName::decode(&bytes[SYMBOL_START..POLICY_START])?;
+        let power = bytes[POLICY_START + 24];
+        let decimal = u64::from_le_bytes(
+            bytes[POLICY_START..POLICY_START + 8]
+                .try_into()
+                .map_err(|_| PhysicalDefinitionRefusal::WrongEncodingLength)?,
+        );
+        let binary = u128::from_le_bytes(
+            bytes[POLICY_START + 8..POLICY_START + 24]
+                .try_into()
+                .map_err(|_| PhysicalDefinitionRefusal::WrongEncodingLength)?,
+        );
+        if !(1..=8).contains(&power) || decimal >> 60 != 0 || binary >> 80 != 0 {
             return Err(PhysicalDefinitionRefusal::InvalidPrefix);
         }
-        // A common positive denominator and joint reduction make one exact law canonical.
-        let gcd = gcd(
-            gcd(scale as u128, offset.unsigned_abs()),
-            denominator as u128,
-        ) as i128;
-        let mut value = Self {
-            family,
-            symbol: DefinitionName::new(symbol)?,
-            scale: scale / gcd,
-            offset: offset / gcd,
-            denominator: denominator / gcd,
-            decimal_exponent,
-            offset_exponent: 0,
-            policy,
-            prefix: UnitPrefix::None,
-            declared_role: if family.roles() == QuantityRoles::Linear {
-                QuantityRole::Linear
-            } else {
-                QuantityRole::Point
-            },
-            reference_anchor: [0; 32],
-            identity: [0; 32],
+        let policy = PrefixPolicy {
+            decimal_exponents: decimal,
+            binary_exponents: binary,
+            power,
         };
-        value.reference_anchor = value.root_reference_anchor();
-        value.seal();
-        Ok(value)
-    }
-    pub fn new_exact_role(
-        family: QuantityFamilyDefinition,
-        symbol: &str,
-        role: QuantityRole,
-        scale: DefinitionScalar,
-        offset: DefinitionScalar,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if !family.admits(role) || (role == QuantityRole::Delta && offset.numerator != 0) {
+        let exponent = i16::from_le_bytes([bytes[PREFIX_START + 1], bytes[PREFIX_START + 2]]);
+        match bytes[PREFIX_START] {
+            0 if exponent == 0 => {}
+            1 if i8::try_from(exponent).is_ok_and(|value| policy.admits_decimal(value)) => {}
+            2 if u8::try_from(exponent).is_ok_and(|value| policy.admits_binary(value)) => {}
+            _ => return Err(PhysicalDefinitionRefusal::PrefixNotEnabled),
+        }
+        let role = role_from_byte(bytes[ROLE_START])?;
+        if !family.admits(role) {
             return Err(PhysicalDefinitionRefusal::InvalidRoles);
         }
-        let mut value = Self::new_exact(family, symbol, scale, offset, policy)?;
-        value.declared_role = role;
-        value.seal();
-        Ok(value)
-    }
-    pub fn related_exact_role(
-        reference: Self,
-        symbol: &str,
-        role: QuantityRole,
-        scale: DefinitionScalar,
-        offset: DefinitionScalar,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        let reference_scale = reference.exact_scale();
-        let result_scale = scale
-            .multiply(reference_scale)?
-            .multiply_binary(reference.binary_exponent())?;
-        let result_offset = offset
-            .multiply(reference_scale)?
-            .multiply_binary(reference.binary_exponent())?
-            .checked_add(reference.exact_offset(role)?)?;
-        let mut value = Self::new_exact_role(
-            reference.family,
-            symbol,
-            role,
-            result_scale,
-            result_offset,
-            policy,
-        )?;
-        value.reference_anchor = reference.reference_anchor;
-        value.seal();
-        Ok(value)
-    }
-    pub fn new_exact(
-        family: QuantityFamilyDefinition,
-        symbol: &str,
-        scale: DefinitionScalar,
-        offset: DefinitionScalar,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        let scale =
-            DefinitionScalar::new(scale.numerator, scale.denominator, scale.decimal_exponent)?;
-        let offset = DefinitionScalar::new(
-            offset.numerator,
-            offset.denominator,
-            offset.decimal_exponent,
-        )?;
-        let gcd = super::scalar::scalar_gcd(scale.denominator as u128, offset.denominator as u128)
-            as i128;
-        let denominator = (scale.denominator / gcd)
-            .checked_mul(offset.denominator)
-            .ok_or(PhysicalDefinitionRefusal::TransformOverflow)?;
-        let sn = scale
-            .numerator
-            .checked_mul(denominator / scale.denominator)
-            .ok_or(PhysicalDefinitionRefusal::TransformOverflow)?;
-        let on = offset
-            .numerator
-            .checked_mul(denominator / offset.denominator)
-            .ok_or(PhysicalDefinitionRefusal::TransformOverflow)?;
-        let mut value = Self::new(
-            family,
-            symbol,
-            sn,
-            on,
-            denominator,
-            scale.decimal_exponent,
-            policy,
-        )?;
-        value.offset_exponent = offset.decimal_exponent;
-        value.reference_anchor = value.root_reference_anchor();
-        value.seal();
-        Ok(value)
-    }
-    pub fn related_exact(
-        reference: Self,
-        symbol: &str,
-        scale: DefinitionScalar,
-        offset: DefinitionScalar,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        let reference_scale = reference.exact_scale();
-        let result_scale = scale
-            .multiply(reference_scale)?
-            .multiply_binary(reference.binary_exponent())?;
-        let result_offset = offset
-            .multiply(reference_scale)?
-            .multiply_binary(reference.binary_exponent())?
-            .checked_add(reference.exact_offset(reference.declared_role)?)?;
-        let mut value = Self::new_exact(
-            reference.family,
-            symbol,
-            result_scale,
-            result_offset,
-            policy,
-        )?;
-        value.reference_anchor = reference.reference_anchor;
-        value.seal();
-        Ok(value)
-    }
-    /// Emit an already source-admitted spelling with the same immutable physical law.
-    pub fn with_symbol_alias(mut self, symbol: &str) -> Result<Self, PhysicalDefinitionRefusal> {
-        self.symbol = DefinitionName::new(symbol)?;
-        self.seal();
-        Ok(self)
-    }
-    fn root_reference_anchor(self) -> [u8; 32] {
-        let mut bytes = [0; 32 + DEFINITION_NAME_ENCODED_LEN + 82];
-        bytes[..32].copy_from_slice(&self.family.identity());
-        self.symbol
-            .encode_into(&mut bytes[32..32 + DEFINITION_NAME_ENCODED_LEN]);
-        let start = 32 + DEFINITION_NAME_ENCODED_LEN;
-        bytes[start..start + 41].copy_from_slice(
-            &DefinitionScalar {
-                numerator: self.scale,
-                denominator: self.denominator,
-                decimal_exponent: self.decimal_exponent,
-            }
-            .identity_bytes(),
-        );
-        bytes[start + 41..].copy_from_slice(
-            &DefinitionScalar {
-                numerator: self.offset,
-                denominator: self.denominator,
-                decimal_exponent: self.offset_exponent,
-            }
-            .identity_bytes(),
-        );
-        identity("physical/reference-origin@1", &bytes)
-    }
-    /// Pair an explicitly checked derivative origin with its family's point origin.
-    pub fn with_reference_origin(
-        mut self,
-        reference: Self,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if self.family.identity() != reference.family.identity() {
-            return Err(PhysicalDefinitionRefusal::IncompatibleFamily);
+        let profile = PortableNumericProfile::decode(&bytes[PROFILE_START..LENGTH_START])
+            .map_err(numeric_refusal)?;
+        let scale_end = LAW_START
+            .checked_add(read_u32(bytes, LENGTH_START)?)
+            .ok_or(PhysicalDefinitionRefusal::WrongEncodingLength)?;
+        let offset_end = scale_end
+            .checked_add(read_u32(bytes, LENGTH_START + 4)?)
+            .ok_or(PhysicalDefinitionRefusal::WrongEncodingLength)?;
+        if offset_end.checked_add(32) != Some(bytes.len()) {
+            return Err(PhysicalDefinitionRefusal::WrongEncodingLength);
         }
-        self.reference_anchor = reference.reference_anchor;
-        self.seal();
-        Ok(self)
-    }
-    pub fn with_named_origin(mut self, name: &str) -> Result<Self, PhysicalDefinitionRefusal> {
-        let name = DefinitionName::new(name)?;
-        let mut bytes = [0; 32 + DEFINITION_NAME_ENCODED_LEN];
-        bytes[..32].copy_from_slice(&self.root_reference_anchor());
-        name.encode_into(&mut bytes[32..]);
-        self.reference_anchor = identity("physical/named-reference-origin@1", &bytes);
-        self.seal();
-        Ok(self)
-    }
-    pub const fn exact_scale(self) -> DefinitionScalar {
-        DefinitionScalar {
-            numerator: self.scale,
-            denominator: self.denominator,
-            decimal_exponent: self.decimal_exponent(),
-        }
-    }
-    pub fn exact_offset(
-        self,
-        role: QuantityRole,
-    ) -> Result<DefinitionScalar, PhysicalDefinitionRefusal> {
-        if !self.family.admits(role) {
-            return Err(PhysicalDefinitionRefusal::InvalidRoles);
-        }
-        DefinitionScalar::new(
-            if role == QuantityRole::Delta {
-                0
-            } else {
-                self.offset
-            },
-            self.denominator,
-            if role == QuantityRole::Delta {
-                0
-            } else {
-                self.offset_exponent
-            },
-        )
-    }
-    /// Resolve an exact authored affine relationship into an immutable reference law.
-    /// The relation is `(coordinate * scale + offset) / denominator` in `reference`.
-    pub fn related(
-        reference: Self,
-        symbol: &str,
-        scale: i128,
-        offset: i128,
-        denominator: i128,
-        policy: PrefixPolicy,
-    ) -> Result<Self, PhysicalDefinitionRefusal> {
-        Self::related_exact(
-            reference,
-            symbol,
-            DefinitionScalar::new(scale, denominator, 0)?,
-            DefinitionScalar::new(offset, denominator, 0)?,
-            policy,
-        )
-    }
-    fn seal(&mut self) {
-        self.identity = identity(
-            "physical/unit-definition@1",
-            &self.encode()[..UNIT_DEFINITION_ENCODED_LEN - 32],
-        );
-    }
-    pub fn same_physical_definition(self, other: Self) -> bool {
-        self.family.identity() == other.family.identity()
-            && self.reference_anchor == other.reference_anchor
-            && self.declared_role == other.declared_role
-            && self.exact_scale().equivalent_binary(
-                self.binary_exponent() as i16,
-                other.exact_scale(),
-                other.binary_exponent() as i16,
+        let scale = profile
+            .validate(
+                bytes
+                    .get(LAW_START..scale_end)
+                    .ok_or(PhysicalDefinitionRefusal::WrongEncodingLength)?,
             )
-            && self
-                .exact_offset(self.declared_role)
-                .expect("checked role")
-                .equivalent(
-                    other
-                        .exact_offset(other.declared_role)
-                        .expect("checked role"),
-                )
+            .map_err(numeric_refusal)?;
+        let offset = profile
+            .validate(
+                bytes
+                    .get(scale_end..offset_end)
+                    .ok_or(PhysicalDefinitionRefusal::WrongEncodingLength)?,
+            )
+            .map_err(numeric_refusal)?;
+        // Nonzero and affine-role facts are checked from canonical wire without
+        // constructing owned bignums or expression graphs.
+        if !scale.proven_positive() {
+            return Err(PhysicalDefinitionRefusal::InvalidTransform);
+        }
+        if role != QuantityRole::Point && !offset.is_zero() {
+            return Err(PhysicalDefinitionRefusal::InvalidTransform);
+        }
+        if crate::semantic_digest_parts(
+            "physical/unit-definition@2",
+            &[&bytes[..PROFILE_START], &bytes[LENGTH_START..offset_end]],
+        ) != bytes[offset_end..]
+        {
+            return Err(PhysicalDefinitionRefusal::IdentityMismatch);
+        }
+        Ok(Self {
+            bytes,
+            family,
+            scale_end,
+            offset_end,
+        })
+    }
+    pub fn encoded(self) -> &'a [u8] {
+        self.bytes
     }
     pub const fn family(self) -> QuantityFamilyDefinition {
         self.family
     }
-    pub fn symbol(&self) -> &str {
-        self.symbol.as_str()
+    pub fn symbol(self) -> &'a str {
+        core::str::from_utf8(
+            &self.bytes[SYMBOL_START + 1..SYMBOL_START + 1 + usize::from(self.bytes[SYMBOL_START])],
+        )
+        .expect("admitted name")
     }
-    pub const fn declared_role(self) -> QuantityRole {
-        self.declared_role
+    pub fn declared_role(self) -> QuantityRole {
+        role_from_byte(self.bytes[ROLE_START]).expect("admitted role")
     }
-    pub const fn reference_anchor(self) -> [u8; 32] {
-        self.reference_anchor
+    pub fn reference_anchor(self) -> [u8; 32] {
+        self.bytes[ANCHOR_START..PROFILE_START]
+            .try_into()
+            .expect("admitted anchor")
     }
-    pub const fn identity(self) -> [u8; 32] {
-        self.identity
+    pub fn identity(self) -> [u8; 32] {
+        self.bytes[self.offset_end..]
+            .try_into()
+            .expect("admitted identity")
     }
-    pub const fn prefix_policy(self) -> PrefixPolicy {
-        self.policy
+    pub fn law_profile(self) -> PortableNumericProfile {
+        PortableNumericProfile::decode(&self.bytes[PROFILE_START..LENGTH_START])
+            .expect("admitted profile")
     }
-    pub const fn prefix(self) -> UnitPrefix {
-        self.prefix
+    /// A delta declaration supplies no point-origin law. A point declaration in
+    /// a paired family also admits its exact scale-only derivative role.
+    pub fn admits_role(self,role:QuantityRole)->bool {
+        self.family().admits(role) && (role==self.declared_role()
+            || (self.declared_role()==QuantityRole::Point && role==QuantityRole::Delta))
     }
-    pub const fn decimal_exponent(self) -> i16 {
-        self.decimal_exponent
-            + match self.prefix {
-                UnitPrefix::Decimal(exponent) => exponent as i16 * self.policy.power as i16,
-                _ => 0,
-            }
+    pub fn validate_profile(
+        self,
+        required: PortableNumericProfile,
+    ) -> Result<(), PhysicalDefinitionRefusal> {
+        required.checked().map_err(numeric_refusal)?;
+        if !required.admits_profile(self.law_profile()) {
+            return Err(numeric_refusal(NumericRefusal::ProfileViolation));
+        }
+        required
+            .validate(self.exact_scale().encoded())
+            .map_err(numeric_refusal)?;
+        required
+            .validate(self.exact_point_offset().encoded())
+            .map_err(numeric_refusal)?;
+        Ok(())
     }
-    pub const fn offset_exponent(self) -> i16 {
-        self.offset_exponent
+    pub fn exact_scale(self) -> MathValueRef<'a> {
+        MathValueRef::validate(&self.bytes[LAW_START..self.scale_end]).expect("admitted scale")
     }
-    pub const fn binary_exponent(self) -> u16 {
-        match self.prefix {
-            UnitPrefix::Binary(exponent) => exponent as u16 * self.policy.power as u16,
-            _ => 0,
+    pub fn exact_point_offset(self) -> MathValueRef<'a> {
+        MathValueRef::validate(&self.bytes[self.scale_end..self.offset_end])
+            .expect("admitted offset")
+    }
+    pub fn same_physical_definition(self, other: Self) -> bool {
+        self.family().identity() == other.family().identity()
+            && self.declared_role() == other.declared_role()
+            && self.reference_anchor() == other.reference_anchor()
+            && self.exact_scale().encoded() == other.exact_scale().encoded()
+            && self.exact_point_offset().encoded() == other.exact_point_offset().encoded()
+    }
+    pub fn to_owned(self) -> UnitDefinition {
+        UnitDefinition {
+            family: self.family,
+            capsule: CanonicalCapsule::Owned(self.bytes.into()),
         }
     }
+}
+struct UnitDefinitionParts<'a> {
+    family: QuantityFamilyDefinition,
+    symbol: DefinitionName,
+    scale: &'a [u8],
+    offset: &'a [u8],
+    policy: PrefixPolicy,
+    prefix: UnitPrefix,
+    role: QuantityRole,
+    anchor: [u8; 32],
+    profile: PortableNumericProfile,
+}
+impl UnitDefinition {
+    pub(crate) const fn from_generated(bytes: &'static [u8]) -> Self {
+        Self {
+            family: QuantityFamilyDefinition::from_generated(bytes, FAMILY_START),
+            capsule: CanonicalCapsule::Static(bytes),
+        }
+    }
+    pub fn encoded(&self) -> &[u8] {
+        self.capsule.bytes()
+    }
+    /// Retained carrier storage including this inline owner; static source capsules have no heap charge.
+    pub fn owned_storage_bytes(&self) -> usize {
+        core::mem::size_of::<Self>() + self.allocated_storage_bytes()
+    }
+    /// Heap bytes owned by this capsule, excluding the inline owner and allocator bookkeeping.
+    pub fn allocated_storage_bytes(&self) -> usize {
+        match &self.capsule {
+            CanonicalCapsule::Static(_) => 0,
+            CanonicalCapsule::Owned(bytes) => bytes.len(),
+        }
+    }
+
+    pub fn as_ref(&self) -> UnitDefinitionRef<'_> {
+        UnitDefinitionRef::validate(self.encoded()).expect("checked unit ownership")
+    }
+    pub fn decode(bytes: &[u8]) -> Result<Self, PhysicalDefinitionRefusal> {
+        Ok(UnitDefinitionRef::validate(bytes)?.to_owned())
+    }
+    pub fn encode(&self) -> Vec<u8> {
+        self.encoded().to_vec()
+    }
+    pub fn encode_into(&self, out: &mut [u8]) -> Result<usize, PhysicalDefinitionRefusal> {
+        if out.len() < self.encoded().len() {
+            return Err(PhysicalDefinitionRefusal::WrongEncodingLength);
+        }
+        out[..self.encoded().len()].copy_from_slice(self.encoded());
+        Ok(self.encoded().len())
+    }
+    pub const fn family(&self) -> QuantityFamilyDefinition {
+        self.family
+    }
+    pub fn symbol(&self) -> &str {
+        self.as_ref().symbol()
+    }
+    pub fn declared_role(&self) -> QuantityRole {
+        self.as_ref().declared_role()
+    }
+    pub fn identity(&self) -> [u8; 32] {
+        self.as_ref().identity()
+    }
+    pub fn reference_anchor(&self) -> [u8; 32] {
+        self.as_ref().reference_anchor()
+    }
+    pub fn exact_scale(&self) -> MathValueRef<'_> {
+        self.as_ref().exact_scale()
+    }
+    pub fn exact_point_offset(&self) -> MathValueRef<'_> {
+        self.as_ref().exact_point_offset()
+    }
+}
+impl UnitDefinition {
+    pub fn new_math_role(
+        family: QuantityFamilyDefinition,
+        symbol: &str,
+        scale: MathValue,
+        offset: MathValue,
+        policy: PrefixPolicy,
+        role: QuantityRole,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        let scale_bytes = scale.canonical_bytes().map_err(numeric_refusal)?;
+        let offset_bytes = offset.canonical_bytes().map_err(numeric_refusal)?;
+        let profile = PortableNumericProfile::for_value(
+            MathValueRef::validate(&scale_bytes).map_err(numeric_refusal)?,
+        )
+        .union(PortableNumericProfile::for_value(
+            MathValueRef::validate(&offset_bytes).map_err(numeric_refusal)?,
+        ))
+        .map_err(numeric_refusal)?;
+        Self::new_math_role_profile(family, symbol, scale, offset, policy, role, profile)
+    }
+    pub fn related_math_role(
+        reference: &Self,
+        symbol: &str,
+        scale: MathValue,
+        offset: MathValue,
+        policy: PrefixPolicy,
+        role: QuantityRole,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        let value = Self::related_math_role_profile(
+            reference,
+            symbol,
+            scale,
+            offset,
+            policy,
+            role,
+            PortableNumericProfile::MAXIMAL,
+        )?;
+        value.reprofile(value.actual_law_profile()?)
+    }
+    pub fn actual_law_profile(&self) -> Result<PortableNumericProfile, PhysicalDefinitionRefusal> {
+        PortableNumericProfile::for_value(self.exact_scale())
+            .union(PortableNumericProfile::for_value(self.exact_point_offset()))
+            .map_err(numeric_refusal)
+    }
+    pub fn reprofile(
+        &self,
+        profile: PortableNumericProfile,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        Self::from_parts(UnitDefinitionParts {
+            family: self.family,
+            symbol: DefinitionName::new(self.symbol())?,
+            scale: self.exact_scale().encoded(),
+            offset: self.exact_point_offset().encoded(),
+            policy: self.prefix_policy(),
+            prefix: self.prefix(),
+            role: self.declared_role(),
+            anchor: self.reference_anchor(),
+            profile,
+        })
+    }
+    pub fn new_math_role_profile(
+        family: QuantityFamilyDefinition,
+        symbol: &str,
+        scale: MathValue,
+        offset: MathValue,
+        policy: PrefixPolicy,
+        role: QuantityRole,
+        profile: PortableNumericProfile,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        let name = DefinitionName::new(symbol)?;
+        if !family.admits(role) {
+            return Err(PhysicalDefinitionRefusal::InvalidRoles);
+        }
+        let scale = scale.canonical_bytes().map_err(numeric_refusal)?;
+        let offset = offset.canonical_bytes().map_err(numeric_refusal)?;
+        profile.validate(&scale).map_err(numeric_refusal)?;
+        profile.validate(&offset).map_err(numeric_refusal)?;
+        let mut root = Vec::new();
+        root.extend_from_slice(&family.encode());
+        root.extend_from_slice(name.as_str().as_bytes());
+        root.extend_from_slice(&(scale.len() as u32).to_le_bytes());
+        root.extend_from_slice(&scale);
+        root.extend_from_slice(&(offset.len() as u32).to_le_bytes());
+        root.extend_from_slice(&offset);
+        let anchor = identity("physical/reference-origin@2", &root);
+        Self::from_parts(UnitDefinitionParts {
+            family,
+            symbol: name,
+            scale: &scale,
+            offset: &offset,
+            policy,
+            prefix: UnitPrefix::None,
+            role,
+            anchor,
+            profile,
+        })
+    }
+    fn from_parts(parts: UnitDefinitionParts<'_>) -> Result<Self, PhysicalDefinitionRefusal> {
+        let UnitDefinitionParts {
+            family,
+            symbol,
+            scale,
+            offset,
+            policy,
+            prefix,
+            role,
+            anchor,
+            profile,
+        } = parts;
+        let mut bytes = Vec::with_capacity(LAW_START + scale.len() + offset.len() + 32);
+        bytes.push(2);
+        bytes.extend_from_slice(&family.encode());
+        let mut name = [0; DEFINITION_NAME_ENCODED_LEN];
+        symbol.encode_into(&mut name);
+        bytes.extend_from_slice(&name);
+        bytes.extend_from_slice(&policy.decimal_exponents.to_le_bytes());
+        bytes.extend_from_slice(&policy.binary_exponents.to_le_bytes());
+        bytes.push(policy.power);
+        let (tag, exponent) = match prefix {
+            UnitPrefix::None => (0, 0),
+            UnitPrefix::Decimal(value) => (1, i16::from(value)),
+            UnitPrefix::Binary(value) => (2, i16::from(value)),
+        };
+        bytes.push(tag);
+        bytes.extend_from_slice(&exponent.to_le_bytes());
+        bytes.push(role as u8);
+        bytes.extend_from_slice(&anchor);
+        bytes.extend_from_slice(&profile.encode().map_err(numeric_refusal)?);
+        bytes.extend_from_slice(&(scale.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(&(offset.len() as u32).to_le_bytes());
+        bytes.extend_from_slice(scale);
+        bytes.extend_from_slice(offset);
+        let digest = crate::semantic_digest_parts(
+            "physical/unit-definition@2",
+            &[&bytes[..PROFILE_START], &bytes[LENGTH_START..]],
+        );
+        bytes.extend_from_slice(&digest);
+        UnitDefinitionRef::validate(&bytes)?;
+        Ok(Self {
+            family,
+            capsule: CanonicalCapsule::Owned(bytes.into_boxed_slice()),
+        })
+    }
+    pub fn admits_role(&self,role:QuantityRole)->bool {self.as_ref().admits_role(role)}
+    pub fn related_math_role_profile(
+        reference: &Self,
+        symbol: &str,
+        scale: MathValue,
+        offset: MathValue,
+        policy: PrefixPolicy,
+        role: QuantityRole,
+        profile: PortableNumericProfile,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        if !reference.admits_role(role) {
+            return Err(PhysicalDefinitionRefusal::InvalidRoles);
+        }
+        let reference_scale = reference
+            .exact_scale()
+            .to_owned()
+            .map_err(numeric_refusal)?;
+        let reference_offset = if role == QuantityRole::Point {
+            reference
+                .exact_point_offset()
+                .to_owned()
+                .map_err(numeric_refusal)?
+        } else {
+            MathValue::ZERO
+        };
+        let composed_offset = offset
+            .checked_mul(&reference_scale)
+            .and_then(|v| v.checked_add(&reference_offset))
+            .map_err(numeric_refusal)?;
+        let composed_scale = scale
+            .checked_mul(&reference_scale)
+            .map_err(numeric_refusal)?;
+        let scale = composed_scale.canonical_bytes().map_err(numeric_refusal)?;
+        let offset = composed_offset.canonical_bytes().map_err(numeric_refusal)?;
+        Self::from_parts(UnitDefinitionParts {
+            family: reference.family,
+            symbol: DefinitionName::new(symbol)?,
+            scale: &scale,
+            offset: &offset,
+            policy,
+            prefix: UnitPrefix::None,
+            role,
+            anchor: reference.reference_anchor(),
+            profile,
+        })
+    }
+    pub fn prefix_policy(&self) -> PrefixPolicy {
+        let bytes = self.encoded();
+        PrefixPolicy {
+            decimal_exponents: u64::from_le_bytes(
+                bytes[POLICY_START..POLICY_START + 8]
+                    .try_into()
+                    .expect("checked policy"),
+            ),
+            binary_exponents: u128::from_le_bytes(
+                bytes[POLICY_START + 8..POLICY_START + 24]
+                    .try_into()
+                    .expect("checked policy"),
+            ),
+            power: bytes[POLICY_START + 24],
+        }
+    }
+    pub fn prefix(&self) -> UnitPrefix {
+        let bytes = self.encoded();
+        let exponent = i16::from_le_bytes([bytes[PREFIX_START + 1], bytes[PREFIX_START + 2]]);
+        match bytes[PREFIX_START] {
+            0 => UnitPrefix::None,
+            1 => UnitPrefix::Decimal(exponent as i8),
+            _ => UnitPrefix::Binary(exponent as u8),
+        }
+    }
+    pub fn with_symbol_alias(&self, symbol: &str) -> Result<Self, PhysicalDefinitionRefusal> {
+        Self::from_parts(UnitDefinitionParts {
+            family: self.family,
+            symbol: DefinitionName::new(symbol)?,
+            scale: self.exact_scale().encoded(),
+            offset: self.exact_point_offset().encoded(),
+            policy: self.prefix_policy(),
+            prefix: self.prefix(),
+            role: self.declared_role(),
+            anchor: self.reference_anchor(),
+            profile: self.as_ref().law_profile(),
+        })
+    }
+    pub fn with_reference_origin(
+        &self,
+        reference: &Self,
+    ) -> Result<Self, PhysicalDefinitionRefusal> {
+        if self.family.identity() != reference.family.identity() {
+            return Err(PhysicalDefinitionRefusal::IncompatibleFamily);
+        }
+        Self::from_parts(UnitDefinitionParts {
+            family: self.family,
+            symbol: DefinitionName::new(self.symbol())?,
+            scale: self.exact_scale().encoded(),
+            offset: self.exact_point_offset().encoded(),
+            policy: self.prefix_policy(),
+            prefix: self.prefix(),
+            role: self.declared_role(),
+            anchor: reference.reference_anchor(),
+            profile: self.as_ref().law_profile(),
+        })
+    }
+    pub fn with_named_origin(&self, name: &str) -> Result<Self, PhysicalDefinitionRefusal> {
+        let name = DefinitionName::new(name)?;
+        let mut payload = Vec::new();
+        payload.extend_from_slice(&self.reference_anchor());
+        payload.extend_from_slice(name.as_str().as_bytes());
+        let anchor = identity("physical/named-reference-origin@2", &payload);
+        Self::from_parts(UnitDefinitionParts {
+            family: self.family,
+            symbol: DefinitionName::new(self.symbol())?,
+            scale: self.exact_scale().encoded(),
+            offset: self.exact_point_offset().encoded(),
+            policy: self.prefix_policy(),
+            prefix: self.prefix(),
+            role: self.declared_role(),
+            anchor,
+            profile: self.as_ref().law_profile(),
+        })
+    }
     pub fn with_decimal_prefix(
-        self,
+        &self,
         symbol: &str,
         exponent: i8,
     ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if !self.policy.admits_decimal(exponent) {
-            return Err(PhysicalDefinitionRefusal::PrefixNotEnabled);
-        }
-        if exponent == 0 || !(-30..=30).contains(&exponent) {
-            return Err(PhysicalDefinitionRefusal::InvalidPrefix);
-        }
-        self.derive(symbol, UnitPrefix::Decimal(exponent))
+        self.with_prefix(symbol, UnitPrefix::Decimal(exponent))
     }
     pub fn with_binary_prefix(
-        self,
+        &self,
         symbol: &str,
         exponent: u8,
     ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if !self.policy.admits_binary(exponent) {
-            return Err(PhysicalDefinitionRefusal::PrefixNotEnabled);
-        }
-        if exponent == 0 || exponent > 80 {
-            return Err(PhysicalDefinitionRefusal::InvalidPrefix);
-        }
-        self.derive(symbol, UnitPrefix::Binary(exponent))
+        self.with_prefix(symbol, UnitPrefix::Binary(exponent))
     }
-    fn derive(
-        mut self,
+    fn with_prefix(
+        &self,
         symbol: &str,
         prefix: UnitPrefix,
     ) -> Result<Self, PhysicalDefinitionRefusal> {
-        if self.prefix != UnitPrefix::None {
+        if self.prefix() != UnitPrefix::None {
             return Err(PhysicalDefinitionRefusal::AlreadyPrefixed);
         }
-        self.symbol = DefinitionName::new(symbol)?;
-        self.prefix = prefix;
-        if !(-128..=128).contains(&self.decimal_exponent()) {
-            return Err(PhysicalDefinitionRefusal::InvalidExponent);
+        let policy = self.prefix_policy();
+        let factor = match prefix {
+            UnitPrefix::Decimal(value) if policy.admits_decimal(value) => {
+                MathValue::integer(10).checked_pow(i64::from(value) * i64::from(policy.power))
+            }
+            UnitPrefix::Binary(value) if policy.admits_binary(value) => {
+                MathValue::integer(2).checked_pow(i64::from(value) * i64::from(policy.power))
+            }
+            _ => return Err(PhysicalDefinitionRefusal::PrefixNotEnabled),
         }
-        self.seal();
-        Ok(self)
-    }
-    pub fn encode(self) -> [u8; UNIT_DEFINITION_ENCODED_LEN] {
-        let mut bytes = [0; UNIT_DEFINITION_ENCODED_LEN];
-        bytes[0] = 1;
-        let symbol_start = 1 + QUANTITY_FAMILY_ENCODED_LEN;
-        let transform_start = symbol_start + DEFINITION_NAME_ENCODED_LEN;
-        bytes[1..symbol_start].copy_from_slice(&self.family.encode());
-        self.symbol
-            .encode_into(&mut bytes[symbol_start..transform_start]);
-        for (index, value) in [self.scale, self.offset, self.denominator]
-            .iter()
-            .enumerate()
+        .map_err(numeric_refusal)?;
+        let scale = self
+            .exact_scale()
+            .to_owned()
+            .and_then(|value| value.checked_mul(&factor))
+            .and_then(|value| value.canonical_bytes())
+            .map_err(numeric_refusal)?;
         {
-            let start = transform_start + index * 16;
-            bytes[start..start + 16].copy_from_slice(&value.to_le_bytes());
-        }
-        let pos = transform_start + 48;
-        bytes[pos..pos + 2].copy_from_slice(&self.decimal_exponent.to_le_bytes());
-        bytes[pos + 2..pos + 4].copy_from_slice(&self.offset_exponent.to_le_bytes());
-        bytes[pos + 4..pos + 12].copy_from_slice(&self.policy.decimal_exponents.to_le_bytes());
-        bytes[pos + 12..pos + 28].copy_from_slice(&self.policy.binary_exponents.to_le_bytes());
-        bytes[pos + 28] = self.policy.power;
-        let (kind, exponent) = match self.prefix {
-            UnitPrefix::None => (0, 0),
-            UnitPrefix::Decimal(p) => (1, p as u8),
-            UnitPrefix::Binary(p) => (2, p),
-        };
-        bytes[pos + 29] = kind;
-        bytes[pos + 30] = exponent; // pos + 31 reserved zero
-        bytes[UNIT_DEFINITION_ENCODED_LEN - 65] = match self.declared_role {
-            QuantityRole::Linear => 0,
-            QuantityRole::Point => 1,
-            QuantityRole::Delta => 2,
-        };
-        bytes[UNIT_DEFINITION_ENCODED_LEN - 64..UNIT_DEFINITION_ENCODED_LEN - 32]
-            .copy_from_slice(&self.reference_anchor);
-        bytes[UNIT_DEFINITION_ENCODED_LEN - 32..].copy_from_slice(&self.identity);
-        bytes
-    }
-    pub fn decode(bytes: &[u8]) -> Result<Self, PhysicalDefinitionRefusal> {
-        if bytes.len() != UNIT_DEFINITION_ENCODED_LEN {
-            return Err(PhysicalDefinitionRefusal::WrongEncodingLength);
-        }
-        if bytes[0] != 1 {
-            return Err(PhysicalDefinitionRefusal::UnsupportedVersion);
-        }
-        let symbol_start = 1 + QUANTITY_FAMILY_ENCODED_LEN;
-        let transform_start = symbol_start + DEFINITION_NAME_ENCODED_LEN;
-        let pos = transform_start + 48;
-        let family = QuantityFamilyDefinition::decode(&bytes[1..symbol_start])?;
-        let symbol = DefinitionName::decode(&bytes[symbol_start..transform_start])?;
-        let read = |index: usize| {
-            i128::from_le_bytes(
-                bytes[transform_start + index * 16..transform_start + (index + 1) * 16]
-                    .try_into()
-                    .unwrap(),
+            let profile = PortableNumericProfile::for_value(
+                MathValueRef::validate(&scale).map_err(numeric_refusal)?,
             )
-        };
-        if bytes[pos + 31] != 0 {
-            return Err(PhysicalDefinitionRefusal::NonCanonicalEncoding);
+            .union(PortableNumericProfile::for_value(self.exact_point_offset()))
+            .map_err(numeric_refusal)?;
+            Self::from_parts(UnitDefinitionParts {
+                family: self.family,
+                symbol: DefinitionName::new(symbol)?,
+                scale: &scale,
+                offset: self.exact_point_offset().encoded(),
+                policy,
+                prefix,
+                role: self.declared_role(),
+                anchor: self.reference_anchor(),
+                profile,
+            })
         }
-        let policy = PrefixPolicy {
-            decimal_exponents: u64::from_le_bytes(bytes[pos + 4..pos + 12].try_into().unwrap()),
-            binary_exponents: u128::from_le_bytes(bytes[pos + 12..pos + 28].try_into().unwrap()),
-            power: bytes[pos + 28],
-        };
-        if policy.decimal_exponents >> 60 != 0 || policy.binary_exponents >> 80 != 0 {
-            return Err(PhysicalDefinitionRefusal::InvalidPrefix);
-        }
-        let mut value = Self::new(
-            family,
-            symbol.as_str(),
-            read(0),
-            read(1),
-            read(2),
-            i16::from_le_bytes(bytes[pos..pos + 2].try_into().unwrap()),
-            policy,
-        )?;
-        value = match bytes[pos + 29] {
-            0 if bytes[pos + 30] == 0 => value,
-            1 => value.with_decimal_prefix(symbol.as_str(), bytes[pos + 30] as i8)?,
-            2 => value.with_binary_prefix(symbol.as_str(), bytes[pos + 30])?,
-            _ => return Err(PhysicalDefinitionRefusal::InvalidPrefix),
-        };
-        value.declared_role = match bytes[UNIT_DEFINITION_ENCODED_LEN - 65] {
-            0 => QuantityRole::Linear,
-            1 => QuantityRole::Point,
-            2 => QuantityRole::Delta,
-            _ => return Err(PhysicalDefinitionRefusal::InvalidRoles),
-        };
-        if !value.family.admits(value.declared_role)
-            || (value.declared_role == QuantityRole::Delta && value.offset != 0)
-        {
-            return Err(PhysicalDefinitionRefusal::InvalidRoles);
-        }
-        value.offset_exponent = i16::from_le_bytes(bytes[pos + 2..pos + 4].try_into().unwrap());
-        if !(-128..=128).contains(&value.offset_exponent)
-            || (value.offset == 0 && value.offset_exponent != 0)
-        {
-            return Err(PhysicalDefinitionRefusal::NonCanonicalEncoding);
-        }
-        value.reference_anchor.copy_from_slice(
-            &bytes[UNIT_DEFINITION_ENCODED_LEN - 64..UNIT_DEFINITION_ENCODED_LEN - 32],
-        );
-        value.seal();
-        if value.encode() != bytes {
-            return Err(PhysicalDefinitionRefusal::IdentityMismatch);
-        }
-        Ok(value)
+    }
+    pub fn same_physical_definition(&self, rhs: &Self) -> bool {
+        self.family.identity() == rhs.family.identity()
+            && self.declared_role() == rhs.declared_role()
+            && self.reference_anchor() == rhs.reference_anchor()
+            && self.exact_scale().encoded() == rhs.exact_scale().encoded()
+            && self.exact_point_offset().encoded() == rhs.exact_point_offset().encoded()
     }
 }
-fn gcd(mut left: u128, mut right: u128) -> u128 {
-    while right != 0 {
-        let remainder = left % right;
-        left = right;
-        right = remainder;
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    #[test]
+    fn all_source_generated_mathematical_capsules_are_admitted() {
+        for (symbol, unit) in crate::BUILTIN_UNIT_DEFINITIONS {
+            let checked = UnitDefinitionRef::validate(unit.encoded())
+                .unwrap_or_else(|error| panic!("{symbol}: {error:?}"));
+            assert_eq!(checked.family(), unit.family());
+            assert!(checked.exact_scale().proven_positive());
+            assert!(unit.encoded().len() <= MAX_UNIT_DEFINITION_BYTES);
+        }
+        let turn = &crate::BUILTIN_TURN;
+        let rad = &crate::BUILTIN_RADIAN;
+        assert_eq!(turn.reference_anchor(), rad.reference_anchor());
+        let expected = MathValue::ONE
+            .checked_div(&MathValue::integer(2).checked_mul(&MathValue::pi()).unwrap())
+            .unwrap();
+        assert_eq!(rad.exact_scale().to_owned().unwrap(), expected);
+        assert_eq!(
+            crate::BUILTIN_RADIAN_PER_SECOND
+                .exact_scale()
+                .to_owned()
+                .unwrap(),
+            expected
+        );
+        const {
+            assert!(MAX_UNIT_DEFINITION_BYTES < 131072);
+        }
     }
-    left
 }

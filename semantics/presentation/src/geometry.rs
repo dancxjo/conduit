@@ -41,7 +41,28 @@ fn text_type() -> StructuredInfoType {
 }
 
 fn quantity_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(conduit_core::QUANTITY_INFO_ID)).expect("quantity is finite")
+    let profile = conduit_core::PhysicalNumericProfile {
+        coordinate: conduit_core::PortableNumericProfile {
+            forms: conduit_core::NumericForms::ALL,
+            maximum_integer_limbs: 128,
+            maximum_symbolic_nodes: 16,
+            maximum_symbolic_depth: 16,
+            maximum_encoded_bytes: 512,
+        },
+        unit_law: conduit_core::PortableNumericProfile {
+            forms: conduit_core::NumericForms::ALL,
+            maximum_integer_limbs: 128,
+            maximum_symbolic_nodes: 16,
+            maximum_symbolic_depth: 16,
+            maximum_encoded_bytes: 256,
+        },
+    };
+    StructuredInfoType::leaf(kind_id(
+        &profile
+            .generic_info_id()
+            .expect("finite geometry numeric profile"),
+    ))
+    .expect("quantity is finite")
 }
 
 fn field(name: &str, value_type: StructuredInfoType) -> StructuredFieldType {
@@ -111,8 +132,8 @@ fn text(value: &str) -> StructuredInfoValue {
     StructuredInfoValue::leaf(text_type(), value.as_bytes().to_vec()).expect("bounded text")
 }
 
-fn quantity(value: Quantity) -> StructuredInfoValue {
-    StructuredInfoValue::leaf(quantity_type(), value.encode().to_vec()).expect("bounded quantity")
+fn quantity(value: Quantity) -> Result<StructuredInfoValue, GeometryRefusal> {
+    StructuredInfoValue::leaf(quantity_type(), value.encode()).map_err(GeometryRefusal::Structured)
 }
 
 pub fn point2_value(
@@ -120,14 +141,14 @@ pub fn point2_value(
     x: Quantity,
     y: Quantity,
 ) -> Result<StructuredInfoValue, GeometryRefusal> {
-    require_length(x)?;
-    require_length(y)?;
+    require_length(&x)?;
+    require_length(&y)?;
     Ok(StructuredInfoValue::record(
         point2_type(),
         vec![
             value_field("frame", text(frame)),
-            value_field("x", quantity(x)),
-            value_field("y", quantity(y)),
+            value_field("x", quantity(x)?),
+            value_field("y", quantity(y)?),
         ],
     )?)
 }
@@ -138,14 +159,19 @@ pub fn transform2_value(
     offset_x: Quantity,
     offset_y: Quantity,
 ) -> Result<StructuredInfoValue, GeometryRefusal> {
-    require_length(offset_x)?;
-    require_length(offset_y)?;
+    require_length(&offset_x)?;
+    require_length(&offset_y)?;
+    if offset_x.role() == conduit_core::QuantityRole::Point
+        || offset_y.role() == conduit_core::QuantityRole::Point
+    {
+        return Err(GeometryRefusal::IncompatibleUnit);
+    }
     Ok(StructuredInfoValue::record(
         transform2_type(),
         vec![
             value_field("from_frame", text(from_frame)),
-            value_field("offset_x", quantity(offset_x)),
-            value_field("offset_y", quantity(offset_y)),
+            value_field("offset_x", quantity(offset_x)?),
+            value_field("offset_y", quantity(offset_y)?),
             value_field("to_frame", text(to_frame)),
         ],
     )?)
@@ -178,8 +204,8 @@ pub fn apply_transform2(
     }
     let x = record_quantity(point, "x")?;
     let y = record_quantity(point, "y")?;
-    let offset_x = convert_offset(record_quantity(transform, "offset_x")?, x.unit())?;
-    let offset_y = convert_offset(record_quantity(transform, "offset_y")?, y.unit())?;
+    let offset_x = convert_offset(record_quantity(transform, "offset_x")?, x.unit().to_owned())?;
+    let offset_y = convert_offset(record_quantity(transform, "offset_y")?, y.unit().to_owned())?;
     let x = add_coordinates(x, offset_x)?;
     let y = add_coordinates(y, offset_y)?;
     point2_value(&record_text(transform, "to_frame")?, x, y)
@@ -205,46 +231,35 @@ pub fn apply_transform2_to_path(
 }
 
 fn add_coordinates(left: Quantity, right: Quantity) -> Result<Quantity, GeometryRefusal> {
-    let exponent = if left.coefficient() == 0 {
-        right.exponent()
-    } else if right.coefficient() == 0 {
-        left.exponent()
-    } else {
-        left.exponent().min(right.exponent())
-    };
-    let align = |value: Quantity| -> Result<i128, GeometryRefusal> {
-        if value.coefficient() == 0 {
-            return Ok(0);
-        }
-        let power = u32::try_from(i32::from(value.exponent()) - i32::from(exponent))
-            .map_err(|_| GeometryRefusal::Overflow)?;
-        let scale = 10_i128
-            .checked_pow(power)
-            .ok_or(GeometryRefusal::Overflow)?;
-        value
-            .coefficient()
-            .checked_mul(scale)
-            .ok_or(GeometryRefusal::Overflow)
-    };
-    let coefficient = align(left)?
-        .checked_add(align(right)?)
-        .ok_or(GeometryRefusal::Overflow)?;
-    Quantity::from_decimal(coefficient, exponent, left.unit())
+    let left_value = left
+        .coordinate()
+        .to_owned()
+        .map_err(|_| GeometryRefusal::Overflow)?;
+    let right_value = right
+        .convert_to_unit(&left.unit().to_owned())
+        .map_err(|_| GeometryRefusal::InexactUnitConversion)?;
+    let sum = left_value
+        .checked_add(&right_value)
+        .map_err(|_| GeometryRefusal::Overflow)?;
+    Quantity::from_math_role(sum, &left.unit().to_owned(), left.role())
         .map_err(|_| GeometryRefusal::Overflow)
 }
 
-fn require_length(value: Quantity) -> Result<(), GeometryRefusal> {
+fn require_length(value: &Quantity) -> Result<(), GeometryRefusal> {
     (value.dimension() == QuantityDimension::Length)
         .then_some(())
         .ok_or(GeometryRefusal::IncompatibleUnit)
 }
 
 fn convert_offset(value: Quantity, unit: Unit) -> Result<Quantity, GeometryRefusal> {
-    require_length(value)?;
-    value.convert(unit).map_err(|error| match error {
+    require_length(&value)?;
+    value.convert(&unit).map_err(|error| match error {
         QuantityConversionRefusal::IncompatibleDimensions
         | QuantityConversionRefusal::IncompatibleQuantityFamilies
         | QuantityConversionRefusal::IncompatibleQuantityRoles => GeometryRefusal::IncompatibleUnit,
+        QuantityConversionRefusal::UnlinkedOrigin => GeometryRefusal::IncompatibleUnit,
+        QuantityConversionRefusal::EqualityUnknown => GeometryRefusal::InexactUnitConversion,
+        QuantityConversionRefusal::Numeric(_) => GeometryRefusal::Overflow,
         QuantityConversionRefusal::Inexact => GeometryRefusal::InexactUnitConversion,
         QuantityConversionRefusal::Overflow => GeometryRefusal::Overflow,
     })

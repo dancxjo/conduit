@@ -441,10 +441,9 @@ fn authored_unit_snapshots_preserve_active_browser_play_meaning() {
     };
     let old_quantity = admitted_quantity(&old_session);
     let new_quantity = admitted_quantity(&new_session);
-    assert_ne!(old_quantity.unit(), new_quantity.unit());
-    let retained_in_new_unit = old_quantity.convert(new_quantity.unit()).unwrap();
-    assert_eq!(retained_in_new_unit.coefficient(), 8509);
-    assert_eq!(retained_in_new_unit.exponent(), -4);
+    assert!(!old_quantity.unit().same_physical_definition(new_quantity.unit()));
+    let retained_in_new_unit = old_quantity.convert(&conduit_core::Unit::decode(new_quantity.unit().encoded()).unwrap()).unwrap();
+    assert_eq!(retained_in_new_unit.coordinate().to_owned().unwrap(), conduit_core::MathValue::parse_decimal("0.8509").unwrap());
     // Both independent admitted snapshots have executed their installed kernel.
     // Completing the old active Play after the new admission retains its result.
     finish(new_session, new_effect);

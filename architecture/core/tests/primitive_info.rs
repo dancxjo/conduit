@@ -7,7 +7,10 @@ fn primitive_registry_is_exact_and_has_no_boolean_alias() {
         (TERMINAL_INFO_ID, PrimitiveInfoKind::Terminal),
         (BOOL_INFO_ID, PrimitiveInfoKind::Bool),
         (COUNT_INFO_ID, PrimitiveInfoKind::Count),
-        (SCALAR_INFO_ID, PrimitiveInfoKind::Scalar),
+        (SCALAR_INFO_ID, PrimitiveInfoKind::MathematicalNumber),
+        (MICRO_SCALAR_INFO_ID, PrimitiveInfoKind::MicroScalar),
+        (F32_INFO_ID, PrimitiveInfoKind::F32),
+        (F64_INFO_ID, PrimitiveInfoKind::F64),
         (TEXT_INFO_ID, PrimitiveInfoKind::Text),
         (BYTES_INFO_ID, PrimitiveInfoKind::Bytes),
         (QUANTITY_INFO_ID, PrimitiveInfoKind::Quantity),
@@ -83,7 +86,10 @@ fn every_primitive_has_one_canonical_leaf_contract() {
     assert!(validate_primitive_info(COUNT_INFO_ID, b"42").is_err());
 
     assert_eq!(
-        validate_primitive_info(SCALAR_INFO_ID, &Scalar::ONE.encode()),
+        validate_primitive_info(
+            SCALAR_INFO_ID,
+            &Scalar::integer(1).canonical_bytes().unwrap()
+        ),
         Ok(())
     );
     assert!(validate_primitive_info(SCALAR_INFO_ID, b"1.0").is_err());
@@ -130,21 +136,23 @@ fn every_primitive_has_one_canonical_leaf_contract() {
 #[test]
 fn nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical() {
     let leaf = |identity| StructuredInfoType::leaf(kind_id(identity)).unwrap();
+    let quantity = Quantity::new(2, Unit::Second);
+    let quantity_kind = quantity
+        .as_ref()
+        .physical_profile()
+        .generic_info_id()
+        .unwrap();
     let fields = [
         ("bool", leaf(BOOL_INFO_ID), InfoBool::TRUE.encode().to_vec()),
         ("count", leaf(COUNT_INFO_ID), encode_count(7).to_vec()),
-        (
-            "quantity",
-            leaf(QUANTITY_INFO_ID),
-            Quantity::new(2, Unit::Second).encode().to_vec(),
-        ),
+        ("quantity", leaf(&quantity_kind), quantity.encode()),
         (
             "scalar",
             leaf(SCALAR_INFO_ID),
-            Scalar::ONE.encode().to_vec(),
+            Scalar::integer(1).canonical_bytes().unwrap(),
         ),
         ("text", leaf(TEXT_INFO_ID), b"seven".to_vec()),
-        ("unit", leaf(EMPTY_INFO_ID), Vec::new()),
+        ("empty", leaf(EMPTY_INFO_ID), Vec::new()),
     ];
     let ty = StructuredInfoType::record(
         kind_id("test/primitive-record@1"),
@@ -177,4 +185,21 @@ fn nested_primitive_record_is_rejected_when_a_leaf_is_not_canonical() {
 
     assert!(StructuredInfoValue::leaf(leaf(COUNT_INFO_ID), b"7".to_vec()).is_err());
     assert!(StructuredInfoValue::leaf(leaf(EMPTY_INFO_ID), vec![0]).is_err());
+}
+
+#[test]
+fn mathematical_scalar_and_explicit_grid_have_distinct_admission() {
+    let third = Scalar::rational("1", "3")
+        .unwrap()
+        .canonical_bytes()
+        .unwrap();
+    assert!(validate_primitive_info(SCALAR_INFO_ID, &third).is_ok());
+    let grid = MicroScalar::ONE.encode();
+    assert!(validate_primitive_info(MICRO_SCALAR_INFO_ID, &grid).is_ok());
+    assert!(validate_primitive_info(SCALAR_INFO_ID, &grid).is_err());
+    assert!(validate_primitive_info(MICRO_SCALAR_INFO_ID, &third).is_err());
+    let unit = Unit::Hertz.encode();
+    assert!(validate_primitive_info(UNIT_INFO_ID, &unit).is_ok());
+    assert!(validate_primitive_info(SCALAR_INFO_ID, &unit).is_err());
+    assert!(validate_primitive_info(QUANTITY_INFO_ID, &unit).is_err());
 }

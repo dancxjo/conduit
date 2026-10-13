@@ -279,6 +279,8 @@ fn map_value_refusal(refusal: ValueConstraintRefusal) -> FaceInteractionRefusal 
         | ValueConstraintRefusal::UnsignedRange
         | ValueConstraintRefusal::SignedRange
         | ValueConstraintRefusal::FixedIntegerRange
+        | ValueConstraintRefusal::MathematicalRange
+        | ValueConstraintRefusal::IndeterminateMathematicalRange
         | ValueConstraintRefusal::QuantityRange
         | ValueConstraintRefusal::FloatFinite
         | ValueConstraintRefusal::FloatRange

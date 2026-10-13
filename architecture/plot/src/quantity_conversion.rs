@@ -29,10 +29,7 @@ fn field(name: &str, ty: StructuredInfoType) -> StructuredFieldType {
 fn coordinate_type(profile: ConversionProfile) -> StructuredInfoType {
     StructuredInfoType::record(
         kind_id(profile.coordinate_id()),
-        vec![
-            field("coefficient", leaf("value/i128")),
-            field("exponent", leaf("value/i16")),
-        ],
+        vec![field("amount", leaf(SCALAR_INFO_ID))],
     )
     .expect("finite coordinate")
 }
@@ -247,6 +244,9 @@ pub(super) fn refusal_reason(refusal: QuantityConversionRefusal) -> &'static str
         QuantityConversionRefusal::IncompatibleQuantityRoles => "incompatible-quantity-roles",
         QuantityConversionRefusal::Inexact => "inexact",
         QuantityConversionRefusal::Overflow => "overflow",
+        QuantityConversionRefusal::UnlinkedOrigin => "unlinked-origin",
+        QuantityConversionRefusal::EqualityUnknown => "equality-unknown",
+        QuantityConversionRefusal::Numeric(_) => "numeric-refusal",
     }
 }
 

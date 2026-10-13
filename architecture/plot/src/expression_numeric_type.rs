@@ -52,7 +52,8 @@ pub(super) fn is_signed_numeric(
         matches!(
             kind,
             "value/i8" | "value/i16" | "value/i32" | "value/i64" | "value/i128" | "value/scalar"
-        )
+        ) || conduit_core::primitive_info_kind(kind) == Some(conduit_core::PrimitiveInfoKind::MathematicalNumber)
+          || kind == conduit_core::F64_INFO_ID
     })
 }
 
@@ -63,7 +64,9 @@ pub(super) fn is_numeric(
     is_fixed_integer(value_type, context)
         || represented_kind(value_type, context).is_some_and(|kind| {
             matches!(kind, "value/count" | "value/scalar")
+                || kind == conduit_core::MATH_VALUE_INFO_ID
                 || kind == conduit_core::F32_INFO_ID
+                || kind == conduit_core::F64_INFO_ID
                 || kind == conduit_core::QUANTITY_INFO_ID
                 || conduit_core::quantity_info_dimension(kind).is_some()
                 || value_type

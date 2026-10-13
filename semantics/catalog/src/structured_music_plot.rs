@@ -33,7 +33,7 @@ pub fn rhythm_compare_semantic_contract() -> Kind {
     let definition = rhythm_compare_definition();
     Kind {
         startup_parameters: vec![
-            startup("target-offset-micros", kind_id("value/scalar"), true),
+            startup("target-offset-micros", kind_id(conduit_core::MICRO_SCALAR_INFO_ID), true),
             startup("tolerance-micros", kind_id("value/count"), true),
         ],
         shorthand: None,
@@ -135,7 +135,7 @@ pub fn install_structured_music_plot_catalogs(
             startup_parameters: vec![
                 StartupParameterSignature {
                     name: "target-offset-micros".into(),
-                    value_type: "Scalar".into(),
+                    value_type: "MicroScalar".into(),
                     default: Some("0".into()),
                 },
                 StartupParameterSignature {

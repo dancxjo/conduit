@@ -85,6 +85,26 @@ pub(crate) fn check_structured_expression(
         checked.value_type = expected.clone();
         return Ok(checked);
     }
+    if !matches!(expression, ExpressionSyntax::Atomic(_)) {
+        if let StructuredInfoTypeShape::Leaf(kind) = expected.shape() {
+            if conduit_core::primitive_info_kind(kind.as_str())
+                == Some(conduit_core::PrimitiveInfoKind::MathematicalNumber)
+            {
+                let (value, _) = crate::expression_scalar::checked_scalar_expression(expression)
+                    .map_err(|message| structured_diagnostic(expression.span(), &message))?;
+                let canonical = value.canonical_bytes().map_err(|error| {
+                    structured_diagnostic(expression.span(), &format!("{error:?}"))
+                })?;
+                conduit_core::validate_primitive_info(kind.as_str(), &canonical).map_err(|error| {
+                    structured_diagnostic(expression.span(), &format!("{error:?}"))
+                })?;
+                return Ok(CanonicalStructuredStartupValue {
+                    value_type: expected.clone(),
+                    node: CanonicalStructuredStartupNode::Literal { canonical },
+                });
+            }
+        }
+    }
     match expression {
         ExpressionSyntax::Atomic(atomic) => match resolve_atomic(atomic, expected)? {
             CanonicalStartupValue::Literal(value) => {

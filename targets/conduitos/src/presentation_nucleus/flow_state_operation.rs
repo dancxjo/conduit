@@ -49,7 +49,7 @@ impl StepBack<PORTS> for FlowStateBack {
 
 fn step_latest(held: &mut Option<ValueRef>, io: &mut StepIo<PORTS>) -> StepOutcome {
     if let Some(value) = io.input(PortId(0)) {
-        if value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
+        if value.byte_len > 128 {
             return invalid(50);
         }
         if !io.output_ready(PortId(0)) {
@@ -84,7 +84,7 @@ fn step_latest(held: &mut Option<ValueRef>, io: &mut StepIo<PORTS>) -> StepOutco
 
 fn step_tee(io: &mut StepIo<PORTS>) -> StepOutcome {
     if let Some(value) = io.input(PortId(0)) {
-        if value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
+        if value.byte_len > 128 {
             return invalid(50);
         }
         if !io.output_ready(PortId(0)) || !io.output_ready(PortId(1)) {
@@ -125,7 +125,7 @@ fn step_sink(pending: &mut bool, complete: &mut bool, io: &mut StepIo<PORTS>) ->
         return StepOutcome::Progress;
     }
     if let Some(value) = io.input(PortId(0)) {
-        let Ok(input) = BoundedValueRef::new(value, conduit_core::SCALAR_ENCODED_LEN as u32) else {
+        let Ok(input) = BoundedValueRef::new(value, 128) else {
             return invalid(51);
         };
         if io.consume(PortId(0)).is_err()

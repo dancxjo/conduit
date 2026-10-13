@@ -1,6 +1,6 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
-use conduit_core::Scalar;
+use conduit_core::MathValueRef;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
 use conduit_kernel::{
@@ -96,7 +96,21 @@ impl BrowserBack {
     ) -> Self {
         Self::installed_step(CompareScalarBack {
             operator,
-            operands: [None, None],
+            operands: core::array::from_fn(|_| {
+                vec![0; conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES]
+            }),
+            operand_lengths: [None; 2],
+            refusals: [
+                conduit_core::NumericRefusal::IndeterminateDomain,
+                conduit_core::NumericRefusal::InvalidProfile,
+            conduit_core::NumericRefusal::WorkBudget,
+            ]
+            .map(|error| {
+                conduit_kernel::CanonicalValue::new(
+                    &conduit_semantic_catalog::scalar_comparison_refusal_bytes(error),
+                )
+                .expect("finite comparison refusal")
+            }),
             closed: [false; 2],
             decisions: [Some(false_value), Some(true_value)],
         })
@@ -578,14 +592,16 @@ impl<const PORTS: usize> StepBack<PORTS> for SelectScalarBack {
         for index in 0..2 {
             let port = PortId(index as u16 + 1);
             if let Some(value) = io.input(port) {
-                if self.seen[index] || value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32 {
+                if self.seen[index]
+                    || value.byte_len > conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32
+                {
                     return fail(30);
                 }
                 let Some(canonical) = input_bytes.input(port) else {
                     return fail(30);
                 };
                 if canonical.len() != value.byte_len as usize
-                    || conduit_core::Scalar::decode(canonical).is_err()
+                    || MathValueRef::validate(canonical).is_err()
                 {
                     return fail(30);
                 }
@@ -616,9 +632,11 @@ impl<const PORTS: usize> StepBack<PORTS> for SelectScalarBack {
 
 struct CompareScalarBack {
     operator: conduit_semantic_catalog::ScalarComparison,
-    operands: [Option<Scalar>; 2],
+    operands: [Vec<u8>; 2],
+    operand_lengths: [Option<usize>; 2],
     closed: [bool; 2],
     decisions: [Option<ValueRef>; 2],
+    refusals: [conduit_kernel::CanonicalValue; 3],
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for CompareScalarBack {
@@ -627,13 +645,14 @@ impl<const PORTS: usize> StepBack<PORTS> for CompareScalarBack {
         io: &mut StepIo<PORTS>,
         input_bytes: &StepInputBytes<'_, PORTS>,
     ) -> StepOutcome {
-        let [Some(left), Some(right)] = self.operands else {
+        let [Some(left_len), Some(right_len)] = self.operand_lengths else {
             for index in 0..2 {
                 let port = PortId(index as u16);
                 if let Some(value) = io.input(port) {
-                    if self.operands[index].is_some()
+                    if self.operand_lengths[index].is_some()
                         || self.closed[index]
-                        || value.byte_len != conduit_core::SCALAR_ENCODED_LEN as u32
+                        || value.byte_len
+                            > conduit_semantic_catalog::SCALAR_LOGIC_MAXIMUM_BYTES as u32
                     {
                         return fail(5);
                     }
@@ -643,18 +662,19 @@ impl<const PORTS: usize> StepBack<PORTS> for CompareScalarBack {
                     if canonical.len() != value.byte_len as usize {
                         return fail(5);
                     }
-                    let Ok(value) = Scalar::decode(canonical) else {
+                    let Ok(_) = MathValueRef::validate(canonical) else {
                         return fail(5);
                     };
                     io.consume(port).expect("present Scalar operand");
-                    self.operands[index] = Some(value);
+                    self.operands[index][..canonical.len()].copy_from_slice(canonical);
+                    self.operand_lengths[index] = Some(canonical.len());
                     return StepOutcome::Progress;
                 }
             }
             for index in 0..2 {
                 let port = PortId(index as u16);
                 if io.input_closed(port) && !self.closed[index] {
-                    if self.operands[index].is_none() {
+                    if self.operand_lengths[index].is_none() {
                         io.consume_closed(port)
                             .expect("observed missing Scalar operand closure");
                         for decision in &mut self.decisions {
@@ -672,7 +692,29 @@ impl<const PORTS: usize> StepBack<PORTS> for CompareScalarBack {
             }
             return StepOutcome::Await;
         };
-        let selected = usize::from(self.operator.evaluate(left, right));
+        let relation = MathValueRef::validate(&self.operands[0][..left_len])
+            .and_then(|left| {
+                MathValueRef::validate(&self.operands[1][..right_len])
+                    .and_then(|right| left.compare(right))
+            })
+            .and_then(|ordering| self.operator.evaluate_order(ordering));
+        let relation = match relation {
+            Ok(value) => value,
+            Err(error) => {
+                for decision in &mut self.decisions {
+                    if let Some(value) = decision.take() {
+                        io.discard(value)
+                            .expect("unused refused comparison decision");
+                    }
+                }
+                let index = match error { conduit_core::NumericRefusal::IndeterminateDomain => 0, conduit_core::NumericRefusal::IntegerBudget | conduit_core::NumericRefusal::NodeBudget | conduit_core::NumericRefusal::DepthBudget | conduit_core::NumericRefusal::StorageBudget | conduit_core::NumericRefusal::WorkBudget => 2, _ => 1 };
+                return StepOutcome::Abnormal {
+                    port: PortId(0),
+                    terminal: self.refusals[index],
+                };
+            }
+        };
+        let selected = usize::from(relation);
         let unused = 1 - selected;
         let Some(value) = self.decisions[selected] else {
             return fail(5);

@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserBack;
 use conduit_core::{
     kind_id, ConfigurationValue, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear,
-    Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS, SCALAR_ENCODED_LEN,
+    Scalar, BOOL_ENCODED_LEN, PRESENTATION_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -110,9 +110,9 @@ fn prepare_literal(
     let (offer, encoded): (_, Vec<u8>) = match placement.implementation_id.as_str() {
         SCALAR_LITERAL_IMPLEMENTATION => (
             scalar_literal_offer(),
-            Scalar::from_raw_microunits(scalar_configuration(placement)?)
-                .encode()
-                .to_vec(),
+            scalar_configuration(placement)?
+                .canonical_bytes()
+                .map_err(debug_error)?,
         ),
         BOOL_LITERAL_IMPLEMENTATION => (
             bool_literal_offer(),
@@ -169,12 +169,12 @@ fn manifestation(kind_id: &'static str, input: &[u8]) -> Result<BrowserHostResul
     })
 }
 
-fn scalar_configuration(placement: &PlannedGear) -> Result<i64, String> {
+fn scalar_configuration(placement: &PlannedGear) -> Result<Scalar, String> {
     placement
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            ("value", ConfigurationValue::I64(value)) => Some(*value),
+            ("value", ConfigurationValue::Scalar(value)) => Some(value.clone()),
             _ => None,
         })
         .ok_or_else(|| "scalar/literal is missing its exact value".into())
@@ -195,5 +195,4 @@ fn debug_error(error: impl core::fmt::Debug) -> String {
     format!("{error:?}")
 }
 
-const _: [(); SCALAR_ENCODED_LEN] = [(); 8];
 const _: [(); BOOL_ENCODED_LEN] = [(); 1];

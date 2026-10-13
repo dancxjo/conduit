@@ -243,14 +243,14 @@ fn checked_builtin_language_is_the_authority_for_every_generated_capsule() {
         );
         assert_eq!(authored.family(), checked.quantities[*family_name].family);
     }
-    let turn = conduit_core::Unit::from_definition(checked.units["turn"]);
+    let turn = conduit_core::Unit::from_definition(checked.units["turn"].clone());
     let quarter_turn =
-        conduit_core::Quantity::new(90, conduit_core::Unit::from_definition(checked.units["°"]))
-            .convert(turn)
+        conduit_core::Quantity::new(90, conduit_core::Unit::from_definition(checked.units["°"].clone()))
+            .convert(&turn)
             .unwrap();
     assert_eq!(
         quarter_turn,
-        conduit_core::Quantity::from_decimal(25, -2, turn).unwrap()
+        conduit_core::Quantity::from_decimal(25, -2, turn.clone()).unwrap()
     );
     assert_eq!(conduit_core::builtin_angle_unit(), turn);
     for (name, generated) in conduit_core::BUILTIN_QUANTITY_ROLE_INFO_IDS {

@@ -7,7 +7,7 @@ use crate::{Gate, MusicalNoteEvent, MusicalPitch, NoteOccurrenceId, SoundInfoErr
 
 fn time_micros(event_time: Quantity) -> Result<u64, SoundInfoError> {
     event_time
-        .convert_to_u64(Unit::Microsecond)
+        .convert_to_u64(&Unit::Microsecond)
         .map_err(SoundInfoError::QuantityConversion)
 }
 

@@ -1,5 +1,6 @@
 use conduit_core::{
-    Quantity as Exact, QuantityConversionRefusal as Refusal, ResolvedQuantitySuffix, Unit,
+    MathValue, Quantity as Exact, QuantityConversionRefusal as Refusal, ResolvedQuantitySuffix,
+    Unit,
 };
 
 #[test]
@@ -11,21 +12,20 @@ fn complete_target_prefix_matrix_preserves_target_and_exact_inverse_scale() {
         let target = ResolvedQuantitySuffix::resolve(suffix).unwrap();
         let source =
             Exact::parse_plot_literal(&format!("1{}", case["base"].as_str().unwrap())).unwrap();
-        let result = source.convert_to_target(target).unwrap();
+        let result = source.convert_to_target(target.clone()).unwrap();
         let numerator = case["relative_numerator"].as_str().unwrap();
         let denominator = case["relative_denominator"].as_str().unwrap();
-        let inverse_exponent = denominator.len() as i16 - numerator.len() as i16;
-        assert_eq!(
-            (result.coefficient(), result.exponent()),
-            (1, inverse_exponent),
-            "{suffix}"
-        );
-        assert_eq!(result.target(), target);
+        let inverse = MathValue::from_integer_decimal(denominator)
+            .unwrap()
+            .checked_div(&MathValue::from_integer_decimal(numerator).unwrap())
+            .unwrap();
+        assert_eq!(result.coordinate(), &inverse, "{suffix}");
+        assert_eq!(result.target(), &target);
         let same = Exact::parse_plot_literal(case["source"].as_str().unwrap())
             .unwrap()
-            .convert_to_target(target)
+            .convert_to_target(target.clone())
             .unwrap();
-        assert_eq!((same.coefficient(), same.exponent()), (1, 0), "{suffix}");
+        assert_eq!(same.coordinate(), &MathValue::integer(1), "{suffix}");
     }
 }
 
@@ -43,42 +43,44 @@ fn target_projection_checks_affine_law_precision_range_and_dimension() {
         let result = Exact::parse_plot_literal(source)
             .unwrap()
             .convert_to_target(ResolvedQuantitySuffix::resolve(target).unwrap());
-        if exponent > 128 {
-            assert_eq!(result, Err(Refusal::Overflow));
-        } else {
-            let result = result.unwrap();
-            assert_eq!(
-                (result.coefficient(), result.exponent()),
-                (coefficient, exponent)
-            );
-        }
-    }
-    for (source, target, refusal) in [
-        ("1°F", "°C", Refusal::Inexact),
-        ("1m", "in", Refusal::Inexact),
-        ("1Hz", "m", Refusal::IncompatibleDimensions),
-    ] {
         assert_eq!(
-            Exact::parse_plot_literal(source)
-                .unwrap()
-                .convert_to_target(ResolvedQuantitySuffix::resolve(target).unwrap()),
-            Err(refusal)
+            result.unwrap().coordinate(),
+            &MathValue::from_decimal_parts(coefficient, exponent).unwrap()
         );
     }
+    assert_eq!(
+        Exact::parse_plot_literal("1Hz")
+            .unwrap()
+            .convert_to_target(ResolvedQuantitySuffix::resolve("m").unwrap()),
+        Err(Refusal::IncompatibleDimensions)
+    );
+    assert_eq!(
+        Exact::parse_plot_literal("1m")
+            .unwrap()
+            .convert_to_target(ResolvedQuantitySuffix::resolve("in").unwrap())
+            .unwrap()
+            .coordinate(),
+        &MathValue::integer(5000)
+            .checked_div(&MathValue::integer(127))
+            .unwrap()
+    );
+
     let high = Exact::from_decimal(1, 128, Unit::Meter).unwrap();
-    assert!(high
-        .convert_to_target(ResolvedQuantitySuffix::resolve("Qm").unwrap())
-        .is_ok());
+    assert!(
+        high.convert_to_target(ResolvedQuantitySuffix::resolve("Qm").unwrap())
+            .is_ok()
+    );
     let padded = high
         .convert_to_target(ResolvedQuantitySuffix::resolve("qm").unwrap())
         .unwrap();
     assert_eq!(
-        (padded.coefficient(), padded.exponent()),
-        (10_i128.pow(30), 128)
+        padded.coordinate(),
+        &MathValue::from_decimal_parts(1, 158).unwrap()
     );
     let largest = Exact::from_decimal(10_i128.pow(38) - 1, 128, Unit::Meter).unwrap();
-    assert_eq!(
-        largest.convert_to_target(ResolvedQuantitySuffix::resolve("qm").unwrap()),
-        Err(Refusal::Overflow)
+    assert!(
+        largest
+            .convert_to_target(ResolvedQuantitySuffix::resolve("qm").unwrap())
+            .is_ok()
     );
 }

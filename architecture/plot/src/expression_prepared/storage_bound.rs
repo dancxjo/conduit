@@ -45,8 +45,11 @@ fn node(ty: &StructuredInfoType) -> usize {
     .min(MAXIMUM_STRUCTURED_CANONICAL_BYTES)
 }
 fn leaf(kind: &str) -> usize {
+    if let Some(maximum) = conduit_core::intrinsic_numeric_maximum_bytes(kind) {
+        return maximum;
+    }
     if conduit_core::quantity_info_dimension(kind).is_some() {
-        return conduit_core::QUANTITY_ENCODED_LEN;
+        return conduit_core::MAX_QUANTITY_ENCODED_BYTES;
     }
     let Some(kind) = primitive_info_kind(kind) else {
         return MAXIMUM_STRUCTURED_LEAF_BYTES;
@@ -59,9 +62,9 @@ fn leaf(kind: &str) -> usize {
         PrimitiveInfoKind::Empty | PrimitiveInfoKind::CancellationRequest => 0,
         PrimitiveInfoKind::Bool => 1,
         PrimitiveInfoKind::Count => 8,
-        PrimitiveInfoKind::Scalar => 16,
-        PrimitiveInfoKind::Unit => conduit_core::UNIT_ENCODED_LEN,
-        PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_ENCODED_LEN,
+        PrimitiveInfoKind::MicroScalar => 16,
+        PrimitiveInfoKind::Unit => conduit_core::MAX_UNIT_ENCODED_BYTES,
+        PrimitiveInfoKind::Quantity => conduit_core::MAX_QUANTITY_ENCODED_BYTES,
         PrimitiveInfoKind::F32 => 4,
         PrimitiveInfoKind::F64 => 8,
         _ => MAXIMUM_STRUCTURED_LEAF_BYTES,

@@ -4,10 +4,11 @@ use crate::{KindTerminalBehavior, StandardKindContract};
 #[cfg(feature = "plot-catalog")]
 use alloc::string::String;
 use alloc::{vec, vec::Vec};
+#[cfg(test)]
+use conduit_core::{Quantity, StructuredInfoValue, Unit};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, Kind, PortDescriptor, PortDirection, PortTemporal,
-    Quantity, StructuredInfoType, StructuredInfoValue, Unit, QUANTITY_ENCODED_LEN,
-    QUANTITY_INFO_ID,
+    StructuredInfoType,
 };
 
 pub const QUANTITY_INFO_WRAP_KIND: &str = "structured-info/wrap-quantity";
@@ -16,21 +17,37 @@ pub const QUANTITY_PRESENTATION_KIND: &str = "presentation/quantity";
 pub const QUANTITY_PRESENTATION_REVISION: &str = "conduit.std/presentation-quantity@1";
 pub const QUANTITY_INFO_MAXIMUM_BYTES: usize = 4096;
 
+pub fn quantity_info_leaf_kind() -> conduit_core::KindId {
+    let coordinate = conduit_core::PortableNumericProfile {
+        maximum_encoded_bytes: 512,
+        ..conduit_core::PortableNumericProfile::MAXIMAL
+    };
+    let unit_law = conduit_core::PortableNumericProfile {
+        maximum_encoded_bytes: 256,
+        ..conduit_core::PortableNumericProfile::MAXIMAL
+    };
+    kind_id(
+        &conduit_core::PhysicalNumericProfile {
+            coordinate,
+            unit_law,
+        }
+        .generic_info_id()
+        .expect("finite physical profile"),
+    )
+}
+
 pub fn wrapped_quantity_type() -> StructuredInfoType {
-    StructuredInfoType::leaf(kind_id(QUANTITY_INFO_ID)).expect("Quantity is an exact leaf")
+    StructuredInfoType::leaf(quantity_info_leaf_kind()).expect("Quantity is an exact leaf")
 }
 
 /// Prepare the canonical envelope before Play; subsequent wrapping only copies bytes.
 pub fn quantity_info_prefix() -> Vec<u8> {
-    let quantity = Quantity::new(0, Unit::One).encode();
-    let mut envelope = StructuredInfoValue::leaf(wrapped_quantity_type(), quantity.to_vec())
-        .expect("canonical Quantity leaf")
+    // The leaf length is emitted separately for each variable capsule.
+    let mut prefix = wrapped_quantity_type()
         .canonical_bytes()
-        .expect("finite Quantity envelope");
-    assert!(envelope.ends_with(&quantity));
-    envelope.truncate(envelope.len() - QUANTITY_ENCODED_LEN);
-    assert!(envelope.len() + QUANTITY_ENCODED_LEN <= QUANTITY_INFO_MAXIMUM_BYTES);
-    envelope
+        .expect("checked type");
+    prefix.push(0);
+    prefix
 }
 
 pub fn quantity_info_wrap_contract() -> StandardKindContract {
@@ -40,7 +57,7 @@ pub fn quantity_info_wrap_contract() -> StandardKindContract {
         summary: "Preserve one Quantity as an exact structured Info leaf.".into(),
         inputs: vec![PortDescriptor {
             port_id: port_id("in"),
-            value_kind: kind_id(QUANTITY_INFO_ID),
+            value_kind: quantity_info_leaf_kind(),
             direction: PortDirection::Input,
             temporal: PortTemporal::Value,
             abnormal_kind: None,
@@ -163,8 +180,9 @@ mod tests {
             Unit::Mebibyte,
         ] {
             for value in [i64::MIN, -1, 0, 1, i64::MAX] {
-                let quantity = Quantity::new(value, unit).encode();
+                let quantity = Quantity::new(value, unit.clone()).encode();
                 let mut wrapped = prefix.clone();
+                wrapped.extend_from_slice(&(quantity.len() as u32).to_le_bytes());
                 wrapped.extend_from_slice(&quantity);
                 let expected =
                     StructuredInfoValue::leaf(wrapped_quantity_type(), quantity.to_vec())
@@ -176,7 +194,7 @@ mod tests {
             }
         }
         let contract = quantity_info_wrap_contract();
-        assert_eq!(contract.inputs[0].value_kind.as_str(), QUANTITY_INFO_ID);
+        assert_eq!(contract.inputs[0].value_kind, quantity_info_leaf_kind());
         assert_ne!(
             contract.inputs[0].value_kind,
             contract.outputs[0].value_kind

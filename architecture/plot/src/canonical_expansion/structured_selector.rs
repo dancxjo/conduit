@@ -194,6 +194,8 @@ pub(super) fn resolve_selectors(
             )
         })?;
         let gear = CheckedCanonicalGear {
+            numeric_computation: None,
+            tensor_computations: None,
             name: None,
             kind: key,
             startup_parameters: vec![conduit_core::FrontStartupParameter {
@@ -329,6 +331,12 @@ fn expand_expression(
         )
     })?;
     checked.canonical_literals = canonical_literals;
+    checked.numeric_angle_reference = catalog
+        .physical
+        .units
+        .get("turn")
+        .cloned()
+        .map(conduit_core::Unit::from_definition);
     if let Some(invariants) = catalog.type_invariants(
         checked
             .input_type
@@ -337,7 +345,15 @@ fn expand_expression(
     ) {
         crate::expression_proof::apply(&mut checked, invariants);
     }
-    if temporal == PortTemporal::Value && contains_semantic_call(&expression) {
+    if temporal == PortTemporal::Value
+        && contains_semantic_call(&expression)
+        && !crate::expression_numeric_computation::contains_mathematical_call(&expression)
+        && !checked.node_types.iter().any(|node| {
+            node.value_type
+                .value_kind()
+                .is_some_and(|kind| kind.as_str() == conduit_core::MATH_VALUE_INFO_ID)
+        })
+    {
         return expand_semantic_call_graph(
             &expression,
             input_type
@@ -358,6 +374,12 @@ fn expand_expression(
             anonymous_counts,
         );
     }
+    crate::checked_numeric_computation(&checked).map_err(|reason| {
+        CanonicalExpansionDiagnostic::new(
+            "CND-MATH-001",
+            format!("exact mathematical admission refused: {reason:?}"),
+        )
+    })?;
     let definition = crate::pure_expression_definition(&checked, temporal).map_err(|_| {
         CanonicalExpansionDiagnostic::new(
             "CND-FRM-046",
@@ -380,7 +402,7 @@ fn expand_expression(
     }
     let input = definition.inputs[0].clone();
     let output = definition.outputs[0].clone();
-    let configuration = definition
+    let configuration: Vec<conduit_core::ConfigurationEntry> = definition
         .configuration
         .iter()
         .map(|field| conduit_core::ConfigurationEntry {
@@ -392,11 +414,14 @@ fn expand_expression(
         gear_id: gear_id.clone(),
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
-        startup_parameters: vec![conduit_core::FrontStartupParameter {
-            name: "program".into(),
-            value_type: conduit_core::kind_id("value/text"),
+        startup_parameters: configuration.iter().map(|entry: &conduit_core::ConfigurationEntry| conduit_core::FrontStartupParameter {
+            name: entry.key.clone(),
+            value_type: match &entry.value {
+                conduit_core::ConfigurationValue::Structured(value) => value.profile().clone(),
+                _ => conduit_core::kind_id("value/text"),
+            },
             has_default: false,
-        }],
+        }).collect(),
         shorthand: Some((input.port_id.clone(), output.port_id.clone())),
         inputs: vec![input.clone()],
         outputs: vec![output.clone()],

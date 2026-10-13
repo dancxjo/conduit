@@ -92,16 +92,19 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
             include_str!("../../../../../architecture/core/src/physical_definition/family.rs"),
             include_str!("../../../../../architecture/core/src/physical_definition/generated.rs"),
             include_str!("../../../../../architecture/core/src/physical_definition/role_kind.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/scalar.rs"),
             include_str!("../../../../../architecture/core/src/physical_definition/unit.rs"),
             include_str!("../../../../../architecture/core/src/quantity_configuration.rs"),
             include_str!("../../../../../architecture/core/src/quantity_suffix.rs"),
             include_str!("../../../../../architecture/core/src/quantity/exact.rs"),
             include_str!("../../../../../architecture/core/src/quantity/target.rs"),
             include_str!("../../../../../architecture/core/src/quantity/receipt.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/conversion_law.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/wide_conversion.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/magnitude.rs")
+            include_str!("../../../../../architecture/core/src/quantity/numeric_quantity.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/numeric_profile.rs"),
+            include_str!("../../../../../architecture/core/src/numeric/mod.rs"),
+            include_str!("../../../../../architecture/core/src/numeric/codec.rs"),
+            include_str!("../../../../../architecture/core/src/numeric/rational.rs"),
+            include_str!("../../../../../architecture/core/src/numeric/symbolic.rs"),
+            include_str!("../../../../../architecture/core/src/numeric/integer.rs")
         ).as_bytes(),
     );
     let mut artifact = String::from("sha256:");

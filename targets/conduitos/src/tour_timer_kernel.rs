@@ -132,7 +132,7 @@ fn configured_milliseconds(
         .find_map(|entry| match (&*entry.key, &entry.value) {
             (candidate, ConfigurationValue::Quantity(value)) if candidate == key => value
                 .value()
-                .convert_to_u64(conduit_core::Unit::Millisecond)
+                .convert_to_u64(&conduit_core::Unit::Millisecond)
                 .ok(),
             _ => None,
         })

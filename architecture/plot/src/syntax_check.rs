@@ -17,6 +17,8 @@ use conduit_core::{
 
 mod lexical_plots;
 mod matched_route;
+mod mathematical_evaluation;
+mod tensor_evaluation;
 mod resolution;
 mod shared_pool;
 mod specialization;
@@ -1358,6 +1360,12 @@ fn check_invocation(
                         .diagnostic(expression.span));
                 }
                 let parameter = &signature.startup_parameters[positional_count];
+                if signature.kind == "math/evaluate" && parameter.name == "value" {
+                    values[positional_count] =
+                        Some(CanonicalStartupValue::Literal(expression.text.clone()));
+                    positional_count += 1;
+                    continue;
+                }
                 values[positional_count] = Some(
                     resolver
                         .resolve_expression(
@@ -1387,6 +1395,10 @@ fn check_invocation(
                         SyntaxCheckError::ConflictingArgument(name.text.clone())
                     };
                     return Err(error.diagnostic(*span));
+                }
+                if signature.kind == "math/evaluate" && name.text == "value" {
+                    values[index] = Some(CanonicalStartupValue::Literal(value.text.clone()));
+                    continue;
                 }
                 values[index] = Some(
                     resolver
@@ -1429,6 +1441,8 @@ fn check_invocation(
         })
         .transpose()?;
     Ok(CheckedCanonicalGear {
+        numeric_computation: mathematical_evaluation::capture(invocation, catalog)?,
+        tensor_computations: tensor_evaluation::capture(invocation, catalog)?,
         name,
         kind: signature.kind.clone(),
         startup_parameters: catalog
@@ -1807,7 +1821,7 @@ fn validate_quantity_type(
         span,
         message: format!(
             "quantity unit '{}' has dimension {:?}, which cannot satisfy '{}'",
-            quantity.value().unit().plot_suffix(),
+            quantity.value().unit().symbol(),
             quantity.value().dimension(),
             source_type
         ),

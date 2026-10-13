@@ -161,9 +161,9 @@ mod tests {
 
     #[test]
     fn coalescing_contract_stays_distinct_from_state_latest() {
-        let value_kind = kind_id(conduit_core::SCALAR_INFO_ID);
+        let value_kind = kind_id(&crate::scalar_info_id());
         let latest =
-            flow_coalesce_latest_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32);
+            flow_coalesce_latest_contract(&value_kind, crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32);
         assert_eq!(
             latest.inputs[0].temporal,
             PortTemporal::Flow { closes: false }
@@ -177,15 +177,15 @@ mod tests {
     fn exact_contracts_install_for_checked_plots() {
         let mut startup = conduit_plot::StartupCatalog::new();
         let mut profile = conduit_plot::ProfileCatalog::new();
-        let value_kind = kind_id(conduit_core::SCALAR_INFO_ID);
+        let value_kind = kind_id(&crate::scalar_info_id());
         install_flow_pressure_kind(
-            flow_backpressure_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32),
+            flow_backpressure_contract(&value_kind, crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32),
             &mut startup,
             &mut profile,
         )
         .unwrap();
         install_flow_pressure_kind(
-            flow_coalesce_latest_contract(&value_kind, conduit_core::SCALAR_ENCODED_LEN as u32),
+            flow_coalesce_latest_contract(&value_kind, crate::SCALAR_LOGIC_MAXIMUM_BYTES as u32),
             &mut startup,
             &mut profile,
         )

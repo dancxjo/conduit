@@ -21,6 +21,9 @@ pub fn validate_configuration_value(
     value: &ConfigurationValue,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
     let accepted = match (&field.rule, value) {
+        (KindConfigurationRule::Scalar { profile }, ConfigurationValue::Scalar(value)) => value
+            .canonical_bytes()
+            .is_ok_and(|bytes| profile.validate(&bytes).is_ok()),
         (KindConfigurationRule::Quantity, ConfigurationValue::Quantity(_))
         | (KindConfigurationRule::Unit, ConfigurationValue::Unit(_))
         | (
@@ -46,7 +49,7 @@ pub fn validate_configuration_value(
             ConfigurationValue::Quantity(value),
         ) => value
             .value()
-            .to_i64(**canonical_unit)
+            .to_i64(canonical_unit)
             .is_ok_and(|value| (*minimum..=*maximum).contains(&value)),
         (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
@@ -77,6 +80,36 @@ fn parse_configuration_value(
     value: CanonicalStartupValue,
     rule: &KindConfigurationRule,
 ) -> Result<ConfigurationValue, CanonicalExpansionDiagnostic> {
+    if let (CanonicalStartupValue::Structured(value), KindConfigurationRule::Scalar { profile }) =
+        (&value, rule)
+    {
+        let concrete = value.try_concrete().ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-039",
+                format!("Scalar startup value '{name}' remains unresolved"),
+            )
+        })?;
+        let conduit_core::StructuredInfoValueShape::Leaf(bytes) = concrete.shape() else {
+            return Err(CanonicalExpansionDiagnostic::new(
+                "CND-FRM-040",
+                format!("Scalar startup value '{name}' has an incompatible shape"),
+            ));
+        };
+        profile.validate(bytes).map_err(|error| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-040",
+                format!("Scalar startup value '{name}' exceeds its admitted profile: {error:?}"),
+            )
+        })?;
+        return conduit_core::MathValue::decode(bytes)
+            .map(ConfigurationValue::Scalar)
+            .map_err(|error| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-040",
+                    format!("invalid Scalar startup value: {error:?}"),
+                )
+            });
+    }
     match (&value, rule) {
         (CanonicalStartupValue::Quantity(value), KindConfigurationRule::TemperatureDifference) => {
             let delta = conduit_core::ExactTemperatureDifference::from_quantity(value.value())
@@ -174,7 +207,7 @@ fn parse_configuration_value(
         if let CanonicalStartupValue::Quantity(quantity) = value {
             let milliseconds = quantity
                 .value()
-                .convert_to_u64(conduit_core::Unit::Millisecond)
+                .to_i64(&conduit_core::Unit::Millisecond).and_then(|value| u64::try_from(value).map_err(|_| conduit_core::QuantityConversionRefusal::Overflow))
                 .map_err(|_| {
                     CanonicalExpansionDiagnostic::new(
                         "CND-FRM-041",
@@ -197,6 +230,15 @@ fn parse_configuration_value(
                 CanonicalExpansionDiagnostic::new(
                     "CND-FRM-041",
                     format!("primitive startup duration '{name}' is invalid or overflows"),
+                )
+            })
+    } else if matches!(rule, KindConfigurationRule::Scalar { .. }) {
+        crate::expression_scalar::checked_scalar_source(&literal)
+            .map(|(value, _)| ConfigurationValue::Scalar(value))
+            .map_err(|message| {
+                CanonicalExpansionDiagnostic::new(
+                    "CND-FRM-041",
+                    format!("startup Scalar '{name}' is invalid: {message}"),
                 )
             })
     } else if matches!(rule, KindConfigurationRule::I64Range { .. }) {
@@ -242,7 +284,7 @@ fn parse_scalar_configuration(literal: &str) -> Option<i64> {
     let fraction_digits = fraction.len();
     let fraction = fraction.parse::<u64>().ok()?;
     let magnitude = whole
-        .checked_mul(conduit_core::Scalar::SCALE as u64)?
+        .checked_mul(conduit_core::MicroScalar::SCALE as u64)?
         .checked_add(fraction.checked_mul(10_u64.pow((6 - fraction_digits) as u32))?)?;
     if negative {
         if magnitude == i64::MAX as u64 + 1 {

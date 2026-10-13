@@ -38,11 +38,17 @@ struct DistanceFrequencyBack {
     target_maximum_mhz: i64,
     closed: bool,
     output: Box<[u8]>,
+    output_length: usize,
 }
 
 impl DistanceFrequencyBack {
-    fn map(&self, distance: Quantity) -> Result<Quantity, u16> {
-        let distance = distance.to_i64(Unit::Micrometer).map_err(|_| 3_u16)?;
+    fn map_coordinate(&self, distance: conduit_core::QuantityRef<'_>) -> Result<i64, u16> {
+        let distance = i64::try_from(
+            distance
+                .project_u64_in_unit(Unit::Micrometer.as_ref())
+                .map_err(|_| 3_u16)?,
+        )
+        .map_err(|_| 3_u16)?;
         if !(self.source_minimum_um..=self.source_maximum_um).contains(&distance) {
             return Err(4);
         }
@@ -57,7 +63,7 @@ impl DistanceFrequencyBack {
         };
         let value =
             i64::try_from(i128::from(self.target_minimum_mhz) + offset).map_err(|_| 5_u16)?;
-        Ok(Quantity::new(value, Unit::Millihertz))
+        Ok(value)
     }
 }
 
@@ -70,16 +76,28 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
             let Some(bytes) = inputs.input(PortId(0)) else {
                 return fail(1);
             };
-            let Ok(distance) = Quantity::decode(bytes) else {
+            let Ok(distance) = conduit_core::QuantityRef::validate(bytes) else {
                 return fail(2);
             };
-            let frequency = match self.map(distance) {
+            let frequency = match self.map_coordinate(distance) {
                 Ok(value) => value,
                 Err(detail) => return fail(detail),
             };
             io.consume(PortId(0)).expect("present Distance");
-            self.output.copy_from_slice(&frequency.encode());
-            io.send_prepared(PortId(0), self.output.len() as u32)
+            self.output_length = match Quantity::encode_integer_into(
+                frequency,
+                Unit::Millihertz.as_ref(),
+                conduit_core::QuantityRole::Linear,
+                conduit_core::PortableNumericProfile {
+                    maximum_encoded_bytes: 128,
+                    ..conduit_core::PortableNumericProfile::MAXIMAL
+                },
+                &mut self.output,
+            ) {
+                Ok(length) => length,
+                Err(_) => return fail(5),
+            };
+            io.send_prepared(PortId(0), self.output_length as u32)
                 .expect("ready Frequency output");
             return StepOutcome::Progress;
         }
@@ -93,7 +111,7 @@ impl<const PORTS: usize> StepBack<PORTS> for DistanceFrequencyBack {
     }
 
     fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
-        (port == PortId(0)).then_some(self.output.as_ref())
+        (port == PortId(0)).then_some(&self.output[..self.output_length])
     }
 
     fn cancel(&mut self) {
@@ -114,7 +132,7 @@ fn configured(placement: &PlannedGear, key: &str, unit: Unit) -> Result<i64, Str
     };
     value
         .value()
-        .to_i64(unit)
+        .to_i64(&unit)
         .map_err(|error| format!("distance-frequency mapping '{key}': {error:?}"))
 }
 
@@ -132,7 +150,8 @@ fn prepare(
         target_minimum_mhz: configured(placement, "target-minimum", Unit::Millihertz)?,
         target_maximum_mhz: configured(placement, "target-maximum", Unit::Millihertz)?,
         closed: false,
-        output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
+        output: vec![0; conduit_core::MAX_QUANTITY_ENCODED_BYTES].into_boxed_slice(),
+        output_length: 0,
     };
     if back.source_minimum_um >= back.source_maximum_um {
         return Err("distance-frequency mapping bounds are reversed".into());
@@ -159,15 +178,16 @@ mod tests {
             target_minimum_mhz: 1_760_000,
             target_maximum_mhz: 110_000,
             closed: false,
-            output: vec![0; conduit_core::QUANTITY_ENCODED_LEN].into_boxed_slice(),
+            output: vec![0; conduit_core::MAX_QUANTITY_ENCODED_BYTES].into_boxed_slice(),
+            output_length: 0,
         };
         assert_eq!(
-            mapping.map(Quantity::new(0, Unit::Centimeter)),
-            Ok(Quantity::new(1_760_000, Unit::Millihertz))
+            mapping.map_coordinate(Quantity::new(0, Unit::Centimeter).as_ref()),
+            Ok(1_760_000)
         );
         assert_eq!(
-            mapping.map(Quantity::new(30, Unit::Centimeter)),
-            Ok(Quantity::new(110_000, Unit::Millihertz))
+            mapping.map_coordinate(Quantity::new(30, Unit::Centimeter).as_ref()),
+            Ok(110_000)
         );
     }
 }

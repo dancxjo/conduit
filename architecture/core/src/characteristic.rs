@@ -115,11 +115,11 @@ impl CharacteristicQuantity {
         let target = unit
             .quantity_unit()
             .ok_or(CharacteristicDefinitionError::UnsupportedUnit)?;
-        if quantity.coefficient() < 0 && quantity.dimension() == target.dimension() {
+        if quantity.coordinate().compare(crate::MathValueRef::validate(&[1,1,0,0,0,0,0,0,0,0]).expect("canonical zero")).is_ok_and(|order|order==Some(core::cmp::Ordering::Less)) && quantity.dimension() == target.dimension() {
             return Err(CharacteristicDefinitionError::NegativeQuantity);
         }
         let value = quantity
-            .convert_to_u64(target)
+            .to_u64(&target)
             .map_err(CharacteristicDefinitionError::QuantityConversion)?;
         Ok(Self { value, unit })
     }

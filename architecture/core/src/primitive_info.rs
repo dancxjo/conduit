@@ -1,10 +1,10 @@
 //! Canonical encodings for the foundational portable Info leaves.
 //!
-//! This is a small reviewed registry, not a dynamic runtime type system.
-//! Domain-owned leaves remain the responsibility of their semantic owners.
+//! Core recognizes canonical carriers and checked intrinsic finite profiles.
+//! Physical leaves validate the immutable source-defined law they carry.
 
 use crate::{
-    InfoBool, InfoDecodeError, Quantity, QuantityDimension, QuantityRefusal, Scalar, TerminalInfo,
+    InfoBool, InfoDecodeError, QuantityDimension, QuantityRefusal, MicroScalar, TerminalInfo,
     TerminalInfoDecodeRefusal,
 };
 
@@ -25,7 +25,8 @@ pub enum PrimitiveInfoKind {
     Terminal,
     Bool,
     Count,
-    Scalar,
+    MicroScalar,
+    MathematicalNumber,
     Text,
     Bytes,
     Quantity,
@@ -61,7 +62,8 @@ pub enum PrimitiveInfoRefusal {
     CountLength {
         actual: usize,
     },
-    Scalar(InfoDecodeError),
+    MicroScalar(InfoDecodeError),
+    MathematicalNumber(crate::NumericRefusal),
     TextUtf8,
     BytesTooLarge {
         maximum: usize,
@@ -99,20 +101,26 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
             return Some(kind);
         }
     }
-    if crate::parse_quantity_role_info_id(identity).is_some() {
+    if identity == crate::MATH_VALUE_INFO_ID
+        || crate::PortableNumericProfile::from_info_id(identity).is_some()
+    {
+        return Some(PrimitiveInfoKind::MathematicalNumber);
+    }
+    if crate::parse_quantity_role_info_id(identity).is_some() || crate::PhysicalNumericProfile::parse_info_id(identity).is_some() || crate::PhysicalNumericProfile::parse_generic_info_id(identity).is_some() {
         return Some(PrimitiveInfoKind::Quantity);
     }
+    if crate::parse_unit_numeric_profile_info_id(identity).is_some(){return Some(PrimitiveInfoKind::Unit);}
     match identity.as_bytes() {
         b"value/empty" => Some(PrimitiveInfoKind::Empty),
         b"control/cancellation-request" => Some(PrimitiveInfoKind::CancellationRequest),
         b"conduit/terminal-info@1" => Some(PrimitiveInfoKind::Terminal),
         b"value/bool" => Some(PrimitiveInfoKind::Bool),
         b"value/count" => Some(PrimitiveInfoKind::Count),
-        b"value/scalar" => Some(PrimitiveInfoKind::Scalar),
+        b"realization/micro-scalar@1" => Some(PrimitiveInfoKind::MicroScalar),
         b"value/text" => Some(PrimitiveInfoKind::Text),
         b"value/bytes" => Some(PrimitiveInfoKind::Bytes),
-        b"value/quantity@1" => Some(PrimitiveInfoKind::Quantity),
-        b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
+        b"value/quantity@2" => Some(PrimitiveInfoKind::Quantity),
+        b"value/unit@2" => Some(PrimitiveInfoKind::Unit),
         b"value/u8" => Some(PrimitiveInfoKind::U8),
         b"value/u16" => Some(PrimitiveInfoKind::U16),
         b"value/u32" => Some(PrimitiveInfoKind::U32),
@@ -130,9 +138,37 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
 }
 
 pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), PrimitiveInfoRefusal> {
+    if identity == crate::MATH_VALUE_INFO_ID || identity.starts_with("numeric/profile-") {
+        let profile = if identity == crate::MATH_VALUE_INFO_ID {
+            crate::PortableNumericProfile::MAXIMAL
+        } else {
+            crate::PortableNumericProfile::from_info_id(identity).ok_or(
+                PrimitiveInfoRefusal::MathematicalNumber(crate::NumericRefusal::InvalidProfile),
+            )?
+        };
+        return profile
+            .validate(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::MathematicalNumber);
+    }
+    if identity.starts_with("unit/profile/") {
+        let profile=crate::parse_unit_numeric_profile_info_id(identity).ok_or(PrimitiveInfoRefusal::MathematicalNumber(crate::NumericRefusal::InvalidProfile))?;
+        return crate::UnitRef::validate(encoded).and_then(|unit|unit.validate_profile(profile)).map_err(|e|PrimitiveInfoRefusal::Unit(crate::UnitRefusal::Definition(e)));
+    }
+    if identity.starts_with("quantity/profile-any/") {
+        let profile=crate::PhysicalNumericProfile::parse_generic_info_id(identity).ok_or(PrimitiveInfoRefusal::MathematicalNumber(crate::NumericRefusal::InvalidProfile))?;
+        return crate::QuantityRef::validate(encoded).and_then(|quantity|quantity.validate_profile(profile)).map_err(|e|PrimitiveInfoRefusal::Quantity(e.into()));
+    }
+    if identity.starts_with("qty/profile/") {
+        let (family,role,profile)=crate::PhysicalNumericProfile::parse_info_id(identity).ok_or(PrimitiveInfoRefusal::MathematicalNumber(crate::NumericRefusal::InvalidProfile))?;
+        let quantity=crate::QuantityRef::validate(encoded).map_err(|e|PrimitiveInfoRefusal::Quantity(e.into()))?;
+        if quantity.unit().family().identity()!=family {return Err(PrimitiveInfoRefusal::WrongQuantityFamily);}
+        if quantity.role()!=role {return Err(PrimitiveInfoRefusal::WrongQuantityRole);}
+        return quantity.validate_profile(profile).map_err(|e|PrimitiveInfoRefusal::Quantity(e.into()));
+    }
     if let Some((family, role)) = crate::parse_quantity_role_info_id(identity) {
-        let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
-        if quantity.family().identity() != family {
+        let quantity = crate::QuantityRef::validate(encoded).map_err(|e|PrimitiveInfoRefusal::Quantity(e.into()))?;
+        if quantity.unit().family().identity() != family {
             return Err(PrimitiveInfoRefusal::WrongQuantityFamily);
         }
         if quantity.role() != role {
@@ -171,18 +207,21 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
             })
         }
         Some(PrimitiveInfoKind::Count) => Ok(()),
-        Some(PrimitiveInfoKind::Scalar) => Scalar::decode(encoded)
+        Some(PrimitiveInfoKind::MathematicalNumber) => crate::MathValueRef::validate(encoded)
             .map(|_| ())
-            .map_err(PrimitiveInfoRefusal::Scalar),
+            .map_err(PrimitiveInfoRefusal::MathematicalNumber),
+        Some(PrimitiveInfoKind::MicroScalar) => MicroScalar::decode(encoded)
+            .map(|_| ())
+            .map_err(PrimitiveInfoRefusal::MicroScalar),
         Some(PrimitiveInfoKind::Text) => core::str::from_utf8(encoded)
             .map(|_| ())
             .map_err(|_| PrimitiveInfoRefusal::TextUtf8),
-        Some(PrimitiveInfoKind::Quantity) => Quantity::decode(encoded)
+        Some(PrimitiveInfoKind::Quantity) => crate::QuantityRef::validate(encoded)
             .map(|_| ())
-            .map_err(PrimitiveInfoRefusal::Quantity),
-        Some(PrimitiveInfoKind::Unit) => crate::Unit::decode(encoded)
+            .map_err(|e|PrimitiveInfoRefusal::Quantity(e.into())),
+        Some(PrimitiveInfoKind::Unit) => crate::UnitRef::validate(encoded)
             .map(|_| ())
-            .map_err(PrimitiveInfoRefusal::Unit),
+            .map_err(|e|PrimitiveInfoRefusal::Unit(crate::UnitRefusal::Definition(e))),
         Some(
             PrimitiveInfoKind::Distance
             | PrimitiveInfoKind::Frequency
@@ -193,7 +232,7 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
             | PrimitiveInfoKind::Ratio
             | PrimitiveInfoKind::PixelCount,
         ) => {
-            let quantity = Quantity::decode(encoded).map_err(PrimitiveInfoRefusal::Quantity)?;
+            let quantity = crate::QuantityRef::validate(encoded).map_err(|e|PrimitiveInfoRefusal::Quantity(e.into()))?;
             let expected = match primitive_info_kind(identity) {
                 Some(PrimitiveInfoKind::Distance) => QuantityDimension::Length,
                 Some(PrimitiveInfoKind::Frequency) => QuantityDimension::Frequency,
@@ -205,7 +244,7 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
                 Some(PrimitiveInfoKind::PixelCount) => QuantityDimension::PixelCount,
                 _ => unreachable!("matched dimensioned quantity kind"),
             };
-            let actual = quantity.dimension();
+            let actual = quantity.unit().family().dimension();
             if actual == expected {
                 Ok(())
             } else {

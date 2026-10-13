@@ -53,15 +53,7 @@ fn main() {
                 "TabularQueryOutcomeFour.inline".into(),
             ]
             .into(),
-            copy_record_types: [
-                "DataGenerationNamespace".into(),
-                "MeasurementPlotPoint".into(),
-                "MeasurementPlotProfile".into(),
-                "MeasurementRange".into(),
-                "MeasurementHysteresisProfile".into(),
-                "MeasurementThresholdPolicy".into(),
-            ]
-            .into(),
+            copy_record_types: ["DataGenerationNamespace".into(), "MeasurementPlotPoint".into(), "MeasurementPlotProfile".into()].into(),
             copy_nominal_types: [
                 "DataGenerationDigest".into(),
                 "DatasetExampleIdentity".into(),

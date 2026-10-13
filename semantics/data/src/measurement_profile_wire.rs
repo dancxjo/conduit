@@ -9,8 +9,8 @@ use crate::{
 };
 
 pub const MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES: usize =
-    2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
-pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 2 * conduit_core::QUANTITY_ENCODED_LEN + 1_024;
+    2 * (2048 + 2) + 1_024;
+pub const MAXIMUM_MEASUREMENT_SAMPLE_BYTES: usize = 2 * (2048 + 2) + 1_024;
 
 pub fn encode_measurement_window_profile(
     profile: &MeasurementWindowProfile,
@@ -22,8 +22,8 @@ pub fn encode_measurement_window_profile(
     bytes.push(1);
     bytes.push(profile.capacity);
     bytes.extend_from_slice(&FullWindowPolicyForm::encode(profile.full_policy));
-    bytes.extend_from_slice(&profile.range.minimum.encode());
-    bytes.extend_from_slice(&profile.range.maximum.encode());
+    put_quantity(&mut bytes, &profile.range.minimum)?;
+    put_quantity(&mut bytes, &profile.range.maximum)?;
     put_text(&mut bytes, &profile.clock_basis)?;
     if bytes.len() > MAXIMUM_MEASUREMENT_WINDOW_PROFILE_BYTES {
         return Err(MeasurementWireRefusal::CapacityExceeded);
@@ -71,22 +71,22 @@ pub fn encode_measurement_sample(
         .observed_at
         .validate()
         .map_err(|_| MeasurementWireRefusal::Malformed)?;
-    if sample.uncertainty.is_some_and(|uncertainty| {
+    if sample.uncertainty.as_ref().is_some_and(|uncertainty| {
         sample.value.role() == conduit_core::QuantityRole::Point
             || uncertainty.role() != sample.value.role()
-            || uncertainty.unit() != sample.value.unit()
-            || uncertainty.coefficient() < 0
+            || !uncertainty.unit().same_physical_definition(sample.value.unit())
+            || !uncertainty.coordinate().proven_positive() && !uncertainty.coordinate().is_zero()
     }) {
         return Err(MeasurementWireRefusal::Malformed);
     }
     let mut bytes = Vec::with_capacity(64 + sample.observed_at.clock_basis().len());
     bytes.push(1);
-    bytes.extend_from_slice(&sample.value.encode());
+    put_quantity(&mut bytes, &sample.value)?;
     put_instant(&mut bytes, &sample.observed_at)?;
-    match sample.uncertainty {
+    match &sample.uncertainty {
         Some(uncertainty) => {
             bytes.push(1);
-            bytes.extend_from_slice(&uncertainty.encode());
+            put_quantity(&mut bytes, &uncertainty)?;
         }
         None => bytes.push(0),
     }
@@ -185,7 +185,9 @@ impl<'a> Input<'a> {
         ))
     }
     fn quantity(&mut self) -> Result<Quantity, MeasurementWireRefusal> {
-        Quantity::decode(self.take(conduit_core::QUANTITY_ENCODED_LEN)?)
+        { let length = usize::from(u16::from_le_bytes(self.take(2)?.try_into().map_err(|_| MeasurementWireRefusal::Malformed)?));
+            if length > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+            Quantity::decode(self.take(length)?) }
             .map_err(|_| MeasurementWireRefusal::Malformed)
     }
     fn text(&mut self) -> Result<String, MeasurementWireRefusal> {
@@ -261,4 +263,12 @@ mod tests {
             Ok(sample)
         );
     }
+}
+
+fn put_quantity(bytes: &mut Vec<u8>, quantity: &Quantity) -> Result<(), MeasurementWireRefusal> {
+    let encoded = quantity.encoded();
+    if encoded.len() > 2048 { return Err(MeasurementWireRefusal::CapacityExceeded); }
+    bytes.extend_from_slice(&(encoded.len() as u16).to_le_bytes());
+    bytes.extend_from_slice(encoded);
+    Ok(())
 }

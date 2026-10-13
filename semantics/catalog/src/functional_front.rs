@@ -46,10 +46,12 @@ pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParam
         .map(|field| FrontStartupParameter {
             name: field.key.clone(),
             value_type: match (&field.rule, &field.default_value) {
+                (conduit_core::KindConfigurationRule::Scalar { profile }, ConfigurationValue::Scalar(_)) => { if *profile == conduit_core::PortableNumericProfile::MAXIMAL { conduit_core::kind_id(conduit_core::SCALAR_INFO_ID) } else { conduit_core::kind_id(&profile.info_id().expect("checked scalar profile")) } },
                 (
                     conduit_core::KindConfigurationRule::QuantityRange { canonical_unit, .. },
                     ConfigurationValue::Quantity(_),
                 ) => conduit_core::kind_id(canonical_unit.dimension().info_id()),
+                (conduit_core::KindConfigurationRule::DurationMillis { .. }, ConfigurationValue::U64(_)) => conduit_core::kind_id(conduit_core::DURATION_INFO_ID),
                 _ => field.default_value.semantic_kind(),
             },
             has_default: true,

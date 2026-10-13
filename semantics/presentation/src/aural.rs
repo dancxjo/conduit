@@ -540,6 +540,12 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             minimum_endpoint,
             maximum_endpoint,
         } => range_clause("value", minimum.as_ref(), maximum.as_ref(), *minimum_endpoint, *maximum_endpoint),
+        ValueConstraint::MathematicalRange { minimum, maximum, minimum_endpoint, maximum_endpoint } => range_clause(
+            "value",
+            minimum.as_ref().map(|bytes| conduit_core::MathValue::decode(bytes).and_then(|value| value.source_expression()).unwrap_or_else(|_| "unrenderable mathematical bound".into())).as_ref(),
+            maximum.as_ref().map(|bytes| conduit_core::MathValue::decode(bytes).and_then(|value| value.source_expression()).unwrap_or_else(|_| "unrenderable mathematical bound".into())).as_ref(),
+            *minimum_endpoint, *maximum_endpoint,
+        ),
         ValueConstraint::FixedIntegerRange {
             minimum,
             maximum,
@@ -559,8 +565,8 @@ fn constraint_clause(constraint: &ValueConstraint) -> String {
             maximum_endpoint,
         } => range_clause(
             "quantity",
-            minimum.as_ref().map(|value| format!("{}e{} {}", value.coefficient(), value.exponent(), value.unit().semantic_id())).as_ref(),
-            maximum.as_ref().map(|value| format!("{}e{} {}", value.coefficient(), value.exponent(), value.unit().semantic_id())).as_ref(),
+            minimum.as_ref().map(|value| format!("{} {}", value.coordinate().to_owned().and_then(|amount| amount.source_expression()).unwrap_or_else(|_| "unrenderable exact coordinate".into()), value.unit().symbol())).as_ref(),
+            maximum.as_ref().map(|value| format!("{} {}", value.coordinate().to_owned().and_then(|amount| amount.source_expression()).unwrap_or_else(|_| "unrenderable exact coordinate".into()), value.unit().symbol())).as_ref(),
             *minimum_endpoint,
             *maximum_endpoint,
         ),

@@ -33,15 +33,15 @@ pub fn assess_workflow_timing(
     offset_from_boundary: Quantity,
     uncertainty: Quantity,
 ) -> Result<WorkflowTimingOutcome, ScheduleRefusal> {
-    validate_duration(offset_from_boundary)?;
-    validate_duration(uncertainty)?;
+    validate_duration(&offset_from_boundary)?;
+    validate_duration(&uncertainty)?;
     match lifecycle {
         WorkflowLifecycle::Failed => return Ok(WorkflowTimingOutcome::Failed),
         WorkflowLifecycle::Cancelled => return Ok(WorkflowTimingOutcome::Cancelled),
         WorkflowLifecycle::Expired => return Ok(WorkflowTimingOutcome::Expired),
         WorkflowLifecycle::Pending | WorkflowLifecycle::Running | WorkflowLifecycle::Completed => {}
     }
-    if position == ScheduleWindowPosition::Indeterminate || uncertainty.coefficient() > 0 {
+    if position == ScheduleWindowPosition::Indeterminate || !uncertainty.coordinate().is_zero() {
         return WorkflowTimingOutcome::clock_uncertain(uncertainty)
             .map_err(|_| ScheduleRefusal::NonTemporalQuantity);
     }
@@ -74,11 +74,11 @@ pub fn assess_workflow_timing(
     }
 }
 
-fn validate_duration(value: Quantity) -> Result<(), ScheduleRefusal> {
+fn validate_duration(value: &Quantity) -> Result<(), ScheduleRefusal> {
     if value.dimension() != QuantityDimension::Time {
         return Err(ScheduleRefusal::NonTemporalQuantity);
     }
-    if value.coefficient() < 0 {
+    if !value.coordinate().is_zero() && !value.coordinate().proven_positive() {
         return Err(ScheduleRefusal::NegativeQuantity);
     }
     Ok(())

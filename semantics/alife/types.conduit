@@ -106,17 +106,17 @@ type GardenEvolutionRefusal =
     | arithmetic-overflow
 
 type GardenState = {
-    vitality: Scalar in 0.000000..=1.000000
-    activity: Scalar in 0.000000..=1.000000
+    vitality: Scalar <= 128B in 0.000000..=1.000000
+    activity: Scalar <= 128B in 0.000000..=1.000000
     step: U16 in 0..=16
 }
 
 type GardenClockObservation = {
-    phase: Scalar in 0.000000..=1.000000
+    phase: Scalar <= 128B in 0.000000..=1.000000
 }
 
 type GardenContactObservation = {
-    intensity: Scalar in 0.000000..=1.000000
+    intensity: Scalar <= 128B in 0.000000..=1.000000
 }
 
 type GardenEnrichedObservation = {

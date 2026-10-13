@@ -119,7 +119,7 @@ fn fixed_integer_operators_retain_width_and_comparisons_return_boolean() {
 }
 
 #[test]
-fn ambiguous_and_out_of_range_integer_literals_refuse_during_checking() {
+fn mathematical_literals_remain_exact_and_fixed_integer_overflow_refuses() {
     let input = CheckedExpressionType::semantic("value/u8");
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
@@ -134,7 +134,8 @@ fn ambiguous_and_out_of_range_integer_literals_refuse_during_checking() {
         &no_kinds,
     );
 
-    assert!(check_expression(&expression("255"), &context).is_err());
+    assert_eq!(check_expression(&expression("255"), &context).unwrap().value_type,
+        CheckedExpressionType::semantic(conduit_core::MATH_VALUE_INFO_ID));
     let error = check_expression(&expression(". + 256"), &context).unwrap_err();
     assert!(error.message.contains("outside the exact U8 range"));
 }
@@ -293,19 +294,19 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let kinds = BTreeMap::from([("math/sin".into(), pure_kind("math/sin"))]);
+    let kinds = BTreeMap::from([("fixture/exact-scalar-function".into(), pure_kind("fixture/exact-scalar-function"))]);
     let pure_context = context(&input, &empty, &no_structured, &empty, &no_numeric, &kinds);
     assert_eq!(
-        check_expression(&expression("math/sin(.)"), &pure_context)
+        check_expression(&expression("fixture/exact-scalar-function(.)"), &pure_context)
             .unwrap()
             .value_type,
         input
     );
 
-    let mut effectful = pure_kind("math/sin");
+    let mut effectful = pure_kind("fixture/exact-scalar-function");
     effectful.semantic_laws[0] =
         KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
-    let effectful = BTreeMap::from([("math/sin".into(), effectful)]);
+    let effectful = BTreeMap::from([("fixture/exact-scalar-function".into(), effectful)]);
     let context = context(
         &input,
         &empty,
@@ -314,7 +315,7 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
         &no_numeric,
         &effectful,
     );
-    assert!(check_expression(&expression("math/sin(.)"), &context).is_err());
+    assert!(check_expression(&expression("fixture/exact-scalar-function(.)"), &context).is_err());
 }
 
 #[test]

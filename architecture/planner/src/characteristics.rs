@@ -58,6 +58,10 @@ pub fn select_realization_with_characteristics_and_signs(
         .flat_map(|host| host.capabilities.iter().map(move |offer| (host, offer)))
         .filter(|(_, offer)| gear.accepts_realization(offer))
         .collect::<Vec<_>>();
+    let front_candidates =
+        crate::numeric_realization::filter_candidates(gear, front_candidates, |candidate| {
+            (candidate.0, candidate.1)
+        })?;
     if let Some(error) = crate::language_coverage::no_eligible_error(gear, hosts)? {
         return Err(error);
     }

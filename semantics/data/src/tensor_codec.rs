@@ -154,11 +154,13 @@ fn encode_axis(output: &mut Vec<u8>, axis: &TensorAxis) -> Result<(), TensorRefu
         }
     }
     push_optional_text(output, axis.identity.as_deref())?;
-    match axis.unit {
+    match &axis.unit {
         None => output.push(0),
         Some(unit) => {
             output.push(1);
-            output.extend_from_slice(&unit.encode());
+            if unit.encoded().len() > 2048 { return Err(TensorRefusal::UnsupportedUnit); }
+            output.extend_from_slice(&(unit.encoded().len() as u16).to_le_bytes());
+            output.extend_from_slice(unit.encoded());
         }
     }
     Ok(())
@@ -184,7 +186,9 @@ fn decode_axis(cursor: &mut Cursor<'_>) -> Result<TensorAxis, TensorRefusal> {
     let unit = match cursor.u8()? {
         0 => None,
         1 => Some(
-            Unit::decode(cursor.take(conduit_core::UNIT_ENCODED_LEN)?)
+            { let length = usize::from(u16::from_le_bytes(cursor.take(2)?.try_into().map_err(|_| TensorRefusal::MalformedEncoding)?));
+                if length > 2048 { return Err(TensorRefusal::UnsupportedUnit); }
+                Unit::decode(cursor.take(length)?) }
                 .map_err(|_| TensorRefusal::UnsupportedUnit)?,
         ),
         _ => return Err(TensorRefusal::MalformedEncoding),

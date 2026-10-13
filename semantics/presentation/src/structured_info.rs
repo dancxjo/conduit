@@ -207,21 +207,19 @@ fn add_shape_properties(
                 properties.push(property(
                     subject,
                     "quantity-unit",
-                    PresentationPropertyValue::Identity(quantity.unit().semantic_id().to_string()),
+                    PresentationPropertyValue::Identity(quantity.unit().identity().iter().map(|byte| alloc::format!("{byte:02x}")).collect::<String>()),
                 ));
                 properties.push(property(
                     subject,
                     "quantity-unit-symbol",
-                    PresentationPropertyValue::Text(quantity.unit().canonical_symbol()),
+                    PresentationPropertyValue::Text(quantity.unit().symbol().into()),
                 ));
                 properties.push(property(
                     subject,
                     "quantity-value",
-                    PresentationPropertyValue::Text(alloc::format!(
-                        "{}e{}",
-                        quantity.coefficient(),
-                        quantity.exponent()
-                    )),
+                    PresentationPropertyValue::Text(quantity.coordinate().to_owned()
+                        .and_then(|value| value.source_expression())
+                        .unwrap_or_else(|_| "Exact value exceeds display bound".into())),
                 ));
             }
         }

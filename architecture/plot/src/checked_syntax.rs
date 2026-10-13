@@ -189,8 +189,13 @@ pub struct CheckedStartupParameter {
     pub maximum_bytes: Option<u64>,
 }
 
+pub type CapturedTensorComputations = Vec<(conduit_core::NumericComputation, [u8; 32])>;
+
 #[derive(Debug, Clone)]
 pub struct CheckedCanonicalGear {
+    /// Ordered source computation retained independently of folded startup values.
+    pub numeric_computation: Option<(conduit_core::NumericComputation, [u8; 32])>,
+    pub tensor_computations: Option<CapturedTensorComputations>,
     pub name: Option<String>,
     pub kind: String,
     pub startup_parameters: Vec<conduit_core::FrontStartupParameter>,
@@ -232,7 +237,9 @@ pub struct CheckedRetainedValue {
 
 impl PartialEq for CheckedCanonicalGear {
     fn eq(&self, other: &Self) -> bool {
-        self.name == other.name
+        self.numeric_computation == other.numeric_computation
+            && self.tensor_computations == other.tensor_computations
+            && self.name == other.name
             && self.kind == other.kind
             && self.startup_parameters == other.startup_parameters
             && self.startup_bindings == other.startup_bindings

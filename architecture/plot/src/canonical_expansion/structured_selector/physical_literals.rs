@@ -115,7 +115,7 @@ fn walk(
                         .physical
                         .units
                         .get(symbol)
-                        .copied()
+                        .cloned()
                         .map(conduit_core::Unit::from_definition),
                 });
             if let (Some(unit), Some(coordinate)) = (unit, text(&arguments[0])) {

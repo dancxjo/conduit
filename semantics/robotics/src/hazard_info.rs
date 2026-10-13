@@ -287,23 +287,23 @@ impl ChargingObservation {
         ]
     }
 
-    pub const fn voltage(self) -> Quantity {
+    pub fn voltage(self) -> Quantity {
         Quantity::new(self.millivolts as i64, Unit::Millivolt)
     }
 
-    pub const fn current(self) -> Quantity {
+    pub fn current(self) -> Quantity {
         Quantity::new(self.milliamps as i64, Unit::Milliampere)
     }
 
-    pub const fn temperature(self) -> Quantity {
+    pub fn temperature(self) -> Quantity {
         Quantity::new(self.temperature_celsius as i64, Unit::Celsius)
     }
 
-    pub const fn charge(self) -> Quantity {
+    pub fn charge(self) -> Quantity {
         Quantity::new(self.charge_mah as i64, Unit::MilliampereHour)
     }
 
-    pub const fn capacity(self) -> Quantity {
+    pub fn capacity(self) -> Quantity {
         Quantity::new(self.capacity_mah as i64, Unit::MilliampereHour)
     }
 

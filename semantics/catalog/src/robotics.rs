@@ -5,8 +5,8 @@ use alloc::string::ToString;
 use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationEntry, ConfigurationValue, InfoBool, Kind,
-    PortDescriptor, PortDirection, PortTemporal, Quantity, Scalar, Unit, BOOL_INFO_ID,
-    SCALAR_INFO_ID,
+    PortDescriptor, PortDirection, PortTemporal, Quantity, MicroScalar, Unit, BOOL_INFO_ID,
+    MICRO_SCALAR_INFO_ID,
 };
 pub use conduit_robotics::RoboticsSimulationAvailability;
 use conduit_robotics::{
@@ -105,12 +105,12 @@ pub fn robotics_simulation_values(
         .to_vec()),
         ROBOTICS_VELOCITY_INTENT_KIND => Ok([
             Some(
-                Scalar::from_raw_microunits(i64_value(entries, "linear-microunits", 0)?)
+                MicroScalar::from_raw_microunits(i64_value(entries, "linear-microunits", 0)?)
                     .encode()
                     .to_vec(),
             ),
             Some(
-                Scalar::from_raw_microunits(i64_value(entries, "angular-microunits", 0)?)
+                MicroScalar::from_raw_microunits(i64_value(entries, "angular-microunits", 0)?)
                     .encode()
                     .to_vec(),
             ),
@@ -242,8 +242,8 @@ pub fn robotics_velocity_intent_contract() -> StandardKindContract {
         "Simulated body velocity intent",
         "Emit bounded body-forward linear and counter-clockwise angular scalar intent.",
         vec![
-            current_output("linear", SCALAR_INFO_ID),
-            current_output("angular", SCALAR_INFO_ID),
+            current_output("linear", MICRO_SCALAR_INFO_ID),
+            current_output("angular", MICRO_SCALAR_INFO_ID),
         ],
         vec![
             i64_field(
@@ -270,8 +270,8 @@ pub fn robotics_drive_differential_contract() -> StandardKindContract {
         summary: "Consume bounded body-forward linear and angular intent with an exact motion TTL; physical implementations require non-bypassable local safety and authority below this authored front."
             .to_string(),
         inputs: vec![
-            current_input("linear", SCALAR_INFO_ID),
-            current_input("angular", SCALAR_INFO_ID),
+            current_input("linear", MICRO_SCALAR_INFO_ID),
+            current_input("angular", MICRO_SCALAR_INFO_ID),
         ],
         outputs: Vec::new(),
         configuration: vec![u64_field(
@@ -448,7 +448,7 @@ fn quantity_u32(
             _ => None,
         })
         .unwrap_or(default)
-        .to_i64(canonical_unit)
+        .to_i64(&canonical_unit)
         .map_err(|_| "robotics quantity configuration is incompatible or inexact")?;
     u32::try_from(value).map_err(|_| "robotics quantity configuration exceeds u32")
 }
@@ -522,7 +522,8 @@ pub(crate) fn configuration_type(field: &KindConfigurationField) -> &'static str
     match &field.default_value {
         ConfigurationValue::Text(_) => "Text",
         ConfigurationValue::U64(_) => "Count",
-        ConfigurationValue::I64(_) => "Scalar",
+        ConfigurationValue::I64(_) => "MicroScalar",
+        ConfigurationValue::Scalar(_) => "Scalar",
         ConfigurationValue::Quantity(_) => "Quantity",
         ConfigurationValue::Unit(_) => "Unit",
         ConfigurationValue::TemperatureDifference(_) => "TemperatureDifference",

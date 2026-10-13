@@ -4,8 +4,8 @@ use super::*;
 use crate::prelude::*;
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{
-    DefinitionScalar, DimensionDefinition, DimensionTerm, KindId, PrefixPolicy,
-    QuantityFamilyDefinition, QuantityRole, QuantityRoles, UnitDefinition,
+    DimensionDefinition, DimensionTerm, KindId, MathValue, PrefixPolicy, QuantityFamilyDefinition,
+    QuantityRole, QuantityRoles, UnitDefinition,
 };
 
 const MAXIMUM_RESOLVED_UNITS: usize = 1024;
@@ -31,20 +31,11 @@ pub(crate) struct CheckedPhysicalCatalogue {
 
 type Result<T> = core::result::Result<T, PhysicalDeclarationDiagnostic>;
 
-fn scalar(value: &crate::ExpressionSyntax) -> Result<DefinitionScalar> {
-    let exact = check_exact_scalar(value)?;
-    DefinitionScalar::new(exact.numerator, exact.denominator, exact.decimal_exponent).map_err(
-        |reason| {
-            refusal(
-                value.span(),
-                alloc::format!("invalid exact physical scalar: {reason:?}"),
-            )
-        },
-    )
+fn scalar(value: &crate::ExpressionSyntax) -> Result<MathValue> {
+    check_mathematical_scalar(value)
 }
-
-fn zero() -> DefinitionScalar {
-    DefinitionScalar::new(0, 1, 0).expect("bounded zero")
+fn zero() -> MathValue {
+    MathValue::ZERO
 }
 
 /// Complete declaration admission. The caller supplies source declarations from
@@ -258,7 +249,7 @@ pub(crate) fn check_physical_declarations(
     // Synthesize the complete finite namespace and refuse collisions even if
     // no source expression happens to use the conflicting spelling.
     for unit in units {
-        let definition = resolver.result.units[&unit.symbol.text];
+        let definition = resolver.result.units[&unit.symbol.text].clone();
         for (prefix_index, prefix) in prefixes.iter().enumerate() {
             if !enabled(unit.prefixes, &prefix.group.text) {
                 continue;
@@ -266,7 +257,7 @@ pub(crate) fn check_physical_declarations(
             let canonical = &prefixes[prefix_groups.canonical_prefixes[prefix_index]];
             let symbol = alloc::format!("{}{}", prefix.symbol.text, unit.symbol.text);
             let canonical_symbol = alloc::format!("{}{}", canonical.symbol.text, unit.symbol.text);
-            let value = prefixed(definition, &symbol, canonical)?;
+            let value = prefixed(definition.clone(), &symbol, canonical)?;
             if resolver
                 .result
                 .units
@@ -375,10 +366,10 @@ impl Resolver<'_> {
             .unwrap_or_else(zero);
         let value = match &syntax.reference {
             UnitReferenceSyntax::Origin(_) => {
-                UnitDefinition::new_exact_role(family, symbol, role, scale, offset, policy)
+                UnitDefinition::new_math_role(family, symbol, scale, offset, policy, role)
             }
             UnitReferenceSyntax::NamedOrigin { name, .. } => {
-                UnitDefinition::new_exact_role(family, symbol, role, scale, offset, policy)
+                UnitDefinition::new_math_role(family, symbol, scale, offset, policy, role)
                     .and_then(|definition| definition.with_named_origin(&name.text))
             }
             UnitReferenceSyntax::Unit(name) => {
@@ -389,7 +380,7 @@ impl Resolver<'_> {
                         "referenced unit belongs to another quantity family",
                     ));
                 }
-                UnitDefinition::related_exact_role(reference, symbol, role, scale, offset, policy)
+                UnitDefinition::related_math_role(&reference, symbol, scale, offset, policy, role)
             }
         };
         value.map_err(|reason| {
@@ -404,7 +395,7 @@ impl Resolver<'_> {
         let declaration = &self.declarations[index];
         match self.states[index] {
             1 => return Err(refusal(declaration.span, "unit definition cycle")),
-            2 => return Ok(self.result.units[&declaration.symbol.text]),
+            2 => return Ok(self.result.units[&declaration.symbol.text].clone()),
             _ => {}
         }
         self.states[index] = 1;
@@ -483,14 +474,19 @@ impl Resolver<'_> {
                 _ => false,
             };
             if paired_root {
-                derivative = derivative.with_reference_origin(value).map_err(|reason| {
+                derivative = derivative.with_reference_origin(&value).map_err(|reason| {
                     refusal(
                         delta.span,
                         alloc::format!("invalid paired root origin: {reason:?}"),
                     )
                 })?;
             }
-            if !value.exact_scale().equivalent(derivative.exact_scale())
+            if value
+                .exact_scale()
+                .compare(derivative.exact_scale())
+                .ok()
+                .flatten()
+                != Some(core::cmp::Ordering::Equal)
                 || value.reference_anchor() != derivative.reference_anchor()
             {
                 return Err(refusal(delta.span,"declared difference relationship does not equal the point unit's exact derivative law"));
@@ -498,7 +494,7 @@ impl Resolver<'_> {
         }
         self.result
             .units
-            .insert(declaration.symbol.text.clone(), value);
+            .insert(declaration.symbol.text.clone(), value.clone());
         self.result
             .unit_spans
             .insert(declaration.symbol.text.clone(), declaration.span);

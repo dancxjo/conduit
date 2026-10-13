@@ -1,6 +1,6 @@
 use conduit_core::{
-    kind_id, CheckedTextPattern, CheckedValueContract, TextPatternState, TextPatternTransition,
-    ValueConstraint, ValueConstraintRefusal, TEXT_INFO_ID,
+    CheckedTextPattern, CheckedValueContract, TEXT_INFO_ID, TextPatternState,
+    TextPatternTransition, ValueConstraint, ValueConstraintRefusal, kind_id,
 };
 
 fn lowercase_z_pattern() -> CheckedTextPattern {
@@ -72,4 +72,52 @@ fn exact_negated_constraint_profile_round_trips_across_portable_and_json_carrier
         contract.validate(b"endsz"),
         Err(ValueConstraintRefusal::TextPattern)
     );
+}
+
+#[test]
+fn every_builtin_physical_family_accepts_its_exact_quantity_range() {
+    use conduit_core::*;
+    for (kind, unit) in [
+        (DISTANCE_INFO_ID, Unit::Meter),
+        (DURATION_INFO_ID, Unit::Second),
+        (FREQUENCY_INFO_ID, Unit::Hertz),
+        (VOLTAGE_INFO_ID, Unit::Volt),
+        (TEMPERATURE_INFO_ID, Unit::Kelvin),
+        (ANGLE_INFO_ID, Unit::Turn),
+        (RATIO_INFO_ID, Unit::One),
+        (PIXEL_COUNT_INFO_ID, Unit::Pixel),
+    ] {
+        let lower = Quantity::new(1, unit.clone());
+        let upper = Quantity::new(2, unit.clone());
+        assert_eq!(
+            validate_primitive_info(kind, lower.encoded()),
+            Ok(()),
+            "{kind}"
+        );
+        let contract = CheckedValueContract::new(
+            kind_id(kind),
+            MAX_QUANTITY_ENCODED_BYTES as u32,
+            vec![ValueConstraint::QuantityRange {
+                minimum: Some(Box::new(lower)),
+                maximum: Some(Box::new(upper)),
+                minimum_endpoint: IntervalEndpoint::Inclusive,
+                maximum_endpoint: IntervalEndpoint::Inclusive,
+            }],
+        )
+        .unwrap();
+        assert_eq!(
+            contract.validate(
+                Quantity::from_decimal(15, -1, unit.clone())
+                    .unwrap()
+                    .encoded()
+            ),
+            Ok(()),
+            "{kind}"
+        );
+        assert_eq!(
+            contract.validate(Quantity::new(3, unit).encoded()),
+            Err(ValueConstraintRefusal::QuantityRange),
+            "{kind}"
+        );
+    }
 }

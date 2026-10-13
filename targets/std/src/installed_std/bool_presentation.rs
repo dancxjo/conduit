@@ -87,10 +87,18 @@ impl BoolPresentationBack {
 }
 
 fn validate(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_offers::bool_presentation_offer();
-    if placement.kind_id.as_str() != conduit_semantic_catalog::BOOL_PRESENTATION_KIND
-        || placement.kind_contract_revision.as_str()
-            != conduit_semantic_catalog::BOOL_PRESENTATION_CONTRACT_REVISION
+    let immutable =
+        placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND;
+    let offer = if immutable {
+        conduit_std_offers::bool_value_presentation_offer()
+    } else {
+        conduit_std_offers::bool_presentation_offer()
+    };
+    if placement.kind_id != offer.kind_id
+        || placement.kind_contract_revision != offer.kind_contract_revision
+        || (immutable
+            && (placement.capability_id != offer.capability_id
+                || placement.semantic_contract != offer.semantic_contract))
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::BOOL_PRESENTATION_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
@@ -100,7 +108,12 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
         || !placement.outputs.is_empty()
         || placement.inputs[0].port_id.as_str() != "value"
         || placement.inputs[0].direction != PortDirection::Input
-        || placement.inputs[0].temporal != PortTemporal::Current
+        || placement.inputs[0].temporal
+            != if immutable {
+                PortTemporal::Value
+            } else {
+                PortTemporal::Current
+            }
         || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
     {

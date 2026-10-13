@@ -393,12 +393,12 @@ mod tests {
             .unwrap()
             .unwrap();
         let prior = conduit_semantic_catalog::GardenState {
-            vitality: Scalar::from_raw_microunits(400_000),
+            vitality: Scalar::from_decimal_parts(400_000, -6).unwrap(),
             activity: Scalar::ZERO,
             step: 0,
         };
         let clock = conduit_semantic_catalog::GardenClockObservation {
-            phase: Scalar::from_raw_microunits(800_000),
+            phase: Scalar::from_decimal_parts(800_000, -6).unwrap(),
         };
         let prior = conduit_semantic_catalog::garden_state_value(prior)
             .unwrap()
@@ -412,8 +412,8 @@ mod tests {
         assert_eq!(prepared.execute(OPERATIONS[0], &prior), Ok(None));
         let output = prepared.execute(OPERATIONS[1], &clock).unwrap().unwrap();
         let next = conduit_semantic_catalog::decode_garden_state(&output).unwrap();
-        assert_eq!(next.vitality.raw_microunits(), 500_000);
-        assert_eq!(next.activity.raw_microunits(), 400_000);
+        assert_eq!(next.vitality, conduit_core::Scalar::from_decimal_parts(500_000, -6).unwrap());
+        assert_eq!(next.activity, conduit_core::Scalar::from_decimal_parts(400_000, -6).unwrap());
         assert_eq!(next.step, 1);
     }
 
@@ -424,7 +424,7 @@ mod tests {
             .unwrap();
         let clock = conduit_semantic_catalog::garden_clock_observation_value(
             conduit_semantic_catalog::GardenClockObservation {
-                phase: Scalar::from_raw_microunits(800_000),
+                phase: Scalar::from_decimal_parts(800_000, -6).unwrap(),
             },
         )
         .unwrap()

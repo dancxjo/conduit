@@ -6,13 +6,13 @@ use crate::semantic_digest;
 mod dimension;
 #[path = "physical_definition/family.rs"]
 mod family;
-#[path = "physical_definition/scalar.rs"]
-mod scalar;
 #[path = "physical_definition/unit.rs"]
 mod unit;
 pub use dimension::*;
 pub use family::*;
-pub use scalar::*;
+#[path = "physical_definition/numeric_profile.rs"]
+mod numeric_profile;
+pub use numeric_profile::*;
 pub use unit::*;
 #[path = "physical_definition/generated.rs"]
 mod generated;
@@ -22,7 +22,7 @@ mod role_kind;
 pub use role_kind::*;
 #[path = "physical_definition/serde_fixed.rs"]
 mod serde_fixed;
-pub(crate) use serde_fixed::deserialize_fixed;
+pub(crate) use serde_fixed::deserialize_bounded;
 
 pub const DEFINITION_NAME_BYTES: usize = 128;
 pub const DEFINITION_NAME_ENCODED_LEN: usize = 129;
@@ -52,6 +52,7 @@ pub enum PhysicalDefinitionRefusal {
     AlreadyPrefixed,
     IncompatibleFamily,
     IdentityMismatch,
+    Numeric(crate::NumericRefusal),
 }
 impl DefinitionName {
     pub(crate) const fn from_generated(bytes: &[u8], position: usize) -> Self {
@@ -119,159 +120,46 @@ pub(crate) const fn generated_digest(bytes: &[u8], position: usize) -> [u8; 32] 
     }
     result
 }
-pub(crate) const fn generated_i128(bytes: &[u8], position: usize) -> i128 {
-    let mut result = [0; 16];
-    let mut i = 0;
-    while i < 16 {
-        result[i] = bytes[position + i];
-        i += 1;
-    }
-    i128::from_le_bytes(result)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::*;
-    fn family(name: &str) -> QuantityFamilyDefinition {
-        QuantityFamilyDefinition::new(
-            name,
-            DimensionDefinition::new(&[DimensionTerm {
-                anchor: DimensionDefinition::anchor("test-length").unwrap(),
-                power: 1,
-            }])
-            .unwrap(),
-            QuantityRoles::Linear,
-        )
-        .unwrap()
-    }
-    #[test]
-    fn all_generated_source_capsules_are_independently_checked() {
-        assert_eq!(BUILTIN_UNIT_DEFINITIONS.len(), 130);
-        for &(symbol, definition) in BUILTIN_UNIT_DEFINITIONS {
-            assert_eq!(definition.symbol(), symbol);
-            assert_eq!(
-                UnitDefinition::decode(&definition.encode()),
-                Ok(definition),
-                "{symbol}"
-            );
-        }
-        assert_eq!(BUILTIN_NANOVOLT.decimal_exponent(), -9);
-        assert_eq!(BUILTIN_NANOAMPERE.decimal_exponent(), -9);
-    }
-    #[test]
-    fn arbitrary_definitions_are_self_contained_and_immutable() {
-        let family = family("CustomLength");
-        let first = UnitDefinition::new(family, "widget", 7, 0, 3, 0, PrefixPolicy::NONE).unwrap();
-        let replacement =
-            UnitDefinition::new(family, "widget", 8, 0, 3, 0, PrefixPolicy::NONE).unwrap();
-        assert_ne!(first.identity(), replacement.identity());
-        assert_eq!(UnitDefinition::decode(&first.encode()), Ok(first));
-        assert!(first
-            .exact_scale()
-            .equivalent(DefinitionScalar::new(7, 3, 0).unwrap()));
-        let mut forged = first.encode();
-        forged[UNIT_DEFINITION_ENCODED_LEN - 1] ^= 1;
-        assert_eq!(
-            UnitDefinition::decode(&forged),
-            Err(PhysicalDefinitionRefusal::IdentityMismatch)
-        );
-    }
-    #[test]
-    fn declared_point_delta_names_and_offsets_are_separate() {
-        let family = QuantityFamilyDefinition::point_delta(
-            "Temperature",
-            "TemperatureDelta",
-            DimensionDefinition::DIMENSIONLESS,
-        )
-        .unwrap();
-        assert_eq!(family.role_name(QuantityRole::Point), Ok("Temperature"));
-        assert_eq!(
-            family.role_name(QuantityRole::Delta),
-            Ok("TemperatureDelta")
-        );
-        assert_ne!(
-            family.role_identity(QuantityRole::Point),
-            family.role_identity(QuantityRole::Delta)
-        );
-        let celsius =
-            UnitDefinition::new(family, "°C", 100, 27315, 100, 0, PrefixPolicy::NONE).unwrap();
-        assert!(celsius
-            .exact_offset(QuantityRole::Point)
-            .unwrap()
-            .equivalent(DefinitionScalar::new(5463, 20, 0).unwrap()));
-        assert_eq!(
-            celsius.exact_offset(QuantityRole::Delta).unwrap().numerator,
-            0
-        );
-        assert!(celsius.exact_offset(QuantityRole::Linear).is_err());
-        assert_eq!(
-            QuantityFamilyDefinition::decode(&family.encode()),
-            Ok(family)
-        );
-    }
-    #[test]
-    fn prefix_policies_are_explicit_and_power_is_preserved() {
-        let linear = family("Volume");
-        let plain = UnitDefinition::new(linear, "custom", 1, 0, 1, 0, PrefixPolicy::NONE).unwrap();
-        assert_eq!(
-            plain.with_decimal_prefix("kcustom", 3),
-            Err(PhysicalDefinitionRefusal::PrefixNotEnabled)
-        );
-        assert_eq!(
-            plain.with_binary_prefix("Kicustom", 10),
-            Err(PhysicalDefinitionRefusal::PrefixNotEnabled)
-        );
-        let decimal = UnitDefinition::new(
-            linear,
-            "custom³",
-            1,
-            0,
-            1,
-            0,
-            PrefixPolicy::new(&[30, 3], &[], 3).unwrap(),
-        )
-        .unwrap();
-        let prefixed = decimal.with_decimal_prefix("Qcustom³", 30).unwrap();
-        assert_eq!(prefixed.decimal_exponent(), 90);
-        assert_eq!(UnitDefinition::decode(&prefixed.encode()), Ok(prefixed));
-        assert_eq!(
-            prefixed.with_decimal_prefix("kQcustom³", 3),
-            Err(PhysicalDefinitionRefusal::AlreadyPrefixed)
-        );
-        let binary = UnitDefinition::new(
-            linear,
-            "block",
-            1,
-            0,
-            1,
-            0,
-            PrefixPolicy::new(&[], &[10], 2).unwrap(),
-        )
-        .unwrap()
-        .with_binary_prefix("Kiblock", 10)
-        .unwrap();
-        assert_eq!(binary.binary_exponent(), 20);
-        assert_eq!(UnitDefinition::decode(&binary.encode()), Ok(binary));
-    }
-    #[test]
-    fn related_affine_laws_reduce_without_losing_offsets() {
-        let family = QuantityFamilyDefinition::point_delta(
-            "Point",
-            "Delta",
-            DimensionDefinition::DIMENSIONLESS,
-        )
-        .unwrap();
-        let reference =
-            UnitDefinition::new(family, "origin", 1, 27315, 100, 0, PrefixPolicy::NONE).unwrap();
-        let relative =
-            UnitDefinition::related(reference, "relative", 2, 3, 5, PrefixPolicy::NONE).unwrap();
-        assert!(relative
-            .exact_scale()
-            .equivalent(DefinitionScalar::new(1, 250, 0).unwrap()));
-        assert!(relative
-            .exact_offset(QuantityRole::Point)
-            .unwrap()
-            .equivalent(DefinitionScalar::new(68289, 250, 0).unwrap()));
-        assert_eq!(UnitDefinition::decode(&relative.encode()), Ok(relative));
-    }
+ use super::*;use crate::MathValue;
+ fn family()->QuantityFamilyDefinition {QuantityFamilyDefinition::new("Custom",DimensionDefinition::DIMENSIONLESS,QuantityRoles::Linear).unwrap()}
+ #[test]
+ fn all_generated_source_capsules_are_independently_checked() {
+  for (symbol,definition) in BUILTIN_UNIT_DEFINITIONS {
+   assert_eq!(definition.symbol(),*symbol);
+   assert_eq!(UnitDefinition::decode(definition.encoded()).unwrap(),*definition);
+  }
+  assert_eq!(BUILTIN_NANOVOLT.exact_scale().to_owned().unwrap(),MathValue::parse_decimal("1e-9").unwrap());
+  assert_eq!(BUILTIN_NANOAMPERE.exact_scale().to_owned().unwrap(),MathValue::parse_decimal("1e-9").unwrap());
+ }
+ #[test]
+ fn source_root_redefinition_cannot_change_captured_values() {
+  let first=UnitDefinition::new_math_role(family(),"widget",MathValue::rational("7","3").unwrap(),MathValue::ZERO,PrefixPolicy::NONE,QuantityRole::Linear).unwrap();
+  let replacement=UnitDefinition::new_math_role(family(),"widget",MathValue::rational("8","3").unwrap(),MathValue::ZERO,PrefixPolicy::NONE,QuantityRole::Linear).unwrap();
+  assert_ne!(first.identity(),replacement.identity());assert_ne!(first.reference_anchor(),replacement.reference_anchor());
+  let mut forged=first.encode();let n=forged.len();forged[n-1]^=1;
+  assert_eq!(UnitDefinition::decode(&forged),Err(PhysicalDefinitionRefusal::IdentityMismatch));
+  let a=crate::Quantity::new(1,first);let b=crate::Quantity::new(1,replacement);
+  assert_eq!(a.compare(&b),Err(crate::QuantityConversionRefusal::UnlinkedOrigin));
+ }
+ #[test]
+ fn point_and_delta_use_one_captured_law_with_distinct_roles() {
+  let family=QuantityFamilyDefinition::point_delta("Point","Delta",DimensionDefinition::DIMENSIONLESS).unwrap();
+  let unit=UnitDefinition::new_math_role(family,"affine",MathValue::ONE,MathValue::parse_decimal("273.15").unwrap(),PrefixPolicy::NONE,QuantityRole::Point).unwrap();
+  assert_eq!(unit.exact_offset(QuantityRole::Point).unwrap().to_owned().unwrap(),MathValue::parse_decimal("273.15").unwrap());
+  assert!(unit.exact_offset(QuantityRole::Delta).unwrap().is_zero());
+  assert!(unit.exact_offset(QuantityRole::Linear).is_err());
+ }
+ #[test]
+ fn prefixes_require_admitted_policy_and_preserve_exact_power() {
+  let plain=UnitDefinition::new_math_role(family(),"custom",MathValue::ONE,MathValue::ZERO,PrefixPolicy::NONE,QuantityRole::Linear).unwrap();
+  assert_eq!(plain.with_decimal_prefix("kcustom",3),Err(PhysicalDefinitionRefusal::PrefixNotEnabled));
+  let cubic=UnitDefinition::new_math_role(family(),"custom³",MathValue::ONE,MathValue::ZERO,PrefixPolicy::new(&[30],&[],3).unwrap(),QuantityRole::Linear).unwrap();
+  let q=cubic.with_decimal_prefix("Qcustom³",30).unwrap();
+  assert_eq!(q.exact_scale().to_owned().unwrap(),MathValue::parse_decimal("1e90").unwrap());
+  assert_eq!(q.with_decimal_prefix("kQcustom³",3),Err(PhysicalDefinitionRefusal::AlreadyPrefixed));
+  let binary=UnitDefinition::new_math_role(family(),"block",MathValue::ONE,MathValue::ZERO,PrefixPolicy::new(&[],&[10],2).unwrap(),QuantityRole::Linear).unwrap().with_binary_prefix("Kiblock",10).unwrap();
+  assert_eq!(binary.exact_scale().checked_i64().unwrap(),1_048_576);
+ }
 }

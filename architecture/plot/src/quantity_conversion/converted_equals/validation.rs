@@ -16,20 +16,6 @@ fn bytes<'a>(value: View<'a>, name: &str, kind: &str) -> Result<&'a [u8], R> {
 fn text<'a>(value: View<'a>, name: &str) -> Result<&'a str, R> {
     core::str::from_utf8(bytes(value, name, TEXT_INFO_ID)?).map_err(|_| R::ForgedReceipt)
 }
-fn number(value: View<'_>, name: &str) -> Result<i128, R> {
-    Ok(i128::from_le_bytes(
-        bytes(value, name, "value/i128")?
-            .try_into()
-            .map_err(|_| R::ForgedReceipt)?,
-    ))
-}
-fn exponent(value: View<'_>, name: &str) -> Result<i16, R> {
-    Ok(i16::from_le_bytes(
-        bytes(value, name, "value/i16")?
-            .try_into()
-            .map_err(|_| R::ForgedReceipt)?,
-    ))
-}
 fn require(condition: bool) -> Result<(), R> {
     condition.then_some(()).ok_or(R::ForgedReceipt)
 }
@@ -48,12 +34,15 @@ pub(super) fn validate(receipt: View<'_>) -> Result<(Quantity, bool), R> {
         .variant_payload(tag)
         .map_err(|_| R::ForgedReceipt)?
         .ok_or(R::ForgedReceipt)?;
-    match source.convert_to_unit(target) {
-        Ok((coefficient, power)) => {
+    match source.convert_to_unit(&target) {
+        Ok(amount) => {
             require(tag == "converted")?;
             require(
-                number(payload, "coefficient")? == coefficient
-                    && exponent(payload, "exponent")? == power,
+                bytes(payload, "amount", SCALAR_INFO_ID)?
+                    == amount
+                        .canonical_bytes()
+                        .map_err(|_| R::ForgedReceipt)?
+                        .as_slice(),
             )?;
             Ok((source, true))
         }

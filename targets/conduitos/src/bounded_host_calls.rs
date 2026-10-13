@@ -12,6 +12,8 @@ pub enum BoundedHostCallError {
     InvalidConfiguration,
     Overflow,
     Unsupported,
+    Numerical(conduit_core::NumericRefusal),
+    IndeterminateComparison,
     Json(conduit_web::JsonRefusal),
 }
 
@@ -152,9 +154,18 @@ impl BoundedHostCalls {
             conduit_semantic_catalog::MathScalarRefusal::InvalidConfiguration => {
                 BoundedHostCallError::InvalidConfiguration
             }
-            conduit_semantic_catalog::MathScalarRefusal::Overflow => BoundedHostCallError::Overflow,
+            conduit_semantic_catalog::MathScalarRefusal::Arithmetic(error) => {
+                BoundedHostCallError::Numerical(error)
+            }
+            conduit_semantic_catalog::MathScalarRefusal::UnresolvedComparison => {
+                BoundedHostCallError::IndeterminateComparison
+            }
         })?;
-        BoundedOutput::from_slice(&output.encode())
+        BoundedOutput::from_slice(
+            &output
+                .canonical_bytes()
+                .map_err(|_| BoundedHostCallError::Overflow)?,
+        )
     }
 }
 
@@ -174,20 +185,26 @@ mod tests {
         assert_eq!(
             Scalar::decode(
                 host.math_scale(
-                    &Scalar::from_raw_microunits(500_000).encode(),
-                    Scalar::from_raw_microunits(2_000_000)
+                    &Scalar::from_decimal_parts(500_000 as i128, -6)
+                        .unwrap()
+                        .canonical_bytes()
+                        .unwrap(),
+                    Scalar::from_decimal_parts(2_000_000 as i128, -6).unwrap()
                 )
                 .unwrap()
                 .as_bytes()
             )
             .unwrap(),
-            Scalar::from_raw_microunits(1_000_000)
+            Scalar::from_decimal_parts(1_000_000 as i128, -6).unwrap()
         );
         assert_eq!(
             Scalar::decode(
                 host.math_deadband(
-                    &Scalar::from_raw_microunits(49_999).encode(),
-                    Scalar::from_raw_microunits(50_000)
+                    &Scalar::from_decimal_parts(49_999 as i128, -6)
+                        .unwrap()
+                        .canonical_bytes()
+                        .unwrap(),
+                    Scalar::from_decimal_parts(50_000 as i128, -6).unwrap()
                 )
                 .unwrap()
                 .as_bytes()

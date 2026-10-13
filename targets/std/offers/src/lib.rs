@@ -135,7 +135,9 @@ pub use microphone::*;
 mod vision;
 pub use vision::*;
 
-use conduit_core::{CapabilityOffer, HostCallContractId, HostCallRequirement, SCALAR_ENCODED_LEN};
+use conduit_core::{
+    CapabilityOffer, HostCallContractId, HostCallRequirement, MAX_NUMERIC_ENCODED_BYTES,
+};
 
 pub const LOGIC_COMPARE_SCALAR_IMPLEMENTATION: &str = "std/kernel-logic-compare-scalar@1";
 pub const LOGIC_NOT_IMPLEMENTATION: &str = "std/kernel-logic-not@1";
@@ -233,8 +235,8 @@ fn functional_offer(
             contract_id: HostCallContractId::from(operation),
             target_kind: Some(target),
             maximum_in_flight: 1,
-            maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
-            maximum_output_bytes: SCALAR_ENCODED_LEN as u32,
+            maximum_input_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
+            maximum_output_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
         })
         .into_iter()
         .collect();
@@ -604,3 +606,6 @@ mod tests {
         );
     }
 }
+
+mod numeric_evaluation;
+pub use numeric_evaluation::*;

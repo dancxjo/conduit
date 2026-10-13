@@ -15,6 +15,20 @@ use conduit_core::{
     TIMER_RESOURCE_CLASS,
 };
 
+#[cfg(feature = "kernel-step")]
+mod numeric_evaluation_back;
+#[cfg(feature = "kernel-step")]
+pub use numeric_evaluation_back::NumericEvaluationBack;
+#[cfg(all(feature = "kernel-step", feature = "plot-catalog"))]
+pub use numeric_evaluation_back::prepare_numeric_evaluation;
+mod mathematical;
+pub use mathematical::*;
+mod numeric_tensor;
+pub use numeric_tensor::*;
+mod numeric_evaluation_offer;
+pub use numeric_evaluation_offer::{numeric_evaluation_offer, NUMERIC_EVALUATION_ALGORITHMS};
+#[cfg(feature = "plot-catalog")]
+pub use numeric_evaluation_offer::numeric_evaluation_kind;
 mod functional_front;
 mod normalized_quantity;
 mod quantity_info;

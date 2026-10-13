@@ -5,7 +5,7 @@ use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, ConfigurationValue,
     ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, Kind,
-    PlannedGear, Scalar, SCALAR_ENCODED_LEN,
+    PlannedGear, Scalar, MAX_NUMERIC_ENCODED_BYTES,
 };
 use conduit_kernel::HostedValueStore;
 
@@ -65,8 +65,8 @@ fn offer(contract: Kind, implementation: &str) -> conduit_core::CapabilityOffer 
                 contract_id: HostCallContractId::from(implementation),
                 target_kind: Some(kind_id(implementation)),
                 maximum_in_flight: 1,
-                maximum_input_bytes: SCALAR_ENCODED_LEN as u32,
-                maximum_output_bytes: SCALAR_ENCODED_LEN as u32,
+                maximum_input_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
+                maximum_output_bytes: MAX_NUMERIC_ENCODED_BYTES as u32,
             }],
             resource_requirements: Vec::new(),
             authority_requirements: Vec::new(),
@@ -80,7 +80,7 @@ fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<Br
         .ok_or_else(|| "unknown math installation".to_string())?;
     validate_placement(placement, &offer)?;
     transform(placement, Scalar::ZERO)?;
-    Ok(BrowserBack::unary(SCALAR_ENCODED_LEN as u32, 1))
+    Ok(BrowserBack::unary(MAX_NUMERIC_ENCODED_BYTES as u32, 1))
 }
 
 fn installed_offer(implementation: &str) -> Option<conduit_core::CapabilityOffer> {
@@ -95,7 +95,11 @@ fn installed_offer(implementation: &str) -> Option<conduit_core::CapabilityOffer
 fn perform(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     let input = Scalar::decode(input).map_err(debug_error)?;
     Ok(BrowserHostResult {
-        output: Some(transform(placement, input)?.encode().to_vec()),
+        output: Some(
+            transform(placement, input)?
+                .canonical_bytes()
+                .map_err(debug_error)?,
+        ),
         manifestation: None,
     })
 }
@@ -125,9 +129,7 @@ fn configuration(placement: &PlannedGear, key: &str) -> Result<Scalar, String> {
         .configuration
         .iter()
         .find_map(|entry| match (&*entry.key, &entry.value) {
-            (found, ConfigurationValue::I64(value)) if found == key => {
-                Some(Scalar::from_raw_microunits(*value))
-            }
+            (found, ConfigurationValue::Scalar(value)) if found == key => Some(value.clone()),
             _ => None,
         })
         .ok_or_else(|| format!("math configuration '{key}' is missing"))

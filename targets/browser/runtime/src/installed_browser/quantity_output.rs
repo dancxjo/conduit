@@ -20,6 +20,7 @@ const WRAP_IMPLEMENTATION: &str = "browser/kernel-wrap-quantity@1";
 pub(crate) const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-quantity-leaf@1";
 pub(crate) const DIRECT_PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-quantity@1";
 static PREFIX: OnceLock<Vec<u8>> = OnceLock::new();
+static LEAF_KIND: OnceLock<conduit_core::KindId> = OnceLock::new();
 
 pub(super) static WRAP: BrowserInstallation = BrowserInstallation {
     implementation_id: WRAP_IMPLEMENTATION,
@@ -56,7 +57,7 @@ fn wrap_offer() -> CapabilityOffer {
             contract_id: WRAP_OPERATION.into(),
             target_kind,
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_core::QUANTITY_ENCODED_LEN as u32,
+            maximum_input_bytes: conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
             maximum_output_bytes: QUANTITY_INFO_MAXIMUM_BYTES as u32,
         }],
         Vec::new(),
@@ -109,21 +110,26 @@ fn prepare_wrap(
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &wrap_offer())?;
     PREFIX.get_or_init(quantity_info_prefix);
+    LEAF_KIND.get_or_init(conduit_semantic_catalog::quantity_info_leaf_kind);
     Ok(BrowserBack::unary(
-        conduit_core::QUANTITY_ENCODED_LEN as u32,
+        conduit_core::MAX_QUANTITY_ENCODED_BYTES as u32,
         1,
     ))
 }
 
 pub(crate) fn wrap(input: &[u8]) -> Result<([u8; QUANTITY_INFO_MAXIMUM_BYTES], usize), String> {
-    Quantity::decode(input).map_err(|error| format!("wrap malformed Quantity: {error:?}"))?;
+    conduit_core::validate_primitive_info(LEAF_KIND.get().ok_or("Quantity wrapper was not prepared")?.as_str(), input).map_err(|error| format!("wrap malformed Quantity: {error:?}"))?;
     let prefix = PREFIX
         .get()
         .ok_or("Quantity wrapper was not prepared before Play")?;
     let mut output = [0; QUANTITY_INFO_MAXIMUM_BYTES];
-    let length = prefix.len() + input.len();
+    let length = prefix.len() + 4 + input.len();
+    if length > output.len() {
+        return Err("Quantity envelope exceeds selected bound".into());
+    }
     output[..prefix.len()].copy_from_slice(prefix);
-    output[prefix.len()..length].copy_from_slice(input);
+    output[prefix.len()..prefix.len() + 4].copy_from_slice(&(input.len() as u32).to_le_bytes());
+    output[prefix.len() + 4..length].copy_from_slice(input);
     Ok((output, length))
 }
 
