@@ -399,17 +399,18 @@ test("a retained syntax refusal exposes original source without rewriting contin
     await page.goto(new URL("handbook/", site.url).href);
     const original = await ready(page);
     await page.getByRole("button", { name: "Lull", exact: true }).click();
-    const retainedSource = await page.evaluate(async () => {
+    const retained = await page.evaluate(async () => {
       const store = globalThis.__conduitBrowserApplication.storage;
       const record = await store.readJson("body-continuity");
       const inventory = JSON.parse(record.source);
       const lesson = inventory.plots.find(plot => plot.entry === "convert-pitch-demo");
       if (!lesson) throw new Error("missing retained pitch lesson");
+      const packagedSource = lesson.source;
       lesson.source = lesson.source.replace("source = 1kHz", 'source = "1kHz"');
       if (!lesson.source.includes('source = "1kHz"')) throw new Error("failed to seed syntax refusal");
       const changed = { ...record, source: JSON.stringify(inventory) };
       await store.writeJson("body-continuity", changed);
-      return changed.source;
+      return { record: changed, packagedSource, refusedSource: lesson.source };
     });
     await page.locator(".handbook-application").getByText("Your body and browser", { exact: true }).click();
     await page.getByRole("button", { name: "Release this tab", exact: true }).click();
@@ -417,16 +418,30 @@ test("a retained syntax refusal exposes original source without rewriting contin
     await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-051");
     const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
     await expect(editor).toBeEnabled();
-    await expect(editor).toHaveValue(/source = "1kHz"/);
+    await expect(editor).toHaveValue(retained.refusedSource);
+    const chooser = page.getByLabel("Choose an example", { exact: true });
+    await expect(chooser).toBeEnabled();
+    const retainedChoice = await chooser.inputValue();
+    const retainedLabel = await chooser.locator("option:checked").textContent();
+    expect(retainedLabel).toContain("(retained)");
+    await chooser.selectOption({ label: retainedLabel.replace("(retained)", "(packaged)") });
+    await expect(editor).toHaveValue(retained.packagedSource);
+    await chooser.selectOption(retainedChoice);
+    await expect(editor).toHaveValue(retained.refusedSource);
+    const continuity = () => page.evaluate(async () =>
+      globalThis.__conduitBrowserApplication.storage.readJson("body-continuity"));
+    expect(await continuity()).toEqual(retained.record);
+    await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+    await expect(page.locator("[data-check]")).toContainText("CND-FRM-051");
+    expect(await continuity()).toEqual(retained.record);
+    await expect(editor).toBeEnabled();
     const repaired = (await editor.inputValue()).replace('source = "1kHz"', "source = 1kHz");
     await editor.fill(repaired);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
     await expect(page.locator("[data-check]")).toContainText("Source checks. The retained Body has not been changed");
     await expect(page.getByRole("button", { name: "Download original retained Body record" })).toBeEnabled();
-    const after = await page.evaluate(async () =>
-      (await globalThis.__conduitBrowserApplication.storage.readJson("body-continuity")).source);
-    expect(after).toBe(retainedSource);
-    expect(after).toContain('source = \\"1kHz\\"');
+    expect(await continuity()).toEqual(retained.record);
+    expect(await page.evaluate(() => Boolean(globalThis.__conduitApplication))).toBe(false);
     expect(original.bodyId).toBeTruthy();
     session.assertClean();
   } finally {
