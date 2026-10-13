@@ -108,3 +108,19 @@ Host/Boot, offer and realization checks must all succeed before any placement
 override is applied. Existing single-pair requests retain their original path.
 Seven projection/placement tests and three Root request tests pass. These tests
 prove mapping/refusal semantics, not a composed Source/native two-read execution.
+
+Recovery Source diagnostic update
+----------------------------------
+
+The accept expression's actual scalar AST was depth16; its record wrapper was
+depth17, exceeding the unchanged decoder bound16. Exact program substitution
+confirmed MalformedEncoding; CND-FRM-046 had masked that decoding failure as
+construction admission. Balancing conjunctions and weighting the OR tree retains
+all conditions and branch order. The actual accept program and canonical
+decoder roundtrip now pass without validator or bound changes.
+
+The latest complete Source run passes8 of13 tests. Four semantic tests currently
+refuse fixture construction with WrongRecordFields; complete graph expansion
+still refuses a separate expression. The graph has not earned composition or
+emulator acceptance. The external recovery device modes11b5549ab pass two
+bounded device-state tests; those tests are not native or guest proof.
