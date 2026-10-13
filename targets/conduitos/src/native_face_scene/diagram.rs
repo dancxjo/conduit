@@ -231,7 +231,7 @@ pub(super) fn append(
                     },
                     screen,
                     paint,
-                    &preview(&port.name, 30),
+                    &preview(&super::ports::label(face, port), 30),
                 )
                 .and_then(|command| command.with_text_role(GraphicsTextRole::Label)),
             )?;
