@@ -22,12 +22,12 @@ pub const SERIAL_MAXIMUM_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
 pub const SIGN_ITEM_CAPACITY: u16 = 64;
 pub const INTERRUPT_FACT_CAPACITY: u16 = 4;
 pub const TIME_TICK_IMPLEMENTATION: &str = "conduitos/kernel-time-tick@1";
-pub const TICK_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick@1";
+pub const TICK_FACE_IMPLEMENTATION: &str = "conduitos/kernel-serial-tick@1";
 pub const TEXT_LITERAL_IMPLEMENTATION: &str = "conduitos/kernel-text-literal@1";
 pub const TEXT_UPPER_IMPLEMENTATION: &str = "conduitos/kernel-text-upper@1";
-pub const TEXT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
+pub const TEXT_FACE_IMPLEMENTATION: &str = "conduitos/kernel-serial-text@1";
 pub const TEXT_MORSE_IMPLEMENTATION: &str = "conduitos/kernel-text-morse@1";
-pub const INDICATOR_PRESENTATION_IMPLEMENTATION: &str = "conduitos/kernel-serial-indicator@1";
+pub const INDICATOR_FACE_IMPLEMENTATION: &str = "conduitos/kernel-serial-indicator@1";
 pub const TEXT_CHARACTERS_IMPLEMENTATION: &str = "conduitos/kernel-text-characters@1";
 pub const MORSE_LOOKUP_IMPLEMENTATION: &str = "conduitos/kernel-morse-lookup@1";
 pub const MORSE_INTERSPERSE_IMPLEMENTATION: &str = "conduitos/kernel-morse-intersperse@1";
@@ -36,7 +36,7 @@ pub const MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION: &str =
     "conduitos/kernel-morse-symbols-to-pattern@1";
 pub const TIME_EVERY_IMPLEMENTATION: &str = "conduitos/kernel-time-every@1";
 pub const STATE_COUNT_IMPLEMENTATION: &str = "conduitos/kernel-state-count@1";
-pub const COUNT_PRESENTATION_IMPLEMENTATION: &str = "conduitos/presentation-count@1";
+pub const COUNT_FACE_IMPLEMENTATION: &str = "conduitos/face-count@1";
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct CpuFeatures {
@@ -217,7 +217,7 @@ impl<'a> HostOffer<'a> {
                     base: BaseKind::Timer,
                 },
                 ResourceOffer {
-                    class: "conduit.resource/presentation-slot@1",
+                    class: "conduit.resource/face-slot@1",
                     capacity: u32::from(SERIAL_OPERATION_CAPACITY),
                     base: BaseKind::Serial,
                 },
@@ -248,9 +248,9 @@ impl<'a> HostOffer<'a> {
                     maximum_output_bytes: 16,
                 },
                 CapabilityOffer {
-                    kind: "presentation/tick",
-                    contract_revision: "conduit.std/presentation-tick@2",
-                    implementation: TICK_PRESENTATION_IMPLEMENTATION,
+                    kind: "face/tick",
+                    contract_revision: "conduit.std/face-tick@2",
+                    implementation: TICK_FACE_IMPLEMENTATION,
                     artifact_build: build_id,
                     host_call: Some("conduit.host/present@1"),
                     required_base: BaseKind::Serial,
@@ -268,7 +268,7 @@ impl<'a> HostOffer<'a> {
                 },
                 crate::text_offer::literal(build_id),
                 crate::text_offer::upper(build_id),
-                crate::text_offer::presentation(build_id),
+                crate::text_offer::face(build_id),
                 crate::text_offer::morse(build_id),
                 crate::text_offer::indicator(build_id),
                 crate::text_offer::characters(build_id),
@@ -278,7 +278,7 @@ impl<'a> HostOffer<'a> {
                 crate::text_offer::morse_symbols_to_pattern(build_id),
                 crate::tour_timer_offer::every(build_id),
                 crate::tour_timer_offer::count(build_id),
-                crate::tour_timer_offer::presentation(build_id),
+                crate::tour_timer_offer::face(build_id),
             ],
             cpu_features,
             runtime_arena_bytes,

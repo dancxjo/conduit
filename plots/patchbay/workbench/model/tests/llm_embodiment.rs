@@ -6,8 +6,8 @@ use conduit_body::Body;
 use conduit_core::{
     kind_id, ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SignId, SourceDocumentId,
 };
-use conduit_patchbay_workbench::{project_llm_embodiment, LlmEmbodimentPresentationError};
-use conduit_presentation::PresentationRole;
+use conduit_face::FaceRole;
+use conduit_patchbay_workbench::{project_llm_embodiment, LlmEmbodimentFaceError};
 
 fn receipt(body: &Body) -> EmbodiedModelReceipt {
     let stages = [
@@ -77,29 +77,29 @@ fn patchbay_distinguishes_three_plots_ports_decisions_and_effect_sign() {
         SignId::from("sign/born"),
     )
     .unwrap();
-    let presentations = project_llm_embodiment(40, &body, &receipt(&body)).unwrap();
+    let faces = project_llm_embodiment(40, &body, &receipt(&body)).unwrap();
 
-    assert_eq!(presentations.len(), 3);
-    assert!(presentations.iter().all(|item| item
+    assert_eq!(faces.len(), 3);
+    assert!(faces.iter().all(|item| item
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Plot)));
-    assert!(presentations[0]
+        .any(|subject| subject.role == FaceRole::Plot)));
+    assert!(faces[0]
         .subjects
         .iter()
-        .all(|subject| subject.role != PresentationRole::Sign));
-    assert!(presentations[2]
+        .all(|subject| subject.role != FaceRole::Sign));
+    assert!(faces[2]
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Sign));
-    assert!(presentations[2]
+        .any(|subject| subject.role == FaceRole::Sign));
+    assert!(faces[2]
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Cord));
+        .any(|subject| subject.role == FaceRole::Cord));
 }
 
 #[test]
-fn presentation_refuses_a_receipt_for_another_body() {
+fn face_refuses_a_receipt_for_another_body() {
     let body = Body::born(
         SourceDocumentId::from("source/embodied"),
         CheckedPlotId::from("checked/body"),
@@ -116,6 +116,6 @@ fn presentation_refuses_a_receipt_for_another_body() {
     .unwrap();
     assert_eq!(
         project_llm_embodiment(1, &other, &receipt(&body)),
-        Err(LlmEmbodimentPresentationError::InvalidReceipt)
+        Err(LlmEmbodimentFaceError::InvalidReceipt)
     );
 }

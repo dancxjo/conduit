@@ -4,7 +4,7 @@ use super::*;
 pub(super) fn validate_observatory(
     boot: &GuestBootSign,
     kernel: &GuestKernelSign,
-    presentation: &GuestPresentationSign,
+    face: &GuestFaceSign,
     domain_cost: &serde_json::Value,
     snapshot: &conduit_observatory::ObservatorySnapshot,
 ) -> Result<(), ConduitosError> {
@@ -50,10 +50,10 @@ pub(super) fn validate_observatory(
                             && placement.host_calls.len() == 1
                             && placement.host_calls[0].contract_id.as_str() == "conduit.host/wait@1"
                     }
-                    "presentation/tick" => {
+                    "face/tick" => {
                         placement.resources.len() == 2
                             && placement.resources.iter().any(|resource| {
-                                resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
+                                resource.class_id.as_str() == "conduit.resource/face-slot@1"
                                     && resource.units == 1
                             })
                             && placement.host_calls.len() == 1
@@ -72,10 +72,10 @@ pub(super) fn validate_observatory(
                             && placement.host_calls[0].maximum_input_bytes == 256
                             && placement.host_calls[0].maximum_output_bytes == 256
                     }
-                    "presentation/text" => {
+                    "face/text" => {
                         placement.resources.len() == 2
                             && placement.resources.iter().any(|resource| {
-                                resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
+                                resource.class_id.as_str() == "conduit.resource/face-slot@1"
                                     && resource.units == 1
                             })
                             && placement.host_calls.len() == 1
@@ -107,8 +107,8 @@ pub(super) fn validate_observatory(
         "conduit.std/text-upper@1",
         "conduitos/kernel-text-upper@1",
     ) && exact_placement(
-        "presentation/text",
-        "conduit.std/presentation-text@1",
+        "face/text",
+        "conduit.std/face-text@1",
         "conduitos/kernel-serial-text@1",
     );
     let exact_tick_placements = exact_placement(
@@ -116,26 +116,21 @@ pub(super) fn validate_observatory(
         conduit_time::TICK_CONTRACT_REVISION,
         "conduitos/kernel-time-tick@1",
     ) && exact_placement(
-        "presentation/tick",
-        conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION,
+        "face/tick",
+        conduit_semantic_catalog::TICK_FACE_CONTRACT_REVISION,
         "conduitos/kernel-serial-tick@1",
     );
     let advertised_bases = host
         .map(|host| host.advertisement.bases.as_slice())
         .unwrap_or_default();
     let bases_match = snapshot.bases.len()
-        == expected_base_ids(
-            &kernel.base_ids,
-            advertised_bases,
-            &presentation.display_base_id,
-        )
-        .len()
+        == expected_base_ids(&kernel.base_ids, advertised_bases, &face.display_base_id).len()
         && snapshot.bases.iter().all(|base| {
             base.host_id.as_str() == boot.host_id
                 && base.boot_id.as_str() == boot.boot_id
                 && base.state == OperationalState::Available
                 && (kernel.base_ids.iter().any(|id| id == base.base_id.as_str())
-                    || base.base_id.as_str() == presentation.display_base_id
+                    || base.base_id.as_str() == face.display_base_id
                     || advertised_bases
                         .iter()
                         .any(|advertised| advertised.base_id == base.base_id))
@@ -155,7 +150,7 @@ pub(super) fn validate_observatory(
         && exact_base("conduitos.base/execution-lane@1", 2)
         && exact_base(
             "conduitos.base/framebuffer@1",
-            u64::from(presentation.display_pitch) * u64::from(presentation.display_height),
+            u64::from(face.display_pitch) * u64::from(face.display_height),
         );
     let current_signs = snapshot
         .observations
@@ -233,7 +228,7 @@ pub(super) fn validate_observatory(
                         && capability.limits.max_queue_bytes == 256
                 })
                 || !host.advertisement.capabilities.iter().any(|capability| {
-                    capability.kind_id.as_str() == "presentation/text"
+                    capability.kind_id.as_str() == "face/text"
                         && capability.implementation.implementation_id.as_str()
                             == "conduitos/kernel-serial-text@1"
                         && capability.limits.max_queue_items == 4
@@ -320,11 +315,11 @@ pub(super) fn validate_observatory(
                 || provenance.initial_plan_artifact_id.is_some()
                 || provenance.recovery_plan_artifact_id.is_some()
                 || provenance.framebuffers.len() != 1
-                || provenance.framebuffers[0].base_id.as_str() != presentation.display_base_id
-                || provenance.framebuffers[0].width != presentation.display_width
-                || provenance.framebuffers[0].height != presentation.display_height
-                || provenance.framebuffers[0].pitch_bytes != presentation.display_pitch
-                || provenance.framebuffers[0].bits_per_pixel != presentation.display_bits_per_pixel
+                || provenance.framebuffers[0].base_id.as_str() != face.display_base_id
+                || provenance.framebuffers[0].width != face.display_width
+                || provenance.framebuffers[0].height != face.display_height
+                || provenance.framebuffers[0].pitch_bytes != face.display_pitch
+                || provenance.framebuffers[0].bits_per_pixel != face.display_bits_per_pixel
                 || provenance.proof_class != BootProofClass::FreestandingEmulator
         })
     {

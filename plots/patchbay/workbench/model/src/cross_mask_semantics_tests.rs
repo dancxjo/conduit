@@ -1,8 +1,6 @@
 //! #5355: source-derived graph semantics through nonvisual production readers.
 //! The declared Text Host adapter is a fixture; this is not live Mask evidence.
-use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, PresentationRole,
-};
+use conduit_face::{plan_face_utterances, render_linear_face, FaceRole, FaceUtteranceProvenance};
 
 #[test]
 fn source_derived_patchbay_keeps_gear_port_cord_meaning_in_nonvisual_readers() {
@@ -13,8 +11,8 @@ fn source_derived_patchbay_keeps_gear_port_cord_meaning_in_nonvisual_readers() {
     .unwrap()
     .0;
     face.validate().unwrap();
-    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    let specimen: conduit_face::Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     assert_eq!(
@@ -25,17 +23,13 @@ fn source_derived_patchbay_keeps_gear_port_cord_meaning_in_nonvisual_readers() {
     assert!(face.basis.checked_plot_id.is_some());
     assert!(face.basis.expanded_plot_id.is_some());
     assert!(face.basis.plan_id.is_some());
-    let linear = render_linear_presentation(&face).unwrap();
+    let linear = render_linear_face(&face).unwrap();
     let aural = plan_face_utterances(&face).unwrap();
-    assert_eq!(linear.presentation_id, face.identity);
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(linear.revision, face.revision);
     assert_eq!(aural.source_face_identity, face.identity.as_str());
     assert_eq!(aural.source_face_revision, face.revision);
-    for role in [
-        PresentationRole::Gear,
-        PresentationRole::Port,
-        PresentationRole::Cord,
-    ] {
+    for role in [FaceRole::Gear, FaceRole::Port, FaceRole::Cord] {
         let subjects = face
             .subjects
             .iter()

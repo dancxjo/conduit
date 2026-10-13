@@ -68,7 +68,7 @@ pub(super) fn admit_combined_resources(
     let expected_bindings = secret_requests.len() + unrelated_requests.len();
     assert!(
         expected_bindings >= 5,
-        "clock, deadline, storage, and presentation demand must remain explicit"
+        "clock, deadline, storage, and face demand must remain explicit"
     );
 
     let mut ledger = BodyResourceReservationLedger::new(&envelope);
@@ -82,7 +82,7 @@ pub(super) fn admit_combined_resources(
         conduit_core::TIMER_RESOURCE_CLASS,
         conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS,
         conduit_std_offers::TEMPLATE_STORAGE_RESOURCE_CLASS,
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        conduit_core::FACE_RESOURCE_CLASS,
     ] {
         assert!(ledger.reservations()[0]
             .bindings()

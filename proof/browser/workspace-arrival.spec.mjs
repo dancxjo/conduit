@@ -450,8 +450,8 @@ test('Workspace Birth controls remain bounded and usable at a narrow width', asy
   const [plots, name, sourceDetails, editor] = await Promise.all([
     birth.locator('[data-application-slot="birth-fields"] [data-application-key="initial-plots"]').boundingBox(),
     birth.getByLabel('Friendly Body name', { exact: true }).boundingBox(),
-    birth.locator('.birth-presentation .birth-details').boundingBox(),
-    birth.locator('.birth-presentation').boundingBox(),
+    birth.locator('.birth-face .birth-details').boundingBox(),
+    birth.locator('.birth-face').boundingBox(),
   ]);
   for (const box of [plots, name, sourceDetails, editor]) expect(box).not.toBeNull();
   expect(name.y + name.height).toBeLessThanOrEqual(plots.y);

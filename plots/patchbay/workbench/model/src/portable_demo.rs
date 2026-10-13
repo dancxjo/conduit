@@ -6,31 +6,30 @@ use conduit_body::{
     MembershipProofId, PartId,
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
-use conduit_presentation::{Presentation, TemporalInstant, TemporalReference, TemporalScale};
+use conduit_face::{Face, TemporalInstant, TemporalReference, TemporalScale};
 use patchbay_application::PartsView;
 
 use crate::{
-    DistributedRouteDemo, PatchbayHostAdapter, PatchbayHostProfile, PatchbayModel,
-    PatchbayPresentation, PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument,
-    PlotEditor,
+    DistributedRouteDemo, PatchbayFace, PatchbayHostAdapter, PatchbayHostProfile, PatchbayModel,
+    PatchbayRequestId, PatchbayTopology, PlanDocument, PlayDocument, PlotEditor,
 };
 
 pub fn portable_demonstration_with_adapter(
     adapter: &dyn PatchbayHostAdapter,
-) -> Result<Presentation, String> {
-    portable_demonstration_with_parts_and_adapter(adapter).map(|(presentation, _)| presentation)
+) -> Result<Face, String> {
+    portable_demonstration_with_parts_and_adapter(adapter).map(|(face, _)| face)
 }
 
 pub fn portable_demonstration_with_parts_and_adapter(
     adapter: &dyn PatchbayHostAdapter,
-) -> Result<(Presentation, PartsView), String> {
+) -> Result<(Face, PartsView), String> {
     portable_demonstration_with_profile(adapter, PatchbayHostProfile::Reference)
 }
 
 pub(crate) fn portable_demonstration_with_profile(
     adapter: &dyn PatchbayHostAdapter,
     profile: PatchbayHostProfile,
-) -> Result<(Presentation, PartsView), String> {
+) -> Result<(Face, PartsView), String> {
     let editor = PlotEditor::from_source(
         "plots/hello/main.conduit".into(),
         include_str!("../../../../../plots/hello/main.conduit").into(),
@@ -68,13 +67,13 @@ pub(crate) fn portable_demonstration_with_profile(
         vec![
             DistributedRouteDemo::build_for_source(advertisement.clone())
                 .map_err(|error| format!("{error:?}"))?
-                .presentation()
+                .face()
                 .clone(),
         ]
     } else {
         Vec::new()
     };
-    let projection = PatchbayPresentation::new(
+    let projection = PatchbayFace::new(
         1,
         editor.view(),
         Some(plan_document),
@@ -183,7 +182,7 @@ pub(crate) fn portable_demonstration_with_profile(
         Some(&presence),
     )
     .map_err(|error| format!("{error:?}"))?;
-    let presentation = projection
+    let face = projection
         .to_portable_front_door_with_temporal_reference(
             &body,
             &wake,
@@ -200,16 +199,16 @@ pub(crate) fn portable_demonstration_with_profile(
             },
         )
         .map_err(|error| error.to_string())?;
-    Ok((presentation, parts))
+    Ok((face, parts))
 }
 
 #[cfg(test)]
-pub fn portable_demonstration() -> Result<Presentation, String> {
+pub fn portable_demonstration() -> Result<Face, String> {
     portable_demonstration_with_adapter(crate::host_adapter::test_host_adapter())
 }
 
 #[cfg(test)]
-pub fn portable_demonstration_with_parts() -> Result<(Presentation, PartsView), String> {
+pub fn portable_demonstration_with_parts() -> Result<(Face, PartsView), String> {
     portable_demonstration_with_parts_and_adapter(crate::host_adapter::test_host_adapter())
 }
 
@@ -265,16 +264,15 @@ mod tests {
         assert_eq!(first.basis.active_play_id, second.basis.active_play_id);
         assert_eq!(first.subjects, second.subjects);
         assert!(first.subjects.iter().any(|subject| {
-            subject.role == conduit_presentation::PresentationRole::Body
+            subject.role == conduit_face::FaceRole::Body
                 && subject.identity
                     == format!("body/{}", first.basis.body_id.as_ref().unwrap().as_str())
         }));
         assert!(first.subjects.iter().any(|subject| {
-            subject.role == conduit_presentation::PresentationRole::Part
-                && subject.identity.starts_with("part/")
+            subject.role == conduit_face::FaceRole::Part && subject.identity.starts_with("part/")
         }));
         assert!(first.subjects.iter().any(|subject| {
-            subject.role == conduit_presentation::PresentationRole::Host
+            subject.role == conduit_face::FaceRole::Host
                 && subject.identity.starts_with("host/")
                 && subject.identity.contains("/boot/")
         }));
@@ -282,11 +280,11 @@ mod tests {
 
     #[test]
     fn ordinary_startup_has_no_synthetic_diagnostics() {
-        let presentation = portable_demonstration().unwrap();
+        let face = portable_demonstration().unwrap();
 
-        assert!(presentation
+        assert!(face
             .subjects
             .iter()
-            .all(|subject| subject.role != conduit_presentation::PresentationRole::Diagnostic));
+            .all(|subject| subject.role != conduit_face::FaceRole::Diagnostic));
     }
 }

@@ -69,7 +69,7 @@ export async function enhanceSvgMask(image) {
   const documentValue = new DOMParser().parseFromString(await response.text(), "image/svg+xml");
   const svg = documentValue.documentElement;
   if (svg.localName !== "svg" || svg.querySelector("parsererror, script, foreignObject")) {
-    throw new TypeError("diagram SVG is not admitted for inline presentation");
+    throw new TypeError("diagram SVG is not admitted for inline face");
   }
 
   const model = new SvgViewportModel(svgViewBox(svg));

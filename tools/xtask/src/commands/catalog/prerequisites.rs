@@ -154,7 +154,7 @@ fn resource_base(resource: &str) -> Option<&'static str> {
     match resource {
         conduit_core::TIMER_RESOURCE_CLASS
         | conduit_core::MONOTONIC_MILLISECOND_TIMER_RESOURCE_CLASS => Some("timer"),
-        conduit_core::PRESENTATION_RESOURCE_CLASS => Some("serial"),
+        conduit_core::FACE_RESOURCE_CLASS => Some("serial"),
         conduit_semantic_catalog::PROTECTED_FILE_RESOURCE_CLASS => Some("storage"),
         _ => None,
     }

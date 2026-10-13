@@ -43,7 +43,7 @@ fn main() {
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_PRESENTATION | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_PRESENTATION | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, presentation_surface_slots: 0, presentation_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:conduitos-orange-pi-5-rk3588s-v1\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/aarch64/orange-pi-5-rk3588s\", implementations: IMPL_TIME_TICK | IMPL_TICK_FACE | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_FACE | IMPL_LINEAR_PRESENTER, facilities: 0, resources: 0, bases: BASE_SERIAL_TEXT, drivers: DRIVER_DW_APB_UART2, presenters: PRESENTER_LINEAR_SERIAL, proof_instrumentation: 0, face_surface_slots: 0, face_surface_bytes: 0, runtime_arena_ceiling: 8388608, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
             .expect("write Orange Pi 5 make record");
@@ -62,7 +62,7 @@ fn main() {
             fs::write(
                 output,
                 format!(
-                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: (ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT & !IMPL_USB_TRANSPORT) | {usb_transport}, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_PRESENTATION_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: 4, presentation_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
+                    "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: MAKE_SCHEMA, profile_id: \"profile:proof-appliance\", build_id: {build_id:?}, image_binding: {image_binding:?}, target: \"conduitos/x86_64/pc\", implementations: (ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT & !IMPL_USB_TRANSPORT) | {usb_transport}, facilities: FACILITY_NATIVE_COMPOSITOR, resources: RESOURCE_FACE_SURFACE, bases: BASE_DISPLAY_SCANOUT, drivers: DRIVER_LINEAR_FRAMEBUFFER, presenters: PRESENTER_NATIVE_GRAPHICAL, proof_instrumentation: {proof_instrumentation}, face_surface_slots: 4, face_surface_bytes: 8388608, runtime_arena_ceiling: 16777216, operation_slot_ceiling: 64, timer_slot_ceiling: 32, evidence_item_ceiling: 1024 }};\n"
                 ),
             )
             .expect("write fallback make record");

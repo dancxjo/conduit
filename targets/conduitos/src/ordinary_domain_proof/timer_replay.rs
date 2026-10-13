@@ -68,7 +68,7 @@ impl SerialBase for NoAccess {
     fn present(&mut self, _: &[u8]) -> Result<(), BaseError> {
         touched()
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         touched()
     }
     fn provider_generation(&self) -> Option<u64> {

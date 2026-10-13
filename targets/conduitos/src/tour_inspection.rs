@@ -1,10 +1,7 @@
 //! Retained, bounded projection of the successfully executed Tour Plan.
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::Plan;
-use conduit_presentation::{
-    Presentation, PresentationRelationship, PresentationRelationshipKind, PresentationRole,
-    PresentationSubject,
-};
+use conduit_face::{Face, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject};
 use conduit_tour_model::{CANONICAL_PATCHBAY_GEARS, canonical_gear_contract};
 
 use super::{PreparationError, TourProduct};
@@ -69,8 +66,8 @@ impl RunInspection {
 }
 
 impl TourProduct {
-    pub fn inspector_presentation(&self) -> Result<Option<Presentation>, &'static str> {
-        let Some(mut presentation) = self.controller.state().inspector_presentation()? else {
+    pub fn inspector_face(&self) -> Result<Option<Face>, &'static str> {
+        let Some(mut face) = self.controller.state().inspector_face()? else {
             return Ok(None);
         };
         let selected = self
@@ -83,8 +80,8 @@ impl TourProduct {
             .graph
             .as_ref()
             .map_err(|_| "inspection-graph-refused")?;
-        presentation.basis.source_document_id = Some(graph.source_document_id.clone());
-        presentation.basis.checked_plot_id = Some(graph.checked_plot_id.clone());
+        face.basis.source_document_id = Some(graph.source_document_id.clone());
+        face.basis.checked_plot_id = Some(graph.checked_plot_id.clone());
         let gear = graph
             .gears
             .iter()
@@ -99,7 +96,7 @@ impl TourProduct {
                 })
         {
             let state_identity = format!("{selected}/inspection/state");
-            let state = presentation
+            let state = face
                 .text
                 .iter_mut()
                 .find(|item| item.subject == state_identity)
@@ -107,14 +104,14 @@ impl TourProduct {
             state.text = format!("Configured value: {value:?}\nOutput not directly observed");
         }
         let (Some(snapshot), Some(proof)) = (&self.inspection, self.controller.last_run()) else {
-            return validated(presentation);
+            return validated(face);
         };
         let placement = snapshot
             .placements
             .iter()
             .find(|placement| placement.subject == selected)
             .ok_or("inspection-placement-missing")?;
-        for item in &mut presentation.text {
+        for item in &mut face.text {
             if item.subject == format!("{selected}/inspection/implementation") {
                 item.text = placement.implementation.clone();
             } else if item.subject == format!("{selected}/inspection/placement") {
@@ -142,9 +139,9 @@ impl TourProduct {
                     "meet-one-gear/result" => format!(
                         "Last run\nin text: {:?}",
                         observed
-                            .presentation_input
+                            .face_input
                             .text()
-                            .ok_or("inspection-presentation-unobserved")?
+                            .ok_or("inspection-face-unobserved")?
                     ),
                     _ => placement.configured_text.as_ref().map_or_else(
                         || "Literal output not directly observed".into(),
@@ -155,50 +152,46 @@ impl TourProduct {
                 };
             }
         }
-        presentation.basis.source_document_id = Some(proof.source_document_id.clone());
-        presentation.basis.checked_plot_id = Some(proof.checked_plot_id.clone());
+        face.basis.source_document_id = Some(proof.source_document_id.clone());
+        face.basis.checked_plot_id = Some(proof.checked_plot_id.clone());
         // A native Tour run has no Body identity in its receipt. Keep its
         // recorded realization as observed subjects, not an invented embodied basis.
         for (identity, role, label) in [
             (
                 proof.expanded_plot_id.as_str(),
-                PresentationRole::Plot,
+                FaceRole::Plot,
                 "Recorded expanded Plot",
             ),
-            (
-                proof.plan_id.as_str(),
-                PresentationRole::Plan,
-                "Recorded Plan",
-            ),
+            (proof.plan_id.as_str(), FaceRole::Plan, "Recorded Plan"),
             (
                 proof.active_play_id.as_str(),
-                PresentationRole::Play,
+                FaceRole::Play,
                 "Recorded Play",
             ),
         ] {
-            presentation.subjects.push(PresentationSubject {
+            face.subjects.push(FaceSubject {
                 identity: identity.into(),
                 role,
                 name: label.into(),
             });
-            presentation.relationships.push(PresentationRelationship {
+            face.relationships.push(FaceRelationship {
                 source: format!("{selected}/inspection"),
                 target: identity.into(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             });
         }
-        validated(presentation)
+        validated(face)
     }
 }
 
-fn validated(presentation: Presentation) -> Result<Option<Presentation>, &'static str> {
-    Presentation::new(
-        presentation.revision,
-        presentation.basis,
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
+fn validated(face: Face) -> Result<Option<Face>, &'static str> {
+    Face::new(
+        face.revision,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
     )
     .map(Some)
     .map_err(|_| "inspection-evidence-refused")
@@ -213,40 +206,40 @@ mod tests {
         let mut product = TourProduct::canonical(1);
         product
             .controller
-            .request(&conduit_presentation::ApplicationEvent {
+            .request(&conduit_face::ApplicationEvent {
                 revision: 1,
                 action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
-                kind: conduit_presentation::ApplicationEventKind::Activate,
+                kind: conduit_face::ApplicationEventKind::Activate,
                 value: Vec::new(),
             })
             .unwrap();
         product.select_gear(2, "meet-one-gear/words").unwrap();
-        let presentation = product.inspector_presentation().unwrap().unwrap();
+        let face = product.inspector_face().unwrap().unwrap();
         assert!(
-            presentation.text.iter().any(
+            face.text.iter().any(
                 |item| item.text == "Configured value: \"hello\"\nOutput not directly observed"
             )
         );
         assert!(
-            presentation
-                .text
+            face.text
                 .iter()
                 .any(|item| item.text == "No Tour result recorded")
         );
-        assert!(presentation.subjects.iter().all(|subject| !matches!(
-            subject.role,
-            PresentationRole::Plan | PresentationRole::Play
-        )));
+        assert!(
+            face.subjects
+                .iter()
+                .all(|subject| !matches!(subject.role, FaceRole::Plan | FaceRole::Play))
+        );
         let graph = product.graph.as_ref().unwrap();
         assert_eq!(
-            presentation.basis.source_document_id.as_ref(),
+            face.basis.source_document_id.as_ref(),
             Some(&graph.source_document_id)
         );
         assert_eq!(
-            presentation.basis.checked_plot_id.as_ref(),
+            face.basis.checked_plot_id.as_ref(),
             Some(&graph.checked_plot_id)
         );
-        let identity = presentation.identity.clone();
-        assert_eq!(validated(presentation).unwrap().unwrap().identity, identity);
+        let identity = face.identity.clone();
+        assert_eq!(validated(face).unwrap().unwrap().identity, identity);
     }
 }

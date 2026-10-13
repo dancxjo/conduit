@@ -16,9 +16,9 @@ use conduit_signal_conformance::{
 use conduit_wire::{LineDisposition, LineError, LineMachine};
 use std::collections::BTreeMap;
 
-use crate::route_presentation::{
-    DistributedRoutePresentation, NewPlanRecoveryPresentation, RefusedRoutePresentation,
-    RouteCandidatePresentation, RoutePlanPresentation, SamePlanFallbackPresentation,
+use crate::route_face::{
+    DistributedRouteFace, NewPlanRecoveryFace, RefusedRouteFace, RouteCandidateFace, RoutePlanFace,
+    SamePlanFallbackFace,
 };
 
 const SOURCE: &str = include_str!("../../../../../plots/signal-demo/main.conduit");
@@ -46,7 +46,7 @@ impl From<LineError> for RouteDemoError {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct DistributedRouteDemo {
     lines: Vec<String>,
-    presentation: DistributedRoutePresentation,
+    face: DistributedRouteFace,
     control_events: Vec<ControlLoopEvent>,
 }
 
@@ -283,11 +283,11 @@ impl DistributedRouteDemo {
         else {
             return Err(RouteDemoError::InvalidSign);
         };
-        let presentation = DistributedRoutePresentation {
+        let face = DistributedRouteFace {
             source_document_id: one.source_document_id.clone(),
             checked_plot_id: one.checked_plot_id.clone(),
-            new_plan: NewPlanRecoveryPresentation {
-                prior: plan_presentation(&one, one_connection),
+            new_plan: NewPlanRecoveryFace {
+                prior: plan_face(&one, one_connection),
                 replacement_plan_id: replacement.plan_id.clone(),
                 unavailable_binding_id: lost.binding_id,
                 unavailable_sign_id: unavailable_sign_id.clone(),
@@ -296,14 +296,14 @@ impl DistributedRouteDemo {
                 planning_success_sign_id: planning_success_sign_id.clone(),
                 installed_sign_id: installed_sign_id.clone(),
             },
-            same_plan: SamePlanFallbackPresentation {
-                plan: plan_presentation(&fallback, fallback_connection),
+            same_plan: SamePlanFallbackFace {
+                plan: plan_face(&fallback, fallback_connection),
                 unavailable_binding_id: fallback_lost.binding_id,
                 unavailable_sign_id: selection_sign_id.clone(),
                 selected_binding_id,
                 selection_sign_id: selection_sign_id.clone(),
             },
-            refused: RefusedRoutePresentation {
+            refused: RefusedRouteFace {
                 binding_id: invented.binding_id,
                 observation_sign_id: invented.sign_id,
             },
@@ -312,7 +312,7 @@ impl DistributedRouteDemo {
         control_events.push(selection);
         Ok(Self {
             lines,
-            presentation,
+            face,
             control_events,
         })
     }
@@ -321,8 +321,8 @@ impl DistributedRouteDemo {
         &self.lines
     }
 
-    pub fn presentation(&self) -> &DistributedRoutePresentation {
-        &self.presentation
+    pub fn face(&self) -> &DistributedRouteFace {
+        &self.face
     }
 
     pub fn control_events(&self) -> &[ControlLoopEvent] {
@@ -330,26 +330,26 @@ impl DistributedRouteDemo {
     }
 
     pub fn visual_lines(&self) -> Vec<String> {
-        self.presentation.visual_lines()
+        self.face.visual_lines()
     }
 
     pub fn linear_lines(&self) -> Vec<String> {
-        self.presentation.linear_lines()
+        self.face.linear_lines()
     }
 }
 
-fn plan_presentation(
+fn plan_face(
     plan: &conduit_core::Plan,
     connection: &conduit_core::PlannedConnection,
-) -> RoutePlanPresentation {
-    RoutePlanPresentation {
+) -> RoutePlanFace {
+    RoutePlanFace {
         plan_id: plan.plan_id.clone(),
         connection_id: connection.connection_id.clone(),
         candidates: connection
             .admitted_lines
             .iter()
             .enumerate()
-            .map(|(order, candidate)| RouteCandidatePresentation {
+            .map(|(order, candidate)| RouteCandidateFace {
                 order,
                 binding_id: candidate.binding.binding_id.clone(),
                 base: candidate.binding.base.clone(),

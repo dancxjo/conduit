@@ -5,7 +5,7 @@ use super::body::{call, token};
 use super::DurableHostRuntime;
 #[cfg(unix)]
 use super::{Request, Response, PROTOCOL};
-use conduit_presentation::{FaceInteraction, MaskShow};
+use conduit_face::{FaceInteraction, MaskShow};
 use conduit_std_host::BodyLiveForeAdmission;
 use std::{
     path::Path,

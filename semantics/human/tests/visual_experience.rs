@@ -254,13 +254,13 @@ fn duplicate_signs_and_unrelated_relation_endpoints_refuse() {
 }
 
 #[test]
-fn visual_experience_contains_no_acquisition_presentation_or_effect_authority() {
+fn visual_experience_contains_no_acquisition_face_or_effect_authority() {
     let source = include_str!("../src/visual_experience.rs");
     for forbidden in [
         "MediaAcquisition",
         "AuthorityGrantId",
         "HostCallId",
-        "PresentationAction",
+        "FaceAction",
         "BodyLifecycleEvent",
     ] {
         assert!(!source.contains(forbidden));

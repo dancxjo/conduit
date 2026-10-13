@@ -1,7 +1,7 @@
 use super::*;
 
 #[test]
-fn runtime_arena_matches_the_compiled_presentation_shape() {
+fn runtime_arena_matches_the_compiled_face_shape() {
     #[cfg(feature = "native-compositor")]
     assert_eq!(MIN_RUNTIME_ARENA_BYTES, 16 * 1024 * 1024);
     #[cfg(not(feature = "native-compositor"))]

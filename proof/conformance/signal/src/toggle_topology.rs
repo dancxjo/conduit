@@ -9,7 +9,7 @@ use conduit_core::{
     LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId, LineOffer,
     LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
     LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
-    LinkEndpointId, LinkLimits, OfferGeneration, INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS,
+    LinkEndpointId, LinkLimits, OfferGeneration, FACE_RESOURCE_CLASS, INPUT_RESOURCE_CLASS,
     PROTOCOL_VERSION,
 };
 
@@ -21,7 +21,7 @@ pub const DISTRIBUTED_TOGGLE_BROWSER_HOST_ID: &str = "s4/toggle-browser-sink";
 pub const DISTRIBUTED_TOGGLE_BROWSER_BOOT_ID: &str = "s4/toggle-browser-sink-boot";
 pub const DISTRIBUTED_TOGGLE_LINK_BINDING_ID: &str = "s4/toggle-std-browser-link";
 pub const DISTRIBUTED_TOGGLE_BASE_INSTANCE_ID: &str = "s4/toggle-websocket-loopback-instance";
-pub const BROWSER_BOOL_PRESENTATION_CAPABILITY: &str = "browser-bool-presentation-v1";
+pub const BROWSER_BOOL_FACE_CAPABILITY: &str = "browser-bool-face-v1";
 
 pub fn distributed_toggle_std_source_advertisement() -> HostAdvertisement {
     HostAdvertisement {
@@ -91,29 +91,29 @@ pub fn distributed_toggle_browser_sink_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: vec![resource_offer(
             "s4/toggle-browser-dom",
-            PRESENTATION_RESOURCE_CLASS,
+            FACE_RESOURCE_CLASS,
             1,
         )],
         planner_capabilities: vec![],
-        capabilities: vec![toggle_browser_presentation_offer("toggle-dom-show-1")],
+        capabilities: vec![toggle_browser_face_offer("toggle-dom-show-1")],
     }
 }
 
-pub fn toggle_browser_presentation_offer(capability_id: &str) -> CapabilityOffer {
+pub fn toggle_browser_face_offer(capability_id: &str) -> CapabilityOffer {
     let mut offer = conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::bool_presentation_contract(),
-        conduit_semantic_catalog::BOOL_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::bool_face_contract(),
+        conduit_semantic_catalog::BOOL_FACE_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "browser-bool-presentation-v1",
+            capability: "browser-bool-face-v1",
             execution_profile: "conduit.browser/present-bool@1",
             implementation: "browser/kernel-dom-show-bool@1",
             artifact: "conduit-browser-runtime/show-bool@1",
         },
         vec![present_host_call_requirement(
-            kind_id("presentation/browser-bool"),
+            kind_id("face/browser-bool"),
             conduit_core::BOOL_ENCODED_LEN as u32,
         )],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     );
     offer.capability_id = CapabilityId::from(capability_id);

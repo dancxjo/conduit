@@ -59,7 +59,7 @@ fn offer(
     operation: &'static str,
     input: u32,
     output: u32,
-    presentation: bool,
+    face: bool,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -77,11 +77,8 @@ fn offer(
                 maximum_input_bytes: input,
                 maximum_output_bytes: output,
             }],
-            resource_requirements: if presentation {
-                vec![resource_requirement(
-                    conduit_core::PRESENTATION_RESOURCE_CLASS,
-                    1,
-                )]
+            resource_requirements: if face {
+                vec![resource_requirement(conduit_core::FACE_RESOURCE_CLASS, 1)]
             } else {
                 Vec::new()
             },
@@ -104,7 +101,7 @@ fn prepare_manifestation(
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &manifestation_offer())?;
-    Ok(BrowserBack::presentation(MANIFESTATION_BYTES, 1))
+    Ok(BrowserBack::face(MANIFESTATION_BYTES, 1))
 }
 
 fn perform_manifestation(
@@ -115,10 +112,10 @@ fn perform_manifestation(
 }
 
 fn refuse_unvalidated_candidate(input: &[u8]) -> Result<BrowserHostResult, String> {
-    serde_json::from_slice::<conduit_presentation::GeneratedManifestationCandidate>(input)
+    serde_json::from_slice::<conduit_face::GeneratedManifestationCandidate>(input)
         .map_err(|error| format!("decode generated tutorial manifestation candidate: {error}"))?;
     Err(
-        "generated tutorial manifestation candidate requires semantic validation before browser presentation"
+        "generated tutorial manifestation candidate requires semantic validation before browser face"
             .into(),
     )
 }
@@ -176,8 +173,8 @@ mod tests {
         let candidate = serde_json::json!({
             "candidate_identity": "candidate/provider-output",
             "request_identity": "request/tutorial",
-            "source_presentation_identity": "presentation/tutorial",
-            "source_presentation_revision": 1,
+            "source_face_identity": "face/tutorial",
+            "source_face_revision": 1,
             "presenter_implementation_identity": "presenter/browser@1",
             "provider_identity": "provider/fixture@1",
             "model_identity": "model/fixture@1",
@@ -196,7 +193,7 @@ mod tests {
         };
         assert_eq!(
             error,
-            "generated tutorial manifestation candidate requires semantic validation before browser presentation"
+            "generated tutorial manifestation candidate requires semantic validation before browser face"
         );
         assert!(!error.contains("NEVER RENDER"));
     }

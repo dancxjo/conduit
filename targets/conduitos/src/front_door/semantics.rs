@@ -1,16 +1,14 @@
 //! Portable action and ordinary lifecycle disclosure for the ConduitOS Presenter.
 
 use alloc::{borrow::ToOwned, format, vec, vec::Vec};
-use conduit_presentation::{
-    PresentationAction, PresentationActionAvailability, PresentationDisclosureLevel,
-};
+use conduit_face::{FaceAction, FaceActionAvailability, FaceDisclosureLevel};
 
 use crate::product_journey::{JourneyProjection, JourneyStatus};
 
 use super::FrontDoor;
 
 impl FrontDoor {
-    pub(super) fn semantic_actions(&self, plot_subject: &str) -> Vec<PresentationAction> {
+    pub(super) fn semantic_actions(&self, plot_subject: &str) -> Vec<FaceAction> {
         let status = self
             .journey
             .as_ref()
@@ -29,7 +27,7 @@ impl FrontDoor {
                 "No admitted authority can create a body from this entrance.",
             )
         } else if status == JourneyStatus::PlotOpened {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
             lifecycle_unavailable("Birth", status)
         };
@@ -119,14 +117,14 @@ impl FrontDoor {
                     "admit-plot",
                     "Install Plot",
                     &lifecycle_target,
-                    PresentationActionAvailability::Available,
+                    FaceActionAvailability::Available,
                 ));
             } else if status == JourneyStatus::Lulled {
                 rows.push(action(
                     "fulfill",
                     "Fulfill",
                     &lifecycle_target,
-                    PresentationActionAvailability::Available,
+                    FaceActionAvailability::Available,
                 ));
             }
         }
@@ -138,34 +136,30 @@ fn action(
     name: &str,
     label: &str,
     target: &str,
-    availability: PresentationActionAvailability,
-) -> PresentationAction {
+    availability: FaceActionAvailability,
+) -> FaceAction {
     let semantic = patchbay_control::PatchbayAction::from_name(name)
         .expect("the finite ConduitOS action table contains known portable actions");
-    PresentationAction {
+    FaceAction {
         identity: format!("action/{name}/{target}"),
-        intent: semantic.presentation_intent().into(),
+        intent: semantic.face_intent().into(),
         target: target.into(),
         name: label.into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability,
     }
 }
 
-fn availability(
-    current: bool,
-    label: &str,
-    status: JourneyStatus,
-) -> PresentationActionAvailability {
+fn availability(current: bool, label: &str, status: JourneyStatus) -> FaceActionAvailability {
     if current {
-        PresentationActionAvailability::Available
+        FaceActionAvailability::Available
     } else {
         lifecycle_unavailable(label, status)
     }
 }
 
-fn lifecycle_unavailable(label: &str, status: JourneyStatus) -> PresentationActionAvailability {
+fn lifecycle_unavailable(label: &str, status: JourneyStatus) -> FaceActionAvailability {
     unavailable(
         "lifecycle/not-current",
         &format!(
@@ -175,8 +169,8 @@ fn lifecycle_unavailable(label: &str, status: JourneyStatus) -> PresentationActi
     )
 }
 
-fn unavailable(reason_code: &str, explanation: &str) -> PresentationActionAvailability {
-    PresentationActionAvailability::Unavailable {
+fn unavailable(reason_code: &str, explanation: &str) -> FaceActionAvailability {
+    FaceActionAvailability::Unavailable {
         reason_code: reason_code.into(),
         explanation: explanation.into(),
     }

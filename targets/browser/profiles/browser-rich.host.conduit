@@ -1,7 +1,7 @@
 host browser-rich {
   schema = 1
   target = {architecture: "wasm32", machine: "page"}
-  base = {kind: "presentation/graphical", implementation: "browser/dom-presentation@1"}
+  base = {kind: "face/graphical", implementation: "browser/dom-face@1"}
   base = {kind: "human/keyboard", implementation: "browser/keyboard-events@1"}
   base = {kind: "human/pointer", implementation: "browser/pointer-events@1"}
   base = {kind: "storage/durable", implementation: "browser/indexeddb@1"}

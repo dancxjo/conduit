@@ -1,0 +1,142 @@
+//! Canonical Patchbay face waist and first subject-specific Backs.
+
+use super::{KindTerminalBehavior, StandardKindContract};
+use alloc::{string::ToString, vec, vec::Vec};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, PortDescriptor, PortDirection, PortTemporal,
+};
+
+pub const PATCHBAY_FACE_KIND: &str = "face/patchbay";
+pub const PATCHBAY_GEAR_FACE_KIND: &str = "patchbay/gear-front";
+pub const PATCHBAY_PORT_KIND: &str = "patchbay/port";
+pub const PATCHBAY_CORD_KIND: &str = "patchbay/cord";
+pub const PATCHBAY_FACE_REVISION: &str = "conduit.patchbay/face@1";
+pub const PATCHBAY_FACE_INPUT: &str = "subject";
+pub const PATCHBAY_FACE_VALUE_KIND: &str = "value/text";
+pub const MAX_PATCHBAY_FACE_BYTES: u32 = 1_024;
+pub const PATCHBAY_ROOT_BACK_SOURCE: &str = "plot face/patchbay (\n label: Text\n >> subject: Text\n) {\n front: patchbay/gear-front\n port: patchbay/port\n cord: patchbay/cord\n subject >> front.subject\n subject >> port.subject\n subject >> cord.subject\n}\n";
+pub const PATCHBAY_GEAR_FACE_BACK_SOURCE: &str = "plot patchbay/gear-front (\n >> subject: Text\n) {\n text: face/text(\"Message\")\n viewport: layout/viewport(width = 320, height = 200, children = 3, child-width = 40, child-height = 30)\n inset: layout/inset(inset = 8)\n column: layout/column(gap = 3)\n icon: face/icon(label = \"Patchbay\", icon = \"type\")\n frame: face/frame(label = \"Gear Front\", role = \"panel\")\n rect: graphics/rect(style = \"stroke\")\n resolved-text: graphics/text(text = \"r\")\n resolved-icon: graphics/icon(icon = \"type\")\n manifest: face/graphics(\"Rendered scene\")\n subject >> text.text\n viewport >> inset >> column\n icon >> frame >> rect >> resolved-text >> resolved-icon >> manifest.scene\n}\n";
+pub const PATCHBAY_PORT_BACK_SOURCE: &str = "plot patchbay/port (\n >> subject: Text\n) {\n text: face/text(\"Message\")\n viewport: layout/viewport\n align: layout/align\n icon: face/icon(\"Icon identity\")\n frame: face/frame(\"Content group\")\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> align\n icon >> frame >> rect >> resolved-text\n}\n";
+pub const PATCHBAY_CORD_BACK_SOURCE: &str = "plot patchbay/cord (\n >> subject: Text\n) {\n text: face/text(\"Message\")\n viewport: layout/viewport\n stack: layout/stack\n icon: face/icon(\"Icon identity\")\n badge: face/badge(\"Status badge\")\n rect: graphics/rect\n resolved-text: graphics/text\n subject >> text.text\n viewport >> stack\n icon >> badge >> rect >> resolved-text\n}\n";
+
+pub fn patchbay_face_contracts() -> [StandardKindContract; 4] {
+    [
+        contract(
+            PATCHBAY_FACE_KIND,
+            "Patchbay face",
+            "Present one bounded normalized Patchbay meaning without owning its semantic subjects.",
+        ),
+        contract(
+            PATCHBAY_GEAR_FACE_KIND,
+            "Patchbay Gear Front",
+            "Present one existing Gear subject with exact label, Ports, and semantic controls.",
+        ),
+        contract(
+            PATCHBAY_PORT_KIND,
+            "Patchbay Port",
+            "Present one existing typed Port subject with exact direction and accessible name.",
+        ),
+        contract(
+            PATCHBAY_CORD_KIND,
+            "Patchbay Cord",
+            "Present one existing Cord subject while keeping active Line truth an annotation.",
+        ),
+    ]
+}
+
+fn contract(kind: &str, name: &str, summary: &str) -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(kind),
+        plain_name: name.to_string(),
+        summary: summary.to_string(),
+        inputs: vec![PortDescriptor {
+            port_id: port_id(PATCHBAY_FACE_INPUT),
+            value_kind: kind_id(PATCHBAY_FACE_VALUE_KIND),
+            direction: PortDirection::Input,
+            temporal: PortTemporal::Value,
+            abnormal_kind: None,
+        }],
+        outputs: Vec::new(),
+        configuration: if kind == PATCHBAY_FACE_KIND {
+            crate::data_label_configuration()
+        } else {
+            Vec::new()
+        },
+        limits: CapabilityLimits {
+            max_active_instances: 16,
+            max_queue_items: 4,
+            max_queue_bytes: MAX_PATCHBAY_FACE_BYTES,
+        },
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: kind == PATCHBAY_FACE_KIND,
+        pico_manifestation_honest: false,
+        example: alloc::format!("subject: text/literal(\"bounded normalized subject\") > {kind}"),
+    }
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_patchbay_face_catalogs(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_plot::KindSignature;
+    for contract in patchbay_face_contracts() {
+        startup.insert(KindSignature {
+            kind: contract.kind_id.as_str().to_string(),
+            startup_parameters: if contract.kind_id.as_str() == PATCHBAY_FACE_KIND {
+                crate::data_label_startup_signature()
+            } else {
+                Vec::new()
+            },
+        })?;
+        profile
+            .insert_kind(contract.into_semantic_contract(PATCHBAY_FACE_REVISION))
+            .map_err(|error| error.to_string())?;
+    }
+    Ok(())
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_patchbay_face_backs(
+    startup: &conduit_plot::StartupCatalog,
+    profile: &conduit_plot::ProfileCatalog,
+    backs: &mut conduit_plot::CanonicalBackCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_plot::{check_syntax_document, parse_syntax_document};
+    for (kind, source) in [
+        (PATCHBAY_FACE_KIND, PATCHBAY_ROOT_BACK_SOURCE),
+        (PATCHBAY_GEAR_FACE_KIND, PATCHBAY_GEAR_FACE_BACK_SOURCE),
+        (PATCHBAY_PORT_KIND, PATCHBAY_PORT_BACK_SOURCE),
+        (PATCHBAY_CORD_KIND, PATCHBAY_CORD_BACK_SOURCE),
+    ] {
+        let document = check_syntax_document(&parse_syntax_document(source), startup)
+            .map_err(|error| alloc::format!("check Back {kind}: {error:?}"))?;
+        backs
+            .insert(
+                profile
+                    .canonical_kind(&kind.into())
+                    .ok_or_else(|| alloc::format!("missing Kind {kind}"))?,
+                &document,
+                kind,
+            )
+            .map_err(|error| alloc::format!("register Back {kind}: {error:?}"))?;
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn one_canonical_family_carries_subject_text_not_widget_or_renderer_types() {
+        for contract in patchbay_face_contracts() {
+            assert_eq!(contract.inputs[0].value_kind.as_str(), "value/text");
+            let rendered = alloc::format!("{contract:?}").to_ascii_lowercase();
+            for forbidden in ["widget", "dom", "css", "framebuffer", "socket"] {
+                assert!(!rendered.contains(forbidden));
+            }
+        }
+    }
+}

@@ -2,13 +2,13 @@ import { readFile } from "node:fs/promises";
 import { expect, test } from "@playwright/test";
 
 const cases = [
-  ["morse-network", { keys: "a", presentationKind: "presentation/indicator", morseSegments: true }],
-  ["memory-lantern", { keys: "ready", presentationKind: "presentation/text", text: "ready" }],
-  ["desk-telegraph", { keys: "calling\n", presentationKind: "presentation/text", text: "calling" }],
-  ["night-radio", { keys: "night report\n", presentationKind: "presentation/text", text: "night report" }],
+  ["morse-network", { keys: "a", faceKind: "face/indicator", morseSegments: true }],
+  ["memory-lantern", { keys: "ready", faceKind: "face/text", text: "ready" }],
+  ["desk-telegraph", { keys: "calling\n", faceKind: "face/text", text: "calling" }],
+  ["night-radio", { keys: "night report\n", faceKind: "face/text", text: "night report" }],
   ["little-seismograph", {
     keys: "",
-    presentationKind: "presentation/measurement-plot",
+    faceKind: "face/measurement-plot",
     text: "plot 1 samples · 0 omitted",
   }],
 ];
@@ -74,7 +74,7 @@ for (const [slug, expected] of cases) {
         if (progress.effect_kind === "key-event") {
           const key = keys.shift();
           if (key === undefined) {
-            if (api.conduit_browser_plot_poll_effect() < 0) throw new Error("effect poll refused while presentation was pending");
+            if (api.conduit_browser_plot_poll_effect() < 0) throw new Error("effect poll refused while face was pending");
             progress = read();
             continue;
           }
@@ -105,7 +105,7 @@ for (const [slug, expected] of cases) {
 
       expect(evidence.effect).toMatchObject({
         effect_kind: "manifestation",
-        presentation_kind: expected.presentationKind,
+        face_kind: expected.faceKind,
       });
       if (expected.text) expect(evidence.effect.text).toBe(expected.text);
       if (expected.morseSegments) {

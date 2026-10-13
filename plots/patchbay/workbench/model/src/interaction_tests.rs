@@ -7,13 +7,10 @@ use conduit_core::{BootId, ConfigurationValue, ExpandedPlotId, HostId};
 use conduit_kernel::KernelEventKind;
 use std::path::PathBuf;
 
-fn invocation_presentation(
-    action: PatchbayAction,
-    target: &str,
-) -> conduit_presentation::Presentation {
-    conduit_presentation::Presentation::new_with_semantics(
+fn invocation_face(action: PatchbayAction, target: &str) -> conduit_face::Face {
+    conduit_face::Face::new_with_semantics(
         17,
-        conduit_presentation::PresentationBasis {
+        conduit_face::FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: None,
@@ -23,22 +20,22 @@ fn invocation_presentation(
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![conduit_presentation::PresentationSubject {
+        vec![conduit_face::FaceSubject {
             identity: target.into(),
-            role: conduit_presentation::PresentationRole::Plot,
+            role: conduit_face::FaceRole::Plot,
             name: "Invocation target".into(),
         }],
         vec![],
         vec![],
         vec![],
-        vec![conduit_presentation::PresentationAction {
+        vec![conduit_face::FaceAction {
             identity: format!("action/{}/current", action.as_str()),
-            intent: action.presentation_intent().into(),
+            intent: action.face_intent().into(),
             target: target.into(),
             name: action.as_str().into(),
             arguments: vec![],
-            disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
-            availability: conduit_presentation::PresentationActionAvailability::Available,
+            disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+            availability: conduit_face::FaceActionAvailability::Available,
         }],
         vec![],
     )
@@ -131,7 +128,7 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
         .unwrap();
     assert_eq!(
         stale_receipt.disposition,
-        InteractionDisposition::Refused(PatchbayRefusal::StalePresentation)
+        InteractionDisposition::Refused(PatchbayRefusal::StaleFace)
     );
     assert_eq!(interaction.selected(), Some(&subject));
 
@@ -157,23 +154,23 @@ fn stale_and_unknown_selection_refuse_without_replacing_canonical_selection() {
 #[test]
 fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
     let mut interaction = interaction();
-    let presentation = invocation_presentation(PatchbayAction::Birth, "body/count-demo");
-    let action_id = presentation.actions[0].identity.clone();
+    let face = invocation_face(PatchbayAction::Birth, "body/count-demo");
+    let action_id = face.actions[0].identity.clone();
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("birth").unwrap(),
-        &presentation,
+        &face,
         &action_id,
     )
     .unwrap();
     let control = request.control_request().unwrap().unwrap();
-    assert_eq!(control.presentation_id, presentation.identity.as_str());
-    assert_eq!(control.presentation_revision, 17);
+    assert_eq!(control.face_id, face.identity.as_str());
+    assert_eq!(control.face_revision, 17);
     assert_eq!(control.action_id, action_id);
     assert_eq!(control.action, PatchbayAction::Birth);
     assert_eq!(control.target_identity, "body/count-demo");
     let mut invoked = None;
     let receipt = interaction
-        .execute_presentation(&presentation, request, |request| {
+        .execute_face(&face, request, |request| {
             invoked = Some(request.clone());
             PatchbayInvocationOutcome::Succeeded
         })
@@ -187,12 +184,12 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("birth").unwrap(),
-        &presentation,
+        &face,
         &action_id,
     )
     .unwrap();
     let receipt = interaction
-        .execute_presentation(&presentation, request, |_| {
+        .execute_face(&face, request, |_| {
             PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected)
         })
         .unwrap();
@@ -203,14 +200,12 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("birth").unwrap(),
-        &presentation,
+        &face,
         &action_id,
     )
     .unwrap();
     let receipt = interaction
-        .execute_presentation(&presentation, request, |_| {
-            PatchbayInvocationOutcome::Failed
-        })
+        .execute_face(&face, request, |_| PatchbayInvocationOutcome::Failed)
         .unwrap();
     assert_eq!(receipt.disposition, InteractionDisposition::Failed);
     assert!(receipt
@@ -222,36 +217,35 @@ fn lifecycle_invocation_uses_the_same_play_and_preserves_refusal() {
 #[test]
 fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
     let mut interaction = interaction();
-    let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
-    let action_id = presentation.actions[0].identity.clone();
+    let face = invocation_face(PatchbayAction::OpenBack, "seed/example");
+    let action_id = face.actions[0].identity.clone();
 
     let unknown = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("open").unwrap(),
-        &presentation,
+        &face,
         "action/unknown",
     );
     assert!(matches!(
         unknown,
         Err(crate::InteractionError::Action(
-            conduit_presentation::PresentationActionRefusal::UnknownAction
+            conduit_face::FaceActionRefusal::UnknownAction
         ))
     ));
 
-    let mut unavailable_presentation = presentation.clone();
-    unavailable_presentation.actions[0].availability =
-        conduit_presentation::PresentationActionAvailability::Unavailable {
-            reason_code: "front-door/not-current".into(),
-            explanation: "The action is not current.".into(),
-        };
+    let mut unavailable_face = face.clone();
+    unavailable_face.actions[0].availability = conduit_face::FaceActionAvailability::Unavailable {
+        reason_code: "front-door/not-current".into(),
+        explanation: "The action is not current.".into(),
+    };
     let unavailable = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("open").unwrap(),
-        &unavailable_presentation,
+        &unavailable_face,
         &action_id,
     )
     .unwrap();
     let mut invoked = false;
     let receipt = interaction
-        .execute_presentation(&unavailable_presentation, unavailable, |_| {
+        .execute_face(&unavailable_face, unavailable, |_| {
             invoked = true;
             PatchbayInvocationOutcome::Succeeded
         })
@@ -262,15 +256,10 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
     );
     assert!(!invoked);
 
-    for mutation in [
-        "presentation-id",
-        "presentation-revision",
-        "action-id",
-        "target",
-    ] {
+    for mutation in ["face-id", "face-revision", "action-id", "target"] {
         let mut request = PatchbayInteractionRequest::invoke(
             interaction.next_request_id("open").unwrap(),
-            &presentation,
+            &face,
             &action_id,
         )
         .unwrap();
@@ -278,13 +267,13 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
             unreachable!()
         };
         let expected = match mutation {
-            "presentation-id" => {
-                invocation.presentation_id = "presentation/stale".into();
-                PatchbayRefusal::StalePresentation
+            "face-id" => {
+                invocation.face_id = "face/stale".into();
+                PatchbayRefusal::StaleFace
             }
-            "presentation-revision" => {
-                invocation.presentation_revision += 1;
-                PatchbayRefusal::StalePresentation
+            "face-revision" => {
+                invocation.face_revision += 1;
+                PatchbayRefusal::StaleFace
             }
             "action-id" => {
                 invocation.action_id = "action/unknown".into();
@@ -298,7 +287,7 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
         };
         let mut invoked = false;
         let receipt = interaction
-            .execute_presentation(&presentation, request, |_| {
+            .execute_face(&face, request, |_| {
                 invoked = true;
                 PatchbayInvocationOutcome::Succeeded
             })
@@ -315,23 +304,23 @@ fn semantic_invocation_refusals_are_exact_and_do_not_reach_the_host_call() {
 #[test]
 fn duplicate_semantic_delivery_is_refused_before_a_second_host_call() {
     let mut interaction = interaction();
-    let presentation = invocation_presentation(PatchbayAction::OpenBack, "seed/example");
+    let face = invocation_face(PatchbayAction::OpenBack, "seed/example");
     let request = PatchbayInteractionRequest::invoke(
         interaction.next_request_id("open").unwrap(),
-        &presentation,
-        &presentation.actions[0].identity,
+        &face,
+        &face.actions[0].identity,
     )
     .unwrap();
     let duplicate = request.clone();
     let mut calls = 0;
     interaction
-        .execute_presentation(&presentation, request, |_| {
+        .execute_face(&face, request, |_| {
             calls += 1;
             PatchbayInvocationOutcome::Succeeded
         })
         .unwrap();
     let receipt = interaction
-        .execute_presentation(&presentation, duplicate, |_| {
+        .execute_face(&face, duplicate, |_| {
             calls += 1;
             PatchbayInvocationOutcome::Succeeded
         })
@@ -345,11 +334,11 @@ fn duplicate_semantic_delivery_is_refused_before_a_second_host_call() {
 
 #[test]
 fn interaction_values_are_platform_neutral_and_bounded() {
-    let presentation = invocation_presentation(PatchbayAction::ToggleLinearView, "plot/count-demo");
+    let face = invocation_face(PatchbayAction::ToggleLinearView, "plot/count-demo");
     let request = PatchbayInteractionRequest::invoke(
         crate::PatchbayInteractionRequestId::new("request/1").unwrap(),
-        &presentation,
-        &presentation.actions[0].identity,
+        &face,
+        &face.actions[0].identity,
     )
     .unwrap();
     let debug = format!("{request:?}").to_ascii_lowercase();
@@ -358,7 +347,7 @@ fn interaction_values_are_platform_neutral_and_bounded() {
     }
     assert!(PatchbayInteractionRequest::invoke(
         crate::PatchbayInteractionRequestId::new("request/2").unwrap(),
-        &presentation,
+        &face,
         "x".repeat(crate::interaction::MAX_INTERACTION_ID_BYTES + 1)
             .as_str(),
     )
@@ -516,3 +505,6 @@ fn physical_configuration_edits_preserve_canonical_bytes_and_source_spelling() {
         assert_eq!(receipt.request, request);
     }
 }
+
+#[path = "interaction_placement_tests.rs"]
+mod placement;

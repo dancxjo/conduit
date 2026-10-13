@@ -4,10 +4,10 @@ use conduit_core::{
     Back, BackOfferBuilder, CapabilityOffer, CheckedValueContract, PlannedGear,
     PlannedScanActivation,
 };
-use conduit_plot::{rust_binding::NativeRustBinding, ProfileCatalog, StartupCatalog};
-use conduit_presentation::{
+use conduit_face::{
     ParsecMapCommand, ParsecMapState, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES,
 };
+use conduit_plot::{rust_binding::NativeRustBinding, ProfileCatalog, StartupCatalog};
 pub const MAXIMUM_ITEMS: u16 = 32;
 pub const PARSEC_SCAN_SOURCE: &str = include_str!("parsec_scan.conduit");
 

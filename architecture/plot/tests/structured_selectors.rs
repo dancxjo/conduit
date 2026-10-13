@@ -98,7 +98,7 @@ fn check(source: &str) -> conduit_plot::CheckedSyntaxDocument {
 #[test]
 fn required_domain_selectors_are_statically_typed_cord_stages() {
     let checked = check(
-        "plot examples {\n button >> index(PitchTable[1]) >> synth\n events >> select(MusicEvent.note, unmatched=drop) >> notes\n feedback >> project(Feedback.status) >> presentation\n}\n",
+        "plot examples {\n button >> index(PitchTable[1]) >> synth\n events >> select(MusicEvent.note, unmatched=drop) >> notes\n feedback >> project(Feedback.status) >> face\n}\n",
     );
     let cords = &checked.plots[0].cords;
     assert_eq!(cords.len(), 3);

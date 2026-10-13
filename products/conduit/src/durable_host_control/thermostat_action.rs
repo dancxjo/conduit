@@ -1,6 +1,6 @@
 //! Return an acknowledged Mask interaction to the existing Body scan Fore.
 use super::{body::HostSource, body_run::OwnedRunWorker, DurableHostRuntime};
-use conduit_presentation::{FaceInteraction, MaskShow};
+use conduit_face::{FaceInteraction, MaskShow};
 use conduit_std_host::BodyLiveForeAdmission;
 use std::time::{Duration, Instant};
 impl DurableHostRuntime {

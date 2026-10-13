@@ -1,8 +1,8 @@
-use conduit_presentation::{PresentationActionAvailability, PresentationContributionBasis};
+use conduit_face::{FaceActionAvailability, FaceContributionBasis};
 use conduit_thermostat_face::fragment;
 use conduit_thermostat_plot::{Command, ThermostatState};
-fn basis() -> PresentationContributionBasis {
-    PresentationContributionBasis {
+fn basis() -> FaceContributionBasis {
+    FaceContributionBasis {
         checked_plot_id: "checked/thermostat".into(),
         plan_id: "plan/thermostat".into(),
         active_play_id: "play/thermostat".into(),
@@ -15,7 +15,7 @@ fn route_and_temperature_bounds_control_action_availability() {
     let readonly = fragment(&state, basis(), false).unwrap();
     assert!(readonly.actions.iter().all(|action| matches!(
         action.availability,
-        PresentationActionAvailability::Unavailable { .. }
+        FaceActionAvailability::Unavailable { .. }
     )));
     for (target, limited, available) in [
         (100, "thermostat.lower", "thermostat.raise"),
@@ -29,7 +29,7 @@ fn route_and_temperature_bounds_control_action_availability() {
                 .find(|a| a.identity == limited)
                 .unwrap()
                 .availability,
-            PresentationActionAvailability::Unavailable { .. }
+            FaceActionAvailability::Unavailable { .. }
         ));
         assert_eq!(
             face.actions
@@ -37,7 +37,7 @@ fn route_and_temperature_bounds_control_action_availability() {
                 .find(|a| a.identity == available)
                 .unwrap()
                 .availability,
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         );
         assert!(face
             .text

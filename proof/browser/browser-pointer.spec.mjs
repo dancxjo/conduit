@@ -28,7 +28,7 @@ test("real Chromium pointer input crosses the planned production kernel", async 
   expect(receipt.value_kind).toMatch(/^structured-info\/profile-[0-9a-f]{64}@1$/);
   expect(receipt.plan_id).not.toEqual(receipt.play_id);
   expect(receipt.sign_id).not.toEqual(receipt.play_id);
-  expect(receipt.source_placement_id).not.toEqual(receipt.presentation_placement_id);
+  expect(receipt.source_placement_id).not.toEqual(receipt.face_placement_id);
 
   const refusals = await page.evaluate(() => ({
     invalidPosition: globalThis.__conduitBrowserPointerSource.api.conduit_browser_pointer_run(

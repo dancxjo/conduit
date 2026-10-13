@@ -12,10 +12,10 @@ pub(super) static STATE_COUNT_FACTORY: BackFactory = BackFactory {
     prepare: prepare_state_count,
 };
 
-pub(super) static COUNT_PRESENTATION_FACTORY: BackFactory = BackFactory {
-    implementation_id: conduit_std_offers::COUNT_PRESENTATION_IMPLEMENTATION,
-    budget: count_presentation_budget,
-    prepare: prepare_count_presentation,
+pub(super) static COUNT_FACE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::COUNT_FACE_IMPLEMENTATION,
+    budget: count_face_budget,
+    prepare: prepare_count_face,
 };
 
 pub(super) struct StateCountBack {
@@ -72,7 +72,7 @@ impl<const PORTS: usize> StepBack<PORTS> for StateCountBack {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for CountPresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for CountFaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request)
@@ -86,7 +86,7 @@ impl<const PORTS: usize> StepBack<PORTS> for CountPresentationBack {
                 });
             }
             io.consume_host_completion()
-                .expect("observed Count Presentation completion");
+                .expect("observed Count Face completion");
             self.pending = None;
             return StepOutcome::Progress;
         }
@@ -112,17 +112,16 @@ impl<const PORTS: usize> StepBack<PORTS> for CountPresentationBack {
                     detail: 11,
                 });
             };
-            io.consume(PortId(0))
-                .expect("present Count Presentation input");
+            io.consume(PortId(0)).expect("present Count Face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("single Count Presentation Host Call");
+                .expect("single Count Face Host Call");
             self.pending = Some(request);
             self.next = next;
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
-                .expect("observed Count Presentation closure");
+                .expect("observed Count Face closure");
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -133,7 +132,7 @@ impl<const PORTS: usize> StepBack<PORTS> for CountPresentationBack {
     }
 }
 
-pub(super) struct CountPresentationBack {
+pub(super) struct CountFaceBack {
     pending: Option<RequestId>,
     next: u32,
 }
@@ -169,8 +168,8 @@ fn prepare_state_count(
     }))
 }
 
-fn count_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
-    validate_count_presentation(placement)?;
+fn count_face_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_count_face(placement)?;
     Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
@@ -180,12 +179,12 @@ fn count_presentation_budget(placement: &PlannedGear) -> Result<BackBudget, Stri
     })
 }
 
-fn prepare_count_presentation(
+fn prepare_count_face(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate_count_presentation(placement)?;
-    Ok(InstalledBack::CountPresentation(CountPresentationBack {
+    validate_count_face(placement)?;
+    Ok(InstalledBack::CountFace(CountFaceBack {
         pending: None,
         next: 0,
     }))
@@ -229,24 +228,24 @@ fn validate_state_count(placement: &PlannedGear) -> Result<(), String> {
     count_configuration(placement, "start", u64::MAX).map(|_| ())
 }
 
-fn validate_count_presentation(placement: &PlannedGear) -> Result<(), String> {
+fn validate_count_face(placement: &PlannedGear) -> Result<(), String> {
     validate_identity(
         placement,
-        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-        conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-        conduit_std_offers::COUNT_PRESENTATION_EXECUTION_PROFILE,
-        conduit_std_offers::COUNT_PRESENTATION_IMPLEMENTATION,
-        conduit_std_offers::COUNT_PRESENTATION_ARTIFACT,
+        conduit_semantic_catalog::COUNT_FACE_KIND,
+        conduit_semantic_catalog::COUNT_FACE_CONTRACT_REVISION,
+        conduit_std_offers::COUNT_FACE_EXECUTION_PROFILE,
+        conduit_std_offers::COUNT_FACE_IMPLEMENTATION,
+        conduit_std_offers::COUNT_FACE_ARTIFACT,
         "value",
         conduit_semantic_catalog::STATE_COUNT_VALUE_KIND,
         PortTemporal::Current,
         None,
     )?;
-    placement
-        .configuration
-        .is_empty()
-        .then_some(())
-        .ok_or_else(|| "presentation/count accepts no lifetime configuration".to_string())
+    conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    if placement.configuration.len() != 1 {
+        return Err("face/count accepts only its data label".into());
+    }
+    Ok(())
 }
 
 #[allow(clippy::too_many_arguments)]
@@ -294,6 +293,6 @@ fn validate_identity(
 pub(super) fn decode_count(bytes: &[u8]) -> Result<u64, String> {
     let encoded: [u8; conduit_semantic_catalog::COUNT_ENCODED_LEN as usize] = bytes
         .try_into()
-        .map_err(|_| "count presentation input is not an exact Count".to_string())?;
+        .map_err(|_| "count face input is not an exact Count".to_string())?;
     Ok(u64::from_le_bytes(encoded))
 }

@@ -247,7 +247,7 @@ fn build_region(
     let ordinary_text = exact_kinds(&[
         conduit_text::TEXT_LITERAL_KIND,
         conduit_text::TEXT_UPPER_KIND,
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_FACE_KIND,
     ]);
     let keyboard_text = [
         conduit_text::TEXT_UPPER_KIND,
@@ -259,20 +259,20 @@ fn build_region(
             conduit_semantic_catalog::KEYBOARD_KIND,
             conduit_semantic_catalog::KEYMAP_KIND,
             transform,
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+            conduit_semantic_catalog::TEXT_FACE_KIND,
         ])
     });
     let tour_morse = exact_kinds(&[
         conduit_text::TEXT_LITERAL_KIND,
         conduit_text::TEXT_UPPER_KIND,
         conduit_text::TEXT_MORSE_KIND,
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_FACE_KIND,
+        conduit_semantic_catalog::INDICATOR_FACE_KIND,
     ]);
     let tour_timer = exact_kinds(&[
         conduit_time::TIME_EVERY_KIND,
         conduit_semantic_catalog::STATE_COUNT_KIND,
-        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
+        conduit_semantic_catalog::COUNT_FACE_KIND,
     ]);
     let protected = cfg!(conduitos_protected_execution)
         && matches!(region_id, "region/0" | "region/text")
@@ -351,12 +351,12 @@ fn branch_placements(
             placement.kind_id.as_str(),
             conduit_text::TEXT_LITERAL_KIND
                 | conduit_text::TEXT_UPPER_KIND
-                | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                | conduit_semantic_catalog::TEXT_FACE_KIND
         ) {
             text.push(placement.placement_id.clone());
         } else if matches!(
             placement.kind_id.as_str(),
-            conduit_semantic_catalog::TICK_KIND | conduit_semantic_catalog::TICK_PRESENTATION_KIND
+            conduit_semantic_catalog::TICK_KIND | conduit_semantic_catalog::TICK_FACE_KIND
         ) {
             timer.push(placement.placement_id.clone());
         } else {

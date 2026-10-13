@@ -81,7 +81,7 @@ For example, save this as `hello.conduit`:
 
 ```conduit
 plot hello {
-  show: presentation/text
+  show: face/text("Message")
   "Hello." >> show
 }.
 ```

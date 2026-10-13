@@ -102,9 +102,8 @@ impl AlifeHost {
             });
         }
         if contract.as_str() == conduit_core::PRESENT_HOST_CALL_CONTRACT
-            && target.is_some_and(|kind| {
-                kind.as_str() == conduit_std_offers::SCALAR_FIELD_PRESENTATION_TARGET
-            })
+            && target
+                .is_some_and(|kind| kind.as_str() == conduit_std_offers::SCALAR_FIELD_FACE_TARGET)
         {
             let Some(placement) = fragment.placements.get(usize::from(node.0)) else {
                 return Some(AlifeCompletion::Failed(Failure {
@@ -136,7 +135,13 @@ fn present<W: Write>(placement: &PlannedGear, input: &[u8], output: &mut W) -> R
         code: FailureCode::InvalidInput,
         detail: 197,
     })?;
-    let title = text_configuration(placement, conduit_alife::TITLE_KEY)?;
+    let title =
+        conduit_semantic_catalog::face_data_label(&placement.configuration).map_err(|_| {
+            Failure {
+                code: FailureCode::InvalidInput,
+                detail: 197,
+            }
+        })?;
     let minimum = scalar_q16(placement, conduit_alife::MINIMUM_KEY)?;
     let maximum = scalar_q16(placement, conduit_alife::MAXIMUM_KEY)?;
     if minimum >= maximum {
@@ -189,20 +194,6 @@ fn present<W: Write>(placement: &PlannedGear, input: &[u8], output: &mut W) -> R
         output.write_all(b"\n").map_err(|_| io_failure())?;
     }
     Ok(())
-}
-
-fn text_configuration<'a>(placement: &'a PlannedGear, key: &str) -> Result<&'a str, Failure> {
-    placement
-        .configuration
-        .iter()
-        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
-            (actual, ConfigurationValue::Text(value)) if actual == key => Some(value.as_str()),
-            _ => None,
-        })
-        .ok_or(Failure {
-            code: FailureCode::InvalidInput,
-            detail: 200,
-        })
 }
 
 fn scalar_q16(placement: &PlannedGear, key: &str) -> Result<u32, Failure> {

@@ -10,8 +10,9 @@ use std::time::Duration;
 
 const POSITIONAL: &str = include_str!("../../../plots/clock/main.conduit");
 const NAMED: &str =
-    "plot clock-demo {\n    clock: time/every(freq = 1s)\n    clock >> presentation/tick\n}\n";
-const LOCAL: &str = "plot clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock >> presentation/tick\n}\n";
+    "plot clock-demo {\n    clock: time/every(freq = 1s)\n    clock >> face/tick(\"Clock tick\")\n}\n";
+const LOCAL: &str =
+    "plot clock-demo {\n    freq = 1s\n    clock: time/every(freq)\n    clock >> face/tick(\"Clock tick\")\n}\n";
 
 #[derive(Default)]
 struct RecordingTimer {
@@ -42,8 +43,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
 
@@ -129,12 +129,11 @@ fn duration_spellings_have_one_semantic_identity_and_execute_until_explicit_stop
 }
 
 #[test]
-fn duration_and_selected_wait_contract_fail_before_tick_presentation() {
+fn duration_and_selected_wait_contract_fail_before_tick_face() {
     let (startup, profile) = catalogs();
     for invalid in ["1", "1m", "-1s", "18446744073709551615s"] {
-        let source = format!(
-            "plot bad {{\n    clock: time/every({invalid})\n    clock >> presentation/tick\n}}\n"
-        );
+        let source =
+            format!("plot bad {{\n    clock: time/every({invalid})\n    clock >> face/tick(\"Clock tick\")\n}}\n");
         let refused = match check_syntax_document(&parse_syntax_document(&source), &startup) {
             Ok(checked) => expand_canonical_plot(&checked, "bad", &profile).is_err(),
             Err(_) => true,

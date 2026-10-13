@@ -182,7 +182,7 @@ fn headless_fixture() -> Result<conduit_tongues::SpeechHostFixture, String> {
     let fixture = conduit_tongues::speech_host_fixture(OutputCondition::DegradedWavArtifact);
     if fixture.advertisement.capabilities.iter().any(|offer| {
         let kind = offer.kind_id.as_str();
-        kind == conduit_presentation::RENDERER_KIND
+        kind == conduit_face::RENDERER_KIND
             || kind.starts_with("display/")
             || kind.starts_with("graphics/")
             || kind.contains("graphics-scene")

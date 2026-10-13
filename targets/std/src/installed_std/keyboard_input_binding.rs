@@ -426,7 +426,7 @@ impl KeyboardRequestAdmission {
     pub(super) fn require_input_origin(
         &self,
         realization: InputRealization,
-        correlated: &conduit_presentation::FaceCorrelatedInputBindingProposal<'_>,
+        correlated: &conduit_face::FaceCorrelatedInputBindingProposal<'_>,
     ) -> Result<(), String> {
         let proposal = correlated.produced().proposal();
         let descriptor = self

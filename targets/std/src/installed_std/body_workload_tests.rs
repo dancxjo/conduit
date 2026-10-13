@@ -3,9 +3,7 @@
 mod cancellation;
 use super::*;
 use crate::installed_std::MAX_CORDS;
-use crate::installed_std::{
-    kernel_preparation::KernelTables, simple_presentation_host, typed_record_back,
-};
+use crate::installed_std::{kernel_preparation::KernelTables, simple_face_host, typed_record_back};
 use conduit_body::{Body, BodyPlan, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::{resource_offer, HostAdvertisement, Plan, SignId};
 use conduit_kernel::scheduler::SchedulerStatus;
@@ -30,8 +28,7 @@ fn workload() -> (HostAdvertisement, Vec<Plan>) {
     conduit_net::install_record_temporal_catalogs(&mut startup, &mut profile).unwrap();
     conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile).unwrap();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let mut host = crate::StdHost::new().advertisement().clone();
     for offer in [
         conduit_std_offers::hosted_keyboard_offer("proof/body-keyboard", "proof/body-keyboard@1"),
@@ -622,7 +619,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
         })
         .collect::<Result<_, _>>()
         .unwrap();
-    let mut tick_presentations = 0;
+    let mut tick_faces = 0;
     for _ in 0..512 {
         while let Some(request) = kernel.next_host_request() {
             let operation = lowered
@@ -703,15 +700,31 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
                     BoundedValueRef::new(value, operation.binding.maximum_output_bytes).unwrap(),
                 );
             } else {
-                if operation.target_kind.as_ref().is_some_and(|kind| {
-                    kind.as_str() == conduit_std_offers::TICK_PRESENTATION_TARGET
-                }) {
-                    tick_presentations += 1;
+                if operation
+                    .target_kind
+                    .as_ref()
+                    .is_some_and(|kind| kind.as_str() == conduit_std_offers::TICK_FACE_TARGET)
+                {
+                    tick_faces += 1;
                 }
-                assert!(simple_presentation_host::present(
+                let placement = fragments
+                    .iter()
+                    .zip(&lowered.partitions)
+                    .find_map(|(fragment, part)| {
+                        let placement_id = part.identity.placement_for_node(request.node)?;
+                        fragment
+                            .placements
+                            .iter()
+                            .find(|placement| &placement.placement_id == placement_id)
+                    })
+                    .unwrap();
+                let label =
+                    conduit_semantic_catalog::face_data_label(&placement.configuration).unwrap();
+                assert!(simple_face_host::present_named(
                     operation.target_kind.as_ref(),
                     kernel.host_value(request.input.value).unwrap(),
-                    &mut output
+                    &mut output,
+                    Some(label),
                 )
                 .unwrap());
             }
@@ -725,11 +738,11 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
             "standing workload drained unexpectedly"
         );
         step.unwrap();
-        if tick_presentations >= 6 && String::from_utf8_lossy(&output).contains("calling\n") {
+        if tick_faces >= 6 && String::from_utf8_lossy(&output).contains("calling\n") {
             break;
         }
     }
-    assert!(tick_presentations >= 6);
+    assert!(tick_faces >= 6);
     kernel.cancel().unwrap();
     assert!(matches!(kernel.try_retire(), Ok(retired) if retired.cancelled));
     let output = String::from_utf8(output).unwrap();
@@ -737,6 +750,7 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     assert_eq!(
         output
             .lines()
+            .filter_map(|line| line.strip_prefix("Button state: "))
             .filter(|line| line.starts_with("bool value="))
             .collect::<Vec<_>>(),
         ["bool value=true", "bool value=false"]
@@ -931,6 +945,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     assert_eq!(
         output
             .lines()
+            .filter_map(|line| line.strip_prefix("Button state: "))
             .filter(|line| line.starts_with("bool value="))
             .collect::<Vec<_>>(),
         ["bool value=true", "bool value=false"]
@@ -938,7 +953,7 @@ fn production_body_entry_executes_and_preserves_failed_and_refused_outcomes() {
     assert!(
         output
             .lines()
-            .filter(|line| line.starts_with("tick sequence="))
+            .filter(|line| line.starts_with("Clock tick: tick sequence="))
             .count()
             > 4
     );

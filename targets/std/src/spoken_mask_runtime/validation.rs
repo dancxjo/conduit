@@ -1,7 +1,7 @@
 //! Exact planned validation boundary for one spoken Mask session.
 
 use super::SpokenMaskSemanticSession;
-use conduit_presentation::{
+use conduit_face::{
     GeneratedManifestationCandidate, GeneratedValidationEnvelope, GeneratedValidationOutcome,
     GeneratedValidatorAssessment, GenerativePresenterRequest,
 };
@@ -24,7 +24,7 @@ impl SpokenMaskSemanticSession {
         }
         let encoded = serde_json::to_vec(&GeneratedValidationEnvelope { request, candidate })
             .map_err(|error| format!("encode generated validation envelope: {error}"))?;
-        if encoded.len() > conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES {
+        if encoded.len() > conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES {
             return Err("generated validation envelope exceeds its admitted bound".into());
         }
         Ok(encoded)
@@ -49,7 +49,7 @@ impl SpokenMaskSemanticSession {
     }
 
     pub fn assess_generated_envelope(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
-        if encoded.len() > conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES {
+        if encoded.len() > conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES {
             return Err("generated validation envelope exceeds its admitted bound".into());
         }
         let envelope: GeneratedValidationEnvelope = serde_json::from_slice(encoded)

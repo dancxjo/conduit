@@ -179,7 +179,7 @@ fn exactly_one<T>(mut values: Vec<T>, name: &str) -> Result<T, Box<dyn std::erro
 
 fn microphone_plot_source(language: &conduit_language::LanguageRequest) -> String {
     let language = crate::hosted_language::language_request_literal(language);
-    format!("plot microphone-whisper-proof {{\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip(language-request = {language})\n text: speech/recognition-to-text\n show: presentation/text\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}}\n")
+    format!("plot microphone-whisper-proof {{\n microphone: media/capture-microphone-clip\n recognize: speech/recognize-clip(language-request = {language})\n text: speech/recognition-to-text\n show: face/text(\"Message\")\n \"capture\" >> microphone.request\n microphone.clip >> recognize.clip\n recognize.result >> text.result\n text.text >> show.text\n}}\n")
 }
 
 #[cfg(test)]

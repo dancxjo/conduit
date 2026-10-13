@@ -15,7 +15,7 @@ conduit-kernel = { path = "../../../../architecture/kernel", features = ["alloc"
 conduit-net = { path = "../../../../semantics/net" }
 conduit-observatory = { path = "../../../../architecture/observatory" }
 conduit-planner = { path = "../../../../architecture/planner" }
-conduit-presentation = { path = "../../../../semantics/presentation" }
+conduit-face = { path = "../../../../semantics/face" }
 conduit-plan-lowering = { path = "../../../../architecture/plan-lowering", default-features = false }
 conduit-body = { path = "../../../../architecture/body" }
 conduit-chat = { path = "../../../../semantics/chat" }

@@ -41,7 +41,7 @@ pub enum BirthDraftRefusal {
     InvalidInventory,
     EmptySelection,
     UnavailablePlot,
-    StalePresentation,
+    StaleFace,
     RevisionExhausted,
     UnknownChoice,
     UnknownAction,
@@ -169,7 +169,7 @@ impl BirthDraft {
     }
     pub fn selection(&self, revision: u32) -> Result<BirthSelection, BirthDraftRefusal> {
         if revision != self.revision {
-            return Err(BirthDraftRefusal::StalePresentation);
+            return Err(BirthDraftRefusal::StaleFace);
         }
         let name = self.friendly_name.trim();
         if name.is_empty() {
@@ -193,7 +193,7 @@ impl BirthDraft {
     }
     fn next_revision(&self, expected: u32) -> Result<u32, BirthDraftRefusal> {
         if expected != self.revision {
-            return Err(BirthDraftRefusal::StalePresentation);
+            return Err(BirthDraftRefusal::StaleFace);
         }
         self.revision
             .checked_add(1)

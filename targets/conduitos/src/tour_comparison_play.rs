@@ -74,7 +74,7 @@ where
         kernel_signs: direct.signs.saturating_add(recursive.signs),
         timer_irq_wakes: 0,
         idle_entries: idle.idle_count(),
-        serial_presentations: serial.presentation_count(),
+        serial_faces: serial.face_count(),
         clock_monotonic: clock.now() >= started,
         pending_host_calls: 0,
         overlap_witness: false,
@@ -113,7 +113,7 @@ fn run_one<S: SerialBase, D: IdleBase>(
                     .present(value)
                     .map_err(|_| MachineRunError::SerialBaseFailure)?;
                 kernel
-                    .complete_presentation(request)
+                    .complete_face(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
             } else {
                 let maximum = output_bound(kind);

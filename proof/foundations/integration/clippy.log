@@ -28,7 +28,7 @@
    Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/home)
    Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tutorial)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/face)
    Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/ai)
     Checking conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/birth)
     Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-portable-foundations/mechanisms/protocols/midi)

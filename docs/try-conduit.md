@@ -39,7 +39,7 @@ and production execution kernel. Its authored meaning is simply:
 ```conduit
 plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
     "Hello, world." >> upper >> show
 }.
 ```

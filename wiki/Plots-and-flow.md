@@ -447,7 +447,7 @@ conversion are refused by this widening surface.
 # Unicode text is authored directly; escapes retain their original spans.
 plot greeting {
     message = "Hello, β.\n\t\"quoted\" \\ path"
-    message >> presentation/text
+    message >> face/text("Message")
 }.
 ```
 

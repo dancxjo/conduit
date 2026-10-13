@@ -79,7 +79,7 @@ impl TextPlannedKernel {
         serial: &mut impl crate::machine::SerialBase,
     ) -> Result<(), crate::composition::MachineRunError> {
         use crate::composition::MachineRunError as Error;
-        if !self.is_presentation_request(&request) {
+        if !self.is_face_request(&request) {
             return Err(Error::UnexpectedHostCall);
         }
         let input = self
@@ -105,8 +105,7 @@ impl TextPlannedKernel {
             if let Some(domain) = &mut self.protected {
                 domain.revoke(crate::protection_domain::KernelRevocationCause::PlayFailed);
             }
-            self.fail_presentation(request)
-                .map_err(|_| Error::KernelFailure)?;
+            self.fail_face(request).map_err(|_| Error::KernelFailure)?;
         }
         result
     }

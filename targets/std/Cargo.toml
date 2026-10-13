@@ -46,7 +46,7 @@ conduit-net = { path = "../../semantics/net", features = ["plot-catalog"] }
 conduit-rp2040-network-realization = { path = "../rp2040/network-realization" }
 conduit-r1-network-conformance = { path = "../../proof/conformance/network-r1" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-presentation = { path = "../../semantics/presentation" }
+conduit-face = { path = "../../semantics/face" }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-protected-line = { path = "../../architecture/protected-line" }
 conduit-signal = { path = "../../semantics/signal", features = ["host-profile"] }

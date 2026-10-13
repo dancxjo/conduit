@@ -11,7 +11,7 @@ pub fn alife_contracts() -> Vec<StandardKindContract> {
     vec![
         orbium_seed_contract(),
         lenia_step_contract(),
-        scalar_field_presentation_contract(),
+        scalar_field_face_contract(),
     ]
 }
 
@@ -59,14 +59,13 @@ pub fn lenia_step_contract() -> StandardKindContract {
     }
 }
 
-pub fn scalar_field_presentation_contract() -> StandardKindContract {
-    let definition = conduit_alife::scalar_field_presentation_definition();
+pub fn scalar_field_face_contract() -> StandardKindContract {
+    let definition = conduit_alife::scalar_field_face_definition();
     StandardKindContract {
         kind_id: definition.kind_id,
-        plain_name: "Scalar field presentation".to_string(),
-        summary:
-            "Manifest each bounded ScalarField2 through one exact admitted presentation effect."
-                .to_string(),
+        plain_name: "Scalar field face".to_string(),
+        summary: "Manifest each bounded ScalarField2 through one exact admitted face effect."
+            .to_string(),
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: standard_configuration(definition.configuration),
@@ -79,7 +78,7 @@ pub fn scalar_field_presentation_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
-        example: "show: presentation/scalar-field(title = \"Orbium\", minimum = 0, maximum = 1)"
+        example: "show: face/scalar-field(title = \"Orbium\", minimum = 0, maximum = 1)"
             .to_string(),
     }
 }
@@ -92,10 +91,10 @@ pub fn lenia_step_semantic_contract() -> Kind {
     semantic_contract(lenia_step_contract(), conduit_alife::LENIA_STEP_REVISION)
 }
 
-pub fn scalar_field_presentation_semantic_contract() -> Kind {
+pub fn scalar_field_face_semantic_contract() -> Kind {
     semantic_contract(
-        scalar_field_presentation_contract(),
-        conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION,
+        scalar_field_face_contract(),
+        conduit_alife::SCALAR_FIELD_FACE_REVISION,
     )
 }
 
@@ -148,6 +147,9 @@ fn standard_configuration(
                     maximum,
                     canonical_unit,
                 },
+                conduit_plot::KindConfigurationRule::DataLabel { maximum } => {
+                    KindConfigurationRule::DataLabel { maximum }
+                }
                 conduit_plot::KindConfigurationRule::TextBytes { maximum } => {
                     KindConfigurationRule::TextBytes { maximum }
                 }

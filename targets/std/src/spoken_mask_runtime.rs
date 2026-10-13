@@ -5,20 +5,20 @@
 //! Show. A Show is emitted only after the artifact receipt has been accepted by
 //! the exact host-side session.
 
+use conduit_face::{
+    ArtifactAcknowledgedSpokenShow, Face, GeneratedManifestation, GeneratedManifestationCandidate,
+    GeneratedValidationSession, GenerativePresenterRequest, ManifestationLifecycle, MaskShow,
+    PlannedMaskPlot, SpokenGenerationEvidence, SpokenMaskArtifactReceipt,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
-};
-use conduit_presentation::{
-    ArtifactAcknowledgedSpokenShow, GeneratedManifestation, GeneratedManifestationCandidate,
-    GeneratedValidationSession, GenerativePresenterRequest, ManifestationLifecycle, MaskShow,
-    PlannedMaskPlot, Presentation, SpokenGenerationEvidence, SpokenMaskArtifactReceipt,
 };
 
 mod speech;
 mod validation;
 
-pub const PRESENTATION_TO_REQUEST_CALL: HostCallId = HostCallId(0);
+pub const FACE_TO_REQUEST_CALL: HostCallId = HostCallId(0);
 pub const GENERATED_MANIFESTATION_TO_SPEECH_CALL: HostCallId = HostCallId(0);
 
 /// Prepared host-side semantic adapter for one exact spoken Mask Play.
@@ -28,7 +28,7 @@ pub const GENERATED_MANIFESTATION_TO_SPEECH_CALL: HostCallId = HostCallId(0);
 /// until the exact artifact receipt has been validated.
 pub struct SpokenMaskSemanticSession {
     request: GenerativePresenterRequest,
-    presentation: Presentation,
+    face: Face,
     planned_mask: PlannedMaskPlot,
     active_play: conduit_core::ActivePlayIdentity,
     front_subject: String,
@@ -38,14 +38,14 @@ pub struct SpokenMaskSemanticSession {
     generated: Option<GeneratedManifestation>,
     validator: Option<GeneratedValidationSession>,
     pending_candidate: Option<GeneratedManifestationCandidate>,
-    terminal_validation: Option<conduit_presentation::GeneratedValidationReceipt>,
+    terminal_validation: Option<conduit_face::GeneratedValidationReceipt>,
     pending_validation_request: Option<Vec<u8>>,
 }
 
 #[derive(Clone)]
 pub struct SpokenMaskPreparation {
     pub request: GenerativePresenterRequest,
-    pub presentation: Presentation,
+    pub face: Face,
     pub planned_mask: PlannedMaskPlot,
     pub front_subject: String,
     pub target_subject: String,
@@ -60,7 +60,7 @@ impl SpokenMaskPreparation {
     ) -> Result<SpokenMaskSemanticSession, String> {
         SpokenMaskSemanticSession::prepare(
             self.request.clone(),
-            self.presentation.clone(),
+            self.face.clone(),
             self.planned_mask.clone(),
             active_play,
             self.front_subject.clone(),
@@ -75,7 +75,7 @@ impl SpokenMaskSemanticSession {
     #[allow(clippy::too_many_arguments)]
     pub fn prepare(
         request: GenerativePresenterRequest,
-        presentation: Presentation,
+        face: Face,
         planned_mask: PlannedMaskPlot,
         active_play: conduit_core::ActivePlayIdentity,
         front_subject: String,
@@ -86,7 +86,7 @@ impl SpokenMaskSemanticSession {
         request
             .validate()
             .map_err(|error| format!("invalid spoken Mask request: {error:?}"))?;
-        if request.semantic_data.presentation != presentation
+        if request.semantic_data.face != face
             || active_play.plan_id != planned_mask.plan.plan_id
             || prepared_sign == available_sign
         {
@@ -97,9 +97,7 @@ impl SpokenMaskSemanticSession {
             .fragments
             .iter()
             .flat_map(|fragment| &fragment.placements)
-            .find(|placement| {
-                placement.kind_id.as_str() == conduit_presentation::GENERATED_VALIDATOR_KIND
-            })
+            .find(|placement| placement.kind_id.as_str() == conduit_face::GENERATED_VALIDATOR_KIND)
             .ok_or_else(|| "spoken Mask Plan omitted its semantic validator".to_string())?;
         let validator = GeneratedValidationSession::from_plan(
             &planned_mask.plan,
@@ -110,12 +108,12 @@ impl SpokenMaskSemanticSession {
                 .checked_plot_id
                 .as_str()
                 .into(),
-            conduit_presentation::SPOKEN_MASK_CONTRACT_REVISION.into(),
+            conduit_face::SPOKEN_MASK_CONTRACT_REVISION.into(),
         )
         .map_err(|error| format!("prepare generated validator session: {error:?}"))?;
         Ok(Self {
             request,
-            presentation,
+            face,
             planned_mask,
             active_play,
             front_subject,
@@ -130,18 +128,18 @@ impl SpokenMaskSemanticSession {
         })
     }
 
-    pub fn adapt_presentation(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
+    pub fn adapt_face(&self, encoded: &[u8]) -> Result<Vec<u8>, String> {
         if encoded.len() > self.request.bounds.maximum_input_bytes as usize {
-            return Err("spoken Mask Presentation exceeds its admitted bound".into());
+            return Err("spoken Mask Face exceeds its admitted bound".into());
         }
-        let presentation: Presentation = serde_json::from_slice(encoded)
-            .map_err(|error| format!("decode spoken Mask Presentation: {error}"))?;
-        if presentation != self.presentation {
-            return Err("spoken Mask received a stale Presentation".into());
+        let face: Face = serde_json::from_slice(encoded)
+            .map_err(|error| format!("decode spoken Mask Face: {error}"))?;
+        if face != self.face {
+            return Err("spoken Mask received a stale Face".into());
         }
         let encoded = serde_json::to_vec(&self.request)
             .map_err(|error| format!("encode generative Presenter request: {error}"))?;
-        if encoded.len() > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES {
+        if encoded.len() > conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES {
             return Err("generative Presenter request exceeds its portable bound".into());
         }
         Ok(encoded)
@@ -189,7 +187,7 @@ impl SpokenMaskSemanticSession {
             .ok_or_else(|| "spoken Mask artifact preceded generated manifestation".to_string())?;
         let prepared = MaskShow::prepared(
             &self.planned_mask,
-            &self.presentation,
+            &self.face,
             self.active_play.clone(),
             self.front_subject.clone(),
             self.target_subject.clone(),
@@ -223,35 +221,34 @@ impl SpokenMaskSemanticSession {
             artifact,
         };
         result
-            .validate(&self.presentation, generated)
+            .validate(&self.face, generated)
             .map_err(|error| format!("invalid artifact-acknowledged spoken Show: {error:?}"))?;
         serde_json::to_vec(&result).map_err(|error| format!("encode spoken Show: {error}"))
     }
 }
 
-pub struct PresentationToGenerativeRequestBack {
+pub struct FaceToGenerativeRequestBack {
     pending: bool,
     complete: bool,
-    maximum_presentation_bytes: u32,
+    maximum_face_bytes: u32,
 }
 
-impl PresentationToGenerativeRequestBack {
-    pub fn new(maximum_presentation_bytes: u32) -> Result<Self, &'static str> {
-        if maximum_presentation_bytes == 0
-            || maximum_presentation_bytes
-                > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+impl FaceToGenerativeRequestBack {
+    pub fn new(maximum_face_bytes: u32) -> Result<Self, &'static str> {
+        if maximum_face_bytes == 0
+            || maximum_face_bytes > conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
         {
-            return Err("invalid Presentation adapter bound");
+            return Err("invalid Face adapter bound");
         }
         Ok(Self {
             pending: false,
             complete: false,
-            maximum_presentation_bytes,
+            maximum_face_bytes,
         })
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack {
+impl<const PORTS: usize> StepBack<PORTS> for FaceToGenerativeRequestBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if self.complete {
             return StepOutcome::Complete;
@@ -280,12 +277,12 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
             if self.pending {
                 return fail(3);
             }
-            let Ok(input) = BoundedValueRef::new(value, self.maximum_presentation_bytes) else {
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_face_bytes) else {
                 return fail(4);
             };
-            io.consume(PortId(0)).expect("present Presentation");
-            io.request_host_call(RequestId(0), PRESENTATION_TO_REQUEST_CALL, input)
-                .expect("Presentation adapter Host Call");
+            io.consume(PortId(0)).expect("present Face");
+            io.request_host_call(RequestId(0), FACE_TO_REQUEST_CALL, input)
+                .expect("Face adapter Host Call");
             self.pending = true;
             StepOutcome::Progress
         } else {
@@ -300,19 +297,19 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationToGenerativeRequestBack
 }
 
 pub struct GeneratedManifestationToSpeechBack {
-    inner: PresentationToGenerativeRequestBack,
+    inner: FaceToGenerativeRequestBack,
 }
 
 impl GeneratedManifestationToSpeechBack {
     pub fn new(maximum_manifestation_bytes: u32) -> Result<Self, &'static str> {
         if maximum_manifestation_bytes == 0
             || maximum_manifestation_bytes
-                > conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+                > conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
         {
             return Err("invalid generated manifestation adapter bound");
         }
         Ok(Self {
-            inner: PresentationToGenerativeRequestBack::new(maximum_manifestation_bytes)?,
+            inner: FaceToGenerativeRequestBack::new(maximum_manifestation_bytes)?,
         })
     }
 }
@@ -323,7 +320,7 @@ impl<const PORTS: usize> StepBack<PORTS> for GeneratedManifestationToSpeechBack 
     }
 
     fn cancel(&mut self) {
-        <PresentationToGenerativeRequestBack as StepBack<PORTS>>::cancel(&mut self.inner);
+        <FaceToGenerativeRequestBack as StepBack<PORTS>>::cancel(&mut self.inner);
     }
 }
 
@@ -354,7 +351,7 @@ impl ArtifactAcknowledgedShowBack {
         // limits; the larger Face limit must be admitted here.
         if maximum_manifestation_bytes == 0
             || maximum_manifestation_bytes
-                > conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+                > conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
             || maximum_receipt_bytes == 0
             || maximum_receipt_bytes > 4_096
         {

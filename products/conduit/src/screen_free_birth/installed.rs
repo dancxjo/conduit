@@ -6,7 +6,7 @@ use std::{
 };
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
 use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
@@ -249,11 +249,8 @@ fn run_with_input(
                     output,
                 )?;
             }
-            BirthTransition::Born {
-                body_id,
-                presentation,
-            } => {
-                if presentation.basis.body_id.as_ref() != Some(&body_id) {
+            BirthTransition::Born { body_id, face } => {
+                if face.basis.body_id.as_ref() != Some(&body_id) {
                     return Err("retained Birth response names a different Body".into());
                 }
                 writeln!(
@@ -262,15 +259,7 @@ fn run_with_input(
                     body_id.as_str()
                 )
                 .map_err(|error| error.to_string())?;
-                return run_body(
-                    state_dir,
-                    body_id,
-                    presentation,
-                    None,
-                    input,
-                    playback,
-                    output,
-                );
+                return run_body(state_dir, body_id, face, None, input, playback, output);
             }
         }
     }
@@ -279,7 +268,7 @@ fn run_with_input(
 fn run_body(
     state_dir: &Path,
     body_id: conduit_body::BodyId,
-    mut face: Presentation,
+    mut face: Face,
     expected_host: Option<HostAdvertisement>,
     input: &mut impl CommandInput,
     playback: Option<SelectedPlayback>,
@@ -534,7 +523,7 @@ fn run_body(
 }
 
 fn present(
-    face: &Presentation,
+    face: &Face,
     execution: &mut HostedTerminalMaskExecution,
     output: &mut impl Write,
 ) -> Result<MaskShow, String> {

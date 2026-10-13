@@ -449,14 +449,14 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
     install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
         .insert(conduit_plot::KindSignature {
-            kind: "presentation/text".into(),
+            kind: "face/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
     profile
         .insert(conduit_plot::KindProjection {
-            kind_id: kind_id("presentation/text"),
-            kind_contract_revision: "test/presentation-text@1".into(),
+            kind_id: kind_id("face/text"),
+            kind_contract_revision: "test/face-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {
                 port_id: conduit_core::port_id("text"),
                 value_kind: kind_id(TEXT_INFO_ID),
@@ -508,7 +508,7 @@ fn desk_telegraph_uses_reusable_text_record_fronts_around_exact_framing() {
 
 #[cfg(feature = "plot-catalog")]
 #[test]
-fn night_radio_composes_existing_framing_queue_and_presentation() {
+fn night_radio_composes_existing_framing_queue_and_face() {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     install_typed_record_catalogs(&mut startup, &mut profile).unwrap();
@@ -518,14 +518,14 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
     install_gallery_input_test_catalogs(&mut startup, &mut profile);
     startup
         .insert(conduit_plot::KindSignature {
-            kind: "presentation/text".into(),
+            kind: "face/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
     profile
         .insert(conduit_plot::KindProjection {
-            kind_id: kind_id("presentation/text"),
-            kind_contract_revision: "test/presentation-text@1".into(),
+            kind_id: kind_id("face/text"),
+            kind_contract_revision: "test/face-text@1".into(),
             inputs: vec![conduit_core::PortDescriptor {
                 port_id: conduit_core::port_id("text"),
                 value_kind: kind_id(TEXT_INFO_ID),
@@ -560,7 +560,7 @@ fn night_radio_composes_existing_framing_queue_and_presentation() {
         ORDERED_RECORD_QUEUE_KIND,
         TYPED_RECORD_DEFRAME_KIND,
         TYPED_RECORD_TO_TEXT_KIND,
-        "presentation/text",
+        "face/text",
     ] {
         assert!(kinds.contains(&required), "Night Radio omitted {required}");
     }

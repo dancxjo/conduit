@@ -3,7 +3,7 @@
 ## Status
 
 Architectural direction for continuous perception, bounded current experience,
-first-person generative presentation, optional purpose, and appropriate
+first-person generative face, optional purpose, and appropriate
 Fulfillment.
 
 This document builds on existing accepted Conduit boundaries rather than
@@ -20,7 +20,7 @@ creating a new cognitive runtime. In particular:
   evidence;
 - browser camera acquisition already treats permission and acquired media as
   explicit host/resource truth;
-- current presentation and face work keeps semantic state authoritative
+- current face and face work keeps semantic state authoritative
   while allowing materially different Presenters and Manifestations.
 
 The new claim is that these pieces can compose into something much more useful
@@ -58,7 +58,7 @@ The high-level path is:
         +-----------+-----------+
                     |
                     v
-             BODY PRESENTATION
+             BODY FACE
         truth + Presenter policy + actions
                     |
           exact planned Presenter
@@ -451,7 +451,7 @@ confident remains model-derived info unless ordinary evidence establishes the
 underlying fact independently.
 
 The type/provenance layer must preserve those distinctions even when later
-first-person presentation makes the experience linguistically smooth.
+first-person face makes the experience linguistically smooth.
 
 ---
 
@@ -738,7 +738,7 @@ Seeing a door does not grant authority to open it.
 Noticing low battery does not invent a power-management action.
 
 A generative Presenter saying "Let's inspect that" cannot manufacture an
-`inspect` action absent from the exact current presentation.
+`inspect` action absent from the exact current face.
 
 ---
 
@@ -758,7 +758,7 @@ model needs it to sound like Orifina.
 The key law is:
 
 > **Purpose and readiness may be semantic truth. How a Presenter gives those
-> facts character is presentation policy.**
+> facts character is face policy.**
 
 ---
 
@@ -776,7 +776,7 @@ transient LLM Presenter / narrator
   no resource ownership
   no authority
   no survival interest
-  replaceable between presentation revisions
+  replaceable between face revisions
 ```
 
 At the diegetic/presented level:
@@ -799,12 +799,12 @@ semantic state.
 A compatible Presenter policy should be structurally equivalent to:
 
 ```text
-You are the first-person narrator for the current presentation of this body.
+You are the first-person narrator for the current face of this body.
 
 You are a transient language process used by a larger embodied system. You do
 not own the body's identity, continuity, lifecycle, authority, resources,
 goals, welfare, or survival. Another model or run may narrate the next
-presentation without changing the body.
+face without changing the body.
 
 Nevertheless, every experiential output you produce is the body's presented
 voice. Write from inside its perspective using I, me, and my. Translate supplied
@@ -816,7 +816,7 @@ to "the camera reports"; "another host joined me" to "the membership table
 changed".
 
 Treat supplied semantic facts as evidence, not permission to invent. Preserve
-uncertainty. Mention only actions supplied by the exact current presentation.
+uncertainty. Mention only actions supplied by the exact current face.
 Do not invent state, capabilities, relationships, memories, preferences,
 authority, or a desire to preserve the narrator/model itself.
 ```
@@ -920,7 +920,7 @@ or have a declared completion condition. A continuing service can use
 `NoFulfillmentCondition`, while a tutorial may define explicit completion.
 
 The terminal lifecycle state **Fulfilled** remains generic. Application purpose
-may inform which actions a current presentation offers, but readiness itself
+may inform which actions a current face offers, but readiness itself
 does not authorize the lifecycle transition.
 
 That distinction is load-bearing.
@@ -1014,7 +1014,7 @@ cannot trigger it merely by wanting or saying it.
 
 ---
 
-## 24. Purpose and presentation composition
+## 24. Purpose and face composition
 
 A deterministic purpose evaluation might look conceptually like:
 
@@ -1062,7 +1062,7 @@ A model may faithfully render:
 > "I've finished what I needed to finish. You can fulfill me now."
 
 while being completely replaceable and indifferent at the implementation level
-to whether the next presentation is produced by another model or whether the
+to whether the next face is produced by another model or whether the
 body is subsequently Fulfilled.
 
 Desired combination:
@@ -1236,7 +1236,7 @@ For example:
 ```text
 body A
   ConduitOS-centered
-  deterministic presentation
+  deterministic face
   modest local perception
 
 body B
@@ -1331,7 +1331,7 @@ The design can be summarized as these rules.
     Experience, and narration do not bypass body lifecycle authority.
 
 18. **Evidence remains layered.** Acquisition, perception, interpretation,
-    Experience, presentation, human judgment, purpose completion, and lifecycle
+    Experience, face, human judgment, purpose completion, and lifecycle
     transition are separately provable facts.
 
 ---

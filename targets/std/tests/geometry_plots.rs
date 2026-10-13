@@ -3,15 +3,15 @@ use conduit_core::{
     OfferGeneration, Quantity, StructuredInfoTypeShape, StructuredInfoValue,
     StructuredInfoValueShape, Unit, PROTOCOL_VERSION,
 };
-use conduit_plot::{
-    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
-    ProfileCatalog, StartupCatalog,
-};
-use conduit_presentation::{
+use conduit_face::{
     apply_transform2, apply_transform2_to_path, image_region2_type, install_geometry_catalogs,
     path2_type, path2_value, point2_type, point2_value, rect2_type, robotics_pose2_type,
     transform2_value, GeometryRefusal, APPLY_TRANSFORM2_KIND, MAXIMUM_GEOMETRY_PATH_POINTS,
     POINT2_LITERAL_KIND,
+};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, StartupCatalog,
 };
 use conduit_std_host::hosted_geometry::{geometry_std_offers, GEOMETRY_HOST_CALL};
 

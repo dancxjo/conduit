@@ -1,10 +1,9 @@
 //! Build one immutable portable projection from the living front-door session.
 
-use crate::{LocalFrontDoor, LocalFrontDoorProjection, PatchbayGraph, PatchbayPresentation};
+use crate::{LocalFrontDoor, LocalFrontDoorProjection, PatchbayFace, PatchbayGraph};
 use conduit_body::WakeLifecycle;
-use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationPropertyValue, PresentationRole,
+use conduit_face::{
+    Face, FaceBasis, FaceDisclosure, FaceDisclosureLevel, FacePropertyValue, FaceRole,
 };
 use patchbay_application::PartsView;
 
@@ -39,7 +38,7 @@ impl LocalFrontDoor {
                 .map_err(|error| error.to_string())?,
         )
         .map_err(|error| error.to_string())?;
-        let projection = PatchbayPresentation::new(
+        let projection = PatchbayFace::new(
             self.revision,
             editor.view(),
             self.plan.clone(),
@@ -50,7 +49,7 @@ impl LocalFrontDoor {
         .map_err(|error| error.to_string())?
         .with_graph(graph)
         .map_err(|error| error.to_string())?;
-        let presentation = match &self.wake {
+        let face = match &self.wake {
             Some(wake) => projection
                 .to_portable_front_door(&self.body, wake, &parts)
                 .map_err(|error| error.to_string())?,
@@ -58,10 +57,9 @@ impl LocalFrontDoor {
                 .to_portable_lulled_front_door(&self.body, &parts)
                 .map_err(|error| error.to_string())?,
         };
-        let navigation =
-            patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation)?;
+        let navigation = patchbay_application::PatchbayNavigationProjection::for_embodied(&face)?;
         Ok(LocalFrontDoorProjection {
-            presentation,
+            face,
             navigation,
             parts,
         })
@@ -78,13 +76,13 @@ fn idle_body_projection(
     let mut content = crate::portable_projection::ContentBuilder::new();
     let body_subject = content.subject_with_identity(
         format!("body/{}", session.body.body_id.as_str()),
-        PresentationRole::Body,
+        FaceRole::Body,
         "Born Body with no installed plots",
     );
     content.property(
         &body_subject,
         "workset-plot-count",
-        PresentationPropertyValue::Count(0),
+        FacePropertyValue::Count(0),
     );
     content.line(
         &body_subject,
@@ -100,9 +98,9 @@ fn idle_body_projection(
     );
     sign_ids.sort();
     sign_ids.dedup();
-    let presentation = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         session.revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(session.body.body_id.clone()),
             wake_id: None,
             source_document_id: None,
@@ -117,16 +115,15 @@ fn idle_body_projection(
         content.properties,
         content.text,
         crate::portable_projection::lifecycle_actions(WakeLifecycle::Lulled, &body_subject),
-        vec![PresentationDisclosure {
+        vec![FaceDisclosure {
             subject: body_subject,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         }],
     )
     .map_err(|error| error.to_string())?;
-    let navigation =
-        patchbay_application::PatchbayNavigationProjection::for_embodied(&presentation)?;
+    let navigation = patchbay_application::PatchbayNavigationProjection::for_embodied(&face)?;
     Ok(LocalFrontDoorProjection {
-        presentation,
+        face,
         navigation,
         parts,
     })

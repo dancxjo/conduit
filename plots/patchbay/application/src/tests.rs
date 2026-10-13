@@ -170,13 +170,13 @@ fn mask_topology_is_visible_and_requests_the_exact_body_plan() {
     )
     .unwrap();
     port.set_mask_topology(PatchbayMaskTopology {
-        presentation_id: "presentation/current".into(),
+        face_id: "face/current".into(),
         body_plan_id: PlanId::from("body-plan/current"),
         active_play_id: "play/current".into(),
         mode: PatchbayMaskMode::Graphical,
         stages: vec![PatchbayMaskStage {
             manifestation_id: "manifestation/graphical".into(),
-            implementation_id: "presentation/renderer-conduitos-native@1".into(),
+            implementation_id: "face/renderer-conduitos-native@1".into(),
             host_id: "host/current".into(),
             boot_id: "boot/current".into(),
             resource_pool_id: "pool/mask".into(),
@@ -225,7 +225,7 @@ fn mask_topology_is_visible_and_requests_the_exact_body_plan() {
 
 #[test]
 fn resident_canvas_preserves_exact_graph_and_authoritative_subject_selection() {
-    use conduit_presentation::application_canvas::ApplicationCanvas;
+    use conduit_face::application_canvas::ApplicationCanvas;
     let plot = plot();
     let mut port = PatchbayApplicationPort::open(
         &plot,

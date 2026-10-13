@@ -1,4 +1,4 @@
-//! Cross-architecture possession of one exact native presentation surface.
+//! Cross-architecture possession of one exact native face surface.
 
 use conduit_core::BaseProviderEntry;
 

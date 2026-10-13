@@ -6,8 +6,8 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DebuggerTimelineRequest {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     timeline_revision: u64,
     action: DebuggerTimelineAction,
     #[serde(default)]
@@ -35,8 +35,8 @@ impl PatchbayHtmlServer {
     pub(super) fn apply_debugger_timeline(&mut self, body: &[u8]) -> Result<Vec<u8>, ServerError> {
         let request: DebuggerTimelineRequest =
             serde_json::from_slice(body).map_err(|_| ServerError::InvalidRequest)?;
-        if request.presentation_id != self.snapshot.presentation.identity.as_str()
-            || request.presentation_revision != self.snapshot.presentation.revision
+        if request.face_id != self.snapshot.face.identity.as_str()
+            || request.face_revision != self.snapshot.face.revision
         {
             return Err(ServerError::InvalidRequest);
         }

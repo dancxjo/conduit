@@ -30,13 +30,13 @@ fn a_text_revision_damages_only_its_retained_surface() {
     let mut display = MemoryDisplay::new();
     let mut previous = Vec::new();
     for (revision, text) in [(1, "i"), (2, "W")] {
-        let presentation = Presentation::new(
+        let face = Face::new(
             revision,
             original.basis.clone(),
             original.subjects.clone(),
             vec![],
             vec![],
-            vec![PresentationText {
+            vec![FaceText {
                 subject: "front/main".into(),
                 text: text.into(),
             }],
@@ -44,7 +44,7 @@ fn a_text_revision_damages_only_its_retained_surface() {
         .unwrap();
         let active = bind_active_play(&plan.plan_id, &prepared.host_id, &prepared.boot_id, 1);
         let manifestation = Manifestation::prepared(
-            &presentation,
+            &face,
             &plan,
             active,
             prepared.placement_id.clone(),
@@ -80,19 +80,12 @@ fn a_text_revision_damages_only_its_retained_surface() {
             .push(
                 GraphicsCommand::text(bounds, bounds, GraphicsPaintRole::Foreground, text)
                     .unwrap()
-                    .with_text_role(conduit_presentation::GraphicsTextRole::Label)
+                    .with_text_role(conduit_face::GraphicsTextRole::Label)
                     .unwrap(),
             )
             .unwrap();
         compositor
-            .update_surface(
-                &presentation,
-                &manifestation,
-                &plan,
-                "surface/main",
-                &base,
-                &scene,
-            )
+            .update_surface(&face, &manifestation, &plan, "surface/main", &base, &scene)
             .unwrap();
         let frame = compositor.compose_frame(&mut display).unwrap();
         if revision == 2 {

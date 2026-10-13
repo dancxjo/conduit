@@ -3,7 +3,7 @@ use super::session::{Role, Session};
 
 const SOURCE: &str = r#"plot hello-across {
     message: text/literal("hello across one planned Cord")
-    show: presentation/text
+    show: face/text("Message")
     message >> show
 }"#;
 
@@ -106,8 +106,8 @@ fn two_browser_hosts_exchange_pulses_and_converge_over_one_planned_line() {
         };
         assert_eq!(manifestation.host_id, "browser/firefly-b");
         assert_eq!(
-            manifestation.presentation_kind,
-            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND
+            manifestation.face_kind,
+            conduit_semantic_catalog::RHYTHM_FACE_KIND
         );
         let text = manifestation.text.unwrap();
         let period = text
@@ -231,7 +231,7 @@ fn unchanged_plot_executes_two_exact_fragments_over_one_planned_line() {
             manifestation,
             ..
         } => (accepted_frame, plan_projection, manifestation),
-        _ => panic!("sink did not request its planned presentation"),
+        _ => panic!("sink did not request its planned face"),
     };
     assert_eq!(source_projection.plan_id, sink_projection.plan_id);
     assert_eq!(
@@ -328,7 +328,7 @@ fn ordinary_transform_can_run_after_the_remote_cord() {
     let source = r#"plot too-large {
         message: text/literal("hello")
         upper: text/upper
-        show: presentation/text
+        show: face/text("Message")
         message >> upper >> show
     }"#;
     let plan = super::plan::prepare("browser/a", "boot/a", "browser/b", "boot/b", source).unwrap();

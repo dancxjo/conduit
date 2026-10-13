@@ -203,7 +203,7 @@ impl RemoteSignalKernel {
                 }
                 let identity = self
                     .identity
-                    .presentation(self.presented)
+                    .face(self.presented)
                     .ok_or(UsbLinkError::InvalidGeneratedEndpoint)?;
                 control.gpio_set(0, *signal.level()).await;
                 sign.write_receipt(*signal.sequence(), *signal.level(), identity, runtime)

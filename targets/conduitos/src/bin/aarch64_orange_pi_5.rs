@@ -85,8 +85,8 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
         5,
         false,
     );
-    let presentation = front_door
-        .presentation()
+    let face = front_door
+        .face()
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut presenter = LinearPresenter::prepare(
         host_id,
@@ -97,10 +97,10 @@ pub extern "C" fn conduitos_aarch64_orange_pi_5_start() -> ! {
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
-        .present(&presentation)
+        .present(&face)
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    for line in &receipt.presentation.lines {
-        arch::present(b"CONDUIT_LINEAR_PRESENTATION ");
+    for line in &receipt.face.lines {
+        arch::present(b"CONDUIT_LINEAR_FACE ");
         arch::present(line.as_bytes());
         arch::present(b"\n");
     }

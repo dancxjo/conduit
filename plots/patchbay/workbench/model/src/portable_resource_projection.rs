@@ -1,7 +1,7 @@
 //! Resource residence disclosure over sealed Plan facts, separate from Cord/Line.
 use crate::portable_projection::ContentBuilder;
 use conduit_core::{PlanFragment, PlannedGear};
-use conduit_presentation::PresentationPropertyValue;
+use conduit_face::FacePropertyValue;
 
 pub(super) fn append_resources(
     content: &mut ContentBuilder,
@@ -13,7 +13,7 @@ pub(super) fn append_resources(
         content.property(
             subject,
             &format!("resource-{index}"),
-            PresentationPropertyValue::Text(format!(
+            FacePropertyValue::Text(format!(
                 "{} · class {} · units {}",
                 resource.pool_id.as_str(),
                 resource.class_id.as_str(),
@@ -41,7 +41,7 @@ pub(super) fn append_resources(
             ("access",format!("{:?} · {:?} · {:?} · sensitive {}",c.access,c.sharing,c.retention,c.sensitive)),
             ("bounds",format!("{} bytes · {} items · {} generations · {} reader leases · {} publication slots",c.maximum_bytes,c.maximum_items,c.generation_slots,c.reader_leases,c.publication_slots)),
             ("residence",format!("owner {} · Boot {} · residence {} · Base {}",residence.owner_host.as_str(),residence.owner_boot.as_str(),residence.residence_profile.as_str(),residence.base_id.as_str())),
-        ] { content.property(subject,&format!("resource-{index}-{key}"),PresentationPropertyValue::Text(value)); }
+        ] { content.property(subject,&format!("resource-{index}-{key}"),FacePropertyValue::Text(value)); }
     }
     append_state_boundaries(content, subject, placement, fragments);
 }
@@ -77,7 +77,7 @@ pub(super) fn append_state_boundaries(
             content.property(
                 subject,
                 &format!("state-{index}-{key}"),
-                PresentationPropertyValue::Text(value),
+                FacePropertyValue::Text(value),
             );
         }
 
@@ -85,7 +85,7 @@ pub(super) fn append_state_boundaries(
             content.property(
                 subject,
                 &format!("state-{index}-retained"),
-                PresentationPropertyValue::Text(
+                FacePropertyValue::Text(
                     "absent · requested retention only; no recovery claimed".into(),
                 ),
             );
@@ -133,7 +133,7 @@ pub(super) fn append_state_boundaries(
             content.property(
                 subject,
                 &format!("state-{index}-{key}"),
-                PresentationPropertyValue::Text(value),
+                FacePropertyValue::Text(value),
             );
         }
     }
@@ -212,7 +212,7 @@ mod tests {
         let mut content = ContentBuilder::new();
         let plot = content.subject_with_identity(
             "plot/frames",
-            conduit_presentation::PresentationRole::Plot,
+            conduit_face::FaceRole::Plot,
             "Frame Resource proof",
         );
         crate::portable_graph_projection::append_exact_graph(
@@ -229,9 +229,9 @@ mod tests {
             "sign/frame-born".into(),
         )
         .unwrap();
-        let presentation = conduit_presentation::Presentation::new(
+        let face = conduit_face::Face::new(
             1,
-            conduit_presentation::PresentationBasis {
+            conduit_face::FaceBasis {
                 body_id: Some(body.body_id),
                 wake_id: None,
                 source_document_id: Some(proof.plan.source_document_id.clone()),
@@ -247,7 +247,7 @@ mod tests {
             content.text,
         )
         .unwrap();
-        let projected = format!("{:?}", presentation.properties);
+        let projected = format!("{:?}", face.properties);
         for expected in [
             "RESOURCE image/rgba@1",
             "generation",
@@ -281,7 +281,7 @@ mod tests {
         let mut requested_content = ContentBuilder::new();
         let requested_subject = requested_content.subject_with_identity(
             "gear/requested-retention",
-            conduit_presentation::PresentationRole::Gear,
+            conduit_face::FaceRole::Gear,
             "Requested retention",
         );
         append_state_boundaries(

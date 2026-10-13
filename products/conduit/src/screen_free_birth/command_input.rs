@@ -7,7 +7,7 @@ use std::{
     thread,
 };
 
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::spoken_face_mask::SpokenFaceSession;
 
 use super::input::{parse_command, read_command_line};
@@ -39,7 +39,7 @@ pub(super) trait CommandInput {
     fn interrupting_command(
         &mut self,
         _reader: &SpokenFaceSession,
-        _face: &Presentation,
+        _face: &Face,
         _show: &MaskShow,
         _sequence: u64,
     ) -> bool {
@@ -102,7 +102,7 @@ impl CommandInput for SpokenInput {
     fn interrupting_command(
         &mut self,
         reader: &SpokenFaceSession,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         sequence: u64,
     ) -> bool {

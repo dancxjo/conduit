@@ -40,7 +40,7 @@ pub enum CandidateState {
 pub struct CandidateObservation {
     /// The exact current advertisement is retained without semantic reinterpretation.
     pub advertisement: HostAdvertisement,
-    /// Untrusted presentation data; never identity or authentication.
+    /// Untrusted face data; never identity or authentication.
     pub friendly_label: String,
     /// Exact already-observed Line provenance. This does not admit or plan the Line.
     pub observed_binding_id: LinkBindingId,

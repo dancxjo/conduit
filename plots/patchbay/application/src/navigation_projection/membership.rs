@@ -1,29 +1,28 @@
-//! Assign exact presentation items to workbench Place × Aspect projections.
+//! Assign exact face items to workbench Place × Aspect projections.
 
 use alloc::{borrow::ToOwned, string::String, vec::Vec};
-use conduit_presentation::{
-    Presentation, PresentationAspect, PresentationDepth, PresentationDisclosureLevel,
-    PresentationNavigation, PresentationPlace, PresentationProperty, PresentationRole,
-    ProjectionItem, ProjectionMembership,
+use conduit_face::{
+    Face, FaceAspect, FaceDepth, FaceDisclosureLevel, FaceNavigation, FacePlace, FaceProperty,
+    FaceRole, ProjectionItem, ProjectionMembership,
 };
 
 use super::planned_location;
 
 pub(super) fn memberships(
-    presentation: &Presentation,
-    navigation: &PresentationNavigation,
+    face: &Face,
+    navigation: &FaceNavigation,
 ) -> Result<Vec<ProjectionMembership>, String> {
     let mut memberships = Vec::new();
     for place in &navigation.places {
         for aspect in &place.aspects {
             for subject in &aspect.focusable_subjects {
-                let depth = if place.place == PresentationPlace::Entrance
-                    && presentation.subjects.iter().any(|candidate| {
-                        candidate.identity == *subject && candidate.role == PresentationRole::Plot
+                let depth = if place.place == FacePlace::Entrance
+                    && face.subjects.iter().any(|candidate| {
+                        candidate.identity == *subject && candidate.role == FaceRole::Plot
                     }) {
-                    PresentationDepth::Primary
+                    FaceDepth::Primary
                 } else {
-                    subject_depth(presentation, subject)
+                    subject_depth(face, subject)
                 };
                 push(
                     &mut memberships,
@@ -32,13 +31,12 @@ pub(super) fn memberships(
                     ProjectionItem::Subject(subject.clone()),
                     depth,
                 );
-                for (index, property) in presentation.properties.iter().enumerate() {
+                for (index, property) in face.properties.iter().enumerate() {
                     if property.subject == *subject
                         && property_belongs_to_aspect(
                             property,
                             aspect.aspect,
-                            presentation
-                                .subjects
+                            face.subjects
                                 .iter()
                                 .find(|candidate| candidate.identity == *subject)
                                 .map(|candidate| candidate.role.clone()),
@@ -53,19 +51,19 @@ pub(super) fn memberships(
                         );
                     }
                 }
-                for (index, text) in presentation.text.iter().enumerate() {
+                for (index, text) in face.text.iter().enumerate() {
                     if text.subject == *subject {
                         push(
                             &mut memberships,
                             place.place,
                             aspect.aspect,
                             ProjectionItem::Text(ordinal(index)?),
-                            PresentationDepth::Context,
+                            FaceDepth::Context,
                         );
                     }
                 }
-                for action in &presentation.actions {
-                    if action.target == *subject && aspect.aspect == PresentationAspect::Structure {
+                for action in &face.actions {
+                    if action.target == *subject && aspect.aspect == FaceAspect::Structure {
                         push(
                             &mut memberships,
                             place.place,
@@ -76,7 +74,7 @@ pub(super) fn memberships(
                     }
                 }
             }
-            for (index, relationship) in presentation.relationships.iter().enumerate() {
+            for (index, relationship) in face.relationships.iter().enumerate() {
                 if aspect
                     .focusable_subjects
                     .iter()
@@ -91,14 +89,14 @@ pub(super) fn memberships(
                         place.place,
                         aspect.aspect,
                         ProjectionItem::Relationship(ordinal(index)?),
-                        PresentationDepth::Primary,
+                        FaceDepth::Primary,
                     );
                 }
             }
         }
     }
     for follow in &navigation.follows {
-        let index = presentation
+        let index = face
             .relationships
             .iter()
             .position(|relationship| {
@@ -116,7 +114,7 @@ pub(super) fn memberships(
             place,
             aspect,
             ProjectionItem::Relationship(ordinal(index)?),
-            PresentationDepth::Primary,
+            FaceDepth::Primary,
         );
     }
     Ok(memberships)
@@ -124,10 +122,10 @@ pub(super) fn memberships(
 
 fn push(
     memberships: &mut Vec<ProjectionMembership>,
-    place: PresentationPlace,
-    aspect: PresentationAspect,
+    place: FacePlace,
+    aspect: FaceAspect,
     item: ProjectionItem,
-    depth: PresentationDepth,
+    depth: FaceDepth,
 ) {
     memberships.push(ProjectionMembership {
         place,
@@ -137,49 +135,46 @@ fn push(
     });
 }
 
-fn subject_depth(presentation: &Presentation, subject: &str) -> PresentationDepth {
-    presentation
-        .disclosures
+fn subject_depth(face: &Face, subject: &str) -> FaceDepth {
+    face.disclosures
         .iter()
         .find(|disclosure| disclosure.subject == subject)
-        .map_or(PresentationDepth::Primary, |disclosure| {
+        .map_or(FaceDepth::Primary, |disclosure| {
             disclosure_depth(disclosure.level)
         })
 }
 
-fn disclosure_depth(level: PresentationDisclosureLevel) -> PresentationDepth {
+fn disclosure_depth(level: FaceDisclosureLevel) -> FaceDepth {
     match level {
-        PresentationDisclosureLevel::Primary | PresentationDisclosureLevel::CurrentAction => {
-            PresentationDepth::Primary
-        }
-        PresentationDisclosureLevel::Context => PresentationDepth::Context,
-        PresentationDisclosureLevel::SelectedDetail => PresentationDepth::Detail,
-        PresentationDisclosureLevel::ExactProvenance => PresentationDepth::Exact,
+        FaceDisclosureLevel::Primary | FaceDisclosureLevel::CurrentAction => FaceDepth::Primary,
+        FaceDisclosureLevel::Context => FaceDepth::Context,
+        FaceDisclosureLevel::SelectedDetail => FaceDepth::Detail,
+        FaceDisclosureLevel::ExactProvenance => FaceDepth::Exact,
     }
 }
 
-fn property_depth(property: &PresentationProperty) -> PresentationDepth {
+fn property_depth(property: &FaceProperty) -> FaceDepth {
     if property.name.ends_with("-id")
         || property.name == "semantic-id"
         || property.name == "source-port"
         || property.name == "sink-port"
     {
-        PresentationDepth::Exact
+        FaceDepth::Exact
     } else {
-        PresentationDepth::Detail
+        FaceDepth::Detail
     }
 }
 
 fn property_belongs_to_aspect(
-    property: &PresentationProperty,
-    aspect: PresentationAspect,
-    role: Option<PresentationRole>,
+    property: &FaceProperty,
+    aspect: FaceAspect,
+    role: Option<FaceRole>,
 ) -> bool {
-    if role == Some(PresentationRole::Sign) {
-        return aspect == PresentationAspect::Signs;
+    if role == Some(FaceRole::Sign) {
+        return aspect == FaceAspect::Signs;
     }
-    if !matches!(role, Some(PresentationRole::Gear | PresentationRole::Cord)) {
-        return aspect == PresentationAspect::Structure;
+    if !matches!(role, Some(FaceRole::Gear | FaceRole::Cord)) {
+        return aspect == FaceAspect::Structure;
     }
     let name = property.name.as_str();
     let planned = matches!(
@@ -212,14 +207,14 @@ fn property_belongs_to_aspect(
         matches!(name, "active-play-id" | "play-state" | "pressure") || name.starts_with("sign-");
 
     if planned {
-        aspect == PresentationAspect::Plan
+        aspect == FaceAspect::Plan
     } else if playing {
-        aspect == PresentationAspect::Play
+        aspect == FaceAspect::Play
     } else {
-        aspect == PresentationAspect::Structure
+        aspect == FaceAspect::Structure
     }
 }
 
 fn ordinal(index: usize) -> Result<u16, String> {
-    u16::try_from(index).map_err(|_| "Presentation item ordinal exceeds u16".to_owned())
+    u16::try_from(index).map_err(|_| "Face item ordinal exceeds u16".to_owned())
 }

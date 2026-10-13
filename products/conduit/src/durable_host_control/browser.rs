@@ -8,7 +8,7 @@ use conduit_body::{
     BodyBiographyEvidence, HostOfferProjection, MembershipCredential, OfferDisclosureRequest,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::{
+use conduit_face::{
     MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal,
 };
 use conduit_std_host::browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress};
@@ -19,7 +19,7 @@ pub(crate) fn selected_speech_start(
     window_id: &str,
     binding: LinkBindingId,
     request: OwnerFaceSnapshotRequest,
-    show: conduit_presentation::MaskShow,
+    show: conduit_face::MaskShow,
 ) -> Result<String, String> {
     match speech_call(state_dir, |token| SpeechRequest::Start {
         protocol: PROTOCOL,
@@ -203,7 +203,7 @@ pub(crate) fn acknowledge_show(
     window_id: &str,
     binding: LinkBindingId,
     request: OwnerFaceSnapshotRequest,
-    show: conduit_presentation::MaskShow,
+    show: conduit_face::MaskShow,
 ) -> Result<(), String> {
     match call(state_dir, |token| Request::BodyBrowserShow {
         protocol: PROTOCOL,

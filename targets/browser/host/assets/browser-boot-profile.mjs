@@ -7,7 +7,7 @@ const decoder = new TextDecoder("utf-8", { fatal: true });
 
 export const BROWSER_IMPLEMENTATION_CATALOG = Object.freeze([
   definition("browser/dom@1", "browser/dom@1", []),
-  definition("browser/dom-presentation@1", "presentation/graphical", ["resource"]),
+  definition("browser/dom-face@1", "face/graphical", ["resource"]),
   definition("browser/keyboard-events@1", "input/keyboard", ["resource"]),
   definition("browser/pointer-events@1", "input/pointer-source", ["resource"]),
   definition("browser/indexeddb@1", "storage/indexeddb@1", ["secure", "resource"]),
@@ -109,7 +109,7 @@ export async function observeBrowserHostEnvironment(scope = globalThis) {
   const active = !document || document.visibilityState === "visible";
   return Object.freeze({
     "browser/dom@1": observation(Boolean(document), { page_active: active }),
-    "browser/dom-presentation@1": observation(Boolean(document), { resource_ready: Boolean(document?.body), page_active: active }),
+    "browser/dom-face@1": observation(Boolean(document), { resource_ready: Boolean(document?.body), page_active: active }),
     "browser/keyboard-events@1": observation(Boolean(scope.KeyboardEvent), { resource_ready: Boolean(document), page_active: active }),
     "browser/pointer-events@1": observation(Boolean(scope.PointerEvent), { resource_ready: Boolean(document), page_active: active }),
     "browser/indexeddb@1": observation(Boolean(scope.indexedDB), { secure_context: Boolean(scope.isSecureContext), resource_ready: Boolean(scope.indexedDB) }),

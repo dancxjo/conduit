@@ -4,7 +4,7 @@
 //! for the current Face.
 
 use super::*;
-use conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA;
+use conduit_face::OWNER_FACE_RESPONSE_SCHEMA;
 
 pub(super) const REFRESH_SCHEMA: &str = "conduit.body/native-owner-return-refresh@1";
 const REFRESH_RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-refresh-response@1";
@@ -52,8 +52,8 @@ pub(super) fn serve(
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
             code: "face-unavailable".into(),
         });
-    let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
-        if crate::durable_host_control::has_native_return_route_intent(presentation))
+    let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { face, .. }
+        if crate::durable_host_control::has_native_return_route_intent(face))
     {
         let grant = old.replacement(next_sequence)?;
         Some(grant)

@@ -96,7 +96,7 @@ fn plan_sealed_fore_ports_lower_to_exact_bounded_remote_cords() {
     let mut fragment = common::fragment();
     fragment.fore_ports = vec![
         PlannedForePort {
-            front_port_id: conduit_core::port_id("presentation"),
+            front_port_id: conduit_core::port_id("face"),
             direction: PortDirection::Input,
             placement_id: conduit_core::PlacementId::from("placement"),
             gear_port_id: conduit_core::port_id("next"),
@@ -138,7 +138,7 @@ fn plan_sealed_fore_ports_lower_to_exact_bounded_remote_cords() {
     assert_eq!(lowered.fore_ports.len(), 2);
     let input = &lowered.fore_ports[0];
     let output = &lowered.fore_ports[1];
-    assert_eq!(input.front_port_id, conduit_core::port_id("presentation"));
+    assert_eq!(input.front_port_id, conduit_core::port_id("face"));
     assert_eq!(output.front_port_id, conduit_core::port_id("show"));
     assert!(
         matches!(lowered.cords[usize::from(input.cord.0)].spec.source, CordEndpoint::Remote(id) if id == input.endpoint)

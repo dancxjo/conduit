@@ -77,7 +77,7 @@ fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
     let (mut door, mut journey, workspace) = fixture();
     assert_eq!(
         door.play_refused("state-capacity-exhausted"),
-        Err(Error::Presentation)
+        Err(Error::Face)
     );
     journey.status = JourneyStatus::Stopped;
     door.observe_body(journey.clone(), workspace.clone())

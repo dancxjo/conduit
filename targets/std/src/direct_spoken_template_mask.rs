@@ -3,7 +3,7 @@ use crate::{
     direct_spoken_mask::PreparedDirectSpokenMask,
     spoken_template_reading::PreparedSpokenTemplateReading, StdHost,
 };
-use conduit_presentation::{Presentation, SpokenTemplateWording};
+use conduit_face::{Face, SpokenTemplateWording};
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DirectSpokenTemplateLook {
@@ -51,7 +51,7 @@ impl PreparedDirectSpokenTemplateMask {
     pub fn into_preparation(
         self,
         host: &StdHost,
-        face: &Presentation,
+        face: &Face,
         front_subject: String,
         target_subject: String,
         prepared_sign: conduit_core::SignId,
@@ -75,7 +75,7 @@ impl PreparedDirectSpokenTemplateMask {
         Ok((fragment.clone(), preparation, self.reading))
     }
 
-    pub fn validate_current(&self, host: &StdHost, face: &Presentation) -> Result<(), String> {
+    pub fn validate_current(&self, host: &StdHost, face: &Face) -> Result<(), String> {
         self.reading.validate_current(host, face)?;
         let current = host.prepare_direct_spoken_mask_named(face, self.look.mask_name())?;
         if current.planned_mask != self.mask.planned_mask
@@ -90,7 +90,7 @@ impl StdHost {
     /// No effect: select checked wording and an exact Mask before any opening Play.
     pub fn prepare_direct_spoken_template_mask(
         &self,
-        face: &Presentation,
+        face: &Face,
         look: DirectSpokenTemplateLook,
     ) -> Result<PreparedDirectSpokenTemplateMask, String> {
         let reading = PreparedSpokenTemplateReading::prepare(self, face, look.entry())?;

@@ -130,10 +130,10 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     }
   }
   const continuousTranscript = bytes('continuous-screen-free.txt').toString('utf8');
-  if (continuousFace.presentation?.basis?.body_id !== continuousBody
+  if (continuousFace.face?.basis?.body_id !== continuousBody
       || continuousStatus.body_id !== continuousBody
       || continuousFace.advertisement?.boot_id !== continuousStatus.boot_id
-      || !continuousFace.presentation?.subjects?.some(subject => subject.name === 'Buy milk')) {
+      || !continuousFace.face?.subjects?.some(subject => subject.name === 'Buy milk')) {
     throw new Error('Continuous Todo speech Owner read did not reenter its browser Body');
   }
   for (const [name, wording] of [['summary', 'Groceries. 1 thing left · 0 completed Buy milk.'],
@@ -144,8 +144,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     if (play.schema !== 'conduit.body/spoken-face-playback@1'
         || turn.schema !== 'conduit.body/spoken-face-turn@1'
         || play.outcome !== 'Completed' || turn.outcome !== 'Completed'
-        || play.face_id !== continuousFace.presentation.identity
-        || play.face_revision !== continuousFace.presentation.revision
+        || play.face_id !== continuousFace.face.identity
+        || play.face_revision !== continuousFace.face.revision
         || play.boot_id !== continuousStatus.boot_id
         || play.face_id !== turn.face_id || play.source_show_id !== turn.source_show_id
         || play.spoken_segments?.map(segment => segment.text).join('') !== wording

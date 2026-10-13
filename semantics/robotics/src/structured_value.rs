@@ -11,7 +11,7 @@ use crate::{
     robotics_pose_sample_type, robotics_power_telemetry_type, robotics_range_observation_type,
     robotics_range_sample_type, robotics_sample_context_type, robotics_twist_interval_type,
 };
-use conduit_presentation::{point2_value, robotics_pose2_type, vector2_type, GeometryRefusal};
+use conduit_face::{point2_value, robotics_pose2_type, vector2_type, GeometryRefusal};
 
 use crate::structured_value_support::{
     count_value, quantity_value, record_value, require_exact, require_identity,

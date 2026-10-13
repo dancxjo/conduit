@@ -6,7 +6,7 @@ mod input_profile;
 mod input_profile_tests;
 
 use super::*;
-use conduit_presentation::PARSEC_MAP_FRAME_BYTES;
+use conduit_face::PARSEC_MAP_FRAME_BYTES;
 
 impl BodyLiveForeQueue {
     /// Preparation-only exact combined input/scan admission. Resource reservation,

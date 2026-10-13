@@ -5,7 +5,7 @@ use super::{
     Request as OrdinaryRequest, PROTOCOL,
 };
 use conduit_core::LinkBindingId;
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest};
+use conduit_face::{MaskShow, OwnerFaceSnapshotRequest};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::{

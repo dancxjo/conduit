@@ -124,7 +124,7 @@ export async function startApplication(application) {
     playFailure = null;
     thermostatFace = null; thermostatSequence = 0;
     surface.replaceChildren(); surfaces.clear();
-    play = await body.wake({ root: surface, presentationRootFor({ checkedPlotId }) {
+    play = await body.wake({ root: surface, faceRootFor({ checkedPlotId }) {
       if (!surfaces.has(checkedPlotId)) {
         const output = document.createElement('div');
         output.dataset.residentPlot = checkedPlotId;

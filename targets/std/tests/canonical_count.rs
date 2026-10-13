@@ -38,8 +38,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }

@@ -11,7 +11,7 @@ const ROOT_ENTRIES = new Set([".nojekyll", "index.html", "gallery.json", "catalo
 const VERTICALS = new Set(["index.html", "field-station-clock", "durable-notebook", "bare-metal-to-show", "pocket-theremin", "two-ollamas", "three-bodies"]);
 const JOURNEYS = new Map([
   ["one-plot-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
-  ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
+  ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "face.txt", "execution.json"]],
 ]);
 
 const [galleryRoot, siteRoot, commit] = process.argv.slice(2);

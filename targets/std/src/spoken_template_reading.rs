@@ -2,7 +2,7 @@
 //! Frames confer no cursor advancement, Show authority or output acknowledgement.
 use crate::{spoken_face_mask::SpokenBatch, StdHost};
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation, SpokenTemplateWording};
+use conduit_face::{Face, MaskShow, SpokenTemplateWording};
 use sha2::{Digest, Sha256};
 use std::ops::Range;
 
@@ -11,7 +11,7 @@ pub const MAX_SPOKEN_TEMPLATE_FRAMES: usize = 64;
 
 pub struct PreparedSpokenTemplateReading {
     host: HostAdvertisement,
-    face: Presentation,
+    face: Face,
     receipt: SpokenTemplateWording,
     ranges: Vec<Range<usize>>,
 }
@@ -19,7 +19,7 @@ pub struct PreparedSpokenTemplateReading {
 impl PreparedSpokenTemplateReading {
     /// Only the actual current Host's checked-source factory can supply wording.
     /// A caller-supplied string or documentary receipt never admits a reading.
-    pub fn prepare(host: &StdHost, face: &Presentation, entry: &str) -> Result<Self, String> {
+    pub fn prepare(host: &StdHost, face: &Face, entry: &str) -> Result<Self, String> {
         let receipt = host.prepare_spoken_template_wording(face, entry)?;
         if receipt.source_face_identity != face.identity.as_str()
             || receipt.source_face_revision != face.revision
@@ -64,7 +64,7 @@ impl PreparedSpokenTemplateReading {
         Ok(&self.receipt.wording[range.clone()])
     }
 
-    pub fn validate_current(&self, host: &StdHost, face: &Presentation) -> Result<(), String> {
+    pub fn validate_current(&self, host: &StdHost, face: &Face) -> Result<(), String> {
         if host.advertisement() != &self.host || face != &self.face {
             return Err("spoken template reading has stale current Host or Face".into());
         }
@@ -74,7 +74,7 @@ impl PreparedSpokenTemplateReading {
     pub fn prepare_frame_batch(
         &self,
         host: &StdHost,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         index: usize,
     ) -> Result<SpokenBatch, String> {
@@ -114,7 +114,7 @@ fn word_boundary(text: &str, offset: usize) -> bool {
 }
 
 fn frame_ranges(text: &str) -> Result<Vec<Range<usize>>, String> {
-    if text.is_empty() || text.len() > conduit_presentation::MAX_SPOKEN_TEMPLATE_BYTES {
+    if text.is_empty() || text.len() > conduit_face::MAX_SPOKEN_TEMPLATE_BYTES {
         return Err("spoken template script is empty or exceeds admitted bound".into());
     }
     let mut ranges = Vec::new();

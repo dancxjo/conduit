@@ -1,6 +1,6 @@
 //! Bounded delivery adapter for the read-only HTML Patchbay renderer.
 //!
-//! Its JSON carries the portable Presentation and exact Manifestation result;
+//! Its JSON carries the portable Face and exact Manifestation result;
 //! DOM/SVG objects and HTTP mechanics remain renderer-local transport facts.
 
 pub mod application_resources;
@@ -38,5 +38,5 @@ pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
 
 pub fn application_theme_css() -> Vec<u8> {
-    theme::render_theme_css(&conduit_presentation::CONDUIT_APPLICATION_THEME)
+    theme::render_theme_css(&conduit_face::CONDUIT_APPLICATION_THEME)
 }

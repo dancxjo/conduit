@@ -38,8 +38,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
@@ -56,7 +55,7 @@ fn reusable_count_runs_through_two_nested_levels_in_one_kernel_play() {
         .checked_plot_id
         .clone();
     let proof_source = format!(
-        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: presentation/count\n    clock >> nested >> show\n}}\n"
+        "{COUNT_SOURCE}\nplot nested-count (\n    bump: Tick...| >> value: $Count\n) {{\n    counter: count(7)\n    bump >> counter.bump\n    counter.value >> value\n}}\n\nplot count-nesting-driver {{\n    clock: time/every(1s)\n    nested: nested-count\n    show: face/count\n    clock >> nested >> show\n}}\n"
     );
     let checked = check_syntax_document(&parse_syntax_document(&proof_source), &startup).unwrap();
     assert_eq!(

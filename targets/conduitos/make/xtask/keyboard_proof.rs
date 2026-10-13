@@ -22,7 +22,7 @@ const NEGATIVE_CASES: [&str; 17] = [
     "invalid-unicode-entry-resets-without-text",
     "cord-item-pressure-is-finite",
     "cord-byte-underprovision-refuses-before-play",
-    "presentation-base-unavailable-is-realization-failure",
+    "face-base-unavailable-is-realization-failure",
     "usb-transfer-failure-is-source-failure",
     "source-failure-distinct-from-cancellation",
     "cancellation-terminal-without-late-output",

@@ -25,7 +25,7 @@ pub const GARDEN_MINIMAL_STEP_KIND: &str = "state/garden-step";
 pub const GARDEN_ENRICHED_STEP_KIND: &str = "state/garden-step-contact";
 pub const GARDEN_OBSERVATION_COMBINE_KIND: &str = "observation/garden-clock-contact";
 pub const GARDEN_ENRICHED_REDUCER_KIND: &str = "state/garden-step-enriched-reducer";
-pub const GARDEN_STATE_PRESENTATION_KIND: &str = "presentation/garden-state";
+pub const GARDEN_STATE_FACE_KIND: &str = "face/garden-state";
 pub const GARDEN_CONTRACT_REVISION: &str = "conduit.std/signal-garden-state@1";
 
 pub fn install_signal_garden_catalog(
@@ -73,13 +73,13 @@ pub fn install_signal_garden_catalog(
         garden_enriched_reducer_definition().inputs,
         garden_enriched_reducer_definition().outputs,
     )?;
-    let presentation = garden_state_presentation_definition();
+    let face = garden_state_face_definition();
     insert_kind(
         startup,
         profile,
-        GARDEN_STATE_PRESENTATION_KIND,
-        presentation.inputs,
-        presentation.outputs,
+        GARDEN_STATE_FACE_KIND,
+        face.inputs,
+        face.outputs,
     )
 }
 
@@ -109,18 +109,18 @@ pub fn garden_fixture_semantic_contract() -> Kind {
     garden_semantic_contract(garden_fixture_definition(), 3)
 }
 
-pub fn garden_state_presentation_definition() -> KindProjection {
+pub fn garden_state_face_definition() -> KindProjection {
     KindProjection {
-        kind_id: kind_id(GARDEN_STATE_PRESENTATION_KIND),
+        kind_id: kind_id(GARDEN_STATE_FACE_KIND),
         kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
         inputs: vec![port("state", &garden_state_type(), PortDirection::Input)],
         outputs: vec![],
-        configuration: vec![],
+        configuration: crate::data_label_configuration(),
     }
 }
 
-pub fn garden_state_presentation_semantic_contract() -> Kind {
-    garden_semantic_contract(garden_state_presentation_definition(), 1)
+pub fn garden_state_face_semantic_contract() -> Kind {
+    garden_semantic_contract(garden_state_face_definition(), 1)
 }
 
 pub fn install_signal_garden_backs(
@@ -207,13 +207,13 @@ pub fn garden_enriched_reducer_semantic_contract() -> Kind {
 
 fn garden_semantic_contract(definition: KindProjection, maximum_queue_items: u16) -> Kind {
     Kind {
-        startup_parameters: vec![],
+        startup_parameters: crate::startup_front(&definition.configuration),
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,
         inputs: definition.inputs,
         outputs: definition.outputs,
-        configuration: Default::default(),
+        configuration: definition.configuration,
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 8,
@@ -252,7 +252,11 @@ fn insert_kind(
 ) -> Result<(), String> {
     startup.insert(KindSignature {
         kind: kind.into(),
-        startup_parameters: vec![],
+        startup_parameters: if kind == GARDEN_STATE_FACE_KIND {
+            crate::data_label_startup_signature()
+        } else {
+            Vec::new()
+        },
     })?;
     profile
         .insert_kind(garden_semantic_contract(
@@ -261,7 +265,11 @@ fn insert_kind(
                 kind_contract_revision: KindIdentity::from(GARDEN_CONTRACT_REVISION),
                 inputs,
                 outputs,
-                configuration: vec![],
+                configuration: if kind == GARDEN_STATE_FACE_KIND {
+                    crate::data_label_configuration()
+                } else {
+                    Vec::new()
+                },
             },
             1,
         ))

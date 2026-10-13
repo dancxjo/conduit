@@ -24,8 +24,8 @@ test("recursive Plot Gears open through stable Fronts without changing execution
     await page.goto(url);
     await page.getByRole("button", { name: "Plot", exact: true }).click();
     const before = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(before.presentation.basis.plan_id).not.toBeNull();
-    expect(before.presentation.properties.filter((property) =>
+    expect(before.face.basis.plan_id).not.toBeNull();
+    expect(before.face.properties.filter((property) =>
       property.name === "reviewed-back" && property.value.Text === "available")).toHaveLength(4);
     expect(before.debugger ?? null).toBeNull();
 
@@ -49,8 +49,8 @@ test("recursive Plot Gears open through stable Fronts without changing execution
     await outer.press("Enter");
     await expect(outer).toHaveAttribute("aria-expanded", "false");
     const after = await (await fetch(`${url}/api/snapshot`)).json();
-    expect(after.presentation.identity).toBe(before.presentation.identity);
-    expect(after.presentation.basis).toEqual(before.presentation.basis);
+    expect(after.face.identity).toBe(before.face.identity);
+    expect(after.face.basis).toEqual(before.face.basis);
     expect(after.renderer.plan).toEqual(before.renderer.plan);
     expect(after.debugger ?? null).toBeNull();
   } finally {

@@ -23,10 +23,10 @@ pub(super) static LENIA_STEP_FACTORY: BackFactory = BackFactory {
     prepare: prepare_lenia,
 };
 
-pub(super) static SCALAR_FIELD_PRESENTATION_FACTORY: BackFactory = BackFactory {
-    implementation_id: conduit_std_offers::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
-    budget: presentation_budget,
-    prepare: prepare_presentation,
+pub(super) static SCALAR_FIELD_FACE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::SCALAR_FIELD_FACE_IMPLEMENTATION,
+    budget: face_budget,
+    prepare: prepare_face,
 };
 
 pub(super) struct OrbiumSeedBack {
@@ -41,7 +41,7 @@ pub(super) struct LeniaStepBack {
     next_tick: u32,
 }
 
-pub(super) struct ScalarFieldPresentationBack {
+pub(super) struct ScalarFieldFaceBack {
     pending: Option<RequestId>,
     next: u32,
 }
@@ -190,14 +190,14 @@ impl<const PORTS: usize> StepBack<PORTS> for LeniaStepBack {
     }
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for ScalarFieldPresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for ScalarFieldFaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return step_fail(FailureCode::InvalidLifecycle, 190);
             }
             io.consume_host_completion()
-                .expect("observed scalar-field Presentation completion");
+                .expect("observed scalar-field Face completion");
             self.pending = None;
             if let Some(failure) = outcome.failure {
                 return StepOutcome::Fail(failure);
@@ -219,15 +219,15 @@ impl<const PORTS: usize> StepBack<PORTS> for ScalarFieldPresentationBack {
             };
             let request = RequestId(self.next);
             io.consume(PortId(0))
-                .expect("present scalar-field Presentation input");
+                .expect("present scalar-field Face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("scalar-field Presentation Host Call");
+                .expect("scalar-field Face Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
-                .expect("observed scalar-field Presentation closure");
+                .expect("observed scalar-field Face closure");
             return StepOutcome::Complete;
         }
         StepOutcome::Await
@@ -255,7 +255,7 @@ impl LeniaStepBack {
     }
 }
 
-impl ScalarFieldPresentationBack {}
+impl ScalarFieldFaceBack {}
 
 pub(super) fn parameters(placement: &PlannedGear) -> Result<LeniaParameters, String> {
     validate_lenia(placement)?;
@@ -333,8 +333,8 @@ fn prepare_lenia(
     Ok(InstalledBack::LeniaStep(LeniaStepBack::new()))
 }
 
-fn presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
-    validate_presentation(placement)?;
+fn face_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_face(placement)?;
     Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
@@ -344,17 +344,15 @@ fn presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     })
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate_presentation(placement)?;
-    Ok(InstalledBack::ScalarFieldPresentation(
-        ScalarFieldPresentationBack {
-            pending: None,
-            next: 0,
-        },
-    ))
+    validate_face(placement)?;
+    Ok(InstalledBack::ScalarFieldFace(ScalarFieldFaceBack {
+        pending: None,
+        next: 0,
+    }))
 }
 
 fn validate_seed(placement: &PlannedGear) -> Result<(), String> {
@@ -394,29 +392,30 @@ fn validate_lenia(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
-    let offer = conduit_std_offers::scalar_field_presentation_offer();
+fn validate_face(placement: &PlannedGear) -> Result<(), String> {
+    conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    let offer = conduit_std_offers::scalar_field_face_offer();
     let minimum = scalar_raw(placement, conduit_alife::MINIMUM_KEY)?;
     let maximum = scalar_raw(placement, conduit_alife::MAXIMUM_KEY)?;
-    if placement.kind_id.as_str() != conduit_alife::SCALAR_FIELD_PRESENTATION_KIND
-        || placement.kind_contract_revision.as_str()
-            != conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION
+    if placement.kind_id.as_str() != conduit_alife::SCALAR_FIELD_FACE_KIND
+        || placement.kind_contract_revision.as_str() != conduit_alife::SCALAR_FIELD_FACE_REVISION
         || placement.execution_profile_id.as_str()
-            != conduit_std_offers::SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE
+            != conduit_std_offers::SCALAR_FIELD_FACE_EXECUTION_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_offers::SCALAR_FIELD_PRESENTATION_IMPLEMENTATION
-        || placement.artifact_id.as_str() != conduit_std_offers::SCALAR_FIELD_PRESENTATION_ARTIFACT
+            != conduit_std_offers::SCALAR_FIELD_FACE_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::SCALAR_FIELD_FACE_ARTIFACT
         || placement.inputs != offer.inputs
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
         || placement.resources.len() != 1
-        || placement.configuration.len() != 3
-        || text_configuration(placement, conduit_alife::TITLE_KEY)?.len() > 64
+        || placement.configuration.len() != 4
+        || {
+            let title = text_configuration(placement, conduit_alife::TITLE_KEY)?;
+            title.len() > 64
+        }
         || minimum >= maximum
     {
-        return Err(
-            "planned scalar-field presentation identity does not match its installation".into(),
-        );
+        return Err("planned scalar-field face identity does not match its installation".into());
     }
     Ok(())
 }

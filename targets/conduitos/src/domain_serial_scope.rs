@@ -3,8 +3,7 @@ use crate::domain_scope_identity::{identity, parse_identity};
 use crate::{
     machine::BaseKind,
     offer::{
-        BaseProviderBinding, HostOffer, INDICATOR_PRESENTATION_IMPLEMENTATION,
-        TEXT_PRESENTATION_IMPLEMENTATION,
+        BaseProviderBinding, HostOffer, INDICATOR_FACE_IMPLEMENTATION, TEXT_FACE_IMPLEMENTATION,
     },
     protected_region::{BodyRegionBinding, DomainRefusal, RegionBinding},
     protection_domain::KernelCapabilityScope,
@@ -49,7 +48,7 @@ impl SerialScope {
                 [0; 32],
             ),
             fixed,
-            Presentation::Text,
+            Face::Text,
         )?;
         prepared.body_owner = Some(body_owner(plot, region));
         Ok(prepared)
@@ -102,9 +101,9 @@ impl SerialScope {
                 parse_identity(binding.active.active_play_id.as_str())?,
             ),
             fixed,
-            Presentation::Text,
+            Face::Text,
         )?;
-        // This ordinary literal composition emits one value. The presentation
+        // This ordinary literal composition emits one value. The face
         // kind's larger configured ceiling does not grant additional effects.
         selected.scope.maximum_operations = 1;
         Ok(selected)
@@ -127,7 +126,7 @@ impl SerialScope {
                 parse_identity(binding.active.active_play_id.as_str())?,
             ),
             fixed,
-            Presentation::Indicator,
+            Face::Indicator,
         )
     }
 
@@ -149,7 +148,7 @@ impl SerialScope {
                 parse_identity(binding.active.active_play_id.as_str())?,
             ),
             fixed,
-            Presentation::Count,
+            Face::Count,
         )
     }
 
@@ -188,7 +187,7 @@ impl SerialScope {
                 ),
             ),
             fixed,
-            Presentation::Text,
+            Face::Text,
         )?;
         admitted.body_owner = Some(body_owner(&binding.plot, &binding.region));
         Ok(admitted)
@@ -201,7 +200,7 @@ impl SerialScope {
         region_id: &conduit_core::ExecutionRegionId,
         (plan_id, play_id): ([u8; 32], [u8; 32]),
         fixed: &HostOffer<'_>,
-        presentation: Presentation,
+        face: Face,
     ) -> Result<Self, DomainRefusal> {
         fixed.validate().map_err(|_| DomainRefusal::WrongBinding)?;
         if host.as_str() != crate::identity::hex(&fixed.host_id)
@@ -223,15 +222,15 @@ impl SerialScope {
             .find(|region| &region.region_id == region_id)
             .ok_or(DomainRefusal::WrongBinding)?;
         let mut placements = fragment.placements.iter().filter(|placement| {
-            placement.kind_id.as_str() == presentation.kind()
+            placement.kind_id.as_str() == face.kind()
                 && region.admitted_placements.contains(&placement.placement_id)
         });
         let placement = placements.next().ok_or(DomainRefusal::WrongBinding)?;
         if placements.next().is_some()
-            || placement.implementation_id.as_str() != presentation.implementation()
+            || placement.implementation_id.as_str() != face.implementation()
             || !placement.authority.is_empty()
         {
-            // This reviewed local presentation contract has no external-subject grant.
+            // This reviewed local face contract has no external-subject grant.
             // Other effect contracts must provide their own exact authority admission.
             return Err(DomainRefusal::WrongBinding);
         }
@@ -274,14 +273,15 @@ impl SerialScope {
             || call.maximum_in_flight != 1
             || call.maximum_input_bytes == 0
             || call.maximum_input_bytes > capability.maximum_input_bytes
-            || call.maximum_output_bytes > presentation.maximum_completion_bytes()
-            || (matches!(presentation, Presentation::Count) && call.maximum_input_bytes != 8)
+            || call.maximum_output_bytes > face.maximum_completion_bytes()
+            || (matches!(face, Face::Count) && call.maximum_input_bytes != 8)
         {
             return Err(DomainRefusal::WrongBinding);
         }
-        let mut resources = placement.resources.iter().filter(|resource| {
-            resource.class_id.as_str() == "conduit.resource/presentation-slot@1"
-        });
+        let mut resources = placement
+            .resources
+            .iter()
+            .filter(|resource| resource.class_id.as_str() == "conduit.resource/face-slot@1");
         let resource = resources.next().ok_or(DomainRefusal::WrongBinding)?;
         if resources.next().is_some() || resource.units != 1 || resource.protected.is_some() {
             return Err(DomainRefusal::WrongBinding);
@@ -299,12 +299,12 @@ impl SerialScope {
             })
             .ok_or(DomainRefusal::WrongBinding)?;
         let _ = pool;
-        let maximum_operations = match presentation {
-            Presentation::Count if placement.configuration.is_empty() => 2,
-            Presentation::Count => return Err(DomainRefusal::WrongBinding),
-            Presentation::Indicator if placement.configuration.is_empty() => 1,
-            Presentation::Indicator => return Err(DomainRefusal::WrongBinding),
-            Presentation::Text => placement
+        let maximum_operations = match face {
+            Face::Count if placement.configuration.is_empty() => 2,
+            Face::Count => return Err(DomainRefusal::WrongBinding),
+            Face::Indicator if placement.configuration.is_empty() => 1,
+            Face::Indicator => return Err(DomainRefusal::WrongBinding),
+            Face::Text => placement
                 .configuration
                 .iter()
                 .find_map(|entry| match (entry.key.as_str(), &entry.value) {
@@ -336,7 +336,7 @@ impl SerialScope {
                 resource: identity(b"resource", &[resource.pool_id.as_str().as_bytes()]),
                 resource_generation: u32::try_from(fixed.generation)
                     .map_err(|_| DomainRefusal::WrongBinding)?,
-                operation: if matches!(presentation, Presentation::Count) {
+                operation: if matches!(face, Face::Count) {
                     COUNT_PRESENT_OPERATION
                 } else {
                     SERIAL_PRESENT_OPERATION
@@ -350,14 +350,14 @@ impl SerialScope {
                     ],
                 ),
                 authority: identity(
-                    b"local-selected-presentation",
+                    b"local-selected-face",
                     &[
                         placement.capability_id.as_str().as_bytes(),
                         call.contract_id.as_str().as_bytes(),
                     ],
                 ),
-                maximum_parameter_bytes: match presentation {
-                    Presentation::Count => 20,
+                maximum_parameter_bytes: match face {
+                    Face::Count => 20,
                     _ => call.maximum_input_bytes,
                 },
                 maximum_work_units: 1,
@@ -409,31 +409,31 @@ impl SerialScope {
 }
 
 #[derive(Clone, Copy)]
-enum Presentation {
+enum Face {
     Text,
     Indicator,
     Count,
 }
 
-impl Presentation {
+impl Face {
     fn kind(self) -> &'static str {
         match self {
-            Self::Count => conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-            Self::Text => conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-            Self::Indicator => conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
+            Self::Count => conduit_semantic_catalog::COUNT_FACE_KIND,
+            Self::Text => conduit_semantic_catalog::TEXT_FACE_KIND,
+            Self::Indicator => conduit_semantic_catalog::INDICATOR_FACE_KIND,
         }
     }
     fn maximum_completion_bytes(self) -> u32 {
         match self {
-            Self::Text | Self::Count => conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+            Self::Text | Self::Count => conduit_core::MAX_FACE_COMPLETION_BYTES,
             Self::Indicator => 0,
         }
     }
     fn implementation(self) -> &'static str {
         match self {
-            Self::Count => crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
-            Self::Text => TEXT_PRESENTATION_IMPLEMENTATION,
-            Self::Indicator => INDICATOR_PRESENTATION_IMPLEMENTATION,
+            Self::Count => crate::offer::COUNT_FACE_IMPLEMENTATION,
+            Self::Text => TEXT_FACE_IMPLEMENTATION,
+            Self::Indicator => INDICATOR_FACE_IMPLEMENTATION,
         }
     }
 }

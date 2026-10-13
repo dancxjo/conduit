@@ -1,8 +1,8 @@
 //! ConduitOS selection of the Tour-owned renderer-neutral workspace.
 
-use conduit_presentation::{
+use conduit_face::{
     ApplicationView, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, LayoutRect, SemanticPresentationRefusal,
+    GraphicsShapeStyle, LayoutRect, SemanticFaceRefusal,
 };
 use conduit_tour_model::{
     TourLayoutRefusal, TourRect, TourWorkspaceLayout, TourWorkspacePhase, TourWorkspaceState,
@@ -71,7 +71,7 @@ pub(crate) fn inspector_width(width: u16) -> u16 {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceSceneRefusal {
-    Presentation(SemanticPresentationRefusal),
+    Face(SemanticFaceRefusal),
     Layout(TourLayoutRefusal),
     MissingRegion,
     Graph,
@@ -81,9 +81,9 @@ pub enum TourWorkspaceSceneRefusal {
 pub fn application_view(
     revision: u32,
     phase: TourWorkspacePhase,
-) -> Result<ApplicationView, SemanticPresentationRefusal> {
+) -> Result<ApplicationView, SemanticFaceRefusal> {
     TourWorkspaceState::canonical(revision, phase)
-        .presentation()?
+        .face()?
         .lower()
 }
 
@@ -135,9 +135,9 @@ pub(crate) fn scene_with_graph(
     observations: Option<&crate::text_composition::TextObservations>,
 ) -> Result<GraphicsScene, TourWorkspaceSceneRefusal> {
     let view = state
-        .presentation()
-        .and_then(|presentation| presentation.lower())
-        .map_err(TourWorkspaceSceneRefusal::Presentation)?;
+        .face()
+        .and_then(|face| face.lower())
+        .map_err(TourWorkspaceSceneRefusal::Face)?;
     let layout =
         layout_for_state(width, height, state).map_err(TourWorkspaceSceneRefusal::Layout)?;
     let regions = [
@@ -178,7 +178,7 @@ pub(crate) fn scene_with_graph(
         scene
             .push(frame.map_err(TourWorkspaceSceneRefusal::Graphics)?)
             .map_err(TourWorkspaceSceneRefusal::Graphics)?;
-        let label = if node.component == conduit_presentation::ApplicationComponent::CodeBlock
+        let label = if node.component == conduit_face::ApplicationComponent::CodeBlock
             || node.text.is_empty()
         {
             node.value.as_str()
@@ -224,9 +224,9 @@ pub(crate) fn scene_with_graph(
         state,
     )?;
     let run_label = match state.run_availability() {
-        conduit_presentation::ActionAvailability::Available => "Run Plan",
-        conduit_presentation::ActionAvailability::Busy { .. }
-        | conduit_presentation::ActionAvailability::Unavailable { .. } => "Run inactive",
+        conduit_face::ActionAvailability::Available => "Run Plan",
+        conduit_face::ActionAvailability::Busy { .. }
+        | conduit_face::ActionAvailability::Unavailable { .. } => "Run inactive",
     };
     let run = run_bounds(&layout);
     scene
@@ -348,7 +348,7 @@ fn inset(rect: LayoutRect) -> LayoutRect {
 
 #[cfg(test)]
 mod tests {
-    use conduit_presentation::{ApplicationComponent, GraphicsCommandKind};
+    use conduit_face::{ApplicationComponent, GraphicsCommandKind};
     use conduit_tour_model::CANONICAL_SOURCE;
 
     use super::*;
@@ -432,7 +432,7 @@ mod tests {
         assert!(scene.commands()[5].payload().ends_with("}."));
         assert!(scene.commands()[7].payload().contains("Patchbay open"));
         assert!(scene.commands().iter().take(16).all(|command| {
-            command.clip_class() == conduit_presentation::GraphicsClipClass::FullyVisible
+            command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
         }));
     }
 
@@ -495,7 +495,7 @@ mod tests {
             scene
                 .commands()
                 .iter()
-                .any(|command| command.payload().starts_with("result\npresentation/text"))
+                .any(|command| command.payload().starts_with("result\nface/text"))
         );
     }
 

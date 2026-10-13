@@ -6,12 +6,12 @@ use conduit_core::{
     ResourceSemanticIdentity, ResourceVersionIdentity, StructuredInfoRefusal, StructuredInfoValue,
     Unit,
 };
-use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
-use conduit_presentation::{
+use conduit_face::{
     Extent2, ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, Point2, Rect2,
     VisionColorSample, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,
     VisionLandmarkSlot, VisionLandmarks, VisionProvenance,
 };
+use conduit_plot::rust_binding::{NativeBindingRefusal, NativeRustBinding};
 
 use crate::{
     validate_confidence, VisionRefusal, MAXIMUM_VISION_LANDMARKS, VISION_IMAGE_ACCESS_CLASS,

@@ -1,7 +1,7 @@
 use super::*;
 use conduit_core::{Quantity, Unit, QUANTITY_ENCODED_LEN, QUANTITY_INFO_ID};
-fn basis() -> PresentationContributionBasis {
-    PresentationContributionBasis {
+fn basis() -> FaceContributionBasis {
+    FaceContributionBasis {
         checked_plot_id: "checked/thermostat".into(),
         plan_id: "plan/thermostat".into(),
         active_play_id: "play/thermostat".into(),
@@ -22,7 +22,7 @@ fn exact_celsius_content_retains_half_degrees_and_negative_observations() {
             .iter()
             .find(|property| property.subject == subject && property.name == "value")
             .unwrap();
-        let PresentationPropertyValue::TypedValue { contract, bytes } = &property.value else {
+        let FacePropertyValue::TypedValue { contract, bytes } = &property.value else {
             panic!("temperature must be exact typed content")
         };
         assert_eq!(contract.value_kind.as_str(), QUANTITY_INFO_ID);
@@ -40,7 +40,7 @@ fn exact_celsius_content_retains_half_degrees_and_negative_observations() {
         .properties
         .iter()
         .any(|property| property.subject == "thermostat/current"
-            && matches!(property.value, PresentationPropertyValue::TypedValue { .. })));
+            && matches!(property.value, FacePropertyValue::TypedValue { .. })));
     assert!(!face
         .properties
         .iter()
@@ -68,14 +68,14 @@ fn controls_expose_named_groups_and_selection_without_identity_prefix_inference(
             .unwrap();
         assert_eq!(
             group.role,
-            PresentationRole::Semantic(conduit_core::kind_id(CHOICE_GROUP_ROLE))
+            FaceRole::Semantic(conduit_core::kind_id(CHOICE_GROUP_ROLE))
         );
         let options = face
             .relationships
             .iter()
             .filter(|relationship| {
                 relationship.source == group.identity
-                    && relationship.kind == PresentationRelationshipKind::Contains
+                    && relationship.kind == FaceRelationshipKind::Contains
             })
             .map(|relationship| &relationship.target)
             .collect::<Vec<_>>();
@@ -85,7 +85,7 @@ fn controls_expose_named_groups_and_selection_without_identity_prefix_inference(
                 face.properties.iter().any(|property| {
                     &property.subject == **option
                         && property.name == "selected"
-                        && property.value == PresentationPropertyValue::Flag(true)
+                        && property.value == FacePropertyValue::Flag(true)
                 })
             })
             .collect::<Vec<_>>();
@@ -109,7 +109,7 @@ fn temperature_content_keeps_exact_source_basis_and_canonical_whole_degrees() {
         .iter()
         .find(|property| property.subject == "thermostat/target" && property.name == "value")
         .unwrap();
-    let PresentationPropertyValue::TypedValue { bytes, .. } = &property.value else {
+    let FacePropertyValue::TypedValue { bytes, .. } = &property.value else {
         panic!("typed temperature")
     };
     let quantity = Quantity::decode(bytes).unwrap();

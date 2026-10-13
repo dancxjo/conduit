@@ -172,8 +172,8 @@ pub fn validate_sign_artifact(artifact: &SignArtifact) -> Result<(), String> {
     } else if contextual_plan.is_some() {
         return Err("non-Plan Sign artifact cannot carry a Plan context".into());
     }
-    if artifact.sign.presentation_id.is_some() && artifact.sign.active_play_id.is_none() {
-        return Err("presentation Sign artifact has no active Play identity".into());
+    if artifact.sign.face_id.is_some() && artifact.sign.active_play_id.is_none() {
+        return Err("face Sign artifact has no active Play identity".into());
     }
     if let Some(placement_id) = &artifact.sign.placement_id {
         let plan = contextual_plan.ok_or("placement Sign lacks Plan context")?;
@@ -229,9 +229,12 @@ fn validate_failure_message(message: Option<&str>) -> Result<(), String> {
 
 fn validate_sign_payload(kind: &ObservationKind) -> Result<(), String> {
     match kind {
+        ObservationKind::ValuePresented { label, .. } if !conduit_core::valid_data_label(label) => {
+            Err("Sign artifact data label violates its finite construction contract".into())
+        }
         ObservationKind::ValueProduced { value }
         | ObservationKind::ValueAccepted { value }
-        | ObservationKind::ValuePresented { value }
+        | ObservationKind::ValuePresented { value, .. }
             if value.encoded.len() > MAXIMUM_SIGN_VALUE_BYTES =>
         {
             Err("Sign artifact value exceeds its finite bound".into())
@@ -291,7 +294,7 @@ mod tests {
             sign: Observation {
                 sign_id: sign_identity.sign_id,
                 active_play_id: Some(identity.active_play_id),
-                presentation_id: None,
+                face_id: None,
                 host_id: identity.host_id,
                 boot_id: identity.boot_id,
                 plan_id: Some(plan.plan_id.clone()),

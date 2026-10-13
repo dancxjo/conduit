@@ -1,7 +1,7 @@
 # Emergency authority reduction
 
 Emergency control is a small authority-reduction boundary beneath ordinary
-Plots, Plans, Plays, presentation, speech-to-text, and model inference. It is
+Plots, Plans, Plays, face, speech-to-text, and model inference. It is
 not a second lifecycle system. A host admits an exact `EmergencyPolicy`; local
 physical, local acoustic, keyboard-rescue, and authenticated remote adapters
 may then submit boot-scoped `EmergencyRequest` values with their distinct

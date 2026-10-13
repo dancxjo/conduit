@@ -1,5 +1,5 @@
 use super::*;
-use conduit_presentation::{
+use conduit_face::{
     actualize_mask_journey, MaskJourneyAction, MaskJourneyEmbodiment, MaskPlanningDisposition,
     MaskShowDisposition, SelectedMaskPlotRoute,
 };
@@ -8,7 +8,7 @@ use conduit_presentation::{
 pub struct BrowserMaskJourneyOutcome {
     pub action_id: &'static str,
     pub concrete_event: String,
-    pub presentation_id: String,
+    pub face_id: String,
     pub selected_mask_plot_id: Option<String>,
     pub plan_id: conduit_core::PlanId,
     pub selected_route_id: Option<String>,
@@ -46,7 +46,7 @@ impl BrowserJourney<'_> {
         BrowserMaskJourneyOutcome {
             action_id: action.id(),
             concrete_event: event.into(),
-            presentation_id: self.initial.presentation.identity.as_str().into(),
+            face_id: self.initial.face.identity.as_str().into(),
             selected_mask_plot_id: self
                 .control
                 .selected
@@ -277,8 +277,8 @@ pub(super) fn actualize(
         return Err("browser Mask journey requires four acknowledged Show occurrences".into());
     };
     if observations.iter().any(|observation| {
-        observation.presentation.identity != initial.presentation.identity
-            || observation.presentation.revision != initial.presentation.revision
+        observation.face.identity != initial.face.identity
+            || observation.face.revision != initial.face.revision
             || observation.mask_show.show.lifecycle != ManifestationLifecycle::Available
     }) {
         return Err(

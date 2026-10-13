@@ -28,21 +28,18 @@ pub(super) fn validate(frame: &BrowserAdmissionEgress) -> Result<(), BrowserAdmi
             match response {
                 OwnerFaceSnapshotResponse::Snapshot {
                     schema,
-                    presentation,
+                    face,
                     interactions_admitted,
                     route,
                     ..
                 } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
-                    presentation
-                        .validate()
+                    face.validate()
                         .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
                     if let Some(route) = route {
                         route
                             .verify_seal()
                             .map_err(|_| BrowserAdmissionFrameError::InvalidFaceSnapshot)?;
-                        if route.face_id != presentation.identity
-                            || route.face_revision != presentation.revision
-                        {
+                        if route.face_id != face.identity || route.face_revision != face.revision {
                             return Err(BrowserAdmissionFrameError::InvalidFaceSnapshot);
                         }
                     } else if *interactions_admitted {

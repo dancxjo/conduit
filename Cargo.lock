@@ -1590,6 +1590,7 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-finance",
  "conduit-host-browser-make",
  "conduit-host-make",
@@ -1601,7 +1602,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-protected-line",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -1636,11 +1636,11 @@ dependencies = [
  "conduit-composite",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-kernel",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -1658,9 +1658,9 @@ name = "conduit-alife"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-time",
  "conduit-wire",
  "sha2 0.10.9",
@@ -1700,9 +1700,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "serde",
  "serde_json",
  "sha2 0.10.9",
@@ -1736,8 +1736,8 @@ name = "conduit-body-invitation-plot"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -1747,8 +1747,8 @@ dependencies = [
  "conduit-body",
  "conduit-body-invitation-plot",
  "conduit-core",
+ "conduit-face",
  "conduit-plot-library",
- "conduit-presentation",
  "conduit-tutorial-plot",
  "serde_json",
 ]
@@ -1759,11 +1759,11 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-host-make",
  "conduit-patchbay-workbench-conformance",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-std-offers",
@@ -1788,10 +1788,10 @@ name = "conduit-browser-mask-offer"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-host-browser-make",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -1802,11 +1802,11 @@ dependencies = [
  "conduit-body-make",
  "conduit-browser-host",
  "conduit-core",
+ "conduit-face",
  "conduit-kernel",
  "conduit-patchbay-workbench",
  "conduit-plan-lowering",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-host",
  "conduit-tongues",
@@ -1833,6 +1833,7 @@ dependencies = [
  "conduit-composite",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-host-avr-make",
  "conduit-host-browser-make",
  "conduit-host-conduitos-make",
@@ -1852,7 +1853,6 @@ dependencies = [
  "conduit-planner",
  "conduit-plot",
  "conduit-plot-library",
- "conduit-presentation",
  "conduit-protected-line",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -1899,10 +1899,10 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-net",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-text",
  "serde",
@@ -1929,9 +1929,9 @@ name = "conduit-conduitos-mask-offer"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -1991,6 +1991,23 @@ name = "conduit-emergency-keyword-spotter"
 version = "0.1.0"
 
 [[package]]
+name = "conduit-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-human",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-std-offers",
+ "conduit-time",
+ "postcard",
+ "serde",
+ "serde_json",
+ "sha2 0.10.9",
+]
+
+[[package]]
 name = "conduit-finance"
 version = "0.1.0"
 dependencies = [
@@ -2003,8 +2020,8 @@ name = "conduit-home-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -2054,8 +2071,8 @@ name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-offers",
  "serde",
@@ -2186,6 +2203,7 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-human",
  "conduit-kernel",
  "conduit-language",
@@ -2196,7 +2214,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
@@ -2221,9 +2238,9 @@ name = "conduit-patchbay-workbench-conformance"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "conduit-std-offers",
  "conduit-text",
@@ -2240,6 +2257,7 @@ dependencies = [
  "conduit-core",
  "conduit-create-oi",
  "conduit-embedded-build",
+ "conduit-face",
  "conduit-human",
  "conduit-kernel",
  "conduit-mpu6050",
@@ -2247,7 +2265,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -2268,12 +2285,12 @@ dependencies = [
  "conduit-body",
  "conduit-composite",
  "conduit-core",
+ "conduit-face",
  "conduit-human",
  "conduit-kernel",
  "conduit-pete",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-std-host",
 ]
 
@@ -2327,25 +2344,8 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
-]
-
-[[package]]
-name = "conduit-presentation"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-human",
- "conduit-planner",
- "conduit-plot",
- "conduit-std-offers",
- "conduit-time",
- "postcard",
- "serde",
- "serde_json",
- "sha2 0.10.9",
 ]
 
 [[package]]
@@ -2395,8 +2395,8 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
 ]
 
 [[package]]
@@ -2440,6 +2440,7 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-education",
+ "conduit-face",
  "conduit-human",
  "conduit-kernel",
  "conduit-midi",
@@ -2447,7 +2448,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-process",
  "conduit-purpose",
  "conduit-robotics",
@@ -2520,6 +2520,7 @@ dependencies = [
  "conduit-create-oi",
  "conduit-data",
  "conduit-emergency-keyword-spotter",
+ "conduit-face",
  "conduit-finance",
  "conduit-host-make",
  "conduit-human",
@@ -2531,7 +2532,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-protected-line",
  "conduit-r1-network-conformance",
  "conduit-robotics",
@@ -2584,12 +2584,12 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-human",
  "conduit-language",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -2638,9 +2638,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-thermostat-plot",
 ]
 
@@ -2659,9 +2659,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-std-host",
  "conduit-thermostat-plot",
  "serde_json",
@@ -2684,9 +2684,9 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-todo-plot",
 ]
 
@@ -2728,8 +2728,8 @@ name = "conduit-tour-model"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
 ]
 
@@ -2740,8 +2740,8 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-plot",
- "conduit-presentation",
  "serde",
 ]
 
@@ -2806,6 +2806,7 @@ dependencies = [
  "conduit-conduitos-mask-offer",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-home-model",
  "conduit-human",
  "conduit-kernel",
@@ -2813,7 +2814,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-protected-line",
  "conduit-robotics",
  "conduit-semantic-catalog",
@@ -6775,10 +6775,10 @@ version = "0.1.0"
 dependencies = [
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-kernel",
  "conduit-patchbay-workbench-conformance",
  "conduit-plot",
- "conduit-presentation",
  "conduit-semantic-catalog",
  "patchbay-control",
  "patchbay-graph",
@@ -10689,6 +10689,7 @@ dependencies = [
  "conduit-create-oi",
  "conduit-data",
  "conduit-embedded-build",
+ "conduit-face",
  "conduit-finance",
  "conduit-home-model",
  "conduit-host-avr-make",
@@ -10709,7 +10710,6 @@ dependencies = [
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
- "conduit-presentation",
  "conduit-r1-network-conformance",
  "conduit-robotics",
  "conduit-rp2040-network-realization",

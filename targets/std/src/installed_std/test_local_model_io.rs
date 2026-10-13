@@ -266,11 +266,11 @@ fn offer(
     direction: PortDirection,
 ) -> CapabilityOffer {
     let maximum_bytes = match value_kind {
-        conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND => {
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        conduit_face::GENERATIVE_PRESENTER_INPUT_KIND => {
+            conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
         }
-        conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        conduit_face::GENERATED_MANIFESTATION_CANDIDATE_KIND => {
+            conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
         }
         _ => 16_384,
     };
@@ -519,9 +519,9 @@ fn source_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     let maximum_bytes = if hosted_clip {
         conduit_audio::MAXIMUM_PCM_CLIP_BYTES as u32
     } else if placement.outputs[0].value_kind.as_str()
-        == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
+        == conduit_face::GENERATIVE_PRESENTER_INPUT_KIND
     {
-        conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
+        conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32
     } else {
         4_096
     };
@@ -542,9 +542,9 @@ fn sink_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         host_requests: 0,
         sign_items: 16,
         maximum_value_bytes: if placement.inputs[0].value_kind.as_str()
-            == conduit_presentation::GENERATED_MANIFESTATION_CANDIDATE_KIND
+            == conduit_face::GENERATED_MANIFESTATION_CANDIDATE_KIND
         {
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
+            conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32
         } else {
             4_096
         },
@@ -665,7 +665,7 @@ fn source_request(placement: &PlannedGear) -> Result<Vec<u8>, String> {
         })
         .map_err(|error| format!("encode local-model interpretation request: {error}"))?
     } else if placement.outputs[0].value_kind.as_str()
-        == conduit_presentation::GENERATIVE_PRESENTER_INPUT_KIND
+        == conduit_face::GENERATIVE_PRESENTER_INPUT_KIND
     {
         #[cfg(feature = "local-model-proof")]
         if let Some(request) = GENERATIVE_PRESENTER_REQUEST.with(|value| value.borrow().clone()) {

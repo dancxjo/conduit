@@ -4,7 +4,7 @@
 
 use conduit_body::BodyId;
 use conduit_core::{BootId, HostAdvertisement, HostId, OfferGeneration, PlanId};
-use conduit_presentation::{MaskShow, PresentationContentId};
+use conduit_face::{FaceContentId, MaskShow};
 use serde::{de::DeserializeOwned, Deserialize, Serialize};
 use std::{
     io::{Read, Write},
@@ -29,7 +29,7 @@ pub(super) struct AttachRequest {
     pub host_id: HostId,
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
-    pub face_id: PresentationContentId,
+    pub face_id: FaceContentId,
     pub face_revision: u64,
 }
 

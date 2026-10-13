@@ -1,7 +1,7 @@
 use alloc::{vec, vec::Vec};
 
 use conduit_core::{BootId, CheckedPlotId, HostBaseId, HostId, OfferGeneration, SourceDocumentId};
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_face::{ApplicationEvent, ApplicationEventKind};
 use conduit_semantic_catalog::NormalizedPointerSample;
 use conduit_tour_model::{OPEN_PATCHBAY_ACTION_ID, RUN_ACTION_ID, TourPointerOutcome};
 
@@ -178,7 +178,7 @@ impl SerialBase for Serial {
         self.0.push(bytes.into());
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.0.len() as u32
     }
 }

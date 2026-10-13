@@ -10,10 +10,10 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
     browser.capabilities.push(mask.clone());
     browser
         .resources
-        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+        .retain(|resource| resource.class_id.as_str() != conduit_core::FACE_RESOURCE_CLASS);
     browser.resources.push(conduit_core::resource_offer(
-        "browser/presentation",
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        "browser/face",
+        conduit_core::FACE_RESOURCE_CLASS,
         1,
     ));
     browser
@@ -66,7 +66,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
             &OfferDisclosureRequest {
                 stage: OfferDisclosureStage::Planning,
                 capability_ids: vec![mask.capability_id],
-                resource_pool_ids: vec![conduit_core::ResourcePoolId::from("browser/presentation")],
+                resource_pool_ids: vec![conduit_core::ResourcePoolId::from("browser/face")],
             },
         )
         .unwrap();
@@ -95,7 +95,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
         .0
         .clone();
     assert_eq!(
-        Owner::current_presentation_routes(
+        Owner::current_face_routes(
             owner.host.advertisement(),
             owner.pending_browser.as_ref(),
             None,
@@ -120,7 +120,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
         .current_mask_route()
         .is_some());
     let (face, seal) = owner.seal_attached_terminal_route().unwrap();
-    let routes = Owner::current_presentation_routes(
+    let routes = Owner::current_face_routes(
         owner.host.advertisement(),
         owner.pending_browser.as_ref(),
         Some(&seal),
@@ -128,7 +128,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
     assert_eq!(routes.len(), 1);
     assert!(matches!(
         routes[0],
-        conduit_presentation::CurrentOwnerPresentationRoute::Local { .. }
+        conduit_face::CurrentOwnerFaceRoute::Local { .. }
     ));
     let placement = seal.planned_mask.show_placement();
     let play = conduit_core::bind_active_play(
@@ -137,7 +137,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
         &placement.boot_id,
         1,
     );
-    let show = conduit_presentation::MaskShow::prepared(
+    let show = conduit_face::MaskShow::prepared(
         &seal.planned_mask,
         &face,
         play,
@@ -147,30 +147,21 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
     )
     .unwrap()
     .transition(
-        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_face::ManifestationLifecycle::Available,
         conduit_core::SignId::from("sign/test/terminal-available"),
     )
     .unwrap();
     owner
         .acknowledge_attached_terminal_show(&seal, &show)
         .unwrap();
-    assert_eq!(
-        owner
-            .presentation_wardrobe
-            .as_ref()
-            .unwrap()
-            .plan()
-            .routes
-            .len(),
-        1
-    );
-    let current = Owner::current_presentation_routes(
+    assert_eq!(owner.face_wardrobe.as_ref().unwrap().plan().routes.len(), 1);
+    let current = Owner::current_face_routes(
         owner.host.advertisement(),
         owner.pending_browser.as_ref(),
         Some(&seal),
     );
     owner
-        .presentation_wardrobe
+        .face_wardrobe
         .as_mut()
         .unwrap()
         .select_plot(
@@ -184,13 +175,7 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
     owner
         .acknowledge_attached_terminal_show(&seal, &show)
         .unwrap();
-    let terminal_owner_plan = owner
-        .presentation_wardrobe
-        .as_ref()
-        .unwrap()
-        .plan()
-        .plan_id
-        .clone();
+    let terminal_owner_plan = owner.face_wardrobe.as_ref().unwrap().plan().plan_id.clone();
     let mut refreshed_browser_snapshot = snapshot.clone();
     refreshed_browser_snapshot.owner_advertisement =
         Some(Box::new(owner.host.advertisement().clone()));
@@ -203,21 +188,21 @@ fn attached_terminal_replaces_prior_generation_browser_witness_without_removing_
             Some(&refreshed_lines),
         )
         .unwrap();
-    let replaced = owner.presentation_wardrobe.as_ref().unwrap();
+    let replaced = owner.face_wardrobe.as_ref().unwrap();
     assert_ne!(replaced.plan().plan_id, terminal_owner_plan);
     assert_eq!(replaced.plan().routes.len(), 2);
     assert_eq!(
         replaced.control().selected.as_ref().unwrap().route_id,
         format!("route/{}", seal.route_plan_id.as_str())
     );
-    let current = Owner::current_presentation_routes(
+    let current = Owner::current_face_routes(
         owner.host.advertisement(),
         owner.pending_browser.as_ref(),
         Some(&seal),
     );
-    assert!(matches!(owner.presentation_wardrobe.as_mut().unwrap()
+    assert!(matches!(owner.face_wardrobe.as_mut().unwrap()
         .selected_show(&owner.session, &face, &current),
-        Err(crate::durable_host::owner::controller::presentation_wardrobe::OwnerPresentationWardrobeError::ShowNotAcknowledged)));
+        Err(crate::durable_host::owner::controller::face_wardrobe::OwnerFaceWardrobeError::ShowNotAcknowledged)));
     assert_eq!(
         owner
             .session

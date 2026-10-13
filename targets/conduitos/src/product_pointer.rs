@@ -15,8 +15,7 @@ use crate::{
     pointer_offer::PointerRealization,
     tour_product::TourProduct,
     tour_shell::{
-        ShellPresentationReceipt, TRANSIENT_SURFACE, TourShellError, TourShellPresenter,
-        WORKSPACE_SURFACE,
+        ShellFaceReceipt, TRANSIENT_SURFACE, TourShellError, TourShellPresenter, WORKSPACE_SURFACE,
     },
 };
 
@@ -304,7 +303,7 @@ fn display_coordinate(value: i64, extent: u32) -> Result<u32, &'static str> {
 fn emit_sign(
     outcome: &TourPointerOutcome,
     route: &RoutedPointer,
-    shell: &ShellPresentationReceipt,
+    shell: &ShellFaceReceipt,
     sample: conduit_semantic_catalog::NormalizedPointerSample,
     tour: &TourProduct,
     identities: &BootIdentities,
@@ -315,7 +314,7 @@ fn emit_sign(
         TourPointerOutcome::Selected { subject } => ("selected", subject.as_str()),
     };
     let line = format!(
-        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"{status}\",\"subject\":\"{subject}\",\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":{},\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"workspace_presentation_id\":\"{}\",\"workspace_manifestation_id\":\"{}\",\"inspector_surface_id\":{},\"inspector_presentation_id\":{},\"inspector_manifestation_id\":{},\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        "CONDUIT_POINTER_SIGN {{\"schema\":\"conduit.conduitos.pointer-interaction/v1\",\"status\":\"{status}\",\"subject\":\"{subject}\",\"sequence\":{},\"position_x\":{},\"position_y\":{},\"delta_x\":{},\"delta_y\":{},\"primary_pressed\":{},\"queue_capacity\":{},\"revision\":{},\"routed_surface_id\":\"{}\",\"routed_manifestation_id\":\"{}\",\"local_x\":{},\"local_y\":{},\"workspace_face_id\":\"{}\",\"workspace_manifestation_id\":\"{}\",\"inspector_surface_id\":{},\"inspector_face_id\":{},\"inspector_manifestation_id\":{},\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
         sample.sequence,
         sample.position_x,
         sample.position_y,
@@ -328,7 +327,7 @@ fn emit_sign(
         route.manifestation_id.as_str(),
         route.local_x,
         route.local_y,
-        shell.workspace.presentation_id.as_str(),
+        shell.workspace.face_id.as_str(),
         shell.workspace.manifestation_id.as_str(),
         json_optional(
             shell
@@ -336,12 +335,7 @@ fn emit_sign(
                 .as_ref()
                 .map(|value| value.surface_id.as_str())
         ),
-        json_optional(
-            shell
-                .inspector
-                .as_ref()
-                .map(|value| value.presentation_id.as_str())
-        ),
+        json_optional(shell.inspector.as_ref().map(|value| value.face_id.as_str())),
         json_optional(
             shell
                 .inspector
@@ -404,7 +398,7 @@ fn emit_relayout_sign(
     make: &MakeRecord,
 ) {
     let line = format!(
-        "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"loss_sign_id\":\"conduitos/surface-loss/{}\",\"current_presentation_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
+        "CONDUIT_RESIZE_SIGN {{\"schema\":\"conduit.conduitos.surface-relayout/v1\",\"status\":\"current\",\"surface_id\":\"{}\",\"previous_x\":{},\"previous_y\":{},\"previous_width\":{},\"previous_height\":{},\"current_x\":{},\"current_y\":{},\"current_width\":{},\"current_height\":{},\"invalidated_manifestation_id\":\"{}\",\"loss_sign_id\":\"conduitos/surface-loss/{}\",\"current_face_id\":\"{}\",\"current_manifestation_id\":\"{}\",\"input_refused_while_invalidated\":{},\"frame_sequence\":{},\"damage_count\":{},\"pixels_written\":{},\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"bounded\":true}}\n",
         receipt.surface_id,
         receipt.previous_bounds.x,
         receipt.previous_bounds.y,
@@ -416,7 +410,7 @@ fn emit_relayout_sign(
         receipt.current_bounds.height,
         receipt.invalidated_manifestation_id.as_str(),
         receipt.invalidated_manifestation_id.as_str(),
-        receipt.current.presentation_id.as_str(),
+        receipt.current.face_id.as_str(),
         receipt.current.manifestation_id.as_str(),
         receipt.input_refused_while_invalidated,
         receipt.frame.frame_sequence,

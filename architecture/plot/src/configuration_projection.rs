@@ -31,7 +31,11 @@ pub(crate) fn projected_startup_parameter(
         .into(),
         // Projections without a declared callable Fore use the checked
         // configuration default as their omission contract.
-        default: Some(render_value(&field.default_value)),
+        default: if matches!(field.rule, KindConfigurationRule::DataLabel { .. }) {
+            None
+        } else {
+            Some(render_value(&field.default_value))
+        },
     }
 }
 

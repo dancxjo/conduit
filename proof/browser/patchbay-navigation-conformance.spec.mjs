@@ -43,8 +43,8 @@ test("browser projection agrees exactly with the portable navigation observation
     expect(followed.navigation.cursor.place).toBe("Body");
     expect(followed.navigation.cursor.aspect).toBe("Plan");
     expect(followed.navigation.cursor.focus).toMatch(/^host\//);
-    expect(followed.presentation.identity).toBe(initial.presentation.identity);
-    expect(followed.presentation.basis).toEqual(initial.presentation.basis);
+    expect(followed.face.identity).toBe(initial.face.identity);
+    expect(followed.face.basis).toEqual(initial.face.basis);
   } finally {
     server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");
   }

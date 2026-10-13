@@ -66,7 +66,7 @@ fn browser_shell_and_adapter_do_not_own_chat_controls_or_policy() {
     }
     assert!(javascript.contains("subject.role"));
     assert!(javascript.contains("action.arguments"));
-    assert!(javascript.contains("presentation.actions"));
+    assert!(javascript.contains("face.actions"));
 }
 
 #[test]

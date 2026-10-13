@@ -1,6 +1,6 @@
 //! Bounded assembly state for one visual experience.
 //!
-//! Presentation Conduitese owns the portable observation, relation and complete
+//! Face Conduitese owns the portable observation, relation and complete
 //! experience values. This module validates and accumulates Human construction
 //! views before the Catalog bridge creates those native values (class C/M).
 

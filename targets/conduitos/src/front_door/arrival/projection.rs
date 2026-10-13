@@ -1,84 +1,69 @@
 //! Inspectable Crèche state, with the same action availability as its shared draft.
 use super::{Arrival, Error, FrontDoor};
 use alloc::{format, vec, vec::Vec};
-use conduit_birth_plot::BirthPresentation;
-use conduit_presentation::*;
+use conduit_birth_plot::BirthWidgetFace;
+use conduit_face::*;
 
 impl Arrival {
-    pub(in crate::front_door) fn presentation(
-        &self,
-        door: &FrontDoor,
-    ) -> Result<Presentation, Error> {
-        let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
+    pub(in crate::front_door) fn face(&self, door: &FrontDoor) -> Result<Face, Error> {
+        let view = self.draft.widget_face().map_err(|_| Error::Face)?;
         let host = format!("host/{}/{}", door.host_id.as_str(), door.boot_id.as_str());
-        let mut subjects = vec![PresentationSubject {
+        let mut subjects = vec![FaceSubject {
             identity: host.clone(),
-            role: PresentationRole::Host,
+            role: FaceRole::Host,
             name: "Crèche — a body of your own".into(),
         }];
         let mut properties = vec![
             property(
                 &host,
                 "naming-tradition",
-                PresentationPropertyValue::Identity(self.draft.requested_system().into()),
+                FacePropertyValue::Identity(self.draft.requested_system().into()),
             ),
             property(
                 &host,
                 "selected-control",
-                PresentationPropertyValue::Count(self.focus as u64),
+                FacePropertyValue::Count(self.focus as u64),
             ),
         ];
         if !self.draft.friendly_name().is_empty() {
             properties.push(property(
                 &host,
                 "friendly-name",
-                PresentationPropertyValue::Text(self.draft.friendly_name().into()),
+                FacePropertyValue::Text(self.draft.friendly_name().into()),
             ));
         }
         properties.push(property(
             &host,
             "name-empty",
-            PresentationPropertyValue::Flag(self.draft.friendly_name().is_empty()),
+            FacePropertyValue::Flag(self.draft.friendly_name().is_empty()),
         ));
         for (index, choice) in self.draft.choices().iter().enumerate() {
             let id = format!("plot/{}", choice.plot.checked_plot_id.as_str());
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: id.clone(),
-                role: PresentationRole::Plot,
+                role: FaceRole::Plot,
                 name: choice.title.clone(),
             });
             properties.extend([
                 property(
                     &id,
                     "source-document-id",
-                    PresentationPropertyValue::Identity(
-                        choice.plot.source_document_id.as_str().into(),
-                    ),
+                    FacePropertyValue::Identity(choice.plot.source_document_id.as_str().into()),
                 ),
                 property(
                     &id,
                     "checked-plot-id",
-                    PresentationPropertyValue::Identity(
-                        choice.plot.checked_plot_id.as_str().into(),
-                    ),
+                    FacePropertyValue::Identity(choice.plot.checked_plot_id.as_str().into()),
                 ),
-                property(
-                    &id,
-                    "selected",
-                    PresentationPropertyValue::Flag(choice.selected),
-                ),
-                property(
-                    &id,
-                    "choice-index",
-                    PresentationPropertyValue::Count(index as u64),
-                ),
+                property(&id, "selected", FacePropertyValue::Flag(choice.selected)),
+                property(&id, "choice-index", FacePropertyValue::Count(index as u64)),
             ]);
         }
         let mut actions = Vec::new();
         project_actions(&view.root, &host, &mut actions);
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             door.revision,
-            PresentationBasis {
+            FaceBasis {
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
@@ -91,7 +76,7 @@ impl Arrival {
             subjects,
             Vec::new(),
             properties,
-            vec![PresentationText {
+            vec![FaceText {
                 subject: host.clone(),
                 text: self
                     .refusal
@@ -99,56 +84,48 @@ impl Arrival {
                     .unwrap_or_else(|| "Name your body and choose its installed plots.".into()),
             }],
             actions,
-            vec![PresentationDisclosure {
+            vec![FaceDisclosure {
                 subject: host,
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             }],
         )
-        .map_err(|_| Error::Presentation)
+        .map_err(|_| Error::Face)
     }
 }
-fn property(subject: &str, name: &str, value: PresentationPropertyValue) -> PresentationProperty {
-    PresentationProperty {
+fn property(subject: &str, name: &str, value: FacePropertyValue) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
         value,
     }
 }
 
-fn project_actions(
-    node: &SemanticPresentationNode,
-    target: &str,
-    output: &mut Vec<PresentationAction>,
-) {
+fn project_actions(node: &SemanticFaceNode, target: &str, output: &mut Vec<FaceAction>) {
     let mut add = |action: &SemanticAction| {
-        output.push(PresentationAction {
+        output.push(FaceAction {
             identity: action.identity.clone(),
             intent: format!("conduit.intent/{}@1", action.identity),
             target: target.into(),
             name: action.label.clone(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability: match &action.availability {
-                ActionAvailability::Available => PresentationActionAvailability::Available,
-                ActionAvailability::Busy { detail } => {
-                    PresentationActionAvailability::Unavailable {
-                        reason_code: "creche/busy".into(),
-                        explanation: detail.clone(),
-                    }
-                }
-                ActionAvailability::Unavailable { detail } => {
-                    PresentationActionAvailability::Unavailable {
-                        reason_code: "creche/selection-not-ready".into(),
-                        explanation: detail.clone(),
-                    }
-                }
+                ActionAvailability::Available => FaceActionAvailability::Available,
+                ActionAvailability::Busy { detail } => FaceActionAvailability::Unavailable {
+                    reason_code: "creche/busy".into(),
+                    explanation: detail.clone(),
+                },
+                ActionAvailability::Unavailable { detail } => FaceActionAvailability::Unavailable {
+                    reason_code: "creche/selection-not-ready".into(),
+                    explanation: detail.clone(),
+                },
             },
         })
     };
     match &node.mechanism {
-        PresentationMechanism::Action(action) => add(action),
-        PresentationMechanism::FormField(field) => add(&field.input_action),
-        PresentationMechanism::ChoiceGroup { options, .. } => {
+        FaceMechanism::Action(action) => add(action),
+        FaceMechanism::FormField(field) => add(&field.input_action),
+        FaceMechanism::ChoiceGroup { options, .. } => {
             for option in options {
                 add(&option.change_action);
             }

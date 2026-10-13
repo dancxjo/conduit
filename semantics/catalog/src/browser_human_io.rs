@@ -89,10 +89,10 @@ pub fn install_image_text_inspection_catalog(
     use conduit_plot::{KindProjection, KindSignature};
 
     let contract =
-        crate::structured_presentation_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
+        crate::structured_face_contract(IMAGE_TEXT_RECORD_TYPE, &image_text_record_type());
     startup.insert(KindSignature {
         kind: contract.kind_id.as_str().to_string(),
-        startup_parameters: vec![],
+        startup_parameters: crate::data_label_startup_signature(),
     })?;
     profile
         .insert(KindProjection {
@@ -100,7 +100,7 @@ pub fn install_image_text_inspection_catalog(
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: vec![],
+            configuration: crate::data_label_configuration(),
         })
         .map_err(|error| error.to_string())
 }

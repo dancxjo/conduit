@@ -321,7 +321,7 @@ pub(super) fn prepare(
         host_outcomes: host_outcomes::HostOutcomes::new(),
         active_play_id: play.active_play_id.clone(),
         terminal_sign_sequence: 2,
-        latest_presentation: None,
+        latest_face: None,
         thermostat_face: thermostat_face.map(Box::new),
         host_id: host.host_id,
         boot_id: host.boot_id,

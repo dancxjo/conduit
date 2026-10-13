@@ -12,30 +12,30 @@ function startServer() {
 
 async function renderCycleCordFixture(page,snapshot) {
   return page.evaluate(async current=>{
-    const fixture=structuredClone(current),presentation=fixture.presentation;
+    const fixture=structuredClone(current),face=fixture.face;
     fixture.navigation=null;
     fixture.interaction.revision+=1;
     const value=property=>property?.value?.Identity??property?.value?.Text;
-    const ports=presentation.subjects.filter(subject=>subject.role==="Port").map(subject=>{
-      const properties=presentation.properties.filter(property=>property.subject===subject.identity);
+    const ports=face.subjects.filter(subject=>subject.role==="Port").map(subject=>{
+      const properties=face.properties.filter(property=>property.subject===subject.identity);
       return {subject,semantic:value(properties.find(property=>property.name==="semantic-id")),direction:value(properties.find(property=>property.name==="direction"))};
     });
-    const owner=port=>presentation.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===port.subject.identity)?.source;
+    const owner=port=>face.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===port.subject.identity)?.source;
     const output=ports.find(port=>port.direction==="outgoing"&&ports.some(candidate=>candidate.direction==="receiving"&&owner(candidate)===owner(port)));
     if(!output)throw new Error("documentary fixture lacks one gear with input and output Ports");
     const input=ports.find(port=>port.direction==="receiving"&&owner(port)===owner(output));
-    const gear=owner(output),plot=presentation.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===gear)?.source;
+    const gear=owner(output),plot=face.relationships.find(relationship=>relationship.kind==="Contains"&&relationship.target===gear)?.source;
     if(!input||!gear||!plot)throw new Error("documentary fixture cycle ownership is incomplete");
     const semanticIdentity="cord/zz-cycle-proof",subjectIdentity=`cord/${semanticIdentity}`;
-    presentation.subjects.push({identity:subjectIdentity,role:"Cord",name:"Cycle proof Cord returning to the same gear"});
-    presentation.relationships.push({source:plot,target:subjectIdentity,kind:"Contains"},{source:subjectIdentity,target:output.subject.identity,kind:"Connects"},{source:subjectIdentity,target:input.subject.identity,kind:"Connects"});
-    presentation.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text"}});
+    face.subjects.push({identity:subjectIdentity,role:"Cord",name:"Cycle proof Cord returning to the same gear"});
+    face.relationships.push({source:plot,target:subjectIdentity,kind:"Contains"},{source:subjectIdentity,target:output.subject.identity,kind:"Connects"},{source:subjectIdentity,target:input.subject.identity,kind:"Connects"});
+    face.properties.push({subject:subjectIdentity,name:"semantic-id",value:{Identity:semanticIdentity}},{subject:subjectIdentity,name:"source-port",value:{Identity:output.semantic}},{subject:subjectIdentity,name:"sink-port",value:{Identity:input.semantic}},{subject:subjectIdentity,name:"value-kind",value:{Text:"value/text"}});
     const {renderFlow}=await import("/assets/flow.js");renderFlow(fixture,{onSelect:()=>{},onClear:()=>{},lens:"world"});
     return fixture;
   },snapshot);
 }
 
-async function cordGeometry(page,presentation) {
+async function cordGeometry(page,face) {
   return page.locator("#flow-root .react-flow__edge.flow-cord").evaluateAll((edges,current)=>{
     const value=property=>property?.value?.Identity??property?.value?.Text;
     const semanticSubjects=new Map(current.properties.filter(property=>property.name==="semantic-id").map(property=>[value(property),property.subject]));
@@ -50,7 +50,7 @@ async function cordGeometry(page,presentation) {
       const length=path.getTotalLength(),start=screenPoint(path,0),end=screenPoint(path,length),direct=Math.hypot(target.x-source.x,target.y-source.y);
       return {id,d:path.getAttribute("d"),marker:path.getAttribute("marker-end"),source,target,start,end,length,direct,forward:target.x>source.x};
     });
-  },presentation);
+  },face);
 }
 
 test("reverse cycle Cord geometry is non-vacuous and stable",async({page})=>{
@@ -60,15 +60,15 @@ test("reverse cycle Cord geometry is non-vacuous and stable",async({page})=>{
     const fixture=await renderCycleCordFixture(page,snapshot);
     await page.route("**/api/snapshot",route=>route.fulfill({status:200,contentType:"application/json",body:JSON.stringify(fixture)}));
     await renderCycleCordFixture(page,snapshot);
-    await expect(page.locator("#flow-root .react-flow__edge.flow-cord")).toHaveCount(fixture.presentation.properties.filter(item=>item.name==="source-port").length);
-    const routes=await cordGeometry(page,fixture.presentation),cycle=routes.find(route=>route.id==="cord/cord/zz-cycle-proof");
+    await expect(page.locator("#flow-root .react-flow__edge.flow-cord")).toHaveCount(fixture.face.properties.filter(item=>item.name==="source-port").length);
+    const routes=await cordGeometry(page,fixture.face),cycle=routes.find(route=>route.id==="cord/cord/zz-cycle-proof");
     expect(cycle).toBeDefined();expect(cycle.source.node).toBe(cycle.target.node);expect(cycle.forward).toBe(false);
     expect(cycle.direct).toBeGreaterThan(4);expect(cycle.length/cycle.direct).toBeGreaterThan(1);expect(cycle.length/cycle.direct).toBeLessThan(5);
     expect(cycle.marker?.startsWith("url(")).toBe(true);expect(routes.filter(route=>!route.forward).length).toBeGreaterThan(0);
     const refreshed=structuredClone(fixture);refreshed.interaction.revision+=1;
     await page.evaluate(async current=>{const {renderFlow}=await import("/assets/flow.js");renderFlow(current,{onSelect:()=>{},onClear:()=>{},lens:"world"});},refreshed);
     await expect(page.locator("#flow-root .react-flow__edge.flow-cord")).toHaveCount(routes.length);
-    const repeated=(await cordGeometry(page,refreshed.presentation)).find(route=>route.id===cycle.id);
+    const repeated=(await cordGeometry(page,refreshed.face)).find(route=>route.id===cycle.id);
     expect(repeated.d).toBe(cycle.d);
   }finally{server.lines.close();if(server.process.exitCode===null)server.process.kill("SIGTERM");}
 });

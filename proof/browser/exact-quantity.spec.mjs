@@ -17,7 +17,7 @@ function source(kind, left, right, predicate) {
   const names = kind.includes("compare") ? ["left", "right"] : ["source", "to"];
   return `plot checked-quantity {
  operation: ${kind}(${names[0]} = ${left}, ${names[1]} = ${right})
- show: presentation/bool-value
+ show: face/bool-value("Result")
  operation.receipt >> (${predicate}) >> show.value
 }.`;
 }
@@ -53,11 +53,11 @@ const comparatorCases = ["units/converted-equals", "=?"].flatMap((comparator) =>
   ["1kHz", "Hz", "1m", "Conversion did not yield exactly 1000 Hz"],
 ].map(([left, right, expected, text]) => ({
   kind: "units/converted-equals", left, right, expected, invocation: comparator,
-  expected_text: text, expected_presentation: "presentation/text", implementation: "browser/converted-equals@1",
+  expected_text: text, expected_face: "face/text", implementation: "browser/converted-equals@1",
   source: `${comparator === "=?" ? "with units/converted-equals as =?\n" : ""}plot convert-pitch-demo {
  operation: units/convert(source = ${left}, to = ${right})
  exact: ${comparator}(expected = ${expected})
- show: presentation/text
+ show: face/text("Message")
  operation.receipt >> exact.receipt
  exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
 }.`,
@@ -101,7 +101,7 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
         write(host, boot, bytes);
         if (api.conduit_browser_plot_start(host.length, boot.length, bytes.length, BigInt(index + 1)) < 0) throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(read())}`);
         const effect = read();
-        if (effect.effect_kind !== "manifestation" || effect.presentation_kind !== (request.expected_presentation ?? "presentation/bool-value") || effect.text !== (request.expected_text ?? "true")) throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(effect)}`);
+        if (effect.effect_kind !== "manifestation" || effect.face_kind !== (request.expected_face ?? "face/bool-value") || effect.text !== (request.expected_text ?? "true")) throw new Error(`${request.left} -> ${request.right}: ${JSON.stringify(effect)}`);
         const planned = effect.expanded_gears.find((gear) => gear.kind_id === request.kind);
         if (!(request.implementation ? planned?.implementation_id === request.implementation : planned?.implementation_id.startsWith("browser/exact-"))) throw new Error("exact operation did not select the installed browser Back");
         document.querySelector("#result").textContent = effect.text;

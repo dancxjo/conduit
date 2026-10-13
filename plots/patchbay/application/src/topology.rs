@@ -9,8 +9,8 @@ use conduit_core::{
     verify_plan, ActivePlayId, ActivePlayIdentity, BootId, CapabilityId, HostId, ImplementationId,
     PlacementId, Plan, PlanId, SourceDocumentId,
 };
-use conduit_presentation::{
-    Manifestation, ManifestationLifecycle, ManifestationSet, MaskTopologyAdmission, Presentation,
+use conduit_face::{
+    Face, Manifestation, ManifestationLifecycle, ManifestationSet, MaskTopologyAdmission,
 };
 use serde::{Deserialize, Serialize};
 
@@ -46,7 +46,7 @@ pub struct MaskTopology {
     pub schema: String,
     pub body_id: BodyId,
     pub source_document_id: Option<SourceDocumentId>,
-    pub presentation_id: String,
+    pub face_id: String,
     pub plan_id: PlanId,
     pub active_play_id: ActivePlayId,
     pub chains: Vec<MaskChain>,
@@ -75,7 +75,7 @@ pub enum MaskTopologyChange {
 pub struct MaskTopologyRequest {
     pub body_id: BodyId,
     pub source_document_id: Option<SourceDocumentId>,
-    pub presentation_id: String,
+    pub face_id: String,
     pub basis_plan_id: PlanId,
     pub change: MaskTopologyChange,
 }
@@ -116,13 +116,13 @@ impl core::error::Error for MaskTopologyRefusal {}
 impl MaskTopology {
     /// Project from the body-wide Plan selection and exact terminal receipts.
     pub fn from_body_plan_truth(
-        presentation: &Presentation,
+        face: &Face,
         body_plan: &BodyPlan,
         body_play: &BodyPlayIdentity,
         manifestations: &[Manifestation],
     ) -> Result<Self, MaskTopologyRefusal> {
         if !body_play.validate_for(body_plan)
-            || presentation.basis.body_id.as_ref() != Some(&body_plan.body_id)
+            || face.basis.body_id.as_ref() != Some(&body_plan.body_id)
         {
             return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
@@ -131,13 +131,11 @@ impl MaskTopology {
             .iter()
             .find(|topology| match &topology.face.plot {
                 Some(plot) => {
-                    presentation.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
-                        && presentation.basis.checked_plot_id.as_ref()
-                            == Some(&plot.checked_plot_id)
+                    face.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
+                        && face.basis.checked_plot_id.as_ref() == Some(&plot.checked_plot_id)
                 }
                 None => {
-                    presentation.basis.source_document_id.is_none()
-                        && presentation.basis.checked_plot_id.is_none()
+                    face.basis.source_document_id.is_none() && face.basis.checked_plot_id.is_none()
                 }
             })
             .ok_or(MaskTopologyRefusal::InvalidTopology)?;
@@ -168,14 +166,14 @@ impl MaskTopology {
                 })
                 .ok_or(MaskTopologyRefusal::UnavailableMask)?;
             manifestation
-                .validate_against(presentation, &selected_chain.plan)
+                .validate_against(face, &selected_chain.plan)
                 .map_err(|_| MaskTopologyRefusal::SupersededBodyTruth)?;
             chains.push(chain_from_admission(chain_index, admitted, manifestation));
         }
         Self::new(
             body_plan.body_id.clone(),
-            presentation.basis.source_document_id.clone(),
-            presentation.identity.as_str().into(),
+            face.basis.source_document_id.clone(),
+            face.identity.as_str().into(),
             body_plan.plan_id.clone(),
             body_play.active_play_id.clone(),
             chains,
@@ -187,15 +185,15 @@ impl MaskTopology {
     /// renderer or by Patchbay.
     pub fn from_plan_truth(
         body_id: BodyId,
-        presentation: &Presentation,
+        face: &Face,
         plan: &Plan,
         active_play_id: ActivePlayId,
         manifestations: &ManifestationSet,
     ) -> Result<Self, MaskTopologyRefusal> {
-        if presentation.basis.body_id.as_ref() != Some(&body_id)
-            || presentation.basis.source_document_id.as_ref() != Some(&plan.source_document_id)
-            || manifestations.presentation_id != presentation.identity
-            || manifestations.presentation_revision != presentation.revision
+        if face.basis.body_id.as_ref() != Some(&body_id)
+            || face.basis.source_document_id.as_ref() != Some(&plan.source_document_id)
+            || manifestations.face_id != face.identity
+            || manifestations.face_revision != face.revision
         {
             return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
@@ -245,7 +243,7 @@ impl MaskTopology {
         Self::new(
             body_id,
             Some(plan.source_document_id.clone()),
-            presentation.identity.as_str().into(),
+            face.identity.as_str().into(),
             plan.plan_id.clone(),
             active_play_id,
             chains,
@@ -255,7 +253,7 @@ impl MaskTopology {
     pub fn new(
         body_id: BodyId,
         source_document_id: Option<SourceDocumentId>,
-        presentation_id: String,
+        face_id: String,
         plan_id: PlanId,
         active_play_id: ActivePlayId,
         chains: Vec<MaskChain>,
@@ -264,7 +262,7 @@ impl MaskTopology {
             schema: MASK_TOPOLOGY_SCHEMA.into(),
             body_id,
             source_document_id,
-            presentation_id,
+            face_id,
             plan_id,
             active_play_id,
             chains,
@@ -274,7 +272,7 @@ impl MaskTopology {
     }
 
     pub fn validate(&self) -> Result<(), MaskTopologyRefusal> {
-        if self.schema != MASK_TOPOLOGY_SCHEMA || self.presentation_id.is_empty() {
+        if self.schema != MASK_TOPOLOGY_SCHEMA || self.face_id.is_empty() {
             return Err(MaskTopologyRefusal::InvalidTopology);
         }
         validate_chains(&self.chains)
@@ -291,7 +289,7 @@ impl MaskTopology {
         self.validate()?;
         if request.body_id != self.body_id
             || request.source_document_id != self.source_document_id
-            || request.presentation_id != self.presentation_id
+            || request.face_id != self.face_id
         {
             return Err(MaskTopologyRefusal::SupersededBodyTruth);
         }
@@ -373,7 +371,7 @@ impl MaskTopology {
         let current = Self::new(
             self.body_id.clone(),
             self.source_document_id.clone(),
-            self.presentation_id.clone(),
+            self.face_id.clone(),
             replacement_plan_id,
             replacement_play_id,
             chains,
@@ -410,17 +408,15 @@ impl MaskTopology {
     }
 }
 
-fn map_admission_error(error: conduit_presentation::MaskTopologyError) -> MaskTopologyRefusal {
+fn map_admission_error(error: conduit_face::MaskTopologyError) -> MaskTopologyRefusal {
     match error {
-        conduit_presentation::MaskTopologyError::IncompatibleType
-        | conduit_presentation::MaskTopologyError::InvalidStageContract => {
+        conduit_face::MaskTopologyError::IncompatibleType
+        | conduit_face::MaskTopologyError::InvalidStageContract => {
             MaskTopologyRefusal::IncompatibleType
         }
-        conduit_presentation::MaskTopologyError::Cycle => MaskTopologyRefusal::Cycle,
-        conduit_presentation::MaskTopologyError::ChainLengthBound => {
-            MaskTopologyRefusal::ChainLengthBound
-        }
-        conduit_presentation::MaskTopologyError::ParallelChainBound => {
+        conduit_face::MaskTopologyError::Cycle => MaskTopologyRefusal::Cycle,
+        conduit_face::MaskTopologyError::ChainLengthBound => MaskTopologyRefusal::ChainLengthBound,
+        conduit_face::MaskTopologyError::ParallelChainBound => {
             MaskTopologyRefusal::ParallelChainBound
         }
         _ => MaskTopologyRefusal::InvalidTopology,
@@ -429,7 +425,7 @@ fn map_admission_error(error: conduit_presentation::MaskTopologyError) -> MaskTo
 
 fn chain_from_admission(
     chain_index: usize,
-    chain: &conduit_presentation::PlannedMaskChain,
+    chain: &conduit_face::PlannedMaskChain,
     manifestation: &Manifestation,
 ) -> MaskChain {
     let available = manifestation.lifecycle == ManifestationLifecycle::Available;

@@ -1,4 +1,4 @@
-//! Shared public-site presentation, independent of product runtime state.
+//! Shared public-site face, independent of product runtime state.
 
 pub(crate) fn navigation(current: &str) -> String {
     include_str!("../../../site/navigation.html").replace(

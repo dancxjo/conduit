@@ -187,9 +187,9 @@ export async function captureLlmChapter({ xtask, owner, state, output, sourceCom
       { encoding: 'utf8', timeout: 10_000 });
     assert.equal(current.status, 0, current.stderr);
     const face = JSON.parse(current.stdout);
-    assert.equal(face.presentation.identity, faceId);
-    assertExactFaceRevision(faceRevision, face.presentation_revision_decimal);
-    assert.equal(face.presentation.basis.body_id, bodyId);
+    assert.equal(face.face.identity, faceId);
+    assertExactFaceRevision(faceRevision, face.face_revision_decimal);
+    assert.equal(face.face.basis.body_id, bodyId);
     assert.equal(face.advertisement.host_id, ownerHostId);
     assert.equal(face.advertisement.boot_id, ownerBootId);
     const refusalText = `${refused.stdout}${refused.stderr}`;

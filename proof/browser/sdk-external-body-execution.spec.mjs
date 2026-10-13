@@ -28,11 +28,11 @@ test("a Workspace Body continues through the browser SDK without a Patchbay page
     await expect(page.locator("#external-body-output")).toContainText("3");
     await page.getByRole("group", { name: "External Body Play input", exact: true }).hover();
     await page.mouse.down();
-    await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("true");
+    await expect(page.locator('[data-face-kind="face/indicator-state"]')).toHaveText("Button state: true");
     await page.mouse.up();
-    await expect(page.locator('[data-presentation-kind="presentation/indicator-state"]')).toHaveText("false");
-    await expect(page.locator('[data-presentation-kind="presentation/tick"]'))
-      .toHaveText(/^\d+$/, { timeout: 15_000 });
+    await expect(page.locator('[data-face-kind="face/indicator-state"]')).toHaveText("Button state: false");
+    await expect(page.locator('[data-face-kind="face/tick"]'))
+      .toHaveText(/^Clock tick: \d+$/, { timeout: 15_000 });
     const { receipt, terminal } = await finishExternalBody(page, journey);
     expect(receipt).toMatchObject({
       schema: "conduit.tour/manifestation-receipt@3",
@@ -67,10 +67,10 @@ test("Rosehip measurement processing and bounded history continue through the SD
   });
   try {
     await page.evaluate(() => globalThis.__conduitSdkParticipation.begin());
-    await expect(page.locator('[data-presentation-kind="presentation/measurement-plot"]'))
-      .toHaveText("plot 1 samples · 0 omitted");
-    await expect(page.locator('[data-presentation-kind="presentation/measurement-threshold"]'))
-      .toHaveText("threshold Above · Some(RoseAbove)");
+    await expect(page.locator('[data-face-kind="face/measurement-plot"]'))
+      .toHaveText("Measurements: plot 1 samples · 0 omitted");
+    await expect(page.locator('[data-face-kind="face/measurement-threshold"]'))
+      .toHaveText("Threshold state: threshold Above · Some(RoseAbove)");
     const { receipt, terminal } = await finishExternalBody(page, journey);
     expect(receipt).toMatchObject({
       schema: "conduit.tour/manifestation-receipt@3",

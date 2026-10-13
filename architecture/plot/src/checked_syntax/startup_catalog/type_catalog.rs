@@ -80,7 +80,7 @@ impl StartupCatalog {
 
     /// Returns the authored semantic Type name for an exact structured value Kind.
     ///
-    /// Presentation surfaces use this to keep the stable human-facing Type name
+    /// Face surfaces use this to keep the stable human-facing Type name
     /// while preserving the profile identity as the executable contract.
     pub fn structured_type_name(&self, value_kind: &conduit_core::KindId) -> Option<&str> {
         self.structured_types.iter().find_map(|(name, value_type)| {

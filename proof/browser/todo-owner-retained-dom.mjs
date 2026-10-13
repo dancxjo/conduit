@@ -12,11 +12,11 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
       && document.querySelector('[data-owner-show-acknowledged]')?.dataset.ownerShowAcknowledged === view.show_id;
   }, null, { timeout: 12_000 });
   const initial = face();
-  const items = initial.presentation.subjects.filter(subject => subject.role === 'Item');
+  const items = initial.face.subjects.filter(subject => subject.role === 'Item');
   assert.equal(items.length, 3, 'retained proof requires three actual items');
   assert.equal(new Set(items.map(item => item.name)).size, 3, 'DOM names must identify items unambiguously');
   const complete = (owner, item) => {
-    const property = owner.presentation.properties.find(value => value.subject === item.identity && value.name === 'complete');
+    const property = owner.face.properties.find(value => value.subject === item.identity && value.name === 'complete');
     assert.equal(typeof property?.value?.Flag, 'boolean');
     return property.value.Flag;
   };
@@ -25,11 +25,11 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
     const view = await current();
     const owner = face();
     assert.equal(view.body_id, bodyId);
-    assert.equal(owner.presentation.basis.body_id, bodyId);
-    assert.equal(view.face_id, owner.presentation.identity);
-    assert.equal(view.face_revision, owner.presentation_revision_decimal);
+    assert.equal(owner.face.basis.body_id, bodyId);
+    assert.equal(view.face_id, owner.face.identity);
+    assert.equal(view.face_revision, owner.face_revision_decimal);
     const identity = item => ({ identity: item.identity, name: item.name, role: item.role });
-    assert.deepEqual(owner.presentation.subjects.filter(subject => subject.role === 'Item').map(identity), items.map(identity));
+    assert.deepEqual(owner.face.subjects.filter(subject => subject.role === 'Item').map(identity), items.map(identity));
     const dom = await page.locator('conduit-owner-face').evaluate(element => {
       const root = element.shadowRoot;
       return {
@@ -44,7 +44,7 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
     });
     const pending = items.filter(item => !complete(owner, item)).map(item => item.name);
     const completed = items.filter(item => complete(owner, item)).map(item => item.name);
-    const status = owner.presentation.text.filter(text => text.subject === 'todo/status');
+    const status = owner.face.text.filter(text => text.subject === 'todo/status');
     assert.equal(status.length, 1, 'source must supply exact progress wording');
     assert.equal(status[0].text, `${pending.length} ${pending.length === 1 ? 'thing' : 'things'} left · ${completed.length} completed`);
     assert.equal(dom.count, status[0].text);
@@ -84,7 +84,7 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
       assert.equal(complete(after.owner, other), complete(before.owner, other));
     }
     const receipt = await observedTodoMutation(state, output, label, bodyId,
-      { ...before.view, face_revision_decimal: before.owner.presentation_revision_decimal }, after.owner, action.identity);
+      { ...before.view, face_revision_decimal: before.owner.face_revision_decimal }, after.owner, action.identity);
     mutations.push({ label, action, before, after, receipt });
     return { before, after, action };
   };
@@ -109,7 +109,7 @@ export async function retainedTodoDomCompletion({ page, face, state, output, bod
   assert.match(refusal.message ?? '', /^owner Face interaction refused \(-5\)$/,
     'stale return must reach the exact Show gate');
   const afterStaleOwner = face();
-  assert.deepEqual(afterStaleOwner.presentation, completion.after.owner.presentation,
+  assert.deepEqual(afterStaleOwner.face, completion.after.owner.face,
     'stale return must have no domain effect');
   const record = { initial, mutations, before, after: completion.after, stale_return: refusal,
     after_stale_owner: afterStaleOwner };
@@ -126,7 +126,7 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
   for (const look of [null, 'compact', 'spacious']) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     if (look) {
-      await page.evaluate(value => globalThis.__conduitOwnerParticipation.selectPresentation(value, 'flat'), look);
+      await page.evaluate(value => globalThis.__conduitOwnerParticipation.selectFace(value, 'flat'), look);
     }
     await page.waitForFunction(({ previous, selected }) => {
       const view = globalThis.__conduitOwnerParticipation.face();
@@ -156,17 +156,17 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
     assert.equal(view.route.owner_host_id, source.advertisement.host_id);
     assert.equal(view.route.owner_boot_id, source.advertisement.boot_id);
     for (const key of ['mask_plot_id', 'mask_plan_id', 'mask_play_id', 'show_id']) assert.ok(view[key]);
-    assert.deepEqual(face().presentation, source.presentation, 'Look must preserve whole canonical Face');
+    assert.deepEqual(face().face, source.face, 'Look must preserve whole canonical Face');
     assert.deepEqual(view.subjects.map(subject => [subject.identity, subject.name, subject.role]),
-      source.presentation.subjects.map(subject => [subject.identity, subject.name, subject.role]));
+      source.face.subjects.map(subject => [subject.identity, subject.name, subject.role]));
     assert.deepEqual(view.actions.map(action => [action.identity, action.name, action.target, action.intent]),
-      source.presentation.actions.map(action => [action.identity, action.name, action.target, action.intent]));
-    for (const action of source.presentation.actions) {
+      source.face.actions.map(action => [action.identity, action.name, action.target, action.intent]));
+    for (const action of source.face.actions) {
       assert.equal(view.actions.find(current => current.identity === action.identity).availability,
         action.availability === 'Available' ? 'available'
           : Object.hasOwn(action.availability, 'Refused') ? 'refused' : 'unavailable');
     }
-    assert.deepEqual(view.relationships, source.presentation.relationships.map(relation => ({
+    assert.deepEqual(view.relationships, source.face.relationships.map(relation => ({
       source: relation.source, target: relation.target, kind: relation.kind })));
     if (observations.length) assert.deepEqual(semantics(view), semantics(observations[0].view),
       'all projected subject/action/relationship identities, order, disclosure and availability must survive');
@@ -249,10 +249,10 @@ export async function compareRetainedTodoLooks({ page, face, bodyId, hostId, boo
       assert.equal(refusal.refused, true);
       assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/);
       const afterRefusal = face();
-      assert.deepEqual(afterRefusal.presentation, source.presentation, 'retired Look must have no owner effect');
+      assert.deepEqual(afterRefusal.face, source.face, 'retired Look must have no owner effect');
       assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id), view.show_id);
       retirement = { retired_show_id: prior.show_id, current_show_id: view.show_id, refusal,
-        after_refusal_owner_face: afterRefusal.presentation };
+        after_refusal_owner_face: afterRefusal.face };
     }
     observations.push({ look: look ?? 'generic', recipe: look ? 'flat' : null, view, dom, retirement });
   }

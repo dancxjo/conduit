@@ -1,0 +1,2943 @@
+{
+  "identity": "510493e41043ffe32e57429c41ffc5d3ae10eaa1974cc562e0d5df471aa9b72a",
+  "revision": 1,
+  "basis": {
+    "body_id": "69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+    "wake_id": "6fe3caff4d150903a6d1b630b199a34cd4e8dfcd44a8bdde21ce92c9f45f881c",
+    "source_document_id": "fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+    "checked_plot_id": "cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+    "expanded_plot_id": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+    "plan_id": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+    "active_play_id": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+    "sign_ids": [
+      "2ec41d53207ca73be0506653a91affb73d0d84ebd799de64fc9b6dfc4823639a",
+      "patchbay-lifecycle/patchbay-portable/boot/0",
+      "patchbay-lifecycle/patchbay-portable/boot/1",
+      "patchbay/bornd",
+      "patchbay/browser-tab-2/admitted",
+      "patchbay/browser-tab-2/presence-renewed",
+      "patchbay/browser-tab-2/presence-started",
+      "patchbay/browser-tab-2/present",
+      "patchbay/browser-tab-3/observed",
+      "patchbay/here/admitted",
+      "patchbay/here/present",
+      "patchbay/pico-w/admitted",
+      "patchbay/planned",
+      "patchbay/playing",
+      "patchbay/woke"
+    ]
+  },
+  "interaction_context": {
+    "identity": "face/context/general",
+    "basis": []
+  },
+  "subjects": [
+    {
+      "identity": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "role": "Document",
+      "name": "Patchbay document fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1"
+    },
+    {
+      "identity": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "role": "Plot",
+      "name": "Plot hello checked cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e"
+    },
+    {
+      "identity": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "role": "Gear",
+      "name": "hello/literal-6f8beb2a9ae7-0 Gear, text/literal"
+    },
+    {
+      "identity": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "role": "Port",
+      "name": "text Output Port carrying value/text"
+    },
+    {
+      "identity": "gear/gear/hello/show",
+      "role": "Gear",
+      "name": "hello/show Gear, face/text"
+    },
+    {
+      "identity": "port/port/hello/show/input/text",
+      "role": "Port",
+      "name": "text Input Port carrying value/text"
+    },
+    {
+      "identity": "gear/gear/hello/upper",
+      "role": "Gear",
+      "name": "hello/upper Gear, text/upper"
+    },
+    {
+      "identity": "port/port/hello/upper/input/source",
+      "role": "Port",
+      "name": "source Input Port carrying value/text"
+    },
+    {
+      "identity": "port/port/hello/upper/output/text",
+      "role": "Port",
+      "name": "text Output Port carrying value/text"
+    },
+    {
+      "identity": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "role": "Cord",
+      "name": "Cord from port/hello/literal-6f8beb2a9ae7-0/output/text to port/hello/upper/input/source"
+    },
+    {
+      "identity": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "role": "Cord",
+      "name": "Cord from port/hello/upper/output/text to port/hello/show/input/text"
+    },
+    {
+      "identity": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "role": "Plan",
+      "name": "Plan e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+    },
+    {
+      "identity": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "role": "Play",
+      "name": "Play 696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+    },
+    {
+      "identity": "sign/2ec41d53207ca73be0506653a91affb73d0d84ebd799de64fc9b6dfc4823639a",
+      "role": "Sign",
+      "name": "Sign 2ec41d53207ca73be0506653a91affb73d0d84ebd799de64fc9b6dfc4823639a"
+    },
+    {
+      "identity": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "role": "Host",
+      "name": "Host patchbay-portable/host boot patchbay-portable/boot"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "role": "Capability",
+      "name": "Capability text-literal-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "role": "Capability",
+      "name": "Capability text-upper-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "role": "Capability",
+      "name": "Capability text-join-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-edit@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-submit-lines@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "role": "Capability",
+      "name": "Capability text-morse-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "role": "Capability",
+      "name": "Capability address-detect-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "role": "Capability",
+      "name": "Capability std-recognition-to-text-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "role": "Capability",
+      "name": "Capability std-committed-turn-to-text-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "role": "Capability",
+      "name": "Capability face-text-v1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-characters@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-lookup@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-intersperse@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-flatten@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-symbols-to-pattern@1"
+    },
+    {
+      "identity": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "role": "Capability",
+      "name": "Capability audio-tone"
+    },
+    {
+      "identity": "sign/patchbay-lifecycle/patchbay-portable/boot/0",
+      "role": "Sign",
+      "name": "Sign patchbay-lifecycle/patchbay-portable/boot/0"
+    },
+    {
+      "identity": "sign/patchbay-lifecycle/patchbay-portable/boot/1",
+      "role": "Sign",
+      "name": "Sign patchbay-lifecycle/patchbay-portable/boot/1"
+    },
+    {
+      "identity": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "role": "Plot",
+      "name": "Current checked and expanded Plot"
+    },
+    {
+      "identity": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "role": "Body",
+      "name": "Current body 69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814"
+    },
+    {
+      "identity": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "role": "Part",
+      "name": "This computer Here"
+    },
+    {
+      "identity": "sign/patchbay/here/admitted",
+      "role": "Sign",
+      "name": "Sign patchbay/here/admitted"
+    },
+    {
+      "identity": "sign/patchbay/here/present",
+      "role": "Sign",
+      "name": "Sign patchbay/here/present"
+    },
+    {
+      "identity": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "role": "Part",
+      "name": "Browser Attached"
+    },
+    {
+      "identity": "sign/patchbay/browser-tab-2/admitted",
+      "role": "Sign",
+      "name": "Sign patchbay/browser-tab-2/admitted"
+    },
+    {
+      "identity": "sign/patchbay/browser-tab-2/present",
+      "role": "Sign",
+      "name": "Sign patchbay/browser-tab-2/present"
+    },
+    {
+      "identity": "sign/patchbay/browser-tab-2/presence-started",
+      "role": "Sign",
+      "name": "Sign patchbay/browser-tab-2/presence-started"
+    },
+    {
+      "identity": "sign/patchbay/browser-tab-2/presence-renewed",
+      "role": "Sign",
+      "name": "Sign patchbay/browser-tab-2/presence-renewed"
+    },
+    {
+      "identity": "host/browser/tab-2/boot/browser/tab-2/boot",
+      "role": "Host",
+      "name": "Host browser/tab-2 boot browser/tab-2/boot"
+    },
+    {
+      "identity": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "role": "Part",
+      "name": "Offline Part Offline"
+    },
+    {
+      "identity": "sign/patchbay/pico-w/admitted",
+      "role": "Sign",
+      "name": "Sign patchbay/pico-w/admitted"
+    },
+    {
+      "identity": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "role": "Candidate",
+      "name": "Admission candidate Browser \u00b7 tab 3"
+    },
+    {
+      "identity": "sign/patchbay/browser-tab-3/observed",
+      "role": "Sign",
+      "name": "Sign patchbay/browser-tab-3/observed"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/text-literal-v1",
+      "role": "Capability",
+      "name": "Capability text-literal-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/text-upper-v1",
+      "role": "Capability",
+      "name": "Capability text-upper-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/text-join-v1",
+      "role": "Capability",
+      "name": "Capability text-join-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-edit@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-submit-lines@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-submit-lines@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/text-morse-v1",
+      "role": "Capability",
+      "name": "Capability text-morse-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/address-detect-v1",
+      "role": "Capability",
+      "name": "Capability address-detect-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std-recognition-to-text-v1",
+      "role": "Capability",
+      "name": "Capability std-recognition-to-text-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std-committed-turn-to-text-v1",
+      "role": "Capability",
+      "name": "Capability std-committed-turn-to-text-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/face-text-v1",
+      "role": "Capability",
+      "name": "Capability face-text-v1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-characters@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-text-characters@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-lookup@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-lookup@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-intersperse@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-intersperse@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-flatten@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-flatten@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-symbols-to-pattern@1",
+      "role": "Capability",
+      "name": "Capability std/kernel-morse-symbols-to-pattern@1"
+    },
+    {
+      "identity": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "role": "Capability",
+      "name": "Capability audio-tone"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "target": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "kind": "Contains"
+    },
+    {
+      "source": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "target": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "kind": "Contains"
+    },
+    {
+      "source": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "target": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "kind": "Contains"
+    },
+    {
+      "source": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "target": "gear/gear/hello/show",
+      "kind": "Contains"
+    },
+    {
+      "source": "gear/gear/hello/show",
+      "target": "port/port/hello/show/input/text",
+      "kind": "Contains"
+    },
+    {
+      "source": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "target": "gear/gear/hello/upper",
+      "kind": "Contains"
+    },
+    {
+      "source": "gear/gear/hello/upper",
+      "target": "port/port/hello/upper/input/source",
+      "kind": "Contains"
+    },
+    {
+      "source": "gear/gear/hello/upper",
+      "target": "port/port/hello/upper/output/text",
+      "kind": "Contains"
+    },
+    {
+      "source": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "target": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "kind": "Contains"
+    },
+    {
+      "source": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "target": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "kind": "Connects"
+    },
+    {
+      "source": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "target": "port/port/hello/upper/input/source",
+      "kind": "Connects"
+    },
+    {
+      "source": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "target": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "kind": "Contains"
+    },
+    {
+      "source": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "target": "port/port/hello/upper/output/text",
+      "kind": "Connects"
+    },
+    {
+      "source": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "target": "port/port/hello/show/input/text",
+      "kind": "Connects"
+    },
+    {
+      "source": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/2ec41d53207ca73be0506653a91affb73d0d84ebd799de64fc9b6dfc4823639a",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "target": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "kind": "Contains"
+    },
+    {
+      "source": "sign/patchbay-lifecycle/patchbay-portable/boot/0",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/patchbay-lifecycle/patchbay-portable/boot/1",
+      "target": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "kind": "Describes"
+    },
+    {
+      "source": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "kind": "Contains"
+    },
+    {
+      "source": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "target": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "kind": "Contains"
+    },
+    {
+      "source": "sign/patchbay/here/admitted",
+      "target": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/patchbay/here/present",
+      "target": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "kind": "Describes"
+    },
+    {
+      "source": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "target": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "kind": "Realizes"
+    },
+    {
+      "source": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "target": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "kind": "Contains"
+    },
+    {
+      "source": "sign/patchbay/browser-tab-2/admitted",
+      "target": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/patchbay/browser-tab-2/present",
+      "target": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/patchbay/browser-tab-2/presence-started",
+      "target": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "kind": "Describes"
+    },
+    {
+      "source": "sign/patchbay/browser-tab-2/presence-renewed",
+      "target": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "kind": "Describes"
+    },
+    {
+      "source": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "target": "host/browser/tab-2/boot/browser/tab-2/boot",
+      "kind": "Realizes"
+    },
+    {
+      "source": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "target": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "kind": "Contains"
+    },
+    {
+      "source": "sign/patchbay/pico-w/admitted",
+      "target": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "kind": "Describes"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "kind": "Observes"
+    },
+    {
+      "source": "sign/patchbay/browser-tab-3/observed",
+      "target": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "kind": "Describes"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/text-literal-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/text-upper-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/text-join-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-submit-lines@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/text-morse-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/address-detect-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std-recognition-to-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std-committed-turn-to-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/face-text-v1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-characters@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-lookup@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-intersperse@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-flatten@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-symbols-to-pattern@1",
+      "kind": "Contains"
+    },
+    {
+      "source": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "target": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "kind": "Contains"
+    },
+    {
+      "source": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "target": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "kind": "Realizes"
+    },
+    {
+      "source": "gear/gear/hello/show",
+      "target": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "kind": "Realizes"
+    },
+    {
+      "source": "gear/gear/hello/upper",
+      "target": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "kind": "Realizes"
+    }
+  ],
+  "composition": [],
+  "properties": [
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "gear/hello/literal-6f8beb2a9ae7-0"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/literal"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "source-plot",
+      "value": {
+        "Identity": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "plot-path",
+      "value": {
+        "Text": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "icon-token",
+      "value": {
+        "Text": "type"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "icon-name",
+      "value": {
+        "Text": "text"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "authored-control-0",
+      "value": {
+        "Text": "value=\"Hello, world.\" \u00b7 max 256 bytes"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "interaction-contract-0",
+      "value": {
+        "Identity": "interaction-contract/84efa2dc3f346040aa44b7094e6d90223e295e64ab7886bb8adf3af801fdf22e"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "interaction-state-0",
+      "value": {
+        "Identity": "interaction-state/e93e3e292214589e9af7f8a1debe3dd35da90c880d2e9ea66e3a5660526162fe"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "interaction-family-0",
+      "value": {
+        "Text": "Text"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "plan-id",
+      "value": {
+        "Identity": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "plan-status",
+      "value": {
+        "Text": "active"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "realization-layer",
+      "value": {
+        "Text": "direct"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "placement-id",
+      "value": {
+        "Identity": "64f464c8389cdab22ed8e48f3d736f36a84c4d30ea276568831331540baea3be"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "host-id",
+      "value": {
+        "Identity": "patchbay-portable/host"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "boot-id",
+      "value": {
+        "Identity": "patchbay-portable/boot"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-literal-v1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "execution-profile-id",
+      "value": {
+        "Identity": "conduit.std/text-literal-kernel-hosted@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "implementation-id",
+      "value": {
+        "Identity": "std/kernel-text-literal@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "artifact-id",
+      "value": {
+        "Identity": "conduit-std-host/text-literal@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "admitted-capacity",
+      "value": {
+        "Text": "active=16 queue-items=4 queue-bytes=256"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/literal-6f8beb2a9ae7-0",
+      "name": "pressure",
+      "value": {
+        "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "port/hello/literal-6f8beb2a9ae7-0/output/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "direction",
+      "value": {
+        "Text": "outgoing"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "value-contract",
+      "value": {
+        "ValueContract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 256,
+          "constraints": []
+        }
+      }
+    },
+    {
+      "subject": "port/port/hello/literal-6f8beb2a9ae7-0/output/text",
+      "name": "temporal",
+      "value": {
+        "Text": "Value"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "gear/hello/show"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "kind-id",
+      "value": {
+        "Identity": "face/text"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "source-plot",
+      "value": {
+        "Identity": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "plot-path",
+      "value": {
+        "Text": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "icon-token",
+      "value": {
+        "Text": "face"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "icon-name",
+      "value": {
+        "Text": "face screen"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "authored-control-0",
+      "value": {
+        "Text": "maximum-values=8 \u00b7 1..8"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "interaction-contract-0",
+      "value": {
+        "Identity": "interaction-contract/a317aa56ffefae494dd3e3989051a1930b07130130df49c07a7e848c3a0ebcc0"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "interaction-state-0",
+      "value": {
+        "Identity": "interaction-state/b3b29af0e343673fe1e7c7935bffa7cfa6333ddd5f1474b77ac9b2ff8dfa79a7"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "interaction-family-0",
+      "value": {
+        "Text": "Scalar"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "plan-id",
+      "value": {
+        "Identity": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "plan-status",
+      "value": {
+        "Text": "active"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "realization-layer",
+      "value": {
+        "Text": "direct"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "placement-id",
+      "value": {
+        "Identity": "64e1f6ae9af276e3fc863474d589a3ab0ef64f53274c3bac4eeae92dc9832c27"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "host-id",
+      "value": {
+        "Identity": "patchbay-portable/host"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "boot-id",
+      "value": {
+        "Identity": "patchbay-portable/boot"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "capability-id",
+      "value": {
+        "Identity": "face-text-v1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "execution-profile-id",
+      "value": {
+        "Identity": "conduit.std/face-text-kernel-hosted@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "implementation-id",
+      "value": {
+        "Identity": "std/kernel-face-text@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "artifact-id",
+      "value": {
+        "Identity": "conduit-std-host/face-text@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "admitted-capacity",
+      "value": {
+        "Text": "active=16 queue-items=4 queue-bytes=256"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "resource-0",
+      "value": {
+        "Text": "std/face \u00b7 class conduit.resource/face-slot@1 \u00b7 units 1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/show",
+      "name": "pressure",
+      "value": {
+        "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "port/hello/show/input/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "direction",
+      "value": {
+        "Text": "receiving"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "value-contract",
+      "value": {
+        "ValueContract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 256,
+          "constraints": []
+        }
+      }
+    },
+    {
+      "subject": "port/port/hello/show/input/text",
+      "name": "temporal",
+      "value": {
+        "Text": "Value"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "gear/hello/upper"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/upper"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "source-plot",
+      "value": {
+        "Identity": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "plot-path",
+      "value": {
+        "Text": "hello"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "icon-token",
+      "value": {
+        "Text": "case-upper"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "icon-name",
+      "value": {
+        "Text": "uppercase letters"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "plan-id",
+      "value": {
+        "Identity": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "plan-status",
+      "value": {
+        "Text": "active"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "realization-layer",
+      "value": {
+        "Text": "direct"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "placement-id",
+      "value": {
+        "Identity": "5209b7da43a123eb67b3a597c0614b3fc32e4d4e6bc78bcbc53ed3d34cca8ace"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "host-id",
+      "value": {
+        "Identity": "patchbay-portable/host"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "boot-id",
+      "value": {
+        "Identity": "patchbay-portable/boot"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-upper-v1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "execution-profile-id",
+      "value": {
+        "Identity": "conduit.std/text-upper-kernel-hosted@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "implementation-id",
+      "value": {
+        "Identity": "std/kernel-text-upper@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "artifact-id",
+      "value": {
+        "Identity": "conduit-std-host/text-upper@1"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "admitted-capacity",
+      "value": {
+        "Text": "active=16 queue-items=4 queue-bytes=256"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "gear/gear/hello/upper",
+      "name": "pressure",
+      "value": {
+        "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "port/hello/upper/input/source"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "direction",
+      "value": {
+        "Text": "receiving"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "value-contract",
+      "value": {
+        "ValueContract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 256,
+          "constraints": []
+        }
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/input/source",
+      "name": "temporal",
+      "value": {
+        "Text": "Value"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "port/hello/upper/output/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "direction",
+      "value": {
+        "Text": "outgoing"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "value-contract",
+      "value": {
+        "ValueContract": {
+          "value_kind": "value/text",
+          "maximum_bytes": 256,
+          "constraints": []
+        }
+      }
+    },
+    {
+      "subject": "port/port/hello/upper/output/text",
+      "name": "temporal",
+      "value": {
+        "Text": "Value"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "source-port",
+      "value": {
+        "Identity": "port/hello/literal-6f8beb2a9ae7-0/output/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "sink-port",
+      "value": {
+        "Identity": "port/hello/upper/input/source"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "plan-id",
+      "value": {
+        "Identity": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "plan-status",
+      "value": {
+        "Text": "active"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "admitted-capacity",
+      "value": {
+        "Text": "items=4 bytes=256"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "pressure-policy",
+      "value": {
+        "Text": "preserve-order"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "pressure-effect",
+      "value": {
+        "Text": "pressure retains the pending value; a fan-out commits only when every branch admits it"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "line",
+      "value": {
+        "Text": "local Cord; no external Line"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/45/port/hello/literal-6f8beb2a9ae7-0/output/text/29/port/hello/upper/input/source",
+      "name": "pressure",
+      "value": {
+        "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "semantic-id",
+      "value": {
+        "Identity": "cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "source-port",
+      "value": {
+        "Identity": "port/hello/upper/output/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "sink-port",
+      "value": {
+        "Identity": "port/hello/show/input/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "value-kind",
+      "value": {
+        "Identity": "value/text"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "plan-id",
+      "value": {
+        "Identity": "e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "plan-status",
+      "value": {
+        "Text": "active"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "admitted-capacity",
+      "value": {
+        "Text": "items=4 bytes=256"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "pressure-policy",
+      "value": {
+        "Text": "preserve-order"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "pressure-effect",
+      "value": {
+        "Text": "pressure retains the pending value; a fan-out commits only when every branch admits it"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "line",
+      "value": {
+        "Text": "local Cord; no external Line"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "play-state",
+      "value": {
+        "Text": "Completed"
+      }
+    },
+    {
+      "subject": "cord/cord/payload/28/port/hello/upper/output/text/26/port/hello/show/input/text",
+      "name": "pressure",
+      "value": {
+        "Text": "not exposed by this play"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "host-id",
+      "value": {
+        "Identity": "patchbay-portable/host"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "boot-id",
+      "value": {
+        "Identity": "patchbay-portable/boot"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "profile-id",
+      "value": {
+        "Identity": "rust-std"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "offer-generation",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "capability-count",
+      "value": {
+        "Count": 16
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "resource-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "planner-capability-count",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "resource-0-pool-id",
+      "value": {
+        "Identity": "std/face"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "resource-0-class-id",
+      "value": {
+        "Identity": "conduit.resource/face-slot@1"
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "resource-0-capacity-units",
+      "value": {
+        "Count": 16
+      }
+    },
+    {
+      "subject": "host/patchbay-portable/host/boot/patchbay-portable/boot",
+      "name": "operational-state",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-literal-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/literal"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-literal-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-upper-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/upper"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-upper-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-join-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/join"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-join-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-edit@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/edit"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-edit@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-submit-lines@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/submit-lines"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-submit-lines@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-morse-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/morse"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/text-morse-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "address-detect-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/address-detect"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/address-detect-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std-recognition-to-text-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "speech/recognition-to-text"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-recognition-to-text-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std-committed-turn-to-text-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "speech/committed-turn-to-text"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std-committed-turn-to-text-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "face-text-v1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "face/text"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/face-text-v1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-characters@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/characters"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-text-characters@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-lookup@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/lookup"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-lookup@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-intersperse@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/intersperse"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-intersperse@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-flatten@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/flatten"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-flatten@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-symbols-to-pattern@1"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/symbols-to-pattern"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "name": "capability-id",
+      "value": {
+        "Identity": "audio-tone"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "name": "kind-id",
+      "value": {
+        "Identity": "audio/tone"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "name": "availability",
+      "value": {
+        "Text": "Available"
+      }
+    },
+    {
+      "subject": "capability/patchbay-portable/host/patchbay-portable/boot/audio-tone",
+      "name": "freshness",
+      "value": {
+        "Text": "Fresh"
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "body-id",
+      "value": {
+        "Identity": "69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814"
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "awake",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "available-explanation",
+      "value": {
+        "Text": "AVAILABLE means this admitted Part has fresh current host/Boot presence; it does not mean a Line is Ready or selected."
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "line-ready-explanation",
+      "value": {
+        "Text": "LINE READY means this exact Line is currently usable; it does not grant authority or place the Line in a plan."
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "line-unavailable-explanation",
+      "value": {
+        "Text": "LINE UNAVAILABLE means this exact Line cannot carry traffic; the Parts may remain AVAILABLE and the immutable Plan remains unchanged."
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "in-plan-explanation",
+      "value": {
+        "Text": "IN PLAN means the immutable Plan selected this exact Part/Host/Boot realization; it does not mean a play is active."
+      }
+    },
+    {
+      "subject": "body/69cf1a4a2fceab20d1114de07af84a28da73222c851ec9fa9028d1b63b654814",
+      "name": "playing-explanation",
+      "value": {
+        "Text": "PLAYING means an active play bound to the current plan includes this Part; loss or stopping does not rewrite that plan."
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "part-id",
+      "value": {
+        "Identity": "e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69"
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "membership-state",
+      "value": {
+        "Text": "here"
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "current",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "in-plan",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "playing",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "membership-proof",
+      "value": {
+        "Identity": "fc7acdab10b40cfff05033bcac0750450420c556e810e68c0fa47013efe18727"
+      }
+    },
+    {
+      "subject": "part/e6763d0baca40b4684dcdef85a78b3390ac021778b4607e987078188bbc0bc69",
+      "name": "offer-generation",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "part-id",
+      "value": {
+        "Identity": "8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b"
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "membership-state",
+      "value": {
+        "Text": "attached"
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "current",
+      "value": {
+        "Flag": true
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "in-plan",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "playing",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "membership-proof",
+      "value": {
+        "Identity": "f7b9ab8e874160661cbb9e1b42ac172ebf3c73cfb22ce8a91e5f5056e2914fbf"
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "offer-generation",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "freshness-sequence",
+      "value": {
+        "Count": 2
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "binding-id",
+      "value": {
+        "Identity": "patchbay/browser-tab-2/presence"
+      }
+    },
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "name": "freshness",
+      "value": {
+        "Text": "observed-at-millis=12000 expires-at-millis=42000"
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "part-id",
+      "value": {
+        "Identity": "da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a"
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "membership-state",
+      "value": {
+        "Text": "offline"
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "current",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "in-plan",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "playing",
+      "value": {
+        "Flag": false
+      }
+    },
+    {
+      "subject": "part/da6e5c784bedfc8b63722c33a81654684c31af252eb7b8fa8432b0d7b9cf685a",
+      "name": "membership-proof",
+      "value": {
+        "Identity": "b19bf17d3edb82fa0f0e532ee5a8e6ae598bdd8153bbe5c387bac299f231d85c"
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "candidate-id",
+      "value": {
+        "Identity": "f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d"
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "host-id",
+      "value": {
+        "Identity": "browser/tab-3"
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "boot-id",
+      "value": {
+        "Identity": "browser/tab-3/boot"
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "offer-generation",
+      "value": {
+        "Count": 1
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "capability-count",
+      "value": {
+        "Count": 16
+      }
+    },
+    {
+      "subject": "candidate/f5f855a07d6618f2458480364b3b4822455f95865984c6463488693a053aea7d",
+      "name": "membership-state",
+      "value": {
+        "Text": "wants-to-join"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-literal-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-literal-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-literal-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/literal"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-literal-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-upper-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-upper-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-upper-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/upper"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-upper-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-join-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-join-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-join-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/join"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-join-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-edit@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/edit"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-edit@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-submit-lines@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-submit-lines@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-submit-lines@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/submit-lines"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-submit-lines@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-morse-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "text-morse-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-morse-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/morse"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/text-morse-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/address-detect-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "address-detect-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/address-detect-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/address-detect"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/address-detect-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-recognition-to-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std-recognition-to-text-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-recognition-to-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "speech/recognition-to-text"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-recognition-to-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-committed-turn-to-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std-committed-turn-to-text-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-committed-turn-to-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "speech/committed-turn-to-text"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std-committed-turn-to-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/face-text-v1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "face-text-v1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/face-text-v1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "face/text"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/face-text-v1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-characters@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-text-characters@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-characters@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "text/characters"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-text-characters@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-lookup@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-lookup@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-lookup@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/lookup"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-lookup@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-intersperse@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-intersperse@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-intersperse@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/intersperse"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-intersperse@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-flatten@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-flatten@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-flatten@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/flatten"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-flatten@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "capability-id",
+      "value": {
+        "Identity": "std/kernel-morse-symbols-to-pattern@1"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "kind-id",
+      "value": {
+        "Identity": "morse/symbols-to-pattern"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/std/kernel-morse-symbols-to-pattern@1",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "name": "capability-id",
+      "value": {
+        "Identity": "audio-tone"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "name": "kind-id",
+      "value": {
+        "Identity": "audio/tone"
+      }
+    },
+    {
+      "subject": "capability/browser/tab-3/browser/tab-3/boot/audio-tone",
+      "name": "availability",
+      "value": {
+        "Text": "advertised"
+      }
+    }
+  ],
+  "text": [
+    {
+      "subject": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "text": "source=fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1 revision=0 open-plot=hello"
+    },
+    {
+      "subject": "plot/cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e",
+      "text": "plot=hello checked=cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "PLAN request=patchbay/portable-plan plan=e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "  source=fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1 checked=cab6cbe011949fab8025648234152a9923ed6f3ce1198e516f2e46ffb8f7329e expanded=d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "  FRAGMENT host=patchbay-portable/host boot=patchbay-portable/boot generation=1"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "    GEAR operation=hello/literal-6f8beb2a9ae7-0 placement=64f464c8389cdab22ed8e48f3d736f36a84c4d30ea276568831331540baea3be host=patchbay-portable/host boot=patchbay-portable/boot capability=text-literal-v1 implementation=std/kernel-text-literal@1 artifact=conduit-std-host/text-literal@1"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "    GEAR operation=hello/show placement=64e1f6ae9af276e3fc863474d589a3ab0ef64f53274c3bac4eeae92dc9832c27 host=patchbay-portable/host boot=patchbay-portable/boot capability=face-text-v1 implementation=std/kernel-face-text@1 artifact=conduit-std-host/face-text@1"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "    GEAR operation=hello/upper placement=5209b7da43a123eb67b3a597c0614b3fc32e4d4e6bc78bcbc53ed3d34cca8ace host=patchbay-portable/host boot=patchbay-portable/boot capability=text-upper-v1 implementation=std/kernel-text-upper@1 artifact=conduit-std-host/text-upper@1"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "    CORD connection=ca5b91d6fda2c7ce19bd365fa9c9f8bf83c48fba4af25587698ba075a6df9027 base=conduit.base/local@1 items=4 bytes=256"
+    },
+    {
+      "subject": "plan/e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c",
+      "text": "    CORD connection=5442b243b6c256a766a3e9a8531639c1ac68fd05627d0e58e87f460d8ed67942 base=conduit.base/local@1 items=4 bytes=256"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "PLAY active=696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5 plan=e27a27ba4c35d801bafc19e9a1fb598097174242a84f0f3796f9325daca1c70c terminal=Completed"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  PRESSURE exposed=false decisions=9 kernel_events=22 sign_gaps=0"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  SIGN id=2ec41d53207ca73be0506653a91affb73d0d84ebd799de64fc9b6dfc4823639a kind=PlanTerminal { disposition: Completed }"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=0 node=0 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=1 node=0 kind=ValueRouted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=2 node=1 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=3 node=2 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=4 node=2 kind=ValueConsumed"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=5 node=2 kind=HostCallRequested"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=6 node=2 kind=HostCallCompleted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=7 node=0 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=8 node=0 kind=BackCompleted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=9 node=2 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=10 node=2 kind=ValueRouted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=11 node=1 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=12 node=1 kind=ValueConsumed"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=13 node=1 kind=HostCallRequested"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=14 node=1 kind=HostCallCompleted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=15 node=2 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=16 node=2 kind=InputClosed"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=17 node=2 kind=BackCompleted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=18 node=1 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=19 node=1 kind=StepFuelGranted"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=20 node=1 kind=InputClosed"
+    },
+    {
+      "subject": "play/696835292da998ee60b52b8e111b4aff54e4f8a1a8661006fde5024bfadc6ea5",
+      "text": "  KERNEL-SIGN sequence=21 node=1 kind=BackCompleted"
+    }
+  ],
+  "actions": [
+    {
+      "identity": "action/open-back/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/open@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Open",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "action/save/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/save@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Save",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "action/toggle-linear-view/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/toggle-linear-view@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Toggle linear view",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "action/birth/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/birth@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Birth",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "lifecycle/not-current",
+          "explanation": "Birth is not available in Playing."
+        }
+      }
+    },
+    {
+      "identity": "action/wake/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/wake@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Wake",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "lifecycle/not-current",
+          "explanation": "Wake is not available in Playing."
+        }
+      }
+    },
+    {
+      "identity": "action/plan/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/plan@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Plan",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "lifecycle/not-current",
+          "explanation": "Plan is not available in Playing."
+        }
+      }
+    },
+    {
+      "identity": "action/play/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/play@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Play",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "lifecycle/not-current",
+          "explanation": "Play is not available in Playing."
+        }
+      }
+    },
+    {
+      "identity": "action/hold/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/hold@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Hold",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "action/stop/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/stop@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Stop",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "action/lull/d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "intent": "conduit.intent/lull@1",
+      "target": "d4b1d3ac9fe32b8ff8d9efd45aef743bf7b166ec0e691aad7c400d76bc13fc37",
+      "name": "Lull",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "lifecycle/not-current",
+          "explanation": "Lull is not available in Playing."
+        }
+      }
+    }
+  ],
+  "disclosures": [
+    {
+      "subject": "document/fa88a9eb0c771227a352d110102749aec2152c76b202851ecc22637bb0c8f7c1",
+      "level": "Primary"
+    }
+  ],
+  "temporal_references": [
+    {
+      "identity": "reference/patchbay-documentary",
+      "instant": {
+        "ticks": 17000,
+        "scale": "Milliseconds",
+        "clock_basis": "clock/patchbay-documentary",
+        "resolution_ticks": 1,
+        "uncertainty_ticks": 0
+      }
+    }
+  ],
+  "temporal_facts": [
+    {
+      "subject": "part/8876cce3591ac7b71971732f5f8127f3c08480c2182ffed34d19c44a87e01f8b",
+      "role": "Observation",
+      "sign_id": "patchbay/browser-tab-2/presence-renewed",
+      "source": {
+        "ticks": 12000,
+        "scale": "Milliseconds",
+        "clock_basis": "clock/patchbay-documentary",
+        "resolution_ticks": 1,
+        "uncertainty_ticks": 1
+      },
+      "reference": "reference/patchbay-documentary",
+      "relation": {
+        "Past": {
+          "minimum_ticks": 4999,
+          "maximum_ticks": 5001
+        }
+      }
+    }
+  ]
+}

@@ -275,7 +275,7 @@ fn assert_excludes_global_truth(bytes: &[u8], plan: &GeneratedEmbeddedPlan) {
         "checked/",
         "expanded/",
         "ExecutionPlan",
-        "Presentation",
+        "Face",
         "Body",
     ] {
         assert!(!bytes

@@ -128,7 +128,7 @@ fn planner_characteristic_quantities_converge_only_for_reviewed_units() {
 #[test]
 fn finite_categories_reject_unknown_labels_and_implicit_ordering() {
     let definition = CharacteristicDefinition {
-        characteristic_id: CharacteristicId::from("presentation/text-layout@1"),
+        characteristic_id: CharacteristicId::from("face/text-layout@1"),
         subject: CharacteristicSubject::Realization,
         stability: CharacteristicStability::Stable,
         value_kind: CharacteristicValueKind::Categorical {
@@ -136,7 +136,7 @@ fn finite_categories_reject_unknown_labels_and_implicit_ordering() {
             ordered: false,
         },
         human_name: "Text layout".into(),
-        help: "Stable layout behavior of a presentation realization.".into(),
+        help: "Stable layout behavior of a face realization.".into(),
     };
     assert_eq!(
         definition.validate_realization_value(&CharacteristicValue::Categorical("fluid".into())),

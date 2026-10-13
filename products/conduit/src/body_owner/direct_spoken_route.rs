@@ -1,15 +1,12 @@
-//! One direct spoken child of the installed owner's presentation Plan.
+//! One direct spoken child of the installed owner's face Plan.
 //!
 //! The Body stays lulled. The same selected Host Boot prepares and executes
 //! this ordinary Mask Plot; no replay Host, second Body, or separate BodyPlan
 //! can stand in for the owner wardrobe route.
 
-use super::{
-    presentation_wardrobe::OwnerPresentationWardrobe,
-    presentation_wardrobe_runtime::wardrobe_error, Owner,
-};
+use super::{face_wardrobe::OwnerFaceWardrobe, face_wardrobe_runtime::wardrobe_error, Owner};
 use conduit_core::{port_id, ConnectionTrack, SignId};
-use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow, Presentation, PresentationRole};
+use conduit_face::{Face, FaceRole, LocalOwnerMaskRouteSeal, MaskShow};
 use conduit_std_host::{
     direct_spoken_mask_runtime::DirectSpokenMaskPreparation, ExternalForeInput,
 };
@@ -42,7 +39,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -54,9 +51,9 @@ impl Owner {
             super::super::super::current_time_millis()?,
         );
         let wardrobe = self
-            .presentation_wardrobe
+            .face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?;
+            .ok_or("owner face wardrobe is not admitted")?;
         wardrobe
             .select_plot(
                 &self.session,
@@ -121,7 +118,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -132,14 +129,14 @@ impl Owner {
             &face,
             super::super::super::current_time_millis()?,
         );
-        if let Some(wardrobe) = &mut self.presentation_wardrobe {
+        if let Some(wardrobe) = &mut self.face_wardrobe {
             wardrobe
                 .admit_or_replace(&self.session, &face, &current)
                 .map_err(wardrobe_error)?;
         } else {
             let plot = seal.planned_mask.mask.plot_identity.clone();
-            self.presentation_wardrobe = Some(
-                OwnerPresentationWardrobe::seal(
+            self.face_wardrobe = Some(
+                OwnerFaceWardrobe::seal(
                     &self.session,
                     &face,
                     &current,
@@ -180,7 +177,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -192,9 +189,9 @@ impl Owner {
             super::super::super::current_time_millis()?,
         );
         let wardrobe = self
-            .presentation_wardrobe
+            .face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?;
+            .ok_or("owner face wardrobe is not admitted")?;
         wardrobe
             .reconcile(&self.session, &face, &current)
             .map_err(wardrobe_error)?;
@@ -215,7 +212,7 @@ impl Owner {
     /// content from this Face; it never acknowledges or creates another Show.
     pub(crate) fn prepare_selected_direct_spoken_read(
         &mut self,
-    ) -> Result<(LocalOwnerMaskRouteSeal, Presentation, MaskShow), String> {
+    ) -> Result<(LocalOwnerMaskRouteSeal, Face, MaskShow), String> {
         let seal = self.selected_direct_spoken_seal()?;
         let show = self.selected_owner_show()?;
         if show.mask_plot != seal.planned_mask.mask.plot_identity {
@@ -258,7 +255,7 @@ impl Owner {
             let front_subject = face
                 .subjects
                 .iter()
-                .find(|subject| subject.role == PresentationRole::Body)
+                .find(|subject| subject.role == FaceRole::Body)
                 .map(|subject| subject.identity.clone())
                 .ok_or("direct spoken Face has no Body subject")?;
             let (fragment, preparation, reading) = prepared.into_preparation(
@@ -292,7 +289,7 @@ impl Owner {
         let front_subject = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Body)
+            .find(|subject| subject.role == FaceRole::Body)
             .map(|subject| subject.identity.clone())
             .ok_or("direct spoken Face has no Body subject")?;
         let preparation = DirectSpokenMaskPreparation::new(
@@ -347,7 +344,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -358,9 +355,9 @@ impl Owner {
             &face,
             super::super::super::current_time_millis()?,
         );
-        self.presentation_wardrobe
+        self.face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?
+            .ok_or("owner face wardrobe is not admitted")?
             .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
             .map_err(wardrobe_error)
     }
@@ -369,7 +366,7 @@ impl Owner {
 /// Exact pre-Play inputs transferred to the worker with the owner's Host.
 pub(crate) struct DirectSpokenStart {
     pub(crate) seal: LocalOwnerMaskRouteSeal,
-    pub(crate) face: Presentation,
+    pub(crate) face: Face,
     pub(crate) fragment: conduit_core::PlanFragment,
     pub(crate) preparation: DirectSpokenMaskPreparation,
     pub(crate) input: ExternalForeInput,

@@ -63,14 +63,12 @@ fn plan(host: &StdHost, expanded: &conduit_plot::ExpandedCanonicalPlot) -> condu
                 .map(|gear| gear.kind_id.as_str());
             let byte_capacity = match connection.value_kind.as_str() {
                 conduit_human::KEY_EVENT_INFO_ID => conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-                conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
+                conduit_semantic_catalog::TEXT_FACE_VALUE_KIND
                     if source_kind == Some(conduit_semantic_catalog::KEYMAP_KIND) =>
                 {
                     4
                 }
-                conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND => {
-                    conduit_text::MAX_TEXT_BYTES
-                }
+                conduit_semantic_catalog::TEXT_FACE_VALUE_KIND => conduit_text::MAX_TEXT_BYTES,
                 _ => conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
             };
             (
@@ -125,7 +123,7 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
         conduit_net::TYPED_RECORD_DEFRAME_KIND,
         conduit_net::TYPED_RECORD_TO_TEXT_KIND,
         conduit_net::ORDERED_RECORD_QUEUE_KIND,
-        "presentation/text",
+        "face/text",
     ] {
         assert!(kinds.contains(&kind), "missing expanded {kind}");
     }
@@ -205,7 +203,7 @@ fn canonical_desk_telegraph_frames_and_recovers_text_through_one_kernel_play() {
 }
 
 #[test]
-fn missing_or_stale_codec_realization_refuses_before_presentation() {
+fn missing_or_stale_codec_realization_refuses_before_face() {
     let expanded = expanded();
     let mut host = host();
     let mut plan = plan(&host, &expanded);

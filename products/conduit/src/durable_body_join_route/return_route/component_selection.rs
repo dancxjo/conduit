@@ -1,4 +1,4 @@
-//! Closed native presentation selection on the existing finite return bearer.
+//! Closed native face selection on the existing finite return bearer.
 use super::*;
 use conduit_std_host::browser_admission::{BrowserComponentLook, BrowserComponentRecipe};
 
@@ -35,12 +35,12 @@ pub(super) fn serve(
     }
     line.complete_bounded_input();
     let look = match selection.look {
-        BrowserComponentLook::Compact => conduit_presentation::ComponentMaskLook::Compact,
-        BrowserComponentLook::Spacious => conduit_presentation::ComponentMaskLook::Spacious,
+        BrowserComponentLook::Compact => conduit_face::ComponentMaskLook::Compact,
+        BrowserComponentLook::Spacious => conduit_face::ComponentMaskLook::Spacious,
     };
     let recipe = match selection.recipe {
-        BrowserComponentRecipe::Flat => conduit_presentation::TodoComponentRecipe::Flat,
-        BrowserComponentRecipe::Grouped => conduit_presentation::TodoComponentRecipe::Grouped,
+        BrowserComponentRecipe::Flat => conduit_face::TodoComponentRecipe::Flat,
+        BrowserComponentRecipe::Grouped => conduit_face::TodoComponentRecipe::Grouped,
     };
     // The serialized owner validates the acknowledged old Show before replacing
     // its route. Refresh then issues the fresh bounded bearer and exact Face;

@@ -100,7 +100,7 @@ pub(super) fn run(offer: &HostOffer<'_>) {
                         };
                         if request.handle != 202
                             || request.operation != 11
-                            || request.request.node != graph.presentation
+                            || request.request.node != graph.face
                             || &request.payload[..request.length] != expected
                         {
                             refuse("timer-runtime-count");
@@ -169,7 +169,7 @@ pub(super) fn run_product(offer: &HostOffer<'_>) {
     .unwrap_or_else(|_| refuse("timer-product-run"));
     if evidence.run.timer_irq_wakes != 1
         || timer.wake_count() != 1
-        || serial.presentation_count() != 2
+        || serial.face_count() != 2
         || idle.idle_count() == 0
         || evidence.run.pending_host_calls != 1
         || !evidence.run.clock_monotonic

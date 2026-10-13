@@ -4,7 +4,7 @@ use conduit_core::{
     CapabilityLimits, ExecutionProfileId, HostBaseId, HostBaseKindId, HostCallContractId,
     HostCallRequirement, HostId, HostProfileId, ImplementationId, OfferGeneration, SignId,
 };
-use conduit_presentation::{renderer_offer, RendererRealizationOffer};
+use conduit_face::{renderer_offer, RendererRealizationOffer};
 
 use crate::test_packages::{test_build_host_image, test_catalog, test_checked_host_profile};
 use crate::{
@@ -23,18 +23,16 @@ fn presenter() -> conduit_core::CapabilityOffer {
         artifact_id: ArtifactId::from("conduitos/native-image@1"),
         host_call: HostCallRequirement {
             contract_id: HostCallContractId::from("conduit.host/present@1"),
-            target_kind: Some(conduit_core::kind_id(
-                "presentation/base/native-compositor@1",
-            )),
+            target_kind: Some(conduit_core::kind_id("face/base/native-compositor@1")),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
-            maximum_output_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+            maximum_input_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
+            maximum_output_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
         },
-        resource_requirement: resource_requirement("presentation/surface", 1),
+        resource_requirement: resource_requirement("face/surface", 1),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+            max_queue_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
         },
     })
 }
@@ -49,18 +47,14 @@ fn display_base(lifecycle: BaseLifecycle) -> BaseProviderEntry {
         enforcement_class: BaseEnforcementClass::ConduitOsKernelEnforced,
         lifecycle,
         capabilities: vec![presenter()],
-        resources: vec![resource_offer(
-            "boot/display/0/surface",
-            "presentation/surface",
-            1,
-        )],
+        resources: vec![resource_offer("boot/display/0/surface", "face/surface", 1)],
     }
 }
 
 fn facts(ready: bool) -> RuntimeFacts {
     RuntimeFacts {
         ready_resource_classes: ready
-            .then(|| "presentation/surface".to_owned())
+            .then(|| "face/surface".to_owned())
             .into_iter()
             .collect(),
         initialized_base_kinds: ready

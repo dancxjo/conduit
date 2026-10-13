@@ -54,8 +54,8 @@ pub(super) fn serve_optional_face_snapshot(
             .into(),
         });
     let mut grant = if return_requested
-        && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { presentation, .. }
-            if crate::durable_host_control::has_native_return_route_intent(presentation))
+        && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { face, .. }
+            if crate::durable_host_control::has_native_return_route_intent(face))
     {
         Some(return_route::Grant::issue(receipt)?)
     } else {

@@ -10,6 +10,14 @@ use conduit_core::{
     ImplementationId, ImplementationOffer, OfferGeneration, PROTOCOL_VERSION, authority_grant,
     kind_id, present_authority_requirement, resource_offer, resource_requirement,
 };
+use conduit_face::{
+    FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, MaskPlot, PlannedMaskPlot,
+    RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
+    face_interaction_kind_projection, face_interaction_offer, face_tee_kind_projection,
+    face_tee_offer, install_mask_plot_value_aliases, renderer_kind_projection, renderer_offer,
+    resource_renderer_kind, resource_renderer_offer, show_resource_source_kind,
+    show_resource_source_offer,
+};
 use conduit_planner::{
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
     plan_expanded_authoring_with_options,
@@ -17,14 +25,6 @@ use conduit_planner::{
 use conduit_plot::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_plot_for_authoring, parse_syntax_document,
-};
-use conduit_presentation::{
-    FaceInteractionRealizationOffer, MAX_RENDERER_VALUE_BYTES, MaskPlot, PlannedMaskPlot,
-    RendererRealizationOffer, ResourceRendererRealizationOffer, ShowResourceSourceOffer,
-    face_interaction_kind_projection, face_interaction_offer, install_mask_plot_value_aliases,
-    presentation_tee_kind_projection, presentation_tee_offer, renderer_kind_projection,
-    renderer_offer, resource_renderer_kind, resource_renderer_offer, show_resource_source_kind,
-    show_resource_source_offer,
 };
 
 mod configured;
@@ -77,7 +77,7 @@ pub fn prepare_stage_from_offer(
     for projection in [
         renderer_kind_projection(),
         face_interaction_kind_projection(),
-        presentation_tee_kind_projection(),
+        face_tee_kind_projection(),
     ] {
         startup
             .insert(KindSignature {
@@ -134,7 +134,7 @@ pub fn prepare_stage_from_offer(
             ConnectionQueueLimits {
                 item_capacity: 1,
                 byte_capacity: if name == "interaction" {
-                    conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
+                    conduit_face::MAX_FACE_INTERACTION_BYTES as u32
                 } else {
                     MASK_BYTES as u32
                 },
@@ -145,8 +145,7 @@ pub fn prepare_stage_from_offer(
     let empty_connections = alloc::collections::BTreeMap::new();
     let empty_lines = alloc::collections::BTreeMap::new();
     let authority_grants = if matches!(adapter, Adapter::Native) {
-        let requirement =
-            present_authority_requirement(kind_id("presentation/base/conduitos-surface@1"));
+        let requirement = present_authority_requirement(kind_id("face/base/conduitos-surface@1"));
         vec![authority_grant(
             "conduitos/native-mask/present",
             &requirement,
@@ -191,27 +190,27 @@ fn renderer_host(
         match adapter {
             Adapter::Native => (
                 "renderer-conduitos",
-                "presentation/renderer-conduitos-native@1",
+                "face/renderer-conduitos-native@1",
                 "conduitos/native-compositor@1",
-                "presentation/base/conduitos-surface@1",
+                "face/base/conduitos-surface@1",
                 "conduit.resource/conduitos-surface@1",
                 "conduit.resource/conduitos-human-input@1",
             ),
             Adapter::Speech => (
                 "renderer-test-speech",
-                "presentation/renderer-test-speech@1",
+                "face/renderer-test-speech@1",
                 "conduitos/test-speech@1",
-                "presentation/base/test-speech@1",
+                "face/base/test-speech@1",
                 "conduit.resource/test-speech-sink@1",
                 "conduit.resource/test-speech-input@1",
             ),
         };
-    let mut capabilities = vec![presentation_tee_offer(
+    let mut capabilities = vec![face_tee_offer(
         CapabilityId::from(format!("{capability}-tee")),
         ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
-            implementation_id: ImplementationId::from("conduit.presentation/tee-kernel@1"),
-            artifact_id: ArtifactId::from("conduitos/presentation-tee@1"),
+            implementation_id: ImplementationId::from("conduit.face/tee-kernel@1"),
+            artifact_id: ArtifactId::from("conduitos/face-tee@1"),
         },
         CapabilityLimits {
             max_active_instances: 1,
@@ -225,14 +224,9 @@ fn renderer_host(
             capabilities.push(show_resource_source_offer(ShowResourceSourceOffer {
                 capability_id: CapabilityId::from("renderer-conduitos-resource-source"),
                 execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
-                implementation_id: ImplementationId::from(
-                    "presentation/conduitos-surface-source@1",
-                ),
+                implementation_id: ImplementationId::from("face/conduitos-surface-source@1"),
                 artifact_id: ArtifactId::from("conduitos/native-compositor@1"),
-                resource_requirement: resource_requirement(
-                    conduit_presentation::SHOW_RESOURCE_CLASS,
-                    1,
-                ),
+                resource_requirement: resource_requirement(conduit_face::SHOW_RESOURCE_CLASS, 1),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
@@ -283,25 +277,25 @@ fn renderer_host(
         capability_id: CapabilityId::from(format!("{capability}-input")),
         execution_profile_id: ExecutionProfileId::from("conduitos/bounded-interaction@1"),
         implementation_id: ImplementationId::from(match adapter {
-            Adapter::Native => "presentation/conduitos-human-input@1",
-            Adapter::Speech => "presentation/test-speech-input@1",
+            Adapter::Native => "face/conduitos-human-input@1",
+            Adapter::Speech => "face/test-speech-input@1",
         }),
         artifact_id: ArtifactId::from(match adapter {
             Adapter::Native => "conduitos/native-compositor-input@1",
             Adapter::Speech => "conduitos/test-speech-input@1",
         }),
         host_call: HostCallRequirement {
-            contract_id: HostCallContractId::from("conduit.host/presentation-interaction@1"),
-            target_kind: Some(kind_id(conduit_presentation::FACE_INTERACTION_VALUE_KIND)),
+            contract_id: HostCallContractId::from("conduit.host/face-interaction@1"),
+            target_kind: Some(kind_id(conduit_face::FACE_INTERACTION_VALUE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
-            maximum_output_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
+            maximum_output_bytes: conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
         },
         resource_requirement: resource_requirement(input_resource, 1),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 8,
-            max_queue_bytes: conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32 * 8,
+            max_queue_bytes: conduit_face::MAX_FACE_INTERACTION_BYTES as u32 * 8,
         },
     }));
     let (surface_resource, bases) = if matches!(adapter, Adapter::Native) {
@@ -309,14 +303,12 @@ fn renderer_host(
             let resource = provider
                 .resources
                 .iter()
-                .find(|resource| {
-                    resource.class_id.as_str() == conduit_presentation::SHOW_RESOURCE_CLASS
-                })
+                .find(|resource| resource.class_id.as_str() == conduit_face::SHOW_RESOURCE_CLASS)
                 .cloned()
                 .unwrap_or_else(|| {
                     resource_offer(
                         &format!("{}/{capability}", host_id.as_str()),
-                        conduit_presentation::SHOW_RESOURCE_CLASS,
+                        conduit_face::SHOW_RESOURCE_CLASS,
                         1,
                     )
                 });
@@ -336,7 +328,7 @@ fn renderer_host(
             (
                 resource_offer(
                     &format!("{}/{capability}", host_id.as_str()),
-                    conduit_presentation::SHOW_RESOURCE_CLASS,
+                    conduit_face::SHOW_RESOURCE_CLASS,
                     1,
                 ),
                 Vec::new(),
@@ -409,7 +401,7 @@ mod tests {
             capabilities: Vec::new(),
             resources: vec![resource_offer(
                 "conduitos/test/framebuffer/surface",
-                conduit_presentation::SHOW_RESOURCE_CLASS,
+                conduit_face::SHOW_RESOURCE_CLASS,
                 1,
             )],
         };

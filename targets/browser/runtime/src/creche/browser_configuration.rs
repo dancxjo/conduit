@@ -14,7 +14,7 @@ use conduit_host_make::{
 };
 use serde::{Deserialize, Serialize};
 
-mod presentation;
+mod face;
 
 pub(super) const CATALOG_GENERATION: u32 = 1;
 const CONFIGURATION_NAME: &str = "creche-browser-page";
@@ -486,7 +486,7 @@ mod tests {
             catalog_generation: CATALOG_GENERATION,
             capabilities: vec![
                 CapabilityIntent {
-                    kind: "host-contribution/graphical-presentation".into(),
+                    kind: "host-contribution/graphical-face".into(),
                     pinned_implementation: None,
                 },
                 CapabilityIntent {
@@ -500,7 +500,7 @@ mod tests {
         assert_eq!(
             intent.configuration_selection.implementations,
             vec![
-                "browser/dom-presentation@1",
+                "browser/dom-face@1",
                 "browser/dom@1",
                 "browser/keyboard-events@1",
                 "browser/pointer-events@1",

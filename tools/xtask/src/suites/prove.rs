@@ -271,8 +271,8 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "prove.llm-embodiment.presentation",
-        "Prove Patchbay Presentation distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
+        "prove.llm-embodiment.face",
+        "Prove Patchbay Face distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
         "cargo",
         &["test", "-p", "conduit-patchbay-workbench", "--test", "llm_embodiment"],
         None,
@@ -282,7 +282,7 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.llm-embodiment.patchbay-build",
-        "Build the isolated shared-Presentation Patchbay documentary fixture",
+        "Build the isolated shared-Face Patchbay documentary fixture",
         "cargo",
         &["build", "-p", "conduit-browser-patchbay-workbench"],
         None,

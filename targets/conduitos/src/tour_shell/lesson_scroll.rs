@@ -1,7 +1,7 @@
 //! Presenter-local scrolling of the Tour prose, independent of its live laboratory.
 use super::*;
 use crate::tour_workspace::lesson;
-use conduit_presentation::GraphicsScene;
+use conduit_face::GraphicsScene;
 
 impl TourShellPresenter {
     pub(super) fn prepare_lesson_scene(
@@ -38,7 +38,7 @@ impl TourShellPresenter {
         }
         let current_offset = state.scroll.offset();
         let bounds = state.bounds.ok_or(TourShellError::Identity)?;
-        let presentation = state.presentation.clone().ok_or(TourShellError::Identity)?;
+        let face = state.face.clone().ok_or(TourShellError::Identity)?;
         let scene = lesson::scrolled(
             self.lesson_scene.as_ref().ok_or(TourShellError::Identity)?,
             current_offset,
@@ -46,7 +46,7 @@ impl TourShellPresenter {
         .map_err(|_| TourShellError::Scene)?;
         let composition = self.present_surface(
             Slot::Workspace,
-            &presentation,
+            &face,
             TOUR_WORKSPACE_SUBJECT,
             bounds,
             0,

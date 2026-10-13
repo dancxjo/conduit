@@ -31,7 +31,7 @@ struct SyntaxProjection {
     pub source_bytes: u32,
     pub kinds: &'static [&'static str; 10],
     /// Compact tuples keep every admitted Tour projection inside the shared
-    /// 128 KiB application-presentation aggregate bound.
+    /// 128 KiB application-face aggregate bound.
     pub spans: Vec<(u32, u32, u8)>,
 }
 

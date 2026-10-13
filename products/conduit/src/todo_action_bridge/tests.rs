@@ -2,9 +2,9 @@ use super::*;
 use conduit_core::{
     bind_active_play, ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SignId, SourceDocumentId,
 };
-use conduit_presentation::{
-    FaceInteractionArgument, ManifestationLifecycle, PresentationBasis,
-    PresentationContributionBasis, PresentationRole, PresentationSubject, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    FaceBasis, FaceContributionBasis, FaceInteractionArgument, FaceRole, FaceSubject,
+    ManifestationLifecycle, UTF8_TEXT_VALUE_KIND,
 };
 use conduit_todo_face::todo_fragment;
 use conduit_todo_plot::TodoCommand;
@@ -39,8 +39,8 @@ impl TodoForeSubmission for FakeQueue {
     }
 }
 
-fn face_and_show(state: &TodoState) -> (Presentation, MaskShow) {
-    let basis = PresentationContributionBasis {
+fn face_and_show(state: &TodoState) -> (Face, MaskShow) {
+    let basis = FaceContributionBasis {
         checked_plot_id: CheckedPlotId::from("checked/todo"),
         plan_id: PlanId::from("plan/todo"),
         active_play_id: ActivePlayId::from("play/todo"),
@@ -48,14 +48,14 @@ fn face_and_show(state: &TodoState) -> (Presentation, MaskShow) {
     };
     let fragment = todo_fragment(state, basis.clone(), true).unwrap();
     let mut subjects = fragment.subjects;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "patchbay/plot".into(),
-        role: PresentationRole::Plot,
+        role: FaceRole::Plot,
         name: "Todo encounter".into(),
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         u64::from(state.revision),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),
@@ -77,7 +77,7 @@ fn face_and_show(state: &TodoState) -> (Presentation, MaskShow) {
     (face, show)
 }
 
-fn another_show(face: &Presentation, first: &MaskShow) -> MaskShow {
+fn another_show(face: &Face, first: &MaskShow) -> MaskShow {
     let placement = first.planned_mask.show_placement();
     let active = bind_active_play(
         &first.planned_mask.plan.plan_id,
@@ -101,7 +101,7 @@ fn another_show(face: &Presentation, first: &MaskShow) -> MaskShow {
     .unwrap()
 }
 
-fn add(face: &Presentation, show: &MaskShow, sequence: u64) -> FaceInteraction {
+fn add(face: &Face, show: &MaskShow, sequence: u64) -> FaceInteraction {
     FaceInteraction::new(
         face,
         show,
