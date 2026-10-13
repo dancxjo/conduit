@@ -280,6 +280,10 @@ fn validate(placement: &PlannedGear) -> Result<(), String> {
     {
         return Err("planned face composition identity does not match its installation".into());
     }
+    conduit_semantic_catalog::validate_declared_data_labels(
+        &placement.configuration,
+        &offer.semantic_contract.configuration,
+    )?;
     Ok(())
 }
 
@@ -352,3 +356,7 @@ fn prepare_sink(
     sink_budget(placement)?;
     Ok(InstalledBack::TestFaceSink(FaceSinkBack))
 }
+
+#[cfg(test)]
+#[path = "face_composition_label_tests.rs"]
+mod label_tests;

@@ -647,7 +647,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
 #[test]
 fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
     let (body, wake, body_plan) = production_tutorial_basis();
-    let face = conduit_tutorial_plot::face_face(
+    let face = conduit_tutorial_plot::canonical_face(
         &body,
         13,
         conduit_tutorial_plot::TutorialPlayback::Playing,
