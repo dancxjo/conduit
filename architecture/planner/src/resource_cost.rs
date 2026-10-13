@@ -7,13 +7,16 @@ mod duration;
 mod execution_observation;
 mod forecast;
 mod freshness;
+mod global_planning;
 mod input_codec;
 mod planning;
+mod pool_preparation;
 mod selection;
 mod selection_account;
 mod service_model;
 mod source;
 mod structured_input;
+mod transfer;
 mod work_class;
 pub use attribution::CostSourceAttribution;
 pub use calibration::*;
@@ -24,8 +27,10 @@ pub use duration::CostDuration;
 pub use execution_observation::CostExecutionObservation;
 pub use forecast::{CostDurationRange, CostForecastStages, FulfillmentCostForecast};
 pub use freshness::CostObservationWindow;
+pub use global_planning::*;
 pub use input_codec::CostInputCodec;
 pub use planning::*;
+pub use pool_preparation::*;
 pub use selection::*;
 pub use selection_account::*;
 pub use service_model::*;
@@ -33,6 +38,7 @@ pub use source::{
     CostCalibrationRevision, CostEvidenceSource, CostScopeChange, MAXIMUM_COST_ID_BYTES,
 };
 pub use structured_input::CostStructuredInputSchema;
+pub use transfer::*;
 pub use work_class::CostWorkClass;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

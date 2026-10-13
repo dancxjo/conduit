@@ -7,6 +7,7 @@ mod expression;
 mod pipeline;
 mod pool;
 mod timing;
+mod typed_cost;
 #[global_allocator]
 static ALLOCATOR: allocation::Allocator = allocation::Allocator;
 use expression::{Domain, Shape, Workload};
@@ -84,9 +85,40 @@ fn run() -> Result<(), Box<dyn Error>> {
             }
         }
     }
+    for candidates in [1, 8, 32] {
+        let fixture = typed_cost::Fixture::new(candidates)?;
+        let id = format!("typed-cost-selection-{candidates}-hosts");
+        artifact::json(
+            &config.output.join("sources").join(format!("{id}.json")),
+            &fixture.artifact(),
+        )?;
+        for repetition in 0..config.repetitions {
+            let run = typed_cost::run(&fixture, &config)?;
+            summaries.push(json!({"case":id,"mode":"production-typed-cost-selection-isolation","repetition":repetition,"decisions":run.decisions,"selection_wall_ns":run.summed_selection_wall_ns,"latency_distribution":run.latency_distribution,"arithmetic_work_spent":run.arithmetic_work_spent}));
+            raw.row(&json!({"case":id,"phase":"typed-cost-selection","repetition":repetition,"run":run}))?;
+            eprintln!("validated {id} repetition {}", repetition + 1);
+        }
+    }
     #[cfg(feature = "hosted-pipeline")]
     if config.hosted_pipeline {
         pipeline::run(&config, &mut raw, &mut summaries)?;
+        for candidates in [1, 8, 32] {
+            let fixture = typed_cost::Fixture::with_std_inventory(candidates)?;
+            let id = format!("typed-cost-selection-{candidates}-hosts-std-owner-inventory");
+            artifact::json(
+                &config.output.join("sources").join(format!("{id}.json")),
+                &fixture.artifact(),
+            )?;
+            for repetition in 0..config.repetitions {
+                let run = typed_cost::run(&fixture, &config)?;
+                summaries.push(json!({"case":id,"mode":"production-typed-cost-selection-isolation","repetition":repetition,
+                    "inventory":run.inventory,"offers_per_host":run.offers_per_host,"decisions":run.decisions,
+                    "selection_wall_ns":run.summed_selection_wall_ns,"latency_distribution":run.latency_distribution,
+                    "arithmetic_work_spent":run.arithmetic_work_spent}));
+                raw.row(&json!({"case":id,"phase":"typed-cost-selection","repetition":repetition,"run":run}))?;
+                eprintln!("validated {id} repetition {}", repetition + 1);
+            }
+        }
     }
     raw.finish()?;
     artifact::json(
@@ -98,9 +130,9 @@ fn run() -> Result<(), Box<dyn Error>> {
             "process_resident_high_water":artifact::resident_high_water(),
             "confidence":"raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open",
             "scope":if config.hosted_pipeline {
-                "production evaluator/selection isolation plus 64-item ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials; separate cold Back/Play phases, continuous streams, DSP/pressure/fairness and browser matrix remain required by #5395"
+                "production evaluator/typed-cost/pool-selection isolation plus 64-item ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials; separate cold Back/Play phases, continuous streams, DSP/pressure/fairness and browser matrix remain required by #5395"
             } else {
-                "production prepared expression evaluator and production shared-pool selection isolation; full ordinary Plan/Play/DSP/pressure/browser matrix remains required by #5395"
+                "production prepared expression evaluator and production shared-pool and typed-cost selection isolation; full ordinary Plan/Play/DSP/pressure/browser matrix remains required by #5395"
             }
         }),
     )?;
