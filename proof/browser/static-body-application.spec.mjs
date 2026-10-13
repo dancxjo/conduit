@@ -391,6 +391,46 @@ test("malformed packaged Handbook Plot leaves an editable recovery route into a 
   }
 });
 
+for (const position of ["first", "middle"]) {
+  test(`malformed ${position} Handbook lesson preserves independent source inspection and checks`, async ({}, testInfo) => {
+    testInfo.setTimeout(120_000);
+    const site = await stageStaticApplications({ malformedLessonSource: position });
+    const session = await openStaticProfile(testInfo.outputPath(`malformed-${position}-profile`), new URL(site.url).origin);
+    try {
+      const page = await session.context.newPage();
+      await page.goto(new URL("broken/", site.url).href);
+      await expect(page.locator("[data-session-status]")).toContainText("CND-FRM-055");
+      const editor = page.getByRole("textbox", { name: "Plot source", exact: true });
+      const chooser = page.getByLabel("Choose an example", { exact: true });
+      await expect(chooser).toBeEnabled();
+      await expect(chooser.locator("option")).toHaveCount(site.sourceInspection.length);
+      for (const candidate of site.sourceInspection) {
+        await chooser.selectOption({ label: `${candidate.title} (packaged)` });
+        await expect(editor).toBeEnabled();
+        await expect(editor).toHaveValue(candidate.source);
+      }
+      const malformed = site.sourceInspection.find(plot => plot.malformed);
+      await chooser.selectOption({ label: `${malformed.title} (packaged)` });
+      await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+      await expect(page.locator("[data-check]")).toContainText("CND-FRM-055");
+      const sibling = site.sourceInspection.find(plot => plot.lesson && !plot.malformed);
+      await chooser.selectOption({ label: `${sibling.title} (packaged)` });
+      await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
+      await expect(page.locator("[data-check]")).toContainText("Source checks.");
+      await chooser.selectOption({ label: `${malformed.title} (packaged)` });
+      await expect(editor).toHaveValue(malformed.source);
+      expect(await page.evaluate(async () => ({
+        record: await globalThis.__conduitBrowserApplication.storage.readJson("body-continuity"),
+        runnable: Boolean(globalThis.__conduitApplication),
+      }))).toEqual({ record: null, runnable: false });
+      session.assertClean();
+    } finally {
+      await session.context.close();
+      await site.close();
+    }
+  });
+}
+
 test("refused Handbook recovery preserves original state until explicit replacement consent", async ({}, testInfo) => {
   testInfo.setTimeout(120_000);
   const site = await stageStaticApplications();
