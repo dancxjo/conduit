@@ -277,6 +277,26 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>
                     .unwrap();
             }
         }
+        assert!(matches!(
+            host.validate_settlement_idle(),
+            Err(UsbNativeHostRefusal::Pending)
+        ));
+        // Fault injection: empty dispatcher/native index flags are insufficient
+        // while original per-transfer leases and DMA reservations remain live.
+        let original_read = host.pending_endpoint.take();
+        let original_write = host.pending_write.take();
+        assert!(host.validate_settlement_idle().is_err());
+        host.pending_endpoint = original_read;
+        host.pending_write = original_write;
+        let nodes = [
+            host.calls[read_index.0].node,
+            host.calls[write_index.0].node,
+        ];
+        assert!(
+            kernel
+                .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                .unwrap()
+        );
         let keys = host.independent_keys().unwrap();
         assert_eq!(keys[0].unwrap().index, read_index);
         assert_eq!(keys[1].unwrap().index, write_index);
@@ -339,6 +359,12 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>
             kernel.cancel().unwrap();
             assert!(host.stopped && host.stop_acknowledged);
             assert_eq!(host.independent_keys().unwrap(), [None, None]);
+            host.validate_cancelled_settlement().unwrap();
+            assert!(
+                !kernel
+                    .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                    .unwrap()
+            );
             for direction in 0..2 {
                 assert!(matches!(
                     host.complete_independent_event(event(keys[direction].unwrap(), 1), keys),
@@ -373,6 +399,7 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>
             assert_eq!(host.independent_keys().unwrap(), keys);
             assert!(!host.stop_acknowledged);
             assert!(host.poll_independent().is_err());
+            assert!(host.validate_cancelled_settlement().is_err());
         } else if stalled {
             let (first, bytes) = completion.unwrap().unwrap();
             assert_eq!(first, read_index);
@@ -380,6 +407,7 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>
             assert!(kernel.complete_host_call_bytes(&tokens[0], bytes).is_err());
             assert!(kernel.host_request_input(&tokens[1]).is_ok());
             assert!(host.stopped && host.stop_acknowledged);
+            assert!(host.validate_cancelled_settlement().is_err());
             let (second, bytes) = host.poll_independent().unwrap().unwrap();
             assert_eq!(second, write_index);
             kernel.complete_host_call_bytes(&tokens[1], bytes).unwrap();
@@ -409,6 +437,14 @@ fn paired(stop_code: u8, stalled: bool, cancelled: bool, continuity: Option<u32>
             kernel.complete_host_call_bytes(&tokens[0], bytes).unwrap();
             assert!(kernel.host_request_input(&tokens[0]).is_err());
             assert_eq!(host.independent_keys().unwrap(), [None, None]);
+            host.validate_settlement_idle().unwrap();
+            // Native completion and dispatch-token retirement do not consume
+            // the original scheduler completion obligations.
+            assert!(
+                kernel
+                    .has_retained_host_call_for_nodes(&fragment.host_id, &nodes)
+                    .unwrap()
+            );
             assert!(
                 host.complete_independent_event(event(keys[1].unwrap(), 1), [None, None])
                     .is_err()

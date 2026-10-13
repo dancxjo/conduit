@@ -6,6 +6,10 @@ use sha2::{Digest, Sha256};
 
 pub const ROOT_MODULE_COMMAND: &[u8] = b"conduit.protocol/usb-root-request@1";
 pub const REQUEST_SCHEMA: &str = "conduit.conduitos/usb-protocol-root-request@1";
+mod network;
+mod storage;
+pub use network::UsbEthernetNetworkRequest;
+pub use storage::UsbStorageRequest;
 
 #[derive(Debug, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -31,6 +35,12 @@ pub struct UsbProtocolBootRequest {
     pub endpoint_write: Option<UsbEndpointBootRequest>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub isochronous_out: Option<UsbIsochronousEndpointBootRequest>,
+    /// Independent network approval; USB attachment approval supplies none.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub ethernet_network: Option<UsbEthernetNetworkRequest>,
+    /// Independent read-only block approval; USB attachment grants no storage permission.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub storage: Option<UsbStorageRequest>,
     /// Root reserves retained remote lifecycle history before Play. This is
     /// storage admission, not additional device authority or operation fuel.
     #[serde(default, skip_serializing_if = "is_zero")]
@@ -116,6 +126,25 @@ impl UsbProtocolBootRequest {
         {
             return Err(Error::Approval);
         }
+        if let Some(storage) = &request.storage {
+            storage.validate()?;
+            if request.endpoint_read.is_none()
+                || request.endpoint_write.is_none()
+                || request.isochronous_out.is_some()
+                || request.ethernet_network.is_some()
+            {
+                return Err(Error::Bounds);
+            }
+        }
+        if let Some(network) = &request.ethernet_network {
+            network.validate()?;
+            if request.endpoint_read.is_none()
+                || request.endpoint_write.is_none()
+                || request.isochronous_out.is_some()
+            {
+                return Err(Error::Bounds);
+            }
+        }
         if request.preflight.as_ref().is_some_and(|preflight| {
             preflight.entry.is_empty()
                 || preflight.entry.len() > 128
@@ -150,13 +179,7 @@ impl UsbProtocolBootRequest {
                     || request.endpoint_write.is_some()
             })
             || request.inputs.len() > 16
-            || request.inputs.iter().any(|input| {
-                input.port.is_empty()
-                    || input.port.len() > 128
-                    || input.canonical_bytes.is_empty()
-                    || input.canonical_bytes.len()
-                        > crate::protocol_source::MAXIMUM_PROTOCOL_FORE_BYTES as usize
-            })
+            || request.inputs.iter().any(|input| !input.valid())
             || request.inputs.iter().enumerate().any(|(index, input)| {
                 request.inputs[..index]
                     .iter()

@@ -109,6 +109,9 @@ pub(super) fn admit_pair(
     kernel: &mut KernelCompositeHost,
     values: [ValuePayload; 2],
 ) -> [AdmittedKernelCompositeHostRequest; 2] {
+    let host = kernel.definition().internal_plan.fragments[0]
+        .host_id
+        .clone();
     kernel.start().unwrap();
     for (index, port) in ["read", "write"].into_iter().enumerate() {
         kernel
@@ -117,9 +120,26 @@ pub(super) fn admit_pair(
         kernel.close_input(&port_id(port)).unwrap();
     }
     let mut requests = [None, None];
+    let mut observed_unsurfaced = false;
     for _ in 0..64 {
         kernel.step().unwrap();
+        if requests.iter().all(Option::is_none) {
+            observed_unsurfaced |= kernel
+                .has_retained_host_call_for_nodes(
+                    &host,
+                    &[conduit_kernel::NodeId(0), conduit_kernel::NodeId(1)],
+                )
+                .unwrap();
+        }
         while let Some(request) = kernel.next_host_request() {
+            // Original scheduler obligation remains retained before and after
+            // surfacing/admission; token creation is not the idle boundary.
+            let view = kernel.host_request_view(&request).unwrap();
+            assert!(
+                kernel
+                    .has_retained_host_call_for_nodes(view.child, &[view.request.node])
+                    .unwrap()
+            );
             let exact = kernel.host_request_obligation(&request).unwrap();
             let admitted = kernel
                 .admit_host_request(&request, &exact.host, &exact.resources, &exact.authorities)
@@ -134,6 +154,7 @@ pub(super) fn admit_pair(
             requests[position] = Some(admitted);
         }
         if requests.iter().all(Option::is_some) {
+            assert!(observed_unsurfaced);
             return requests.map(Option::unwrap);
         }
     }

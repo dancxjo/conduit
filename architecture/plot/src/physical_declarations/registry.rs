@@ -19,15 +19,8 @@ pub(crate) struct CheckedQuantityRole {
     pub span: Span,
 }
 
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct CheckedPhysicalCatalogue {
-    pub dimensions: BTreeMap<String, DimensionDefinition>,
-    pub quantities: BTreeMap<String, CheckedQuantityRole>,
-    pub units: BTreeMap<String, UnitDefinition>,
-    /// Accepted source spellings map to immutable canonical capsule spellings.
-    pub aliases: BTreeMap<String, String>,
-    pub unit_spans: BTreeMap<String, Span>,
-}
+mod catalogue;
+pub(crate) use catalogue::CheckedPhysicalCatalogue;
 
 type Result<T> = core::result::Result<T, PhysicalDeclarationDiagnostic>;
 

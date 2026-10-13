@@ -19,7 +19,16 @@ impl PortableExpressionProgram {
             return Err(PortableExpressionProgramRefusal::TooLarge);
         }
         let mut cursor = Cursor { remaining: encoded };
-        cursor.expect(HEADER)?;
+        let input_maximum_bytes = if encoded.starts_with(super::expression_program::input_bound::V3)
+        {
+            cursor.expect(super::expression_program::input_bound::V3)?;
+            Some(u32::from_le_bytes(cursor.take(4)?.try_into().map_err(
+                |_| PortableExpressionProgramRefusal::MalformedEncoding,
+            )?))
+        } else {
+            cursor.expect(HEADER)?;
+            None
+        };
         let input_type = cursor.value_type()?;
         let output_type = cursor.value_type()?;
         let mut remaining_nodes = MAXIMUM_STRUCTURED_INFO_NODES;
@@ -28,6 +37,7 @@ impl PortableExpressionProgram {
             return Err(PortableExpressionProgramRefusal::MalformedEncoding);
         }
         let value = Self {
+            input_maximum_bytes,
             input_type,
             output_type,
             root,

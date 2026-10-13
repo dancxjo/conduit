@@ -126,14 +126,16 @@ impl PreparedProtocolEntry {
         bases: &[BaseImplementationId],
         options: PlanningOptions<'_>,
     ) -> Result<PreparedProtocolArtifact, ProtocolSourceRefusal> {
-        self.source.plan_retained_artifact(
-            &self.expanded,
-            self.artifact,
-            hosts,
-            placements,
-            bases,
-            options,
-        )
+        self.source
+            .plan_retained_artifact(
+                &self.expanded,
+                self.artifact,
+                hosts,
+                placements,
+                bases,
+                options,
+            )
+            .map(|artifact| artifact.retain_package_digest(self.package_digest))
     }
 }
 

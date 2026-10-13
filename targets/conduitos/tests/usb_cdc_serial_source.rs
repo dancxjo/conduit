@@ -389,3 +389,6 @@ fn packaged_serial_back_roundtrip_selects_checked_source_and_refuses_stale_ident
 
 #[path = "usb_cdc_serial/mod.rs"]
 mod kernel_execution;
+
+#[path = "usb_cdc_serial_source/descriptor.rs"]
+mod descriptor;

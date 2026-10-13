@@ -25,7 +25,7 @@ pub fn pure_expression_contract(
         inputs: definition.inputs,
         outputs: definition.outputs,
         configuration: definition.configuration,
-        semantic_laws: conduit_plot::pure_expression_semantic_laws(),
+        semantic_laws: program.semantic_laws()?,
         limits: CapabilityLimits {
             // The hosted profile can repeat one checked expression thirty-two
             // times; each Back narrows this ceiling to its admitted storage.
@@ -40,9 +40,9 @@ pub fn pure_filter_contract(
     program: &conduit_plot::PortableExpressionProgram,
     temporal: PortTemporal,
 ) -> Result<Kind, conduit_core::StructuredInfoRefusal> {
-    Ok(contract(conduit_plot::portable_filter_definition(
-        program, temporal,
-    )?))
+    let mut kind = contract(conduit_plot::portable_filter_definition(program, temporal)?);
+    kind.semantic_laws = program.filter_semantic_laws(temporal)?;
+    Ok(kind)
 }
 
 fn contract(definition: conduit_plot::KindProjection) -> Kind {

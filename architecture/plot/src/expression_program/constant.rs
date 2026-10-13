@@ -7,6 +7,7 @@ impl PortableExpressionProgram {
     /// Domain preparation remains the constructor owner's responsibility.
     pub fn from_checked_value(input_type: StructuredInfoType, value: &StructuredInfoValue) -> Self {
         Self {
+            input_maximum_bytes: None,
             input_type,
             output_type: value.value_type().clone(),
             root: PortableExpressionNode {

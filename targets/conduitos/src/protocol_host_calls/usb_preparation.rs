@@ -130,6 +130,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -246,6 +247,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         }
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),
@@ -288,22 +290,43 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         zip: &crate::flow_zip::FlowZipOperationFactory,
         states: &crate::seeded_state::SeededStateOperationFactory,
     ) -> Result<Self, ProtocolCallRefusal> {
+        Self::prepare_usb_duplex_with_bindings(plan, admission, zip, states, &[], |_, _, _, _| {
+            Ok(())
+        })
+    }
+
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    #[allow(clippy::too_many_arguments)]
+    pub(super) fn prepare_usb_duplex_with_bindings(
+        plan: &Plan,
+        admission: crate::protocol_play::UsbDuplexAdmission,
+        zip: &crate::flow_zip::FlowZipOperationFactory,
+        states: &crate::seeded_state::SeededStateOperationFactory,
+        extra_implementations: &[&str],
+        bind_extra: impl FnOnce(
+            &PlanFragment,
+            &conduit_plan_lowering::lowering::LoweredPlanFragment,
+            &ActivePlayIdentity,
+            &mut alloc::vec::Vec<Binding<P>>,
+        ) -> Result<(), ProtocolCallRefusal>,
+    ) -> Result<Self, ProtocolCallRefusal> {
         use crate::usb_base::{
             control_factory::CONTROL_IMPLEMENTATION,
             endpoint_read_factory::ENDPOINT_READ_IMPLEMENTATION,
             endpoint_write_factory::ENDPOINT_WRITE_IMPLEMENTATION,
         };
         use ProtocolCallRefusal as Refusal;
-        let (lowered, active, mut bindings) = Self::prepare_pure(
-            plan,
-            &[
-                CONTROL_IMPLEMENTATION,
-                ENDPOINT_READ_IMPLEMENTATION,
-                ENDPOINT_WRITE_IMPLEMENTATION,
-            ],
-            zip,
-            states,
-        )?;
+        let mut implementations = alloc::vec![
+            CONTROL_IMPLEMENTATION,
+            ENDPOINT_READ_IMPLEMENTATION,
+            ENDPOINT_WRITE_IMPLEMENTATION
+        ];
+        implementations.extend_from_slice(extra_implementations);
+        let (lowered, active, mut bindings) =
+            Self::prepare_pure(plan, &implementations, zip, states)?;
         let fragment = &plan.fragments[0];
         let control = fragment
             .placements
@@ -378,8 +401,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
                 owner,
             });
         }
+        bind_extra(fragment, &lowered, &active, &mut bindings)?;
         Ok(Self {
             plan_id: plan.plan_id.clone(),
+            storage: None,
             identity: PreparationHostIdentity {
                 host_id: fragment.host_id.clone(),
                 boot_id: fragment.boot_id.clone(),

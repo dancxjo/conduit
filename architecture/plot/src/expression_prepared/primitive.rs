@@ -46,6 +46,12 @@ impl<'a> PrimitiveValue<'a> {
         })
     }
 
+    pub(super) fn into_borrowed(self) -> Result<&'a [u8], Refusal> {
+        match self.bytes {
+            PrimitiveBytes::Borrowed(bytes) => Ok(bytes),
+            PrimitiveBytes::Inline(_) => Err(Refusal::InvalidProgram),
+        }
+    }
     pub(super) fn as_slice(&self) -> &[u8] {
         match &self.bytes {
             PrimitiveBytes::Borrowed(bytes) => bytes,
@@ -101,6 +107,15 @@ pub(super) fn evaluate_binary(
             _ => unreachable!(),
         };
         return PrimitiveValue::new(expected, &InfoBool::new(value).encode());
+    }
+    if left.kind == PrimitiveInfoKind::MathematicalValue
+        && matches!(operator, BinaryOperator::Equal | BinaryOperator::NotEqual)
+    {
+        let equal = crate::mathematical_value::equal(left.as_slice(), right.as_slice())?;
+        return PrimitiveValue::new(
+            expected,
+            &InfoBool::new(equal != (operator == BinaryOperator::NotEqual)).encode(),
+        );
     }
     if matches!(
         left.kind,
@@ -374,6 +389,7 @@ pub(super) const fn kind_name(kind: PrimitiveInfoKind) -> &'static str {
         PrimitiveInfoKind::I128 => "value/i128",
         PrimitiveInfoKind::Unit => conduit_core::UNIT_INFO_ID,
         PrimitiveInfoKind::Dimension => conduit_core::DIMENSION_INFO_ID,
+        PrimitiveInfoKind::MathematicalValue => conduit_core::MATHEMATICAL_VALUE_ID,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_INFO_ID,
         PrimitiveInfoKind::Distance => conduit_core::DISTANCE_INFO_ID,
         PrimitiveInfoKind::Frequency => conduit_core::FREQUENCY_INFO_ID,

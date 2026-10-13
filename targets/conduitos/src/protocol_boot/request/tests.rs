@@ -56,3 +56,22 @@ fn duplicate_or_oversized_fore_payloads_cannot_widen_prepared_input() {
     value["inputs"] = serde_json::json!([{"port":"begin","canonical_bytes":alloc::vec![0;4097]}]);
     assert!(ProtocolBootRequest::decode(&serde_json::to_vec(&value).unwrap()).is_err());
 }
+
+#[test]
+fn ordered_input_values_have_finite_nonempty_envelopes() {
+    let mut value = request();
+    value["inputs"] = serde_json::json!([{"port":"request","canonical_bytes":[1],"subsequent_values":vec![vec![2];15]}]);
+    let decoded = ProtocolBootRequest::decode(&serde_json::to_vec(&value).unwrap()).unwrap();
+    assert_eq!(decoded.inputs[0].subsequent_values.len(), 15);
+    for invalid in [
+        serde_json::json!(vec![vec![2]; 16]),
+        serde_json::json!([[]]),
+        serde_json::json!([vec![0; 4097]]),
+    ] {
+        value["inputs"][0]["subsequent_values"] = invalid;
+        assert!(matches!(
+            ProtocolBootRequest::decode(&serde_json::to_vec(&value).unwrap()),
+            Err(ProtocolBootRequestRefusal::Bounds)
+        ));
+    }
+}

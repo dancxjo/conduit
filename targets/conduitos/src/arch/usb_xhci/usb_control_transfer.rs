@@ -58,6 +58,30 @@ struct NativeAttachment {
 }
 
 impl UsbControlTransfer {
+    pub(in crate::arch::usb_xhci) fn retains_settlement_obligation(&self) -> bool {
+        // Original coherent DMA remains rooted by this transfer's native Host,
+        // including after acknowledged slot stop clears the live marker.
+        self.pending.is_some()
+            || self.owner.has_pending_lease()
+            || unsafe { (*self.ring.dma).control_cursor.ensure_idle().is_err() }
+    }
+
+    pub(in crate::arch::usb_xhci) fn validate_settlement_idle(
+        &self,
+        device: &UsbDevice,
+    ) -> Result<(), UsbControlCallRefusal> {
+        let dma = self.check_attachment(device)?;
+        if self.pending.is_some() || self.owner.has_pending_lease() || self.stalled {
+            return Err(UsbControlCallRefusal::Native(
+                UsbError::TransferRingUncertain,
+            ));
+        }
+        // Original coherent DMA remains exclusively owned by the native Host.
+        unsafe { (*dma).control_cursor.ensure_idle() }.map_err(|error| {
+            UsbControlCallRefusal::Native(super::super::control::ring_refusal(error))
+        })
+    }
+
     #[cfg(test)]
     pub(in crate::arch::usb_xhci) fn retains_native_submission(&self) -> bool {
         self.pending.is_some()

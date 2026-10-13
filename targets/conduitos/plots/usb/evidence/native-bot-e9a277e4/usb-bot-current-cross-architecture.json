@@ -1,0 +1,196 @@
+{
+  "schema": "conduit.usb/bot-cross-architecture-reuse@1",
+  "source_commit": "e9a277e4cb38805033c781355600122b49876d5f",
+  "package_sha256": "b6bfb3d8ac1091a8e763c50a25bb2e639a258017ad5fda54b2cedee9386f95ab",
+  "root_request_sha256": "4fa587463396dee0d93d6988b0e1d810aa2819032950a0d1cdfc41318eba2872",
+  "same_checked_package_and_root_request": true,
+  "architectures": {
+    "x86_64/pc": [
+      {
+        "mode": "none",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "passed": true
+      },
+      {
+        "mode": "stall-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "disconnect-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "stale-tag",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "bad-residue",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "command-failed",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "phase-error",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "short-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      }
+    ],
+    "aarch64/virt": [
+      {
+        "mode": "none",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "passed": true
+      },
+      {
+        "mode": "stall-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "disconnect-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "stale-tag",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "bad-residue",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "command-failed",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "phase-error",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      },
+      {
+        "mode": "short-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      }
+    ]
+  },
+  "physical_hardware_proven": false,
+  "cross_architecture_acceptance_complete": false,
+  "remaining": [
+    "complete substrate lifecycle matrix",
+    "AArch64 cancellation and late response",
+    "reset reentry",
+    "audio native execution",
+    "integration and CI gates"
+  ]
+}

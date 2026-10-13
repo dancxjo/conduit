@@ -22,6 +22,22 @@ impl<P: I2cProvider, C: MonotonicDeadlineProvider> ProtocolKernel<P, C> {
             Self::WithoutClock(kernel) => kernel.kernel(),
         }
     }
+    #[cfg(any(
+        target_arch = "x86_64",
+        all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+    ))]
+    pub(super) fn bind_storage_body(
+        &mut self,
+        pin: Option<crate::protocol_source::StorageBodyPreparation>,
+    ) -> Result<(), ProtocolCallRefusal> {
+        match self {
+            Self::WithoutClock(kernel) => kernel.bind_storage_body(pin),
+            // Storage settlement currently admits the sole retained duplex Host
+            // without a second clock-facing scheduler or private network loop.
+            Self::WithClock(_) => Ok(()),
+        }
+    }
+
     pub(super) fn start(&mut self) -> Result<(), ProtocolCallRefusal> {
         match self {
             Self::WithClock(kernel) => kernel.start(),

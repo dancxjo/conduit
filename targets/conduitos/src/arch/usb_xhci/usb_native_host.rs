@@ -303,6 +303,9 @@ impl<'a> UsbNativeHost<'a> {
     }
 }
 
+#[path = "usb_native_host/settlement.rs"]
+mod settlement;
+
 #[path = "usb_native_host/retirement.rs"]
 mod retirement;
 

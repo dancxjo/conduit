@@ -179,6 +179,7 @@ pub mod rendezvous_descriptor;
 #[cfg(feature = "native-owner-network")]
 pub mod secure_rendezvous_support;
 pub mod seeded_state;
+pub mod storage_base;
 pub mod structured_selector_host_call;
 pub mod usb_base;
 #[cfg(any(test, target_arch = "x86_64"))]
@@ -289,6 +290,7 @@ pub mod rescue_guest;
 pub mod sign_format;
 // Pending join facts are shared with the portable front door on every arch;
 // only the boot-specific serial emission is target-gated inside the module.
+pub mod bytes_literal;
 pub mod native_guest_part;
 pub mod spore_join;
 pub mod spore_provision;
