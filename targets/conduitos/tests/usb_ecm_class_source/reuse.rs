@@ -203,7 +203,7 @@ fn receive_sentinel_refuses_oversized_prefix_and_missing_frame_termination_befor
 fn short_terminated_mtu_and_packet_aligned_frames_preserve_separate_ordinals() {
     let s = source();
     let mut state = phase(&start(&s, &[]), 10);
-    for (ordinal, length) in [(0, 1514), (1, 64)] {
+    for (ordinal, length) in [(0, 1514), (1, 64), (2, 128), (3, 512)] {
         let wire = frame(length);
         let event = received_result(&s, ordinal, &wire, length as u64, true);
         state = step(&s, &state, &event);

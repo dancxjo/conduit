@@ -58,6 +58,33 @@ class Contract(unittest.TestCase):
         self.assertEqual(fixture.BULK.unpack(device.sent[-1][2])[1], fixture.IOERROR)
         self.assertEqual(device.rx, frame(14))
 
+    def test_split_aligned_frame_requires_a_distinct_real_zlp(self):
+        device = Device()
+        wire = frame(128)
+        for packet_id, chunk in enumerate((wire[:64], wire[64:]), 1):
+            device.bulk(packet_id, fixture.BULK.pack(2, 0, len(chunk), 0, 0) + chunk)
+            self.assertFalse(device.rx)
+            self.assertEqual(bytes(device.partial_tx), wire[:packet_id * 64])
+        device.bulk(3, fixture.BULK.pack(2, 0, 0, 0, 0))
+        self.assertEqual(device.rx, frame(14))
+        self.assertFalse(device.partial_tx)
+        self.assertEqual([fixture.BULK.unpack(body[:fixture.BULK.size])[2]
+                          for _, _, body in device.sent], [64, 64, 0])
+
+    def test_queued_receive_frames_never_coalesce_into_one_completion(self):
+        device = Device()
+        first, second = frame(128), frame(512)
+        device.frames.extend((first, second))
+        for packet_id, expected in [(21, first), (22, second)]:
+            device.bulk(packet_id, fixture.BULK.pack(129, 0, 1515, 0, 0))
+            _, actual_id, body = device.sent[-1]
+            self.assertEqual(actual_id, packet_id)
+            self.assertEqual(body[fixture.BULK.size:], expected)
+            self.assertEqual(fixture.BULK.unpack(body[:fixture.BULK.size])[2], len(expected))
+        self.assertFalse(device.frames)
+        self.assertFalse(device.rx)
+        self.assertIsNone(device.pending_in)
+
     def test_pending_read_cancel_has_one_exact_terminal_response(self):
         device = Device()
         device.bulk(11, fixture.BULK.pack(129, 0, 1514, 0, 0))
