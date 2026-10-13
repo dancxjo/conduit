@@ -109,6 +109,25 @@ pub(crate) fn install_feedback(
         .map_err(Error::Catalog)
 }
 
+pub(crate) fn install_merge(
+    value: &ProtocolValue,
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+    operations: &mut ProtocolOperations,
+) -> Result<conduit_core::CapabilityOffer, Error> {
+    let mut kind = conduit_semantic_catalog::flow_merge_finite_semantic_contract(
+        &value.contract,
+        &value.schema,
+    )
+    .map_err(Error::Specialization)?;
+    kind.kind_id = instance_kind_id(kind.kind_id.as_str(), &[value]).map_err(Error::Catalog)?;
+    install_kind(kind, startup, profile).map_err(Error::Catalog)?;
+    operations
+        .merges
+        .install_instance(&value.contract, &value.schema)
+        .map_err(Error::Catalog)
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -251,3 +270,7 @@ mod factory_tests {
         assert_eq!(factory.offers().count(), 2);
     }
 }
+
+#[cfg(test)]
+#[path = "instances/merge_tests.rs"]
+mod merge_tests;

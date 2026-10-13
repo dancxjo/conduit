@@ -1,0 +1,9 @@
+{
+  "usb-audio-play-allocation.tar.gz": "c1fb96db4b05fb9291ed0099b8fa3120ebc61b185df5c3feeac9713dbeb20ee9",
+  "usb-audio-disconnect-four-packets.tar.gz": "593fde28a760ab879cac98e16cb2dc6eeff0eac2b0eb7de9b6e0894afbf6cee5",
+  "README.md": "f618d60d96e80a32e1e80860c5d5e1dd32822bfa0637eede6b089f38c2aca65a",
+  "usb-audio-native-cross-architecture.json": "a6f9db10dec960e8dcadc1ee17247b1db01544c6e667ab4b249f4c3b6578f509",
+  "usb-audio-play-allocation-measurement.json": "25bec317f280b9494ccbb44d4427dbd004b3d099b4dcd31455496061d9ec697a",
+  "usb-audio-native-aarch64-first-block.tar.gz": "d8cc3ba5ccff9999e9bb452eee30c633453f46c70d086dbfff148013889577b3",
+  "usb-audio-native-first-block.tar.gz": "85ca7eb136cf47213e2df86a5a3b453d3e96870f0d593232dff21011f2e2e5bc"
+}

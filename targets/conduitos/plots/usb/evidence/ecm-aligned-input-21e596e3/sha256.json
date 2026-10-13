@@ -1,0 +1,17 @@
+{
+  "usb-wire.jsonl": "cd4aa7271dc8bdc403a551b28d2d27b77eef6162aede595d7e3b77d0c7197800",
+  "package.json": "1a341ecaf311abeb2a6cb1618134bcf77beb8cd0a17f2def05c99d05b6e205c6",
+  "canonical_decoder.py": "8da23349084b55e0b4e5b263e2517ec45948501ede5dce38d476036a456a5295",
+  "peer-receipt.json": "a15317d6be79eadfc9f4379a4088d8c14a94e49f36f8bbd7b488312632723148",
+  "root-request.json": "b3e19a730837055f2e7819a7ce85a06616d130f49746b800b37dd2dd73d0fc98",
+  "README.md": "ce80562c2aea6079f13bbf0ae6bdefb3f694caec33bf88f1493758bfe5f7f004",
+  "device.log": "647e22bdc0829e04169995d3efb20cb2492ad5e111bc5089955cc064abdee908",
+  "check.py": "bfd58c8bebfd08357ea16434e30678fd5b21ef70ab25bf3d57c7d86f59ee2392",
+  "image-receipt.json": "195394e7f788b27fbaac2930d36ab9bf8a057dcd72e93a9286926ca02743372c",
+  "build.json": "fe14bd3ea2c11cb82dffb5e29431a10aa2fcffb7bf979b8f576907ca47d0b030",
+  "aligned_fixture.py": "e915ff4e1e9d1abda87b7566162f6f3ebcecae2e8d62ea7527a00ca82e61b495",
+  "network.log": "cfb235564279d6c5546fef5bf903833381978de97e43e2cf9c45ee998343371c",
+  "run/serial.log": "b3ee37f040b05236034a21e956095d810cb1a0e6dba8ced93971908f0c957928",
+  "run/qemu.log": "25d85b0af691a651c2df7080cfe8bead9fad6d8dea783e01bc2f8afaeff1e373",
+  "run/receipt.json": "9910a81037acbfcbd48ba57fadd77c40683444090e916c493077a4131dafa41a"
+}

@@ -12,14 +12,13 @@ use conduit_plot::{
 
 pub const ISOCHRONOUS_OUT_KIND: &str = "machine/usb/isochronous-out";
 pub const ISOCHRONOUS_OUT_CALL: &str = "conduit.host/usb-isochronous-out@1";
-pub const ISOCHRONOUS_OUT_MAXIMUM_BYTES: u32 = 4096;
-/// Root envelope: measured full rounded native metadata plus two bounded
-/// preissued table/claim envelopes, inline Host, static DMA/input-context and
-/// Flow storage. The fixture charge is 174040 bytes; 192KiB leaves finite margin.
-/// Real BootArena preparation checks its actual retained charge before any TD.
-pub const ISOCHRONOUS_OUT_RESOURCE_BYTES: u64 = 196608;
+pub const ISOCHRONOUS_OUT_MAXIMUM_BYTES: u32 = 32768;
+/// Finite retained request/result metadata, two preissued claims, native Host,
+/// static DMA and Flow storage. Root checks the actual rounded preparation
+/// charge against this ceiling before publishing any transfer.
+pub const ISOCHRONOUS_OUT_RESOURCE_BYTES: u64 = 1048576;
 pub const ISOCHRONOUS_OUT_PACKET_BYTES: u16 = 256;
-pub const ISOCHRONOUS_OUT_MAXIMUM_PACKETS: usize = 8;
+pub const ISOCHRONOUS_OUT_MAXIMUM_PACKETS: usize = 72;
 pub const ISOCHRONOUS_OUT_TYPES: &str =
     include_str!("../../../plots/usb/isochronous-out-types.conduit");
 

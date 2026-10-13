@@ -392,3 +392,5 @@ mod kernel_execution;
 
 #[path = "usb_cdc_serial_source/descriptor.rs"]
 mod descriptor;
+#[path = "usb_cdc_serial_source/terminal.rs"]
+mod terminal;

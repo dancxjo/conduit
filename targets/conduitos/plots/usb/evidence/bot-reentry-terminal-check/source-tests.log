@@ -1,0 +1,39 @@
+warning: function `authorized_route` is never used
+ --> targets/conduitos/src/protocol_play/usb/storage_ingress.rs:2:15
+  |
+2 | pub(super) fn authorized_route<'a>(
+  |               ^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `backing` is never used
+  --> targets/conduitos/src/protocol_boot/usb_storage_owners.rs:16:4
+   |
+16 | fn backing(capacity: usize, live: usize) -> Result<u64, &'static str> {
+   |    ^^^^^^^
+
+warning: `conduitos` (lib) generated 2 warnings
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 0.64s
+     Running tests/usb_bot_reentry_source.rs (../usb-target/debug/deps/usb_bot_reentry_source-67972d2df1e2f802)
+
+running 16 tests
+test refinement::actual_accept_scalar_and_record_wrapper_report_exact_decoder_boundary ... ok
+test refinement::every_reentry_pure_plot_expands_with_its_actual_typed_carrier ... ok
+test refinement::refined_variant_tag_observation_does_not_construct_a_native_value ... ok
+test rejected_active_events_close_without_permit_settlement_or_reentry ... ok
+test refinement::complete_accept_program_respects_actual_portable_decoder_depth_without_widening_it ... ok
+test refinement::refined_reentry_members_forward_through_exact_typed_pair ... ok
+test candidate_identity_uses_retained_semantic_permit_not_cbw_tag_or_native_ordinal ... ok
+test failure::actual_typed_clear_in_stall_closes_without_settlement_or_fresh_authorization ... ok
+test recovery_wire_order_and_cbw_tags_are_source_owned_without_replay ... ok
+test recovery_controls_require_actual_zero_data_completion_facts ... ok
+test ingress::actual_external_request_graph_cuts_at_authorizers_before_state_or_transport ... ok
+test checked_reentry_has_two_storage_pairs_but_one_original_usb_operation_each ... ok
+test phase_guards_keep_first_submission_until_three_acks_and_original_settlement ... ok
+test complete_two_caller_phase_path_settles_each_identity_once_before_unlocking_next ... ok
+test fresh_data_and_csw_use_native_ordinals_one_two_and_new_tag_two ... ok
+test refinement::exact_accept_predicate_and_each_phase_branch_expand_without_refined_construction ... ok
+
+test result: ok. 16 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 5.75s
+

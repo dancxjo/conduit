@@ -1,0 +1,24 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+limine: Loading module `boot():/boot/conduit-protocol-source.json`...
+limine: Loading module `boot():/boot/conduit-protocol-root.json`...
+CONDUIT_PROTOCOL_PREPARATION decoded live=69728 peak=241280
+CONDUIT_PROTOCOL_PREPARATION catalogs live=352288 peak=2831424
+CONDUIT_PROTOCOL_PREPARATION checked live=2311136 peak=7780832
+CONDUIT_PROTOCOL_PREPARATION prepared live=2239328 peak=7780832
+CONDUIT_PROTOCOL_PREPARATION expanded live=7139616 peak=10916864
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_USB_DUPLEX_PREPARE newly_retained=70112 inline_host=4936 preissued_tables=49152 dma_context=16384 flow_budget=24576 required_each=82580 read_admitted=86016 write_admitted=86016
+CONDUIT_STORAGE_PREPARE preparation=23696 inline=6144 body=0 retained=29840 admitted=131072
+CONDUIT_STORAGE_PREPARE preparation=23696 inline=6144 body=0 retained=29840 admitted=131072
+CONDUIT_STORAGE_PREPARE preparation=36000 inline=6144 body=0 retained=42144 admitted=131072
+CONDUIT_STORAGE_PREPARE preparation=36000 inline=6144 body=0 retained=42144 admitted=131072
+CONDUIT_STORAGE_PREPARE preparation=36000 inline=6144 body=64 retained=42208 admitted=131072
+CONDUIT_STORAGE_PREPARE preparation=36000 inline=6144 body=64 retained=42208 admitted=131072
+CONDUIT_KERNEL_SIGN {"schema":"conduit.conduitos.kernel-sign/v2","status":"refused","reason":"protocol-input-workset-mismatch"}

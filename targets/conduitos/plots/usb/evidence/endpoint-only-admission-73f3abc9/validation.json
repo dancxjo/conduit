@@ -1,0 +1,15 @@
+{
+  "source_commit": "73f3abc97",
+  "scope": "actual unchanged checked Source and genuine fixture scopes through Body/Kernel/native path; original controller configuration/events simulated below physics",
+  "tests": {
+    "endpoint_only_production_preparation": 2,
+    "native_host_lifecycle": 31
+  },
+  "outcomes": [
+    "endpoint-only placement dispatches without control possession",
+    "wrong endpoint provider generation refuses and retains original Body",
+    "acknowledged cancellation retires original endpoint Kernel obligation"
+  ],
+  "guest_execution": "pending corrected-kernel rerun",
+  "physical_compatibility": "unverified"
+}

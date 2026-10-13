@@ -588,10 +588,8 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
     assert!(readout.contains("ticker pace"));
     assert!(readout.contains("Owner action result:"));
     assert!(!readout.contains("Body retained by this installed Host:"));
-    assert!(action_available(
-        &local_face(&state),
-        "conduit.intent/lull-clock@1"
-    ));
+    let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
+    assert_eq!(playing["presentation"]["basis"]["body_id"], body_id);
 
     stop_service(&mut service);
     fs::remove_file(state.join("control.sock")).unwrap();

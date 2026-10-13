@@ -235,3 +235,6 @@ fn bound_control_foreign_stop_keeps_revoked_lease_and_dma() {
 fn bound_control_failed_stop_keeps_revoked_lease_and_dma() {
     check_bound_control_stop(1, 6, false);
 }
+
+#[path = "stop_ack_tests/timeout.rs"]
+mod timeout;

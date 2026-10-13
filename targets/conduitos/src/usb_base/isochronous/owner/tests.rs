@@ -412,3 +412,87 @@ fn native_short_tag_remains_distinct_even_when_extent_equals_requested() {
     );
     assert!(owner.closed);
 }
+
+#[test]
+fn seventy_two_authored_packets_and_completions_fit_the_admitted_envelope() {
+    let contract = IsochronousOutContract::prepare().unwrap();
+    let input = batch_input(72, 256);
+    assert!(input.len() <= ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize);
+    let decoder = PreparedIsochronousRequestDecoder::new(&contract).unwrap();
+    let DecodedIsochronousRequest::Batch(batch) = decoder.decode(&input, 256).unwrap() else {
+        panic!("batch");
+    };
+    assert_eq!(batch.count(), 72);
+    let actual: [IsochronousCompletion; 72] = core::array::from_fn(|index| {
+        let (frame, bytes) = batch.packet(index).unwrap();
+        assert_eq!(bytes, &[0x5a; 256]);
+        IsochronousCompletion {
+            frame: frame.number(),
+            requested: 256,
+            actual: 256,
+        }
+    });
+    let mut encoder = PreparedIsochronousResultEncoder::new(&contract).unwrap();
+    let result = encoder
+        .encode(&actual, IsochronousOutcome::Completed)
+        .unwrap();
+    assert!(result.len() <= ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize);
+    let value = validate_canonical_structured_value(result).unwrap();
+    let packets = value
+        .variant_payload("completed")
+        .unwrap()
+        .unwrap()
+        .record_field("packets")
+        .unwrap()
+        .unwrap();
+    assert_eq!(packets.collection_length().unwrap(), 72);
+}
+
+#[test]
+fn repeated_full_requests_hold_one_lease_and_allocate_nothing() {
+    let mut owner = fixture::owner(19);
+    let node = owner.node;
+    let input = batch_input(72, 256);
+    let actual: [IsochronousCompletion; 72] = core::array::from_fn(|index| IsochronousCompletion {
+        frame: 1024 + index as u16,
+        requested: 256,
+        actual: 256,
+    });
+    let allocations = crate::test_allocations::allocations(|| {
+        for request in 0..128 {
+            let submission = owner
+                .begin(node, HostCallId(0), RequestId(request), &input)
+                .unwrap();
+            assert_eq!(
+                owner
+                    .table
+                    .inspections()
+                    .next()
+                    .unwrap()
+                    .in_flight_operations,
+                1
+            );
+            let result = unsafe {
+                owner.finish_quiesced(&submission, &actual, IsochronousOutcome::Completed)
+            }
+            .unwrap();
+            let value = validate_canonical_structured_value(result).unwrap();
+            assert_eq!(
+                value
+                    .variant_payload("completed")
+                    .unwrap()
+                    .unwrap()
+                    .record_field("packets")
+                    .unwrap()
+                    .unwrap()
+                    .collection_length()
+                    .unwrap(),
+                72
+            );
+        }
+    });
+    assert_eq!(allocations, 0);
+    let status = owner.table.inspections().next().unwrap();
+    assert_eq!(status.in_flight_operations, 0);
+    assert_eq!(status.completed_operations, 128);
+}

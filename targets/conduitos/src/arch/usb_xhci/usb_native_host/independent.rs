@@ -53,6 +53,7 @@ impl UsbNativeHost<'_> {
         }
         if self.uncertain_control
             || self.uncertain_bulk
+            || self.recovery_endpoint.is_some()
             || self.isochronous_started
             || self
                 .bulk_terminals
@@ -248,7 +249,9 @@ impl UsbNativeHost<'_> {
             }
             Err(UsbNativeHostRefusal::Endpoint(EndpointNativeRefusal::Completion(6)))
             | Err(UsbNativeHostRefusal::Write(EndpointWriteNativeRefusal::Completion(6))) => {
-                self.finish_independent_fault(Some(index))?;
+                if !self.finish_single_stalled_endpoint(index)? {
+                    self.finish_independent_fault(Some(index))?;
+                }
                 self.poll_independent()
             }
             Err(error) => {

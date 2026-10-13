@@ -1,0 +1,12 @@
+{
+  "artifact_id": "conduitos/protocol-source/sha256/bf6b059f818d05dcac3f65afcaab1c5bb8f3caf2a1623038e4debae849327896",
+  "checked_plot_id": "3ca24bc5a9e30208d9aa8b4c0292355201e4ec16c5220b637d8d40fec6459bbf",
+  "entry": "usb-endpoint-read-call",
+  "expanded_plot_id": "1b86a3207b3dc8d96b06734b08240b08c90ed3db4692a2b11b450786babe0371",
+  "gears": 1,
+  "package_bytes": 428,
+  "package_sha256": "sha256:bf6b059f818d05dcac3f65afcaab1c5bb8f3caf2a1623038e4debae849327896",
+  "proof_class": "source-check-and-expansion",
+  "schema": "conduit.conduitos/protocol-source-receipt@1",
+  "source_document_id": "47c9cea56de3aceb14f1cb3c58759ed1149a39a33c34412f35ec838e242d8822"
+}

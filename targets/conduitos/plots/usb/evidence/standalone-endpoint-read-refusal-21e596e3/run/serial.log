@@ -1,0 +1,18 @@
+limine: Loading executable `boot():/boot/conduitos`...
+limine: Loading module `boot():/boot/conduit-spore.bin`...
+limine: Loading module `boot():/boot/conduit-protocol-source.json`...
+limine: Loading module `boot():/boot/conduit-protocol-root.json`...
+CONDUIT_PROTOCOL_PREPARATION decoded live=1152 peak=1664
+CONDUIT_PROTOCOL_PREPARATION catalogs live=109344 peak=2762848
+CONDUIT_PROTOCOL_PREPARATION checked live=1019040 peak=2762848
+CONDUIT_PROTOCOL_PREPARATION prepared live=946208 peak=2762848
+CONDUIT_PROTOCOL_PREPARATION expanded live=951488 peak=2762848
+CONDUIT_BOOT_STAGE machine-gdt
+CONDUIT_BOOT_STAGE machine-idt
+CONDUIT_BOOT_STAGE machine-pic
+CONDUIT_BOOT_STAGE machine-acpi
+CONDUIT_DEADLINE_CLOCK hpet-ready
+CONDUIT_BOOT_STAGE machine-controller
+CONDUIT_BOOT_STAGE machine-ready
+CONDUIT_PROTOCOL_PREPARATION_REFUSAL Possession(WrongSelection)
+CONDUIT_KERNEL_SIGN {"schema":"conduit.conduitos.kernel-sign/v2","status":"refused","reason":"protocol-usb-plan-admission-refused"}

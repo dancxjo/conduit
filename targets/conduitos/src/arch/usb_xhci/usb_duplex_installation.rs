@@ -449,3 +449,7 @@ pub(crate) const fn minimum_endpoint_resource_bytes() -> u64 {
 
 #[path = "usb_duplex_installation/retention.rs"]
 mod retention;
+
+#[cfg(test)]
+#[path = "usb_duplex_installation/recovery_fixture.rs"]
+mod recovery_fixture;

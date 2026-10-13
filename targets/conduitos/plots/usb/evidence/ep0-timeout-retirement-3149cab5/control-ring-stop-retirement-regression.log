@@ -1,0 +1,12 @@
+    Finished `test` profile [unoptimized] target(s) in 0.14s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 5 tests
+test usb_base::control_ring::tests::acknowledged_stop_retirement_preserves_position_and_rejects_old_reservations ... ok
+test usb_base::control_ring::tests::old_reservation_cannot_acknowledge_the_next_operation ... ok
+test usb_base::control_ring::tests::geometry_and_sequence_exhaustion_refuse_without_consuming_storage ... ok
+test usb_base::control_ring::tests::uncertain_completion_retains_pending_storage_and_forbids_reuse ... ok
+test usb_base::control_ring::tests::fixed_ring_reuses_both_cycles_under_sustained_mixed_control_geometry ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 923 filtered out; finished in 0.01s
+

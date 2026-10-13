@@ -321,3 +321,6 @@ fn source_admission_requires_the_actual_retained_concat_owner() {
         }
     }
 }
+
+#[path = "tests/output_envelope.rs"]
+mod output_envelope;

@@ -33,8 +33,14 @@ mod tests {
         let value = offer(&contract, "artifact/iso-test".into());
         assert_eq!(value.host_calls.len(), 1);
         assert_eq!(value.host_calls[0].maximum_in_flight, 1);
-        assert_eq!(value.host_calls[0].maximum_input_bytes, 4096);
-        assert_eq!(value.host_calls[0].maximum_output_bytes, 4096);
+        assert_eq!(
+            value.host_calls[0].maximum_input_bytes,
+            crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_BYTES
+        );
+        assert_eq!(
+            value.host_calls[0].maximum_output_bytes,
+            crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_BYTES
+        );
         assert_eq!(value.resource_requirements.len(), 1);
         assert_eq!(value.authority_requirements.len(), 1);
     }

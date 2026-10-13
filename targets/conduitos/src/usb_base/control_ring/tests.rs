@@ -74,3 +74,29 @@ fn old_reservation_cannot_acknowledge_the_next_operation() {
     assert!(matches!(cursor.reserve(32, 2), Err(RingRefusal::Pending)));
     unsafe { cursor.complete_quiesced(&current) }.unwrap();
 }
+
+#[test]
+fn acknowledged_stop_retirement_preserves_position_and_rejects_old_reservations() {
+    let mut cursor = ControlRingCursor::new();
+    let old = cursor.reserve(32, 3).unwrap();
+    let position = cursor.position();
+    cursor.retain_uncertain();
+    assert_eq!(cursor.ensure_idle(), Err(RingRefusal::Uncertain));
+    // Simulated acknowledged native stop; real acknowledgment is exercised by
+    // the selected EP0 owner regression, not established by this cursor test.
+    unsafe { cursor.retire_stopped() };
+    assert_eq!(cursor.position(), position);
+    assert_eq!(cursor.ensure_idle(), Ok(()));
+    assert_eq!(
+        unsafe { cursor.complete_quiesced(&old) },
+        Err(RingRefusal::StaleCompletion)
+    );
+    let current = cursor.reserve(32, 2).unwrap();
+    assert!(current.sequence > old.sequence);
+    assert_eq!(
+        unsafe { cursor.complete_quiesced(&old) },
+        Err(RingRefusal::StaleCompletion)
+    );
+    assert_eq!(cursor.pending, Some(current.sequence));
+    unsafe { cursor.complete_quiesced(&current) }.unwrap();
+}

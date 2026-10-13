@@ -43,9 +43,11 @@ pub(crate) fn prepare_native_usb_isochronous_protocol<
         entry
             .publish_pure_backs(&mut advertisement)
             .map_err(Reason::Source)?;
+        super::preparation_stage("iso-advertised");
         let grants = [issuer.grant().clone(), endpoint_issuer.grant().clone()];
         let hosts = [advertisement];
         let placements = entry.placements(&hosts).map_err(Reason::Source)?;
+        super::preparation_stage("iso-placements");
         let empty = BTreeMap::new();
         let artifact = entry
             .plan(
@@ -63,6 +65,7 @@ pub(crate) fn prepare_native_usb_isochronous_protocol<
                 },
             )
             .map_err(Reason::Source)?;
+        super::preparation_stage("iso-planned");
         let plan = &artifact.artifact().definition().internal_plan;
         // The composite kernel prepares one fragment Play with sequence zero.
         // Its identity remains distinct from the aggregate Body Play identity.
@@ -82,7 +85,7 @@ pub(crate) fn prepare_native_usb_isochronous_protocol<
                 &ImplementationId::from(
                     crate::usb_base::isochronous::factory::ISOCHRONOUS_OUT_IMPLEMENTATION,
                 ),
-                8,
+                crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_PACKETS as u64,
             )
             .map_err(Reason::Possession)?;
         retained_session
@@ -94,6 +97,7 @@ pub(crate) fn prepare_native_usb_isochronous_protocol<
                 &hosts[0].boot_id,
             )
             .map_err(Reason::Lifecycle)?;
+        super::preparation_stage("iso-proposed");
         match PreparedProtocolBodyPlay::prepare_usb_isochronous(
             artifact,
             retained_session.take().expect("retained body"),
