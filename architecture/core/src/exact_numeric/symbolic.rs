@@ -4,7 +4,9 @@ use super::{ExactNumericRefusal, ExactNumericWork, ExactRational};
 use alloc::vec::Vec;
 
 mod codec;
+mod enclosure;
 pub use codec::MathematicalValueView;
+pub use enclosure::*;
 
 pub const MATHEMATICAL_VALUE_ID: &str = "numeric/mathematical-value@1";
 pub const MATHEMATICAL_VALUE_MAX_NODES: usize = 32;
