@@ -2,7 +2,7 @@
 
 The [model tutorial](../../wiki/Creating-models.md) owns the complete proposed
 ConduitVoice journey. The current `conduit-burn-model` crate proves the hosted
-library foundation; it does not yet provide authored training plots or voice synthesis.
+library foundation and an ordinary authored regression Plot; voice synthesis remains separate.
 Existing portable model/training identities remain authoritative.
 
 ## The Rust on-ramp
@@ -64,10 +64,13 @@ Checkpoint and export calls require exclusive adapter access, preventing concurr
 snapshot staging from exceeding its one admitted invocation. SafeTensors weights
 and a versioned descriptor are inference off-ramps. Resume
 bundles additionally persist a Burn module record retaining ParamIds, AdamW state,
-recipe/seed, generation, consumed work, and the next **step** cursor. The corpus
-iterator/batch cursor, shuffled ordering, scheduler/scaler alternatives, held-out
-split evaluation, and best/latest policy are still required integration work.
-Do not mistake a resumed step counter for a complete corpus cursor.
+recipe/seed, generation, consumed work, and the next **step** cursor. When a
+finite corpus owner is attached, checkpoint/resume also retains its exact
+corpus identity, epoch, next-batch cursor, and shuffle recipe. The ordinary
+`TrainNext` Plot proof resumes actual batches on a fresh Host; changed payload,
+recipe, or missing corpus owner refuses before mutation. A caller-fed step
+counter alone is not that corpus proof. Alternative schedulers/scalers,
+held-out speech evaluation, and best-checkpoint selection remain separate work.
 
 `DirectoryCheckpointStore` accepts an explicit prepared directory and finite
 object/retention bounds. It stages and syncs each immutable object before exposing
@@ -117,3 +120,17 @@ Admission includes committed/candidate/temporary storage and finite work.
 These are cooperative Rust estimates and checked serialization bounds, not a
 hard allocator ceiling or hostile-code confinement. Burn tensors/autodiff remain
 inside the Rust back. Paths and framework handles never become portable authority.
+
+## Runnable tiny CPU Plot
+
+The generic `plots/model-authoring/main.conduit` accepts bounded portable
+model-work envelopes through external Fores and dispatches `model/work` through
+an admitted std Host session. Run `cargo xtask prove model-authoring
+--plot-journey --output work/model-authoring-plot` from the repository root
+with a fresh output directory. The producer retains source/build and log
+receipts; the test exercises actual planning and Kernel HostCalls for training,
+evaluation, checkpoint, inference export/reload, and fresh-runtime resume.
+
+`hosts-std` CI enables `conduit-std-host/burn-model`, including this test;
+`products` CI runs the public adapter contracts. This generic synthetic
+regression proof does not establish ConduitVoice or speech corpus acceptance.
