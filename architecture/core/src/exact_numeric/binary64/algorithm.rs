@@ -80,6 +80,7 @@ pub struct PreparedBinary64Algorithm {
     admitted_limb_work: u64,
     spent_limb_work: u64,
     retained_payload_bytes: usize,
+    limits: Binary64AlgorithmLimits,
 }
 impl PreparedBinary64Algorithm {
     pub fn prepare(
@@ -141,7 +142,20 @@ impl PreparedBinary64Algorithm {
             admitted_limb_work,
             spent_limb_work: work.spent() - before,
             retained_payload_bytes,
+            limits,
         })
+    }
+    pub const fn limits(&self) -> Binary64AlgorithmLimits {
+        self.limits
+    }
+    pub(in crate::exact_numeric) fn restore_admitted_work(&mut self, admitted: u64) {
+        // Verification used its own smaller ceiling. All step ceilings differ
+        // by the same initial-budget delta; spent work was already rechecked.
+        let delta = admitted - self.admitted_limb_work;
+        for step in &mut self.steps {
+            step.projection.admitted_limb_work += delta;
+        }
+        self.admitted_limb_work = admitted;
     }
     pub fn steps(&self) -> &[Binary64Step] {
         &self.steps
