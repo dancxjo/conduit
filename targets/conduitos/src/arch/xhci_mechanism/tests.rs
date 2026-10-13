@@ -234,3 +234,18 @@ fn endpoint_dequeue_rejects_invalid_position_before_publication() {
         assert_eq!(controller.command_enqueue, 0);
     });
 }
+
+#[test]
+fn synthetic_microframe_clock_uses_owned_runtime_register_memory() {
+    with_synthetic_stop_controller(1, 1, 0, |controller| {
+        assert_eq!(
+            controller.runtime_interrupter - 0x20,
+            controller.operational
+        );
+        assert_eq!(controller.microframe_index(), 0);
+        // SAFETY: the fixture owns the register array for this closure; the
+        // checked MFINDEX location is its first aligned u32, not stack padding.
+        unsafe { core::ptr::write_volatile(controller.operational as *mut u32, 0x1234) };
+        assert_eq!(controller.microframe_index(), 0x1234);
+    });
+}
