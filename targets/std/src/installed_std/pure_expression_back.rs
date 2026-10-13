@@ -193,5 +193,6 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
+        conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
     }
 }
