@@ -14,6 +14,8 @@ use conduit_plan_lowering::lowering::KernelIdentityMap;
 use std::io::Write;
 use std::path::Path;
 
+mod parsec_instruction_observation;
+pub use parsec_instruction_observation::ParsecInputInstructionObservation;
 mod parsec_terminal;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;

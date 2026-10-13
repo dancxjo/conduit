@@ -5,6 +5,14 @@ use conduit_presentation::{MaskShow, Presentation};
 pub trait BodyParsecShowObserver {
     /// Inspect actual Show evidence. Observing it grants no input authority.
     fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String>;
+    /// Observe a privately verified, flushed instruction. Metadata is not an
+    /// input grant and says nothing about another medium's Show or physical input.
+    fn instruction_observed(
+        &mut self,
+        _: &ParsecInputInstructionObservation,
+    ) -> Result<(), String> {
+        Ok(())
+    }
 }
 
 pub struct BodyParsecTerminalRoute<'a> {

@@ -1197,7 +1197,13 @@ impl<'a> BodyKernel<'a> {
                         terminal.as_mut(),
                     ) {
                         (Some(owner), Some(map), Some(attachment)) => {
-                            owner.sync_prompt(map, &attachment.host, &keys, attachment.output)?;
+                            if owner.sync_prompt(map, &attachment.host, &keys, attachment.output)? {
+                                if let Some(observation) =
+                                    owner.instruction_observation(map, &attachment.host, &keys)?
+                                {
+                                    attachment.observer.instruction_observed(&observation)?;
+                                }
+                            }
                             owner.prompt_input_view_epoch(map, &attachment.host, &keys)?
                         }
                         _ => None,

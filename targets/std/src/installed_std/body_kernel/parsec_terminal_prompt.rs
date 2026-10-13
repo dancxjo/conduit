@@ -115,6 +115,39 @@ impl ParsecTerminalOwner {
             }))
     }
 
+    /// Read-only snapshot only while the actual flushed prompt still matches
+    /// current accepted scope, source map and exact Face/Show. No setter or replay.
+    pub(in crate::installed_std::body_kernel) fn instruction_observation(
+        &mut self,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+    ) -> Result<Option<crate::body_execution::ParsecInputInstructionObservation>, String> {
+        use sha2::{Digest, Sha256};
+        let current = self.current_prompt(map, host, keys)?;
+        let Some((shown, current)) = self.prompt.as_ref().zip(current.as_ref()) else {
+            return Ok(None);
+        };
+        if !self.prompt_visible || shown != current {
+            return Ok(None);
+        }
+        let binding = shown.binding.clone();
+        let producer_plan_id = shown.producer_plan.clone();
+        let producer_plot = shown.producer_plot.clone();
+        let prompt_text = shown.text.clone();
+        let input_view_epoch = shown.epoch;
+        let prompt_text_sha256 = Sha256::digest(prompt_text.as_bytes()).into();
+        let (face, show) = self.current_face_show(map, host)?;
+        Ok(Some(crate::body_execution::ParsecInputInstructionObservation {
+            proof_class: "installed software input scope + checked policy + terminal write/flush; no physical or other-Mask receipt",
+            face: face.clone(), show: show.clone(), body_play: map.current_play()?.clone(),
+            host: conduit_core::PreparationHostIdentity { host_id: host.host_id.clone(),
+                boot_id: host.boot_id.clone(), offer_generation: host.offer_generation },
+            binding, producer_plan_id, producer_plot, prompt_text, prompt_text_sha256,
+            input_view_epoch,
+        }))
+    }
+
     fn current_prompt(
         &mut self,
         map: &ParsecAcknowledgedMap,
