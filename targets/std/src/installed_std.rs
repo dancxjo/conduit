@@ -46,6 +46,8 @@ mod indicator_host;
 mod input_semantic_backs;
 mod instrument_map_back;
 mod ipa_constructor_back;
+mod numerical_back;
+pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 mod quantity_conversion_back;
 pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
 mod json_backs;

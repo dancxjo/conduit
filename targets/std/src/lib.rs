@@ -31,6 +31,7 @@ mod deadline_reactor;
 pub mod distributed_house_plan;
 pub mod distributed_signal;
 pub mod distributed_toggle;
+mod numerical_host;
 pub mod relay_client;
 pub mod remote_emergency;
 pub mod text_lab_live;
