@@ -782,3 +782,12 @@ completed in 12.50 seconds with all original action/state assertions intact.
 Native/browser/linear/spoken instruction encounters still need their own actual
 transport/effect evidence. This establishes neither physical controller input,
 scanout, speaker delivery nor completed cross-Mask acceptance.
+
+The private post-effect observation additionally retains the original canonical
+instruction frame, its checked computational producer Plan/Plot, and the exact
+Source/effect node/call/request and value occurrence. It is Serialize-only data,
+not a deserializable availability witness. A focused actual-owner test compares
+its bytes and producer identities against the checked source; the whole-Body
+journey retains four original frames (1542/1544 bytes) through the remap. Both
+checks and strict all-target Std Clippy pass. These observations supply reusable
+fixture evidence; their serialization cannot grant an input or another Mask.

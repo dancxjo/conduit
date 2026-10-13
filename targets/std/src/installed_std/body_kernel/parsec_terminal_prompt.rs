@@ -46,17 +46,22 @@ impl ParsecTerminalOwner {
             .ok_or("Parsec instruction lost accepted input scope")?;
         let qualified = self.revalidate_instruction(qualified, map, host, keys)?;
         self.prompt_visible = true;
-        if let Err(error) =
-            self.execution
+        let effect =
+            match self
+                .execution
                 .execute_instruction(qualified, host, output, &candidate.text)
-        {
-            self.prompt = None;
-            // A failed write/flush can have exposed a prefix. Attempt visible
-            // withdrawal while refusing all input availability regardless.
-            let _ = self.withdraw_prompt(output);
-            self.retire();
-            return Err(format!("Parsec input prompt effect: {error}"));
-        }
+            {
+                Ok(effect) => effect,
+                Err(error) => {
+                    self.prompt = None;
+                    // A failed write/flush can have exposed a prefix. Attempt visible
+                    // withdrawal while refusing all input availability regardless.
+                    let _ = self.withdraw_prompt(output);
+                    self.retire();
+                    return Err(format!("Parsec input prompt effect: {error}"));
+                }
+            };
+        self.instruction_effect = Some(effect);
         self.prompt = Some(candidate);
         Ok(true)
     }
@@ -66,6 +71,7 @@ impl ParsecTerminalOwner {
         output: &mut W,
     ) -> Result<bool, String> {
         self.prompt = None;
+        self.instruction_effect = None;
         if !core::mem::take(&mut self.prompt_visible) {
             return Ok(false);
         }
@@ -149,6 +155,7 @@ impl ParsecTerminalOwner {
                 boot_id: host.boot_id.clone(), offer_generation: host.offer_generation },
             binding, producer_plan_id, producer_plot, prompt_text, prompt_text_sha256,
             input_view_epoch,
+            effect: self.instruction_effect.clone().ok_or("actual instruction effect observation is absent")?,
         }))
     }
 

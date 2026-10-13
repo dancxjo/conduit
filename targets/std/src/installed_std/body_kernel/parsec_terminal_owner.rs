@@ -41,6 +41,7 @@ pub(super) struct ParsecTerminalOwner {
     refresh_after_input: bool,
     prompt: Option<prompt::CurrentPrompt>,
     prompt_visible: bool,
+    instruction_effect: Option<crate::body_execution::ParsecInstructionEffectObservation>,
 }
 impl ParsecTerminalOwner {
     pub(super) fn prepare(
@@ -88,6 +89,7 @@ impl ParsecTerminalOwner {
             refresh_after_input: false,
             prompt: None,
             prompt_visible: false,
+            instruction_effect: None,
         })
     }
 

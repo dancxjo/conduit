@@ -35,6 +35,7 @@ pub(crate) struct ParsecInstructionSourceAdmission {
     evaluator: PreparedParsecInputInstruction,
     wording: [u8; 256],
     wording_len: usize,
+    producer: Option<(conduit_core::PlanId, conduit_core::PlotIdentity)>,
     completions: completion::InstructionCompletion,
 }
 impl ParsecInstructionSourceAdmission {
@@ -132,6 +133,7 @@ impl ParsecInstructionSourceAdmission {
             evaluator,
             wording: [0; 256],
             wording_len: 0,
+            producer: None,
             completions: completion::InstructionCompletion::new(),
         })
     }
@@ -293,6 +295,10 @@ impl ParsecInstructionSourceAdmission {
                 "instruction scheduler completion refused: {error:?}"
             ));
         }
+        self.producer = Some((
+            candidate.producer_plan_id().clone(),
+            candidate.producer_plot().clone(),
+        ));
         self.wording_len = candidate.wording().len();
         self.wording[..self.wording_len].copy_from_slice(candidate.wording().as_bytes());
         self.completions.record(request, value, self.scope);
@@ -316,6 +322,17 @@ impl ParsecInstructionSourceAdmission {
         value: ValueRef,
     ) -> Result<CompletedParsecInstruction, String> {
         self.completions.acknowledge(node, call, value)
+    }
+    pub(crate) fn effect_producer(
+        &self,
+        completed: &CompletedParsecInstruction,
+    ) -> Result<(&conduit_core::PlanId, &conduit_core::PlotIdentity), String> {
+        self.completions
+            .require_transferred(completed, self.scope)?;
+        self.producer
+            .as_ref()
+            .map(|(plan, plot)| (plan, plot))
+            .ok_or_else(|| "instruction completion has no checked producer custody".into())
     }
     pub(crate) fn effect_wording(
         &self,

@@ -20,8 +20,12 @@ pub struct ParsecInputInstructionObservation {
     pub(crate) prompt_text: String,
     pub(crate) prompt_text_sha256: [u8; 32],
     pub(crate) input_view_epoch: u64,
+    pub(crate) effect: super::ParsecInstructionEffectObservation,
 }
 impl ParsecInputInstructionObservation {
+    pub fn effect(&self) -> &super::ParsecInstructionEffectObservation {
+        &self.effect
+    }
     pub fn face(&self) -> &Presentation {
         &self.face
     }

@@ -11,7 +11,7 @@ impl HostedTerminalMaskExecution {
         host: &HostAdvertisement,
         output: &mut W,
         expected: &str,
-    ) -> Result<(), TerminalError> {
+    ) -> Result<crate::body_execution::ParsecInstructionEffectObservation, TerminalError> {
         let result = self.execute_instruction_inner(qualified, host, output, expected);
         if result.is_err() {
             let _ = self.cancel();
@@ -24,7 +24,7 @@ impl HostedTerminalMaskExecution {
         host: &HostAdvertisement,
         output: &mut W,
         expected: &str,
-    ) -> Result<(), TerminalError> {
+    ) -> Result<crate::body_execution::ParsecInstructionEffectObservation, TerminalError> {
         let source_request = self.pending_instruction_request(host)?;
         let (parent_plan, parent) = self
             .body_scope
@@ -65,6 +65,11 @@ impl HostedTerminalMaskExecution {
                 "instruction effect did not consume the original Source value",
             ));
         }
+        let canonical_instruction = play
+            .scheduler
+            .host_value(value)
+            .map_err(debug_error)?
+            .to_vec();
         admission
             .claim(source_request.node, source_request.call, value)
             .map_err(error)?;
@@ -128,9 +133,25 @@ impl HostedTerminalMaskExecution {
                 "instruction effect acknowledgement work bound exhausted",
             ));
         }
+        let (producer_plan, producer_plot) =
+            admission.effect_producer(&completed).map_err(error)?;
+        let observation = crate::body_execution::ParsecInstructionEffectObservation {
+            canonical_instruction,
+            instruction_producer_plan: producer_plan.clone(),
+            instruction_producer_plot: producer_plot.clone(),
+            source_node: source_request.node.0,
+            source_call: source_request.call.0,
+            source_request: source_request.request.0,
+            value_slot: value.slot,
+            value_generation: value.generation,
+            value_bytes: value.byte_len,
+            effect_node: request.node.0,
+            effect_call: request.call.0,
+            effect_request: request.request.0,
+        };
         admission
             .consume_acknowledged_effect(completed, parent, &active, host)
             .map_err(error)?;
-        Ok(())
+        Ok(observation)
     }
 }
