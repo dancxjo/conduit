@@ -19,11 +19,13 @@ mod face;
 mod input;
 #[path = "parsec_terminal_prompt.rs"]
 mod prompt;
+pub(crate) use prompt::QualifiedParsecInstruction;
 
 pub(super) struct ParsecTerminalOwner {
     plan: BodyPlan,
     host: HostAdvertisement,
     policy: PreparedParsecInputPolicy,
+    instruction: conduit_presentation::PreparedParsecInputInstruction,
     execution: HostedTerminalMaskExecution,
     terminal: Option<TerminalFaceMask>,
     face: Option<Presentation>,
@@ -68,6 +70,8 @@ impl ParsecTerminalOwner {
             plan: plan.clone(),
             host: host.clone(),
             policy: source.evaluator()?,
+            instruction: crate::flow_activation::ParsecInputInstructionSourcePlan::prepare(host)?
+                .evaluator()?,
             execution: HostedTerminalMaskExecution::new_parsec_attached(host)
                 .map_err(|e| e.to_string())?,
             terminal: None,
@@ -170,7 +174,7 @@ impl ParsecTerminalOwner {
             }
         } else {
             self.execution
-                .bind_parsec_body_scope(play, self.maximum_shows)
+                .bind_parsec_body_scope(&self.plan, play, self.maximum_shows)
                 .map_err(|e| e.to_string())?;
             self.scoped_play = Some(play.clone());
         }

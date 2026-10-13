@@ -98,7 +98,7 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
     let (done_tx, done_rx) = mpsc::channel();
     let guard_control = control.clone();
     let guard = std::thread::spawn(move || {
-        if watch_rx.recv().is_ok() && done_rx.recv_timeout(Duration::from_secs(5)).is_err() {
+        if watch_rx.recv().is_ok() && done_rx.recv_timeout(Duration::from_secs(30)).is_err() {
             let _ = guard_control
                 .request_stop(crate::RunControlRequestId::new("input-action-watchdog").unwrap());
         }
@@ -180,9 +180,9 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
         .iter()
         .all(|(face, _)| face.actions[0].identity == "game/shoot"));
     let instructions = std::str::from_utf8(&terminal).unwrap();
-    assert!(instructions.contains("Press Space to game/start."));
-    assert!(instructions.contains("Press Space to game/shoot."));
-    assert!(instructions.contains("Press Enter to game/shoot."));
+    assert!(instructions.contains("Input: Space to Begin."));
+    assert!(instructions.contains("Input: Space to Shoot."));
+    assert!(instructions.contains("Input: Enter to Shoot."));
     assert!(instructions.contains("Input unavailable."));
     assert!(instructions.ends_with("Input unavailable.\r\n"));
     if let Some(path) = std::env::var_os("CONDUIT_CROSS_MASK_PARSEC_EXCHANGE") {

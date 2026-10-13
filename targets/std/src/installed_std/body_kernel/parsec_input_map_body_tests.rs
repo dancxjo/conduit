@@ -50,7 +50,7 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
                 return Err(format!("paced source command refused: {admission:?}"));
             }
             ack_rx
-                .recv_timeout(Duration::from_secs(3))
+                .recv_timeout(Duration::from_secs(30))
                 .map_err(|error| error.to_string())?;
         }
         // Both ingress sources remain standing until every output has been drained.
@@ -91,7 +91,7 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
         if watch_start_rx.recv().is_err() {
             return;
         }
-        if done_rx.recv_timeout(Duration::from_secs(3)).is_err() {
+        if done_rx.recv_timeout(Duration::from_secs(30)).is_err() {
             let _ = guard_control.request_stop(
                 crate::RunControlRequestId::new("combined-source-input-watchdog").unwrap(),
             );

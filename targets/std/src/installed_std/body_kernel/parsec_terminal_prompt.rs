@@ -41,10 +41,14 @@ impl ParsecTerminalOwner {
         }
         self.withdraw_prompt(output)?;
         // Bounded text is written and flushed before it can enable an epoch.
+        let qualified = self
+            .qualify_instruction(map, host, keys)?
+            .ok_or("Parsec instruction lost accepted input scope")?;
+        let qualified = self.revalidate_instruction(qualified, map, host, keys)?;
         self.prompt_visible = true;
-        if let Err(error) = output
-            .write_all(candidate.text.as_bytes())
-            .and_then(|()| output.flush())
+        if let Err(error) =
+            self.execution
+                .execute_instruction(qualified, host, output, &candidate.text)
         {
             self.prompt = None;
             // A failed write/flush can have exposed a prefix. Attempt visible
@@ -139,7 +143,7 @@ impl ParsecTerminalOwner {
         let prompt_text_sha256 = Sha256::digest(prompt_text.as_bytes()).into();
         let (face, show) = self.current_face_show(map, host)?;
         Ok(Some(crate::body_execution::ParsecInputInstructionObservation {
-            proof_class: "installed software input scope + checked policy + terminal write/flush; no physical or other-Mask receipt",
+            proof_class: "installed software input scope + checked policy + original internal Source Fore + supplementary terminal write/flush and effect ACK; no physical or other-Mask receipt",
             face: face.clone(), show: show.clone(), body_play: map.current_play()?.clone(),
             host: conduit_core::PreparationHostIdentity { host_id: host.host_id.clone(),
                 boot_id: host.boot_id.clone(), offer_generation: host.offer_generation },
@@ -234,11 +238,20 @@ impl ParsecTerminalOwner {
         }
         face.resolve_action(face.revision, binding.offered_action().action_identity())
             .map_err(|e| format!("Parsec prompt action correlation: {e:?}"))?;
-        let text = format!(
-            "\r\x1b[2KPress {} to {}.",
-            binding.control_label(),
-            action.name
-        );
+        let binding_bytes = binding
+            .clone()
+            .encode()
+            .map_err(|e| format!("Parsec instruction binding: {e:?}"))?;
+        let instruction = self
+            .instruction
+            .evaluate(
+                map.current_state()?,
+                &binding_bytes,
+                conduit_presentation::ParsecInputInstructionLook::Linear,
+                false,
+            )
+            .map_err(|e| format!("Parsec instruction wording: {e:?}"))?;
+        let text = format!("\r\x1b[2K{}", instruction.wording());
         if text.len() > 256 {
             return Err("Parsec prompt exceeds its bounded terminal line".into());
         }
@@ -253,6 +266,110 @@ impl ParsecTerminalOwner {
     }
 }
 
+/// Runtime custody minted only by the private owner. It cannot be cloned,
+/// deserialized or constructed from a documentary instruction observation.
+pub(crate) struct QualifiedParsecInstruction {
+    binding: Vec<u8>,
+    map: Vec<u8>,
+    face: Presentation,
+    show: MaskShow,
+    parent_plan: conduit_body::BodyPlan,
+    parent_play: conduit_body::BodyPlayIdentity,
+    host: HostAdvertisement,
+}
+
+impl QualifiedParsecInstruction {
+    pub(crate) fn binding_bytes(&self) -> &[u8] {
+        &self.binding
+    }
+    pub(crate) fn map_bytes(&self) -> &[u8] {
+        &self.map
+    }
+
+    pub(crate) fn require_source_scope(
+        &self,
+        parent_plan: &conduit_body::BodyPlan,
+        parent_play: &conduit_body::BodyPlayIdentity,
+        mask: &conduit_presentation::PlannedMaskPlot,
+        mask_play: &conduit_core::ActivePlayIdentity,
+        host: &HostAdvertisement,
+    ) -> Result<(), String> {
+        let expected = conduit_core::bind_active_play(
+            &mask.plan.plan_id,
+            &host.host_id,
+            &host.boot_id,
+            self.show.show.play_sequence,
+        );
+        if parent_plan != &self.parent_plan
+            || parent_play != &self.parent_play
+            || !parent_play.validate_for(parent_plan)
+            || host != &self.host
+            || mask != &self.show.planned_mask
+            || mask_play != &expected
+            || self.show.show.active_play_id != expected.active_play_id
+        {
+            return Err("Parsec instruction belongs to a different Body/Mask/Host scope".into());
+        }
+        self.show
+            .validate(&self.face)
+            .map_err(|e| format!("Parsec instruction Show: {e:?}"))
+    }
+}
+
+impl ParsecTerminalOwner {
+    pub(in crate::installed_std::body_kernel) fn qualify_instruction(
+        &mut self,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+    ) -> Result<Option<QualifiedParsecInstruction>, String> {
+        let Some(current) = self.current_prompt(map, host, keys)? else {
+            return Ok(None);
+        };
+        let binding = current
+            .binding
+            .encode()
+            .map_err(|e| format!("Parsec qualified binding: {e:?}"))?;
+        let (face, show) = self.current_face_show(map, host)?;
+        let face = face.clone();
+        let show = show.clone();
+        Ok(Some(QualifiedParsecInstruction {
+            binding,
+            map: map.current_state()?.to_vec(),
+            face,
+            show,
+            parent_plan: self.plan.clone(),
+            parent_play: map.current_play()?.clone(),
+            host: host.clone(),
+        }))
+    }
+
+    /// Reconsume current owner truth immediately before Source completion.
+    /// A retained witness cannot authorize after remap, Show consumption or loss.
+    pub(in crate::installed_std::body_kernel) fn revalidate_instruction(
+        &mut self,
+        witness: QualifiedParsecInstruction,
+        map: &ParsecAcknowledgedMap,
+        host: &HostAdvertisement,
+        keys: &KeyboardInputHost<'_>,
+    ) -> Result<QualifiedParsecInstruction, String> {
+        let current = self
+            .qualify_instruction(map, host, keys)?
+            .ok_or("Parsec instruction input scope is no longer available")?;
+        if current.binding != witness.binding
+            || current.map != witness.map
+            || current.face != witness.face
+            || current.show != witness.show
+            || current.parent_plan != witness.parent_plan
+            || current.parent_play != witness.parent_play
+            || current.host != witness.host
+        {
+            return Err("Parsec instruction witness is stale".into());
+        }
+        Ok(current)
+    }
+}
+
 #[cfg(test)]
 #[path = "parsec_terminal_prompt_tests.rs"]
-mod tests;
+pub(super) mod tests;
