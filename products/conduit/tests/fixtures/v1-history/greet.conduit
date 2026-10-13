@@ -8,10 +8,10 @@ form greet (
 
 form welcome {
     hello: greet("Welcome")
-    "Travis" >> hello >> face/text("Message")
+    "Travis" >> hello >> presentation/text
 }
 
 form default-welcome {
     hello: greet
-    "Travis" >> hello >> face/text("Message")
+    "Travis" >> hello >> presentation/text
 }

@@ -6,7 +6,7 @@ use conduit_face::*;
 use conduit_plot::{CanonicalBackCatalog, expand_canonical_plot_for_authoring_with_backs};
 
 pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource-mask";
-const BACK_SOURCE: &str = "plot native-component-back (\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(recipe = recipe, expression = expression)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
+const BACK_SOURCE: &str = "plot native-component-back (\n label: Text\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(label = label, recipe = recipe, expression = expression)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
 
 pub fn configured_resource_renderer_kind() -> Kind {
     let component = component_mask_kind(MASK_BYTES as u32);

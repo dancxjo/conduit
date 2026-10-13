@@ -10,6 +10,6 @@ form count (
 form count-demo {
     clock: time/every(1s)
     count: count(2)
-    show: face/count("Current count")
+    show: presentation/count
     clock >> count >> show
 }

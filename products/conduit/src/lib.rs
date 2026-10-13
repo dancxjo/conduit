@@ -106,7 +106,7 @@ mod tests {
             &mut output,
         )
         .unwrap();
-        assert!(String::from_utf8(output).unwrap().contains("\nHELLO\n"));
+        assert!(String::from_utf8(output).unwrap().contains("\nMessage: HELLO\n"));
         assert!(!execution.plan.plan_id.as_str().is_empty());
         assert!(execution
             .observations

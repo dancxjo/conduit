@@ -23,8 +23,8 @@ use conduit_planner::{
     plan_expanded_authoring_with_options,
 };
 use conduit_plot::{
-    KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
-    expand_canonical_plot_for_authoring, parse_syntax_document,
+    ProfileCatalog, check_syntax_document, expand_canonical_plot_for_authoring,
+    parse_syntax_document,
 };
 
 mod configured;
@@ -71,35 +71,25 @@ pub fn prepare_stage_from_offer(
     {
         return Err(MaskOfferError::InvalidPlan);
     }
-    let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
-    install_mask_plot_value_aliases(&mut startup).map_err(|_| MaskOfferError::InvalidPlan)?;
     for projection in [
         renderer_kind_projection(),
         face_interaction_kind_projection(),
         face_tee_kind_projection(),
     ] {
-        startup
-            .insert(KindSignature {
-                kind: projection.kind_id.as_str().into(),
-                startup_parameters: Vec::new(),
-            })
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
         catalog
             .insert(projection)
             .map_err(|_| MaskOfferError::InvalidPlan)?;
     }
     for kind in [show_resource_source_kind(), resource_renderer_kind()] {
-        startup
-            .insert(KindSignature {
-                kind: kind.kind_id.as_str().into(),
-                startup_parameters: Vec::new(),
-            })
-            .map_err(|_| MaskOfferError::InvalidPlan)?;
         catalog
             .insert_kind(kind)
             .map_err(|_| MaskOfferError::InvalidPlan)?;
     }
+    let mut startup = catalog
+        .startup_catalog()
+        .map_err(|_| MaskOfferError::InvalidPlan)?;
+    install_mask_plot_value_aliases(&mut startup).map_err(|_| MaskOfferError::InvalidPlan)?;
     let (source, entry) = match adapter {
         Adapter::Native => (
             include_str!("../../../../plots/native-graphical-mask/main.conduit"),
@@ -413,6 +403,13 @@ mod tests {
             .unwrap()
             .planned_mask;
         assert_eq!(owner, guest);
+        for placement in &owner.plan.fragments[0].placements {
+            assert!(
+                conduit_core::face_data_label(&placement.configuration).is_ok(),
+                "{} must retain its declared construction name",
+                placement.kind_id.as_str()
+            );
+        }
 
         let mut wrong_profile = offer;
         wrong_profile.profile = "conduitos/other".into();

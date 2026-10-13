@@ -56,7 +56,7 @@ fn canonical_hello_runs_locally() {
         ),
         "missing canonical face placement: {stdout}"
     );
-    assert!(lines.iter().any(|line| line == &"HELLO, WORLD."));
+    assert!(lines.iter().any(|line| line == &"Greeting: HELLO, WORLD."));
     assert!(
         lines
             .iter()
