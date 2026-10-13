@@ -503,14 +503,14 @@ fn patchbay_face_revision_recomposes_only_its_native_surface() {
 
     let (face, plan, _main, top, mut compositor) = fixture(1);
     let initial_scene =
-        conduitos::tour_workspace::scene(10, 7, 1, TourWorkspacePhase::LessonReady).unwrap();
+        conduitos::tour_workspace::scene(640, 480, 1, TourWorkspacePhase::LessonReady).unwrap();
     update_with_scene(&mut compositor, &face, &plan, &top, TOP, &initial_scene);
     let mut display = MemoryDisplay::new();
     compositor.compose_frame(&mut display).unwrap();
 
     let (next_face, next_plan, _, next_top, _) = fixture(2);
     let patchbay_scene =
-        conduitos::tour_workspace::scene(10, 7, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
+        conduitos::tour_workspace::scene(640, 480, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
     update_with_scene(
         &mut compositor,
         &next_face,

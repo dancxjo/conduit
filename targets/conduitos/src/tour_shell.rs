@@ -51,10 +51,10 @@ pub const TRANSIENT_SURFACE: &str = "conduitos/shell/transient";
 const SURFACE_CLASS: &str = "face/surface";
 const RENDERER_FORM: &str = concat!(
     "plot shell {\n",
-    "    workspace: face/renderer\n",
-    "    inspector: face/renderer\n",
-    "    status: face/renderer\n",
-    "    transient: face/renderer\n",
+    "    workspace: face/renderer(\"Tour workspace\")\n",
+    "    inspector: face/renderer(\"Gear inspection\")\n",
+    "    status: face/renderer(\"Body status\")\n",
+    "    transient: face/renderer(\"Tour dialog\")\n",
     "}\n"
 );
 
