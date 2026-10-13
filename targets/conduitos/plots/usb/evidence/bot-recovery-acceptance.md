@@ -16,11 +16,23 @@ Implemented locally
   acknowledgement, keeping EP0 and the attachment. Peer activity, unknown faults
   and control uncertainty retain full-slot sealed retirement. New effects remain
   blocked until the original bulk Kernel obligations retire. All 99 existing
-  native USB regressions passed; focused single-STALL coverage is still pending.
+  native USB regressions passed.
 * 0ec05f8f1: the actual dispatcher regression with genuine three-operation
   selected owners passed. Completed-but-unconsumed bulk Kernel obligations
   still block control. See [retained result](duplex-kernel-retirement-0ec05f8f/validation.json).
   This fixture does not execute a stalled TD or the Source reset sequence.
+
+Joined single-STALL mechanism proof
+-----------------------------------
+
+bd2ceb0ef adds eight IN/OUT cases joining genuine selected native owners to
+actual Kernel-admitted original and fresh requests. Exact Reset Endpoint and
+SetDequeue acknowledgements precede fresh effects; failed commands preserve
+quarantine, and the original TD cannot complete the fresh Kernel request.
+[Retained result](single-stall-kernel-recovery-bd2ceb0e/validation.json) records
+the simulated endpoint configuration/controller scope. This is not Source
+reset/clear-halt, two-storage-owner lifecycle, allocation, emulator or physical
+proof. Nine existing storage-owner regressions also passed.
 
 Existing Source policy
 ----------------------
