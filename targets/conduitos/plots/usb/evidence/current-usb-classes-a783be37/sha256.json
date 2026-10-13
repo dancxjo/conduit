@@ -1,5 +1,9 @@
 {
-  "README.md": "f632d5741dcd20c5ce79f241a1911656597fe35cb772228998eda9bcbb1849ef",
+  "README.md": "6672d971bc5d579c1e6f05944ab6ed2201bf1c17702203f513945e1602398baa",
+  "bot-cross-architecture.json": "f1c1e7ca08d6ee2031e5a31ed79445347564c374183d9b852b0af152cfc9b3a5",
+  "aarch64-success/serial.log": "2df6f8e68be932b922d3c4b0de47a71a085635b6add13e4dae00e1c51eeaa392",
+  "aarch64-success/run-receipt.json": "146cacb2c210ec3bfeaf717bd0fdea989ff8a47b1e73d26bc3ddf7801db283da",
+  "aarch64-success/wire.jsonl": "1b43e545d29f2b6f656f9df5ce5cd648a5c345532b54817d6f77cfd02c5a5b34",
   "cdc/run_x86.py": "88a2275a2ed4d0ed019253bf61cd374d6f9a698837191127d8c1e25a76904ad9",
   "cdc/serial.log": "883d9ef400f7ea3947c29b682983b385a21157ed8aa5526c14dbf9aa0497bea0",
   "cdc/protocol-source.json": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
