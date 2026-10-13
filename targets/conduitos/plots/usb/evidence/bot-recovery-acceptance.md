@@ -79,3 +79,21 @@ by this audit.
 
 The connected changes remain unpublished pending the focused mechanism and
 composition proofs. No issue closure or physical compatibility is claimed.
+
+Source composition validation checkpoint
+----------------------------------------
+
+The new read-only reentry graph is still unvalidated. The first executable
+Source check compiled after correcting its fixture path and canonical multiline
+front declarations. Three of eight tests passed: retained semantic permit
+identity, exact zero-data control completion facts, and Source-owned reset
+wire order and distinct CBW tags. Five tests failed: the complete graph references
+an unresolved read-event gear, and the acceptance expression attempts refined
+native Type construction without an admitted law validator. These are real
+admission failures, not successful composition evidence.
+
+Two independently issued storage pairs also require explicit trusted Root
+bindings to the four expanded authorize/settle placements before Plan sealing.
+Default offer order cannot prove pair affinity. The Source graph must not create
+that authority. Semantic result ordinals remain the retained permit ordinals;
+native completion ordinals and CBW tags are separate correlation domains.
