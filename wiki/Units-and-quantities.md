@@ -315,3 +315,14 @@ Continue with [[the complete feature examples|Conduitese-feature-coverage]].
 
 The [first-class value design](https://github.com/dancxjo/conduit/blob/dev/docs/design/first-class-units.md)
 records bounded codecs, name shadowing, source evidence and proof boundaries.
+
+## Compact full-turn units
+
+For `Angle`, `turn` remains the reference unit. Use `tr` as the preferred
+compact spelling, or `rev` and `rot` as exact one-turn synonyms. `pla` is an
+uncommon historical full-angle spelling. `1tr`, `1rev`, `1rot`, and `1pla`
+are each exactly `1turn`, `360°`, or `400gon`; `0.25tr` is exactly `90°`.
+Bare spellings such as `tr` denote Units, while suffixed values such as `2rev`
+denote Angle Quantities. These units do not admit prefixes. An undeclared
+suffix is refused with `CND-FRM-055`; redeclaring a unit symbol is refused
+with `CND-FRM-058`.
