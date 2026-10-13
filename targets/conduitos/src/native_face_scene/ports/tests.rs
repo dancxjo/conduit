@@ -116,7 +116,7 @@ fn typed_direction_labels_and_exact_endpoints_survive_mixed_fan_graphs() {
             .iter()
             .any(|row| row.text == cord_summary(&face, cord))
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
@@ -155,7 +155,7 @@ fn missing_relationship_cannot_be_replaced_by_a_nearby_port() {
             .count(),
         2
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
@@ -203,7 +203,7 @@ fn missing_port_facts_are_not_inferred_from_misleading_wording() {
             .count(),
         1
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
@@ -323,7 +323,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                 subject.identity
             );
         }
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
     }
 }
 
@@ -403,5 +403,5 @@ fn off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry() {
             .count(),
         2
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
