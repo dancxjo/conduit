@@ -155,7 +155,9 @@ impl OllamaDiscovery {
             // cross its private tokenizer's control-token prefix and emit
             // visible text. Keep the probe tiny and finite, but admit enough
             // output for the provider to demonstrate a usable completion.
-            let warmup = adapter.generate("Reply with one word.", WARMUP_MAXIMUM_TOKENS, false)?;
+            let warmup = adapter
+                .generate("Reply with one word.", WARMUP_MAXIMUM_TOKENS, false)
+                .map_err(|terminal| format!("local model warmup failed: {terminal:?}"))?;
             if warmup.response.is_empty() {
                 return Err("local model warmup produced no output".to_string());
             }

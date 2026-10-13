@@ -3,7 +3,7 @@ use alloc::{collections::BTreeMap, vec};
 use conduit_core::*;
 use conduit_planner::{resource_cost::*, *};
 
-fn exercise(inspect: impl FnOnce(CostPlannedRealizations<'_>)) {
+pub(super) fn exercise(inspect: impl FnOnce(CostPlannedRealizations<'_>)) {
     prepare(PerformanceIntent::Interactive, |result| {
         inspect(result.unwrap())
     });

@@ -70,7 +70,9 @@ fn project_view(
             ManifestationLifecycle::Closed => "closed",
             ManifestationLifecycle::Failed => "failed",
         },
-        interactions_admitted,
+        show_failure: show.show.failure,
+        interactions_admitted: interactions_admitted
+            && show.show.lifecycle == ManifestationLifecycle::Available,
         subjects: face
             .subjects
             .iter()
