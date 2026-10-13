@@ -453,3 +453,7 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         Ok(())
     }
 }
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "storage_association_tests.rs"]
+mod association_tests;
