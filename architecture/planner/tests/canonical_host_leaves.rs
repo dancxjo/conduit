@@ -49,7 +49,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     startup
         .insert(KindSignature {
-            kind: "presentation/text".into(),
+            kind: "face/text".into(),
             startup_parameters: vec![],
         })
         .unwrap();
@@ -82,8 +82,8 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
         .unwrap();
     profile
         .insert(KindProjection {
-            kind_id: kind_id("presentation/text"),
-            kind_contract_revision: KindIdentity::from("presentation/text@1"),
+            kind_id: kind_id("face/text"),
+            kind_contract_revision: KindIdentity::from("face/text@1"),
             inputs: vec![port("text", PortDirection::Input)],
             outputs: vec![],
             configuration: vec![],
@@ -104,7 +104,7 @@ fn expanded() -> conduit_plot::ExpandedCanonicalPlot {
 plot welcome {
     source: text/source
     hello: greet(2)
-    show: presentation/text
+    show: face/text("Message")
     source >> hello >> show
 }
 "#;
@@ -171,7 +171,7 @@ fn host() -> HostAdvertisement {
         profile: HostProfileId::from("test/host"),
         bases: vec![],
         resources: vec![],
-        capabilities: ["text/source", "text/join", "presentation/text"]
+        capabilities: ["text/source", "text/join", "face/text"]
             .into_iter()
             .map(|kind| offer(profile.get(&kind_id(kind)).unwrap()))
             .collect(),
@@ -250,11 +250,7 @@ fn nested_plot_terminates_only_in_exact_planned_host_call_leaves() {
             .collect::<Vec<_>>(),
         [
             ("text/join", "std/text-join", "test/text-join"),
-            (
-                "presentation/text",
-                "std/presentation-text",
-                "test/presentation-text"
-            ),
+            ("face/text", "std/face-text", "test/face-text"),
             ("text/source", "std/text-source", "test/text-source"),
         ]
     );
@@ -265,7 +261,7 @@ fn nested_plot_terminates_only_in_exact_planned_host_call_leaves() {
 fn explicit_plot_completion_reaches_the_exact_plan() {
     let source = r#"plot finite {
     source: text/source
-    show: presentation/text
+    show: face/text("Message")
     source >> show
 }.
 "#;

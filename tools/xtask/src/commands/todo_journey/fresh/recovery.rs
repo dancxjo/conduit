@@ -97,7 +97,7 @@ pub(super) fn run(
         || after["read_terminal"] != "Completed"
         || !after["refusal"].is_null()
         || after["body_id"] != before["body_id"]
-        || face["presentation"]["basis"]["body_id"] != before["body_id"]
+        || face["face"]["basis"]["body_id"] != before["body_id"]
         || after["restored_fore_sha256"] != before["restored_fore_sha256"]
         || after["selected_content"]["version"] != before["selected_content"]["version"]
         || after["selected_residence"]["owner_host"] != before["selected_residence"]["owner_host"]

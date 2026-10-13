@@ -138,7 +138,7 @@ fn current_lulled_owner_attaches_actual_host_and_retains_interactive_show() {
     assert!(route.execution.has_pending_play());
     assert!(matches!(
         route.show.show.lifecycle,
-        conduit_presentation::ManifestationLifecycle::Available
+        conduit_face::ManifestationLifecycle::Available
     ));
     let HostSource::Body { owner, .. } = &runtime.host else {
         unreachable!()

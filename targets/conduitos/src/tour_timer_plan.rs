@@ -162,7 +162,7 @@ mod tests {
         for implementation in [
             crate::offer::TIME_EVERY_IMPLEMENTATION,
             crate::offer::STATE_COUNT_IMPLEMENTATION,
-            crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
+            crate::offer::COUNT_FACE_IMPLEMENTATION,
         ] {
             assert!(implementations.contains(&implementation));
         }

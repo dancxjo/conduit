@@ -1,9 +1,9 @@
 //! Native input adaptation for the shared Crèche draft; no lifecycle authority.
 use alloc::{format, string::String, vec::Vec};
-use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthPresentation};
+use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthWidgetFace};
 use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
+use conduit_face::ApplicationEventKind;
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
-use conduit_presentation::ApplicationEventKind;
 
 use super::{Error, FrontDoor};
 
@@ -42,7 +42,7 @@ impl FrontDoor {
             return Err(Error::ActionUnavailable);
         }
         if self.arrival.is_some() || self.journey.as_ref().is_some_and(|j| j.body_id.is_some()) {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         let draft = BirthDraft::new(
             uuid,
@@ -54,15 +54,14 @@ impl FrontDoor {
                     Ok(BirthPlotChoice {
                         title: plot.title().into(),
                         search_text: plot.source().into(),
-                        plot: crate::native_workset::resident(plot)
-                            .map_err(|_| Error::Presentation)?,
+                        plot: crate::native_workset::resident(plot).map_err(|_| Error::Face)?,
                         refusal,
                         selected: available,
                     })
                 })
                 .collect::<Result<_, Error>>()?,
         )
-        .map_err(|_| Error::Presentation)?;
+        .map_err(|_| Error::Face)?;
         self.arrival = Some(Arrival {
             draft,
             focus: 0,
@@ -79,7 +78,7 @@ impl FrontDoor {
 
     pub fn close_creche(&mut self) -> Result<(), Error> {
         if self.journey.as_ref().is_none_or(|j| j.body_id.is_none()) {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.arrival = None;
         self.advance()
@@ -90,7 +89,7 @@ impl FrontDoor {
             return Err(Error::StaleInput);
         }
         if event.transition() == KeyTransition::Pressed {
-            self.revision.checked_add(1).ok_or(Error::Presentation)?;
+            self.revision.checked_add(1).ok_or(Error::Face)?;
         }
         let Some(arrival) = self.arrival.as_mut() else {
             return Ok(ArrivalInput::Unchanged);
@@ -218,18 +217,18 @@ impl Arrival {
     }
 
     fn controls(&self) -> Vec<String> {
-        use conduit_presentation::PresentationMechanism;
-        let Ok(view) = self.draft.presentation() else {
+        use conduit_face::FaceMechanism;
+        let Ok(view) = self.draft.widget_face() else {
             return Vec::new();
         };
         let mut controls = Vec::new();
         for node in &view.root.children {
             match &node.mechanism {
-                PresentationMechanism::FormField(field) => {
+                FaceMechanism::FormField(field) => {
                     controls.push(field.input_action.identity.clone())
                 }
-                PresentationMechanism::Action(action) => controls.push(action.identity.clone()),
-                PresentationMechanism::ChoiceGroup { options, .. } => controls.extend(
+                FaceMechanism::Action(action) => controls.push(action.identity.clone()),
+                FaceMechanism::ChoiceGroup { options, .. } => controls.extend(
                     options
                         .iter()
                         .map(|choice| choice.change_action.identity.clone()),
@@ -304,7 +303,7 @@ fn refusal_text(error: BirthDraftRefusal) -> &'static str {
         BirthDraftRefusal::InvalidName => "Give your body a name of at most 64 bytes.",
         BirthDraftRefusal::EmptySelection => "Include at least one plot to begin.",
         BirthDraftRefusal::UnavailablePlot => "This plot cannot run with the current capabilities.",
-        BirthDraftRefusal::StalePresentation => "This choice has changed. Please choose again.",
+        BirthDraftRefusal::StaleFace => "This choice has changed. Please choose again.",
         _ => "The Crèche could not accept this change.",
     }
 }

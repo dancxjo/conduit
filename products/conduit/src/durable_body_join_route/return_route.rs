@@ -13,7 +13,7 @@ mod refresh;
 #[path = "return_route/show_ack.rs"]
 mod show_ack;
 use conduit_body::PortableAdmissionReceipt;
-use conduit_presentation::{
+use conduit_face::{
     FaceInteraction, MaskShow, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse,
     MAX_OWNER_FACE_RESPONSE_BYTES,
 };
@@ -32,7 +32,7 @@ const GRANT_SCHEMA: &str = "conduit.body/native-owner-return-grant@1";
 const ACTION_SCHEMA: &str = "conduit.body/native-owner-return-action@1";
 const RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-response@1";
 const MAX_ACTIONS: u8 = 4;
-const MAX_PRESENTATION_REFRESHES: u8 = 4;
+const MAX_FACE_REFRESHES: u8 = 4;
 const MAX_LIFETIME_MILLIS: u64 = 60_000;
 const MAX_RETURN_ACTION_BYTES: usize = 64 * 1024;
 const CHUNK_HEADER_BYTES: usize = 40;
@@ -171,7 +171,7 @@ pub(super) fn serve(
             &grant,
             sequence,
             deadline,
-            refreshes < MAX_PRESENTATION_REFRESHES,
+            refreshes < MAX_FACE_REFRESHES,
         )? {
             show_ack::ShowGate::Accepted => {}
             show_ack::ShowGate::Refreshed(next) => {
@@ -207,7 +207,7 @@ pub(super) fn serve(
             .and_then(serde_json::Value::as_str)
             == Some(component_selection::SCHEMA)
         {
-            if refreshes >= MAX_PRESENTATION_REFRESHES {
+            if refreshes >= MAX_FACE_REFRESHES {
                 break;
             }
             match component_selection::serve(
@@ -359,7 +359,7 @@ impl ChunkAssembly {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::OWNER_FACE_REQUEST_SCHEMA;
+    use conduit_face::OWNER_FACE_REQUEST_SCHEMA;
 
     fn request() -> OwnerFaceSnapshotRequest {
         OwnerFaceSnapshotRequest {
@@ -375,11 +375,11 @@ mod tests {
     }
 
     #[test]
-    fn presentation_replacement_preserves_deadline_and_consumed_action_budget() {
+    fn face_replacement_preserves_deadline_and_consumed_action_budget() {
         let original = Grant::issue(&receipt()).unwrap();
         let mut current = original.replacement(3).unwrap();
         assert_eq!(current.maximum_actions, 2);
-        for _ in 0..MAX_PRESENTATION_REFRESHES {
+        for _ in 0..MAX_FACE_REFRESHES {
             let next = current.replacement(1).unwrap();
             assert_ne!(next.token, current.token);
             assert_eq!(next.expires_at_millis, original.expires_at_millis);
@@ -547,7 +547,7 @@ mod tests {
             accepted: true,
             code: "accepted",
             face: Some(OwnerFaceSnapshotResponse::Refused {
-                schema: "conduit.presentation/owner-face-response@1".into(),
+                schema: "conduit.face/owner-face-response@1".into(),
                 code: "x".repeat(super::super::response_document::MAX_OWNER_DOCUMENT_BYTES),
             }),
         };

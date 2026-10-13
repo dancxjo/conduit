@@ -1,7 +1,7 @@
 //! Fixed-storage kernel installation for the shared explicit fan-out Tour Plot.
 
 use crate::{
-    text_kernel_backs::{LiteralBack, LiteralState, PresentationBack, UpperBack},
+    text_kernel_backs::{FaceBack, LiteralBack, LiteralState, UpperBack},
     tour_morse_backs::{IndicatorBack, MorseBack, TourMorseBack},
 };
 use conduit_core::{ConfigurationValue, PlanFragment};
@@ -43,7 +43,7 @@ type Scheduler = FixedScheduler<
 pub struct TourMorseKernel {
     scheduler: Scheduler,
     upper_node: NodeId,
-    text_presentation_node: NodeId,
+    text_face_node: NodeId,
     morse_node: NodeId,
     indicator_node: NodeId,
 }
@@ -57,13 +57,9 @@ impl TourMorseKernel {
         validate_shape(fragment, lowered, expected_literal)?;
         let literal_index = node(fragment, conduit_text::TEXT_LITERAL_KIND)?;
         let upper_index = node(fragment, conduit_text::TEXT_UPPER_KIND)?;
-        let text_presentation_index =
-            node(fragment, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
+        let text_face_index = node(fragment, conduit_semantic_catalog::TEXT_FACE_KIND)?;
         let morse_index = node(fragment, conduit_text::TEXT_MORSE_KIND)?;
-        let indicator_index = node(
-            fragment,
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
-        )?;
+        let indicator_index = node(fragment, conduit_semantic_catalog::INDICATOR_FACE_KIND)?;
         let literal = configured_text(&fragment.placements[literal_index].configuration, "value")?;
         let mut values = FixedValueStore::<VALUE_SLOTS, VALUE_BYTES>::new(VALUE_BYTES as u32)?;
         let text = values.store(literal.as_bytes())?;
@@ -102,11 +98,10 @@ impl TourMorseKernel {
             pending: false,
             emitted: false,
         }));
-        drivers[text_presentation_index] =
-            Some(TourMorseBack::TextPresentation(PresentationBack {
-                pending: false,
-                complete: false,
-            }));
+        drivers[text_face_index] = Some(TourMorseBack::TextFace(FaceBack {
+            pending: false,
+            complete: false,
+        }));
         drivers[morse_index] = Some(TourMorseBack::Morse(MorseBack {
             pending: false,
             emitted: false,
@@ -138,7 +133,7 @@ impl TourMorseKernel {
                 signs,
             )?,
             upper_node: NodeId(upper_index as u16),
-            text_presentation_node: NodeId(text_presentation_index as u16),
+            text_face_node: NodeId(text_face_index as u16),
             morse_node: NodeId(morse_index as u16),
             indicator_node: NodeId(indicator_index as u16),
         })
@@ -160,8 +155,8 @@ impl TourMorseKernel {
         request.node == self.upper_node
     }
 
-    pub fn is_text_presentation_request(&self, request: &HostCallRequest) -> bool {
-        request.node == self.text_presentation_node
+    pub fn is_text_face_request(&self, request: &HostCallRequest) -> bool {
+        request.node == self.text_face_node
     }
 
     pub fn is_morse_request(&self, request: &HostCallRequest) -> bool {
@@ -222,12 +217,9 @@ impl TourMorseKernel {
         )
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.call != conduit_kernel::HostCallId(0)
-            || (request.node != self.text_presentation_node && request.node != self.indicator_node)
+            || (request.node != self.text_face_node && request.node != self.indicator_node)
         {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
@@ -307,16 +299,16 @@ fn validate_shape(
             crate::offer::TEXT_UPPER_IMPLEMENTATION,
         ),
         (
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-            crate::offer::TEXT_PRESENTATION_IMPLEMENTATION,
+            conduit_semantic_catalog::TEXT_FACE_KIND,
+            crate::offer::TEXT_FACE_IMPLEMENTATION,
         ),
         (
             conduit_text::TEXT_MORSE_KIND,
             crate::offer::TEXT_MORSE_IMPLEMENTATION,
         ),
         (
-            conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
-            crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
+            conduit_semantic_catalog::INDICATOR_FACE_KIND,
+            crate::offer::INDICATOR_FACE_IMPLEMENTATION,
         ),
     ] {
         if fragment.placements[node(fragment, kind)?]

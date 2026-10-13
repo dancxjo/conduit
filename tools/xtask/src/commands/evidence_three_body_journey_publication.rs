@@ -96,7 +96,7 @@ pub(crate) fn stage(
     Ok(())
 }
 
-/// This is a presentation refresh, not admission under today's journey contract.
+/// This is a face refresh, not admission under today's journey contract.
 /// The retained source, index, track manifests, and artifact bytes stay unchanged.
 pub(crate) fn render_recorded(root: PathBuf) -> Result<(), String> {
     let root = root.canonicalize().map_err(|error| error.to_string())?;
@@ -143,7 +143,7 @@ pub(crate) fn render_recorded(root: PathBuf) -> Result<(), String> {
     }
     std::fs::write(output, page::render(&index)).map_err(|error| error.to_string())?;
     println!(
-        "Refreshed recorded journey presentation; retained source {}",
+        "Refreshed recorded journey face; retained source {}",
         index.git_commit
     );
     Ok(())
@@ -238,7 +238,7 @@ mod tests {
     }
 
     #[test]
-    fn changed_recorded_artifact_is_refused_before_presentation_replacement() {
+    fn changed_recorded_artifact_is_refused_before_face_replacement() {
         let root = std::env::temp_dir().join(format!(
             "conduit-recorded-{}-{}",
             std::process::id(),

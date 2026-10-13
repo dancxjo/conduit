@@ -3,11 +3,11 @@ use conduit_core::{
     Quantity, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
     StructuredSelector, Unit, PROTOCOL_VERSION,
 };
+use conduit_face::{install_geometry_catalogs, robotics_pose2_type};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{install_geometry_catalogs, robotics_pose2_type};
 use conduit_robotics::{
     deterministic_robotics_structured_fixture, pose_sample_value, range_sample_value,
     robotics_motion_request_type, robotics_pose_sample_type, robotics_range_observation_type,

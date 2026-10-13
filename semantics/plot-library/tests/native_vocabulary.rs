@@ -15,7 +15,7 @@ fn plot_library_vocabulary_has_native_identity_and_exact_round_trips() {
     round_trip(LibraryAvailability::needs_capability("camera/input@1".into()).unwrap());
     round_trip(LibraryRefusal::InvalidInventory);
     round_trip(LibraryRefusal::SearchBound);
-    round_trip(LibraryRefusal::Presentation);
+    round_trip(LibraryRefusal::Face);
 }
 
 #[test]

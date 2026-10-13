@@ -1,6 +1,6 @@
 //! One explicitly authorized browser admission window while the Body is lulled.
 //! The window bounds admission authorization, not carrier handshake/close latency.
-//! The owner may issue a presentation-only browser Mask route on the admitted
+//! The owner may issue a face-only browser Mask route on the admitted
 //! carrier; the Body workload remains on its authoritative Host.
 mod admission;
 mod service;
@@ -13,7 +13,7 @@ mod wardrobe;
 use super::Owner;
 use conduit_body::{BodyState, HostPresenceClock, HostPresenceClockScale, HostPresenceTable};
 use conduit_core::{HostId, LinkBindingId, SignId};
-use conduit_presentation::{
+use conduit_face::{
     OwnerFaceSnapshotResponse, MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_RESPONSE_SCHEMA,
 };
 use conduit_std_host::browser_admission::{
@@ -278,7 +278,7 @@ fn serve_presence(
                         .into(),
                     });
                 if let OwnerFaceSnapshotResponse::Snapshot {
-                    presentation,
+                    face,
                     interactions_admitted,
                     route,
                     ..
@@ -301,16 +301,16 @@ fn serve_presence(
                             )
                         });
                     #[cfg(not(unix))]
-                    let selected = Err::<conduit_presentation::RemoteOwnerMaskRouteSeal, String>(
+                    let selected = Err::<conduit_face::RemoteOwnerMaskRouteSeal, String>(
                         "owner route requires an installed Unix service actor".into(),
                     );
                     match selected {
                         Ok(selected)
-                            if selected.face_id == presentation.identity
-                                && selected.face_revision == presentation.revision =>
+                            if selected.face_id == face.identity
+                                && selected.face_revision == face.revision =>
                         {
                             *interactions_admitted =
-                                crate::durable_host_control::has_remote_mask_action(presentation);
+                                crate::durable_host_control::has_remote_mask_action(face);
                             *route = Some(Box::new(selected));
                         }
                         _ => {

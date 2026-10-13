@@ -132,7 +132,7 @@ Watches can attach to those exact subjects, while the causal timeline follows
 the retained parent sequence through goal, route decision, trajectory, control,
 motion request, and the lower actuator signs.
 
-Patchbay presentation remains a read-only projection. It may render the goal,
+Patchbay face remains a read-only projection. It may render the goal,
 pose age and frame, route, selected trajectory segment, control result,
 authority refusal, safety inhibition, and exact actuator outcome only from
 current typed values and retained signs. Missing telemetry must remain visible;

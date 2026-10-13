@@ -1,10 +1,10 @@
 //! Explicit terminal effect attachment for the bounded Parsec Body profile.
 use super::*;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 
 pub trait BodyParsecShowObserver {
     /// Inspect actual Show evidence. Observing it grants no input authority.
-    fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String>;
+    fn showed(&mut self, face: &Face, show: &MaskShow) -> Result<(), String>;
     /// Observe a privately verified, flushed instruction. Metadata is not an
     /// input grant and says nothing about another medium's Show or physical input.
     fn instruction_observed(

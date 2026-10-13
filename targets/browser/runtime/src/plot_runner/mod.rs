@@ -25,9 +25,7 @@ pub(crate) mod workspace;
 #[cfg(test)]
 use crate::installed_browser::{advertisement, catalogs};
 use crate::installed_browser::{backs, local_bases};
-use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, Plan, PlanFragment, PresentationIdentity,
-};
+use conduit_core::{bind_active_play, bind_face, bind_sign, FaceIdentity, Plan, PlanFragment};
 #[cfg(test)]
 use conduit_planner::plan_expanded_canonical_with_options;
 use conduit_planner::{default_expanded_placements, PlanningOptions};
@@ -50,7 +48,7 @@ struct TourSession {
     fragments: Vec<PlanFragment>,
     active_play_id: conduit_core::ActivePlayId,
     terminal_sign_sequence: u64,
-    latest_presentation: Option<PresentationIdentity>,
+    latest_face: Option<FaceIdentity>,
     host_id: conduit_core::HostId,
     boot_id: conduit_core::BootId,
     realization: MorseRealization,
@@ -105,7 +103,7 @@ impl TourSession {
             source,
             play_sequence,
             realization,
-            crate::installed_browser::PresentationProfile::Annotation,
+            crate::installed_browser::FaceProfile::Annotation,
         )
     }
 
@@ -115,10 +113,9 @@ impl TourSession {
         source: &str,
         play_sequence: u64,
         realization: MorseRealization,
-        presentation: crate::installed_browser::PresentationProfile,
+        face: crate::installed_browser::FaceProfile,
     ) -> Result<(Self, TourHostEffect), String> {
-        let (startup, mut catalog) =
-            crate::installed_browser::catalogs_for_presentation(presentation)?;
+        let (startup, mut catalog) = crate::installed_browser::catalogs_for_face(face)?;
         let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
         if let Some(diagnostic) = syntax.diagnostics.first() {
             return Err(format!(
@@ -159,11 +156,8 @@ impl TourSession {
             crate::installed_browser::catalogs::offers_for_expanded_time_samples(&plot)?;
         let collect_offers =
             crate::installed_browser::catalogs::offers_for_expanded_flow_collects(&plot)?;
-        let mut host = crate::installed_browser::advertisement_for_presentation(
-            host_id.into(),
-            boot_id.into(),
-            presentation,
-        );
+        let mut host =
+            crate::installed_browser::advertisement_for_face(host_id.into(), boot_id.into(), face);
         host.capabilities.extend(selector_offers);
         host.capabilities.extend(expression_offers);
         host.capabilities.extend(window_offers);
@@ -241,7 +235,7 @@ impl TourSession {
             fragments: vec![fragment.clone()],
             active_play_id: active.active_play_id,
             terminal_sign_sequence: 0,
-            latest_presentation: None,
+            latest_face: None,
             thermostat_face: None,
             host_id: fragment.host_id.clone(),
             boot_id: fragment.boot_id.clone(),
@@ -290,7 +284,7 @@ impl TourSession {
         Ok(self.with_kernel_signs(receipt(
             "cancelled",
             &self.active_play_id,
-            self.latest_presentation.as_ref(),
+            self.latest_face.as_ref(),
             &sign,
             self.timer_completions,
             self.manifestation_completions,
@@ -307,7 +301,7 @@ impl TourSession {
         self.with_kernel_signs(receipt(
             "completed",
             &self.active_play_id,
-            self.latest_presentation.as_ref(),
+            self.latest_face.as_ref(),
             &sign,
             self.timer_completions,
             self.manifestation_completions,
@@ -390,10 +384,10 @@ mod quantity_output_tests;
 mod tests;
 
 #[cfg(test)]
-mod normalized_presentation_tests;
+mod normalized_face_tests;
 
 #[cfg(test)]
-mod comparison_presentation_tests;
+mod comparison_face_tests;
 
 #[cfg(test)]
 mod startup_chime_tests;

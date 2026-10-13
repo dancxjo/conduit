@@ -6,6 +6,7 @@ use conduit_core::{
     AuthorityGrant, BaseImplementationId, ConnectionTrack, Plan, PoolRealizationEnvelope,
     PoolRealizationHealth, PoolRealizationObservation, PortDirection, ResourceHealth, SignId,
 };
+use conduit_face::{Face, MaskPlot, PlannedMaskPlot};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
     ForeBoundaryKey, PlanningOptions,
@@ -14,7 +15,6 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{MaskPlot, PlannedMaskPlot, Presentation};
 use std::{
     collections::BTreeMap,
     sync::atomic::{AtomicU64, Ordering},
@@ -30,16 +30,13 @@ pub struct PreparedLlmSpokenMask {
 }
 
 impl crate::StdHost {
-    pub fn prepare_llm_spoken_mask(
-        &self,
-        face: &Presentation,
-    ) -> Result<PreparedLlmSpokenMask, String> {
+    pub fn prepare_llm_spoken_mask(&self, face: &Face) -> Result<PreparedLlmSpokenMask, String> {
         face.validate()
             .map_err(|error| format!("prepare LLM spoken Face: {error:?}"))?;
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
-        conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
-        conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+        conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+        conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
         conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;

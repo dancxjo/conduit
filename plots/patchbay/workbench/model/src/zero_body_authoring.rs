@@ -65,7 +65,7 @@ impl ZeroBodyFrontDoor {
                 PlotEditorError::InvalidConfiguration(_) | PlotEditorError::UnknownConfiguration(_),
             ) => PatchbayInvocationOutcome::Refused(PatchbayRefusal::InvalidConfiguration),
             Err(PlotEditorError::StaleRevision { .. } | PlotEditorError::StaleGraphBasis) => {
-                PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+                PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
             }
             Err(_) => PatchbayInvocationOutcome::Refused(PatchbayRefusal::OperationRejected),
         }
@@ -98,9 +98,17 @@ impl ZeroBodyFrontDoor {
         let revision = basis.source_revision;
         let expanded = &basis.expanded_plot_id;
         match edit {
-            PatchbayEdit::PlaceGear { kind_id, .. } => plot
+            PatchbayEdit::PlaceGear {
+                kind_id,
+                data_label,
+                ..
+            } => plot
                 .editor
-                .place_palette_kind(revision, &conduit_core::kind_id(kind_id))
+                .place_palette_kind_with_label(
+                    revision,
+                    &conduit_core::kind_id(kind_id),
+                    data_label.as_deref(),
+                )
                 .map(|_| ()),
             PatchbayEdit::DuplicateGear {
                 subject_identity, ..

@@ -3,13 +3,13 @@ mod body_admission;
 mod bootsel;
 mod capstone_serial;
 mod create_battery_rx;
+mod create_face;
 mod create_full_stage;
 mod create_hello;
 mod create_lights_stage;
 mod create_listen;
 mod create_motion;
 mod create_power;
-mod create_presentation;
 mod doctor;
 mod firmware;
 #[cfg(test)]
@@ -345,7 +345,7 @@ pub fn run(mut args: PicoArgs) -> PicoResult<()> {
             create_power::run(&args, *confirmed_off)
         }
         Some(PicoSubcommand::PresentCreate { wheels_clear }) => {
-            create_presentation::run(&args, *wheels_clear)
+            create_face::run(&args, *wheels_clear)
         }
         Some(PicoSubcommand::ReadCreateBattery { wheels_clear }) => {
             create_battery_rx::run(&args, *wheels_clear)

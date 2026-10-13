@@ -182,7 +182,7 @@ test("the reviewed shelf reveals conversation Plots without pretending this brow
   await expect(card(page, "Body Chat")).toContainText("Needs capability");
   await expect(card(page, "Body Chat")).toContainText("current body supervisor and an admitted model realization");
   await expect(card(page, "Live Conversation")).toContainText("Needs capability");
-  await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and presentation");
+  await expect(card(page, "Live Conversation")).toContainText("live audio acquisition, streaming model generation, synthesis, and face");
   await expect(card(page, "Live Conversation")).toContainText("Text fallback: Body Chat");
   await expect(card(page, "Live Conversation")).toContainText("The fallback still needs capability");
   await expect(card(page, "House Spoken Response")).toContainText("Text fallback: House Conversation");
@@ -356,8 +356,8 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
       await expect(output).toContainText('second');
     } else {
       await page.locator('[data-plot-output] output').evaluate(element => {
-        element.dataset.presentationCount = '0';
-        new MutationObserver(() => element.dataset.presentationCount = String(Number(element.dataset.presentationCount) + 1))
+        element.dataset.faceCount = '0';
+        new MutationObserver(() => element.dataset.faceCount = String(Number(element.dataset.faceCount) + 1))
           .observe(element, { childList: true, characterData: true, subtree: true });
       });
       await surface.hover();
@@ -366,7 +366,7 @@ for (const [title, kind] of [['Firefly Choir', 'pulse'], ['Night Radio', 'text']
           for (const transition of transitions) await page.mouse[transition]();
           await expect(output).toContainText('matched:');
           await expect(output).toContainText('score_millionths:');
-          await expect(output).toHaveAttribute('data-presentation-count', transitions.length === 5 ? '1' : '2');
+          await expect(output).toHaveAttribute('data-face-count', transitions.length === 5 ? '1' : '2');
         }
       } finally { await page.mouse.up(); }
     }

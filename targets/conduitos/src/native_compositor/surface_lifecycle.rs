@@ -1,6 +1,6 @@
 //! Transactional retained-surface placement and visibility lifecycle.
 
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 use super::{
     MAX_COMPOSITOR_PIXELS, NativeCompositor, NativeCompositorError, SurfacePlacementReceipt,

@@ -16,7 +16,7 @@ plot lenia-orbium-demo {
     seed: alife/orbium-seed(width = 128, height = 128, seed = 1)
     clock: time/tick(count = 4, period-ms = 50)
     organism: lenia
-    show: presentation/scalar-field(title = "Orbium", minimum = 0.0, maximum = 1.0)
+    show: face/scalar-field(label = "Orbium", title = "Orbium", minimum = 0.0, maximum = 1.0)
 
     seed.field >> organism.initial
     clock >> organism.tick

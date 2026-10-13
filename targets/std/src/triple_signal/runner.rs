@@ -137,7 +137,7 @@ impl TriplePhysicalRunner {
                         "fragment_id": stdout.fragment_id,
                         "active_play_id": stdout.active_play_id,
                         "placement_id": stdout.placement_id.as_str(),
-                        "presentation_id": stdout.presentation_id.as_str(),
+                        "face_id": stdout.face_id.as_str(),
                         "sign_id": stdout.sign_id.as_str(),
                         "sequence": stdout.sequence,
                         "level": stdout.level,

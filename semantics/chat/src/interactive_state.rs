@@ -1,11 +1,10 @@
-//! Finite chat application state projected as portable Presentation truth.
+//! Finite chat application state projected as portable Face truth.
 
 use alloc::{collections::VecDeque, format, string::String, vec, vec::Vec};
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceBasis, FaceDisclosure, FaceDisclosureLevel,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
 
 use crate::{ChatConnectionState, ChatStateRefusal};
@@ -17,7 +16,7 @@ pub const MAXIMUM_CHAT_MESSAGE_BYTES: u32 = 256;
 pub const MAXIMUM_CHAT_HISTORY_ITEMS: usize = 16;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ChatPresentationConfiguration {
+pub struct ChatFaceConfiguration {
     pub title: String,
     pub history_label: String,
     pub input_label: String,
@@ -28,15 +27,15 @@ pub struct ChatPresentationConfiguration {
 }
 
 #[derive(Debug, Clone)]
-pub struct ChatPresentationState {
-    configuration: ChatPresentationConfiguration,
+pub struct ChatFaceState {
+    configuration: ChatFaceConfiguration,
     connection: ChatConnectionState,
     revision: u64,
     next_message: u64,
     messages: VecDeque<(u64, String)>,
 }
 
-impl ChatPresentationConfiguration {
+impl ChatFaceConfiguration {
     pub fn validate(&self) -> Result<(), ChatStateRefusal> {
         if self.title.is_empty()
             || self.history_label.is_empty()
@@ -54,8 +53,8 @@ impl ChatPresentationConfiguration {
     }
 }
 
-impl ChatPresentationState {
-    pub fn new(configuration: ChatPresentationConfiguration) -> Result<Self, ChatStateRefusal> {
+impl ChatFaceState {
+    pub fn new(configuration: ChatFaceConfiguration) -> Result<Self, ChatStateRefusal> {
         configuration.validate()?;
         let maximum_history_items = configuration.maximum_history_items;
         Ok(Self {
@@ -100,26 +99,26 @@ impl ChatPresentationState {
         self.bump_revision()
     }
 
-    pub fn presentation(&self) -> Result<Presentation, ChatStateRefusal> {
+    pub fn face(&self) -> Result<Face, ChatStateRefusal> {
         let mut subjects = vec![
             subject(
                 "chat/document",
-                PresentationRole::Document,
+                FaceRole::Document,
                 &self.configuration.title,
             ),
             subject(
                 "chat/history",
-                PresentationRole::Collection,
+                FaceRole::Collection,
                 &self.configuration.history_label,
             ),
             subject(
                 CHAT_MESSAGE_TARGET,
-                PresentationRole::TextEntry,
+                FaceRole::TextEntry,
                 &self.configuration.input_label,
             ),
             subject(
                 "chat/status",
-                PresentationRole::Status,
+                FaceRole::Status,
                 &self.configuration.status_label,
             ),
         ];
@@ -128,7 +127,7 @@ impl ChatPresentationState {
             contains("chat/document", CHAT_MESSAGE_TARGET),
             contains("chat/document", "chat/status"),
         ];
-        let mut text = vec![PresentationText {
+        let mut text = vec![FaceText {
             subject: "chat/status".into(),
             text: match self.connection {
                 ChatConnectionState::Connecting => "Connecting",
@@ -139,60 +138,60 @@ impl ChatPresentationState {
         }];
         for (sequence, message) in &self.messages {
             let identity = format!("chat/message/{sequence}");
-            subjects.push(subject(&identity, PresentationRole::Item, "Chat message"));
+            subjects.push(subject(&identity, FaceRole::Item, "Chat message"));
             relationships.push(contains("chat/history", &identity));
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject: identity,
                 text: message.clone(),
             });
         }
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             self.revision,
             empty_basis(),
             subjects,
             relationships,
             vec![
-                PresentationProperty {
+                FaceProperty {
                     subject: "chat/history".into(),
                     name: "maximum-items".into(),
-                    value: PresentationPropertyValue::Count(
+                    value: FacePropertyValue::Count(
                         self.configuration.maximum_history_items as u64,
                     ),
                 },
-                PresentationProperty {
+                FaceProperty {
                     subject: CHAT_MESSAGE_TARGET.into(),
                     name: "maximum-bytes".into(),
-                    value: PresentationPropertyValue::Count(
+                    value: FacePropertyValue::Count(
                         self.configuration.maximum_message_bytes.into(),
                     ),
                 },
             ],
             text,
-            vec![PresentationAction {
+            vec![FaceAction {
                 identity: CHAT_SEND_ACTION.into(),
                 intent: CHAT_SEND_ACTION.into(),
                 target: CHAT_MESSAGE_TARGET.into(),
                 name: self.configuration.submit_label.clone(),
-                arguments: vec![conduit_presentation::FaceActionArgument::text(
+                arguments: vec![conduit_face::FaceActionArgument::text(
                     CHAT_MESSAGE_INPUT.into(),
                     self.configuration.input_label.clone(),
                     1,
                     self.configuration.maximum_message_bytes,
                 )
                 .expect("checked chat configuration has a finite text contract")],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
+                disclosure: FaceDisclosureLevel::CurrentAction,
                 availability: match self.connection {
-                    ChatConnectionState::Connected => PresentationActionAvailability::Available,
+                    ChatConnectionState::Connected => FaceActionAvailability::Available,
                     ChatConnectionState::Connecting => unavailable("connection/connecting"),
                     ChatConnectionState::Disconnected => unavailable("connection/disconnected"),
                 },
             }],
-            vec![PresentationDisclosure {
+            vec![FaceDisclosure {
                 subject: "chat/document".into(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             }],
         )
-        .map_err(|_| ChatStateRefusal::InvalidPresentation)
+        .map_err(|_| ChatStateRefusal::InvalidFace)
     }
 
     pub fn history_len(&self) -> usize {
@@ -212,31 +211,31 @@ impl ChatPresentationState {
     }
 }
 
-fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
-    PresentationSubject {
+fn subject(identity: &str, role: FaceRole, name: &str) -> FaceSubject {
+    FaceSubject {
         identity: identity.into(),
         role,
         name: name.into(),
     }
 }
 
-fn contains(source: &str, target: &str) -> PresentationRelationship {
-    PresentationRelationship {
+fn contains(source: &str, target: &str) -> FaceRelationship {
+    FaceRelationship {
         source: source.into(),
         target: target.into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     }
 }
 
-fn unavailable(reason_code: &str) -> PresentationActionAvailability {
-    PresentationActionAvailability::Unavailable {
+fn unavailable(reason_code: &str) -> FaceActionAvailability {
+    FaceActionAvailability::Unavailable {
         reason_code: reason_code.into(),
         explanation: "The semantic chat connection is not available.".into(),
     }
 }
 
-fn empty_basis() -> PresentationBasis {
-    PresentationBasis {
+fn empty_basis() -> FaceBasis {
+    FaceBasis {
         body_id: None,
         wake_id: None,
         source_document_id: None,

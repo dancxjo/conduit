@@ -127,7 +127,7 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             "regions": [0, 1, 2], "direct_digest": hex(&direct_digest),
             "joined_digest": hex(&joined_digest), "bitmap_kind": "graphics/bitmap-gray8@1",
             "bitmap_width": bitmap.width(), "bitmap_height": bitmap.height(),
-            "presenter": "image/x-portable-graymap", "presentation_path": args[8],
+            "presenter": "image/x-portable-graymap", "face_path": args[8],
         }))?
     );
     Ok(())

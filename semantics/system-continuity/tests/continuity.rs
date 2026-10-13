@@ -74,7 +74,7 @@ fn snapshot(
             Observation {
                 sign_id: identity.sign_id,
                 active_play_id: Some(play.active_play_id.clone()),
-                presentation_id: None,
+                face_id: None,
                 host_id: play.host_id.clone(),
                 boot_id: play.boot_id.clone(),
                 plan_id: Some(plan.plan_id.clone()),

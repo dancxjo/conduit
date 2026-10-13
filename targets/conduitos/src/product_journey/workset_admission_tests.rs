@@ -4,7 +4,7 @@ use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 
 #[test]
-fn canonical_admission_before_foreground_preserves_identity_result_and_presentation() {
+fn canonical_admission_before_foreground_preserves_identity_result_and_face() {
     let (ids, offer, mut journey) = fixture();
     let memory = native_workset::resident(NativePlot::MemoryLantern).unwrap();
     let keyboard = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
@@ -67,5 +67,5 @@ fn canonical_admission_before_foreground_preserves_identity_result_and_presentat
     assert_eq!(workspace.plots[1].title, NativePlot::MemoryLantern.title());
     assert!(workspace.plots[1].foreground);
     door.observe_product(&journey).unwrap();
-    door.presentation().unwrap();
+    door.face().unwrap();
 }

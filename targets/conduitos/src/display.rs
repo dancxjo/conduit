@@ -15,7 +15,7 @@ pub(crate) fn text_height(value: &str, width: u16) -> Result<u16, DisplayError> 
     text_layout::text_height(value, width)
 }
 
-use conduit_presentation::{
+use conduit_face::{
     GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     LayoutRect,
 };
@@ -206,10 +206,10 @@ pub fn render_scene(
 
 /// Manifest one portable gray8 bitmap on the selected finite display Base.
 /// Nearest-neighbor scaling is a mechanism choice below the bitmap and
-/// presentation contracts; it does not mutate their semantic truth.
+/// face contracts; it does not mutate their semantic truth.
 pub fn render_gray8_bitmap(
     target: &mut impl PixelTarget,
-    bitmap: &conduit_presentation::Gray8Bitmap,
+    bitmap: &conduit_face::Gray8Bitmap,
 ) -> Result<DisplayReceipt, DisplayError> {
     let format = target.format().validate()?;
     let source_width = u64::from(bitmap.width());

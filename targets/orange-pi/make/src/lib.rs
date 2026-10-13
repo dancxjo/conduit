@@ -55,8 +55,8 @@ fn catalog() -> PackageCatalogContribution {
         implementations: BTreeMap::from([(
             "presenter/linear-serial@1".into(),
             ImplementationMetadata {
-                kind: "presentation/linear".into(),
-                contract_revision: "conduit.presentation/linear@1".into(),
+                kind: "face/linear".into(),
+                contract_revision: "conduit.face/linear@1".into(),
                 targets: vec![ORANGE_PI_5_TARGET.into()],
                 prerequisites: vec![
                     PrerequisiteNode::HostCall("conduit.host/present@1".into()),

@@ -2,11 +2,11 @@
 //! supply state recovered through the admitted Play; this module stores none.
 
 use super::{clock_interval, Owner};
-use conduit_presentation::{
-    CommittedFaceAdmission, CommittedStateContributionBasis, CommittedStateEvidenceRefusal,
-    CommittedStateSelection, Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus,
-    FaceInteraction, FaceNames, FaceResidentPlotName, MaskShow, Presentation,
-    PresentationContributionBasis,
+use conduit_face::{
+    BodyFace, CommittedFaceAdmission, CommittedStateContributionBasis,
+    CommittedStateEvidenceRefusal, CommittedStateSelection, Face, FaceContext, FaceContribution,
+    FaceContributionBasis, FaceContributionRole, FaceFocus, FaceInteraction, FaceNames,
+    FaceResidentPlotName, MaskShow,
 };
 use conduit_todo_face::{todo_command_from_contributed_interaction, todo_fragment};
 use conduit_todo_plot::{TodoCommand, TodoState};
@@ -17,7 +17,7 @@ impl Owner {
         &self,
         basis: &CommittedStateContributionBasis,
         state: &TodoState,
-    ) -> Result<Presentation, String> {
+    ) -> Result<Face, String> {
         let receipt = self
             .todo_verified_read_receipt()
             .ok_or(CommittedStateEvidenceRefusal::MissingReadReceipt.as_str())?;
@@ -98,7 +98,7 @@ impl Owner {
         }
         let fragment = todo_fragment(
             state,
-            PresentationContributionBasis {
+            FaceContributionBasis {
                 checked_plot_id: basis.checked_plot_id.clone(),
                 plan_id: basis.read.plan_id.clone(),
                 active_play_id: basis.read.play_id.clone(),
@@ -112,12 +112,12 @@ impl Owner {
             checked_plot_id: &resident.checked_plot_id,
             name,
         }];
-        let face = Face::project_committed(
+        let face = BodyFace::project_committed(
             &self.session.evidence().body,
             self.session.evidence().last_sequence(),
             FaceContext::Overview,
             FaceFocus::Body,
-            FaceContribution::from_presentation(FaceContributionRole::Foreground, fragment),
+            FaceContribution::from_face(FaceContributionRole::Foreground, fragment),
             FaceNames {
                 body_name: Some(&self.session.evidence().friendly_name),
                 resident_plots: &names,
@@ -128,10 +128,10 @@ impl Owner {
             },
         )
         .map_err(|error| format!("owner-committed-face-refused:{error:?}"))?;
-        face.presentation
+        face.face
             .validate()
             .map_err(|error| format!("owner-committed-face-invalid:{error:?}"))?;
-        Ok(face.presentation)
+        Ok(face.face)
     }
 
     /// Validate a return against the exact verified committed Face before
@@ -151,7 +151,7 @@ impl Owner {
             &face,
             show,
             interaction,
-            PresentationContributionBasis {
+            FaceContributionBasis {
                 checked_plot_id: basis.checked_plot_id.clone(),
                 plan_id: basis.read.plan_id.clone(),
                 active_play_id: basis.read.play_id.clone(),
@@ -178,7 +178,7 @@ impl Owner {
             .map_err(|error| format!("current Todo action refused: {error:?}"))
     }
 
-    fn todo_basis(&self) -> Result<PresentationContributionBasis, String> {
+    fn todo_basis(&self) -> Result<FaceContributionBasis, String> {
         if !matches!(
             self.resident_name.as_deref(),
             Some("todo/main" | "todo/checkpoint-once" | "todo/checkpoint-restore")
@@ -200,7 +200,7 @@ impl Owner {
             .iter()
             .find(|entry| entry.plot == *resident)
             .ok_or("Todo resident Plot is not in the current Plan")?;
-        Ok(PresentationContributionBasis {
+        Ok(FaceContributionBasis {
             checked_plot_id: resident.checked_plot_id.clone(),
             plan_id: realization.plan.plan_id.clone(),
             active_play_id: play.active_play_id.clone(),
@@ -210,10 +210,7 @@ impl Owner {
 
     /// The ordinary owner Face, optionally including current Todo Play truth.
     /// A Plot contribution cannot be projected from an idle or retired Play.
-    pub(super) fn project_face(
-        &self,
-        todo: Option<(&TodoState, bool)>,
-    ) -> Result<Presentation, String> {
+    pub(super) fn project_face(&self, todo: Option<(&TodoState, bool)>) -> Result<Face, String> {
         let plot_name = self
             .resident
             .as_ref()
@@ -228,14 +225,14 @@ impl Owner {
             .map(|(state, actions_admitted)| {
                 let fragment = todo_fragment(state, self.todo_basis()?, actions_admitted)
                     .map_err(|error| format!("Todo Face contribution refused: {error:?}"))?;
-                Ok::<_, String>(vec![FaceContribution::from_presentation(
+                Ok::<_, String>(vec![FaceContribution::from_face(
                     FaceContributionRole::Foreground,
                     fragment,
                 )])
             })
             .transpose()?
             .unwrap_or_default();
-        let face = Face::project_with_names(
+        let face = BodyFace::project_with_names(
             &self.session.evidence().body,
             self.session
                 .realization()
@@ -250,10 +247,10 @@ impl Owner {
             },
         )
         .map_err(|error| format!("owner-face-projection-refused:{error:?}"))?;
-        face.presentation
+        face.face
             .validate()
             .map_err(|error| format!("owner-face-invalid:{error:?}"))?;
-        clock_interval::with_clock_action(self, face.presentation)
+        clock_interval::with_clock_action(self, face.face)
     }
 }
 

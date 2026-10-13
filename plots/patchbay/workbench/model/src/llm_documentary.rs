@@ -12,13 +12,13 @@ use conduit_core::{
     ArtifactId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId, GearId, HostId,
     ImplementationId, KindId, OfferGeneration, PlacementId, PlanId, PlannedGear, SignId,
 };
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 
 use crate::{project_llm_patchbay, CandidatePlotInspection, LlmGearActivity, LlmPatchbayTruth};
 
-pub fn llm_documentary_presentation_with_adapter(
+pub fn llm_documentary_face_with_adapter(
     adapter: &dyn crate::PatchbayHostAdapter,
-) -> Result<Presentation, String> {
+) -> Result<Face, String> {
     let base = crate::portable_demonstration_with_adapter(adapter)?;
     let contract =
         llm_contract(LLM_INTERPRET_KIND).ok_or("missing reviewed llm/interpret contract")?;
@@ -58,7 +58,7 @@ pub fn llm_documentary_presentation_with_adapter(
         .basis
         .plan_id
         .clone()
-        .ok_or("documentary Presentation lacks its exact plan")?;
+        .ok_or("documentary Face lacks its exact plan")?;
     let proposals = vec![
         documentary_proposal(
             "proposal/request-light",
@@ -109,8 +109,8 @@ pub fn llm_documentary_presentation_with_adapter(
 }
 
 #[cfg(test)]
-pub fn llm_documentary_presentation() -> Result<Presentation, String> {
-    llm_documentary_presentation_with_adapter(crate::host_adapter::test_host_adapter())
+pub fn llm_documentary_face() -> Result<Face, String> {
+    llm_documentary_face_with_adapter(crate::host_adapter::test_host_adapter())
 }
 
 fn documentary_proposal(

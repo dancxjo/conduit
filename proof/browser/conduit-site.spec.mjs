@@ -38,7 +38,7 @@ test("homepage is useful and honestly waiting without a trigger endpoint", async
   ]) {
     expect(source).not.toContain(forbidden);
   }
-  expect(source).toContain("domHost.completePresentation(effect)");
+  expect(source).toContain("domHost.completeFace(effect)");
   expect(source).toContain("if (result.ok) showReceipt(result.receipt)");
 
   await page.goto("/proof/browser/conduit-site.html");
@@ -64,7 +64,7 @@ test("homepage exposes a bounded error state without fabricating a receipt", asy
   await expect(page.locator("#browser-sink output")).toHaveCount(0);
 });
 
-test("canonical initial state and terminal triggers change the homepage only after presentation completion", async ({ page }) => {
+test("canonical initial state and terminal triggers change the homepage only after face completion", async ({ page }) => {
   const source = spawn(
     "cargo",
     ["run", "--quiet", "-p", "conduit-std-host", "--bin", "distributed-toggle-server"],
@@ -96,7 +96,7 @@ test("canonical initial state and terminal triggers change the homepage only aft
     expect(proof.capacityStable).toBe(true);
     expect(proof.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
     expect(new Set(proof.receipts.map(({ planId }) => planId)).size).toBe(1);
-    for (const field of ["planId", "fragmentId", "activePlayId", "presentationId", "signId"]) {
+    for (const field of ["planId", "fragmentId", "activePlayId", "faceId", "signId"]) {
       await expect(page.locator(`#proof-${field === "activePlayId" ? "play" : field.replace("Id", "")}`))
         .toHaveText(proof.receipts.at(-1)[field]);
     }

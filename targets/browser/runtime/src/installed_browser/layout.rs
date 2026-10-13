@@ -2,8 +2,8 @@
 
 use super::factory::{validate_placement, BrowserInstallation};
 use super::BrowserBack;
+use conduit_face::LayoutFrame;
 use conduit_kernel::{HostedValueStore, ValueStorage};
-use conduit_presentation::LayoutFrame;
 
 const IMPLEMENTATION: &str = "browser/kernel-layout-viewport@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-layout@1";
@@ -58,7 +58,7 @@ mod tests {
         assert!(offer.inputs.is_empty());
         assert_eq!(
             offer.outputs[0].value_kind.as_str(),
-            conduit_presentation::LAYOUT_FRAME_KIND
+            conduit_face::LAYOUT_FRAME_KIND
         );
         assert!(offer.host_calls.is_empty());
         assert!(offer.resource_requirements.is_empty());

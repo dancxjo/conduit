@@ -226,7 +226,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     const inspection = document.createElement('details');
     inspection.append(faceNode('summary', 'Inspect other Face subjects'));
     for (const group of view.subjects) {
-      if (group.semantic_role !== 'conduit.presentation/choice-group@1'
+      if (group.semantic_role !== 'conduit.face/choice-group@1'
         || group.choice_multiplicity !== 'exclusive') continue;
       const options = view.relationships
         .filter(relation => relation.kind === 'Contains' && relation.source === group.identity)

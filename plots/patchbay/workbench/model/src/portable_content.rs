@@ -1,15 +1,15 @@
 //! Shared bounded content accumulator for portable Patchbay projections.
 
-use conduit_presentation::{
-    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
 
 pub(super) struct ContentBuilder {
-    pub(super) subjects: Vec<PresentationSubject>,
-    pub(super) relationships: Vec<PresentationRelationship>,
-    pub(super) properties: Vec<PresentationProperty>,
-    pub(super) text: Vec<PresentationText>,
+    pub(super) subjects: Vec<FaceSubject>,
+    pub(super) relationships: Vec<FaceRelationship>,
+    pub(super) properties: Vec<FaceProperty>,
+    pub(super) text: Vec<FaceText>,
 }
 
 impl ContentBuilder {
@@ -23,10 +23,10 @@ impl ContentBuilder {
     }
 
     pub(super) fn from_parts(
-        subjects: Vec<PresentationSubject>,
-        relationships: Vec<PresentationRelationship>,
-        properties: Vec<PresentationProperty>,
-        text: Vec<PresentationText>,
+        subjects: Vec<FaceSubject>,
+        relationships: Vec<FaceRelationship>,
+        properties: Vec<FaceProperty>,
+        text: Vec<FaceText>,
     ) -> Self {
         Self {
             subjects,
@@ -36,7 +36,7 @@ impl ContentBuilder {
         }
     }
 
-    pub(super) fn subject(&mut self, role: PresentationRole, name: impl Into<String>) -> String {
+    pub(super) fn subject(&mut self, role: FaceRole, name: impl Into<String>) -> String {
         let identity = format!("patchbay/subject/{}", self.subjects.len());
         self.subject_with_identity(identity, role, name)
     }
@@ -44,7 +44,7 @@ impl ContentBuilder {
     pub(super) fn subject_with_identity(
         &mut self,
         identity: impl Into<String>,
-        role: PresentationRole,
+        role: FaceRole,
         name: impl Into<String>,
     ) -> String {
         let identity = identity.into();
@@ -56,7 +56,7 @@ impl ContentBuilder {
             debug_assert_eq!(existing.role, role);
             return identity;
         }
-        self.subjects.push(PresentationSubject {
+        self.subjects.push(FaceSubject {
             identity: identity.clone(),
             role,
             name: nonempty(name.into()),
@@ -65,35 +65,35 @@ impl ContentBuilder {
     }
 
     pub(super) fn contains(&mut self, source: &str, target: &str) {
-        self.relationships.push(PresentationRelationship {
+        self.relationships.push(FaceRelationship {
             source: source.into(),
             target: target.into(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
     }
 
     pub(super) fn describes(&mut self, source: &str, target: &str) {
-        self.relationships.push(PresentationRelationship {
+        self.relationships.push(FaceRelationship {
             source: source.into(),
             target: target.into(),
-            kind: PresentationRelationshipKind::Describes,
+            kind: FaceRelationshipKind::Describes,
         });
     }
 
     pub(super) fn line(&mut self, subject: &str, value: impl Into<String>) {
-        self.text.push(PresentationText {
+        self.text.push(FaceText {
             subject: subject.into(),
             text: nonempty(value.into()),
         });
     }
 
-    pub(super) fn property(&mut self, subject: &str, name: &str, value: PresentationPropertyValue) {
+    pub(super) fn property(&mut self, subject: &str, name: &str, value: FacePropertyValue) {
         if self.properties.iter().any(|property| {
             property.subject == subject && property.name == name && property.value == value
         }) {
             return;
         }
-        self.properties.push(PresentationProperty {
+        self.properties.push(FaceProperty {
             subject: subject.into(),
             name: name.into(),
             value,

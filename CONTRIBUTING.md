@@ -37,7 +37,7 @@ tooling, so allow time and disk space.
 | If you want to work on… | Begin with… |
 |---|---|
 | Examples and the programming experience | [reviewed plots](plots/README.md), [Try Conduit](docs/try-conduit.md) |
-| Human encounter and inspection | [universal Face grammar](docs/architecture/presentation-grammar-conformance.md), [Patchbay Plot graph](plots/patchbay/graph/README.md) |
+| Human encounter and inspection | [universal Face grammar](docs/architecture/face-grammar-conformance.md), [Patchbay Plot graph](plots/patchbay/graph/README.md) |
 | Language, planning, or execution | [Canon](docs/conduit-canon.md), [architecture index](docs/architecture/README.md) |
 | A device, host, or ConduitOS | [Targets](targets/README.md), then that target's README |
 | Setup, documentation, or tests | [Documentation index](docs/README.md), [repository map](docs/repository-layout.md), [CI guide](docs/contributing/ci.md) |

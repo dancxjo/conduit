@@ -13,8 +13,8 @@ use crate::{
     product_journey::ProductJourney,
 };
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
+use conduit_face::{Face, FaceInteraction, MaskShow};
 use conduit_human::KeyEvent;
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
 
 pub(super) struct FaceWorkspace {
     mask: NativeFaceMask,
@@ -134,7 +134,7 @@ impl FaceWorkspace {
         door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = door.presentation().map_err(|error| error.as_str())?;
+        let face = door.face().map_err(|error| error.as_str())?;
         let observation = self.next_observation;
         let play = self.next_play;
         self.next_observation = observation
@@ -202,7 +202,7 @@ impl FaceWorkspace {
         offer: &HostOffer<'_>,
         make: &MakeRecord,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = door.presentation().map_err(|error| error.as_str())?;
+        let face = door.face().map_err(|error| error.as_str())?;
         let show = self
             .mask
             .show()
@@ -211,7 +211,7 @@ impl FaceWorkspace {
         let semantic = face
             .actions
             .iter()
-            .find(|candidate| candidate.intent == action.presentation_intent())
+            .find(|candidate| candidate.intent == action.face_intent())
             .ok_or("workspace-face-action-unknown")?;
         face.resolve_action(face.revision, &semantic.identity)
             .map_err(|_| "workspace-face-action-unavailable")?;
@@ -256,7 +256,7 @@ impl FaceWorkspace {
         show: &MaskShow,
         interaction: &FaceInteraction,
     ) -> Result<CompositionReceipt, &'static str> {
-        let face = door.presentation().map_err(|error| error.as_str())?;
+        let face = door.face().map_err(|error| error.as_str())?;
         let action = resolve_current_action(&face, show, interaction)?;
         let request = journey
             .next_request(action, interaction.target.clone(), face.revision)
@@ -271,7 +271,7 @@ impl FaceWorkspace {
 }
 
 fn resolve_current_action(
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     interaction: &FaceInteraction,
 ) -> Result<patchbay_control::PatchbayAction, &'static str> {
@@ -299,7 +299,7 @@ fn resolve_current_action(
         .ok_or("workspace-face-action-identity-invalid")?;
     let semantic =
         patchbay_control::PatchbayAction::from_name(name).ok_or("workspace-face-action-unknown")?;
-    if semantic.presentation_intent() != action.intent {
+    if semantic.face_intent() != action.intent {
         return Err("workspace-face-action-intent-mismatch");
     }
     Ok(semantic)
@@ -315,8 +315,8 @@ mod tests {
         product_front_door::workspace_input::tests::listening,
         product_journey::test_support::fixture,
     };
+    use conduit_face::GraphicsCommandKind;
     use conduit_human::{KeyModifiers, KeyTransition};
-    use conduit_presentation::GraphicsCommandKind;
 
     #[derive(Default)]
     struct CountingDisplay(u64);
@@ -347,7 +347,7 @@ mod tests {
         journey.select_plot(&patchbay, journey.revision()).unwrap();
         door.observe_product(&journey).unwrap();
         assert!(journey.foreground_patchbay_graph().is_some());
-        let face = door.presentation().unwrap();
+        let face = door.face().unwrap();
         let encoded = serde_json::to_vec(&face).unwrap();
         assert!(
             encoded.len() <= crate::native_face_snapshot::MAX_SNAPSHOT_BYTES,
@@ -381,7 +381,7 @@ mod tests {
         let receipt = workspace
             .enter(&door, &mut presenter, &mut display)
             .unwrap();
-        assert_eq!(receipt.presentation_id, face.identity);
+        assert_eq!(receipt.face_id, face.identity);
         assert_eq!(
             workspace.mask.publication().unwrap().observation_sequence,
             8

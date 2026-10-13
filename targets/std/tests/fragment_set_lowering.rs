@@ -12,8 +12,7 @@ fn plans() -> (conduit_core::Plan, conduit_core::Plan) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let host = conduit_std_host::StdHost::new();
     let make = |source: &str| {
         let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();

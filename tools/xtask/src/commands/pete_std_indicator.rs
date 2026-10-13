@@ -1,4 +1,4 @@
-//! Bounded std UART physical entrance for Create indicator presentation.
+//! Bounded std UART physical entrance for Create indicator face.
 
 use std::io::Write;
 use std::path::PathBuf;
@@ -67,7 +67,7 @@ struct Evidence {
     base: BaseEvidence,
     observed_oi_mode: &'static str,
     indicator_implementation: &'static str,
-    presentation_authority_granted: bool,
+    face_authority_granted: bool,
     motion_authority_granted: bool,
     receipts: Vec<SignalReceiptEvidence>,
     kernel_decisions: u32,
@@ -269,7 +269,7 @@ fn execute(args: &StdIndicatorArgs) -> Result<Evidence, Box<dyn std::error::Erro
         },
         observed_oi_mode: "safe",
         indicator_implementation: INDICATOR_IMPLEMENTATION,
-        presentation_authority_granted: true,
+        face_authority_granted: true,
         motion_authority_granted: false,
         receipts,
         kernel_decisions,

@@ -3,8 +3,8 @@ use super::*;
 
 #[test]
 fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/prebirth-face.json"
     ))
     .unwrap();
     assert!(face.basis.body_id.is_none());
@@ -178,7 +178,7 @@ fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
         let retired = if lifecycle == ManifestationLifecycle::Failed {
             available
                 .fail(
-                    conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                    conduit_face::ManifestationFailure::AdapterUnavailable,
                     SignId::from("sign/prebirth-fixture-lost"),
                 )
                 .unwrap()
@@ -276,8 +276,8 @@ fn checked_browser_mask_fore_carries_prebirth_face_and_show_without_a_body() {
 
 #[test]
 fn cancelling_prebirth_mask_refuses_late_host_completion_before_show_delivery() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/prebirth-face.json"
     ))
     .unwrap();
     let original = serde_json::to_vec(&face).unwrap();

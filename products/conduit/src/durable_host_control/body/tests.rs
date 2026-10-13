@@ -5,9 +5,8 @@ use conduit_body::{
     SpawnInvitationSecret, ROUTED_INVITATION_SCHEMA, SPAWN_ADMISSION_REQUEST_SCHEMA,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::{
-    OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, PresentationRole,
-    OWNER_FACE_REQUEST_SCHEMA,
+use conduit_face::{
+    FaceRole, OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, OWNER_FACE_REQUEST_SCHEMA,
 };
 use conduit_std_host::{StdHost, StdHostConfig};
 use sha2::{Digest, Sha256};
@@ -47,7 +46,7 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
     )
     .unwrap();
     let checked = crate::plot_source::parse(
-        "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()
@@ -111,8 +110,8 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
             &token,
             &mut runtime
         ),
-        Response::BodyLocalFace { presentation, advertisement, .. }
-            if *presentation == local_face && advertisement.boot_id == local_host.boot_id
+        Response::BodyLocalFace { face, advertisement, .. }
+            if *face == local_face && advertisement.boot_id == local_host.boot_id
     ));
     assert!(matches!(
         super::super::handle(
@@ -210,7 +209,7 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
         last_seen_identity: None,
     };
     let face = match super::super::handle(
-        Request::BodyFace {
+        Request::Face {
             protocol: PROTOCOL,
             token: token.to_vec(),
             request: face_request.clone(),
@@ -218,12 +217,12 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
         &token,
         &mut runtime,
     ) {
-        Response::BodyFace { response, .. } => match *response {
+        Response::Face { response, .. } => match *response {
             OwnerFaceSnapshotResponse::Snapshot {
-                presentation,
+                face,
                 interactions_admitted: false,
                 ..
-            } => *presentation,
+            } => *face,
             other => panic!("unexpected Face response: {other:?}"),
         },
         _ => panic!("unexpected Face control response"),
@@ -236,7 +235,7 @@ fn service_resumes_one_body_and_serializes_invitation_admission_on_current_boot(
     assert!(face
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Plot));
+        .any(|subject| subject.role == FaceRole::Plot));
     let unchanged = runtime
         .owned_body_face(&OwnerFaceSnapshotRequest {
             last_seen_revision: Some(face.revision),

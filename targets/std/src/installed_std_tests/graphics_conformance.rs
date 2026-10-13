@@ -1,8 +1,8 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ObservationKind, TerminalDisposition};
+use conduit_face::MAX_FACE_COMPOSITION_BYTES;
 use conduit_planner::{default_placements, plan_with_options};
 use conduit_plot::parse;
-use conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES;
 use std::io::{self, Write};
 
 struct LostGraphicsSurface;
@@ -25,13 +25,13 @@ impl Write for LostGraphicsSurface {
 }
 
 const PLOT: &str = r#"plot canonical_gear_front {
- icon: presentation/icon(icon = "presentation", name = "Patchbay")
- frame: presentation/frame(role = "panel", name = "Gear Front")
- badge: presentation/badge(state = "ready", name = "ready")
+ icon: face/icon(label = "Patchbay", icon = "face")
+ frame: face/frame(label = "Gear Front", role = "panel")
+ badge: face/badge(label = "ready", state = "ready")
  rect: graphics/rect(style = "stroke")
  text: graphics/text(text = "ready")
- glyph: graphics/icon(icon = "presentation")
- sink: presentation/graphics
+ glyph: graphics/icon(icon = "face")
+ sink: face/graphics("Scene")
  icon.presented >> frame.content
  frame.presented >> badge.content
  badge.presented >> rect.input
@@ -42,7 +42,7 @@ const PLOT: &str = r#"plot canonical_gear_front {
 "#;
 
 #[test]
-fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
+fn ordinary_face_back_lowers_through_multiple_graphics_kinds() {
     let mut host = host("graphics-conformance-host");
     let plot = parse(PLOT, &installed_std::test_catalog()).expect("graphics Plot parses");
     let hosts = [host.advertisement().clone()];
@@ -56,7 +56,7 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            connection_byte_capacity: MAX_FACE_COMPOSITION_BYTES as u32,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -89,7 +89,7 @@ fn ordinary_presentation_back_lowers_through_multiple_graphics_kinds() {
 
     let error = host
         .run_fragment_to(fragment.clone(), &mut LostGraphicsSurface, &mut timer)
-        .expect_err("lost graphics surface is not presentation success");
+        .expect_err("lost graphics surface is not face success");
     assert!(error.contains("graphics surface lost"), "{error}");
 
     let mut unsupported = fragment.clone();

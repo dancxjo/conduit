@@ -79,7 +79,7 @@ pub(super) fn review_from_inventory(
     let mut capability_totals = BTreeMap::<(HostId, CapabilityId), u32>::new();
 
     for selected_plot in &selected {
-        let (checked, plot, presentation) = checked_documents
+        let (checked, plot, face) = checked_documents
             .iter()
             .find_map(|entry| {
                 entry
@@ -87,7 +87,7 @@ pub(super) fn review_from_inventory(
                     .plots
                     .iter()
                     .find(|plot| plot.name == selected_plot.name)
-                    .map(|plot| (&entry.checked, plot, entry.presentation))
+                    .map(|plot| (&entry.checked, plot, entry.face))
             })
             .ok_or_else(|| {
                 format!(
@@ -103,7 +103,7 @@ pub(super) fn review_from_inventory(
                 selected_plot.name
             ));
         }
-        let (startup, base_profile) = catalogs.get(presentation)?;
+        let (startup, base_profile) = catalogs.get(face)?;
         let mut profile = base_profile.clone();
         crate::installed_browser::catalogs::install_checked_structured_selectors(
             checked,

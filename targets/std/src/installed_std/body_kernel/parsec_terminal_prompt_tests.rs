@@ -163,7 +163,7 @@ fn remap_withdraws_space_and_requires_new_show_before_source_enter_instruction()
         .unwrap();
     let sources = crate::flow_activation::ParsecSourcePlans::prepare(host.advertisement()).unwrap();
     let mut evaluator = sources.prepare_evaluator().unwrap();
-    let command = conduit_presentation::ParsecMapCommand::new("game/remap".into(), 1, true)
+    let command = conduit_face::ParsecMapCommand::new("game/remap".into(), 1, true)
         .unwrap()
         .encode()
         .unwrap();
@@ -380,7 +380,7 @@ fn read_only_instruction_observation_exists_only_after_exact_scope_and_flush() {
         .evaluate(
             map.current_state().unwrap(),
             &binding,
-            conduit_presentation::ParsecInputInstructionLook::Linear,
+            conduit_face::ParsecInputInstructionLook::Linear,
             false,
         )
         .unwrap();

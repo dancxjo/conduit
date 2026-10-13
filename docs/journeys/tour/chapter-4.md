@@ -13,7 +13,7 @@ Now keep the same plot semantics but realize it across two hosts.
 ```conduit run two-host
 plot hello-across {
     message: text/literal("hello across one cord")
-    show: presentation/text
+    show: face/text("Message")
 
     message >> show
 }
@@ -33,7 +33,7 @@ This is not "client code plus server code". It is one unchanged plot with gear p
 ```conduit run two-host plan
 plot hello-across {
     message: text/literal("hello across one cord")
-    show: presentation/text
+    show: face/text("Message")
 
     message >> show
 }

@@ -51,7 +51,7 @@ pub(super) fn validate(
             "CONDUIT_BOOT_SIGN",
             "CONDUIT_KERNEL_SIGN",
             "CONDUIT_PRODUCT_JOURNEY",
-            "CONDUIT_PRESENTATION_SIGN",
+            "CONDUIT_FACE_SIGN",
             "CONDUIT_BOOT_STAGE xhci",
         ]
         .iter()
@@ -90,8 +90,8 @@ pub(super) fn validate(
         "initialized_capabilities",
         "presenters",
         "facilities",
-        "presentation_surface_slots",
-        "presentation_surface_bytes",
+        "face_surface_slots",
+        "face_surface_bytes",
         "allocated_bytes",
     ] {
         if sign[field] != 0 {
@@ -122,7 +122,7 @@ mod tests {
         json!({"schema":"conduit.conduitos/headless-startup@1","status":"unsupported","reason":"headless-workload-entry-unavailable",
             "profile_id":"profile","build_id":"build","image_binding":"image","host_id":"1".repeat(64),"boot_id":"2".repeat(64),
             "compiled_implementations":31,"initialized_capabilities":0,"offer_generation":null,"body_id":null,"plan_id":null,"active_play_id":null,
-            "presenters":0,"facilities":0,"presentation_surface_slots":0,"presentation_surface_bytes":0,"runtime_arena_bytes":262144,"runtime_arena_ceiling":8388608,"allocated_bytes":0,"bounded":true})
+            "presenters":0,"facilities":0,"face_surface_slots":0,"face_surface_bytes":0,"runtime_arena_bytes":262144,"runtime_arena_ceiling":8388608,"allocated_bytes":0,"bounded":true})
     }
     fn transcript(value: &Value) -> String {
         format!("CONDUIT_HEADLESS_STARTUP {value}\n")

@@ -89,7 +89,7 @@ const fn constant_name(key: PaletteIconKey) -> &'static str {
     match key {
         PaletteIconKey::Clock => "CLOCK",
         PaletteIconKey::Repeat2 => "REPEAT_2",
-        PaletteIconKey::Presentation => "PRESENTATION",
+        PaletteIconKey::Face => "FACE",
         PaletteIconKey::Type => "TYPE",
         PaletteIconKey::CaseUpper => "CASE_UPPER",
         PaletteIconKey::Combine => "COMBINE",

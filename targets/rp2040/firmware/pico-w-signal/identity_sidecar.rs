@@ -27,8 +27,8 @@ fn render_identity_sidecar(
     identity: &GeneratedFirmwareIdentity,
     schema: &str,
 ) -> String {
-    let presentation_ids = json_string_array(&identity.presentation_ids);
-    let presentation_sign_ids = json_string_array(&identity.presentation_sign_ids);
+    let face_ids = json_string_array(&identity.face_ids);
+    let face_sign_ids = json_string_array(&identity.face_sign_ids);
     format!(
         concat!(
             "{{\n",
@@ -44,8 +44,8 @@ fn render_identity_sidecar(
             "  \"boot_id\": \"{}\",\n",
             "  \"active_play_id\": \"{}\",\n",
             "  \"boot_sign_id\": \"{}\",\n",
-            "  \"presentation_ids\": {},\n",
-            "  \"presentation_sign_ids\": {},\n",
+            "  \"face_ids\": {},\n",
+            "  \"face_sign_ids\": {},\n",
             "  \"terminal_sign_id\": \"{}\",\n",
             "  \"offer_generation\": {},\n",
             "  \"nodes\": {},\n",
@@ -69,8 +69,8 @@ fn render_identity_sidecar(
         json_escape(&generated.boot_id),
         json_escape(&identity.active_play_id),
         json_escape(&identity.boot_sign_id),
-        presentation_ids,
-        presentation_sign_ids,
+        face_ids,
+        face_sign_ids,
         json_escape(&identity.terminal_sign_id),
         generated.offer_generation,
         generated.nodes.len(),

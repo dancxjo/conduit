@@ -92,16 +92,16 @@ test('the shared Workspace journey from zero Body through explicit rest and fini
       if (state?.plan_id) {
         mask = await page.evaluate(() => globalThis.__conduitWorkspace.maskObservation());
         expect(mask.mask_show.show.lifecycle).toBe('Available');
-        expect(mask.mask_show.presentation_id).toBe(mask.presentation.identity);
-        expect(mask.mask_show.presentation_revision).toBe(mask.presentation.revision);
-        expect(mask.mask_show.presentation_plan_id).toBe(state.plan_id);
+        expect(mask.mask_show.face_id).toBe(mask.face.identity);
+        expect(mask.mask_show.face_revision).toBe(mask.face.revision);
+        expect(mask.mask_show.face_plan_id).toBe(state.plan_id);
         await expect(tutorial).toHaveAttribute('data-mask-show-id', mask.mask_show.show_id);
         await expect(tutorial).toHaveAttribute('data-mask-plan-id', mask.planned_mask.plan.plan_id);
         await expect(tutorial).toHaveAttribute('data-mask-play-id', mask.mask_play.active_play_id);
         if (action.id === 'use-current') {
           expect(mask.interaction.semantic_action.identity).toBe('body.use-current');
           expect(mask.interaction.correlation.show_id).toBe(mask.mask_show.show_id);
-          expect(mask.interaction.correlation.presentation_revision).toBe(mask.presentation.revision);
+          expect(mask.interaction.correlation.face_revision).toBe(mask.face.revision);
         }
       }
       observations.push({ action: action.id, state, mask });

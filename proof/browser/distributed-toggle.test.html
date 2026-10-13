@@ -38,8 +38,8 @@ if (!url) {
     });
     const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
     const observableDomHost = {
-      completePresentation(effect) {
-        const result = domHost.completePresentation(effect);
+      completeFace(effect) {
+        const result = domHost.completeFace(effect);
         if (result.ok) {
           const output = document.querySelector("#browser-sink output:last-child");
           output.dataset.encoded = JSON.stringify(result.receipt.encoded);
@@ -51,7 +51,7 @@ if (!url) {
     const closed = await line.closed();
     globalThis.__distributedToggleProof = {
       ...result,
-      presentations: result.presentations.map((effect, sequence) => {
+      faces: result.faces.map((effect, sequence) => {
         const { value, ...identity } = effect;
         return {
           ...identity,

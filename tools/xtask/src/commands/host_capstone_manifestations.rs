@@ -1,12 +1,12 @@
 //! Exact replacement evidence for independently realized Manifestations.
 
 use conduit_core::{BootId, Plan, SignId};
-use conduit_presentation::{
-    Manifestation, ManifestationAdmission, ManifestationLifecycle, ManifestationSet, Presentation,
+use conduit_face::{
+    Face, Manifestation, ManifestationAdmission, ManifestationLifecycle, ManifestationSet,
 };
 
 pub(super) fn mark_replaced(
-    presentation: &Presentation,
+    face: &Face,
     plan: &Plan,
     admission: &ManifestationAdmission,
     available: &ManifestationSet,
@@ -25,11 +25,11 @@ pub(super) fn mark_replaced(
         })
         .collect::<Result<Vec<_>, _>>()
         .map_err(super::debug_error)?;
-    ManifestationSet::new(presentation, replacements, plan, admission).map_err(super::debug_error)
+    ManifestationSet::new(face, replacements, plan, admission).map_err(super::debug_error)
 }
 
 pub(super) fn identity_refusals(
-    presentation: &Presentation,
+    face: &Face,
     plan: &Plan,
     set: &ManifestationSet,
 ) -> (bool, bool, bool) {
@@ -42,11 +42,9 @@ pub(super) fn identity_refusals(
     let mut cross_wired = native.clone();
     cross_wired.host_id = browser.host_id.clone();
     (
-        stale_boot.validate_against(presentation, plan).is_err(),
-        stale_generation
-            .validate_against(presentation, plan)
-            .is_err(),
-        cross_wired.validate_against(presentation, plan).is_err(),
+        stale_boot.validate_against(face, plan).is_err(),
+        stale_generation.validate_against(face, plan).is_err(),
+        cross_wired.validate_against(face, plan).is_err(),
     )
 }
 

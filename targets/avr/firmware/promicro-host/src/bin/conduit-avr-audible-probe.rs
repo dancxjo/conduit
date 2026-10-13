@@ -2,7 +2,7 @@
 #![no_main]
 
 use conduit_avr_promicro_host::{boot::BootIdentity, provider::AvrCreateUart, usb_line::UsbLine};
-use conduit_create_oi::{query_create1_group_zero, CreateOiFailure, PRESENTATION_START};
+use conduit_create_oi::{query_create1_group_zero, CreateOiFailure, FACE_START};
 use panic_halt as _;
 
 const REPORT_MAGIC: u8 = 0xa5;
@@ -18,7 +18,7 @@ fn main() -> ! {
     let mut create = AvrCreateUart::new(uart);
 
     // Deliberately finite HIL diagnostic: every transmitted byte comes from
-    // the shared motion-free Create 1 presentation program. It establishes
+    // the shared motion-free Create 1 face program. It establishes
     // Full, sounds one song, then performs two bounded reads and stops.
     let report = probe(&mut create);
     let mut usb = UsbLine::new(peripherals.USB_DEVICE, peripherals.PLL, boot.usb_serial);
@@ -41,7 +41,7 @@ fn main() -> ! {
 }
 
 fn probe<P: conduit_create_oi::CreateUartProvider>(provider: &mut P) -> [u8; 12] {
-    if provider.write_all(&PRESENTATION_START).is_err() {
+    if provider.write_all(&FACE_START).is_err() {
         return failure_report(1, CreateOiFailure::WriteFailed);
     }
     arduino_hal::delay_ms(250);

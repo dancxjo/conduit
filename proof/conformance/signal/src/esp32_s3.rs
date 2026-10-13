@@ -10,7 +10,7 @@ use crate::{esp32_wroom_build_fixture_advertisement, PULSE_KIND, SHOW_KIND};
 pub const ESP32_S3_BUILD_FIXTURE_HOST_ID: &str = "fixture/build/esp32/s3/usb-54e2006398";
 pub const ESP32_S3_BUILD_FIXTURE_BOOT_ID: &str = "fixture/build/esp32/s3/no-boot";
 pub const ESP32_S3_BUILD_FIXTURE_TIMER_POOL_ID: &str = "fixture/build/esp32/s3/systimer";
-pub const ESP32_S3_BUILD_FIXTURE_PRESENTATION_POOL_ID: &str = "fixture/build/esp32/s3/uart0-sign";
+pub const ESP32_S3_BUILD_FIXTURE_FACE_POOL_ID: &str = "fixture/build/esp32/s3/uart0-sign";
 
 /// Supplies exact finite planner input during ESP32-S3 IMAGE construction.
 pub fn esp32_s3_build_fixture_advertisement() -> conduit_core::HostAdvertisement {
@@ -19,7 +19,7 @@ pub fn esp32_s3_build_fixture_advertisement() -> conduit_core::HostAdvertisement
     offer.boot_id = BootId::from(ESP32_S3_BUILD_FIXTURE_BOOT_ID);
     offer.profile = HostProfileId::from("esp32-s3-signal-kernel");
     offer.resources[0].pool_id = ESP32_S3_BUILD_FIXTURE_TIMER_POOL_ID.into();
-    offer.resources[1].pool_id = ESP32_S3_BUILD_FIXTURE_PRESENTATION_POOL_ID.into();
+    offer.resources[1].pool_id = ESP32_S3_BUILD_FIXTURE_FACE_POOL_ID.into();
     for capability in &mut offer.capabilities {
         match capability.kind_id.as_str() {
             PULSE_KIND => {

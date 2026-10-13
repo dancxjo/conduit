@@ -51,16 +51,16 @@ const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 #[derive(Clone, Copy)]
-pub struct PresentationIdentity {
-    pub presentation_id: &'static str,
+pub struct FaceIdentity {
+    pub face_id: &'static str,
     pub sign_id: &'static str,
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
-    Some(PresentationIdentity {
-        presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
-        sign_id: generated_signal::PRESENTATION_SIGN_IDS.get(sequence)?,
+pub fn face_identity(sequence: usize) -> Option<FaceIdentity> {
+    Some(FaceIdentity {
+        face_id: generated_signal::FACE_IDS.get(sequence)?,
+        sign_id: generated_signal::FACE_SIGN_IDS.get(sequence)?,
     })
 }
 
@@ -70,8 +70,8 @@ pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     feature = "wifi-bootstrap",
     feature = "bluetooth-line"
 ))]
-pub fn presentation_ids() -> &'static [&'static str] {
-    &generated_signal::PRESENTATION_IDS
+pub fn face_ids() -> &'static [&'static str] {
+    &generated_signal::FACE_IDS
 }
 
 #[cfg(any(
@@ -80,8 +80,8 @@ pub fn presentation_ids() -> &'static [&'static str] {
     feature = "wifi-bootstrap",
     feature = "bluetooth-line"
 ))]
-pub fn presentation_sign_ids() -> &'static [&'static str] {
-    &generated_signal::PRESENTATION_SIGN_IDS
+pub fn face_sign_ids() -> &'static [&'static str] {
+    &generated_signal::FACE_SIGN_IDS
 }
 
 pub fn generated_nodes() -> [conduit_kernel::scheduler::NodeSpec<PORTS>; NODES] {

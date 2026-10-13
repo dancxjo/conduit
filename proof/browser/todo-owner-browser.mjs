@@ -74,12 +74,12 @@ const face = () => {
   const value = owner(['body', 'face', '--state-dir', state, '--json']);
   // Keep the actual semantic Face and exact revision. Repeated whole Host offer
   // catalogues are outside this capture and can exceed the publication bound.
-  return { schema: value.schema, presentation: value.presentation,
-    presentation_revision_decimal: value.presentation_revision_decimal,
+  return { schema: value.schema, face: value.face,
+    face_revision_decimal: value.face_revision_decimal,
     advertisement: { host_id: value.advertisement.host_id, boot_id: value.advertisement.boot_id } };
 };
 const beforeOwner = face();
-const bodyId = beforeOwner.presentation.basis.body_id;
+const bodyId = beforeOwner.face.basis.body_id;
 await mkdir(output, { mode: 0o700 });
 let server, browser, page;
 const errors = [];
@@ -150,13 +150,13 @@ try {
   let startedFace;
   for (let attempt = 0; attempt < 100; attempt++) {
     startedFace = face();
-    if (startedFace.presentation.actions.some(action => action.identity === 'todo.add'
+    if (startedFace.face.actions.some(action => action.identity === 'todo.add'
       && action.availability === 'Available')) break;
     await new Promise(resolve => setTimeout(resolve, 50));
   }
-  assert.ok(startedFace.presentation.actions.some(action => action.identity === 'todo.add'
+  assert.ok(startedFace.face.actions.some(action => action.identity === 'todo.add'
     && action.availability === 'Available'), 'Todo Play did not admit the add action');
-  if (!resumeExisting) assert.ok(!startedFace.presentation.subjects.some(subject => subject.name === itemText),
+  if (!resumeExisting) assert.ok(!startedFace.face.subjects.some(subject => subject.name === itemText),
     'new Todo item must be absent before this browser action');
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(({ prior, resumed }) => {
@@ -193,7 +193,7 @@ try {
     const observations = [];
     for (const [look, recipe] of [['compact', 'flat'], ['spacious', 'flat'], ['spacious', 'grouped']]) {
       await page.evaluate(({ look, recipe }) =>
-        globalThis.__conduitOwnerParticipation.selectPresentation(look, recipe), { look, recipe });
+        globalThis.__conduitOwnerParticipation.selectFace(look, recipe), { look, recipe });
       await page.waitForFunction(() => {
         const element = document.querySelector('conduit-owner-face');
         const view = globalThis.__conduitOwnerParticipation.face();
@@ -222,9 +222,9 @@ try {
         'checked recipe must change actual computed grid columns');
       assert.equal(occurrence.acknowledged_show_id, occurrence.view.show_id);
       const currentOwner = face();
-      assert.deepEqual(currentOwner.presentation, startedFace.presentation,
-        'presentation selection must preserve the original whole Todo Face');
-      assert.equal(currentOwner.presentation_revision_decimal, startedFace.presentation_revision_decimal);
+      assert.deepEqual(currentOwner.face, startedFace.face,
+        'face selection must preserve the original whole Todo Face');
+      assert.equal(currentOwner.face_revision_decimal, startedFace.face_revision_decimal);
       assert.deepEqual(currentOwner.advertisement, startedFace.advertisement);
       const screenshot = `look-${recipe}-${look}.png`;
       await page.locator('[data-owner-face]').screenshot({ path: path.join(output, screenshot) });
@@ -249,7 +249,7 @@ try {
         assert.match(refusal.message, /^owner Face interaction refused \(-5\)$/,
           'retirement proof must reach the WASM Show gate rather than fail argument validation');
         const ownerAfterRefusal = face();
-        assert.deepEqual(ownerAfterRefusal.presentation, currentOwner.presentation,
+        assert.deepEqual(ownerAfterRefusal.face, currentOwner.face,
           'retired Show refusal must preserve the entire canonical owner Face');
         assert.equal(await page.evaluate(() => globalThis.__conduitOwnerParticipation.face().show_id),
           occurrence.view.show_id, 'refusal must preserve the replacement Show');
@@ -272,16 +272,16 @@ try {
     assert.notDeepEqual(observations[1].view.component.configuration.recipe,
       observations[2].view.component.configuration.recipe);
     const ownerEvidence = owner => ({
-      sourceDocumentId: owner.presentation.basis.source_document_id,
-      bodyId: owner.presentation.basis.body_id,
+      sourceDocumentId: owner.face.basis.source_document_id,
+      bodyId: owner.face.basis.body_id,
       hostId: owner.advertisement.host_id, bootId: owner.advertisement.boot_id,
-      planId: owner.presentation.basis.plan_id, playId: owner.presentation.basis.active_play_id,
+      planId: owner.face.basis.plan_id, playId: owner.face.basis.active_play_id,
     });
-    const exactFace = owner => ({ ...owner.presentation, revision: owner.presentation_revision_decimal });
+    const exactFace = owner => ({ ...owner.face, revision: owner.face_revision_decimal });
     const occurrenceEvidence = occurrence => {
       const canonical = JSON.parse(occurrence.canonical_json);
-      assert.equal(canonical.presentation_revision_decimal, occurrence.owner.presentation_revision_decimal);
-      const canonicalFace = { ...canonical.presentation, revision: canonical.presentation_revision_decimal };
+      assert.equal(canonical.face_revision_decimal, occurrence.owner.face_revision_decimal);
+      const canonicalFace = { ...canonical.face, revision: canonical.face_revision_decimal };
       assert.deepEqual(canonicalFace, exactFace(occurrence.owner),
         'renderer retained canonical Face must match the independently observed owner');
       const configuration = occurrence.view.component.configuration;
@@ -309,7 +309,7 @@ try {
     await page.getByLabel(/^Look\b/).selectOption('spacious');
     await page.getByLabel(/^Layout\b/).selectOption('grouped');
     await page.getByLabel(/^Minimum text size\b/).selectOption('200');
-    await page.getByRole('button', { name: 'Apply presentation', exact: true }).click();
+    await page.getByRole('button', { name: 'Apply face', exact: true }).click();
     await page.waitForFunction(() => {
       const view = globalThis.__conduitOwnerParticipation.face();
       return view?.component?.expression?.expression?.text_scale_percent === 200 &&
@@ -322,7 +322,7 @@ try {
         canonical_json: globalThis.__conduitOwnerParticipation.canonicalFaceJSON(),
         button_font_px: Number.parseFloat(getComputedStyle(button).fontSize) };
     });
-    assert.deepEqual(face().presentation, startedFace.presentation,
+    assert.deepEqual(face().face, startedFace.face,
       'user text-size override must preserve the whole canonical Face');
     const priorScale = observations[2].view.component.expression.expression.text_scale_percent;
     const expectedFont = observations[2].geometry.button_font_px * 200 / priorScale;
@@ -342,12 +342,12 @@ try {
   if (resumeExisting && !retainedDom) {
     assert.equal(new Set(specimenNames).size, specimenNames.length, 'resume specimen names must be distinct');
     const retained = face();
-    assert.deepEqual(retained.presentation.subjects.filter(subject => subject.role === 'Item').map(subject => subject.name), specimenNames,
+    assert.deepEqual(retained.face.subjects.filter(subject => subject.role === 'Item').map(subject => subject.name), specimenNames,
       'resume requires the exact previously added three-item specimen');
-    assert(retained.presentation.text.some(text => text.subject === 'todo/status' && text.text === '3 things left · 0 completed'),
+    assert(retained.face.text.some(text => text.subject === 'todo/status' && text.text === '3 things left · 0 completed'),
       'resume refuses an already completed or differently mutated specimen');
-    for (const item of retained.presentation.subjects.filter(subject => subject.role === 'Item')) {
-      assert(retained.presentation.properties.some(property => property.subject === item.identity
+    for (const item of retained.face.subjects.filter(subject => subject.role === 'Item')) {
+      assert(retained.face.properties.some(property => property.subject === item.identity
         && property.name === 'complete' && property.value.Flag === false), 'resume requires every retained item to be pending');
     }
     resumedItems = retained;
@@ -361,8 +361,8 @@ try {
   for (const text of texts) {
     const prior = await page.evaluate(() => globalThis.__conduitOwnerParticipation.face());
     const priorOwner = face();
-    assert.equal(priorOwner.presentation.identity, prior.face_id);
-    const exactPrior = { ...prior, face_revision_decimal: priorOwner.presentation_revision_decimal };
+    assert.equal(priorOwner.face.identity, prior.face_id);
+    const exactPrior = { ...prior, face_revision_decimal: priorOwner.face_revision_decimal };
     const add = page.locator('[data-owner-action="todo.add"]');
     await add.getByRole('textbox', { name: 'Item text' }).fill(text);
     await add.getByRole('button', { name: 'add an item' }).click();
@@ -375,7 +375,7 @@ try {
     assert.equal(after.body_id, bodyId);
     assert.notEqual(after.show_id, prior.show_id);
     const ownerAfterAdd = face();
-    assert.equal(ownerAfterAdd.presentation.identity, after.face_id);
+    assert.equal(ownerAfterAdd.face.identity, after.face_id);
     const mutation = await observedTodoMutation(state, output, `add-${adds.length + 1}`,
       bodyId, exactPrior, ownerAfterAdd, 'todo.add');
     const screenshot = `browser-add-${adds.length + 1}.png`;
@@ -404,7 +404,7 @@ try {
     assert.equal(join.status, 0, join.stderr);
     assert.match(join.stdout, /Owner terminal Show show\/[a-f0-9]+/);
     const ownerBefore = face();
-    const canonicalTodo = value => value.presentation.properties.filter(property => property.subject.startsWith('todo/'));
+    const canonicalTodo = value => value.face.properties.filter(property => property.subject.startsWith('todo/'));
     assert.deepEqual(canonicalTodo(ownerBefore), canonicalTodo(joinBefore), 'terminal join must not mutate the list');
     const terminalEvidence = text => text.split(/\r?\n/).filter(line => line.startsWith('Owner terminal evidence '))
       .map(line => JSON.parse(line.slice('Owner terminal evidence '.length)));
@@ -415,15 +415,15 @@ try {
     assert.equal(joinEvidence.owner_selected_show_current, true);
     const joined = { observed_at_unix_ms: Date.now(), body_id: bodyId,
       evidence: joinEvidence,
-      observed_owner_face_id: ownerBefore.presentation.identity,
-      observed_owner_face_revision: ownerBefore.presentation_revision_decimal,
+      observed_owner_face_id: ownerBefore.face.identity,
+      observed_owner_face_revision: ownerBefore.face_revision_decimal,
       acknowledged_show_id: [...join.stdout.matchAll(/Owner terminal Show (show\/[a-f0-9]+)/g)].at(-1)[1],
       transcript: 'terminal-join.stdout', todo_mutation: false };
 
-    assert.equal(ownerBefore.presentation.subjects.filter(subject => subject.role === 'Item').length, 3);
-    const item = ownerBefore.presentation.subjects.find(subject => subject.role === 'Item' && subject.name === itemText);
+    assert.equal(ownerBefore.face.subjects.filter(subject => subject.role === 'Item').length, 3);
+    const item = ownerBefore.face.subjects.find(subject => subject.role === 'Item' && subject.name === itemText);
     assert.ok(item, 'browser-added item must exist in the canonical Face');
-    const action = ownerBefore.presentation.actions.find(action => action.intent === 'todo/complete@1'
+    const action = ownerBefore.face.actions.find(action => action.intent === 'todo/complete@1'
       && action.target === item.identity && action.availability === 'Available');
     assert.ok(action, 'canonical Face must offer the exact item completion');
     const input = `wardrobe wear\nwardrobe prefer\nshow\nevidence\nactions\naction ${action.identity}\nevidence\nquit\n`;
@@ -435,8 +435,8 @@ try {
     assert.equal(terminal.status, 0, terminal.stderr);
     assert.ok(!terminal.stdout.includes('Action refused:'), 'terminal completion must be accepted');
     const ownerAfter = face();
-    assert.equal(ownerAfter.presentation.basis.body_id, bodyId);
-    assert.ok(ownerAfter.presentation.properties.some(property => property.subject === item.identity
+    assert.equal(ownerAfter.face.basis.body_id, bodyId);
+    assert.ok(ownerAfter.face.properties.some(property => property.subject === item.identity
       && property.name === 'complete' && property.value.Flag === true), 'terminal must commit the item completion');
     const writeReceipt = JSON.parse(await readFile(path.join(state, 'body/owner-execution.json'))).last_execution.write;
     const initiatingEvidence = terminalEvidence(terminal.stdout).find(evidence => evidence.show_id === writeReceipt.initiating_action.show_id);
@@ -454,7 +454,7 @@ try {
       null, { timeout: 12_000 });
     const refusal = await page.locator('[data-owner-action-result]').textContent();
     const ownerAfterStale = face();
-    const todoProperties = value => value.presentation.properties.filter(property => property.subject.startsWith('todo/'));
+    const todoProperties = value => value.face.properties.filter(property => property.subject.startsWith('todo/'));
     assert.deepEqual(todoProperties(ownerAfterStale), todoProperties(ownerAfter), 'stale action must not mutate Todo');
     await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-stale.png') });
     const stale = { initiating_face_id: staleView.face_id, initiating_face_revision: staleView.face_revision,
@@ -493,12 +493,12 @@ try {
   }
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-after.png') });
   const afterOwner = face();
-  assert.equal(afterOwner.presentation.identity, after.face_id);
+  assert.equal(afterOwner.face.identity, after.face_id);
   const inspectCapture = { face_id: after.face_id,
-    face_revision: afterOwner.presentation_revision_decimal, show_id: after.show_id,
+    face_revision: afterOwner.face_revision_decimal, show_id: after.show_id,
     observed_at_unix_ms: Date.now() };
-  assert.equal(afterOwner.presentation.basis.body_id, bodyId);
-  if (!retainedDom) assert.ok(afterOwner.presentation.subjects.some(subject => subject.name === itemText));
+  assert.equal(afterOwner.face.basis.body_id, bodyId);
+  if (!retainedDom) assert.ok(afterOwner.face.subjects.some(subject => subject.name === itemText));
   assert.deepEqual(errors, []);
   const directSpeech = captureSpeech
     ? await captureDirectTodoSpeech({ owner, state, output: path.join(output, 'spoken'), bodyId })

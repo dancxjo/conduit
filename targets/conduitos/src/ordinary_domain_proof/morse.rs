@@ -37,7 +37,7 @@ pub(super) fn run(_: &Plan, offer: &HostOffer<'_>) {
     let (state, cost) = prepared.protected.proof_state();
     if !serial.text
         || !serial.pattern
-        || receipt.serial_presentations != 2
+        || receipt.serial_faces != 2
         || receipt.pending_host_calls != 0
         || cost.entries != 5
         || cost.base_gate_transitions != 2
@@ -84,7 +84,7 @@ impl SerialBase for ObservedSerial<'_> {
         self.count += 1;
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.count
     }
     fn provider_generation(&self) -> Option<u64> {
@@ -125,10 +125,10 @@ fn independent_handles(offer: &HostOffer<'_>) {
         let mut serial = arch::Serial::new();
         if domain.present(value, text, &mut serial)
             != Err(Error::ProtectionCapability(Capability::WrongScope))
-            || serial.presentation_count() != 0
+            || serial.face_count() != 0
             || domain.proof_state().0 != DomainState::Faulted(DomainFault::InvalidGate)
             || domain.present(value, text, &mut serial).is_ok()
-            || serial.presentation_count() != 0
+            || serial.face_count() != 0
         {
             refuse("morse-effect-handle-cross-use");
         }

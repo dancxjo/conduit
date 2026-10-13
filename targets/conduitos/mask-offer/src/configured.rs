@@ -2,18 +2,18 @@
 use super::*;
 use alloc::collections::BTreeMap;
 use conduit_core::*;
+use conduit_face::*;
 use conduit_plot::{CanonicalBackCatalog, expand_canonical_plot_for_authoring_with_backs};
-use conduit_presentation::*;
 
-pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "presentation/native-component-resource-mask";
-const BACK_SOURCE: &str = "plot native-component-back (\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> presentation: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: presentation/tee\n surface: presentation/show-resource-source\n render: presentation/native-component-resource-mask(recipe = recipe, expression = expression)\n human: face/interaction\n presentation >> spread.source\n spread.presentation >> render.presentation\n surface.show-resource >> render.show-resource\n spread.presentation >> human.presentation\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
+pub const NATIVE_COMPONENT_RENDERER_KIND: &str = "face/native-component-resource-mask";
+const BACK_SOURCE: &str = "plot native-component-back (\n recipe: ComponentRecipeInfo\n expression: VisualExpressionInfo\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n spread: face/tee(\"Shared Face\")\n surface: face/show-resource-source(\"Output resource\")\n render: face/native-component-resource-mask(recipe = recipe, expression = expression)\n human: face/interaction(\"User actions\")\n face >> spread.source\n spread.face >> render.face\n surface.show-resource >> render.show-resource\n spread.face >> human.face\n render.show >> human.show\n render.show >> show\n human.interaction >> interaction\n}\n";
 
 pub fn configured_resource_renderer_kind() -> Kind {
     let component = component_mask_kind(MASK_BYTES as u32);
     let mut kind = resource_renderer_kind();
     kind.kind_id = kind_id(NATIVE_COMPONENT_RENDERER_KIND);
     kind.kind_contract_revision =
-        KindIdentity::from("conduit.presentation/native-component-resource-mask@1");
+        KindIdentity::from("conduit.face/native-component-resource-mask@1");
     kind.startup_parameters = component.startup_parameters;
     kind.configuration = component.configuration;
     kind
@@ -25,20 +25,18 @@ pub fn configured_resource_renderer_offer() -> CapabilityOffer {
         Back {
             capability_id: CapabilityId::from("renderer-conduitos-component"),
             execution_profile_id: ExecutionProfileId::from("conduitos/bounded-mask@1"),
-            implementation_id: ImplementationId::from(
-                "presentation/renderer-conduitos-component@1",
-            ),
+            implementation_id: ImplementationId::from("face/renderer-conduitos-component@1"),
             artifact_id: ArtifactId::from("conduitos/native-compositor@1"),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from("conduit.host/present@1"),
-                target_kind: Some(kind_id("presentation/base/conduitos-surface@1")),
+                target_kind: Some(kind_id("face/base/conduitos-surface@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MASK_BYTES as u32,
                 maximum_output_bytes: MASK_BYTES as u32,
             }],
             resource_requirements: vec![],
             authority_requirements: vec![present_authority_requirement(kind_id(
-                "presentation/base/conduitos-surface@1",
+                "face/base/conduitos-surface@1",
             ))],
         },
     )
@@ -77,7 +75,7 @@ pub fn prepare_component_stage_from_offer(
     let mut catalog = ProfileCatalog::new();
     for projection in [
         face_interaction_kind_projection(),
-        presentation_tee_kind_projection(),
+        face_tee_kind_projection(),
     ] {
         catalog
             .insert(projection)
@@ -159,7 +157,7 @@ pub fn prepare_component_stage_from_offer(
     let lines = BTreeMap::new();
     let grants = vec![authority_grant(
         "conduitos/component-mask/present",
-        &present_authority_requirement(kind_id("presentation/base/conduitos-surface@1")),
+        &present_authority_requirement(kind_id("face/base/conduitos-surface@1")),
         host.host_id.clone(),
         host.boot_id.clone(),
         CapabilityId::from("renderer-conduitos-component"),
@@ -252,7 +250,7 @@ mod tests {
             );
             assert_eq!(
                 a.implementation_id.as_str(),
-                "presentation/renderer-conduitos-component@1"
+                "face/renderer-conduitos-component@1"
             );
         }
         let mut foreign = host;

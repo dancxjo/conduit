@@ -3,11 +3,11 @@ use super::parsec_source_plan::{expanded, Producer};
 use conduit_core::{
     CapabilityOffer, ConfigurationValue, HostAdvertisement, PreparationHostIdentity,
 };
-use conduit_plot::{CheckedSyntaxDocument, PortableExpressionProgram};
-use conduit_presentation::{
+use conduit_face::{
     checked_parsec_input_instruction, prepare_checked_parsec_input_instruction,
     PreparedParsecInputInstruction,
 };
+use conduit_plot::{CheckedSyntaxDocument, PortableExpressionProgram};
 
 pub fn required_parsec_input_instruction_offer() -> Result<CapabilityOffer, String> {
     // Reuse only the immutable source-derived offer, never a Host or Plan.
@@ -64,7 +64,7 @@ impl ParsecInputInstructionSourcePlan {
             &checked,
             &hosts,
             "parsec/input-instruction",
-            conduit_presentation::PARSEC_INPUT_INSTRUCTION_FRAME_BYTES as u32,
+            conduit_face::PARSEC_INPUT_INSTRUCTION_FRAME_BYTES as u32,
         )?;
         Ok(Self {
             checked,

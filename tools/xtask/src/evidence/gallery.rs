@@ -392,11 +392,8 @@ fn write_scenario_page(
         ("SHA-256", output.sha256.as_str()),
         ("Plan", optional(&provenance.plan_id)),
         ("Active play", optional(&provenance.active_play_id)),
-        ("Presentation", optional(&provenance.presentation_id)),
-        (
-            "Presentation revision",
-            optional(&provenance.presentation_revision),
-        ),
+        ("Presentation", optional(&provenance.face_id)),
+        ("Presentation revision", optional(&provenance.face_revision)),
         ("Manifestation", optional(&provenance.manifestation_id)),
         ("Renderer", optional(&provenance.renderer_id)),
         (

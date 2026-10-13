@@ -1,6 +1,6 @@
 //! plan-specific identity carried through the shared Signal kernel shape.
 
-use crate::receipts::{BootIdentity, PresentationReceiptIdentity, TerminalIdentity};
+use crate::receipts::{BootIdentity, FaceReceiptIdentity, TerminalIdentity};
 
 #[derive(Clone, Copy)]
 pub struct SignalExecutionIdentity {
@@ -14,8 +14,8 @@ pub struct SignalExecutionIdentity {
     pub boot_id: &'static str,
     pub active_play_id: &'static str,
     pub terminal_sign_id: &'static str,
-    pub(crate) presentation_ids: &'static [&'static str],
-    pub(crate) presentation_sign_ids: &'static [&'static str],
+    pub(crate) face_ids: &'static [&'static str],
+    pub(crate) face_sign_ids: &'static [&'static str],
 }
 
 impl SignalExecutionIdentity {
@@ -31,8 +31,8 @@ impl SignalExecutionIdentity {
             boot_id: crate::signal_image::BOOT_ID,
             active_play_id: crate::signal_image::ACTIVE_PLAY_ID,
             terminal_sign_id: crate::signal_image::TERMINAL_SIGN_ID,
-            presentation_ids: crate::signal_image::presentation_ids(),
-            presentation_sign_ids: crate::signal_image::presentation_sign_ids(),
+            face_ids: crate::signal_image::face_ids(),
+            face_sign_ids: crate::signal_image::face_sign_ids(),
         }
     }
 
@@ -58,8 +58,8 @@ impl SignalExecutionIdentity {
         crate::plan_b_signal_image::execution_identity()
     }
 
-    pub fn presentation(self, sequence: usize) -> Option<PresentationReceiptIdentity> {
-        Some(PresentationReceiptIdentity {
+    pub fn face(self, sequence: usize) -> Option<FaceReceiptIdentity> {
+        Some(FaceReceiptIdentity {
             firmware_build_id: self.firmware_build_id,
             source_document_id: self.source_document_id,
             checked_plot_id: self.checked_plot_id,
@@ -69,8 +69,8 @@ impl SignalExecutionIdentity {
             host_id: self.host_id,
             boot_id: self.boot_id,
             active_play_id: self.active_play_id,
-            presentation_id: self.presentation_ids.get(sequence)?,
-            sign_id: self.presentation_sign_ids.get(sequence)?,
+            face_id: self.face_ids.get(sequence)?,
+            sign_id: self.face_sign_ids.get(sequence)?,
         })
     }
 

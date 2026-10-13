@@ -66,7 +66,7 @@ These are distinct responsibilities, not a replacement support dump.
 
 ## Reuse and dependency direction
 
-**Reuse is not an owner.** Do not create root `shared/`, `common/`, `utils/`, `misc/`, `components/`, `modules/`, or `libraries/` because several consumers use something. Identify the stable contract: portable presentation goes to `semantics/presentation`, browser manifestation to `targets/browser`, protocol machinery to `mechanisms`, product actions to their product, and canonical authored programs to `plots`. A small test fixture shared within one package can remain with that package's tests.
+**Reuse is not an owner.** Do not create root `shared/`, `common/`, `utils/`, `misc/`, `components/`, `modules/`, or `libraries/` because several consumers use something. Identify the stable contract: portable presentation goes to `semantics/face`, browser manifestation to `targets/browser`, protocol machinery to `mechanisms`, product actions to their product, and canonical authored programs to `plots`. A small test fixture shared within one package can remain with that package's tests.
 
 Architecture and semantics should not depend on products, concrete targets, or proof packages. Products and bodies compose lower owners; plots describe meaning. Targets realize lower contracts and admitted product requirements. Proof may depend on what it proves. A fixed proof fact required by production is a boundary defect, not evidence that proof is a reusable runtime library. These are review rules, not a forced global Cargo DAG or permission for speculative extraction.
 

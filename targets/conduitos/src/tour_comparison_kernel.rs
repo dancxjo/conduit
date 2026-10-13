@@ -115,10 +115,7 @@ impl ComparisonKernel {
         })
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         delegate!(self, kernel => kernel.scheduler.complete_host_call(
             request.node,
             request.request,
@@ -270,9 +267,9 @@ fn back(
             conduit_text::MAXIMUM_MORSE_SYMBOLS_BYTES as u32,
             false,
         ),
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND => (
+        conduit_semantic_catalog::INDICATOR_FACE_KIND => (
             ComparisonNodeKind::Indicator,
-            crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
+            crate::offer::INDICATOR_FACE_IMPLEMENTATION,
             TourMorseBack::Indicator(IndicatorBack {
                 pending: false,
                 complete: false,

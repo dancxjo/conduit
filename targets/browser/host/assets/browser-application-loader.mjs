@@ -1,5 +1,5 @@
 import { openBrowserApplicationStorage } from "./browser-application-storage.mjs";
-import { createApplicationPresentationHost } from "./application-presentation.mjs";
+import { createApplicationFaceHost } from "./application-face.mjs";
 
 const PACKAGE_SCHEMA = "conduit.browser/application-package@1";
 const MAXIMUM_PACKAGE_BYTES = 48 * 1024;
@@ -271,10 +271,10 @@ export async function loadBrowserApplication(manifestReference) {
   try { module = await import(entryUrl); }
   finally { for (const url of moduleUrls.values()) URL.revokeObjectURL(url); }
   if (typeof module.startApplication !== "function") throw new Error("application module has no bounded start entrance");
-  const presentation = createApplicationPresentationHost();
-  const presentationFor = (scope) => createApplicationPresentationHost(scope);
+  const face = createApplicationFaceHost();
+  const faceFor = (scope) => createApplicationFaceHost(scope);
   const context = Object.freeze({
-    schema: "conduit.browser/application-context@1", manifest, storage, presentation, presentationFor, bytes, text,
+    schema: "conduit.browser/application-context@1", manifest, storage, face, faceFor, bytes, text,
     admitProfileGatedBrowserBoot, ...(sdk ? { browser: sdk.browser } : {}),
   });
   await module.startApplication(context);

@@ -107,13 +107,13 @@ test("unchanged toggle plot runs std kernel to browser WASM kernel over live bou
     expect(result.receipts).toHaveLength(16);
     expect(result.capacityStable).toBe(true);
     expect(result.closed).toEqual({ ok: true, code: 1000, reason: "conduit-terminal" });
-    expect(result.presentations.map(({ sequence }) => sequence)).toEqual(
+    expect(result.faces.map(({ sequence }) => sequence)).toEqual(
       Array.from({ length: 16 }, (_, index) => index),
     );
     expect(result.receipts.map(({ sequence }) => Number(sequence))).toEqual(
       Array.from({ length: 16 }, (_, index) => index),
     );
-    // The toggle sink uses local presentation (kind=2), so receipts contain
+    // The toggle sink uses local face (kind=2), so receipts contain
     // the local identity chain but not remote identity (sourceHostId, etc.).
     const exactReceiptFields = [
       "sourceDocumentId",
@@ -129,29 +129,29 @@ test("unchanged toggle plot runs std kernel to browser WASM kernel over live bou
       "operationId",
       "hostCallContractId",
       "placementId",
-      "presentationId",
+      "faceId",
       "signId",
     ];
-    for (const [index, presentation] of result.presentations.entries()) {
+    for (const [index, face] of result.faces.entries()) {
       const receipt = result.receipts[index];
       for (const field of exactReceiptFields) {
-        expect(receipt[field], `receipt ${index} ${field}`).toBe(presentation[field]);
+        expect(receipt[field], `receipt ${index} ${field}`).toBe(face[field]);
       }
-      expect(receipt.encoded).toEqual(presentation.encoded);
+      expect(receipt.encoded).toEqual(face.encoded);
     }
     expect(result.receipts.every(({ hostId }) =>
       hostId === "s4/toggle-browser-sink")).toBe(true);
     expect(result.receipts.every(({ bootId }) =>
       bootId === "s4/toggle-browser-sink-boot")).toBe(true);
     // Canonical toggle emits initial=true, then alternates after each Tick.
-    expect(result.presentations.every(({ encoded }, index) =>
+    expect(result.faces.every(({ encoded }, index) =>
       encoded.length === 1 && encoded[0] === (index % 2 === 0 ? 1 : 0))).toBe(true);
-    expect(new Set(result.presentations.map(({ planId }) => planId)).size).toBe(1);
-    expect(new Set(result.presentations.map(({ fragmentId }) => fragmentId)).size).toBe(1);
-    expect(new Set(result.presentations.map(({ activePlayId }) => activePlayId)).size).toBe(1);
-    expect(new Set(result.presentations.map(({ presentationId }) => presentationId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ signId }) => signId)).size).toBe(16);
-    expect(new Set(result.presentations.map(({ requestId }) => requestId)).size).toBe(16);
+    expect(new Set(result.faces.map(({ planId }) => planId)).size).toBe(1);
+    expect(new Set(result.faces.map(({ fragmentId }) => fragmentId)).size).toBe(1);
+    expect(new Set(result.faces.map(({ activePlayId }) => activePlayId)).size).toBe(1);
+    expect(new Set(result.faces.map(({ faceId }) => faceId)).size).toBe(16);
+    expect(new Set(result.faces.map(({ signId }) => signId)).size).toBe(16);
+    expect(new Set(result.faces.map(({ requestId }) => requestId)).size).toBe(16);
     await expect(page.locator("#result")).toHaveText(
       "ok receipts=16 capacity_stable=true",
     );
@@ -216,8 +216,8 @@ test("a broken toggle link after four delivered values fails with retained exact
       });
       const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
       const breakingDomHost = {
-        completePresentation(effect) {
-          const result = domHost.completePresentation(effect);
+        completeFace(effect) {
+          const result = domHost.completeFace(effect);
           if (result.ok && domHost.receipts().length === 4) {
             void line.close(4001, "proof-link-break");
           }

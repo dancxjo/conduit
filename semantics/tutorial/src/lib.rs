@@ -19,14 +19,13 @@ use conduit_body::{
     FulfillmentReadiness, PurposeObligationState, PurposeRefusal, PurposeState,
     derive_fulfillment_readiness,
 };
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, Face, FaceContext, FaceFocus, FaceRefusal,
-    GenerativePresenterBounds, GenerativePresenterRefusal, GenerativePresenterRequest,
-    OrifinaPresentationRefusal, Presentation, PresentationAction, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationError, PresentationMechanism, PresentationProperty,
-    PresentationPropertyValue, PresentationText, SemanticAction, SemanticApplicationView,
-    SemanticPresentationNode, StatusKind, orifina_completion_presenter_policy,
-    project_orifina_purpose_presentation,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, BodyFace, Face, FaceAction, FaceActionAvailability,
+    FaceContext, FaceDisclosureLevel, FaceError, FaceFocus, FaceMechanism, FaceProperty,
+    FacePropertyValue, FaceRefusal, FaceText, GenerativePresenterBounds,
+    GenerativePresenterRefusal, GenerativePresenterRequest, OrifinaFaceRefusal, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, StatusKind, orifina_completion_presenter_policy,
+    project_orifina_purpose_face,
 };
 pub use purpose::{purpose_state, purpose_state_from_evidence};
 struct Guidance {
@@ -41,8 +40,8 @@ struct Guidance {
 pub enum TutorialPresenterRefusal {
     InvalidPurpose(PurposeRefusal),
     InvalidFace(FaceRefusal),
-    InvalidPurposePresentation(OrifinaPresentationRefusal),
-    InvalidActionPresentation(PresentationError),
+    InvalidPurposeFace(OrifinaFaceRefusal),
+    InvalidActionFace(FaceError),
     InvalidRequest(GenerativePresenterRefusal),
 }
 
@@ -54,11 +53,11 @@ pub enum TutorialPresenterRefusal {
 pub fn generative_request(
     body: &BodyLifecycleSession,
     request_identity: alloc::string::String,
-    presentation_revision: u64,
+    face_revision: u64,
     playback: TutorialPlayback,
 ) -> Result<GenerativePresenterRequest, TutorialPresenterRefusal> {
-    let face = tutorial_face(body, presentation_revision, playback)?;
-    GenerativePresenterRequest::from_face(
+    let face = tutorial_face(body, face_revision, playback)?;
+    GenerativePresenterRequest::from_body_face(
         request_identity,
         orifina_completion_presenter_policy(),
         &face,
@@ -69,34 +68,34 @@ pub fn generative_request(
 }
 
 /// Project the canonical Face grammar consumed by every tutorial Mask.
-pub fn face_presentation(
+pub fn face_face(
     body: &BodyLifecycleSession,
-    presentation_revision: u64,
+    face_revision: u64,
     playback: TutorialPlayback,
-) -> Result<Presentation, TutorialPresenterRefusal> {
-    Ok(tutorial_face(body, presentation_revision, playback)?.presentation)
+) -> Result<Face, TutorialPresenterRefusal> {
+    Ok(tutorial_face(body, face_revision, playback)?.face)
 }
 
 fn tutorial_face(
     body: &BodyLifecycleSession,
-    presentation_revision: u64,
+    face_revision: u64,
     playback: TutorialPlayback,
-) -> Result<Face, TutorialPresenterRefusal> {
+) -> Result<BodyFace, TutorialPresenterRefusal> {
     let purpose = purpose_state(body).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let readiness =
         derive_fulfillment_readiness(&purpose).map_err(TutorialPresenterRefusal::InvalidPurpose)?;
     let guidance = guidance(body.evidence(), playback, &purpose);
-    let purpose_projection = project_orifina_purpose_presentation(
+    let purpose_projection = project_orifina_purpose_face(
         body.evidence().body.body_id.clone(),
         purpose.revision,
         &purpose,
-        presentation_revision,
+        face_revision,
     )
-    .map_err(TutorialPresenterRefusal::InvalidPurposePresentation)?;
-    let mut face = Face::project(
+    .map_err(TutorialPresenterRefusal::InvalidPurposeFace)?;
+    let mut face = BodyFace::project(
         &body.evidence().body,
         body.realization().map(|realization| &realization.wake),
-        presentation_revision,
+        face_revision,
         FaceContext::Overview,
         FaceFocus::Body,
         vec![],
@@ -131,12 +130,11 @@ fn tutorial_face(
                 (realization.plan.plots.len() == 1).then(|| &realization.plan.plots[0])
             });
         if let Some(basis) = basis {
-            face.presentation.basis.source_document_id =
-                Some(basis.plot.source_document_id.clone());
-            face.presentation.basis.checked_plot_id = Some(basis.plot.checked_plot_id.clone());
-            face.presentation.basis.expanded_plot_id = Some(basis.plan.expanded_plot_id.clone());
-            face.presentation.basis.plan_id = Some(realization.plan.plan_id.clone());
-            face.presentation.basis.active_play_id = realization
+            face.face.basis.source_document_id = Some(basis.plot.source_document_id.clone());
+            face.face.basis.checked_plot_id = Some(basis.plot.checked_plot_id.clone());
+            face.face.basis.expanded_plot_id = Some(basis.plan.expanded_plot_id.clone());
+            face.face.basis.plan_id = Some(realization.plan.plan_id.clone());
+            face.face.basis.active_play_id = realization
                 .play
                 .as_ref()
                 .map(|play| play.active_play_id.clone());
@@ -146,17 +144,15 @@ fn tutorial_face(
     // The conversational Presenter receives the same tutorial meaning as the
     // graphical view, not merely the generic Face's identifier-heavy summary.
     // Exact identities and lifecycle facts remain structured properties.
-    face.presentation
-        .text
-        .retain(|text| text.subject != body_subject);
-    face.presentation.text.push(PresentationText {
+    face.face.text.retain(|text| text.subject != body_subject);
+    face.face.text.push(FaceText {
         subject: body_subject.clone(),
         text: format!("{}: {}", guidance.title, guidance.detail),
     });
-    face.presentation.properties.push(PresentationProperty {
+    face.face.properties.push(FaceProperty {
         subject: body_subject.clone(),
         name: "tutorial-phase".into(),
-        value: PresentationPropertyValue::Text(guidance.phase.into()),
+        value: FacePropertyValue::Text(guidance.phase.into()),
     });
     let (identity, intent, label) = if matches!(readiness, FulfillmentReadiness::Ready { .. })
         && !matches!(body.evidence().body.state, BodyState::Fulfilled { .. })
@@ -177,33 +173,31 @@ fn tutorial_face(
         .subjects
         .into_iter()
         .filter(|subject| subject.identity != body_subject);
-    face.presentation.subjects.extend(purpose_subjects);
-    face.presentation
+    face.face.subjects.extend(purpose_subjects);
+    face.face
         .relationships
         .extend(purpose_projection.relationships);
-    face.presentation
-        .properties
-        .extend(purpose_projection.properties);
-    face.presentation.text.extend(purpose_projection.text);
-    face.presentation.disclosures.extend(
+    face.face.properties.extend(purpose_projection.properties);
+    face.face.text.extend(purpose_projection.text);
+    face.face.disclosures.extend(
         purpose_projection
             .disclosures
             .into_iter()
             .filter(|disclosure| disclosure.subject != body_subject),
     );
-    face.presentation
+    face.face
         .basis
         .sign_ids
         .extend(purpose_projection.basis.sign_ids);
-    face.presentation.basis.sign_ids.sort();
-    face.presentation.basis.sign_ids.dedup();
-    face.presentation.actions.push(PresentationAction {
+    face.face.basis.sign_ids.sort();
+    face.face.basis.sign_ids.dedup();
+    face.face.actions.push(FaceAction {
         identity: identity.into(),
         intent: intent.into(),
         target: body_subject.clone(),
         name: label.into(),
         arguments: vec![
-            conduit_presentation::FaceActionArgument::text(
+            conduit_face::FaceActionArgument::text(
                 "input/tutorial-action".into(),
                 label.into(),
                 0,
@@ -211,39 +205,39 @@ fn tutorial_face(
             )
             .expect("tutorial action has a finite text contract"),
         ],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
+        disclosure: FaceDisclosureLevel::CurrentAction,
+        availability: FaceActionAvailability::Available,
     });
-    face.presentation = Presentation::new_with_semantics(
-        face.presentation.revision,
-        face.presentation.basis,
-        face.presentation.subjects,
-        face.presentation.relationships,
-        face.presentation.properties,
-        face.presentation.text,
-        face.presentation.actions,
-        face.presentation.disclosures,
+    face.face = Face::new_with_semantics(
+        face.face.revision,
+        face.face.basis,
+        face.face.subjects,
+        face.face.relationships,
+        face.face.properties,
+        face.face.text,
+        face.face.actions,
+        face.face.disclosures,
     )
-    .map_err(TutorialPresenterRefusal::InvalidActionPresentation)?;
+    .map_err(TutorialPresenterRefusal::InvalidActionFace)?;
     Ok(face)
 }
 
-pub fn presentation(
+pub fn face(
     body: &BodyLifecycleSession,
     revision: u32,
     playback: TutorialPlayback,
-) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
-    presentation_from_evidence(body.evidence(), revision, playback)
+) -> Result<SemanticApplicationView, conduit_face::SemanticFaceRefusal> {
+    face_from_evidence(body.evidence(), revision, playback)
 }
 
 /// Project tutorial guidance from an exact retained body biography at a host
 /// boundary. This lets the ordinary resident Tutorial Plot consume the same
 /// semantic truth without reaching through a host-owned lifecycle session.
-pub fn presentation_from_evidence(
+pub fn face_from_evidence(
     evidence: &BodyBiographyEvidence,
     revision: u32,
     playback: TutorialPlayback,
-) -> Result<SemanticApplicationView, conduit_presentation::SemanticPresentationRefusal> {
+) -> Result<SemanticApplicationView, conduit_face::SemanticFaceRefusal> {
     let purpose = purpose_state_from_evidence(evidence)
         .expect("validated Body evidence must project valid purpose");
     let guidance = guidance(evidence, playback, &purpose);
@@ -280,13 +274,13 @@ pub fn presentation_from_evidence(
         revision,
         root: node(
             "body-tutorial",
-            PresentationMechanism::Panel {
+            FaceMechanism::Panel {
                 title: guidance.title.into(),
             },
             vec![
                 node(
                     "tutorial-guidance",
-                    PresentationMechanism::Status {
+                    FaceMechanism::Status {
                         kind: if guidance.phase == "repair" {
                             StatusKind::Warning
                         } else {
@@ -299,7 +293,7 @@ pub fn presentation_from_evidence(
                 ),
                 node(
                     "tutorial-next-action",
-                    PresentationMechanism::Action(SemanticAction {
+                    FaceMechanism::Action(SemanticAction {
                         identity: guidance.action.into(),
                         event: ApplicationEventKind::Activate,
                         label: guidance.label.into(),
@@ -309,7 +303,7 @@ pub fn presentation_from_evidence(
                 ),
                 node(
                     "tutorial-purpose",
-                    PresentationMechanism::Status {
+                    FaceMechanism::Status {
                         kind: StatusKind::Ordinary,
                         title: "Lifecycle evidence".into(),
                         detail: readiness_text,
@@ -416,12 +410,8 @@ fn guidance(
     }
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,

@@ -23,7 +23,7 @@ test("artifact handoff requires activation and carries exact admitted bytes", as
   });
 });
 
-test("history movement is presentation-scoped and exactly correlated", async ({ page }) => {
+test("history movement is face-scoped and exactly correlated", async ({ page }) => {
   await page.goto("/proof/browser/browser-host-calls.test.html");
   await page.locator("#location").click();
   await expect(page).toHaveURL(/\/proof\/browser\/presented-place\/$/);

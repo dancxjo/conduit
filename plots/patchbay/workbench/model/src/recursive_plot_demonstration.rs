@@ -2,12 +2,12 @@
 
 use conduit_core::SignId;
 
-pub fn recursive_plot_demonstration() -> Result<conduit_presentation::Presentation, String> {
+pub fn recursive_plot_demonstration() -> Result<conduit_face::Face, String> {
     let proof = conduit_patchbay_workbench_conformance::patchbay_mask_plans()?;
     let (startup, profile) = conduit_patchbay_workbench_conformance::patchbay_catalogs()?;
     let editor = crate::PlotEditor::from_source_with_catalogs(
         "patchbay-recursive-plot.conduit".into(),
-        "plot patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n".into(),
+        "plot patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: face/patchbay(\"Plot graph\")\n subject >> canvas.subject\n}\n".into(),
         startup.clone(),
         profile,
     )
@@ -48,29 +48,28 @@ pub fn recursive_plot_demonstration() -> Result<conduit_presentation::Presentati
             SignId::from("patchbay/recursive-plot/planned"),
         )
         .map_err(|error| error.to_string())?;
-    let presentation =
-        crate::PatchbayPresentation::new(1, editor.view(), Some(plan), None, None, Vec::new())
-            .map_err(|error| error.to_string())?
-            .with_graph(graph)
-            .map_err(|error| error.to_string())?
-            .to_portable(&body, &wake)
-            .map_err(|error| error.to_string())?;
+    let face = crate::PatchbayFace::new(1, editor.view(), Some(plan), None, None, Vec::new())
+        .map_err(|error| error.to_string())?
+        .with_graph(graph)
+        .map_err(|error| error.to_string())?
+        .to_portable(&body, &wake)
+        .map_err(|error| error.to_string())?;
     let body_subject = format!("body/{}", body.body_id.as_str());
-    let mut subjects = presentation.subjects;
-    subjects.push(conduit_presentation::PresentationSubject {
+    let mut subjects = face.subjects;
+    subjects.push(conduit_face::FaceSubject {
         identity: body_subject,
-        role: conduit_presentation::PresentationRole::Body,
+        role: conduit_face::FaceRole::Body,
         name: "Recursive Plot demonstration Body".into(),
     });
-    conduit_presentation::Presentation::new_with_semantics(
-        presentation.revision,
-        presentation.basis,
+    conduit_face::Face::new_with_semantics(
+        face.revision,
+        face.basis,
         subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
-        presentation.actions,
-        presentation.disclosures,
+        face.relationships,
+        face.properties,
+        face.text,
+        face.actions,
+        face.disclosures,
     )
     .map_err(|error| error.to_string())
 }

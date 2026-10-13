@@ -31,7 +31,7 @@ plot webchat-server-demo {
 
 plot chat/browser-client (
     >> interaction: FaceInteraction...|
-    face: Presentation...| >>
+    face: Face...| >>
 ) {
     state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Message", submit-label = "Send", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
@@ -44,7 +44,7 @@ plot chat/browser-client (
     incoming.value >> state.message
     socket.live >> connection.source
     connection.value >> state.live
-    state.presentation >> face
+    state.face >> face
     interaction >> submit.interaction
     submit.message >> outgoing.source
     outgoing.value >> socket.send
@@ -52,7 +52,7 @@ plot chat/browser-client (
 
 plot chat/browser-client-label-oracle (
     >> interaction: FaceInteraction...|
-    face: Presentation...| >>
+    face: Face...| >>
 ) {
     state: chat/state(title = "Conduit Webchat", history-label = "Chat history", input-label = "Say something", submit-label = "Transmit", status-label = "Connection", maximum-history-items = 16, maximum-message-bytes = 256)
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
@@ -65,7 +65,7 @@ plot chat/browser-client-label-oracle (
     incoming.value >> state.message
     socket.live >> connection.source
     connection.value >> state.live
-    state.presentation >> face
+    state.face >> face
     interaction >> submit.interaction
     submit.message >> outgoing.source
     outgoing.value >> socket.send

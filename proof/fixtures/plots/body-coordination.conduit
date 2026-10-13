@@ -1,8 +1,8 @@
 plot body-coordination {
     message: text/literal("coordinate issue 1633; evidence follows")
-    receive-message: presentation/text
+    receive-message: face/text("Message")
     reply: text/literal("received issue 1633; evidence acknowledged")
-    receive-reply: presentation/text
+    receive-reply: face/text("Message")
 
     message.text >> receive-message.text
     reply.text >> receive-reply.text

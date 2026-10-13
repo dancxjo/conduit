@@ -6,7 +6,7 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, ImplementationId, ImplementationOffer, Kind,
 };
 
-pub const PRESENTATION_REQUEST_IMPLEMENTATION: &str = "std/spoken-mask-presentation-request@1";
+pub const FACE_REQUEST_IMPLEMENTATION: &str = "std/spoken-mask-face-request@1";
 pub const GENERATED_STREAM_SPEECH_IMPLEMENTATION: &str =
     "std/spoken-mask-generated-stream-speech@1";
 pub const GENERATED_SPEECH_IMPLEMENTATION: &str = "std/spoken-mask-generated-speech@1";
@@ -15,11 +15,11 @@ pub const ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-artifact-show@1"
 pub const DIRECT_FACE_WORDING_IMPLEMENTATION: &str = "std/spoken-mask-direct-face-wording@1";
 pub const DIRECT_ARTIFACT_SHOW_IMPLEMENTATION: &str = "std/spoken-mask-direct-artifact-show@1";
 pub const NO_INTERACTION_IMPLEMENTATION: &str = "std/spoken-mask-no-interaction@1";
-pub const PRESENTATION_TEE_IMPLEMENTATION: &str = "std/spoken-mask-presentation-tee@1";
+pub const FACE_TEE_IMPLEMENTATION: &str = "std/spoken-mask-face-tee@1";
 pub const VALIDATION_ENVELOPE_IMPLEMENTATION: &str = "std/generated-validation-envelope@2";
 pub const GENERATED_VALIDATOR_IMPLEMENTATION: &str = "std/generated-semantic-validator@2";
 pub const RETAIN_GENERATED_VALIDATION_IMPLEMENTATION: &str = "std/retain-generated-validation@1";
-pub const PRESENTATION_REQUEST_OPERATION: &str = "conduit.host/spoken-mask-request@1";
+pub const FACE_REQUEST_OPERATION: &str = "conduit.host/spoken-mask-request@1";
 pub const GENERATED_SPEECH_OPERATION: &str = "conduit.host/spoken-mask-speech@1";
 pub const SPOKEN_ARTIFACT_OPERATION: &str = "conduit.host/spoken-mask-artifact@1";
 pub const REGISTER_MANIFESTATION_OPERATION: &str = "conduit.host/spoken-mask-register@1";
@@ -40,33 +40,33 @@ pub const ASSESS_GENERATED_ENVELOPE_OPERATION: &str =
 
 pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
     vec![
-        conduit_presentation::presentation_tee_offer(
-            CapabilityId::from("spoken-mask-presentation-tee"),
+        conduit_face::face_tee_offer(
+            CapabilityId::from("spoken-mask-face-tee"),
             ImplementationOffer {
                 execution_profile_id: ExecutionProfileId::from("std/spoken-mask-kernel@1"),
-                implementation_id: ImplementationId::from(PRESENTATION_TEE_IMPLEMENTATION),
+                implementation_id: ImplementationId::from(FACE_TEE_IMPLEMENTATION),
                 artifact_id: ArtifactId::from("conduit-std-host/spoken-mask@1"),
             },
             CapabilityLimits {
-                max_active_instances: conduit_presentation::MAX_PRESENTATION_ACTIVE_INSTANCES,
-                max_queue_items: conduit_presentation::MAX_PRESENTATION_QUEUE_ITEMS,
-                max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES
-                    * u32::from(conduit_presentation::MAX_PRESENTATION_QUEUE_ITEMS),
+                max_active_instances: conduit_face::MAX_FACE_ACTIVE_INSTANCES,
+                max_queue_items: conduit_face::MAX_FACE_QUEUE_ITEMS,
+                max_queue_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES
+                    * u32::from(conduit_face::MAX_FACE_QUEUE_ITEMS),
             },
         ),
         semantic_offer(
-            conduit_presentation::GENERATED_VALIDATION_ENVELOPE_KIND,
+            conduit_face::GENERATED_VALIDATION_ENVELOPE_KIND,
             "generated-validation-envelope",
             VALIDATION_ENVELOPE_IMPLEMENTATION,
             vec![
                 call(
                     BUILD_VALIDATION_ENVELOPE_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
-                    conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
                 ),
                 call(
                     REGISTER_VALIDATION_REQUEST_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
                     0,
                 ),
             ],
@@ -74,62 +74,62 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::GENERATED_VALIDATOR_KIND,
+            conduit_face::GENERATED_VALIDATOR_KIND,
             "generated-semantic-validator",
             GENERATED_VALIDATOR_IMPLEMENTATION,
             vec![call(
                 ASSESS_GENERATED_ENVELOPE_OPERATION,
-                conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+                conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             )],
             vec![],
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::RETAIN_GENERATED_VALIDATION_KIND,
+            conduit_face::RETAIN_GENERATED_VALIDATION_KIND,
             "retain-generated-validation",
             RETAIN_GENERATED_VALIDATION_IMPLEMENTATION,
             vec![
                 call(
                     REGISTER_GENERATED_CANDIDATE_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
                     0,
                 ),
                 call(
                     RETAIN_GENERATED_ASSESSMENT_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
                 ),
             ],
             vec![],
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::PRESENTATION_TO_GENERATIVE_REQUEST_KIND,
-            "spoken-mask-presentation-request",
-            PRESENTATION_REQUEST_IMPLEMENTATION,
+            conduit_face::FACE_TO_GENERATIVE_REQUEST_KIND,
+            "spoken-mask-face-request",
+            FACE_REQUEST_IMPLEMENTATION,
             vec![call(
-                PRESENTATION_REQUEST_OPERATION,
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                FACE_REQUEST_OPERATION,
+                conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
             )],
             vec![],
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::GENERATED_MANIFESTATION_TO_SPEECH_KIND,
+            conduit_face::GENERATED_MANIFESTATION_TO_SPEECH_KIND,
             "spoken-mask-generated-speech",
             GENERATED_SPEECH_IMPLEMENTATION,
             vec![call(
                 GENERATED_SPEECH_OPERATION,
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
                 conduit_tongues::MAXIMUM_TEXT_BYTES,
             )],
             vec![],
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::SPOKEN_ARTIFACT_KIND,
+            conduit_face::SPOKEN_ARTIFACT_KIND,
             "spoken-mask-wav-artifact",
             SPOKEN_ARTIFACT_IMPLEMENTATION,
             vec![targeted_call(
@@ -151,13 +151,13 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             }],
         ),
         semantic_offer(
-            conduit_presentation::ARTIFACT_ACKNOWLEDGED_SHOW_KIND,
+            conduit_face::ARTIFACT_ACKNOWLEDGED_SHOW_KIND,
             "spoken-mask-artifact-show",
             ARTIFACT_SHOW_IMPLEMENTATION,
             vec![
                 call(
                     REGISTER_MANIFESTATION_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
                     0,
                 ),
                 call(ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
@@ -166,26 +166,26 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::DIRECT_FACE_WORDING_KIND,
+            conduit_face::DIRECT_FACE_WORDING_KIND,
             "spoken-mask-direct-face-wording",
             DIRECT_FACE_WORDING_IMPLEMENTATION,
             vec![call(
                 DIRECT_FACE_WORDING_OPERATION,
-                conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
                 1024,
             )],
             vec![],
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::DIRECT_ARTIFACT_SHOW_KIND,
+            conduit_face::DIRECT_ARTIFACT_SHOW_KIND,
             "spoken-mask-direct-artifact-show",
             DIRECT_ARTIFACT_SHOW_IMPLEMENTATION,
             vec![
                 call(DIRECT_ARTIFACT_SHOW_OPERATION, 4_096, 262_144),
                 call(
                     REGISTER_DIRECT_FACE_OPERATION,
-                    conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+                    conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
                     0,
                 ),
             ],
@@ -193,7 +193,7 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
             vec![],
         ),
         semantic_offer(
-            conduit_presentation::CLOSING_NO_INTERACTION_KIND,
+            conduit_face::CLOSING_NO_INTERACTION_KIND,
             "spoken-mask-no-interaction",
             NO_INTERACTION_IMPLEMENTATION,
             vec![],
@@ -207,12 +207,12 @@ pub fn spoken_mask_offers() -> Vec<CapabilityOffer> {
 /// Canonical committed segments perform segmentation after validation.
 pub fn generated_stream_speech_offer() -> CapabilityOffer {
     semantic_offer(
-        conduit_presentation::GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND,
+        conduit_face::GENERATED_MANIFESTATION_TO_SPEECH_STREAM_KIND,
         "spoken-mask-generated-stream-speech",
         GENERATED_STREAM_SPEECH_IMPLEMENTATION,
         vec![call(
             GENERATED_SPEECH_OPERATION,
-            conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             1024,
         )],
         vec![],
@@ -245,7 +245,7 @@ fn semantic_offer(
 }
 
 fn contract(identity: &str) -> Kind {
-    conduit_presentation::spoken_mask_kinds()
+    conduit_face::spoken_mask_kinds()
         .into_iter()
         .find(|kind| kind.kind_id.as_str() == identity)
         .expect("spoken Mask offer uses one canonical stage Kind")

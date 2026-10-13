@@ -12,10 +12,10 @@ The [shared naming corpus](names/README.md) remains one versioned source for
 Rust and the browser. Moving ownership does not change the catalog bytes,
 SHA-256 domain, seed encoding, suggestion order, or UTF-8 bounds.
 
-`BirthPresentation` and `BirthActions` own the Plot's exact Face encounter and
+`BirthFace` and `BirthActions` own the Plot's exact Face encounter and
 extend this draft for the current browser and ConduitOS entrances. Their control
 vocabulary, action identities, and projection remain one shared bounded
-contract. Existing refusal spellings, including `StalePresentation`, remain
+contract. Existing refusal spellings, including `StaleFace`, remain
 unchanged. This ownership does not create another body lifecycle or renderer.
 
 Draft, naming, Face lowering, event routing, and view bounds are tested here;

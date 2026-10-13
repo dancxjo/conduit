@@ -108,13 +108,13 @@ fn clear_token(request: &mut Request) {
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
-        | Request::BodyFace { token, .. }
+        | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
-        | Request::BirthFace { token, .. }
+        | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyAttachedTerminalInteraction { token, .. }

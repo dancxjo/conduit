@@ -48,7 +48,7 @@ impl NativeFaceSnapshotProducer {
     /// This trusted local API does not authenticate arbitrary external snapshots.
     pub fn prepare_snapshot(
         &mut self,
-        presentation: Presentation,
+        face: Face,
         observation_sequence: u64,
         play_sequence: u64,
     ) -> Result<PreparedFaceSnapshot<'_>, FaceSnapshotRefusal> {
@@ -58,10 +58,8 @@ impl NativeFaceSnapshotProducer {
         {
             return Err(FaceSnapshotRefusal::PlaySequence);
         }
-        presentation
-            .validate()
-            .map_err(|_| FaceSnapshotRefusal::Presentation)?;
-        let basis = &presentation.basis;
+        face.validate().map_err(|_| FaceSnapshotRefusal::Face)?;
+        let basis = &face.basis;
         // A zero-Body Birth Face is produced by this forwarding Plot. Once a
         // Body exists, its Face records the actual Body workload provenance;
         // forwarding must preserve that basis rather than claiming our relay
@@ -77,8 +75,7 @@ impl NativeFaceSnapshotProducer {
         }
         // The caller supplies facts, not a claim that any Body Play is active.
         // Actual Host-owned forwarding Play identity is retained in the receipt.
-        let bytes =
-            serde_json::to_vec(&presentation).map_err(|_| FaceSnapshotRefusal::Presentation)?;
+        let bytes = serde_json::to_vec(&face).map_err(|_| FaceSnapshotRefusal::Face)?;
         if bytes.len() > MAX_SNAPSHOT_BYTES {
             return Err(FaceSnapshotRefusal::Capacity);
         }
@@ -99,8 +96,8 @@ impl NativeFaceSnapshotProducer {
             boot_id: fragment.boot_id.clone(),
             offer_generation: fragment.offer_generation,
             observation_sequence,
-            presentation_id: presentation.identity.as_str().into(),
-            presentation_revision: presentation.revision,
+            face_id: face.identity.as_str().into(),
+            face_revision: face.revision,
             encoded_bytes: bytes.len() as u32,
             value_sha256: Sha256::digest(&bytes).into(),
             kernel_signs: 0,
@@ -225,10 +222,10 @@ impl PreparedFaceSnapshot<'_> {
                     self.retired = true;
                     self.receipt.kernel_signs = self.scheduler.signs().len();
                     // Decode the bytes actually delivered, after execution has ended.
-                    let presentation = serde_json::from_slice(&self.observed)
-                        .map_err(|_| FaceSnapshotRefusal::Presentation)?;
+                    let face = serde_json::from_slice(&self.observed)
+                        .map_err(|_| FaceSnapshotRefusal::Face)?;
                     return Ok(PublishedFaceSnapshot {
-                        presentation,
+                        face,
                         receipt: self.receipt.clone(),
                     });
                 }
@@ -272,7 +269,7 @@ pub(super) fn validate_shape(
         || lowered.sign_items > SIGNS as u16
         || lowered.cord_value_slots > 2
         || lowered.cord_value_bytes > (2 * MAX_SNAPSHOT_BYTES) as u32
-        || fragment.placements[0].kind_id.as_str() != conduit_presentation::PRESENTATION_TEE_KIND
+        || fragment.placements[0].kind_id.as_str() != conduit_face::FACE_TEE_KIND
         || fragment.placements[0].implementation_id.as_str() != planning::IMPLEMENTATION
     {
         return Err(FaceSnapshotRefusal::Shape);

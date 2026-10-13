@@ -1,6 +1,6 @@
 //! Actual attached provider → bounded Mask Fore → owner workset replacement.
 use super::*;
-use conduit_presentation::{FaceInteraction, FaceInteractionArgument};
+use conduit_face::{FaceInteraction, FaceInteractionArgument};
 
 #[test]
 fn attached_action_replaces_lulled_workset_and_cannot_replay_after_new_show() {
@@ -102,7 +102,7 @@ fn attached_action_replaces_lulled_workset_and_cannot_replay_after_new_show() {
 
 #[test]
 fn actual_terminal_seal_refuses_matching_ids_without_back_or_resource() {
-    use conduit_presentation::LocalOwnerMaskRouteError;
+    use conduit_face::LocalOwnerMaskRouteError;
     let mut runtime = runtime();
     let state = state(&runtime);
     let token = [7; 32];

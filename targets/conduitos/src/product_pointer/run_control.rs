@@ -5,7 +5,7 @@ use crate::{
     tour_product::{TourProduct, TourProductError, TourProductUpdate},
     tour_shell::TourShellPresenter,
 };
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_face::{ApplicationEvent, ApplicationEventKind};
 
 pub trait Execute:
     FnMut(&mut TourProduct, &ApplicationEvent) -> Result<TourProductUpdate, TourProductError>

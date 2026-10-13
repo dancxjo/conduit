@@ -1,10 +1,9 @@
-//! Derive portable Place x Aspect navigation from one exact Patchbay Presentation.
+//! Derive portable Place x Aspect navigation from one exact Patchbay Face.
 
 use alloc::{borrow::ToOwned, format, string::String, vec, vec::Vec};
-use conduit_presentation::{
-    NavigationAspect, NavigationFollow, NavigationPlace, Presentation, PresentationAspect,
-    PresentationCursor, PresentationDepth, PresentationNavigation, PresentationPlace,
-    PresentationProjection, PresentationRelationshipKind, PresentationRole,
+use conduit_face::{
+    Face, FaceAspect, FaceCursor, FaceDepth, FaceNavigation, FacePlace, FaceProjection,
+    FaceRelationshipKind, FaceRole, NavigationAspect, NavigationFollow, NavigationPlace,
 };
 use serde::{Deserialize, Serialize};
 
@@ -14,146 +13,117 @@ use membership::memberships;
 /// One immutable navigation/projection/cursor bundle for a Patchbay revision.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayNavigationProjection {
-    pub navigation: PresentationNavigation,
-    pub projection: PresentationProjection,
-    pub cursor: PresentationCursor,
+    pub navigation: FaceNavigation,
+    pub projection: FaceProjection,
+    pub cursor: FaceCursor,
 }
 
 impl PatchbayNavigationProjection {
-    pub fn for_zero_body(presentation: &Presentation, selected_plot: bool) -> Result<Self, String> {
-        let entrance_root = presentation
+    pub fn for_zero_body(face: &Face, selected_plot: bool) -> Result<Self, String> {
+        let entrance_root = face
             .properties
             .iter()
             .find(|property| {
                 property.name == "this-host"
-                    && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+                    && property.value == conduit_face::FacePropertyValue::Flag(true)
             })
             .map(|property| property.subject.clone())
-            .ok_or_else(|| "zero-body Presentation has no exact entrance Host".to_owned())?;
+            .ok_or_else(|| "zero-body Face has no exact entrance Host".to_owned())?;
         let program_root = selected_plot
             .then(|| {
-                presentation.properties.iter().find_map(|property| {
+                face.properties.iter().find_map(|property| {
                     (property.name == "opened"
-                        && property.value
-                            == conduit_presentation::PresentationPropertyValue::Flag(true))
+                        && property.value == conduit_face::FacePropertyValue::Flag(true))
                     .then(|| property.subject.clone())
                 })
             })
             .flatten();
-        let entrance_focus = first_subject(presentation, PresentationRole::Plot)
-            .unwrap_or_else(|| entrance_root.clone());
-        let mut places = vec![place(
-            presentation,
-            PresentationPlace::Entrance,
-            entrance_root,
-            "Entrance",
-        )];
+        let entrance_focus =
+            first_subject(face, FaceRole::Plot).unwrap_or_else(|| entrance_root.clone());
+        let mut places = vec![place(face, FacePlace::Entrance, entrance_root, "Entrance")];
         if let Some(root) = &program_root {
-            places.push(place(
-                presentation,
-                PresentationPlace::Program,
-                root.clone(),
-                "Program",
-            ));
+            places.push(place(face, FacePlace::Program, root.clone(), "Program"));
         }
         Self::build(
-            presentation,
+            face,
             places,
             program_root
                 .as_ref()
-                .map_or(PresentationPlace::Entrance, |_| PresentationPlace::Program),
+                .map_or(FacePlace::Entrance, |_| FacePlace::Program),
             program_root.unwrap_or(entrance_focus),
         )
     }
 
-    pub fn for_embodied(presentation: &Presentation) -> Result<Self, String> {
-        let body_root = first_subject(presentation, PresentationRole::Body)
-            .ok_or_else(|| "embodied Presentation has no Body root".to_owned())?;
-        let contained_plot = presentation.relationships.iter().find_map(|relationship| {
+    pub fn for_embodied(face: &Face) -> Result<Self, String> {
+        let body_root = first_subject(face, FaceRole::Body)
+            .ok_or_else(|| "embodied Face has no Body root".to_owned())?;
+        let contained_plot = face.relationships.iter().find_map(|relationship| {
             (relationship.source == body_root
-                && relationship.kind == PresentationRelationshipKind::Contains
-                && presentation.subjects.iter().any(|subject| {
-                    subject.identity == relationship.target
-                        && subject.role == PresentationRole::Plot
+                && relationship.kind == FaceRelationshipKind::Contains
+                && face.subjects.iter().any(|subject| {
+                    subject.identity == relationship.target && subject.role == FaceRole::Plot
                 }))
             .then(|| relationship.target.clone())
         });
         let program_root = contained_plot.or_else(|| {
-            presentation.subjects.iter().find_map(|subject| {
-                (subject.role == PresentationRole::Plot
-                    && !presentation.properties.iter().any(|property| {
+            face.subjects.iter().find_map(|subject| {
+                (subject.role == FaceRole::Plot
+                    && !face.properties.iter().any(|property| {
                         property.subject == subject.identity
                             && property.name == "workload-membership"
                             && property.value
-                                == conduit_presentation::PresentationPropertyValue::Text(
-                                    "available".into(),
-                                )
+                                == conduit_face::FacePropertyValue::Text("available".into())
                     }))
                 .then(|| subject.identity.clone())
             })
         });
         let Some(program_root) = program_root else {
             return Self::build(
-                presentation,
-                vec![place(
-                    presentation,
-                    PresentationPlace::Body,
-                    body_root.clone(),
-                    "Body",
-                )],
-                PresentationPlace::Body,
+                face,
+                vec![place(face, FacePlace::Body, body_root.clone(), "Body")],
+                FacePlace::Body,
                 body_root,
             );
         };
         Self::build(
-            presentation,
+            face,
             vec![
-                place(
-                    presentation,
-                    PresentationPlace::Body,
-                    body_root.clone(),
-                    "Body",
-                ),
-                place(
-                    presentation,
-                    PresentationPlace::Program,
-                    program_root.clone(),
-                    "Plot",
-                ),
+                place(face, FacePlace::Body, body_root.clone(), "Body"),
+                place(face, FacePlace::Program, program_root.clone(), "Plot"),
             ],
-            PresentationPlace::Body,
+            FacePlace::Body,
             body_root,
         )
     }
 
     fn build(
-        presentation: &Presentation,
+        face: &Face,
         places: Vec<NavigationPlace>,
-        current_place: PresentationPlace,
+        current_place: FacePlace,
         initial_focus: String,
     ) -> Result<Self, String> {
-        let follows = follows(presentation, &places)?;
-        let navigation = PresentationNavigation::new(presentation, places, follows)
+        let follows = follows(face, &places)?;
+        let navigation = FaceNavigation::new(face, places, follows)
             .map_err(|error| format!("invalid Patchbay navigation: {error:?}"))?;
-        let memberships = memberships(presentation, &navigation)?;
-        let projection = PresentationProjection::new(presentation, &navigation, memberships)
+        let memberships = memberships(face, &navigation)?;
+        let projection = FaceProjection::new(face, &navigation, memberships)
             .map_err(|error| format!("invalid Patchbay projection: {error:?}"))?;
         let current = navigation
             .places
             .iter()
             .find(|place| place.place == current_place)
             .ok_or_else(|| "current Patchbay Place is absent".to_owned())?;
-        let cursor = PresentationCursor {
-            presentation: presentation.identity.clone(),
+        let cursor = FaceCursor {
+            face: face.identity.clone(),
             navigation: navigation.identity.clone(),
-            revision: presentation.revision,
+            revision: face.revision,
             place: current_place,
             aspect: current.aspects[0].aspect,
             focus: Some(initial_focus),
-            depth: PresentationDepth::Primary,
+            depth: FaceDepth::Primary,
         };
         projection
-            .project(presentation, &navigation, &cursor)
+            .project(face, &navigation, &cursor)
             .map_err(|error| format!("invalid Patchbay cursor: {error:?}"))?;
         Ok(Self {
             navigation,
@@ -163,13 +133,10 @@ impl PatchbayNavigationProjection {
     }
 }
 
-fn follows(
-    presentation: &Presentation,
-    places: &[NavigationPlace],
-) -> Result<Vec<NavigationFollow>, String> {
+fn follows(face: &Face, places: &[NavigationPlace]) -> Result<Vec<NavigationFollow>, String> {
     let mut follows = Vec::new();
-    for (index, relationship) in presentation.relationships.iter().enumerate() {
-        if relationship.kind != PresentationRelationshipKind::Realizes {
+    for (index, relationship) in face.relationships.iter().enumerate() {
+        if relationship.kind != FaceRelationshipKind::Realizes {
             continue;
         }
         let Some((source_place, source_aspect)) = planned_location(places, &relationship.source)
@@ -200,22 +167,19 @@ fn follows(
             target_aspect: source_aspect,
         });
     }
-    if follows.len() > conduit_presentation::MAX_NAVIGATION_FOLLOWS {
+    if follows.len() > conduit_face::MAX_NAVIGATION_FOLLOWS {
         return Err("Patchbay FOLLOW capacity exceeded".into());
     }
     Ok(follows)
 }
 
-fn planned_location(
-    places: &[NavigationPlace],
-    subject: &str,
-) -> Option<(PresentationPlace, PresentationAspect)> {
+fn planned_location(places: &[NavigationPlace], subject: &str) -> Option<(FacePlace, FaceAspect)> {
     places.iter().find_map(|place| {
         place
             .aspects
             .iter()
             .find(|aspect| {
-                aspect.aspect == PresentationAspect::Plan
+                aspect.aspect == FaceAspect::Plan
                     && aspect
                         .focusable_subjects
                         .iter()
@@ -225,20 +189,15 @@ fn planned_location(
     })
 }
 
-fn place(
-    presentation: &Presentation,
-    place: PresentationPlace,
-    root_subject: String,
-    label: &str,
-) -> NavigationPlace {
-    let aspects = available_aspects(presentation)
+fn place(face: &Face, place: FacePlace, root_subject: String, label: &str) -> NavigationPlace {
+    let aspects = available_aspects(face)
         .into_iter()
         .map(|aspect| NavigationAspect {
             aspect,
-            focusable_subjects: presentation
+            focusable_subjects: face
                 .subjects
                 .iter()
-                .filter(|subject| subject_in_place(presentation, subject, place, aspect))
+                .filter(|subject| subject_in_place(face, subject, place, aspect))
                 .map(|subject| subject.identity.clone())
                 .collect(),
         })
@@ -251,120 +210,109 @@ fn place(
     }
 }
 
-fn available_aspects(presentation: &Presentation) -> Vec<PresentationAspect> {
-    let mut aspects = vec![PresentationAspect::Structure];
-    if presentation.basis.plan_id.is_some() {
-        aspects.push(PresentationAspect::Plan);
+fn available_aspects(face: &Face) -> Vec<FaceAspect> {
+    let mut aspects = vec![FaceAspect::Structure];
+    if face.basis.plan_id.is_some() {
+        aspects.push(FaceAspect::Plan);
     }
-    if presentation.basis.active_play_id.is_some() {
-        aspects.push(PresentationAspect::Play);
+    if face.basis.active_play_id.is_some() {
+        aspects.push(FaceAspect::Play);
     }
-    if !presentation.basis.sign_ids.is_empty()
-        || presentation
+    if !face.basis.sign_ids.is_empty()
+        || face
             .subjects
             .iter()
-            .any(|subject| subject.role == PresentationRole::Sign)
+            .any(|subject| subject.role == FaceRole::Sign)
     {
-        aspects.push(PresentationAspect::Signs);
+        aspects.push(FaceAspect::Signs);
     }
     aspects
 }
 
 fn subject_in_place(
-    presentation: &Presentation,
-    subject: &conduit_presentation::PresentationSubject,
-    place: PresentationPlace,
-    aspect: PresentationAspect,
+    face: &Face,
+    subject: &conduit_face::FaceSubject,
+    place: FacePlace,
+    aspect: FaceAspect,
 ) -> bool {
     let role = subject.role.clone();
-    let has_body = presentation
+    let has_body = face
         .subjects
         .iter()
-        .any(|candidate| candidate.role == PresentationRole::Body);
-    if role == PresentationRole::Sign {
-        return aspect == PresentationAspect::Signs;
+        .any(|candidate| candidate.role == FaceRole::Body);
+    if role == FaceRole::Sign {
+        return aspect == FaceAspect::Signs;
     }
-    if role == PresentationRole::Plan {
-        return aspect == PresentationAspect::Plan && place != PresentationPlace::Entrance;
+    if role == FaceRole::Plan {
+        return aspect == FaceAspect::Plan && place != FacePlace::Entrance;
     }
-    if role == PresentationRole::Play {
-        return aspect == PresentationAspect::Play && place != PresentationPlace::Entrance;
+    if role == FaceRole::Play {
+        return aspect == FaceAspect::Play && place != FacePlace::Entrance;
     }
-    if role == PresentationRole::Diagnostic {
-        return place == PresentationPlace::Program && aspect == PresentationAspect::Signs;
+    if role == FaceRole::Diagnostic {
+        return place == FacePlace::Program && aspect == FaceAspect::Signs;
     }
     let domain = match role {
         // A plot can be a library entry at the Entrance or the opened Program.
         // Its exact place is established below from the opened property rather
-        // than from a privileged presentation role.
-        PresentationRole::Plot if has_body => Some(PresentationPlace::Program),
-        PresentationRole::Plot => None,
-        PresentationRole::Document
-        | PresentationRole::Gear
-        | PresentationRole::Port
-        | PresentationRole::Cord
-        | PresentationRole::Info
-        | PresentationRole::Region
-        | PresentationRole::Collection
-        | PresentationRole::Item
-        | PresentationRole::TextEntry
-        | PresentationRole::Status
-        | PresentationRole::Action
-        | PresentationRole::Semantic(_) => Some(PresentationPlace::Program),
-        PresentationRole::Body
-        | PresentationRole::Part
-        | PresentationRole::Candidate
-        | PresentationRole::Host
-        | PresentationRole::Capability
-        | PresentationRole::Line
-        | PresentationRole::Route
-        | PresentationRole::Manifestation => Some(PresentationPlace::Body),
-        PresentationRole::Plan
-        | PresentationRole::Play
-        | PresentationRole::Diagnostic
-        | PresentationRole::Sign => None,
+        // than from a privileged face role.
+        FaceRole::Plot if has_body => Some(FacePlace::Program),
+        FaceRole::Plot => None,
+        FaceRole::Document
+        | FaceRole::Gear
+        | FaceRole::Port
+        | FaceRole::Cord
+        | FaceRole::Info
+        | FaceRole::Region
+        | FaceRole::Collection
+        | FaceRole::Item
+        | FaceRole::TextEntry
+        | FaceRole::Status
+        | FaceRole::Action
+        | FaceRole::Semantic(_) => Some(FacePlace::Program),
+        FaceRole::Body
+        | FaceRole::Part
+        | FaceRole::Candidate
+        | FaceRole::Host
+        | FaceRole::Capability
+        | FaceRole::Line
+        | FaceRole::Route
+        | FaceRole::Manifestation => Some(FacePlace::Body),
+        FaceRole::Plan | FaceRole::Play | FaceRole::Diagnostic | FaceRole::Sign => None,
     };
-    if place == PresentationPlace::Entrance {
-        return aspect == PresentationAspect::Structure
+    if place == FacePlace::Entrance {
+        return aspect == FaceAspect::Structure
             && matches!(
                 role,
-                PresentationRole::Plot
-                    | PresentationRole::Body
-                    | PresentationRole::Host
-                    | PresentationRole::Capability
+                FaceRole::Plot | FaceRole::Body | FaceRole::Host | FaceRole::Capability
             );
     }
-    if place == PresentationPlace::Program
-        && aspect == PresentationAspect::Signs
+    if place == FacePlace::Program
+        && aspect == FaceAspect::Signs
         && matches!(
             role,
-            PresentationRole::Plot
-                | PresentationRole::Gear
-                | PresentationRole::Port
-                | PresentationRole::Cord
+            FaceRole::Plot | FaceRole::Gear | FaceRole::Port | FaceRole::Cord
         )
     {
         return true;
     }
-    if place == PresentationPlace::Program && role == PresentationRole::Plot {
-        return aspect == PresentationAspect::Structure
+    if place == FacePlace::Program && role == FaceRole::Plot {
+        return aspect == FaceAspect::Structure
             && (has_body
-                || presentation.properties.iter().any(|property| {
+                || face.properties.iter().any(|property| {
                     property.subject == subject.identity
                         && property.name == "opened"
-                        && property.value
-                            == conduit_presentation::PresentationPropertyValue::Flag(true)
+                        && property.value == conduit_face::FacePropertyValue::Flag(true)
                 }));
     }
-    if place == PresentationPlace::Body && role == PresentationRole::Plot {
-        return aspect == PresentationAspect::Structure;
+    if place == FacePlace::Body && role == FaceRole::Plot {
+        return aspect == FaceAspect::Structure;
     }
-    domain == Some(place) && aspect != PresentationAspect::Signs
+    domain == Some(place) && aspect != FaceAspect::Signs
 }
 
-fn first_subject(presentation: &Presentation, role: PresentationRole) -> Option<String> {
-    presentation
-        .subjects
+fn first_subject(face: &Face, role: FaceRole) -> Option<String> {
+    face.subjects
         .iter()
         .find(|subject| subject.role == role)
         .map(|subject| subject.identity.clone())

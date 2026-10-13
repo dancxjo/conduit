@@ -181,7 +181,7 @@ impl TextDomain {
         );
         Ok(length)
     }
-    pub fn presentation(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
+    pub fn face(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
         self.input(input)?;
         let frame = self.space.frame();
         frame.command = 1;

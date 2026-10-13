@@ -18,7 +18,7 @@ fn checked_browser_mask_returns_exact_captured_parsec_actions() {
     assert_eq!(records.len(), 4);
     let mut original_body = None;
     for (index, record) in records.iter().enumerate() {
-        let face: Presentation = serde_json::from_value(record["face"].clone()).unwrap();
+        let face: Face = serde_json::from_value(record["face"].clone()).unwrap();
         face.validate().unwrap();
         let body = face.basis.body_id.clone().unwrap();
         if let Some(previous) = &original_body {
@@ -135,17 +135,13 @@ fn checked_browser_mask_returns_exact_captured_parsec_actions() {
             Some(&emitted.show.planned_mask.plan.plan_id),
             face.basis.plan_id.as_ref()
         );
-        assert_eq!(
-            mask.presentation.interaction_context,
-            face.interaction_context
-        );
-        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.face.interaction_context, face.interaction_context);
+        assert_eq!(mask.face, face);
         let mut unavailable = face.clone();
-        unavailable.actions[0].availability =
-            conduit_presentation::PresentationActionAvailability::Unavailable {
-                reason_code: "fixture/input-unavailable".into(),
-                explanation: "No current input in this fixture".into(),
-            };
+        unavailable.actions[0].availability = conduit_face::FaceActionAvailability::Unavailable {
+            reason_code: "fixture/input-unavailable".into(),
+            explanation: "No current input in this fixture".into(),
+        };
         let unavailable = unavailable.with_basis(face.basis.clone()).unwrap();
         unavailable.validate().unwrap();
         assert_ne!(unavailable.identity, face.identity);

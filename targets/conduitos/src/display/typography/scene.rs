@@ -2,9 +2,7 @@
 
 use super::{TextRole, render_text_scaled};
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
-use conduit_presentation::{
-    GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene,
-};
+use conduit_face::{GraphicsCommand, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene};
 
 /// Resolve text purpose in the Presenter without altering portable text meaning.
 /// The caller's role selector must be deterministic for the admitted scene.

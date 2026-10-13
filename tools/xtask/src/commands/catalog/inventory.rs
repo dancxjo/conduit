@@ -28,13 +28,13 @@ pub struct Inventory {
 
 pub fn catalog_contracts() -> Vec<conduit_semantic_catalog::StandardKindContract> {
     let mut contracts = conduit_semantic_catalog::supported_nucleus_contracts();
-    contracts.extend(conduit_semantic_catalog::patchbay_presentation_contracts());
+    contracts.extend(conduit_semantic_catalog::patchbay_face_contracts());
     contracts
 }
 
 pub fn catalog_offers() -> Vec<conduit_core::CapabilityOffer> {
     let mut offers = conduit_std_host::supported_nucleus_offers();
-    offers.extend(conduit_std_offers::patchbay_presentation_offers());
+    offers.extend(conduit_std_offers::patchbay_face_offers());
     offers
 }
 

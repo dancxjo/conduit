@@ -4,8 +4,8 @@ use conduit_core::{
     kind_id, resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId,
 };
+use conduit_face::{renderer_offer, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES};
 use conduit_host_make::RuntimeFacts;
-use conduit_presentation::{renderer_offer, RendererRealizationOffer, MAX_RENDERER_VALUE_BYTES};
 
 pub(super) fn presenter_offer(
     capability: &str,
@@ -26,7 +26,7 @@ pub(super) fn presenter_offer(
             maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
             maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
         },
-        resource_requirement: resource_requirement("presentation/surface", 1),
+        resource_requirement: resource_requirement("face/surface", 1),
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
@@ -37,10 +37,7 @@ pub(super) fn presenter_offer(
 
 pub(super) fn native_facts(ready: bool) -> RuntimeFacts {
     RuntimeFacts {
-        ready_resource_classes: ready
-            .then(|| "presentation/surface".into())
-            .into_iter()
-            .collect(),
+        ready_resource_classes: ready.then(|| "face/surface".into()).into_iter().collect(),
         initialized_base_kinds: ready
             .then(|| "display/scanout".into())
             .into_iter()
@@ -59,10 +56,7 @@ pub(super) fn native_facts(ready: bool) -> RuntimeFacts {
 
 pub(super) fn browser_facts(ready: bool) -> RuntimeFacts {
     RuntimeFacts {
-        ready_resource_classes: ready
-            .then(|| "presentation/surface".into())
-            .into_iter()
-            .collect(),
+        ready_resource_classes: ready.then(|| "face/surface".into()).into_iter().collect(),
         initialized_base_kinds: ready.then(|| "browser/dom".into()).into_iter().collect(),
         initialized_driver_kinds: ready.then(|| "browser/dom@1".into()).into_iter().collect(),
         available_facilities: Default::default(),

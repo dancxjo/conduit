@@ -12,7 +12,7 @@ fn source(kind: &str, left: &str, right: &str, predicate: &str) -> String {
     format!(
         r#"plot checked-quantity {{
  operation: {kind}({} = {left}, {} = {right})
- show: presentation/bool-value
+ show: face/bool-value("Result")
  operation.receipt >> ({predicate}) >> show.value
 }}."#,
         names[0], names[1]
@@ -29,7 +29,7 @@ fn run(source: &str) -> (TourSession, TourEffect) {
         panic!("planned Boolean effect")
     };
     assert_eq!(effect.text.as_deref(), Some("true"));
-    assert_eq!(effect.presentation_kind, "presentation/bool-value");
+    assert_eq!(effect.face_kind, "face/bool-value");
     assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
     assert!(effect
         .expanded_gears
@@ -273,7 +273,7 @@ fn full_name_receipt_comparator_runs_through_browser_kernel() {
             r#"plot converted-equals-demo {{
  operation: units/convert(source = {source}, to = {target})
  exact: units/converted-equals(expected = {expected})
- show: presentation/bool-value
+ show: face/bool-value("Result")
  operation.receipt >> exact.receipt
  exact.result >> show.value
 }}."#
@@ -302,7 +302,7 @@ fn issue_demo_full_name_and_scoped_alias_render_exact_text() {
             r#"{imports}plot convert-pitch-demo {{
  operation: units/convert(source = 1kHz, to = Hz)
  exact: {comparator}(expected = 1000Hz)
- show: presentation/text
+ show: face/text("Message")
  operation.receipt >> exact.receipt
  exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
 }}."#
@@ -346,7 +346,7 @@ plot unit-transport-demo {
  packed: pack
  relayed: relay
  unpacked: unpack
- show: presentation/text
+ show: face/text("Message")
  trigger.value >> source.trigger
  source.output >> packed.input
  packed.output >> relayed.input
@@ -370,7 +370,7 @@ fn installed_browser_comparator_rejects_forged_runtime_receipts() {
     let source = r#"plot comparator-forgery {
  operation: units/convert(source = 1kHz, to = Hz)
  exact: units/converted-equals(expected = 1000Hz)
- show: presentation/bool-value
+ show: face/bool-value("Result")
  operation.receipt >> exact.receipt
  exact.result >> show.value
 }."#;
@@ -510,7 +510,7 @@ fn authored_custom_family_forwards_startup_and_crosses_record_runtime_ports() {
   packed: pack
   relayed: relay
   unpacked: unpack
-  show: presentation/bool-value
+  show: face/bool-value("Result")
   trigger.value >> literal.trigger
   literal.output >> packed.input
   packed.output >> relayed.input
@@ -538,7 +538,7 @@ fn authored_custom_family_forwards_startup_and_crosses_record_runtime_ports() {
  plot custom-family-conversion {{
   operation: forward(seed = 3doublewob/s, target = wob/s)
   exact: units/converted-equals(expected = 6wob/s)
-  show: presentation/bool-value
+  show: face/bool-value("Result")
   operation.receipt >> exact.receipt
   exact.result >> show.value
  }}."#
@@ -554,7 +554,7 @@ fn browser_distance_frequency_mapper_emits_complete_quantity_capsules() {
             r#"plot mapper-capsule {{
  trigger: scalar/literal(value = 1)
  pitch: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 1760Hz, target-maximum = 110Hz)
- show: presentation/bool-value
+ show: face/bool-value("Result")
  trigger.value >> ({distance}) >> pitch.distance
  pitch.frequency >> (. == {expected}) >> show.value
 }}."#
@@ -562,7 +562,7 @@ fn browser_distance_frequency_mapper_emits_complete_quantity_capsules() {
         let (session, effect) =
             TourSession::prepare("browser/mapper", "boot/mapper", &source, 1).unwrap();
         let TourHostEffect::Manifestation(effect) = effect else {
-            panic!("mapper presentation")
+            panic!("mapper face")
         };
         let effect = *effect;
         assert_eq!(effect.text.as_deref(), Some("true"));

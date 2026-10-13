@@ -2,19 +2,18 @@
 //! Geometry remains the graphical Mask's decision.
 
 use alloc::{format, string::String};
-use conduit_presentation::{
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    FaceDisclosure, FaceDisclosureLevel, FaceProperty, FacePropertyValue, FaceRelationship,
+    FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
 use patchbay_graph::{PatchbayFrontPort, PatchbayGraph};
 
 pub(super) struct Content<'a> {
-    pub subjects: &'a mut alloc::vec::Vec<PresentationSubject>,
-    pub relationships: &'a mut alloc::vec::Vec<PresentationRelationship>,
-    pub properties: &'a mut alloc::vec::Vec<PresentationProperty>,
-    pub texts: &'a mut alloc::vec::Vec<PresentationText>,
-    pub disclosures: &'a mut alloc::vec::Vec<PresentationDisclosure>,
+    pub subjects: &'a mut alloc::vec::Vec<FaceSubject>,
+    pub relationships: &'a mut alloc::vec::Vec<FaceRelationship>,
+    pub properties: &'a mut alloc::vec::Vec<FaceProperty>,
+    pub texts: &'a mut alloc::vec::Vec<FaceText>,
+    pub disclosures: &'a mut alloc::vec::Vec<FaceDisclosure>,
 }
 
 pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_>) {
@@ -24,9 +23,9 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
         .iter()
         .any(|subject| subject.identity == plot);
     if new_plot {
-        subject(content, &plot, PresentationRole::Plot, &graph.plot_name);
+        subject(content, &plot, FaceRole::Plot, &graph.plot_name);
     }
-    relation(content, body, &plot, PresentationRelationshipKind::Contains);
+    relation(content, body, &plot, FaceRelationshipKind::Contains);
     property(
         content,
         &plot,
@@ -40,12 +39,12 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
         graph.expanded_plot_id.as_str(),
     );
     if new_plot {
-        content.disclosures.push(PresentationDisclosure {
+        content.disclosures.push(FaceDisclosure {
             subject: plot.clone(),
-            level: PresentationDisclosureLevel::Context,
+            level: FaceDisclosureLevel::Context,
         });
     }
-    content.texts.push(PresentationText {
+    content.texts.push(FaceText {
         subject: plot.clone(),
         text: "Exact selected Plot graph; connections are typed Ports and Cords".into(),
     });
@@ -54,10 +53,10 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
         subject(
             content,
             &id,
-            PresentationRole::Gear,
+            FaceRole::Gear,
             &format!("{} Gear · {}", gear.gear_id.as_str(), gear.kind_id.as_str()),
         );
-        relation(content, &plot, &id, PresentationRelationshipKind::Contains);
+        relation(content, &plot, &id, FaceRelationshipKind::Contains);
         property(content, &id, "semantic-id", &gear.identity);
         property(content, &id, "kind-id", gear.kind_id.as_str());
         for port in gear.inputs.iter().chain(&gear.outputs) {
@@ -69,10 +68,10 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
         subject(
             content,
             &id,
-            PresentationRole::Gear,
+            FaceRole::Gear,
             &format!("{} · checked Plot Back", composition.gear_name),
         );
-        relation(content, &plot, &id, PresentationRelationshipKind::Contains);
+        relation(content, &plot, &id, FaceRelationshipKind::Contains);
         property(content, &id, "semantic-id", &composition.identity);
         property(
             content,
@@ -89,8 +88,8 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
     }
     for cord in &graph.cords {
         let id = format!("cord/{}", cord.identity);
-        subject(content, &id, PresentationRole::Cord, "Typed connection");
-        relation(content, &plot, &id, PresentationRelationshipKind::Contains);
+        subject(content, &id, FaceRole::Cord, "Typed connection");
+        relation(content, &plot, &id, FaceRelationshipKind::Contains);
         property(content, &id, "semantic-id", &cord.identity);
         property(content, &id, "source-port", &cord.source_port);
         property(content, &id, "sink-port", &cord.sink_port);
@@ -100,7 +99,7 @@ pub(super) fn append(graph: &PatchbayGraph, body: &str, content: &mut Content<'_
                 content,
                 &id,
                 &format!("port/{endpoint}"),
-                PresentationRelationshipKind::Connects,
+                FaceRelationshipKind::Connects,
             );
         }
     }
@@ -120,20 +119,20 @@ fn append_port(
     subject(
         content,
         &id,
-        PresentationRole::Port,
+        FaceRole::Port,
         &format!(
             "{} · {}",
             descriptor.port_id.as_str(),
             descriptor.value_kind.as_str()
         ),
     );
-    relation(content, parent, &id, PresentationRelationshipKind::Contains);
+    relation(content, parent, &id, FaceRelationshipKind::Contains);
     property(content, &id, "semantic-id", identity);
     property(content, &id, "value-kind", descriptor.value_kind.as_str());
-    content.properties.push(PresentationProperty {
+    content.properties.push(FaceProperty {
         subject: id,
         name: "direction".into(),
-        value: PresentationPropertyValue::Text(
+        value: FacePropertyValue::Text(
             match descriptor.direction {
                 conduit_core::PortDirection::Input => "receiving",
                 conduit_core::PortDirection::Output => "outgoing",
@@ -143,29 +142,24 @@ fn append_port(
     });
 }
 
-fn subject(content: &mut Content<'_>, identity: &str, role: PresentationRole, name: &str) {
-    content.subjects.push(PresentationSubject {
+fn subject(content: &mut Content<'_>, identity: &str, role: FaceRole, name: &str) {
+    content.subjects.push(FaceSubject {
         identity: identity.into(),
         role,
         name: name.into(),
     });
 }
-fn relation(
-    content: &mut Content<'_>,
-    source: &str,
-    target: &str,
-    kind: PresentationRelationshipKind,
-) {
-    content.relationships.push(PresentationRelationship {
+fn relation(content: &mut Content<'_>, source: &str, target: &str, kind: FaceRelationshipKind) {
+    content.relationships.push(FaceRelationship {
         source: source.into(),
         target: target.into(),
         kind,
     });
 }
 fn property(content: &mut Content<'_>, subject: &str, name: &str, value: &str) {
-    content.properties.push(PresentationProperty {
+    content.properties.push(FaceProperty {
         subject: subject.into(),
         name: name.into(),
-        value: PresentationPropertyValue::Identity(String::from(value)),
+        value: FacePropertyValue::Identity(String::from(value)),
     });
 }

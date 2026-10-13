@@ -193,7 +193,7 @@ impl LocalFrontDoor {
             topology: FrontDoorTopology::default(),
             revision: revision
                 .checked_add(1)
-                .ok_or("front-door presentation revision exhausted")?,
+                .ok_or("front-door face revision exhausted")?,
         })
     }
 }

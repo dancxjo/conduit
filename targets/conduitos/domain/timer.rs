@@ -21,7 +21,7 @@ struct State {
     timer_handle: u64,
     count_handle: u64,
     timer: Option<HostCallRequest>,
-    presentation: Option<HostCallRequest>,
+    face: Option<HostCallRequest>,
 }
 const _: () = assert!(core::mem::size_of::<State>() <= layout::RETAINED_BYTES);
 
@@ -43,7 +43,7 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
                 timer_handle: frame.timer_handle,
                 count_handle: frame.count_handle,
                 timer: None,
-                presentation: None,
+                face: None,
             });
             &mut *STATE
         };
@@ -79,9 +79,9 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
                     let pending = if timer {
                         &mut state.timer
                     } else {
-                        &mut state.presentation
+                        &mut state.face
                     };
-                    if pending.is_some() || (!timer && !kernel.is_presentation(&request)) {
+                    if pending.is_some() || (!timer && !kernel.is_face(&request)) {
                         gate::finish(3);
                     }
                     let bytes = kernel
@@ -131,7 +131,7 @@ pub unsafe fn execute(frame: &mut TextFrame) -> ! {
             let request = RequestId(frame.timer_request);
             let pending = match frame.timer_kind {
                 1 => &mut state.timer,
-                2 => &mut state.presentation,
+                2 => &mut state.face,
                 _ => gate::finish(3),
             };
             if !pending.is_some_and(|expected| {

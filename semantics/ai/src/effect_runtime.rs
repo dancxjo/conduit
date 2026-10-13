@@ -16,9 +16,9 @@ impl ProposalGate {
     ) -> Result<EffectReceipt, ProposalGateError> {
         let PlatformEffect::PresentValue {
             plan_id,
-            presentation_id,
+            face_id,
             placement_id,
-            presentation_kind,
+            face_kind,
             value,
             ..
         } = effect
@@ -27,22 +27,23 @@ impl ProposalGate {
         };
         let ObservationKind::ValuePresented {
             value: observed_value,
+            ..
         } = &observation.kind
         else {
             return Err(ProposalGateError::InvalidEffectReceipt);
         };
         if plan_id != &request.plan_id
-            || presentation_kind != &request.back_kind
+            || face_kind != &request.back_kind
             || observation.plan_id.as_ref() != Some(plan_id)
             || observation.placement_id.as_ref() != Some(placement_id)
-            || observation.presentation_id.as_ref() != Some(presentation_id)
+            || observation.face_id.as_ref() != Some(face_id)
             || observed_value != value
         {
             return Err(ProposalGateError::InvalidEffectReceipt);
         }
         self.complete(
             request,
-            format!("effect/manifestation/{}", presentation_id.as_str()),
+            format!("effect/manifestation/{}", face_id.as_str()),
             vec![observation.sign_id.clone()],
         )
     }

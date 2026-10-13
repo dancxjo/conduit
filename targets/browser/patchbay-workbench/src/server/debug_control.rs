@@ -160,8 +160,8 @@ impl DocumentaryDebuggerRuntime {
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DebuggerControlRequest {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     control_revision: u64,
     action: DebuggerControlAction,
     #[serde(default)]
@@ -184,8 +184,8 @@ impl PatchbayHtmlServer {
             .debugger_control
             .as_mut()
             .ok_or(ServerError::InvalidRequest)?;
-        if request.presentation_id != self.snapshot.presentation.identity.as_str()
-            || request.presentation_revision != self.snapshot.presentation.revision
+        if request.face_id != self.snapshot.face.identity.as_str()
+            || request.face_revision != self.snapshot.face.revision
             || request.control_revision != control.revision
         {
             return Err(ServerError::InvalidRequest);

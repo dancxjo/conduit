@@ -1,8 +1,8 @@
-//! Finite delivery envelope for one portable Conduit Presentation.
+//! Finite delivery envelope for one portable Conduit Face.
 
-use conduit_presentation::{ModelTemporalContextFact, Presentation, RendererSelfInspection};
+use conduit_face::{Face, ModelTemporalContextFact, RendererSelfInspection};
 use patchbay_application::{
-    DebuggerPresentation, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
+    DebuggerFace, PartsView, PatchbayEntranceState, PatchbayNavigationProjection,
 };
 use serde::{Deserialize, Serialize};
 
@@ -69,7 +69,7 @@ pub struct BrowserGearConfiguration {
 pub struct RendererSnapshot {
     pub schema: String,
     pub revision: u64,
-    pub presentation: Presentation,
+    pub face: Face,
     #[serde(default)]
     pub temporal_context: Vec<ModelTemporalContextFact>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
@@ -93,9 +93,9 @@ pub struct RendererSnapshot {
     pub body_planning: Option<conduit_body::BodyPlanningSessionSnapshot>,
     /// Portable semantic projection of the selected body Mask chains.
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub mask_topology: Option<Presentation>,
+    pub mask_topology: Option<Face>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
-    pub debugger: Option<DebuggerPresentation>,
+    pub debugger: Option<DebuggerFace>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub watches: Option<patchbay_application::DebuggerWatchSet>,
     #[serde(default, skip_serializing_if = "Option::is_none")]

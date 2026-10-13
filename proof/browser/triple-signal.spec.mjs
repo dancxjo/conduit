@@ -125,7 +125,7 @@ test("one unchanged plot produces matching stdout, DOM, and physical Pico LED re
     expect(stdoutReceipts.map(({ level }) => level)).toEqual(expectedLevels);
     expect(result.receipts.map(({ sequence }) => Number(sequence))).toEqual(expectedSequences);
     expect(result.receipts.map(({ level }) => level)).toEqual(expectedLevels);
-    expect(result.presentations.map(({ value }) => value.encoded[8] === 1)).toEqual(expectedLevels);
+    expect(result.faces.map(({ value }) => value.encoded[8] === 1)).toEqual(expectedLevels);
     expect(result.status).toBe(1);
     expect(result.receiptCount).toBe(16);
     expect(result.pressureRetries).toBe(1);
@@ -137,7 +137,7 @@ test("one unchanged plot produces matching stdout, DOM, and physical Pico LED re
     expect(result.receipts.every(({ hostId }) => hostId === "s4/triple-browser")).toBe(true);
     expect(result.receipts.every(({ linkBindingId }) =>
       linkBindingId === "s4/triple-std-browser-link")).toBe(true);
-    expect(new Set(stdoutReceipts.map(({ presentation_id }) => presentation_id)).size).toBe(16);
+    expect(new Set(stdoutReceipts.map(({ face_id }) => face_id)).size).toBe(16);
     expect(new Set(stdoutReceipts.map(({ sign_id }) => sign_id)).size).toBe(16);
     await expect(page.locator("#browser-sink output")).toHaveCount(16);
     await expect(page.locator("#browser-sink output").last()).toHaveAttribute(
@@ -196,8 +196,8 @@ test("a broken browser link fails the one kernel and reaches a physical Pico ter
       });
       const runtime = await instantiateDistributedBrowserRuntime(wasmBytes, { triple: true });
       const breakingDomHost = {
-        completePresentation(effect) {
-          const completion = domHost.completePresentation(effect);
+        completeFace(effect) {
+          const completion = domHost.completeFace(effect);
           if (completion.ok && domHost.receipts().length === 4) {
             void line.close(4001, "three-host-proof-link-break");
           }

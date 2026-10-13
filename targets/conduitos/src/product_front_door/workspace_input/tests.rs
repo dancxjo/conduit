@@ -8,7 +8,7 @@ use crate::{
 };
 use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
-use conduit_presentation::PresentationPropertyValue;
+use conduit_face::FacePropertyValue;
 
 pub(in crate::product_front_door) fn listening() -> (ProductJourney, FrontDoor) {
     let (ids, offer, mut journey) = fixture();
@@ -49,7 +49,7 @@ pub(in crate::product_front_door) fn listening() -> (ProductJourney, FrontDoor) 
 }
 
 #[test]
-fn accepted_release_preserves_presentation_without_requesting_a_repaint() {
+fn accepted_release_preserves_face_without_requesting_a_repaint() {
     let (mut journey, mut door) = listening();
     assert!(
         update(
@@ -60,7 +60,7 @@ fn accepted_release_preserves_presentation_without_requesting_a_repaint() {
         )
         .unwrap()
     );
-    let produced = journey.foreground_presentation_sequence();
+    let produced = journey.foreground_face_sequence();
     let before = journey.projection();
     assert!(
         !update(
@@ -71,7 +71,7 @@ fn accepted_release_preserves_presentation_without_requesting_a_repaint() {
         )
         .unwrap()
     );
-    assert_eq!(journey.foreground_presentation_sequence(), produced);
+    assert_eq!(journey.foreground_face_sequence(), produced);
     let after = journey.projection();
     assert_eq!(after.input_count, before.input_count + 1);
     assert_eq!(after.active_play_id, before.active_play_id);
@@ -159,15 +159,9 @@ fn actual_memory_bound_stops_play_and_keeps_the_body_refusal_inspectable() {
         before.active_play_id
     );
     assert_eq!(after.result.as_ref().unwrap().len(), 256);
-    assert!(
-        door.presentation()
-            .unwrap()
-            .properties
-            .iter()
-            .any(|property| {
-                property.name == "play-refusal"
-                    && property.value == PresentationPropertyValue::Text(refusal.clone().unwrap())
-            })
-    );
+    assert!(door.face().unwrap().properties.iter().any(|property| {
+        property.name == "play-refusal"
+            && property.value == FacePropertyValue::Text(refusal.clone().unwrap())
+    }));
     assert!(!journey.owns_key_release(key(4, KeyTransition::Released)));
 }

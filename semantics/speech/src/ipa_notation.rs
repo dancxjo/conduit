@@ -92,7 +92,7 @@ impl<'a> PreparedIpaNotationProfile<'a> {
             unit_syntax,
         })
     }
-    /// Delimiters are presentation only and are retained in original material.
+    /// Delimiters are face only and are retained in original material.
     /// This operation creates no phoneme/phone references or speaking authority.
     pub fn parse(
         &self,

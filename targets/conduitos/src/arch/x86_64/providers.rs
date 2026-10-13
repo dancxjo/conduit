@@ -199,16 +199,16 @@ impl TimerBase for Timer {
 }
 
 pub struct Serial {
-    presentations: u32,
+    faces: u32,
 }
 
 impl Serial {
     pub const fn new() -> Self {
-        Self { presentations: 0 }
+        Self { faces: 0 }
     }
 
-    pub const fn presentations(&self) -> u32 {
-        self.presentations
+    pub const fn faces(&self) -> u32 {
+        self.faces
     }
 }
 
@@ -224,15 +224,12 @@ impl SerialBase for Serial {
     }
     fn present(&mut self, bytes: &[u8]) -> Result<(), BaseError> {
         serial::present(bytes)?;
-        self.presentations = self
-            .presentations
-            .checked_add(1)
-            .ok_or(BaseError::Unavailable)?;
+        self.faces = self.faces.checked_add(1).ok_or(BaseError::Unavailable)?;
         Ok(())
     }
 
-    fn presentation_count(&self) -> u32 {
-        self.presentations
+    fn face_count(&self) -> u32 {
+        self.faces
     }
 }
 

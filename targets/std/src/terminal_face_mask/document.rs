@@ -1,10 +1,9 @@
 //! Face disclosure shapes the compact terminal view; Inspect retains the exact
 //! linear projection and its complete provenance.
 use super::*;
-use conduit_presentation::{
-    plan_face_utterances, readable_finite_text_choices, render_linear_presentation,
-    FaceUtterancePlan, FaceUtteranceProvenance, PresentationDisclosureLevel,
-    PresentationPropertyValue, PresentationRole,
+use conduit_face::{
+    plan_face_utterances, readable_finite_text_choices, render_linear_face, FaceDisclosureLevel,
+    FacePropertyValue, FaceRole, FaceUtterancePlan, FaceUtteranceProvenance,
 };
 
 pub(super) struct Row {
@@ -13,10 +12,7 @@ pub(super) struct Row {
     pub control: Option<TerminalControl>,
 }
 
-pub(super) fn prepare(
-    face: &Presentation,
-    width: usize,
-) -> Result<(Vec<Row>, Vec<Row>), TerminalError> {
+pub(super) fn prepare(face: &Face, width: usize) -> Result<(Vec<Row>, Vec<Row>), TerminalError> {
     let plan = plan_face_utterances(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut rows = if face.disclosures.is_empty() {
         Vec::new()
@@ -72,7 +68,7 @@ pub(super) fn prepare(
             )?;
         }
     }
-    let linear = render_linear_presentation(face).map_err(|_| TerminalError::DocumentPressure)?;
+    let linear = render_linear_face(face).map_err(|_| TerminalError::DocumentPressure)?;
     let mut inspect = Vec::new();
     for line in linear.lines {
         append(&mut inspect, &line, width, None, None)?;
@@ -85,7 +81,7 @@ pub(super) fn prepare(
 }
 
 fn primary_rows(
-    face: &Presentation,
+    face: &Face,
     plan: &FaceUtterancePlan,
     width: usize,
 ) -> Result<Vec<Row>, TerminalError> {
@@ -98,24 +94,18 @@ fn primary_rows(
     let has_context = face.disclosures.iter().any(|item| {
         matches!(
             item.level,
-            PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+            FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary
         ) && face.subjects.iter().any(|subject| {
             subject.identity == item.subject
-                && matches!(
-                    subject.role,
-                    PresentationRole::Collection | PresentationRole::Document
-                )
+                && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
         })
     });
     let mut rows = Vec::new();
     for subject in face.subjects.iter().filter(|subject| {
         matches!(
             level(&subject.identity),
-            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
-        ) && matches!(
-            subject.role,
-            PresentationRole::Collection | PresentationRole::Document
-        )
+            Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
+        ) && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
     }) {
         append(
             &mut rows,
@@ -126,8 +116,8 @@ fn primary_rows(
         )?;
     }
     for subject in face.subjects.iter().filter(|subject| {
-        level(&subject.identity) == Some(PresentationDisclosureLevel::Primary)
-            && subject.role == PresentationRole::Status
+        level(&subject.identity) == Some(FaceDisclosureLevel::Primary)
+            && subject.role == FaceRole::Status
             && !face
                 .text
                 .iter()
@@ -144,7 +134,7 @@ fn primary_rows(
     for (index, wording) in face.text.iter().enumerate() {
         if !matches!(
             level(&wording.subject),
-            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+            Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
         ) {
             continue;
         }
@@ -153,14 +143,11 @@ fn primary_rows(
             .iter()
             .find(|subject| subject.identity == wording.subject)
             .ok_or(TerminalError::InvalidFace)?;
-        if (has_context && subject.role == PresentationRole::Body)
+        if (has_context && subject.role == FaceRole::Body)
             || (wording.text == subject.name
                 && matches!(
                     subject.role,
-                    PresentationRole::Collection
-                        | PresentationRole::Document
-                        | PresentationRole::Status
-                        | PresentationRole::Item
+                    FaceRole::Collection | FaceRole::Document | FaceRole::Status | FaceRole::Item
                 ))
         {
             continue;
@@ -176,8 +163,8 @@ fn primary_rows(
         .iter()
         .enumerate()
         .filter(|(_, subject)| {
-            level(&subject.identity) == Some(PresentationDisclosureLevel::Primary)
-                && subject.role == PresentationRole::Item
+            level(&subject.identity) == Some(FaceDisclosureLevel::Primary)
+                && subject.role == FaceRole::Item
         })
         .collect::<Vec<_>>();
     items.sort_by_key(|(index, subject)| {
@@ -188,7 +175,7 @@ fn primary_rows(
                     (property.subject == subject.identity && property.name == "order")
                         .then_some(&property.value)
                         .and_then(|value| match value {
-                            PresentationPropertyValue::Count(order) => Some(*order),
+                            FacePropertyValue::Count(order) => Some(*order),
                             _ => None,
                         })
                 })
@@ -200,7 +187,7 @@ fn primary_rows(
         let complete = face.properties.iter().any(|property| {
             property.subject == subject.identity
                 && property.name == "complete"
-                && property.value == PresentationPropertyValue::Flag(true)
+                && property.value == FacePropertyValue::Flag(true)
         });
         append(
             &mut rows,
@@ -219,8 +206,8 @@ fn primary_rows(
         if let Some(subject) = face.subjects.iter().find(|subject| {
             matches!(
                 level(&subject.identity),
-                None | Some(PresentationDisclosureLevel::Primary)
-            ) && (!has_context || subject.role != PresentationRole::Body)
+                None | Some(FaceDisclosureLevel::Primary)
+            ) && (!has_context || subject.role != FaceRole::Body)
         }) {
             append(
                 &mut rows,
@@ -234,10 +221,10 @@ fn primary_rows(
     for (index, action) in face.actions.iter().enumerate() {
         let target_level = level(&action.target);
         if !action.availability.is_available()
-            || action.disclosure != PresentationDisclosureLevel::CurrentAction
+            || action.disclosure != FaceDisclosureLevel::CurrentAction
             || !(matches!(
                 target_level,
-                Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
+                Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
             ) || (!has_context && target_level.is_none()))
         {
             continue;
@@ -247,7 +234,7 @@ fn primary_rows(
             .iter()
             .find(|subject| subject.identity == action.target)
             .ok_or(TerminalError::InvalidFace)?;
-        let label = if target.role == PresentationRole::Item {
+        let label = if target.role == FaceRole::Item {
             format!("{} · {}", action.name, target.name)
         } else {
             action.name.clone()
@@ -362,12 +349,9 @@ pub(super) fn frame(mask: &TerminalFaceMask) -> String {
                 item.subject == subject.identity
                     && matches!(
                         item.level,
-                        PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary
+                        FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary
                     )
-            }) && matches!(
-                subject.role,
-                PresentationRole::Collection | PresentationRole::Document
-            )
+            }) && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
         })
         .or_else(|| mask.face.subjects.first())
         .map_or("Conduit", |s| s.name.as_str());

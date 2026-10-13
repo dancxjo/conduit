@@ -31,8 +31,8 @@ test("Inspect and advanced evidence preserve portable identity and Back",async({
     await page.locator("#deep-inspection > summary").click();
     const exact=await(await fetch(`${url}/api/snapshot`)).json();
     expect(exact.navigation.cursor.depth).toBe("Exact");
-    expect(exact.presentation.identity).toBe(original.presentation.identity);
-    expect(exact.presentation.basis).toEqual(original.presentation.basis);
+    expect(exact.face.identity).toBe(original.face.identity);
+    expect(exact.face.basis).toEqual(original.face.basis);
     await expect(page.locator("#deep-inspection")).toBeVisible();
 
     await page.locator("#deep-inspection > summary").click();

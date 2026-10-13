@@ -3,7 +3,7 @@ plot talking-polaroid-inspection (
     >> caption: Text
 ) {
     compose: media/compose-image-text
-    inspect: presentation/structured-info
+    inspect: face/structured-info("Polaroid description")
     image >> compose.image
     caption >> compose.caption
     compose.record >> inspect.input

@@ -7,7 +7,7 @@ pub(super) fn validate_inventory(
         || inventory.accelerator_hosts == 0
         || inventory.constrained_hosts < 2
         || inventory.sensor_input_capabilities == 0
-        || inventory.presentation_capabilities == 0
+        || inventory.face_capabilities == 0
         || inventory.line_mechanisms < 2
         || inventory.dormant_equipment == 0
         || inventory.recursive_realization_families == 0

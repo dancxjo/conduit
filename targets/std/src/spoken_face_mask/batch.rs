@@ -18,7 +18,7 @@ impl SpokenBatch {
     /// Flow for the same selected speaker and WAV fan-out used by Face reading.
     /// The supplied Show is the generated Mask Show, never a new authority.
     pub fn from_accepted_wording(
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         wording: &str,
         stream_identity: String,
@@ -82,7 +82,7 @@ impl SpokenBatch {
         Ok(batch)
     }
 
-    pub fn validate(&self, face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
+    pub fn validate(&self, face: &Face, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
         check_show(face, show)?;
         if self.face_id != face.identity.as_str() || self.face_revision != face.revision {
             return Err(SpokenFaceRefusal::StaleFace);

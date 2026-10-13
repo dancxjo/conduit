@@ -7,9 +7,7 @@ use conduit_body::{
 pub use conduit_conduitos_mask_offer::native_host_advertisement;
 pub(super) use conduit_conduitos_mask_offer::{Adapter, MaskStage, prepare_stage};
 use conduit_core::HostId;
-use conduit_presentation::{
-    BodyMaskWardrobe, MaskShow, MaskWardrobe, MaskWardrobeLifetime, Presentation,
-};
+use conduit_face::{BodyMaskWardrobe, Face, MaskShow, MaskWardrobe, MaskWardrobeLifetime};
 use patchbay_application::{PatchbayMaskMode, PatchbayMaskStage, PatchbayMaskTopology};
 use serde::Serialize;
 
@@ -29,8 +27,8 @@ pub struct NativeMaskEvidence {
     pub planning_disposition: &'static str,
     pub show_id: Option<String>,
     pub manifestation_id: Option<String>,
-    pub presentation_id: Option<String>,
-    pub presentation_revision: Option<u64>,
+    pub face_id: Option<String>,
+    pub face_revision: Option<u64>,
     pub shows: Vec<NativeMaskShowCorrelation>,
     pub kernel_signs: u16,
     pub fore_endpoints: u16,
@@ -40,8 +38,8 @@ pub struct NativeMaskEvidence {
 pub struct NativeMaskShowCorrelation {
     pub mask_plan_id: conduit_core::PlanId,
     pub mask_active_play_id: String,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub show_value_id: String,
     pub mask_show_id: String,
     pub manifestation_id: String,
@@ -56,7 +54,7 @@ pub(super) struct MaskControl {
     graphical: Option<MaskStage>,
     speech: Option<MaskStage>,
     sequence: u64,
-    presentation: Option<Presentation>,
+    face: Option<Face>,
     shows: Vec<MaskShow>,
     evidence: Option<NativeMaskEvidence>,
     surface_provider: Option<crate::native_surface_provider::NativeSurfaceProvider>,
@@ -85,7 +83,7 @@ impl MaskControl {
             graphical: Some(graphical),
             speech: None,
             sequence: 2,
-            presentation: None,
+            face: None,
             shows: Vec::new(),
             evidence: None,
             surface_provider,
@@ -134,7 +132,7 @@ impl MaskControl {
         } else if mode == PatchbayMaskMode::Speech {
             self.graphical = None;
         }
-        self.presentation = None;
+        self.face = None;
         self.shows.clear();
         self.evidence = None;
         Ok(())
@@ -267,7 +265,7 @@ impl MaskControl {
             });
         }
         self.sequence = self.sequence.checked_add(1).ok_or(())?;
-        self.presentation = None;
+        self.face = None;
         self.shows.clear();
         self.evidence = Some(NativeMaskEvidence {
             schema: "conduit.conduitos/native-mask-control@1",
@@ -284,14 +282,14 @@ impl MaskControl {
             planning_disposition: "not-required",
             show_id: None,
             manifestation_id: None,
-            presentation_id: None,
-            presentation_revision: None,
+            face_id: None,
+            face_revision: None,
             shows: Vec::new(),
             kernel_signs: 0,
             fore_endpoints: 0,
         });
         Ok(PatchbayMaskTopology {
-            presentation_id: "none".into(),
+            face_id: "none".into(),
             body_plan_id: body_plan.plan_id.clone(),
             active_play_id: play.active_play_id.as_str().into(),
             mode,
@@ -323,8 +321,7 @@ pub(super) fn patchbay_partition_selector(
         .iter()
         .flat_map(|fragment| &fragment.placements)
         .find(|placement| {
-            placement.kind_id.as_str()
-                == conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND
+            placement.kind_id.as_str() == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND
         })
         .ok_or(())?;
     Ok(BodyFaceSelector {
@@ -408,7 +405,7 @@ mod tests {
                 .map(|fragment| fragment.connections.len())
                 .sum::<usize>(),
             4,
-            "the planned Mask retains both Presentation branches, Show correlation, and the local show-resource Cord"
+            "the planned Mask retains both Face branches, Show correlation, and the local show-resource Cord"
         );
         let resource_connections = stage
             .planned_mask
@@ -427,7 +424,7 @@ mod tests {
                 .source_binding
                 .class_id
                 .as_str(),
-            conduit_presentation::SHOW_RESOURCE_CLASS
+            conduit_face::SHOW_RESOURCE_CLASS
         );
 
         let topology = control
@@ -478,7 +475,7 @@ mod tests {
                 .map(|fragment| fragment.connections.len())
                 .sum::<usize>(),
             3,
-            "the planned spoken Mask retains both Presentation branches and its Show correlation"
+            "the planned spoken Mask retains both Face branches and its Show correlation"
         );
     }
 }

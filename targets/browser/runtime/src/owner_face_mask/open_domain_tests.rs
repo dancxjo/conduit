@@ -4,8 +4,8 @@ use super::*;
 
 #[test]
 fn browser_generic_mask_keeps_open_domain_ids_and_supplied_typed_agency() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
     ))
     .unwrap();
     face.validate().unwrap();
@@ -72,9 +72,10 @@ fn browser_generic_mask_keeps_open_domain_ids_and_supplied_typed_agency() {
         "returned_interaction":emitted.interaction,
         "source_effect_applied":false,
     });
-    let recorded:serde_json::Value=serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/face-mask-reference.json"
-    )).unwrap();
+    let recorded: serde_json::Value = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/face-mask-reference.json"
+    ))
+    .unwrap();
     assert_eq!(
         recorded, reference,
         "reference IDs differ from actual checked Mask execution"
@@ -84,13 +85,13 @@ fn browser_generic_mask_keeps_open_domain_ids_and_supplied_typed_agency() {
     assert_eq!(emitted.interaction.face_revision, face.revision);
     assert_eq!(emitted.interaction.arguments[0].value, b"Energy");
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
-    assert_eq!(mask.presentation, face);
+    assert_eq!(mask.face, face);
 }
 
 #[test]
 fn browser_generic_mask_keeps_finite_place_actions_bound_to_their_targets() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/finite-place-face.json"
     ))
     .unwrap();
     let mut mask = OwnerBrowserMask::prepare_component_fixture(
@@ -138,23 +139,23 @@ fn browser_generic_mask_keeps_finite_place_actions_bound_to_their_targets() {
     let mut unavailable = proposal("commons/creche");
     unavailable.action_id = "commons/creche/inspect".into();
     assert!(mask.interact(unavailable).is_err());
-    assert_eq!(mask.presentation, face);
+    assert_eq!(mask.face, face);
     let emitted = mask.interact(proposal("commons/hub")).unwrap();
     assert_eq!(emitted.interaction.action_id, "commons/hub/inspect");
     assert_eq!(emitted.interaction.target, "commons/hub");
     assert!(emitted.interaction.arguments.is_empty());
     assert_eq!(emitted.show.show_id.as_str(), prepared.show_id);
-    assert_eq!(mask.presentation, face);
+    assert_eq!(mask.face, face);
 }
 
 #[test]
 fn browser_generic_mask_keeps_one_body_lifecycle_and_rejects_the_other_states_revision() {
-    let lulled: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"
+    let lulled: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/lulled-body-face.json"
     ))
     .unwrap();
-    let awake: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"
+    let awake: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/awake-body-face.json"
     ))
     .unwrap();
     assert_eq!(lulled.basis.body_id, awake.basis.body_id);
@@ -201,16 +202,16 @@ fn browser_generic_mask_keeps_one_body_lifecycle_and_rejects_the_other_states_re
         let emitted = mask.interact(proposal(view.face_revision.clone())).unwrap();
         assert_eq!(emitted.interaction.face_id, face.identity.as_str());
         assert_eq!(emitted.interaction.action_id, action.identity);
-        assert_eq!(mask.presentation, *face);
-        assert!(mask.presentation.basis.plan_id.is_none());
-        assert!(mask.presentation.basis.active_play_id.is_none());
+        assert_eq!(mask.face, *face);
+        assert!(mask.face.basis.plan_id.is_none());
+        assert!(mask.face.basis.active_play_id.is_none());
     }
 }
 
 #[test]
 fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
     ))
     .unwrap();
     for (index, lifecycle) in [
@@ -253,12 +254,12 @@ fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
             sequence: 1,
         };
         assert!(mask.interact(proposed("x".repeat(129))).is_err());
-        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.face, face);
         assert_eq!(mask.view().show_state, "available");
         mask.show = if lifecycle == ManifestationLifecycle::Failed {
             mask.show
                 .fail(
-                    conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                    conduit_face::ManifestationFailure::AdapterUnavailable,
                     SignId::from("sign/browser-domain-adapter-lost"),
                 )
                 .unwrap()
@@ -277,7 +278,7 @@ fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
             }
         );
         assert!(mask.interact(proposed("Energy".into())).is_err());
-        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.face, face);
     }
 }
 

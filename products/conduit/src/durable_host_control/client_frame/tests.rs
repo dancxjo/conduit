@@ -6,7 +6,7 @@ use std::os::unix::net::UnixListener;
 #[test]
 fn empty_and_partial_clients_leave_same_owner_available_for_valid_read() {
     let checked = crate::plot_source::parse(
-        "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()
@@ -61,7 +61,7 @@ fn empty_and_partial_clients_leave_same_owner_available_for_valid_read() {
         .unwrap();
         client.shutdown(std::net::Shutdown::Write).unwrap();
         match read_frame::<_, Response>(&mut client).unwrap() {
-            Response::BodyLocalFace { presentation, .. } => assert_eq!(*presentation, expected),
+            Response::BodyLocalFace { face, .. } => assert_eq!(*face, expected),
             _ => panic!("same service must still answer the actual read-only owner Face request"),
         }
     });

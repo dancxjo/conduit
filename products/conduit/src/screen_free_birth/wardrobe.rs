@@ -5,8 +5,8 @@
 use std::{io::Write, path::Path};
 
 use conduit_core::{HostAdvertisement, PlanId, PlotIdentity};
-use conduit_presentation::{
-    MaskWardrobe, MaskWardrobeAction, Presentation, SealedMaskPlotRoute, SelectedMaskPlotRoute,
+use conduit_face::{
+    Face, MaskWardrobe, MaskWardrobeAction, SealedMaskPlotRoute, SelectedMaskPlotRoute,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -38,7 +38,7 @@ pub(super) fn report_refusal(refusal: &str, output: &mut impl Write) -> Result<(
 #[derive(Clone)]
 pub(super) struct WardrobeReadout {
     raw: Value,
-    face: Result<Presentation, String>,
+    face: Result<Face, String>,
     plan_id: PlanId,
     wardrobe: MaskWardrobe,
     routes: Vec<SealedMaskPlotRoute>,
@@ -54,7 +54,7 @@ struct RouteDescription {
 }
 
 impl WardrobeReadout {
-    fn decode(raw: Value, face: Result<Presentation, String>) -> Result<Self, String> {
+    fn decode(raw: Value, face: Result<Face, String>) -> Result<Self, String> {
         if raw["schema"] != "conduit.body/owner-mask-wardrobe@1" {
             return Err("owner returned another wardrobe schema".into());
         }
@@ -211,7 +211,7 @@ impl WardrobeReadout {
 
 fn current_report(
     state_dir: &Path,
-    face: &Presentation,
+    face: &Face,
     host: &HostAdvertisement,
     basis: Option<&WardrobeReadout>,
     action: Option<MaskWardrobeAction>,
@@ -237,11 +237,11 @@ fn current_report(
 pub(super) fn command(
     line: &str,
     state_dir: &Path,
-    face: &Presentation,
+    face: &Face,
     host: &HostAdvertisement,
     prior: &mut Option<WardrobeReadout>,
     output: &mut impl Write,
-) -> Result<Option<Presentation>, String> {
+) -> Result<Option<Face>, String> {
     let report = if line == "wardrobe" {
         current_report(state_dir, face, host, None, None)?
     } else {

@@ -55,7 +55,7 @@ mod installed_offer_tests {
     use conduit_core::{BootId, HostId};
 
     #[test]
-    fn dom_mask_plan_requires_the_current_advertised_back_and_presentation_resource() {
+    fn dom_mask_plan_requires_the_current_advertised_back_and_face_resource() {
         let host = crate::installed_browser::membership_advertisement(
             HostId::from("host/browser-mask"),
             BootId::from("boot/browser-mask"),
@@ -72,7 +72,7 @@ mod installed_offer_tests {
         assert!(placement
             .resources
             .iter()
-            .any(|resource| resource.pool_id.as_str() == "browser/presentation"));
+            .any(|resource| resource.pool_id.as_str() == "browser/face"));
 
         let mut no_back = host.clone();
         no_back.capabilities.retain(|offer| {
@@ -83,7 +83,7 @@ mod installed_offer_tests {
         let mut no_resource = host;
         no_resource
             .resources
-            .retain(|resource| resource.pool_id.as_str() != "browser/presentation");
+            .retain(|resource| resource.pool_id.as_str() != "browser/face");
         assert!(planned_mask(&no_resource, MASK_SOURCE, "browser-graphical").is_err());
     }
 }

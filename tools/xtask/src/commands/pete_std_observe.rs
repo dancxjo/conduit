@@ -41,7 +41,7 @@ enum PeteProofCommand {
     /// Play one bounded portable melody through an exact std Create UART Base.
     #[command(name = "std-speaker")]
     Speaker(StdSpeakerArgs),
-    /// Manifest canonical Signal presentation on the Create power indicator.
+    /// Manifest canonical Signal face on the Create power indicator.
     #[command(name = "std-indicator")]
     Indicator(StdIndicatorArgs),
     /// Run one bounded reduced-safety physical Create drive proof.

@@ -2,7 +2,7 @@ import { layoutFlowScene } from "./flow-layout.js";
 import { projectCurrent } from "./portable-navigation.js";
 import { applyWorkspace, captureWorkspace, decodeWorkspace } from "./flow-workspace.js";
 
-export const FLOW_PRESENTATION_SCHEMA = "conduit.patchbay.flow-presentation/v1";
+export const FLOW_FACE_SCHEMA = "conduit.patchbay.flow-face/v1";
 export const MAX_FLOW_SUBJECTS = 512;
 export const MAX_FLOW_STATE_BYTES = 64 * 1024;
 export const MAX_FLOW_WORKSPACES = 4;
@@ -24,7 +24,7 @@ function deterministicPosition(index) {
 }
 
 export function workspaceBasis(snapshot) {
-  const basis = snapshot.authoring || snapshot.presentation.basis;
+  const basis = snapshot.authoring || snapshot.face.basis;
   if (typeof basis.source_document_id !== "string" || !basis.source_document_id
     || typeof basis.checked_plot_id !== "string" || !basis.checked_plot_id) {
     if (!snapshot.authoring) return null;
@@ -40,9 +40,9 @@ export function workspaceIdentity(snapshot) {
   return `${basis.source_document_id}/${basis.checked_plot_id}/${cursor?.place??"canonical"}`;
 }
 
-function propertiesBySubject(presentation) {
+function propertiesBySubject(face) {
   const result = new Map();
-  for (const property of presentation.properties) {
+  for (const property of face.properties) {
     if (!result.has(property.subject)) result.set(property.subject, new Map());
     result.get(property.subject).set(property.name, value(property));
   }
@@ -88,7 +88,7 @@ function cordCapacity(properties) {
     items,
     bytes,
     label: `${items} ${items === 1 ? "item" : "items"} · ${bytes} B`,
-    // Keep large admitted queues legible without allowing their presentation
+    // Keep large admitted queues legible without allowing their face
     // to obscure the graph. The exact capacity remains in the label.
     strokeWidth: Math.min(7, 2 + Math.log2(Math.max(1, items) + 1)),
   };
@@ -129,11 +129,11 @@ function cordVisual(properties, lens) {
 }
 
 export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set()) {
-  const presentation = projectCurrent(snapshot);
+  const face = projectCurrent(snapshot);
   // Projection owns which subjects and relationships exist in this scene. The
-  // canonical Presentation still owns the exact typed facts needed to draw
+  // canonical Face still owns the exact typed facts needed to draw
   // those admitted subjects (for example Port direction and Cord endpoints).
-  const subjectProperties = propertiesBySubject(snapshot.presentation);
+  const subjectProperties = propertiesBySubject(snapshot.face);
   const candidates = snapshot.authoring?.connection_candidates || [];
   if (!Array.isArray(candidates) || candidates.length > MAX_FLOW_SUBJECTS) {
     throw new Error("Connection candidate bound exceeded");
@@ -143,9 +143,9 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   const causalTrace = new Set((snapshot.timeline?.trace?.steps || []).map((step) => step.subject));
   const tracing = causalTrace.size > 0;
   const reducedMotion = snapshot.debugger?.reduced_motion === true;
-  const allSubjects = new Map(presentation.subjects.map((subject) => [subject.identity, subject]));
+  const allSubjects = new Map(face.subjects.map((subject) => [subject.identity, subject]));
   const children = new Map();
-  for (const relation of presentation.relationships) {
+  for (const relation of face.relationships) {
     if (relation.kind !== "Contains") continue;
     if (!children.has(relation.source)) children.set(relation.source, []);
     children.get(relation.source).push(relation.target);
@@ -155,7 +155,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
     const visited = new Set();
     while (parent) {
       if (visited.size === MAX_FLOW_SUBJECTS || visited.has(parent)) {
-        throw new Error("Recursive Back presentation is cyclic or exceeds its finite bound");
+        throw new Error("Recursive Back face is cyclic or exceeds its finite bound");
       }
       visited.add(parent);
       if (!openedBacks.has(parent)) return false;
@@ -163,7 +163,7 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
     }
     return true;
   };
-  const subjects = presentation.subjects.filter((subject) =>
+  const subjects = face.subjects.filter((subject) =>
     ["Plot", "Body", "Host", "Part", "Gear"].includes(subject.role)
       && visibleThroughBacks(subject));
   if (subjects.length > MAX_FLOW_SUBJECTS) throw new Error("Flow subject bound exceeded");
@@ -209,16 +209,16 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   })).sort(compareIdentity);
   const nodeIds = new Set(nodes.map((node) => node.id));
   const semanticSubjects = new Map();
-  for (const property of snapshot.presentation.properties) {
+  for (const property of snapshot.face.properties) {
     if (property.name === "semantic-id") semanticSubjects.set(value(property), property.subject);
   }
   const owner = new Map();
-  for (const relation of presentation.relationships) {
+  for (const relation of face.relationships) {
     if (relation.kind === "Contains" && nodeIds.has(relation.source)) owner.set(relation.target, relation.source);
   }
   const edges = [];
-  for (const cord of presentation.subjects.filter((subject) => subject.role === "Cord")) {
-    const properties = snapshot.presentation.properties.filter((property) => property.subject === cord.identity);
+  for (const cord of face.subjects.filter((subject) => subject.role === "Cord")) {
+    const properties = snapshot.face.properties.filter((property) => property.subject === cord.identity);
     const propertiesMap = subjectProperties.get(cord.identity) || new Map();
     let sourcePort = semanticSubjects.get(value(properties.find((property) => property.name === "source-port")));
     let sinkPort = semanticSubjects.get(value(properties.find((property) => property.name === "sink-port")));
@@ -258,10 +258,10 @@ export function projectFlowScene(snapshot, lens = "world", openedBacks = new Set
   return {
     workspaceIdentity: workspaceIdentity(snapshot),
     basis: workspaceBasis(snapshot),
-    semanticSubjects: [...new Set(snapshot.presentation.properties
+    semanticSubjects: [...new Set(snapshot.face.properties
       .filter((property) => property.name === "semantic-id").map(value))],
-    presentationIdentity: presentation.identity,
-    presentationRevision: presentation.revision,
+    faceIdentity: face.identity,
+    faceRevision: face.revision,
     lens,
     nodes,
     edges,
@@ -283,13 +283,13 @@ export function reconcileFlowScene(projection, prior = null) {
   };
 }
 
-export function encodeFlowPresentation(scene) {
+export function encodeFlowFace(scene) {
   const document = JSON.stringify(captureWorkspace(scene, scene.workspace));
-  if (new TextEncoder().encode(document).length > MAX_FLOW_STATE_BYTES) throw new Error("Flow presentation byte bound exceeded");
+  if (new TextEncoder().encode(document).length > MAX_FLOW_STATE_BYTES) throw new Error("Flow face byte bound exceeded");
   return document;
 }
 
-export function decodeFlowPresentation(document, projection) {
+export function decodeFlowFace(document, projection) {
   if (typeof document !== "string" || new TextEncoder().encode(document).length > MAX_FLOW_STATE_BYTES) return null;
   try {
     return applyWorkspace(decodeWorkspace(document, projection), reconcileFlowScene(projection));

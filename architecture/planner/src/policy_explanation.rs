@@ -16,7 +16,7 @@ pub const MAX_STYLE_EXPLANATION_CLAUSES: usize = 64;
 pub enum PolicyChoiceDomain {
     Realization,
     ComputeResource,
-    PresentationStyle,
+    FaceStyle,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]

@@ -1,7 +1,7 @@
 //! Real committed-state Plays feed native and nonvisual reconstruction; no state is
 //! manufactured by a Mask and no synthetic receipt substitutes for the read.
 use super::*;
-use conduit_presentation::{plan_face_utterances, render_linear_presentation};
+use conduit_face::{plan_face_utterances, render_linear_face};
 
 #[test]
 fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
@@ -37,14 +37,14 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
         assert!(face.basis.sign_ids.contains(&basis.write.terminal_sign_id));
         let mut native =
             conduitos::native_face_scene::NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
-        assert_eq!(native.presentation(), &face);
+        assert_eq!(native.face(), &face);
         let mut rendered = String::new();
         for _ in 0..native.pages() {
             let frame = native.frame().unwrap();
             for command in frame.scene.commands() {
                 assert_eq!(
                     command.clip_class(),
-                    conduit_presentation::GraphicsClipClass::FullyVisible
+                    conduit_face::GraphicsClipClass::FullyVisible
                 );
                 rendered.push_str(command.payload());
             }
@@ -65,7 +65,7 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
             for command in frame.scene.commands() {
                 assert_eq!(
                     command.clip_class(),
-                    conduit_presentation::GraphicsClipClass::FullyVisible
+                    conduit_face::GraphicsClipClass::FullyVisible
                 );
                 details.push_str(command.payload());
             }
@@ -78,12 +78,12 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
                 item.id
             );
         }
-        assert_eq!(native.presentation(), &face);
+        assert_eq!(native.face(), &face);
         exchanges.push(serde_json::json!({
             "face": face, "remaining": expected_remaining,
             "verified_read_receipt": owner.todo_verified_read_receipt().unwrap(),
         }));
-        let linear = render_linear_presentation(&face).unwrap().lines.join("\n");
+        let linear = render_linear_face(&face).unwrap().lines.join("\n");
         let spoken = plan_face_utterances(&face)
             .unwrap()
             .clauses
@@ -107,7 +107,7 @@ fn verified_three_item_todo_and_completion_preserve_nonvisual_meaning() {
                 owner
                     .project_verified_todo_face(&stale_basis, &stale_state)
                     .unwrap_err(),
-                conduit_presentation::CommittedStateEvidenceRefusal::ReadDigestMismatch.as_str()
+                conduit_face::CommittedStateEvidenceRefusal::ReadDigestMismatch.as_str()
             );
             assert_eq!(
                 owner.todo_verified_read_receipt().unwrap(),

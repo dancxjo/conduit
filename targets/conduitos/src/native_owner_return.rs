@@ -4,7 +4,7 @@
 
 use alloc::{string::String, vec, vec::Vec};
 use conduit_body::PortableAdmissionReceipt;
-use conduit_presentation::{
+use conduit_face::{
     FaceInteraction, MaskShow, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
     OwnerFaceSnapshotResponse,
 };

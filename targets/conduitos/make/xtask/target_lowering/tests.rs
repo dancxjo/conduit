@@ -69,10 +69,10 @@ fn resolved_profiles_lower_to_distinct_exact_product_inputs() {
     assert!(headless.cargo_features.is_empty());
     assert_ne!(native.implementations, headless.implementations);
     assert_eq!(headless.presenters, 0);
-    assert_eq!(headless.presentation_surface_slots, 0);
-    assert_eq!(headless.presentation_surface_bytes, 0);
-    assert_eq!(native.presentation_surface_slots, 4);
-    assert_eq!(native.presentation_surface_bytes, 8_388_608);
+    assert_eq!(headless.face_surface_slots, 0);
+    assert_eq!(headless.face_surface_bytes, 0);
+    assert_eq!(native.face_surface_slots, 4);
+    assert_eq!(native.face_surface_bytes, 8_388_608);
     assert_eq!(native.proof_instrumentation, 0);
 }
 
@@ -347,8 +347,8 @@ fn aarch64_virt_lowers_to_a_distinct_linear_product_inventory() {
         conduitos::make::PRESENTER_NATIVE_GRAPHICAL
     );
     assert_eq!(lowered.proof_instrumentation, 0);
-    assert_eq!(lowered.presentation_surface_slots, 0);
-    assert_eq!(lowered.presentation_surface_bytes, 0);
+    assert_eq!(lowered.face_surface_slots, 0);
+    assert_eq!(lowered.face_surface_bytes, 0);
     assert_eq!(
         lowered.implementations
             & (conduitos::make::IMPL_KEYBOARD

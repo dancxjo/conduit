@@ -1,5 +1,5 @@
 use conduit_browser_patchbay_workbench::{demonstration_snapshot, PatchbayHtmlServer, ServerError};
-use conduit_presentation::{ManifestationFailure, ManifestationLifecycle};
+use conduit_face::{ManifestationFailure, ManifestationLifecycle};
 use std::io::{Read, Write};
 use std::net::{Ipv4Addr, SocketAddrV4, TcpStream};
 
@@ -125,13 +125,13 @@ fn post_to(address: std::net::SocketAddr, path: &str, body: &[u8]) -> String {
 #[test]
 fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation = snapshot.presentation.clone();
+    let face = snapshot.face.clone();
     let timeline_revision = snapshot.timeline.as_ref().unwrap().revision;
     let response = post_debugger_timeline(
         snapshot,
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation.identity.as_str(),
-            "presentation_revision": presentation.revision,
+            "face_id": face.identity.as_str(),
+            "face_revision": face.revision,
             "timeline_revision": timeline_revision,
             "action": "select-event",
             "index": 0,
@@ -141,10 +141,10 @@ fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
     assert!(response.starts_with("HTTP/1.1 200 OK"), "{response}");
     let selected = conduit_browser_patchbay_workbench::RendererSnapshot::decode(
         response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
-        presentation.revision,
+        face.revision,
     )
     .unwrap();
-    assert_eq!(selected.presentation, presentation);
+    assert_eq!(selected.face, face);
     assert_eq!(selected.timeline.as_ref().unwrap().selected_event, Some(0));
     assert_eq!(
         selected
@@ -163,12 +163,12 @@ fn debugger_timeline_pause_and_event_selection_mutate_only_playback_state() {
 #[test]
 fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation = snapshot.presentation.clone();
+    let face = snapshot.face.clone();
     let response = post_debugger_timeline(
         snapshot.clone(),
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation.identity.as_str(),
-            "presentation_revision": presentation.revision,
+            "face_id": face.identity.as_str(),
+            "face_revision": face.revision,
             "timeline_revision": snapshot.timeline.as_ref().unwrap().revision,
             "action": "trace-upstream",
             "index": 1,
@@ -178,7 +178,7 @@ fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
     assert!(response.starts_with("HTTP/1.1 200 OK"));
     let traced = conduit_browser_patchbay_workbench::RendererSnapshot::decode(
         response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
-        presentation.revision,
+        face.revision,
     )
     .unwrap();
     assert_eq!(
@@ -195,13 +195,13 @@ fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
             .collect::<Vec<_>>(),
         vec![39, 40]
     );
-    assert_eq!(traced.presentation, presentation);
+    assert_eq!(traced.face, face);
 }
 
 #[test]
 fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation = snapshot.presentation.clone();
+    let face = snapshot.face.clone();
     let control = snapshot.debugger_control.as_ref().unwrap();
     let subject = control.eligible_subjects[0].clone();
     let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
@@ -211,8 +211,8 @@ fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
         address,
         "/api/debugger-control",
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation.identity.as_str(),
-            "presentation_revision": presentation.revision,
+            "face_id": face.identity.as_str(),
+            "face_revision": face.revision,
             "control_revision": control.revision,
             "action": "break-here",
             "subject": subject,
@@ -225,20 +225,20 @@ fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
             .nth(1)
             .unwrap()
             .as_bytes(),
-        presentation.revision,
+        face.revision,
     )
     .unwrap();
     assert_eq!(
         suspended.debugger_control.as_ref().unwrap().state,
         patchbay_application::DebuggerExecutionControlState::Suspended
     );
-    assert_eq!(suspended.presentation, presentation);
+    assert_eq!(suspended.face, face);
     let resumed_response = post_to(
         address,
         "/api/debugger-control",
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation.identity.as_str(),
-            "presentation_revision": presentation.revision,
+            "face_id": face.identity.as_str(),
+            "face_revision": face.revision,
             "control_revision": suspended.debugger_control.as_ref().unwrap().revision,
             "action": "resume",
         }))
@@ -250,21 +250,21 @@ fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
             .nth(1)
             .unwrap()
             .as_bytes(),
-        presentation.revision,
+        face.revision,
     )
     .unwrap();
     assert_eq!(
         resumed.debugger_control.as_ref().unwrap().state,
         patchbay_application::DebuggerExecutionControlState::Running
     );
-    assert_eq!(resumed.presentation, presentation);
+    assert_eq!(resumed.face, face);
     worker.join().unwrap().unwrap();
 }
 
 #[test]
 fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation = snapshot.presentation.clone();
+    let face = snapshot.face.clone();
     let watches = snapshot.watches.as_ref().unwrap();
     let subject = watches
         .eligible_subjects
@@ -274,8 +274,8 @@ fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
         .0
         .clone();
     let body = serde_json::to_vec(&serde_json::json!({
-        "presentation_id": presentation.identity.as_str(),
-        "presentation_revision": presentation.revision,
+        "face_id": face.identity.as_str(),
+        "face_revision": face.revision,
         "watch_revision": watches.revision,
         "action": "add",
         "subject": subject,
@@ -285,10 +285,10 @@ fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
     assert!(response.starts_with("HTTP/1.1 200 OK"));
     let watched = conduit_browser_patchbay_workbench::RendererSnapshot::decode(
         response.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
-        presentation.revision,
+        face.revision,
     )
     .unwrap();
-    assert_eq!(watched.presentation, presentation);
+    assert_eq!(watched.face, face);
     let watch = &watched.watches.as_ref().unwrap().watches[0];
     assert_eq!(watch.subject, subject);
     assert_eq!(watch.latest.as_ref().unwrap().sequence, 42);
@@ -297,8 +297,8 @@ fn debugger_watch_mutation_is_exact_revisioned_and_topology_immutable() {
     let stale = post_debugger_watch(
         snapshot,
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation.identity.as_str(),
-            "presentation_revision": presentation.revision,
+            "face_id": face.identity.as_str(),
+            "face_revision": face.revision,
             "watch_revision": 99,
             "action": "add",
             "subject": subject,
@@ -354,8 +354,8 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
         .unwrap()
         .iter()
         .any(|resource| {
-            resource["role"] == "shared-presentation"
-                && resource["path"] == "assets/shared-presentation.js"
+            resource["role"] == "shared-face"
+                && resource["path"] == "assets/shared-face.js"
                 && resource["kind"] == "module"
         }));
     assert!(manifest["resources"]
@@ -367,9 +367,9 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
                 && resource["path"] == "assets/product-masthead.mjs"
                 && resource["kind"] == "module"
         }));
-    let shared_presentation = request("/assets/shared-presentation.js", "GET");
-    assert!(shared_presentation.starts_with("HTTP/1.1 200 OK"));
-    assert!(shared_presentation.contains("createPatchbaySharedPresentation"));
+    let shared_face = request("/assets/shared-face.js", "GET");
+    assert!(shared_face.starts_with("HTTP/1.1 200 OK"));
+    assert!(shared_face.contains("createPatchbaySharedFace"));
     let navigation = request("/assets/portable-navigation.js", "GET");
     assert!(navigation.starts_with("HTTP/1.1 200 OK"));
     assert!(navigation.contains("projectCurrent"));
@@ -389,7 +389,7 @@ fn exact_read_only_routes_are_bounded_no_store_and_typed() {
     );
     let observation = request("/api/navigation-observation", "GET");
     assert!(observation.starts_with("HTTP/1.1 200 OK"));
-    let observed: conduit_presentation::NavigationObservation =
+    let observed: conduit_face::NavigationObservation =
         serde_json::from_str(observation.split("\r\n\r\n").nth(1).unwrap()).unwrap();
     assert_eq!(Some(observed), decoded.navigation_observation().unwrap());
     assert_eq!(
@@ -410,10 +410,7 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
             "/assets/browser-host-identity.mjs",
             "openBrowserHostIdentity",
         ),
-        (
-            "/assets/application-presentation.mjs",
-            "createApplicationPresentationHost",
-        ),
+        ("/assets/application-face.mjs", "createApplicationFaceHost"),
         ("/assets/product-masthead.mjs", "createProductMasthead"),
         ("/assets/application-theme.mjs", "applicationThemeLimits"),
         (
@@ -441,16 +438,16 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
 #[test]
 fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation_id = snapshot.presentation.identity.as_str().to_owned();
+    let face_id = snapshot.face.identity.as_str().to_owned();
     let parts = snapshot.parts.as_ref().unwrap();
     let body_id = parts.body_id.as_str().to_owned();
     let candidate = parts.wants_to_join[0].candidate_id.as_str().to_owned();
-    let plot = snapshot.presentation.basis.checked_plot_id.clone();
-    let plan = snapshot.presentation.basis.plan_id.clone();
+    let plot = snapshot.face.basis.checked_plot_id.clone();
+    let plan = snapshot.face.basis.plan_id.clone();
     let response = post_parts_interaction(
         snapshot,
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": presentation_id,
+            "face_id": face_id,
             "body_id": body_id,
             "action": "Inspect",
             "target": candidate,
@@ -471,8 +468,8 @@ fn parts_inspection_is_non_mutating_and_ambient_admission_is_never_implicit() {
         Some(candidate.as_str())
     );
     assert!(decoded.interaction.selected_part.is_none());
-    assert_eq!(decoded.presentation.basis.checked_plot_id, plot);
-    assert_eq!(decoded.presentation.basis.plan_id, plan);
+    assert_eq!(decoded.face.basis.checked_plot_id, plot);
+    assert_eq!(decoded.face.basis.plan_id, plan);
     assert_eq!(decoded.parts.unwrap().wants_to_join.len(), 1);
 }
 
@@ -485,7 +482,7 @@ fn parts_mutation_without_a_coordinator_refuses_nonfatally_and_stale_basis_refus
     let response = post_parts_interaction(
         snapshot.clone(),
         &serde_json::to_vec(&serde_json::json!({
-            "presentation_id": snapshot.presentation.identity,
+            "face_id": snapshot.face.identity,
             "body_id": body_id,
             "action": "Admit",
             "target": candidate,
@@ -511,7 +508,7 @@ fn parts_mutation_without_a_coordinator_refuses_nonfatally_and_stale_basis_refus
 
     let stale = post_parts_interaction(
         snapshot,
-        br#"{"presentation_id":"stale","body_id":"stale","action":"Inspect","target":"stale"}"#,
+        br#"{"face_id":"stale","body_id":"stale","action":"Inspect","target":"stale"}"#,
     );
     let decoded = conduit_browser_patchbay_workbench::RendererSnapshot::decode(
         stale.split("\r\n\r\n").nth(1).unwrap().as_bytes(),
@@ -533,7 +530,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(response.contains("Content-Type: text/css; charset=utf-8"));
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= conduit_browser_patchbay_workbench::MAX_THEME_CSS_BYTES);
-    assert!(body.contains("--conduit-theme-identity:\"conduit.presentation/phosphor@1\""));
+    assert!(body.contains("--conduit-theme-identity:\"conduit.face/phosphor@1\""));
     assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),
@@ -584,12 +581,12 @@ fn server_rejects_non_loopback_exposure() {
 #[test]
 fn structured_browser_edit_normalizes_without_dom_or_widget_identity() {
     let snapshot = demonstration_snapshot().unwrap();
-    let presentation_id = snapshot.presentation.identity.as_str();
-    let basis = &snapshot.presentation.basis;
+    let face_id = snapshot.face.identity.as_str();
+    let basis = &snapshot.face.basis;
     let expanded = basis.expanded_plot_id.as_ref().unwrap().as_str();
     let body = serde_json::to_vec(&serde_json::json!({
-        "presentation_id": presentation_id,
-        "presentation_revision": snapshot.presentation.revision,
+        "face_id": face_id,
+        "face_revision": snapshot.face.revision,
         "kind": "edit",
         "subject": null,
         "action_id": null,
@@ -662,8 +659,8 @@ fn malformed_and_oversized_requests_do_not_stop_later_delivery() {
 #[test]
 fn transport_failure_yields_an_exact_failed_manifestation_sign() {
     let snapshot = demonstration_snapshot().unwrap();
-    let source_identity = snapshot.presentation.identity.clone();
-    let source_play = snapshot.presentation.basis.active_play_id.clone();
+    let source_identity = snapshot.face.identity.clone();
+    let source_play = snapshot.face.basis.active_play_id.clone();
     let server = PatchbayHtmlServer::bind_ephemeral(&snapshot).unwrap();
     let address = server.local_addr().unwrap();
     let worker = std::thread::spawn(move || server.serve_count(1));
@@ -679,11 +676,8 @@ fn transport_failure_yields_an_exact_failed_manifestation_sign() {
         failure.snapshot.renderer.manifestation.failure,
         Some(ManifestationFailure::DeliveryFailed)
     );
-    assert_eq!(failure.snapshot.presentation.identity, source_identity);
-    assert_eq!(
-        failure.snapshot.presentation.basis.active_play_id,
-        source_play
-    );
+    assert_eq!(failure.snapshot.face.identity, source_identity);
+    assert_eq!(failure.snapshot.face.basis.active_play_id, source_play);
     let sign = failure
         .snapshot
         .renderer

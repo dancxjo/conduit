@@ -75,7 +75,7 @@ fn execute_profile_for_role(
     let generated = paths.target.join("make-record.rs");
     let lowering = target_lowering::lower(manifest)?;
     let source = format!(
-        "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, presentation_surface_slots: {surface_slots}, presentation_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
+        "pub const EMBEDDED_MAKE: MakeRecord = MakeRecord {{ schema: {schema:?}, profile_id: {profile:?}, build_id: {build:?}, image_binding: {binding:?}, target: {target:?}, implementations: {implementations}, facilities: {facilities}, resources: {resources}, bases: {bases}, drivers: {drivers}, presenters: {presenters}, proof_instrumentation: {proof_instrumentation}, face_surface_slots: {surface_slots}, face_surface_bytes: {surface_bytes}, runtime_arena_ceiling: {arena}, operation_slot_ceiling: {operations}, timer_slot_ceiling: {timers}, evidence_item_ceiling: {evidence} }};\n",
         schema = conduitos::make::MAKE_SCHEMA,
         profile = manifest.profile_id,
         build = manifest.build_id,
@@ -88,8 +88,8 @@ fn execute_profile_for_role(
         drivers = lowering.drivers,
         presenters = lowering.presenters,
         proof_instrumentation = lowering.proof_instrumentation,
-        surface_slots = lowering.presentation_surface_slots,
-        surface_bytes = lowering.presentation_surface_bytes,
+        surface_slots = lowering.face_surface_slots,
+        surface_bytes = lowering.face_surface_bytes,
         arena = runtime_arena_ceiling(manifest),
         operations = manifest.bounds.operation_slots,
         timers = manifest.bounds.timer_slots,

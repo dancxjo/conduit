@@ -1,49 +1,49 @@
 use serde::Serialize;
 
-use crate::installed_browser::PresentationProfile;
+use crate::installed_browser::FaceProfile;
 
-const REVIEWED_SOURCES: [(&str, &str, &str, PresentationProfile); 7] = [
+const REVIEWED_SOURCES: [(&str, &str, &str, FaceProfile); 7] = [
     (
         "firefly-choir",
         "Firefly Choir",
         include_str!("../../../../../plots/firefly-choir/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
     (
         "morse_network",
         "Morse Network",
         include_str!("../../../../../plots/morse-network/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
     (
         "memory_lantern",
         "Memory Lantern",
         include_str!("../../../../../plots/memory-lantern/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
     (
         "desk_telegraph",
         "Desk Telegraph",
         include_str!("../../../../../plots/desk-telegraph/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
     (
         "night-radio",
         "Night Radio",
         include_str!("../../../../../plots/night-radio/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
     (
         "secret-knock-demo",
         "Secret Knock",
         include_str!("../../../../../plots/secret-knock/main.conduit"),
-        PresentationProfile::PatternComparison,
+        FaceProfile::PatternComparison,
     ),
     (
         "button_across_room",
         "Button Across the Room",
         include_str!("../../../../../plots/button-across-room/main.conduit"),
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
     ),
 ];
 
@@ -65,7 +65,7 @@ struct GalleryPlot {
     source: &'static str,
     source_document_id: String,
     checked_plot_id: String,
-    presentation_profile: u8,
+    face_profile: u8,
     required_kinds: Vec<String>,
     realizability: GalleryRealizability,
 }
@@ -87,13 +87,12 @@ struct GalleryRequirement {
 
 pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
     let mut plots = Vec::with_capacity(REVIEWED_SOURCES.len());
-    for (name, title, source, presentation) in REVIEWED_SOURCES {
-        let (startup, mut profile) =
-            crate::installed_browser::catalogs_for_presentation(presentation)?;
-        let host = crate::installed_browser::advertisement_for_presentation(
+    for (name, title, source, face) in REVIEWED_SOURCES {
+        let (startup, mut profile) = crate::installed_browser::catalogs_for_face(face)?;
+        let host = crate::installed_browser::advertisement_for_face(
             "browser/gallery".into(),
             "browser/gallery-boot".into(),
-            presentation,
+            face,
         );
         let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
         if let Some(diagnostic) = syntax.diagnostics.first() {
@@ -170,11 +169,11 @@ pub(super) fn reviewed_gallery() -> Result<Gallery, String> {
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_plot_id: plot.checked_plot_id.as_str().into(),
-            presentation_profile: match presentation {
-                PresentationProfile::Annotation => 0,
-                PresentationProfile::Quantity => 1,
-                PresentationProfile::NormalizedDurations => 2,
-                PresentationProfile::PatternComparison => 3,
+            face_profile: match face {
+                FaceProfile::Annotation => 0,
+                FaceProfile::Quantity => 1,
+                FaceProfile::NormalizedDurations => 2,
+                FaceProfile::PatternComparison => 3,
             },
             required_kinds,
             realizability: GalleryRealizability {
@@ -252,7 +251,7 @@ pub(super) fn reviewed_gallery_view(
         selected_checked_plot_id: selected_checked_plot_id.map(Into::into),
         entries,
     }
-    .presentation()
+    .face()
     .map_err(|error| format!("describe reviewed Gallery: {error:?}"))?
     .lower()
     .map_err(|error| format!("lower reviewed Gallery: {error:?}"))?
@@ -337,16 +336,14 @@ mod tests {
             include_str!("../../../../../plots/morse-network/main.conduit")
         );
         assert!(morse.required_kinds.contains(&"text/morse".to_owned()));
-        assert!(morse
-            .required_kinds
-            .contains(&"presentation/indicator".to_owned()));
+        assert!(morse.required_kinds.contains(&"face/indicator".to_owned()));
         assert_eq!(
             gallery
                 .plots
                 .iter()
                 .find(|plot| plot.name == "secret-knock-demo")
                 .unwrap()
-                .presentation_profile,
+                .face_profile,
             3
         );
         for plot in gallery.plots {
@@ -372,19 +369,19 @@ mod tests {
     #[test]
     fn gallery_view_uses_the_product_semantic_model_and_exact_handoffs() {
         let encoded = reviewed_gallery_view("", None, "/conduit/workspace/", 4).unwrap();
-        let view = conduit_presentation::ApplicationView::decode(&encoded).unwrap();
+        let view = conduit_face::ApplicationView::decode(&encoded).unwrap();
         assert_eq!(view.revision, 4);
         assert_eq!(
             view.nodes
                 .iter()
-                .filter(|node| node.component == conduit_presentation::ApplicationComponent::Panel)
+                .filter(|node| node.component == conduit_face::ApplicationComponent::Panel)
                 .count(),
             REVIEWED_SOURCES.len()
         );
         let handoff = view
             .nodes
             .iter()
-            .filter(|node| node.component == conduit_presentation::ApplicationComponent::Link)
+            .filter(|node| node.component == conduit_face::ApplicationComponent::Link)
             .find(|node| node.value.contains("plot=memory_lantern"))
             .unwrap();
         assert!(handoff
@@ -403,7 +400,7 @@ mod tests {
             20,
             true,
         );
-        assert!(summary.len() <= conduit_presentation::MAX_APPLICATION_VIEW_TEXT_BYTES - 20);
+        assert!(summary.len() <= conduit_face::MAX_APPLICATION_VIEW_TEXT_BYTES - 20);
         assert!(summary.contains("more exact requirements"));
         assert!(summary.contains("Offers 20/20; runnable here"));
     }

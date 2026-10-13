@@ -22,8 +22,8 @@ use crate::{
 mod cli;
 mod workspace;
 use workspace::run_workspace_shard;
-#[path = "check/owner_presentation.rs"]
-mod owner_presentation;
+#[path = "check/owner_face.rs"]
+mod owner_face;
 pub use cli::{CheckArgs, CheckScope, CheckSuite};
 
 pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
@@ -71,7 +71,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
-        CheckSuite::OwnerPresentation => run_suite(owner_presentation::STEPS, &root, opts),
+        CheckSuite::OwnerFace => run_suite(owner_face::STEPS, &root, opts),
         CheckSuite::InputSemantics => run_suite(INPUT_SEMANTICS_STEPS, &root, opts),
         CheckSuite::HostedBaseIsolation => run_suite(HOSTED_BASE_ISOLATION_STEPS, &root, opts),
         CheckSuite::IsolatedHttpBase => run_suite(ISOLATED_HTTP_BASE_STEPS, &root, opts),

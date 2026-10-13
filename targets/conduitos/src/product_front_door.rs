@@ -18,8 +18,8 @@ use workspace_input::refresh_with_face as refresh;
 
 use alloc::format;
 
+use conduit_face::ApplicationEvent;
 use conduit_human::{KeyModifiers, KeyTransition};
-use conduit_presentation::ApplicationEvent;
 
 use crate::{
     arch::{self, HidKeyboardSession, HidPointerSession, UsbDevice, XhciReady},
@@ -166,13 +166,13 @@ pub fn run(
         make.profile_id,
         make.image_binding,
         framebuffer_basis.base_id.clone(),
-        make.presentation_surface_slots,
+        make.face_surface_slots,
     )
     .map_err(|error| error.as_str())?;
     let owner_face_presented = owner_face.is_some();
     let mut owner_route_standby = owner_route.as_ref().is_some_and(|route| route.available());
     let receipt = if let Some(owner_face) = owner_face {
-        face_arrival.present_owner_face(owner_face.into_presentation(), false, display)?
+        face_arrival.present_owner_face(owner_face.into_face(), false, display)?
     } else if provisioned_guest {
         face_arrival.present_pending_join(&front_door, display)?
     } else {
@@ -254,16 +254,16 @@ pub fn run(
                             } else {
                                 let (look, recipe) = match event.usage() {
                                     63 => (
-                                        conduit_presentation::ComponentMaskLook::Compact,
-                                        conduit_presentation::TodoComponentRecipe::Flat,
+                                        conduit_face::ComponentMaskLook::Compact,
+                                        conduit_face::TodoComponentRecipe::Flat,
                                     ),
                                     64 => (
-                                        conduit_presentation::ComponentMaskLook::Spacious,
-                                        conduit_presentation::TodoComponentRecipe::Flat,
+                                        conduit_face::ComponentMaskLook::Spacious,
+                                        conduit_face::TodoComponentRecipe::Flat,
                                     ),
                                     _ => (
-                                        conduit_presentation::ComponentMaskLook::Spacious,
-                                        conduit_presentation::TodoComponentRecipe::Grouped,
+                                        conduit_face::ComponentMaskLook::Spacious,
+                                        conduit_face::TodoComponentRecipe::Grouped,
                                     ),
                                 };
                                 face_arrival.select_owner_component(
@@ -316,10 +316,8 @@ pub fn run(
                                     return Ok(ProductInputControl::Continue);
                                 }
                             };
-                            face_arrival.activate_refreshed_owner_route(
-                                fresh.presentation().clone(),
-                                display,
-                            )?;
+                            face_arrival
+                                .activate_refreshed_owner_route(fresh.face().clone(), display)?;
                             current_owner_face = Some(fresh);
                             let route = owner_route
                                 .as_mut()
@@ -365,7 +363,7 @@ pub fn run(
                                     let refreshed = outcome.face.is_some();
                                     if let Some(face) = outcome.face {
                                         face_arrival.present_owner_face(
-                                            face.into_presentation(),
+                                            face.into_face(),
                                             admitted,
                                             display,
                                         )?;

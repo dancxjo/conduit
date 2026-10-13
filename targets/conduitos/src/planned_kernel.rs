@@ -107,12 +107,12 @@ impl TimerBack {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-struct PresentationBack {
+struct FaceBack {
     pending: bool,
     complete: bool,
 }
 
-impl PresentationBack {
+impl FaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if self.pending {
             let Some((request, outcome)) = io.host_completion() else {
@@ -169,7 +169,7 @@ const fn failure(code: conduit_kernel::FailureCode, detail: u16) -> StepOutcome 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 enum PlannedBack {
     Timer(TimerBack),
-    Presentation(PresentationBack),
+    Face(FaceBack),
 }
 
 impl StepBack<PORTS> for PlannedBack {
@@ -180,14 +180,14 @@ impl StepBack<PORTS> for PlannedBack {
     ) -> StepOutcome {
         match self {
             Self::Timer(back) => back.step(io),
-            Self::Presentation(back) => back.step(io),
+            Self::Face(back) => back.step(io),
         }
     }
 
     fn cancel(&mut self) {
         match self {
             Self::Timer(operation) => operation.cancel(),
-            Self::Presentation(operation) => operation.cancel(),
+            Self::Face(operation) => operation.cancel(),
         }
     }
 }
@@ -233,7 +233,7 @@ impl PlannedKernel {
                 tick,
                 state: TimerState::Waiting,
             }),
-            PlannedBack::Presentation(PresentationBack {
+            PlannedBack::Face(FaceBack {
                 pending: false,
                 complete: false,
             }),
@@ -298,10 +298,7 @@ impl PlannedKernel {
         )
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         if request.node != PRESENT_NODE || request.call != conduit_kernel::HostCallId(0) {
             return Err(SchedulerError::InvalidHostCallAccess);
         }
@@ -356,12 +353,11 @@ fn validate_shape(
         || lowered.cord_value_slots != 1
         || lowered.cord_value_bytes != 8
         || fragment.placements[0].kind_id.as_str() != conduit_semantic_catalog::TICK_KIND
-        || fragment.placements[1].kind_id.as_str()
-            != conduit_semantic_catalog::TICK_PRESENTATION_KIND
+        || fragment.placements[1].kind_id.as_str() != conduit_semantic_catalog::TICK_FACE_KIND
         || fragment.placements[0].implementation_id.as_str()
             != crate::offer::TIME_TICK_IMPLEMENTATION
         || fragment.placements[1].implementation_id.as_str()
-            != crate::offer::TICK_PRESENTATION_IMPLEMENTATION
+            != crate::offer::TICK_FACE_IMPLEMENTATION
         || configured_u64(&fragment.placements[0].configuration, "count")? != 1
         || !lowered.remote_endpoints.is_empty()
     {

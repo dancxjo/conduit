@@ -14,7 +14,7 @@
 <text class="port-name" text-anchor="end" x="859" y="414">text</text>
 </g>
 <g><rect class="gear" x="1210" y="330" width="280" height="120" rx="10"/><path class="header" d="M1210,340 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>patchbay-front-door/show — kind presentation/text</title>
+<title>patchbay-front-door/show — kind face/text</title>
 <use href="#gear-mark" x="1222" y="341" width="28" height="28"/><text class="label" x="1260" y="352">show</text><text class="kind" x="1260" y="373">patchbay-front-door/show</text>
 <g><title>text: value/text</title><circle class="port input-port" cx="1210" cy="410" r="5"/></g>
 <text class="port-name" text-anchor="start" x="1221" y="414">text</text>

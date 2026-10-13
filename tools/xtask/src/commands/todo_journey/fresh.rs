@@ -292,7 +292,7 @@ pub(super) fn run(
             .arg(&state)
             .arg("--json");
         let face_before = json_output(&output, "before-face", &mut before)?;
-        if face_before["presentation"]["basis"]["body_id"] != body_id {
+        if face_before["face"]["basis"]["body_id"] != body_id {
             return Err("fresh Owner Face names a different Body".into());
         }
         let mut browser = Command::new("timeout");
@@ -339,8 +339,8 @@ pub(super) fn run(
             .arg(&state)
             .arg("--json");
         let face_after = json_output(&output, "after-face", &mut after)?;
-        if face_after["presentation"]["basis"]["body_id"] != body_id
-            || !face_after["presentation"]["subjects"]
+        if face_after["face"]["basis"]["body_id"] != body_id
+            || !face_after["face"]["subjects"]
                 .as_array()
                 .is_some_and(|subjects| subjects.iter().any(|subject| subject["name"] == item_text))
         {
@@ -378,8 +378,8 @@ pub(super) fn run(
             .arg(&state)
             .arg("--json");
         let face_after_terminal = json_output(&output, "after-terminal-face", &mut terminal_face)?;
-        if face_after_terminal["presentation"]["basis"]["body_id"] != body_id
-            || !face_after_terminal["presentation"]["subjects"]
+        if face_after_terminal["face"]["basis"]["body_id"] != body_id
+            || !face_after_terminal["face"]["subjects"]
                 .as_array()
                 .is_some_and(|subjects| subjects.iter().any(|subject| subject["name"] == item_text))
             || checkpoint_files(&selected)? != checkpoint_after
@@ -416,18 +416,18 @@ pub(super) fn run(
             "direct_speech":browser_receipt["direct_speech"],
             "recovery":recovery,
             "checkpoint_refusal":checkpoint_refusal,
-            "birth":{"command":birth_command,"show":birth_show,"face_id":face_before["presentation"]["identity"],
-                "face_revision":face_before["presentation"]["revision"]},
+            "birth":{"command":birth_command,"show":birth_show,"face_id":face_before["face"]["identity"],
+                "face_revision":face_before["face"]["revision"]},
             "add":{"command":browser_command,"receipt":browser_receipt_file,
                 "before":browser_receipt["before"],"after":browser_receipt["after"],
-                "owner_face_id":face_after["presentation"]["identity"],
-                "owner_face_revision":face_after["presentation"]["revision"],
+                "owner_face_id":face_after["face"]["identity"],
+                "owner_face_revision":face_after["face"]["revision"],
                 "screenshots":[before_png,after_png]},
             "selected_checkpoint_root":selected,
             "checkpoint_before":checkpoint_before,"checkpoint_after":checkpoint_after,
             "terminal":{"command":terminal_command,"input":terminal_input,
-                "face_id":face_after_terminal["presentation"]["identity"],
-                "face_revision":face_after_terminal["presentation"]["revision"]},
+                "face_id":face_after_terminal["face"]["identity"],
+                "face_revision":face_after_terminal["face"]["revision"]},
         }))
     })();
     completion::finish(

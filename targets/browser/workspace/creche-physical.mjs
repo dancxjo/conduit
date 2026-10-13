@@ -1,5 +1,5 @@
 import { PHYSICAL_HOST_INTENTIONS } from "./creche-target-catalog.mjs";
-import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalProgress, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-presentation.mjs";
+import { presentPhysicalActions, presentPhysicalArtifact, presentPhysicalEvidence, presentPhysicalProgress, presentPhysicalSelection, presentPhysicalStatus } from "./creche-physical-face.mjs";
 const WORKFLOW_SCHEMA = "conduit.creche/physical-host-workflow-evidence@1";
 const FAILURE_SCHEMA = "conduit.creche/physical-host-workflow-failure@1";
 const SELECTION_FAILURE_SCHEMA = "conduit.creche/physical-host-target-selection-failure@1";
@@ -10,7 +10,7 @@ const decoder = new TextDecoder();
 export function createPhysicalHostRunner({
   host,
   hostCalls,
-  presentationFor,
+  faceFor,
   targetCatalog,
   onBodyChanged,
   admitJoin = (join) => admitObservation(host.runtime, join),
@@ -34,11 +34,11 @@ export function createPhysicalHostRunner({
     <div class="physical-status" data-application-slot="physical-status"></div>
     <div class="physical-evidence" data-application-slot="physical-evidence"></div>`;
 
-  const presentation = presentationFor(runner);
+  const face = faceFor(runner);
   const state = {
-    presentation,
-    presentationFor,
-    presentationRevision: 0,
+    face,
+    faceFor,
+    faceRevision: 0,
     catalog,
     entry: null,
     adapter: null,
@@ -129,7 +129,7 @@ function selectMode(runner, host, state, mode) {
     state.adapter = state.catalog.createAdapter({
       targetId: state.entry.target.id,
       host,
-      presentationFor: state.presentationFor,
+      faceFor: state.faceFor,
       ...state.adapterContext,
     });
   }
@@ -401,12 +401,12 @@ function renderEvidence(runner, state) {
     admission: state.admission?.evidence ?? null,
   };
   let encoded = encoder.encode(JSON.stringify(evidence));
-  const presentationBound = Math.min(state.entry.bounds.maximumRetainedEvidenceBytes, PRESENTABLE_RETAINED_EVIDENCE_BYTES);
-  if (encoded.length > presentationBound) {
+  const faceBound = Math.min(state.entry.bounds.maximumRetainedEvidenceBytes, PRESENTABLE_RETAINED_EVIDENCE_BYTES);
+  if (encoded.length > faceBound) {
     evidence = compactRetainedWorkflowEvidence(evidence);
     encoded = encoder.encode(JSON.stringify(evidence));
   }
-  if (encoded.length > presentationBound) {
+  if (encoded.length > faceBound) {
     evidence = minimalRetainedWorkflowEvidence(evidence);
     encoded = encoder.encode(JSON.stringify(evidence));
   }

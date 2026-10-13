@@ -61,7 +61,7 @@ const owner = args => {
 };
 const face = () => owner(['body', 'face', '--state-dir', state, '--json']);
 const beforeOwner = face();
-const bodyId = beforeOwner.presentation.basis.body_id;
+const bodyId = beforeOwner.face.basis.body_id;
 await mkdir(output, { mode: 0o700 });
 let server, browser, page;
 const errors = [];
@@ -129,24 +129,24 @@ try {
   assert.notEqual(identity.hostId, beforeOwner.advertisement.host_id);
   assert.equal(view.route.owner_host_id, beforeOwner.advertisement.host_id);
   assert.equal(view.route.owner_boot_id, beforeOwner.advertisement.boot_id);
-  const expectedItems = beforeOwner.presentation.subjects.filter(subject => subject.role === 'Item');
+  const expectedItems = beforeOwner.face.subjects.filter(subject => subject.role === 'Item');
   assert.deepEqual(view.subjects.filter(subject => subject.role === 'Item').map(subject => ({ identity: subject.identity, name: subject.name })),
     expectedItems.map(subject => ({ identity: subject.identity, name: subject.name })));
-  const completed = beforeOwner.presentation.properties.filter(property => property.name === 'complete' && property.value.Flag === true).length;
+  const completed = beforeOwner.face.properties.filter(property => property.name === 'complete' && property.value.Flag === true).length;
   assert.equal(await page.locator('.owner-face-collection-count').textContent(),
     `${expectedItems.length - completed} things left · ${completed} completed`);
   assert.equal(await page.locator('.owner-face-completed').getAttribute('open'), null);
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'browser-reencounter.png') });
   const afterOwner = face();
-  assert.equal(afterOwner.presentation.identity, view.face_id);
-  const todoProperties = value => value.presentation.properties.filter(property => property.subject.startsWith('todo/'));
+  assert.equal(afterOwner.face.identity, view.face_id);
+  const todoProperties = value => value.face.properties.filter(property => property.subject.startsWith('todo/'));
   assert.deepEqual(todoProperties(afterOwner), todoProperties(beforeOwner));
   assert.deepEqual(errors, []);
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
     schema: 'conduit.proof/todo-browser-reencounter@1', ...sourceRecord,
     body_id: bodyId, browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
     owner_host_id: view.route.owner_host_id, owner_boot_id: view.route.owner_boot_id,
-    face_id: view.face_id, face_revision: afterOwner.presentation_revision_decimal, show_id: view.show_id,
+    face_id: view.face_id, face_revision: afterOwner.face_revision_decimal, show_id: view.show_id,
     show_state: view.show_state, interactions_admitted: view.interactions_admitted,
     mask_plot_id: view.mask_plot_id, mask_plan_id: view.mask_plan_id, mask_play_id: view.mask_play_id,
     route: view.route, todo_subjects: view.subjects.filter(subject => subject.identity.startsWith('todo/')),

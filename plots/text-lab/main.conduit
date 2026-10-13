@@ -2,9 +2,9 @@ plot text-lab {
     keyboard: input/keyboard
     keymap: input/keymap
     uppercase: text/upper
-    presentation: presentation/text
+    face: face/text("Typed text")
 
     keyboard.key >> keymap.key
     keymap.text >> uppercase.source
-    uppercase.text >> presentation.text
+    uppercase.text >> face.text
 }

@@ -6,9 +6,7 @@ pub(super) fn render(index: &ThreeBodyJourneyIndex) -> String {
     let mut html = String::from("<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><meta name=\"color-scheme\" content=\"dark\"><title>Start, change, and stop a body — Conduit</title><style>");
     html.push_str(&crate::site::styles());
     html.push_str(include_str!("evidence_three_body_journey.css"));
-    html.push_str(
-        "</style></head><body data-application-theme=\"conduit.presentation/phosphor@1\">",
-    );
+    html.push_str("</style></head><body data-application-theme=\"conduit.face/phosphor@1\">");
     html.push_str(&crate::site::navigation("journeys"));
     html.push_str("<header><p class=\"eyebrow\">Three Bodies · recorded walkthrough</p><h1>Start a body.<br>Change its interface.<br>Bring it to rest.</h1><p class=\"lede\">Follow a browser session from its first start to its end. Along the way, inspect its work, change how it presents itself, and see what happens when an interface becomes unavailable.</p><section class=\"setup\" aria-labelledby=\"setup-title\"><h2 id=\"setup-title\">Before you follow along</h2><p>This is a recorded walkthrough, not an interactive session. Read the steps in order; each screen or recording below comes from the linked evidence. No installation is needed to view it.</p><p>A body is the running participant whose work you are following. A host supplies ways to run that work. A mask determines how the body presents its interface. The browser track is shown first; you can also inspect the ConduitOS and conversational tracks.</p><p>ConduitOS captures run in QEMU and browser captures run in Chromium. A deterministic conversational fixture is labeled wherever it appears. Missing screenshots or audio are called out at the relevant step.</p></section><a class=\"button\" href=\"#by-step\">Follow the recorded session ↓</a></header><main id=\"by-step\"><p class=\"eyebrow\">Step by step</p><h2>Follow one session</h2><p>Start with Browser. The optional comparison aligns the same actions across independent bodies; it does not imply identical screens, words, or timing.</p><div class=\"view-controls\" role=\"group\" aria-label=\"Journey view\"><button data-view=\"all\" aria-pressed=\"false\">The same moment, three ways</button>");
     let bodies = index
@@ -142,14 +140,14 @@ fn action_description(id: &str) -> (&'static str, &'static str) {
         "journey.bootstrap" => ("Start the host", "Begin with no body running. Inspect the recorded start before looking for a usable interface."),
         "journey.birth" => ("Create and wake the body", "Follow creation through its first wake. Check the recorded result to see when this body became usable."),
         "journey.useful-work" => ("Use the work already available", "Run the work the body has already admitted. The result below identifies what this particular track performed."),
-        "mask.inspect-initial-show" => ("Inspect the current interface", "Look at the body's first presentation and the recorded route that makes it available."),
+        "mask.inspect-initial-show" => ("Inspect the current interface", "Look at the body's first face and the recorded route that makes it available."),
         "mask.wear-alternate" => ("Make another interface available", "Add an alternate mask to the body's choices. Making it eligible does not yet mean it is selected."),
         "mask.prefer-alternate" => ("Choose the alternate interface", "Select the available alternate mask. Inspect the result under the existing execution plan."),
-        "mask.withdraw-selected-route" => ("Remove the selected interface's route", "Observe what happens when the selected presentation can no longer be realized."),
-        "mask.inspect-unavailable-show" => ("Inspect the unavailable interface", "Check the recorded absence of a presentation. The body must not present an unavailable route as still working."),
+        "mask.withdraw-selected-route" => ("Remove the selected interface's route", "Observe what happens when the selected face can no longer be realized."),
+        "mask.inspect-unavailable-show" => ("Inspect the unavailable interface", "Check the recorded absence of a face. The body must not present an unavailable route as still working."),
         "mask.add-face-host" => ("Make a replacement host available", "Introduce another possible way to present the interface. Availability alone does not authorize a new execution plan."),
-        "mask.admit-replacement-plan" => ("Admit a replacement plan", "Follow the authorized change to a new plan before expecting the replacement presentation to work."),
-        "mask.inspect-replanned-show" => ("Inspect the replacement presentation", "Review the interface produced by the new plan and its recorded relationship to the same body."),
+        "mask.admit-replacement-plan" => ("Admit a replacement plan", "Follow the authorized change to a new plan before expecting the replacement face to work."),
+        "mask.inspect-replanned-show" => ("Inspect the replacement face", "Review the interface produced by the new plan and its recorded relationship to the same body."),
         "mask.doff-alternate" => ("Remove the alternate choice", "Remove the alternate mask from the eligible choices. It must no longer remain selected."),
         "mask.inspect-restored-show" => ("Check the original interface again", "Inspect the original mask as realized under the replacement plan."),
         "journey.break-recover" => ("Inspect a failure and any recovery", "Read the failure first. Count recovery only when this track separately records it for the same obligation."),

@@ -1,15 +1,15 @@
-use conduit_body_invitation_plot::InvitationPresentationRefusal;
+use conduit_body_invitation_plot::InvitationFaceRefusal;
 use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
-fn invitation_presentation_refusal_has_native_identity_and_exact_round_trips() {
+fn invitation_face_refusal_has_native_identity_and_exact_round_trips() {
     for refusal in [
-        InvitationPresentationRefusal::InvalidInvitation,
-        InvitationPresentationRefusal::Presentation,
+        InvitationFaceRefusal::InvalidInvitation,
+        InvitationFaceRefusal::Face,
     ] {
         let structured = refusal.into_structured().unwrap();
         assert_eq!(
-            InvitationPresentationRefusal::from_structured(structured).unwrap(),
+            InvitationFaceRefusal::from_structured(structured).unwrap(),
             refusal
         );
     }

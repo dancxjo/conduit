@@ -1,6 +1,6 @@
 # Bounded Copy-a-file execution
 
-The hosted Copy-a-file operation has no authored path or resource token. Its `file/copy` gear means “copy a file” and emits a bounded structured result to an ordinary presentation sink. Planning selects one exact std implementation and binds two protected resource roles from base-issued inputs: a read-existing source and a create-only or replace-existing destination. The plan contains only opaque handle identities and exact host, boot, capability, resource class, access, byte, and commit bounds.
+The hosted Copy-a-file operation has no authored path or resource token. Its `file/copy` gear means “copy a file” and emits a bounded structured result to an ordinary face sink. Planning selects one exact std implementation and binds two protected resource roles from base-issued inputs: a read-existing source and a create-only or replace-existing destination. The plan contains only opaque handle identities and exact host, boot, capability, resource class, access, byte, and commit bounds.
 
 Execution lowers that plan through the ordinary numeric kernel boundary. A one-byte command value requests the single admitted `conduit.host/file-copy-step@1` operation. The std base resolves both handles against its private path registry, reads at most 4 KiB, writes at most that chunk to a same-directory temporary file, and returns the same command value when another step is required. Completion produces one structured result on the exact output port, then the semantic operation completes. The command is therefore finite and kernel-owned without allocating one value per chunk.
 
@@ -21,7 +21,7 @@ observation.
 
 Linux targets may instead explicitly install the `isolated-file-base` feature
 and `conduit-isolated-copy-base` binary. That realization preserves this plot,
-kind, planner, kernel, commit, cancellation, result, and presentation contract;
+kind, planner, kernel, commit, cancellation, result, and face contract;
 only the selected implementation and effect boundary differ. Minimal host core
 does not include the provider, and provider failure returns a terminal failure
 without falling back to the cooperative implementation.

@@ -18,7 +18,7 @@ use crate::{
     planned_kernel::PlannedKernel,
 };
 
-const TIMING_PLOT_SOURCE: &str = "plot conduitos-ordinary {\n    clock: time/tick(count = 1, period-ms = 1)\n    show: presentation/tick\n\n\n    clock.tick >> show.tick\n}\n";
+const TIMING_PLOT_SOURCE: &str = "plot conduitos-ordinary {\n    clock: time/tick(count = 1, period-ms = 1)\n    show: face/tick(\"Clock tick\")\n\n\n    clock.tick >> show.tick\n}\n";
 
 pub struct PreparedTimingPlay {
     pub kernel: PlannedKernel,
@@ -55,7 +55,7 @@ pub fn prepare_timing(
         .insert_kind(conduit_time::tick_semantic_contract())
         .map_err(|_| PreparationError::PlotRejected)?;
     catalog
-        .insert_kind(conduit_semantic_catalog::tick_presentation_semantic_contract())
+        .insert_kind(conduit_semantic_catalog::tick_face_semantic_contract())
         .map_err(|_| PreparationError::PlotRejected)?;
     let plot = conduit_plot::parse(TIMING_PLOT_SOURCE, &catalog)
         .map_err(|_| PreparationError::PlotRejected)?;
@@ -132,11 +132,11 @@ fn advertisement(
         || fixed.capabilities.len() != crate::offer::CAPABILITY_COUNT
         || fixed.capabilities[0].kind != conduit_semantic_catalog::TICK_KIND
         || fixed.capabilities[0].contract_revision != conduit_time::TICK_CONTRACT_REVISION
-        || fixed.capabilities[1].kind != conduit_semantic_catalog::TICK_PRESENTATION_KIND
+        || fixed.capabilities[1].kind != conduit_semantic_catalog::TICK_FACE_KIND
         || fixed.capabilities[1].contract_revision
-            != conduit_semantic_catalog::TICK_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TICK_FACE_CONTRACT_REVISION
         || fixed.capabilities[0].implementation != crate::offer::TIME_TICK_IMPLEMENTATION
-        || fixed.capabilities[1].implementation != crate::offer::TICK_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[1].implementation != crate::offer::TICK_FACE_IMPLEMENTATION
         || fixed
             .capabilities
             .iter()
@@ -146,16 +146,9 @@ fn advertisement(
     }
     let mut tick = crate::functional_offers::tick_offer();
     bind_native_capability(&mut tick, &fixed.capabilities[0], build_id, "time-tick");
-    let mut presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_semantic_catalog::TICK_PRESENTATION_KIND,
-    )
-    .expect("ConduitOS owns tick presentation");
-    bind_native_capability(
-        &mut presentation,
-        &fixed.capabilities[1],
-        build_id,
-        "presentation-tick",
-    );
+    let mut face = crate::face_offers::face_offer_for(conduit_semantic_catalog::TICK_FACE_KIND)
+        .expect("ConduitOS owns tick face");
+    bind_native_capability(&mut face, &fixed.capabilities[1], build_id, "face-tick");
     Ok(HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
         host_id: HostId::from(hex_identity(&identities.host)),
@@ -175,7 +168,7 @@ fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![tick, presentation],
+        capabilities: vec![tick, face],
         planner_capabilities: Vec::new(),
     })
 }

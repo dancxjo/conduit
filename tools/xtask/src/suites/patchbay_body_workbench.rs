@@ -33,7 +33,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-body-workbench.workspace-renderer",
-        "Prove durable presentation-only layouts and canonical highlighting in Chromium",
+        "Prove durable face-only layouts and canonical highlighting in Chromium",
         "node",
         &["--test", "proof/browser/patchbay-workspace-render.test.mjs"],
         None,

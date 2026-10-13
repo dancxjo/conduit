@@ -117,7 +117,7 @@ enum Request {
     },
     TutorialPresenterInput {
         request_identity: String,
-        presentation_revision: u64,
+        face_revision: u64,
         playback: conduit_tutorial_plot::TutorialPlayback,
     },
     PresentTutorialMask {
@@ -543,40 +543,40 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     &boot_id,
                     &joined_lines,
                 )?
-                    .presentation(current, revision, &query)
-                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
+                    .face(current, revision, &query)
+                    .map_err(|error| Refusal::new("LibraryFace", format!("{error:?}")))?
                     .lower()
-                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))?
+                    .map_err(|error| Refusal::new("LibraryFace", format!("{error:?}")))?
                     .encode()
-                    .map_err(|error| Refusal::new("LibraryPresentation", format!("{error:?}")))
+                    .map_err(|error| Refusal::new("LibraryFace", format!("{error:?}")))
                     .and_then(|bytes| {
                         if bytes.len() <= CAPACITY {
                             Ok(bytes)
                         } else {
                             Err(Refusal::new(
                                 "OutputBound",
-                                "Plot library exceeds its presentation bound",
+                                "Plot library exceeds its face bound",
                             ))
                         }
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_tutorial_plot::presentation(current, revision, playback)
-                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                let semantic = conduit_tutorial_plot::face(current, revision, playback)
+                    .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;
                 let view = semantic.lower()
-                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")))?;
+                    .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;
                 return view.encode()
-                    .map_err(|error| Refusal::new("TutorialPresentation", format!("{error:?}")));
+                    .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")));
             }
             Request::TutorialPresenterInput {
                 request_identity,
-                presentation_revision,
+                face_revision,
                 playback,
             } => {
                 let request = conduit_tutorial_plot::generative_request(
                     current,
                     request_identity,
-                    presentation_revision,
+                    face_revision,
                     playback,
                 )
                 .map_err(|error| {
@@ -586,11 +586,11 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::PresentTutorialMask { host_id, boot_id, revision, playback } => {
                 let realization = current.realization().ok_or_else(|| Refusal::new("TutorialMaskPrepare", "Body has no active realization"))?;
-                let presentation = conduit_tutorial_plot::face_presentation(
+                let face = conduit_tutorial_plot::face_face(
                     current, revision, playback,
-                ).map_err(|error| Refusal::new("TutorialMaskPresentation", format!("{error:?}")))?;
+                ).map_err(|error| Refusal::new("TutorialMaskFace", format!("{error:?}")))?;
                 let (runtime, effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
-                    current.evidence().body_id.clone(), host_id, boot_id, presentation,
+                    current.evidence().body_id.clone(), host_id, boot_id, face,
                     realization.wake.clone(), realization.plan.clone(),
                 ).map_err(|error| Refusal::new("TutorialMaskPrepare", error))?;
                 BROWSER_MASK.with(|slot| *slot.borrow_mut() = Some(runtime));
@@ -658,7 +658,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     let slot = slot.borrow();
                     let runtime = slot.as_ref().ok_or("Browser Mask has not been prepared")?;
                     let observation = runtime.observation();
-                    if observation.mask_show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available
+                    if observation.mask_show.show.lifecycle != conduit_face::ManifestationLifecycle::Available
                         || observation.interaction.is_none() {
                         return Err(Refusal::new("TutorialMaskJourney", "initial browser Mask lacks DOM acknowledgement or interaction"));
                     }
@@ -698,13 +698,13 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
             }
             Request::InvitationView { invitation_id, body_id, body_name, expires_at_millis,
                 transfer_uri, revision, clipboard_available, share_available } => {
-                let semantic = conduit_body_invitation_plot::InvitationPresentation {
+                let semantic = conduit_body_invitation_plot::InvitationFace {
                     invitation_id: &invitation_id, body_id: &body_id, body_name: &body_name,
                     expires_at_millis, transfer_uri: &transfer_uri, clipboard_available, share_available,
-                }.view(revision).map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?;
+                }.view(revision).map_err(|error| Refusal::new("InvitationFace", format!("{error:?}")))?;
                 return semantic.lower()
-                    .map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")))?
-                    .encode().map_err(|error| Refusal::new("InvitationPresentation", format!("{error:?}")));
+                    .map_err(|error| Refusal::new("InvitationFace", format!("{error:?}")))?
+                    .encode().map_err(|error| Refusal::new("InvitationFace", format!("{error:?}")));
             }
             Request::InvitationQr { transfer_uri } => return invitation_qr(&transfer_uri),
             Request::ChangeWorkset {
@@ -844,7 +844,7 @@ fn invitation_qr(transfer_uri: &str) -> Result<Vec<u8>, Refusal> {
         })
         .collect::<Vec<_>>();
     encode(
-        &serde_json::json!({ "schema": "conduit.presentation/invitation-qr@1", "width": width, "rows": rows }),
+        &serde_json::json!({ "schema": "conduit.face/invitation-qr@1", "width": width, "rows": rows }),
     )
 }
 fn snapshot_value(

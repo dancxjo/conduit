@@ -6,13 +6,13 @@ use super::parsec_cross_mask_counterexample_tests::{correlate, prepared_instruct
 use conduit_core::{
     PlotIdentity, StructuredFieldValue, StructuredInfoValue, StructuredInfoValueShape,
 };
+use conduit_face::{
+    checked_parsec_input_instruction, plan_face_utterances, render_linear_face, Face,
+    FaceUtteranceProvenance, GraphicsClipClass, MaskShow, PreparedParsecInputInstruction,
+    PreparedParsecInstructionFrameInspection,
+};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduit_plot::{expand_canonical_plot_for_authoring, ProfileCatalog};
-use conduit_presentation::{
-    checked_parsec_input_instruction, plan_face_utterances, render_linear_presentation,
-    FaceUtteranceProvenance, GraphicsClipClass, MaskShow, PreparedParsecInputInstruction,
-    PreparedParsecInstructionFrameInspection, Presentation,
-};
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -220,7 +220,7 @@ struct Provenance {
     frame_sha256: [u8; 32],
 }
 struct Encounter {
-    face: Presentation,
+    face: Face,
     wording: String,
     provenance: Provenance,
 }
@@ -258,11 +258,11 @@ fn reconstruct(encounter: &Encounter) {
     // This bounded existing furniture accepts the captured specimen. Longer or
     // non-ASCII custom labels must refuse honestly; no truncation or guessed key.
     native.set_local_notice(&encounter.wording).unwrap();
-    assert_eq!(native.presentation(), face);
+    assert_eq!(native.face(), face);
     let mut hit = false;
     for _ in 0..native.pages() {
         let frame = native.frame().unwrap();
-        assert_eq!(frame.presentation_id, &face.identity);
+        assert_eq!(frame.face_id, &face.identity);
         assert_eq!(frame.revision, face.revision);
         assert!(frame
             .scene
@@ -292,8 +292,8 @@ fn reconstruct(encounter: &Encounter) {
         hit,
         "painted semantic action has an exact native control mapping"
     );
-    let linear = render_linear_presentation(face).unwrap();
-    assert_eq!(linear.presentation_id, face.identity);
+    let linear = render_linear_face(face).unwrap();
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(linear.revision, face.revision);
     assert!(linear.lines.iter().any(|line| line.contains(&action.name)));
     let linear_component = ComponentReading {
@@ -320,10 +320,10 @@ fn reconstruct(encounter: &Encounter) {
     assert_eq!(linear_record["provenance"]["action"], action.identity);
     // A separate aural component segment accompanies every unchanged Face
     // clause. This is a bounded reading script, not synthesized/delivered audio.
-    assert!(aural.clauses.len() < conduit_presentation::MAX_FACE_UTTERANCE_CLAUSES);
+    assert!(aural.clauses.len() < conduit_face::MAX_FACE_UTTERANCE_CLAUSES);
     assert!(
         aural.encoded_bytes + aural_component.wording.len()
-            < conduit_presentation::MAX_FACE_UTTERANCE_PLAN_BYTES
+            < conduit_face::MAX_FACE_UTTERANCE_PLAN_BYTES
     );
     let script = aural
         .clauses
@@ -348,7 +348,7 @@ fn reconstruct(encounter: &Encounter) {
         .commands()
         .iter()
         .any(|command| command.payload() == encounter.wording));
-    assert_eq!(native.presentation(), face);
+    assert_eq!(native.face(), face);
 }
 
 fn replace_leaf(value: &StructuredInfoValue, path: &[&str], bytes: &[u8]) -> StructuredInfoValue {

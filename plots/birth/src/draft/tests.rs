@@ -40,7 +40,7 @@ fn exhausted_revision_refuses_every_edit_without_changing_draft_state() {
     );
     assert_eq!(
         draft.suggest(u32::MAX - 1, "roman"),
-        Err(BirthDraftRefusal::StalePresentation)
+        Err(BirthDraftRefusal::StaleFace)
     );
     assert_eq!(draft.revision(), u32::MAX);
     assert_eq!(draft.selection(u32::MAX).unwrap(), selection);

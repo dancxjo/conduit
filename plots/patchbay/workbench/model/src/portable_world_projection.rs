@@ -1,29 +1,22 @@
 //! Canonical bounded WORLD-layer projection for the Patchbay front door.
 
 use conduit_body::Body;
-use conduit_presentation::{
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole,
-};
-use patchbay_application::{PartCapability, PartPresentationState, PartsView};
+use conduit_face::{FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole};
+use patchbay_application::{PartCapability, PartFaceState, PartsView};
 
 use crate::{
     portable_projection::{append_sign, ContentBuilder},
-    PatchbayPresentation,
+    PatchbayFace,
 };
 
 pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut ContentBuilder) {
     let body_subject = content.subject_with_identity(
         format!("body/{}", body.body_id.as_str()),
-        PresentationRole::Body,
+        FaceRole::Body,
         format!("Current body {}", body.body_id.as_str()),
     );
     identity(content, &body_subject, "body-id", body.body_id.as_str());
-    content.property(
-        &body_subject,
-        "awake",
-        PresentationPropertyValue::Flag(parts.awake),
-    );
+    content.property(&body_subject, "awake", FacePropertyValue::Flag(parts.awake));
     for (name, explanation) in [
         ("available-explanation", &parts.truth_explanation.available),
         (
@@ -42,7 +35,7 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
     for row in &parts.parts {
         let part_subject = content.subject_with_identity(
             format!("part/{}", row.details.part_id.as_str()),
-            PresentationRole::Part,
+            FaceRole::Part,
             format!("{} {:?}", row.label, row.state),
         );
         content.contains(&body_subject, &part_subject);
@@ -57,9 +50,9 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
             &part_subject,
             "membership-state",
             match row.state {
-                PartPresentationState::Here => "here",
-                PartPresentationState::Attached => "attached",
-                PartPresentationState::Offline => "offline",
+                PartFaceState::Here => "here",
+                PartFaceState::Attached => "attached",
+                PartFaceState::Offline => "offline",
             },
         );
         for (name, value) in [
@@ -67,7 +60,7 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
             ("in-plan", row.in_plan),
             ("playing", row.playing),
         ] {
-            content.property(&part_subject, name, PresentationPropertyValue::Flag(value));
+            content.property(&part_subject, name, FacePropertyValue::Flag(value));
         }
         if let Some(proof) = &row.details.proof_reference {
             identity(content, &part_subject, "membership-proof", proof);
@@ -79,14 +72,14 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
             content.property(
                 &part_subject,
                 "offer-generation",
-                PresentationPropertyValue::Count(generation.0),
+                FacePropertyValue::Count(generation.0),
             );
         }
         if let Some(sequence) = row.details.presence_sequence {
             content.property(
                 &part_subject,
                 "freshness-sequence",
-                PresentationPropertyValue::Count(sequence),
+                FacePropertyValue::Count(sequence),
             );
         }
         if let Some(binding) = &row.details.presence_session_binding {
@@ -107,26 +100,26 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
             let host_subject = host_identity(host_id.as_str(), boot_id.as_str());
             content.subject_with_identity(
                 &host_subject,
-                PresentationRole::Host,
+                FaceRole::Host,
                 format!("Host {} boot {}", host_id.as_str(), boot_id.as_str()),
             );
-            content.relationships.push(PresentationRelationship {
+            content.relationships.push(FaceRelationship {
                 source: part_subject,
                 target: host_subject.clone(),
-                kind: PresentationRelationshipKind::Realizes,
+                kind: FaceRelationshipKind::Realizes,
             });
         }
     }
     for row in &parts.wants_to_join {
         let candidate = content.subject_with_identity(
             format!("candidate/{}", row.candidate_id.as_str()),
-            PresentationRole::Candidate,
+            FaceRole::Candidate,
             format!("Admission candidate {}", row.label),
         );
-        content.relationships.push(PresentationRelationship {
+        content.relationships.push(FaceRelationship {
             source: candidate.clone(),
             target: body_subject.clone(),
-            kind: PresentationRelationshipKind::Observes,
+            kind: FaceRelationshipKind::Observes,
         });
         identity(
             content,
@@ -139,12 +132,12 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
         content.property(
             &candidate,
             "offer-generation",
-            PresentationPropertyValue::Count(row.offer_generation.0),
+            FacePropertyValue::Count(row.offer_generation.0),
         );
         content.property(
             &candidate,
             "capability-count",
-            PresentationPropertyValue::Count(row.capabilities as u64),
+            FacePropertyValue::Count(row.capabilities as u64),
         );
         text(content, &candidate, "membership-state", "wants-to-join");
         for sign in &row.evidence_signs {
@@ -163,18 +156,18 @@ pub(super) fn append_body_parts(body: &Body, parts: &PartsView, content: &mut Co
 }
 
 pub(super) fn append_observatory(
-    presentation: &PatchbayPresentation,
+    face: &PatchbayFace,
     document: &str,
     content: &mut ContentBuilder,
 ) {
-    let Some(topology) = &presentation.topology else {
+    let Some(topology) = &face.topology else {
         return;
     };
     for host in &topology.hosts {
         let subject_identity = host_identity(host.host_id.as_str(), host.boot_id.as_str());
         let subject = content.subject_with_identity(
             subject_identity,
-            PresentationRole::Host,
+            FaceRole::Host,
             format!(
                 "Host {} boot {}",
                 host.host_id.as_str(),
@@ -188,18 +181,14 @@ pub(super) fn append_observatory(
         content.property(
             &subject,
             "offer-generation",
-            PresentationPropertyValue::Count(host.offer_generation.0),
+            FacePropertyValue::Count(host.offer_generation.0),
         );
         for (name, count) in [
             ("capability-count", host.capability_count),
             ("resource-count", host.resources.len()),
             ("planner-capability-count", host.planner_capabilities.len()),
         ] {
-            content.property(
-                &subject,
-                name,
-                PresentationPropertyValue::Count(count as u64),
-            );
+            content.property(&subject, name, FacePropertyValue::Count(count as u64));
         }
         for (index, resource) in host.resources.iter().enumerate() {
             identity(
@@ -217,7 +206,7 @@ pub(super) fn append_observatory(
             content.property(
                 &subject,
                 &format!("resource-{index}-capacity-units"),
-                PresentationPropertyValue::Count(u64::from(resource.capacity_units)),
+                FacePropertyValue::Count(u64::from(resource.capacity_units)),
             );
         }
         text(
@@ -235,7 +224,7 @@ pub(super) fn append_observatory(
                 capability.boot_id.as_str(),
                 capability.capability_id.as_str()
             ),
-            PresentationRole::Capability,
+            FaceRole::Capability,
             format!("Capability {}", capability.capability_id.as_str()),
         );
         content.contains(
@@ -265,7 +254,7 @@ pub(super) fn append_observatory(
     for line in &topology.lines {
         let subject = content.subject_with_identity(
             format!("line/{}", line.offer.line_id.as_str()),
-            PresentationRole::Line,
+            FaceRole::Line,
             format!("Line {}", line.offer.line_id.as_str()),
         );
         content.describes(&subject, document);
@@ -289,16 +278,16 @@ pub(super) fn append_observatory(
             identity(content, &subject, name, value);
         }
         for endpoint in [&line.offer.binding.source, &line.offer.binding.sink] {
-            content.relationships.push(PresentationRelationship {
+            content.relationships.push(FaceRelationship {
                 source: subject.clone(),
                 target: host_identity(endpoint.host_id.as_str(), endpoint.boot_id.as_str()),
-                kind: PresentationRelationshipKind::Connects,
+                kind: FaceRelationshipKind::Connects,
             });
         }
         content.property(
             &subject,
             "base",
-            PresentationPropertyValue::BaseImplementationId(line.offer.binding.base.clone()),
+            FacePropertyValue::BaseImplementationId(line.offer.binding.base.clone()),
         );
         for (name, value) in [
             (
@@ -318,7 +307,7 @@ pub(super) fn append_observatory(
                 u64::from(line.offer.binding.limits.maximum_frame_bytes),
             ),
         ] {
-            content.property(&subject, name, PresentationPropertyValue::Count(value));
+            content.property(&subject, name, FacePropertyValue::Count(value));
         }
         text(
             content,
@@ -355,7 +344,7 @@ fn append_capability(
             "capability/{host}/{boot}/{}",
             capability.capability_id.as_str()
         ),
-        PresentationRole::Capability,
+        FaceRole::Capability,
         format!("Capability {}", capability.capability_id.as_str()),
     );
     content.contains(owner, &subject);
@@ -370,13 +359,9 @@ fn append_capability(
 }
 
 fn identity(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
-    content.property(
-        subject,
-        name,
-        PresentationPropertyValue::Identity(value.into()),
-    );
+    content.property(subject, name, FacePropertyValue::Identity(value.into()));
 }
 
 fn text(content: &mut ContentBuilder, subject: &str, name: &str, value: &str) {
-    content.property(subject, name, PresentationPropertyValue::Text(value.into()));
+    content.property(subject, name, FacePropertyValue::Text(value.into()));
 }

@@ -1,4 +1,4 @@
-//! host-owned mutation of finite debugger Watch presentation state.
+//! host-owned mutation of finite debugger Watch face state.
 
 use super::{PatchbayHtmlServer, ServerError};
 use serde::Deserialize;
@@ -6,8 +6,8 @@ use serde::Deserialize;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct DebuggerWatchRequest {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     watch_revision: u64,
     action: DebuggerWatchAction,
     subject: String,
@@ -26,8 +26,8 @@ impl PatchbayHtmlServer {
     pub(super) fn apply_debugger_watch(&mut self, body: &[u8]) -> Result<Vec<u8>, ServerError> {
         let request: DebuggerWatchRequest =
             serde_json::from_slice(body).map_err(|_| ServerError::InvalidRequest)?;
-        if request.presentation_id != self.snapshot.presentation.identity.as_str()
-            || request.presentation_revision != self.snapshot.presentation.revision
+        if request.face_id != self.snapshot.face.identity.as_str()
+            || request.face_revision != self.snapshot.face.revision
         {
             return Err(ServerError::InvalidRequest);
         }

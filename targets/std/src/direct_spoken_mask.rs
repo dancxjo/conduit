@@ -8,6 +8,7 @@
 use std::collections::BTreeMap;
 
 use conduit_core::{AuthorityGrant, BaseImplementationId, ConnectionTrack, Plan, PortDirection};
+use conduit_face::{Face, MaskPlot, PlannedMaskPlot};
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_connection_limits,
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions,
@@ -16,7 +17,6 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{MaskPlot, PlannedMaskPlot, Presentation};
 
 pub struct PreparedDirectSpokenMask {
     pub plan: Plan,
@@ -30,14 +30,14 @@ impl crate::StdHost {
     /// one create-new artifact resource. No replay Host or BodyPlan is made.
     pub fn prepare_direct_spoken_mask(
         &self,
-        face: &Presentation,
+        face: &Face,
     ) -> Result<PreparedDirectSpokenMask, String> {
         self.prepare_direct_spoken_mask_named(face, "owner_direct_spoken_mask")
     }
 
     pub(crate) fn prepare_direct_spoken_mask_named(
         &self,
-        face: &Presentation,
+        face: &Face,
         plot_name: &str,
     ) -> Result<PreparedDirectSpokenMask, String> {
         face.validate()
@@ -46,9 +46,9 @@ impl crate::StdHost {
         crate::direct_spoken_mask_runtime::prepare_wording_items(face)?;
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
-        conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
-        conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
-        conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+        conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+        conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
+        conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
         conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
@@ -71,9 +71,7 @@ impl crate::StdHost {
             .expanded
             .connections
             .iter()
-            .filter(|connection| {
-                connection.value_kind.as_str() == conduit_presentation::PRESENTATION_VALUE_KIND
-            })
+            .filter(|connection| connection.value_kind.as_str() == conduit_face::FACE_VALUE_KIND)
             .map(|connection| {
                 (
                     (
@@ -164,21 +162,21 @@ pub fn source(plot_name: &str) -> String {
     let language_request = crate::hosted_language::language_request_literal(&language);
     format!(
         r#"plot {plot_name} (
- >> face: Presentation
+ >> face: Face
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {{
- spread: presentation/tee
- wording: presentation/direct-face-wording
+ spread: face/tee("Shared Face")
+ wording: face/direct-face-wording("Spoken words")
  commit: speech/commit-generated-text
  voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = 1323000, maximum-audio-millis = 30000, maximum-segments = 32)
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right", maximum-blocks = 32768, maximum-audio-millis = 30000)
- artifact: presentation/spoken-artifact(maximum-blocks = 32768, maximum-audio-millis = 30000)
- shown: presentation/direct-artifact-show
- no-input: presentation/no-interaction
+ artifact: face/spoken-artifact(label = "Spoken output", maximum-blocks = 32768, maximum-audio-millis = 30000)
+ shown: face/direct-artifact-show("Direct artifact show")
+ no-input: face/no-interaction("Interaction completion")
  face >> spread.source
- spread.presentation >> wording.presentation
- spread.presentation >> shown.presentation
+ spread.face >> wording.face
+ spread.face >> shown.face
  wording.speech >> commit.generated
  commit.segments >> voice.text
  voice.audio >> convert.audio
@@ -199,9 +197,9 @@ mod tests {
     fn direct_face_artifact_graph_is_an_ordinary_checked_mask() {
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
-        conduit_presentation::install_mask_plot_value_aliases(&mut startup).unwrap();
-        conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
-        conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_face::install_mask_plot_value_aliases(&mut startup).unwrap();
+        conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles).unwrap();
+        conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles).unwrap();
         conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles).unwrap();
         conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles).unwrap();
         conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles).unwrap();
@@ -230,9 +228,11 @@ mod tests {
             },
             crate::StdHostComposition::minimal(),
         );
-        assert!(!host.advertisement().capabilities.iter().any(|offer| {
-            offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND
-        }));
+        assert!(!host
+            .advertisement()
+            .capabilities
+            .iter()
+            .any(|offer| { offer.kind_id.as_str() == conduit_face::FACE_TEE_KIND }));
         let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
             std::env::temp_dir().join("conduit-direct-spoken-tee-offer.wav"),
             host.advertisement().boot_id.clone(),
@@ -245,11 +245,11 @@ mod tests {
             .advertisement()
             .capabilities
             .iter()
-            .find(|offer| offer.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND)
+            .find(|offer| offer.kind_id.as_str() == conduit_face::FACE_TEE_KIND)
             .expect("attached spoken Host offers its installed Face tee");
         assert_eq!(
             offered.implementation.implementation_id.as_str(),
-            conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION
+            conduit_std_offers::FACE_TEE_IMPLEMENTATION
         );
         assert!(offered.host_calls.is_empty());
         assert!(offered.resource_requirements.is_empty());
@@ -259,9 +259,7 @@ mod tests {
     #[ignore = "requires installed eSpeak NG and data; proves live-provider planning, not audio playback"]
     fn installed_espeak_admits_the_direct_face_mask_without_terminal_attachment() {
         use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
-        use conduit_presentation::{
-            PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
-        };
+        use conduit_face::{FaceBasis, FaceRole, FaceSubject, FaceText};
         use std::{path::Path, time::Duration};
 
         let config = crate::StdHostConfig {
@@ -310,9 +308,9 @@ mod tests {
             SignId::from("sign/direct-spoken-plan/born"),
         )
         .unwrap();
-        let face = Presentation::new(
+        let face = Face::new(
             1,
-            PresentationBasis {
+            FaceBasis {
                 body_id: Some(body.body_id),
                 wake_id: None,
                 source_document_id: None,
@@ -322,14 +320,14 @@ mod tests {
                 active_play_id: None,
                 sign_ids: vec![],
             },
-            vec![PresentationSubject {
+            vec![FaceSubject {
                 identity: "body/current".into(),
-                role: PresentationRole::Body,
+                role: FaceRole::Body,
                 name: "Current Body".into(),
             }],
             vec![],
             vec![],
-            vec![PresentationText {
+            vec![FaceText {
                 subject: "body/current".into(),
                 text: "Ready to speak.".into(),
             }],
@@ -342,9 +340,9 @@ mod tests {
             .iter()
             .flat_map(|fragment| &fragment.placements)
             .any(|placement| {
-                placement.kind_id.as_str() == conduit_presentation::PRESENTATION_TEE_KIND
+                placement.kind_id.as_str() == conduit_face::FACE_TEE_KIND
                     && placement.implementation_id.as_str()
-                        == conduit_std_offers::PRESENTATION_TEE_IMPLEMENTATION
+                        == conduit_std_offers::FACE_TEE_IMPLEMENTATION
             }));
     }
 }

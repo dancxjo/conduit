@@ -42,7 +42,7 @@ every reviewed surface and the explicitly proposed additions.
 plot button_across_room {
     button: input/button
     state: input/button-indicator-state
-    indicator: presentation/indicator-state
+    indicator: face/indicator-state("Button state")
 
     button >> state >> indicator
 }
@@ -78,7 +78,7 @@ A plot without a trailing full stop is live:
 ```conduit
 plot clock-demo {
     clock: time/every(1s)
-    clock >> presentation/tick
+    clock >> face/tick("Clock tick")
 }
 ```
 
@@ -271,7 +271,7 @@ host conduitos-native (
     build = release
     loader = limine
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 4
         bytes = 8MiB
     )
@@ -282,7 +282,7 @@ host conduitos-native (
         memory = mmio
     )
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = framebuffer
     )

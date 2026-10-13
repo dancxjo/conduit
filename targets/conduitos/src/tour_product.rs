@@ -1,6 +1,6 @@
 //! ConduitOS realization of the shared Tour application controller.
 
-use conduit_presentation::{ApplicationEvent, GraphicsScene};
+use conduit_face::{ApplicationEvent, GraphicsScene};
 use conduit_tour_model::{
     TourPointerOutcome, TourRunProof, TourWorkspaceController, TourWorkspaceRefusal,
     TourWorkspaceRequest,
@@ -326,7 +326,7 @@ impl TimerBase for UnavailableTourTimer {
 mod tests {
     use alloc::vec::Vec;
 
-    use conduit_presentation::{ApplicationEventKind, GraphicsPaintRole};
+    use conduit_face::{ApplicationEventKind, GraphicsPaintRole};
     use conduit_tour_model::{
         CANONICAL_RESULT, NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
         RUN_ACTION_ID, TOUR_CHAPTER_COUNT, TourWorkspacePhase,
@@ -355,7 +355,7 @@ mod tests {
             Ok(())
         }
 
-        fn presentation_count(&self) -> u32 {
+        fn face_count(&self) -> u32 {
             self.0.len() as u32
         }
     }
@@ -459,10 +459,7 @@ mod tests {
         assert_eq!(evidence.result, CANONICAL_RESULT);
         assert_eq!(evidence.observations.upper_input.text(), Some("hello"));
         assert_eq!(evidence.observations.upper_output.text(), Some("HELLO"));
-        assert_eq!(
-            evidence.observations.presentation_input.text(),
-            Some("HELLO")
-        );
+        assert_eq!(evidence.observations.face_input.text(), Some("HELLO"));
         assert_eq!(serial.0, [CANONICAL_RESULT.as_bytes()]);
         assert_eq!(
             product.controller().state().phase,
@@ -498,7 +495,7 @@ mod tests {
             .request(&event(12, OPEN_PATCHBAY_ACTION_ID))
             .unwrap();
         product.select_gear(13, "meet-one-gear/change").unwrap();
-        let inspector = product.inspector_presentation().unwrap().unwrap();
+        let inspector = product.inspector_face().unwrap().unwrap();
         assert!(
             inspector
                 .text

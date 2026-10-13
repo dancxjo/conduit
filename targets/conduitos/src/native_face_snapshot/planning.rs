@@ -5,6 +5,7 @@ use conduit_core::{
     ArtifactId, CapabilityId, CapabilityLimits, ConnectionTrack, HostAdvertisement, HostProfileId,
     ImplementationId, ImplementationOffer, PROTOCOL_VERSION, PortDirection, port_id,
 };
+use conduit_face::{face_tee_kind_projection, face_tee_offer, install_mask_plot_value_aliases};
 use conduit_planner::{
     ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions, default_expanded_placements,
     plan_expanded_authoring_with_options,
@@ -13,12 +14,9 @@ use conduit_plot::{
     KindSignature, ProfileCatalog, StartupCatalog, check_syntax_document,
     expand_canonical_plot_for_authoring, parse_syntax_document,
 };
-use conduit_presentation::{
-    install_mask_plot_value_aliases, presentation_tee_kind_projection, presentation_tee_offer,
-};
 
 const SOURCE: &str = include_str!("../../../../plots/face-snapshot/main.conduit");
-pub(super) const IMPLEMENTATION: &str = "conduitos/presentation-snapshot-forward@1";
+pub(super) const IMPLEMENTATION: &str = "conduitos/face-snapshot-forward@1";
 
 impl NativeFaceSnapshotProducer {
     /// The running Host offers the exact pure Back implemented by this module.
@@ -38,7 +36,7 @@ impl NativeFaceSnapshotProducer {
         let mut startup = StartupCatalog::new();
         let mut profiles = ProfileCatalog::new();
         install_mask_plot_value_aliases(&mut startup).map_err(|_| FaceSnapshotRefusal::Catalog)?;
-        let tee = presentation_tee_kind_projection();
+        let tee = face_tee_kind_projection();
         startup
             .insert(KindSignature {
                 kind: tee.kind_id.as_str().into(),
@@ -62,8 +60,8 @@ impl NativeFaceSnapshotProducer {
             bases: Vec::new(),
             resources: Vec::new(),
             planner_capabilities: Vec::new(),
-            capabilities: vec![presentation_tee_offer(
-                CapabilityId::from("conduitos/presentation-snapshot-forward"),
+            capabilities: vec![face_tee_offer(
+                CapabilityId::from("conduitos/face-snapshot-forward"),
                 ImplementationOffer {
                     implementation_id: ImplementationId::from(IMPLEMENTATION),
                     artifact_id: ArtifactId::from(format!("{IMPLEMENTATION}/{build_id}")),

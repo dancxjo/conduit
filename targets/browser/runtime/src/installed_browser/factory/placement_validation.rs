@@ -17,5 +17,8 @@ pub(in super::super) fn validate_placement(
     {
         return Err("planned browser Gear does not match its installed capability".into());
     }
+    if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+        conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    }
     Ok(())
 }

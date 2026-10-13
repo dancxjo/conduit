@@ -3,7 +3,7 @@
 //! speaker Plan/Play drains and the reader accepts its exact receipt.
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::{
     hosted_audio::{
         discover_alsa_playback, ExplicitPlaybackAuthorization, HostedPlaybackSelection,
@@ -227,7 +227,7 @@ impl SelectedPlayback {
 
     pub(super) fn play(
         &self,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         batch: &SpokenBatch,
         control: &RunControl,
@@ -272,7 +272,7 @@ impl SelectedPlayback {
 
     pub(super) fn verify_receipt(
         &self,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         batch: &SpokenBatch,
         result: &SpokenPlaybackExecution,
@@ -356,7 +356,7 @@ impl SelectedPlayback {
 /// digest. The caller may publish these only after the same Play's receipt has
 /// been checked against this validated, one-segment Birth batch.
 pub(super) fn verified_spoken_segments(
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     batch: &SpokenBatch,
 ) -> Result<Vec<serde_json::Value>, String> {

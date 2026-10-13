@@ -1,0 +1,713 @@
+# Authoritative portable face meaning. Rust consumes generated bindings.
+
+type Point2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Point3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Vector2 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+}
+
+type Vector3 = {
+    frame: Text
+    x: Quantity
+    y: Quantity
+    z: Quantity
+}
+
+type Extent2 = {
+    height: Quantity
+    width: Quantity
+}
+
+type Rect2 = {
+    extent: Extent2
+    origin: Point2
+}
+
+type Transform2 = {
+    from_frame: Text
+    offset_x: Quantity
+    offset_y: Quantity
+    to_frame: Text
+}
+
+type Path2Four = {
+    points: collection Point2 = 4
+}
+
+type RoboticsPose2 = {
+    heading: Quantity
+    position: Point2
+}
+
+type ImageRegion2 = {
+    label: Text
+    region: Rect2
+}
+
+type ImagePixelExtent = {
+    height: U64
+    width: U64
+}
+
+type ImageFormat =
+    gray8
+    | jpeg
+    | png
+    | rgba8
+
+type ImageColorProfile =
+    absent
+    | named Text
+
+type ImageResource = {
+    color_profile: ImageColorProfile
+    content: ResourceRef
+    extent: ImagePixelExtent
+    format: ImageFormat
+    image_frame: Text
+}
+
+type VisionEvidenceClass =
+    heuristic
+    | model_derived
+
+type VisionProvenance = {
+    evidence_class: VisionEvidenceClass
+    profile: Text
+    revision: Text
+    source: Text
+}
+
+type VisionKeypoint = {
+    confidence: Ratio
+    name: Text
+    point: Point2
+}
+
+type VisionLandmarkSlot =
+    keypoint VisionKeypoint
+    | unused
+
+type VisionLandmarks = collection VisionLandmarkSlot = 8
+
+type VisionRgbSample = {
+    blue: U8
+    green: U8
+    point: Point2
+    red: U8
+}
+
+type VisionColorSample =
+    absent
+    | rgb VisionRgbSample
+
+type VisionDetection = {
+    classification: Text
+    color_sample: VisionColorSample
+    confidence: Ratio
+    image_identity: Text
+    landmarks: VisionLandmarks
+    provenance: VisionProvenance
+    region: Rect2
+}
+
+type VisionDetectionSlot =
+    detection VisionDetection
+    | unused
+
+type VisionDetectionsFour = collection VisionDetectionSlot = 4
+
+type VisionPixelRegion = {
+    height: U64
+    width: U64
+    x: U64
+    y: U64
+}
+
+type VisionOptionalPixelRegion =
+    absent
+    | present VisionPixelRegion
+
+type VisionObservationEvidenceClass =
+    deterministic_derived
+    | model_derived
+    | statistical_candidate
+
+type VisionObservationProvenance = {
+    artifact: Text
+    evidence_class: VisionObservationEvidenceClass
+    implementation: Text
+    observation_sign: Text
+    observed_at: TemporalInstant
+    provider_instance: Text
+    run: Text
+}
+
+type VisionObjectObservation = {
+    candidate_label: Text
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionPixelRegion
+    source_image: ImageObservationReference
+}
+
+type VisionMotionObservation = {
+    change_permille: U64
+    changed_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+}
+
+type VisionVisibleTextObservation = {
+    confidence_permille: U64
+    provenance: VisionObservationProvenance
+    region: VisionOptionalPixelRegion
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisionObservationSigns = sequence Text <= 16
+
+type VisionTrackObservation = {
+    continuity_confidence_permille: U64
+    contributing_observation_signs: VisionObservationSigns
+    current_region: VisionPixelRegion
+    provenance: VisionObservationProvenance
+    source_image: ImageObservationReference
+    track: Text
+    tracking_context: Text
+}
+
+type VisionMotionsFour = sequence VisionMotionObservation <= 4
+type VisionObjectObservations = sequence VisionObjectObservation <= 4
+type VisionTextsEight = sequence VisionVisibleTextObservation <= 8
+type VisionTracksFour = sequence VisionTrackObservation <= 4
+
+type VisualImpressionDisposition =
+    complete
+    | truncated U64
+
+type VisualSelectedObservationSigns = sequence Text <= 24
+
+type VisualImpression = {
+    disposition: VisualImpressionDisposition
+    model: Text
+    prompt_contract_revision: Text
+    provenance: VisionObservationProvenance
+    selected_observation_signs: VisualSelectedObservationSigns
+    source_image: ImageObservationReference
+    text: Text
+}
+
+type VisualExperienceObservation =
+    impression VisualImpression
+    | motion VisionMotionObservation
+    | object VisionObjectObservation
+    | track VisionTrackObservation
+    | visible_text VisionVisibleTextObservation
+
+type VisualExperienceObservations = sequence VisualExperienceObservation <= 24
+
+type VisualExperienceRelation = {
+    kind: Text
+    object_sign: Text
+    subject_sign: Text
+}
+
+type VisualExperienceRelations = sequence VisualExperienceRelation <= 32
+
+type VisualExperience = {
+    observations: VisualExperienceObservations
+    relations: VisualExperienceRelations
+    source_image: ImageObservationReference
+}
+
+type GraphicsCommandKind =
+    rect
+    | text
+    | icon
+    | orthogonal_path
+
+form face/graphics-command-kind = GraphicsCommandKind as u8 from 1
+
+type GraphicsPaintRole =
+    background
+    | foreground
+    | accent
+    | status
+    | muted
+    | success
+    | warning
+    | danger
+    | focus
+    | hovered
+    | selected
+
+form face/graphics-paint-role = GraphicsPaintRole as u8 from 1
+
+type GraphicsShapeStyle =
+    fill
+    | stroke
+    | rounded_fill
+    | rounded_stroke
+
+form face/graphics-shape-style = GraphicsShapeStyle as u8 from 1
+
+type GraphicsTextRole =
+    body
+    | title
+    | heading
+    | label
+    | code
+    | status
+    | warning
+    | action
+    | muted
+
+form face/graphics-text-role = GraphicsTextRole as u8 from 1
+
+type CompositionItemKind =
+    icon
+    | frame
+    | badge
+
+form face/composition-item-kind = CompositionItemKind as u8 from 1
+
+type CompositionRole =
+    image
+    | group
+    | status
+
+form face/composition-role = CompositionRole as u8 from 1
+
+type FaceMechanismKind =
+    shell
+    | workbench
+    | panel
+    | heading
+    | separator
+    | grid
+    | action_group
+    | action
+    | status
+    | disclosure
+    | evidence
+    | definition_table
+    | definition
+    | code_block
+    | form_field
+    | choice_group
+    | navigation
+    | navigation_link
+    | link
+    | stepper
+    | progress
+    | artifact
+    | download
+    | device_choice
+    | patchbay_canvas
+
+type StatusKind =
+    ordinary
+    | warning
+    | failure
+    | success
+
+type EvidenceDisposition =
+    missing
+    | stale
+    | refused
+    | failed
+    | succeeded
+
+type ChoiceMultiplicity =
+    independent
+    | exclusive
+
+type AdmittedNavigationDestination =
+    home
+    | tour
+    | creche
+    | patchbay
+    | source
+
+type FaceUtteranceClauseKind =
+    subject
+    | relationship
+    | property
+    | composition
+    | text
+    | action
+    | action_argument
+    | disclosure
+    | temporal_reference
+    | temporal_fact
+
+type FaceUtteranceProvenance =
+    subject {
+        identity: Text <= 256B not in [""]
+    }
+    | relationship {
+        index: U32
+    }
+    | composition {
+        identity: Text <= 256B not in [""]
+    }
+    | text {
+        index: U32
+    }
+    | action {
+        identity: Text <= 256B not in [""]
+    }
+    | action_argument {
+        action_identity: Text <= 256B not in [""]
+        argument_name: Text <= 256B not in [""]
+    }
+    | property {
+        index: U32
+    }
+    | disclosure {
+        index: U32
+    }
+    | temporal_reference {
+        index: U32
+    }
+    | temporal_fact {
+        index: U32
+    }
+
+type FaceDisclosureLevel =
+    primary
+    | current_action
+    | context
+    | selected_detail
+    | exact_provenance
+
+type FaceTemporalRole =
+    event
+    | observation
+    | ingestion
+
+# Renderer-neutral rhetoric among exact Face subjects. The open
+# semantic case names meaning; it does not prescribe layout or a renderer.
+type FaceCompositionKind =
+    group
+    | contrast
+    | juxtapose
+    | emphasize
+    | subordinate
+    | associate
+    | reveal_after
+    | semantic {
+        identity: Text <= 256B not in [""]
+    }
+
+type FaceCompositionRelation = {
+    identity: Text <= 256B not in [""]
+    source: Text <= 256B not in [""]
+    target: Text <= 256B not in [""]
+    kind: FaceCompositionKind
+}
+
+type LayoutAxis =
+    horizontal
+    | vertical
+
+type LayoutAlignment =
+    start
+    | center
+    | end
+
+type LayoutRect = {
+    x: I16
+    y: I16
+    width: U16
+    height: U16
+}
+
+type LayoutFrame = {
+    viewport: LayoutRect
+    child_count: U8
+    children: collection LayoutRect = 8
+}
+
+type LayoutError =
+    too_many_children
+    | extent_out_of_bounds
+    | undersized_extent
+    | coordinate_overflow
+    | malformed_encoding
+    | non_canonical_encoding
+
+type GraphicsClipClass =
+    fully_visible
+    | partially_clipped
+    | fully_clipped
+
+type ThemeColor = {
+    red: U8
+    green: U8
+    blue: U8
+}
+
+type GraphicsPoint = {
+    x: I16
+    y: I16
+}
+
+type GeneratedManifestationDisposition =
+    produced
+    | truncated
+    | refused
+    | failed
+    | cancelled
+    | provider_lost
+
+type GeneratedContentRole =
+    speech
+    | presented_thought
+
+type FacePlace =
+    entrance
+    | program
+    | body
+
+form face/place = FacePlace as u8
+
+type FaceAspect =
+    structure
+    | plan
+    | play
+    | signs
+
+form face/aspect = FaceAspect as u8
+
+type FaceDepth =
+    primary
+    | context
+    | detail
+    | exact
+
+form face/depth = FaceDepth as u8
+
+type NavigationRefusal =
+    stale_face
+    | unknown_place
+    | unknown_aspect
+    | unknown_subject
+    | unknown_relationship
+    | history_exhausted
+    | history_full
+    | invalid_truth
+
+form face/navigation-refusal = NavigationRefusal as u8
+
+type MaskWardrobeLifetime =
+    wake
+    | body
+
+form face/mask-wardrobe-lifetime = MaskWardrobeLifetime as u8
+
+type MaskPlanningDisposition =
+    not_required
+    | replacement_required
+
+form face/mask-planning-disposition = MaskPlanningDisposition as u8
+
+type MaskWardrobeError =
+    stale_revision
+    | capacity_exceeded
+    | duplicate_mask
+    | unknown_mask
+    | unknown_preference
+    | invalid_lifetime_scope
+    | invalid_route
+    | duplicate_route
+    | stale_selection
+
+form face/mask-wardrobe-error = MaskWardrobeError as u8
+
+type FaceContributionRole =
+    foreground
+    | tutorial
+    | inspection
+    | transient
+
+form face/face-contribution-role = FaceContributionRole as u8
+
+type GenerativeNarratorRole =
+    transient_first_person_body_narrator
+
+form face/generative-narrator-role = GenerativeNarratorRole as u8
+
+type GeneratedActionAffordance = {
+    action_identity: Text <= 128B not in [""]
+    source_face_revision: U64
+}
+
+type ApplicationComponent =
+    shell
+    | masthead
+    | main
+    | stack
+    | panel
+    | heading
+    | paragraph
+    | button
+    | status
+    | disclosure
+    | patchbay_canvas
+    | navigation
+    | code
+    | action_group
+    | text_input
+    | select
+    | text_area
+    | table
+    | grid
+    | success_status
+    | failure_status
+    | option
+    | summary
+    | warning_status
+    | missing_evidence
+    | stale_evidence
+    | refused_evidence
+    | failed_evidence
+    | successful_evidence
+    | definition_table
+    | definition
+    | code_block
+    | artifact
+    | form_field
+    | field_label
+    | field_help
+    | field_error
+    | stepper
+    | progress
+    | choice_group
+    | choice_group_label
+    | choice_option_label
+    | independent_choice
+    | exclusive_choice
+    | navigation_link
+    | link
+    | separator
+
+form face/application-component = ApplicationComponent as u8 from 1
+
+type ApplicationNodeState =
+    ready
+    | busy
+    | unavailable
+
+form face/application-node-state = ApplicationNodeState as u8 from 1
+
+type ApplicationEventKind =
+    activate
+    | change
+    | input
+    | toggle
+    | submit
+
+type ApplicationAction = {
+    id: Text <= 48B not in [""]
+    event: ApplicationEventKind
+}
+
+form face/application-event-kind = ApplicationEventKind as u8 from 1
+
+type ApplicationViewRefusal =
+    empty
+    | too_many_nodes
+    | too_deep
+    | duplicate_key
+    | unknown_parent
+    | text_too_long
+    | invalid_control_value
+    | too_many_actions
+    | action_id_too_long
+    | duplicate_action
+    | unknown_action
+    | invalid_node_state
+    | malformed_encoding
+    | oversized_encoding
+    | unsupported_version
+    | stale_revision
+    | event_too_large
+    | queue_pressure
+
+# Initial finite visual Look facet. Semantic selectors and topology are absent.
+# These canonical values are startup configuration, not a common multimodal Look.
+type VisualDensityPreference =
+    compact
+    | spacious
+
+type VisualPalettePreference =
+    phosphor
+    | editorial
+
+type VisualMotionPreference =
+    none
+    | restrained
+
+type VisualExpressionInfo = {
+    density: VisualDensityPreference
+    identity: Text <= 128B not in [""]
+    motion: VisualMotionPreference
+    palette: VisualPalettePreference
+    text_scale_percent: U16 in 100..=200
+    version: U16 in 1..=1
+}
+
+# Structural selectors refer to existing Face classifications; they are not
+# widgets, paint roles, or replacement semantic subjects/actions.
+type ComponentSubjectSelector =
+    subject Text <= 256B not in [""]
+    | role Text in ["Document", "Body", "Part", "Candidate", "Plot", "Gear", "Port", "Cord", "Plan", "Play", "Host", "Capability", "Line", "Manifestation", "Route", "Diagnostic", "Sign", "Info", "Region", "Collection", "Item", "TextEntry", "Status", "Action"]
+
+type ComponentRegionInfo = {
+    group: U8 in 0..=7
+    identity: Text <= 64B not in [""]
+    maximum_subjects: U16 in 1..=20
+    selector: ComponentSubjectSelector
+}
+
+type ComponentRecipeInfo = {
+    gutter: U16 in 0..=24
+    identity: Text <= 128B not in [""]
+    maximum_columns: U16 in 1..=2
+    reflow_width: U16 in 280..=900
+    regions: sequence ComponentRegionInfo <= 8
+    version: U16 in 1..=1
+}
+
+# Proposed current input mapping, outside Face and Look. Construction is not
+# admission: the checked input Plot, current Host offer, Face and Show must
+# establish the binding before its control label can become an instruction.
+type ActionInputBindingProposalInfo = {
+    available: Boolean
+    boot_id: Text <= 128B not in [""]
+    control_identity: Text <= 128B not in [""]
+    control_label: Text <= 64B not in [""]
+    face_identity: Text <= 128B not in [""]
+    host_id: Text <= 128B not in [""]
+    input_plan_id: Text <= 128B not in [""]
+    mapping_revision: U64 in 1..=18446744073709551615
+    offered_action: GeneratedActionAffordance
+    show_identity: Text <= 128B not in [""]
+    version: U16 in 1..=1
+}

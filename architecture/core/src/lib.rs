@@ -156,10 +156,10 @@ pub const DEFAULT_CONNECTION_BYTE_CAPACITY: u32 = 64;
 pub const WAIT_HOST_CALL_CONTRACT: &str = "conduit.host/wait@1";
 pub const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
 pub const AWAIT_TRIGGER_HOST_CALL_CONTRACT: &str = "conduit.host/await-trigger@1";
-pub const MAX_PRESENTATION_COMPLETION_BYTES: u32 = 256;
+pub const MAX_FACE_COMPLETION_BYTES: u32 = 256;
 pub const TIMER_RESOURCE_CLASS: &str = "conduit.resource/timer-slot@1";
 pub const RUNTIME_MEMORY_RESOURCE_CLASS: &str = "conduit.resource/runtime-memory@1";
-pub const PRESENTATION_RESOURCE_CLASS: &str = "conduit.resource/presentation-slot@1";
+pub const FACE_RESOURCE_CLASS: &str = "conduit.resource/face-slot@1";
 pub const INPUT_RESOURCE_CLASS: &str = "conduit.resource/input-slot@1";
 pub const PRESENT_AUTHORITY_CONTRACT: &str = "conduit.authority/present@1";
 pub const SHARED_POOL_ADMIT_AUTHORITY_CONTRACT: &str = "conduit.authority/shared-pool-admit@1";
@@ -219,7 +219,7 @@ identity_type!(ExpandedPlotId);
 identity_type!(PlanId);
 identity_type!(ActivePlayId);
 identity_type!(SignId);
-identity_type!(PresentationId);
+identity_type!(FaceId);
 identity_type!(FragmentId);
 identity_type!(PlacementId);
 identity_type!(ConnectionId);
@@ -329,8 +329,8 @@ pub struct SignIdentity {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresentationIdentity {
-    pub presentation_id: PresentationId,
+pub struct FaceIdentity {
+    pub face_id: FaceId,
     pub active_play_id: ActivePlayId,
     pub placement_id: PlacementId,
     pub sequence: u64,
@@ -404,18 +404,18 @@ pub fn bind_sign(
     }
 }
 
-pub fn bind_presentation(
+pub fn bind_face(
     active_play_id: &ActivePlayId,
     placement_id: &PlacementId,
     sequence: u64,
-) -> PresentationIdentity {
+) -> FaceIdentity {
     let mut canonical = Vec::new();
-    push_string(&mut canonical, "presentation");
+    push_string(&mut canonical, "face");
     push_string(&mut canonical, active_play_id.as_str());
     push_string(&mut canonical, placement_id.as_str());
     push_u64(&mut canonical, sequence);
-    PresentationIdentity {
-        presentation_id: PresentationId::from(hash_bytes(&canonical)),
+    FaceIdentity {
+        face_id: FaceId::from(hash_bytes(&canonical)),
         active_play_id: active_play_id.clone(),
         placement_id: placement_id.clone(),
         sequence,
@@ -1498,7 +1498,7 @@ pub struct ConnectionTerminalDisposition {
 pub struct Observation {
     pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
-    pub presentation_id: Option<PresentationId>,
+    pub face_id: Option<FaceId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,
@@ -1526,6 +1526,8 @@ pub enum ObservationKind {
         value: ValuePayload,
     },
     ValuePresented {
+        /// Meaningful data name declared by the authored Face Gear.
+        label: String,
         value: ValuePayload,
     },
     PlacementCompleted,
@@ -1562,10 +1564,10 @@ pub enum HostCommand {
         plan_id: PlanId,
         placement_id: PlacementId,
     },
-    CompletePresentation {
+    CompleteFace {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
         success: bool,
@@ -1614,9 +1616,9 @@ pub enum HostEvent {
     PresentValueRequested {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
-        presentation_kind: KindId,
+        face_kind: KindId,
         value: ValuePayload,
     },
     ConnectionBlocked {
@@ -1637,14 +1639,14 @@ pub enum HostEvent {
     ManifestationCompleted {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
     },
     ManifestationFailed {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
         value: ValuePayload,
         reason: FailureReason,
@@ -1692,7 +1694,7 @@ pub enum HostEvent {
 /// Host-neutral work requested by an installed semantic implementation.
 ///
 /// A std adapter may map `PresentValue` to stdout, a browser adapter may map it to DOM
-/// presentation, and a Pico W adapter may map it to an LED. Those manifestations are adapter
+/// face, and a Pico W adapter may map it to an LED. Those manifestations are adapter
 /// policy; the semantic operation remains unaware of the platform.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub enum PlatformEffect {
@@ -1704,9 +1706,9 @@ pub enum PlatformEffect {
     PresentValue {
         plan_id: PlanId,
         active_play_id: ActivePlayId,
-        presentation_id: PresentationId,
+        face_id: FaceId,
         placement_id: PlacementId,
-        presentation_kind: KindId,
+        face_kind: KindId,
         value: ValuePayload,
     },
     TransmitConnection {
@@ -1784,7 +1786,7 @@ pub fn present_host_call_requirement(
         target_kind: Some(target_kind),
         maximum_in_flight: 1,
         maximum_input_bytes,
-        maximum_output_bytes: MAX_PRESENTATION_COMPLETION_BYTES,
+        maximum_output_bytes: MAX_FACE_COMPLETION_BYTES,
     }
 }
 
@@ -1919,3 +1921,6 @@ pub mod projection;
 
 mod realization_properties;
 pub use realization_properties::*;
+
+mod data_label;
+pub use data_label::*;

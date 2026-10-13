@@ -283,7 +283,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
- "conduit-presentation",
+ "conduit-face",
  "conduit-time",
  "sha2",
 ]
@@ -346,7 +346,7 @@ dependencies = [
  "conduit-core",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
+ "conduit-face",
  "conduit-text",
  "serde",
  "serde-json-core",
@@ -522,7 +522,7 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-presentation"
+name = "conduit-face"
 version = "0.1.0"
 dependencies = [
  "conduit-body",
@@ -573,7 +573,7 @@ version = "0.1.0"
 dependencies = [
  "conduit-core",
  "conduit-plot",
- "conduit-presentation",
+ "conduit-face",
 ]
 
 [[package]]
@@ -596,7 +596,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
+ "conduit-face",
  "conduit-process",
  "conduit-purpose",
  "conduit-robotics",
@@ -649,7 +649,7 @@ dependencies = [
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-presentation",
+ "conduit-face",
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",

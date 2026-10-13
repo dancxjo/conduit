@@ -2,8 +2,8 @@ use std::thread;
 use std::time::Duration;
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, PlacementId,
-    PlanFragment, PresentationId, SignId,
+    bind_active_play, bind_face, bind_sign, BaseImplementationId, BootId, FaceId, PlacementId,
+    PlanFragment, SignId,
 };
 use conduit_kernel::scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus};
 use conduit_kernel::{
@@ -66,7 +66,7 @@ pub struct StdoutReceipt {
     pub fragment_id: String,
     pub active_play_id: String,
     pub placement_id: PlacementId,
-    pub presentation_id: PresentationId,
+    pub face_id: FaceId,
     pub sign_id: SignId,
     pub sequence: u64,
     pub level: bool,
@@ -357,7 +357,7 @@ impl TripleSource {
             thread::sleep(Duration::from_millis(duration));
         } else if request.node == self.show_node {
             let signal = decode_signal_bytes(input).map_err(|error| error.to_string())?;
-            let presentation = bind_presentation(
+            let face = bind_face(
                 &self.active_play_id,
                 &self.show_placement,
                 *signal.sequence(),
@@ -369,19 +369,14 @@ impl TripleSource {
                 *signal.sequence(),
             );
             self.identity
-                .bind_presentation(
-                    &self.lowered.identity,
-                    request.node,
-                    request.request,
-                    &presentation,
-                )
+                .bind_face(&self.lowered.identity, request.node, request.request, &face)
                 .map_err(|error| format!("{error:?}"))?;
             self.identity
                 .bind_sign(
                     &sign,
                     Some(request.node),
                     Some(request.request),
-                    Some(&presentation.presentation_id),
+                    Some(&face.face_id),
                 )
                 .map_err(|error| format!("{error:?}"))?;
             self.receipts.push(StdoutReceipt {
@@ -389,7 +384,7 @@ impl TripleSource {
                 fragment_id: self.fragment.fragment_id.as_str().to_owned(),
                 active_play_id: self.active_play_id.as_str().to_owned(),
                 placement_id: self.show_placement.clone(),
-                presentation_id: presentation.presentation_id,
+                face_id: face.face_id,
                 sign_id: sign.sign_id,
                 sequence: *signal.sequence(),
                 level: *signal.level(),

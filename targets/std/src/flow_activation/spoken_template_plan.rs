@@ -3,12 +3,12 @@ use super::parsec_source_plan::{expanded, Producer};
 use conduit_core::{
     CapabilityOffer, ConfigurationValue, HostAdvertisement, PreparationHostIdentity,
 };
+use conduit_face::{
+    prepare_checked_spoken_template, PreparedSpokenTemplate, SPOKEN_TEMPLATE_LOOKS_SOURCE,
+};
 use conduit_plot::{
     check_syntax_document, parse_syntax_document, CheckedSyntaxDocument, PortableExpressionProgram,
     StartupCatalog,
-};
-use conduit_presentation::{
-    prepare_checked_spoken_template, PreparedSpokenTemplate, SPOKEN_TEMPLATE_LOOKS_SOURCE,
 };
 
 fn checked() -> Result<CheckedSyntaxDocument, String> {
@@ -90,15 +90,14 @@ impl crate::StdHost {
     /// The receipt proves source selection and wording only, never speech or Show.
     pub fn prepare_spoken_template_wording(
         &self,
-        face: &conduit_presentation::Presentation,
+        face: &conduit_face::Face,
         entry: &str,
-    ) -> Result<conduit_presentation::SpokenTemplateWording, String> {
+    ) -> Result<conduit_face::SpokenTemplateWording, String> {
         let source = SpokenTemplateSourcePlan::prepare(self.advertisement(), entry)?;
         let outline = crate::spoken_face_mask::select_spoken_outline(face)
             .map_err(|error| format!("spoken template outline: {error:?}"))?;
-        let slots =
-            conduit_presentation::prepare_spoken_template_slots(face, &outline.text_indices)
-                .map_err(|error| format!("spoken template selection: {error:?}"))?;
+        let slots = conduit_face::prepare_spoken_template_slots(face, &outline.text_indices)
+            .map_err(|error| format!("spoken template selection: {error:?}"))?;
         source
             .evaluator()?
             .evaluate(face, &slots)
@@ -166,8 +165,8 @@ mod tests {
         assert!(path.is_absolute());
         let record: serde_json::Value =
             serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-        let face: conduit_presentation::Presentation =
-            serde_json::from_value(record.get("presentation").unwrap_or(&record).clone()).unwrap();
+        let face: conduit_face::Face =
+            serde_json::from_value(record.get("face").unwrap_or(&record).clone()).unwrap();
         assert!(face.basis.body_id.is_some());
         let baseline = StdHost::new();
         let mut advertisement = baseline.advertisement().clone();
@@ -191,7 +190,7 @@ mod tests {
             brief.selected_clause_indices,
             expanded.selected_clause_indices
         );
-        let plan = conduit_presentation::plan_face_utterances(&face).unwrap();
+        let plan = conduit_face::plan_face_utterances(&face).unwrap();
         for clause in &plan.clauses {
             assert!(brief.wording.contains(&clause.text));
             assert!(expanded.wording.contains(&clause.text));

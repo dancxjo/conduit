@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-presentation = { path = "../presentation" }
+conduit-face = { path = "../face" }
 
 [build-dependencies]
 conduit-plot = { path = "../../architecture/plot" }

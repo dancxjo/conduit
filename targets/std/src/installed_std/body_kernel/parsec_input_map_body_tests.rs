@@ -3,7 +3,7 @@
 use super::*;
 use crate::body_execution::{BodyParsecShowObserver, BodyParsecTerminalRoute};
 use crate::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
-use conduit_presentation::{ManifestationLifecycle, MaskShow, Presentation};
+use conduit_face::{Face, ManifestationLifecycle, MaskShow};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -109,9 +109,9 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
         control: control.clone(),
     };
     #[derive(Default)]
-    struct Shows(Vec<(Presentation, MaskShow)>);
+    struct Shows(Vec<(Face, MaskShow)>);
     impl BodyParsecShowObserver for Shows {
-        fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String> {
+        fn showed(&mut self, face: &Face, show: &MaskShow) -> Result<(), String> {
             show.validate(face)
                 .map_err(|error| format!("Show: {error:?}"))?;
             self.0.push((face.clone(), show.clone()));
@@ -168,7 +168,7 @@ fn combined_body_retains_four_source_transitions_then_observes_space_without_a_c
     for (index, (face, show)) in shows.0.iter().enumerate() {
         let source = &plan.plots[0].plan;
         assert_eq!(face.revision, index as u64 + 1);
-        let expected_basis = conduit_presentation::PresentationBasis {
+        let expected_basis = conduit_face::FaceBasis {
             body_id: Some(plan.body_id.clone()),
             wake_id: Some(plan.wake_id.clone()),
             source_document_id: Some(source.source_document_id.clone()),

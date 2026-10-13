@@ -6,11 +6,11 @@ use crate::flow_activation::parsec_instruction_source_offer as source;
 use crate::installed_std::parsec_instruction_source_admission::ParsecInstructionSourceAdmission;
 use conduit_body::{BodyPlan, BodyPlayIdentity};
 use conduit_core::{ActivePlayIdentity, HostAdvertisement};
+use conduit_face::PlannedMaskPlot;
 use conduit_kernel::{
     scheduler::HostCallRequest, BoundedValueRef, HostCallId, NodeId, RequestId, ValueRef,
 };
 use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
-use conduit_presentation::PlannedMaskPlot;
 
 struct Fixture {
     host: HostAdvertisement,

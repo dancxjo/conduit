@@ -2,7 +2,7 @@
 
 use super::GlyphRaster;
 use crate::display::{DisplayError, DisplayReceipt, RetainedPixelTarget};
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 /// Lay out and draw one bounded command using the same cursor as measurement.
 pub fn render_text(
@@ -185,7 +185,7 @@ mod tests {
 
     #[test]
     fn oversized_text_refuses_before_any_surface_write_even_when_clipped() {
-        let oversized = "x".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES + 1);
+        let oversized = "x".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES + 1);
         let mut surface = Surface {
             pixels: [0x204060; 32 * 32],
         };
@@ -219,7 +219,7 @@ mod tests {
 
     #[test]
     fn maximum_admitted_unicode_remains_bounded_at_one_pixel_width() {
-        let value = "é".repeat(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES / 2);
+        let value = "é".repeat(conduit_face::MAX_GRAPHICS_TEXT_BYTES / 2);
         let count = value.chars().count();
         let layout = super::super::TextLayout::new(&value, TextRole::Body, 1).unwrap();
         assert_eq!(layout.count(), count);

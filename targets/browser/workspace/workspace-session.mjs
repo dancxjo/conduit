@@ -74,8 +74,8 @@ export function openWorkspaceSession({ host, storage }) {
     selectPlot(plot) { request('SelectPlot', { plot }); return save(); },
     libraryView(source, query, revision, joinedLines = []) { return request('LibraryView', { ...here, source, query, revision, joined_lines: joinedLines }, true); },
     tutorialView(revision, playback) { return request('TutorialView', { revision, playback }, true); },
-    tutorialPresenterRequest(request_identity, presentation_revision, playback) {
-      return request('TutorialPresenterInput', { request_identity, presentation_revision, playback }, true);
+    tutorialPresenterRequest(request_identity, face_revision, playback) {
+      return request('TutorialPresenterInput', { request_identity, face_revision, playback }, true);
     },
     presentTutorialMask(revision, playback) {
       return request('PresentTutorialMask', { ...here, revision, playback });

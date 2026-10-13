@@ -94,15 +94,15 @@ where
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
-            if kernel.is_text_presentation_request(&request) {
+            if kernel.is_text_face_request(&request) {
                 kernel.present_text(request, serial)?;
                 kernel
-                    .complete_presentation(request)
+                    .complete_face(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 overlap_witness = timer_armed && !timer_completed;
                 continue;
             }
-            if kernel.is_tick_presentation_request(&request) {
+            if kernel.is_tick_face_request(&request) {
                 let value = kernel
                     .host_value(request.input.value)
                     .map_err(|_| MachineRunError::KernelFailure)?;
@@ -113,7 +113,7 @@ where
                     .present(value)
                     .map_err(|_| MachineRunError::SerialBaseFailure)?;
                 kernel
-                    .complete_presentation(request)
+                    .complete_face(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
@@ -139,7 +139,7 @@ where
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: timer.wake_count(),
                     idle_entries: idle.idle_count(),
-                    serial_presentations: serial.presentation_count(),
+                    serial_faces: serial.face_count(),
                     clock_monotonic: clock.now() >= started,
                     pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness,
@@ -218,7 +218,7 @@ mod tests {
             self.values.push(bytes.to_vec());
             Ok(())
         }
-        fn presentation_count(&self) -> u32 {
+        fn face_count(&self) -> u32 {
             self.values.len() as u32
         }
     }
@@ -255,7 +255,7 @@ mod tests {
     }
 
     #[test]
-    fn text_reaches_presentation_while_timer_region_is_outstanding() {
+    fn text_reaches_face_while_timer_region_is_outstanding() {
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],
@@ -291,7 +291,7 @@ mod tests {
         assert!(!proof.physical_parallelism);
         assert_eq!(proof.logical_operations, 5);
         assert_eq!(proof.timer_irq_wakes, 1);
-        assert_eq!(proof.serial_presentations, 2);
+        assert_eq!(proof.serial_faces, 2);
         assert_eq!(
             serial.values[0],
             crate::dual_region_plan::TEXT_RESULT.as_bytes()
@@ -303,7 +303,7 @@ mod tests {
     }
 
     #[test]
-    fn timer_and_presentation_base_loss_remain_distinct() {
+    fn timer_and_face_base_loss_remain_distinct() {
         let identities = BootIdentities {
             host: [1; 32],
             boot: [2; 32],

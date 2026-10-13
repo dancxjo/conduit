@@ -1,11 +1,11 @@
 //! One bounded child Step evaluates the actual checked game/map programs.
 use conduit_core::{StructuredCanonicalSelection, StructuredSelector};
+use conduit_face::{
+    ParsecMapTransitionResult, PreparedParsecMapTransition, PARSEC_MAP_FRAME_BYTES,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     Failure, FailureCode, PortId,
-};
-use conduit_presentation::{
-    ParsecMapTransitionResult, PreparedParsecMapTransition, PARSEC_MAP_FRAME_BYTES,
 };
 
 pub(super) struct ParsecCombineBack {
