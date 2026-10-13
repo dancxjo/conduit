@@ -40,6 +40,14 @@
               "claim": "Sixteen actual transmitted and received buffers, with typed results, zero Play allocations and retirement",
               "integration": "pending",
               "physical_proof": false
+            },
+            {
+              "receipt": "current-usb-classes-a783be37/cdc-cross-architecture.json",
+              "receipt_sha256": "3414d449a6bb1c7b9918184f4cea59a6355ce0451687ee08c6179b919b4e9846",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
             }
           ]
         },
@@ -62,6 +70,13 @@
               "receipt_sha256": "6298d559f9a2b53aa98ebac2ffa32e6aa7dc6c2b88f23bccc2553dc7240a6bd6",
               "proof_level": "emulator-with-device",
               "claim": "Packet-aligned OUT transfer plus distinct ZLP; whole-transfer emulator evidence only",
+              "integration": "pending",
+              "physical_proof": false
+            },
+            {
+              "receipt": "current-usb-classes-a783be37/ecm/validation.json",
+              "receipt_sha256": "fd62ac42943c6a6711eb0e3445ff55fb11d92ad7687a7c0fb2907b66dde1c94b",
+              "proof_level": "emulator-with-device",
               "integration": "pending",
               "physical_proof": false
             }
@@ -125,6 +140,14 @@
               "claim": "Corrected feedback-drain kernel still completes fresh exact512-byte read after original STALL and three reset acknowledgments",
               "integration": "pending",
               "physical_proof": false
+            },
+            {
+              "receipt": "current-usb-classes-a783be37/bot-cross-architecture.json",
+              "receipt_sha256": "f1c1e7ca08d6ee2031e5a31ed79445347564c374183d9b852b0af152cfc9b3a5",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
             }
           ]
         },
@@ -142,7 +165,17 @@
           "play_alloc_attempts": 0,
           "play_realloc_attempts": 0,
           "acknowledged_stop": true,
-          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier."
+          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier.",
+          "retained_product_proofs": [
+            {
+              "receipt": "current-usb-classes-a783be37/audio-cross-architecture.json",
+              "receipt_sha256": "3de40b0b90c79b6296ff42414ec4bb9a3301c130bbd94cef04ed4c7c1fc1eb3e",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         }
       },
       "machine": "q35",
@@ -178,7 +211,17 @@
           "proof_level": "emulator-with-device",
           "receipt": "usb-cdc-acm-aarch64-product-proof.json",
           "receipt_sha256": "13f1e1f561e41df590e8cb1641eb1c1375082a99ef01ed5c416ebdb2b093e457",
-          "reason": "Same checked CDC Source as x86; actual five controls and16 TX/RX pairs with retirement retained. Full failures and final integration remain incomplete; physical evidence is separate."
+          "reason": "Same checked CDC Source as x86; actual five controls and16 TX/RX pairs with retirement retained. Full failures and final integration remain incomplete; physical evidence is separate.",
+          "retained_product_proofs": [
+            {
+              "receipt": "current-usb-classes-a783be37/cdc-cross-architecture.json",
+              "receipt_sha256": "3414d449a6bb1c7b9918184f4cea59a6355ce0451687ee08c6179b919b4e9846",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "cdc-ecm": {
           "status": "unsupported",
@@ -224,7 +267,17 @@
             "late_native_completion_proven": false,
             "proof_level": "emulator-with-device",
             "acceptance": "partial"
-          }
+          },
+          "retained_product_proofs": [
+            {
+              "receipt": "current-usb-classes-a783be37/bot-cross-architecture.json",
+              "receipt_sha256": "f1c1e7ca08d6ee2031e5a31ed79445347564c374183d9b852b0af152cfc9b3a5",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         },
         "uac": {
           "status": "incomplete",
@@ -240,7 +293,17 @@
           "play_alloc_attempts": 0,
           "play_realloc_attempts": 0,
           "acknowledged_stop": true,
-          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier."
+          "reason": "Actual unchanged checked playback and public completion/drain run; remaining owning-issue fault acceptance is open. Physical output is a separate unverified proof tier.",
+          "retained_product_proofs": [
+            {
+              "receipt": "current-usb-classes-a783be37/audio-cross-architecture.json",
+              "receipt_sha256": "3de40b0b90c79b6296ff42414ec4bb9a3301c130bbd94cef04ed4c7c1fc1eb3e",
+              "proof_level": "emulator-with-device",
+              "same_checked_package_and_root": true,
+              "integration": "pending",
+              "physical_proof": false
+            }
+          ]
         }
       },
       "machine": "virt-10.2,highmem=off,gic-version=2,iommu=none",
