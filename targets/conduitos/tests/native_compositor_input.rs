@@ -532,8 +532,10 @@ fn patchbay_presentation_revision_recomposes_only_its_native_surface() {
     use conduit_tour_model::TourWorkspacePhase;
 
     let (presentation, plan, _main, top, mut compositor) = fixture(1);
+    // The Tour reserves a 64-pixel status edge. Build its supported logical
+    // viewport; the compositor still clips into the admitted 10-by-7 surface.
     let initial_scene =
-        conduitos::tour_workspace::scene(10, 7, 1, TourWorkspacePhase::LessonReady).unwrap();
+        conduitos::tour_workspace::scene(640, 480, 1, TourWorkspacePhase::LessonReady).unwrap();
     update_with_scene(
         &mut compositor,
         &presentation,
@@ -547,7 +549,7 @@ fn patchbay_presentation_revision_recomposes_only_its_native_surface() {
 
     let (next_presentation, next_plan, _, next_top, _) = fixture(2);
     let patchbay_scene =
-        conduitos::tour_workspace::scene(10, 7, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
+        conduitos::tour_workspace::scene(640, 480, 2, TourWorkspacePhase::PatchbayOpen).unwrap();
     update_with_scene(
         &mut compositor,
         &next_presentation,
