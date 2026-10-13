@@ -127,7 +127,7 @@ pub(super) fn state(ty: &StructuredInfoType, phase: u64) -> StructuredInfoValue 
             }
         }
         "phase" => scalar(f.value_type(), phase),
-        "failed" | "terminal" => boolean(f.value_type(), false),
+        "failed" | "terminal" | "phase_error" => boolean(f.value_type(), false),
         _ => panic!("state field"),
     })
 }

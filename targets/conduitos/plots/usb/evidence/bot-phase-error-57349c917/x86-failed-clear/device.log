@@ -1,0 +1,4 @@
+CDC_DEVICE_LISTENING /dev/shm/bot-q9qjru6m/device.sock
+BOT_CBW 1
+BOT_RECOVERY_ACK 1
+CDC_DEVICE_REFUSED fixture deadline

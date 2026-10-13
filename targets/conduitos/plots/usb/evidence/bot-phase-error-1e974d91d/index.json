@@ -1,0 +1,72 @@
+{
+  "schema": "conduit.usb/bot-phase-error-proof@1",
+  "runtime_source_commit": "1e974d91d5eedc162e59520f3367bdc50fc5125a",
+  "proof_class": "fresh-freestanding-emulator-product-host",
+  "physical_proof": false,
+  "source_package_sha256": "3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+  "root_request_sha256": "468dd1d441cdbdeb737c0b19fe3b691abfd04e5808ca6520f97d1317abdeab6c",
+  "first_data_differs_from_fresh_data": true,
+  "cases": [
+    {
+      "architecture": "x86_64",
+      "case": "recovered",
+      "directory": "x86-recovered",
+      "observed_outcome": "play-retired",
+      "verified": true
+    },
+    {
+      "architecture": "x86_64",
+      "case": "failed-clear",
+      "directory": "x86-failed-clear",
+      "observed_outcome": "play-retired",
+      "verified": true
+    },
+    {
+      "architecture": "aarch64",
+      "case": "recovered",
+      "directory": "aarch64-recovered",
+      "observed_outcome": "play-retired",
+      "verified": true
+    },
+    {
+      "architecture": "aarch64",
+      "case": "failed-clear",
+      "directory": "aarch64-failed-clear",
+      "observed_outcome": "play-retired",
+      "verified": true
+    }
+  ],
+  "files": {
+    "aarch64-failed-clear/build-manifest.json": "6ed512bab12cf93209843e00b2f50193e5f707dc6c4fb6010d0c8eb3b5ae32ab",
+    "aarch64-failed-clear/build.json": "e15f4980eeba7c9c0d3ed56b2b1c14753998a2105478916ceefd2912bd4ba74e",
+    "aarch64-failed-clear/device.log": "a65b40948825a23bd92407a117b810b51b6445c5ea02791e6aa8134a64f64cbe",
+    "aarch64-failed-clear/protocol-receipt.json": "42185dc6f26a15c821b2ce18c20aefedc09a3c05bb80e66508a03ea5a4ca4e8a",
+    "aarch64-failed-clear/run-receipt.json": "dfc64bb0a7756d0d590a8cce75f8c03b1c3b157805d2aa9ee285553d6bd70d8c",
+    "aarch64-failed-clear/serial.log": "791345ad703edd325480f8e3b65fa1e897f6095bcba33a6f98a58f0da2288aea",
+    "aarch64-failed-clear/wire.jsonl": "adc21cf61c9e6e3b9f3e73961b9e805c9058dea786d4fd1759294518c8907171",
+    "aarch64-recovered/build-manifest.json": "6ed512bab12cf93209843e00b2f50193e5f707dc6c4fb6010d0c8eb3b5ae32ab",
+    "aarch64-recovered/build.json": "e15f4980eeba7c9c0d3ed56b2b1c14753998a2105478916ceefd2912bd4ba74e",
+    "aarch64-recovered/device.log": "af09a9afc783f7c640b26609fa96ae1079856a8f015da89ffb6e46ea053abd60",
+    "aarch64-recovered/protocol-receipt.json": "42185dc6f26a15c821b2ce18c20aefedc09a3c05bb80e66508a03ea5a4ca4e8a",
+    "aarch64-recovered/run-receipt.json": "54661baa3929d6688d9f111d95ff2369fe2c2f27409338503ed10548dc271cea",
+    "aarch64-recovered/serial.log": "c76f0e242b9161c517a6f8eead8cebdb5ef73f70d07199172fda3756a25d5e3f",
+    "aarch64-recovered/wire.jsonl": "c6b7304f65991118aa352a2c18c434ad02a678c1e1805cc70099552f24cb8e63",
+    "protocol-source.json": "3fc6aacc3edd2611f0acf0fdd31b64c3d7c10f8fd3821a9fe7ac3f1cd43d026f",
+    "root-request.json": "468dd1d441cdbdeb737c0b19fe3b691abfd04e5808ca6520f97d1317abdeab6c",
+    "source-receipt.json": "99cf82c43cf8128651f370b062f3ed04f35bef06cdf985231ca684afb02ba3ab",
+    "x86-failed-clear/build-manifest.json": "742904780c24fcbd9f00cfa3e365e0fc236ac5469686c010d3e42d44d9c24a5f",
+    "x86-failed-clear/build.json": "e0cc287a7989efcc3e575d0fb0fe10f2ea0484b94f03169635bacdec7aa6820f",
+    "x86-failed-clear/device.log": "31b4e0f526b455da8ae2b9b8b8015b0ba41192f066aeecd46e064a8d7c00ed92",
+    "x86-failed-clear/protocol-receipt.json": "3a0dadf0a9d8efa4c0aadcd713aeef2dc951f1e6483b0c989050b95dc6a38e35",
+    "x86-failed-clear/run-receipt.json": "3da50e40cc41c83dfb9b8825b7eed2c85e4e8f15a07f4411e564c94241e8d84b",
+    "x86-failed-clear/serial.log": "6e45a2295b04f5dffb9c15a4618c8270376a4380faa49dbe446f8f676ec99c3e",
+    "x86-failed-clear/wire.jsonl": "fdd402509b558f0455e1955f504b7ccf9c1dbeb0b23bda96eaca35ddf5cda0bd",
+    "x86-recovered/build-manifest.json": "742904780c24fcbd9f00cfa3e365e0fc236ac5469686c010d3e42d44d9c24a5f",
+    "x86-recovered/build.json": "e0cc287a7989efcc3e575d0fb0fe10f2ea0484b94f03169635bacdec7aa6820f",
+    "x86-recovered/device.log": "bb382149381b0adf13f144a1834caee5a7b0da269ffa1ff42a0bc9144f691879",
+    "x86-recovered/protocol-receipt.json": "3a0dadf0a9d8efa4c0aadcd713aeef2dc951f1e6483b0c989050b95dc6a38e35",
+    "x86-recovered/run-receipt.json": "a3a5d591112658e2bcaad6692d4adb01824a49946fdf7987e03a6360c0f32091",
+    "x86-recovered/serial.log": "d0e7aad0c4f021c341834bbd5d6cebb1510d844013dcbc187e09df43381e6994",
+    "x86-recovered/wire.jsonl": "e5407b6f9343205d6a07ed5509c7ec729d3ed1bfc85c849cfebcd03c09b573b1"
+  }
+}
