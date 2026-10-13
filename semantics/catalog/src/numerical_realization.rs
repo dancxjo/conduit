@@ -2,6 +2,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::*;
 use conduit_plot::{ProfileCatalog, StartupCatalog};
+pub const NUMERICAL_PRESENTATION_KIND: &str = "presentation/numerical-result";
 pub const NUMERICAL_REALIZE_KIND: &str = "math/realize";
 pub const NUMERICAL_REALIZE_REVISION: &str = "conduit.numeric/realize@1";
 pub const NUMERICAL_REQUEST_MAX_BYTES: u32 = 8192;
@@ -138,6 +139,15 @@ pub fn numerical_realize_semantic_contract() -> Kind {
         },
     }
 }
+pub fn numerical_presentation_semantic_contract() -> Kind {
+    let mut kind = crate::structured_presentation_semantic_contract(
+        "NumericalResult",
+        &numerical_result_type(),
+    );
+    kind.kind_id = kind_id(NUMERICAL_PRESENTATION_KIND);
+    kind.kind_contract_revision = "numeric-result/presentation@1".into();
+    kind
+}
 pub fn install_numerical_catalogs(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -147,6 +157,19 @@ pub fn install_numerical_catalogs(
             .insert_structured_type(&ty.name, ty.value_type)
             .map_err(|why| format!("numeric Type: {why:?}"))?;
     }
+    let presenter = numerical_presentation_semantic_contract();
+    startup
+        .insert(conduit_plot::KindSignature {
+            kind: NUMERICAL_PRESENTATION_KIND.into(),
+            startup_parameters: vec![],
+        })
+        .map_err(|why| format!("numeric presentation: {why:?}"))?;
+    startup
+        .insert_fore(NUMERICAL_PRESENTATION_KIND, presenter.checked_front())
+        .map_err(|why| format!("numeric presentation Fore: {why:?}"))?;
+    profile
+        .insert_kind(presenter)
+        .map_err(|why| format!("numeric presentation Kind: {why:?}"))?;
     let kind = numerical_realize_semantic_contract();
     startup
         .insert(conduit_plot::KindSignature {

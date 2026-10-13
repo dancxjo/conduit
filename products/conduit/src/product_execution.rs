@@ -10,6 +10,7 @@ use std::collections::BTreeSet;
 use std::io::Write;
 
 mod artifact_identity;
+mod numerical;
 
 use artifact_identity::{from_std_report, RuntimeArtifactIdentity};
 
@@ -95,18 +96,6 @@ impl ProductExecutionContext {
     pub(crate) fn line_offers(&self) -> &[LineOffer] {
         &self.line_offers
     }
-    pub(crate) fn local_std() -> Result<Self, String> {
-        let host = StdHost::new();
-        let advertisement = host.advertisement().clone();
-        Self::new(
-            vec![advertisement],
-            vec![ProductRuntime::std(host)],
-            vec![BaseImplementationId::from("conduit.base/local@1")],
-            Vec::new(),
-            Vec::new(),
-        )
-    }
-
     pub(crate) fn new(
         advertisements: Vec<HostAdvertisement>,
         runtimes: Vec<ProductRuntime>,

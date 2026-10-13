@@ -177,17 +177,24 @@ fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
     let [input] = placement.inputs.as_slice() else {
         return Err("structured presentation requires one input".into());
     };
-    let exact_front =
-        if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND) {
-            let contract = conduit_semantic_catalog::quantity_presentation_semantic_contract();
-            placement.kind_contract_revision == contract.kind_contract_revision
-                && placement.inputs == contract.inputs
-                && placement.outputs == contract.outputs
-        } else {
-            placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
-                && placement.kind_contract_revision.as_str()
-                    == conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
-        };
+    let exact_front = if placement.kind_id
+        == kind_id(conduit_semantic_catalog::NUMERICAL_PRESENTATION_KIND)
+    {
+        let contract = conduit_semantic_catalog::numerical_presentation_semantic_contract();
+        placement.kind_contract_revision == contract.kind_contract_revision
+            && placement.inputs == contract.inputs
+            && placement.outputs == contract.outputs
+            && placement.semantic_contract == contract.semantic_contract()
+    } else if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND) {
+        let contract = conduit_semantic_catalog::quantity_presentation_semantic_contract();
+        placement.kind_contract_revision == contract.kind_contract_revision
+            && placement.inputs == contract.inputs
+            && placement.outputs == contract.outputs
+    } else {
+        placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
+            && placement.kind_contract_revision.as_str()
+                == conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
+    };
     if !exact_front
         || placement.execution_profile_id.as_str()
             != conduit_std_offers::STRUCTURED_PRESENTATION_STD_PROFILE

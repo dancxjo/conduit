@@ -147,6 +147,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     )
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
+    conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
     // This first Todo vertical has one exact authored initial Form and a leaf
     // combine Kind. Retained source uses the same catalog after owner restart.
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;

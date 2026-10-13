@@ -60,17 +60,29 @@ export function runAdmission(paths, metadata, root, run) {
   });
   const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog') && !consumers.some(consumer => consumer.name === name));
   if (packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
-  for (const consumer of consumers) {
-    run('cargo', ['test', '--locked', '-p', consumer.name, '--lib', '--', '--test-threads=1']);
-    run('cargo', ['test', '--locked', '-p', consumer.name, '--test', consumer.test, '--', '--test-threads=1']);
+  const libraries = [...consumers.map(consumer => consumer.name), ...(numericalCatalog ? ['conduit-semantic-catalog'] : [])];
+  if (libraries.length) {
+    // One feature-unified compiler context avoids rebuilding the same Host and
+    // semantic dependencies separately for each consumer library/test binary.
+    const tests = [...new Set([...consumers.map(consumer => consumer.test), ...(numericalCatalog ? ['numerical_realization'] : [])])];
+    run('cargo', ['test', '--locked', '--no-fail-fast', ...libraries.flatMap(name => ['-p', name]), '--lib',
+      ...tests.flatMap(name => ['--test', name]),
+      ...(numericalCatalog ? ['--features', 'conduit-semantic-catalog/kernel-step'] : []), '--', '--test-threads=1']);
   }
-  if (numericalCatalog) run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--lib', '--', '--test-threads=1']);
   if (plan.packages.includes('conduit-kernel')) run('cargo', ['test', '--locked', '-p', 'conduit-kernel', '--features', 'alloc', '--', '--test-threads=1']);
   if (paths.some(name => /(?:numerical|exact_numeric|binary64)/.test(name))
-      && metadata.packages.some(pkg => pkg.name === 'conduit-semantic-catalog')) {
+      && metadata.packages.some(pkg => pkg.name === 'conduit-semantic-catalog') && !numericalCatalog) {
     run('cargo', ['test', '--locked', '-p', 'conduit-semantic-catalog', '--features', 'kernel-step', '--test', 'numerical_realization', '--', '--test-threads=1']);
   }
-  if (plan.smoke) {
+  const actualNumericalCli = consumers.some(consumer => consumer.name === 'conduit');
+  const stdConsumer = consumers.find(consumer => consumer.name === 'conduit-std-host');
+  const otherRuntime = paths.some(name => !name.endsWith('.md') && (
+    (name.startsWith('architecture/') && !/^architecture\/core\/(?:src\/exact_numeric\/|tests\/numerical_)/.test(name))
+    || (name.startsWith('targets/std/') && !name.startsWith('targets/std/offers/') && !stdConsumer?.allowed.test(name))
+    || name.startsWith('targets/browser/')));
+  // The numerical integration binary executes the actual ordinary Std CLI.
+  // An additional Hello journey establishes no new numerical property.
+  if (plan.smoke && (!actualNumericalCli || otherRuntime)) {
     run('cargo', ['xtask', 'prove', 'journey', 'std']);
     if (paths.some(name => name.startsWith('architecture/'))) {
       run('cargo', ['xtask', 'prove', 'journey', 'triple']);
