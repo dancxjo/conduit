@@ -64,6 +64,9 @@ pub struct TodoJourneyArgs {
     /// Add three browser items, complete one through the installed terminal, then observe it in the browser.
     #[arg(long)]
     pub cross_mask_actions: bool,
+    /// Prove pointer and keyboard Add returns through two independently admitted browser realizations.
+    #[arg(long, requires = "fresh_body_source", conflicts_with_all = ["cross_mask_actions", "direct_speech"])]
+    pub mask_correspondence: bool,
     /// Capture acknowledged direct opening and remaining-item WAVs through the selected artifact route.
     #[arg(long, requires = "cross_mask_actions")]
     pub direct_speech: bool,

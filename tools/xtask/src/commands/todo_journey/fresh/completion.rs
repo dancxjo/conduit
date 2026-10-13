@@ -57,7 +57,16 @@ pub(super) fn finish(
         let mut partial = record.clone();
         partial["schema"] = json!("conduit.todo-journey/partial-live-capture@1");
         partial["publication_ready"] = json!(false);
-        partial["chapter_scope"] = if args.cross_mask_actions {
+        partial["chapter_scope"] = if args.mask_correspondence {
+            json!([
+                "birth",
+                "two-admitted-realizations",
+                "pointer-add",
+                "keyboard-add",
+                "typed-refusals",
+                "terminal-read"
+            ])
+        } else if args.cross_mask_actions {
             json!([
                 "birth",
                 "three-browser-adds",
