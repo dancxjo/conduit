@@ -561,7 +561,7 @@ fn dispatch(request: Request) -> Result<Vec<u8>, Refusal> {
                     });
             }
             Request::TutorialView { revision, playback } => {
-                let semantic = conduit_tutorial_plot::canonical_face(current, revision, playback)
+                let semantic = conduit_tutorial_plot::face(current, revision, playback)
                     .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;
                 let view = semantic.lower()
                     .map_err(|error| Refusal::new("TutorialFace", format!("{error:?}")))?;

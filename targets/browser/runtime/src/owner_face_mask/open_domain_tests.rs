@@ -284,10 +284,10 @@ fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
 
 #[test]
 fn browser_show_serialization_preserves_five_states_and_failure_detail() {
-    use conduit_presentation::ManifestationFailure;
+    use conduit_face::ManifestationFailure;
 
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
     ))
     .unwrap();
     let mut mask = OwnerBrowserMask::prepare_component_fixture(

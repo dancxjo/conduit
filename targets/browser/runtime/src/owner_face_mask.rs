@@ -149,7 +149,7 @@ pub(crate) struct FaceView {
     route: Option<RouteView>,
     show_id: String,
     show_state: &'static str,
-    show_failure: Option<conduit_presentation::ManifestationFailure>,
+    show_failure: Option<conduit_face::ManifestationFailure>,
     interactions_admitted: bool,
     subjects: Vec<SubjectView>,
     relationships: Vec<RelationshipView>,

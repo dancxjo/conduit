@@ -7,7 +7,7 @@ edition = "2021"
 conduit-core = { path = "../../architecture/core" }
 conduit-time = { path = "../time", default-features = false }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-planner = { path = "../../architecture/planner", optional = true }
+conduit-planner = { path = "../../architecture/planner" }
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-human = { path = "../human" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
@@ -27,4 +27,4 @@ conduit-time = { path = "../time", default-features = false }
 
 [features]
 default = ["plot-catalog"]
-plot-catalog = ["dep:conduit-planner"]
+plot-catalog = []
