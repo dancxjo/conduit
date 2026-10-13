@@ -85,6 +85,9 @@ impl NumericalRealizationBack {
             complete: false,
         })
     }
+    pub fn retained_capacity_bytes(&self) -> usize {
+        self.output.capacity()
+    }
     pub fn result_bytes(&self) -> &[u8] {
         &self.output
     }

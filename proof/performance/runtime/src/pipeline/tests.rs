@@ -4,6 +4,7 @@ use super::*;
 #[test]
 fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result<(), Box<dyn Error>>
 {
+    let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
     for gears in [1, 8, 32] {
         let boot = format!("boot/runtime-performance-test/{gears}");
         let mut prepared = prepare(gears, &source(gears), &boot)?;
