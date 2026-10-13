@@ -269,3 +269,27 @@ impl<'a> IsochronousOutTransfer<'a> {
 #[cfg(test)]
 #[path = "usb_isochronous_out/tests.rs"]
 mod tests;
+
+#[cfg(test)]
+impl IsochronousOutTransfer<'_> {
+    pub(crate) fn synthetic_original_wire(&self) -> &[u8] {
+        let pending = self.pending[self.head]
+            .as_ref()
+            .expect("original pending TD");
+        let start = pending.buffer * 256;
+        &self.dma.buffer[start..start + usize::from(pending.reservation.length)]
+    }
+    pub(crate) fn synthetic_original_event(&self, code: u8, residual: u32) -> Event {
+        let pending = self.pending[self.head]
+            .as_ref()
+            .expect("original pending TD");
+        Event {
+            event_type: 32,
+            completion_code: code,
+            slot: self.slot,
+            endpoint: self.dci,
+            residual,
+            pointer: self.dma.ring_physical + (pending.reservation.slot * 16) as u64,
+        }
+    }
+}

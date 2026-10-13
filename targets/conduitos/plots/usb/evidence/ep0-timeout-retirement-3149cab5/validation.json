@@ -1,0 +1,24 @@
+{
+  "proof_class": "deterministic-native-mechanism-simulation",
+  "implementation_commit": "3149cab54",
+  "regression_failed_before_fix": true,
+  "regression_passed_after_fix": true,
+  "native_suite_passed": 99,
+  "original_stop_suite_passed": 8,
+  "control_ring_suite_passed": 5,
+  "submitted_original_ep0_td": true,
+  "bounded_control_timeout": true,
+  "failed_stop_retains_original_dma": true,
+  "acknowledged_original_stop_retires_cursor": true,
+  "producer_position_and_sequence_preserved": true,
+  "late_success_not_published": true,
+  "physical_proof": false,
+  "scope": "Real selected control owner and native submission/retirement with simulated controller events. Not guest timeout or physical hardware evidence.",
+  "logs": {
+    "control-ring-stop-retirement-regression.log": "d7b269f4a2f546a06527c5b7fe82730f4e78d1d1bf13599f5a8faedf69252142",
+    "ep0-original-stop-suite.log": "f1717f7b3aa1f5644560c1a6c2f596be52874623cf0ec2c4e89c8b91fca15aa8",
+    "ep0-timeout-red-regression.log": "eb2c4767bde16e642c340512a6ffa4758489d85973cd2ea216f82c2bc26c541f",
+    "ep0-timeout-fixed-regression.log": "73a4dfa39bae6b3975dbbcc9200153ecc70f3ccb19f4d3375695b059866498c2",
+    "usb-native-with-ep0-retirement.log": "ca40450d239f1cb312b99f151e0b74cc85cf97bd0fcbbf06f4c3b4b6bd2b01c1"
+  }
+}

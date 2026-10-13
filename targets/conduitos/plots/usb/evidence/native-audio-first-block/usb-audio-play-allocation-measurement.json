@@ -1,0 +1,19 @@
+{
+  "scope": "one-block native USB audio Play allocation measurement",
+  "build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "68dc118ca8f31fe0f43903423059376f0f00c4a8",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "def29b64088e3e101a0fe81bdde5fbdfd630576e6ed5ba043dbf54c99918bb91"
+  },
+  "allocation_receipt": "CONDUIT_PROTOCOL_PLAY_ALLOCATIONS body=b8da27060174e8daacb4276d4819fa868463f6a5efbbb3fa156c8c8985133a4c plan=body-plan/sha256:83b5bc1825a5874bfad566c265e10c15798ee4484f934b42f12f6e686550a040 play=body-play/sha256:f71a7ae132237f8187f004977fe3740c79696ce677df7c67fdb4ad62733e4661 alloc=0 realloc=0",
+  "packets": 8,
+  "exact_pcm_bytes": 1536,
+  "play_retired": true,
+  "continuous_reuse_proven": false,
+  "physical_output_proven": false,
+  "serial_sha256": "5c0e7d19615a32a680be4c3bcb8889571f7a10057733c12938169abe969aae7b"
+}

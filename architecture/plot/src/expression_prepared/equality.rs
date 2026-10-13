@@ -38,6 +38,7 @@ pub(super) fn binary(
     let child = |node: &PortableExpressionNode| {
         PreparedPortableExpressionEvaluator::prepare(
             ProgramView {
+                input_maximum_bytes: input.maximum_bytes(),
                 input_type,
                 output_type: &node.value_type,
                 root: node,

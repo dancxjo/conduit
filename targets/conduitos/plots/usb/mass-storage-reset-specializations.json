@@ -1,0 +1,20 @@
+[
+  {
+    "kind": "seeded-until",
+    "value": {
+      "type_name": "BotRecoveryState",
+      "maximum_bytes": 4096
+    }
+  },
+  {
+    "kind": "feedback-zip",
+    "left": {
+      "type_name": "BotRecoveryState",
+      "maximum_bytes": 4096
+    },
+    "right": {
+      "type_name": "UsbControlResult",
+      "maximum_bytes": 4096
+    }
+  }
+]

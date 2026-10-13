@@ -68,6 +68,7 @@ impl PreparedInspection {
             _ => return Err(Refusal::InvalidProgram),
         };
         let program = ProgramView {
+            input_maximum_bytes: prepared_input.maximum_bytes(),
             input_type: input,
             output_type: &source.value_type,
             root: source,

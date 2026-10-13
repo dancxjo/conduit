@@ -1,0 +1,19 @@
+{
+  "proof_class": "emulator-with-device",
+  "architectures": [
+    "x86_64",
+    "aarch64"
+  ],
+  "same_checked_package_bytes": true,
+  "same_root_request_bytes": true,
+  "source_sha256": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+  "root_sha256": "47c927287fb3258bf89014b600b4f311d375abc94359c241703d8dd004c0700e",
+  "tx_buffers": 16,
+  "rx_buffers": 16,
+  "typed_results": 32,
+  "exact_octets": true,
+  "play_allocation_attempts": 0,
+  "acknowledged_retirement": true,
+  "physical_proof": false,
+  "integration": "pending"
+}

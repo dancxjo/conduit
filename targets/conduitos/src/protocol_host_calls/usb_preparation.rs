@@ -437,3 +437,10 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         })
     }
 }
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
+#[path = "usb_preparation/endpoint_only.rs"]
+mod endpoint_only;

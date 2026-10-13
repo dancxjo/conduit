@@ -31,20 +31,48 @@ impl FlowMergeFiniteOperationFactory {
         value: &CheckedValueContract,
         schema: &StructuredInfoType,
     ) -> Result<CapabilityOffer, String> {
+        self.install_mode(value, schema, false)
+    }
+    pub(crate) fn install_instance(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+    ) -> Result<CapabilityOffer, String> {
+        self.install_mode(value, schema, true)
+    }
+    fn install_mode(
+        &mut self,
+        value: &CheckedValueContract,
+        schema: &StructuredInfoType,
+        typed: bool,
+    ) -> Result<CapabilityOffer, String> {
         if value.maximum_bytes > MAXIMUM_BYTES || self.offers.len() == MAXIMUM_SPECIALIZATIONS {
             return Err("native finite merge exceeds its prepared offer envelope".into());
         }
-        let kind = conduit_semantic_catalog::flow_merge_finite_semantic_contract(value, schema)
+        let mut kind = conduit_semantic_catalog::flow_merge_finite_semantic_contract(value, schema)
             .map_err(String::from)?;
+        let capability_id = if typed {
+            let value = crate::protocol_source::ProtocolValue {
+                contract: value.clone(),
+                schema: schema.clone(),
+            };
+            kind.kind_id = crate::protocol_source::instances::instance_kind_id(
+                kind.kind_id.as_str(),
+                &[&value],
+            )?;
+            format!("{}/conduitos@1", kind.kind_id.as_str()).into()
+        } else {
+            format!(
+                "conduitos/flow-merge-finite/{}/{}@1",
+                value.value_kind.as_str(),
+                value.maximum_bytes
+            )
+            .into()
+        };
         let offer = BackOfferBuilder::new(
             kind,
             Back {
-                capability_id: format!(
-                    "conduitos/flow-merge-finite/{}/{}@1",
-                    value.value_kind.as_str(),
-                    value.maximum_bytes
-                )
-                .into(),
+                capability_id,
                 execution_profile_id: PROFILE.into(),
                 implementation_id: IMPLEMENTATION.into(),
                 artifact_id: ARTIFACT.into(),

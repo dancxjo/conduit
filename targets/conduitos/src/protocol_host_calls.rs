@@ -50,6 +50,11 @@ mod storage_preparation;
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
+pub(crate) use storage_preparation::AdditionalStoragePairAdmission;
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 mod subordinate;
 #[cfg(any(
     target_arch = "x86_64",
@@ -137,7 +142,7 @@ pub struct PreparedProtocolCalls<P> {
         target_arch = "x86_64",
         all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
     ))]
-    storage: Option<storage::StorageAssociation>,
+    storage: Option<storage::StorageAssociations>,
     identity: PreparationHostIdentity,
     bindings: Vec<Binding<P>>,
     #[cfg(any(
@@ -275,13 +280,22 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         })?;
         let active = bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
         for implementation in implementations {
-            if fragment
+            let count = fragment
                 .placements
                 .iter()
                 .filter(|gear| gear.implementation_id.as_str() == *implementation)
-                .count()
-                != 1
-            {
+                .count();
+            #[cfg(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            ))]
+            let storage_count = storage_preparation::selected_count_allowed(implementation, count);
+            #[cfg(not(any(
+                target_arch = "x86_64",
+                all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+            )))]
+            let storage_count = false;
+            if count != 1 && !storage_count {
                 return Err(Refusal::Unsupported);
             }
         }
@@ -494,3 +508,11 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         Ok(())
     }
 }
+
+#[cfg(all(test, target_arch = "x86_64"))]
+mod recovery_tests;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+pub(crate) use recovery_tests::{
+    plan as recovery_fixture_plan, prepare as recovery_fixture_kernel,
+};

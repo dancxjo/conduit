@@ -364,3 +364,5 @@ mod csw;
 
 #[path = "usb_bot_storage/guards.rs"]
 mod guards;
+#[path = "usb_bot_storage/reset.rs"]
+mod reset;

@@ -19,9 +19,10 @@ pub(super) fn scope() -> BaseCapabilityScope {
         resource_pool_id: ResourcePoolId::from("usb/isochronous-out/controller"),
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
         envelope_id: CapabilityEnvelopeId::from("usb/isochronous-out/controller/window-8"),
-        maximum_parameter_bytes: 4096,
-        maximum_result_bytes: 4096,
-        maximum_work_units: 8,
+        maximum_parameter_bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+        maximum_result_bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+        maximum_work_units: crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_PACKETS
+            as u64,
         maximum_in_flight: 1,
         maximum_operations: 100000,
     }
@@ -44,15 +45,16 @@ fn authority() -> BaseCapabilityAuthority {
         resource_generation_id: ResourceGenerationId("resource-generation/7".into()),
         operation_contract_id: HostCallContractId::from("conduit.host/usb-isochronous-out@1"),
         envelope_id: CapabilityEnvelopeId::from("usb/isochronous-out/controller/window-8"),
-        maximum_parameter_bytes: 4096,
-        maximum_result_bytes: 4096,
-        maximum_work_units: 32,
+        maximum_parameter_bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+        maximum_result_bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+        maximum_work_units: crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_PACKETS
+            as u64,
         maximum_in_flight: 1,
         maximum_operations: 100000,
     }
 }
 
-pub(super) fn request() -> CapabilityIssueRequest {
+pub(crate) fn request() -> CapabilityIssueRequest {
     CapabilityIssueRequest {
         scope: scope(),
         authority: authority(),
@@ -71,7 +73,7 @@ pub(super) fn table(key: u8) -> BaseCapabilityTable {
     .unwrap()
 }
 
-pub(super) fn claim() -> BaseOperationClaim {
+pub(crate) fn claim() -> BaseOperationClaim {
     let scope = scope();
     BaseOperationClaim {
         host_id: scope.host_id,
@@ -86,12 +88,12 @@ pub(super) fn claim() -> BaseOperationClaim {
         resource_pool_id: scope.resource_pool_id,
         resource_generation_id: scope.resource_generation_id,
         envelope_id: scope.envelope_id,
-        parameter_bytes: 4096,
-        work_units: 8,
+        parameter_bytes: ISOCHRONOUS_OUT_MAXIMUM_BYTES,
+        work_units: crate::usb_base::isochronous::contract::ISOCHRONOUS_OUT_MAXIMUM_PACKETS as u64,
     }
 }
 
-pub(super) fn selected() -> (
+pub(crate) fn selected() -> (
     PlanFragment,
     LoweredPlanFragment,
     ActivePlayIdentity,

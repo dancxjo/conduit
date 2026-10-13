@@ -1,0 +1,9 @@
+{
+  "source_commit": "24d0b2caa",
+  "library_tests_passed": 71,
+  "integration_tests_passed": 220,
+  "scope": "ordinary generic Planner resource allocation and compute-minimum resolution; no native possession or guest composition claim",
+  "rule": "prefer matching unique selected Base-owned pool; otherwise unique unowned shared Host pool; no exhaustion fallback to foreign/shared capacity",
+  "prior_suite_failure": "new mixed-class test fixture appended a pool without canonical sorting; fixed fixture ordering, production unchanged",
+  "limits": "advertisement ownership consistency is descriptive; genuine Root-held issuer scopes authenticate possession later"
+}

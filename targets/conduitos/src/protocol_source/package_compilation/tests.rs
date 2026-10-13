@@ -42,7 +42,7 @@ fn unknown_types_invalid_envelopes_and_invalid_declarations_refuse() {
     for request in [
         request("absent", 128),
         request("Packet", 0),
-        request("Packet", 4097),
+        request("Packet", 32769),
     ] {
         assert!(ProtocolSourcePackage::compile(source(), &[request]).is_err());
     }
@@ -233,4 +233,16 @@ fn storage_forwarding_retains_bounds_through_variant_payloads() {
         panic!("larger USB byte bounds must not satisfy storage bounds");
     };
     assert_eq!(diagnostic.code, "CND-FRM-046");
+}
+
+#[test]
+fn larger_finite_specializations_preserve_the_exact_declared_envelope() {
+    for maximum in [4097, 16384, 32768] {
+        let package =
+            ProtocolSourcePackage::compile(source(), &[request("Packet", maximum)]).unwrap();
+        let ProtocolSpecialization::SeededFlow { value } = &package.specializations[0] else {
+            panic!("seeded flow");
+        };
+        assert_eq!(value.contract.maximum_bytes, maximum);
+    }
 }

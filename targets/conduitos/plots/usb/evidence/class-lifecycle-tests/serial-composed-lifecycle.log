@@ -1,0 +1,69 @@
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/kernel)
+   Compiling rustls-webpki v0.103.15
+   Compiling rustls v0.23.45
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/time)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/presentation)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/audio)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/alife)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/education)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/protocols/midi)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/robotics)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/ai)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/make/host)
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/plan-lowering)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/todo/model)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/thermostat/model)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/signal)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/patchbay/graph)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std/offers)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/patchbay/application)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/tutorial)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/implementations/synth)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/birth)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/make)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std/make)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/mask-offer)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/thermostat/face)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/make/body)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/esp32/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/orange-pi/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/avr/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/raspberry-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/rp2040/make)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/speech)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/body-invitation)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/home)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/mask-offer)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/plot-library)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/little-seismograph/fixture)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/observatory)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+   Compiling ureq v3.4.2
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/network-r1)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/alife-distributed)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/todo/face)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 2m 48s
+     Running tests/usb_cdc_serial_source.rs (../usb-target/debug/deps/usb_cdc_serial_source-a3c366ad1834c786)
+
+running 5 tests
+test kernel_execution::generate::emit_exact_selected_back_product_inputs_when_requested ... ok
+test kernel_execution::kernel::selected_back_cancels_pending_bulk_and_rejects_original_late_completion ... ok
+test kernel_execution::kernel::whole_selected_back_kernel_closes_zero_one_or_thirty_two_with_pending_completion_and_pressure ... ok
+test kernel_execution::kernel::selected_back_drains_short_or_wrong_coding_after_one_terminal_result has been running for over 60 seconds
+test kernel_execution::kernel::selected_back_preserves_bulk_terminal_dispositions_and_partial_write has been running for over 60 seconds
+test kernel_execution::kernel::selected_back_drains_short_or_wrong_coding_after_one_terminal_result ... ok
+test kernel_execution::kernel::selected_back_preserves_bulk_terminal_dispositions_and_partial_write ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 9 filtered out; finished in 87.85s
+
