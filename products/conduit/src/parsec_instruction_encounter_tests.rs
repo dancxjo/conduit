@@ -394,9 +394,17 @@ fn actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction
     assert_eq!(exchange["final_prompt_withdrawn"], true);
     assert_eq!(exchange["instructions"].as_array().unwrap().len(), 4);
     let mut validation = Validation::prepare();
+    let mut browser_records = Vec::new();
     for index in 0..4 {
         let encounter = validation.occurrence(&exchange, index).unwrap();
         reconstruct(&encounter);
+        browser_records.push(serde_json::json!({
+            "wording": encounter.wording,
+            "provenance": encounter.provenance,
+            "face_revision_decimal": encounter.face.revision.to_string(),
+            "mapping_revision_decimal": encounter.provenance.mapping_revision.to_string(),
+            "face": encounter.face,
+        }));
     }
     // Every corrupted record is rejected before invoking any renderer. These
     // refusals establish evidence consistency, not unforgeable live custody.
@@ -458,5 +466,24 @@ fn actual_parsec_component_frames_survive_native_linear_and_aural_reconstruction
     refused.push(changed); // A recomputed text digest cannot establish authored wording.
     for changed in refused {
         assert!(validation.occurrence(&changed, 3).is_err());
+    }
+    // Optional private bridge to a real DOM reconstruction. Export only after
+    // all positive and negative checks pass; these records carry no authority.
+    if let Some(path) = std::env::var_os("CONDUIT_PARSEC_BROWSER_RECORDS") {
+        let path = std::path::PathBuf::from(path);
+        assert!(path.is_absolute());
+        let file = std::fs::OpenOptions::new()
+            .write(true)
+            .create_new(true)
+            .open(path)
+            .unwrap();
+        serde_json::to_writer(
+            file,
+            &serde_json::json!({
+                "schema": "conduit.proof/parsec-component-reconstruction@1",
+                "records": browser_records,
+            }),
+        )
+        .unwrap();
     }
 }

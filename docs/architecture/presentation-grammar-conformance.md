@@ -915,3 +915,21 @@ inspection tests and strict presentation Clippy pass; all three Looks and
 withdrawal inspect without allocation. Wrong owner, malformed and overbound
 frames refuse. Inspection does not reproduce producer custody, establish current
 availability or acknowledge an effect; consumers must keep those checks separate.
+
+### Captured instruction encounters across four renderers
+
+The explicit actual-frame reconstruction check independently reproduces checked
+Source output and validates original component laws before passing the retained
+instruction to native local notice, a deterministic linear record and a bounded
+spoken reading. Original Source/effect routes are compared with the lowered Mask;
+missing, stale, malformed and rewritten instruction/binding records refuse first.
+The optional browser-record export occurs only after these checks pass and retains
+exact decimal revisions alongside the complete original Face and provenance.
+
+`proof/browser/parsec-component-reconstruction.mjs` uses pinned Playwright 1.62.0
+Chromium, one page and no retries to encounter the four checked records through
+an independent accessible instruction component beside the existing owner Face.
+Withdrawal removes the reading; the original Face action remains disabled in this
+historical reconstruction and is never replaced by an instruction callback.
+This is captured-occurrence reconstruction, not a current browser Show/input grant,
+physical control, scanout, synthesized speech or speaker-delivery claim.
