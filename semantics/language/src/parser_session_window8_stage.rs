@@ -1,6 +1,5 @@
 //! Unpublished revision execution. Every late failure or abandonment cancels
 //! the entire fixed Source/model registry, including already consumed ports.
-use conduit_plot::rust_binding::PreparedNativeRustBinding;
 use crate::{
     parser_session_canonical_ingress::{
         ParserCanonicalSourceExecutor, PreparedParserExecutionFrames,
@@ -14,12 +13,14 @@ use crate::{
     parser_session_window8_registry::Window8Registry,
 };
 use alloc::vec::Vec;
+use conduit_plot::rust_binding::PreparedNativeRustBinding;
 use core::mem::size_of;
 
 #[derive(Debug)]
 pub(crate) enum Window8StageRefusal {
     Book(BookRefusal),
     Source(PureSourceRefusal),
+    Commit(crate::parser_session_window8_commit_candidate::Window8CommitRefusal),
     Candidate(QualifiedLexicalRefusal),
     Dependency(crate::parser_session_window8_dependency_candidate::QualifiedDependencyRefusal),
 }
@@ -202,7 +203,9 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             crate::LanguageParserWindow8QualifiedLexicalProposal,
             crate::LanguageParserWindow8QualifiedLexicalAnalysis,
         >,
-        family: &alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
+        family: &alloc::rc::Rc<
+            core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>,
+        >,
         buffer: Vec<u8>,
         maximum_native_conversion_requested_bytes: usize,
         epoch: u64,
@@ -242,16 +245,29 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             {
                 return Err(Window8StageRefusal::Book(BookRefusal::Revision));
             }
-            let native_bytes = family.try_borrow().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?.storage_receipt().conversion_requested_bytes_bound
-                .checked_mul(2).ok_or(Window8StageRefusal::Candidate(
-                    crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure))?;
-            let candidate_bytes = crate::LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR
-                .type_bytes.len().checked_add(output.value_node().len())
+            let native_bytes = family
+                .try_borrow()
+                .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?
+                .storage_receipt()
+                .conversion_requested_bytes_bound
+                .checked_mul(2)
                 .ok_or(Window8StageRefusal::Candidate(
-                    crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure))?;
-            if native_bytes > maximum_native_conversion_requested_bytes || candidate_bytes > buffer.capacity() {
+                    crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure,
+                ))?;
+            let candidate_bytes =
+                crate::LanguageParserWindow8QualifiedLexicalAnalysis::PREPARED_DESCRIPTOR
+                    .type_bytes
+                    .len()
+                    .checked_add(output.value_node().len())
+                    .ok_or(Window8StageRefusal::Candidate(
+                        crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure,
+                    ))?;
+            if native_bytes > maximum_native_conversion_requested_bytes
+                || candidate_bytes > buffer.capacity()
+            {
                 return Err(Window8StageRefusal::Candidate(
-                    crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure));
+                    crate::parser_session_window8_candidate::QualifiedLexicalRefusal::Pressure,
+                ));
             }
             let port = crate::parser_session_window8_ports::PORTS
                 .iter()
@@ -269,7 +285,9 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 source_execution,
                 origin,
                 refinement,
-                &mut *family.try_borrow_mut().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
+                &mut *family
+                    .try_borrow_mut()
+                    .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
                 buffer,
             )
             .map_err(Window8StageRefusal::Candidate)?;
@@ -295,7 +313,9 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
             crate::LanguageParserWindow8QualifiedDependencyProposal,
             crate::LanguageParserWindow8QualifiedDependencyAnalysis,
         >,
-        family: &alloc::rc::Rc<core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>>,
+        family: &alloc::rc::Rc<
+            core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>,
+        >,
         buffer: Vec<u8>,
         maximum_bytes: usize,
         maximum_source_replays: usize,
@@ -315,14 +335,16 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 .map_err(Window8StageRefusal::Book)?;
             let parents = DependencyParents::resolve(&self.book, source_execution)
                 .map_err(Window8StageRefusal::Dependency)?;
-            let conversion_bound = family.try_borrow().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?.storage_receipt().conversion_requested_bytes_bound;
+            let conversion_bound = family
+                .try_borrow()
+                .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?
+                .storage_receipt()
+                .conversion_requested_bytes_bound;
             let direct_conversions = parents
                 .lexical_indices()
                 .len()
                 .checked_add(2)
-                .and_then(|count| {
-                    count.checked_mul(conversion_bound)
-                })
+                .and_then(|count| count.checked_mul(conversion_bound))
                 .ok_or(Window8StageRefusal::Dependency(
                     QualifiedDependencyRefusal::Pressure,
                 ))?;
@@ -362,11 +384,120 @@ impl<'a, S: ParserCanonicalSourceExecutor, N: ParserNumericExecutor>
                 &self.book,
                 &parents,
                 refinement,
-                &mut *family.try_borrow_mut().map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
+                &mut *family
+                    .try_borrow_mut()
+                    .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?,
                 buffer,
                 maximum_bytes,
             )
             .map_err(Window8StageRefusal::Dependency)?;
+            self.book
+                .push_admission(admission.into_book(), epoch, model_calls)
+                .map_err(Window8StageRefusal::Book)
+        })();
+        if result.is_err() {
+            self.poisoned = true;
+            self.guard.targets().cancel_all();
+        }
+        result
+    }
+    /// Consume one previously reserved independent-commit slot. Source replay
+    /// owns the same shared families, so every borrow ends before replay starts.
+    #[allow(clippy::too_many_arguments)]
+    pub(crate) fn admit_independent_commit(
+        &mut self,
+        source_execution: usize,
+        slot: crate::parser_session_window8_commit_candidate::PreparedWindow8CommitSlot,
+        family: &alloc::rc::Rc<
+            core::cell::RefCell<conduit_plot::rust_binding::PreparedNativeFamily>,
+        >,
+        maximum_source_replays: usize,
+        maximum_native_conversion_requested_bytes: usize,
+        epoch: u64,
+        model_calls: u64,
+    ) -> Result<usize, Window8StageRefusal> {
+        use crate::parser_session_window8_commit_candidate::{
+            CommitParents, CommitReplayPlan, Window8CommitRefusal,
+        };
+        if self.poisoned {
+            return Err(Window8StageRefusal::Book(BookRefusal::Consumed));
+        }
+        let result = (|| {
+            // Candidate backing, Book admission/event slots, original parents,
+            // all Source replays and complete direct Native conversions are
+            // checked before any replay or consumption of this single-use slot.
+            self.book
+                .can_admit(slot.candidate_capacity())
+                .map_err(Window8StageRefusal::Book)?;
+            let parents = CommitParents::resolve(&self.book, source_execution)
+                .map_err(Window8StageRefusal::Commit)?;
+            let conversion_bound = {
+                use conduit_plot::rust_binding::PreparedNativeRustBinding;
+                let borrowed = family
+                    .try_borrow()
+                    .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?;
+                if !borrowed.contains_descriptor(
+                    crate::LanguageParserWindow8IndependentCommitSetProposal::PREPARED_DESCRIPTOR,
+                ) || !borrowed.contains_descriptor(
+                    crate::LanguageParserWindow8IndependentCommitSet::PREPARED_DESCRIPTOR,
+                ) || !borrowed.contains_descriptor(
+                    crate::LanguageParserWindow8QualifiedDependencyAnalysis::PREPARED_DESCRIPTOR,
+                ) {
+                    return Err(Window8StageRefusal::Commit(Window8CommitRefusal::Origin));
+                }
+                parents
+                    .conversion_bound(&borrowed)
+                    .map_err(Window8StageRefusal::Commit)?
+            };
+            let replay = CommitReplayPlan::resolve(&self.book, &parents)
+                .map_err(Window8StageRefusal::Commit)?;
+            if replay.indices().len() > maximum_source_replays
+                || parents
+                    .candidate_bytes(&self.book)
+                    .map_err(Window8StageRefusal::Commit)?
+                    > slot.candidate_capacity()
+                || conversion_bound > maximum_native_conversion_requested_bytes
+            {
+                return Err(Window8StageRefusal::Commit(Window8CommitRefusal::Pressure));
+            }
+            // Resolve every fixed Source locator before the first replay too;
+            // a missing last port must not consume earlier Source owners.
+            let mut ports = [0usize; 256];
+            for (destination, index) in ports.iter_mut().zip(replay.indices()) {
+                let history = &self.book.source[*index];
+                *destination = crate::parser_session_window8_ports::PORTS
+                    .iter()
+                    .position(|port| {
+                        history.matches_fixed(
+                            port.original_programs,
+                            port.original_custody,
+                            port.input,
+                            port.output,
+                        )
+                    })
+                    .ok_or(Window8StageRefusal::Book(BookRefusal::Revision))?;
+            }
+            for (port, index) in ports.iter().zip(replay.indices()) {
+                let history = &self.book.source[*index];
+                self.guard
+                    .targets()
+                    .source(*port)
+                    .map_err(Window8StageRefusal::Source)?
+                    .replay(history)
+                    .map_err(Window8StageRefusal::Source)?;
+            }
+            let admission = {
+                let mut borrowed = family
+                    .try_borrow_mut()
+                    .map_err(|_| Window8StageRefusal::Book(BookRefusal::Revision))?;
+                slot.admit(
+                    &self.book,
+                    &parents,
+                    &mut borrowed,
+                    maximum_native_conversion_requested_bytes,
+                )
+                .map_err(Window8StageRefusal::Commit)?
+            };
             self.book
                 .push_admission(admission.into_book(), epoch, model_calls)
                 .map_err(Window8StageRefusal::Book)

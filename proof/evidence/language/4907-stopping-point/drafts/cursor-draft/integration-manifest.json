@@ -1,0 +1,18 @@
+{
+  "parser_session_window8_observe.rs": {
+    "canonical_base_sha256": "796086b5a85f3a1fc7789b01b59530e49bad6d448b01eb55dc9f72f6c7733788",
+    "draft_sha256": "8c9576302fa175b5a33dd82df9c6c6e048ed6e56d6563326dd3143c16430e174"
+  },
+  "parser_session_window8_run.rs": {
+    "canonical_base_sha256": "9c8f2d87da65fdbe74901994d665b58d8798a30b983141e33530379f172d18a5",
+    "draft_sha256": "c1a0899acd6c6030dcac911cc74ec270f7f4159e077f0ac360e983ec62f7d8ec"
+  },
+  "parser_session_window8_session.rs": {
+    "canonical_base_sha256": "92920f26813281afc8d30d4388dd3f6b73ed95b3f683a42ab8a1a2d13bc51ed7",
+    "draft_sha256": "1b0a341cad10b95b7ba6f68f5a15fa3919488e515f63167a73f5345cf7bfa0ee"
+  },
+  "parser_session_window8_working_set.rs": {
+    "canonical_base_sha256": "c129154daefac1f206d0ba41a51da664f8d2465fe36e136062a71f6b2522212d",
+    "draft_sha256": "375bb2cab52235e7fbbadee787c760f7e8ef9acf275efe7ea9f7bb01c93929c7"
+  }
+}

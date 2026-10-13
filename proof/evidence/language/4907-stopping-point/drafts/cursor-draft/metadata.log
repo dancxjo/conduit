@@ -1,0 +1,105 @@
+warning: private item shadows public glob re-export
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:6:1
+  |
+6 | mod parser_canonical_schema;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+note: the name `parser_canonical_schema` in the type namespace is supposed to be publicly re-exported here
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+  |
+3 | pub use conduit_language::*;
+  |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:6:1
+  |
+6 | mod parser_canonical_schema;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  = note: `#[warn(hidden_glob_reexports)]` on by default
+
+warning: private item shadows public glob re-export
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:8:1
+  |
+8 | mod parser_canonical_composition;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+note: the name `parser_canonical_composition` in the type namespace is supposed to be publicly re-exported here
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+  |
+3 | pub use conduit_language::*;
+  |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+ --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:8:1
+  |
+8 | mod parser_canonical_composition;
+  | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: private item shadows public glob re-export
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:12:1
+   |
+12 | mod parser_session_execution;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the name `parser_session_execution` in the type namespace is supposed to be publicly re-exported here
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+   |
+ 3 | pub use conduit_language::*;
+   |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:12:1
+   |
+12 | mod parser_session_execution;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: private item shadows public glob re-export
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:14:1
+   |
+14 | mod parser_session_runtime;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the name `parser_session_runtime` in the type namespace is supposed to be publicly re-exported here
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+   |
+ 3 | pub use conduit_language::*;
+   |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:14:1
+   |
+14 | mod parser_session_runtime;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: private item shadows public glob re-export
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:16:1
+   |
+16 | mod parser_session_canonical_ingress;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the name `parser_session_canonical_ingress` in the type namespace is supposed to be publicly re-exported here
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+   |
+ 3 | pub use conduit_language::*;
+   |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:16:1
+   |
+16 | mod parser_session_canonical_ingress;
+   | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: private item shadows public glob re-export
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:63:108
+   |
+63 | ...antics/language/src/parser_canonical_history.rs"] mod parser_canonical_history;
+   |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+   |
+note: the name `parser_canonical_history` in the type namespace is supposed to be publicly re-exported here
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:3:9
+   |
+ 3 | pub use conduit_language::*;
+   |         ^^^^^^^^^^^^^^^^^^^
+note: but the private item here shadows it
+  --> /home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907/work/production-custody/cursor-draft/cursor-metadata.rs:63:108
+   |
+63 | ...antics/language/src/parser_canonical_history.rs"] mod parser_canonical_history;
+   |                                                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+warning: 6 warnings emitted
+

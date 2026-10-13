@@ -1,0 +1,8 @@
+{
+  "session_id": 15859,
+  "exit_code": 130,
+  "reason": "user requested publish all local work and stop for reprioritization",
+  "log_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+  "log_bytes": 0,
+  "source_acceptance": "unverified: no checked Source metadata/programs produced before interruption"
+}

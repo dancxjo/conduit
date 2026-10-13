@@ -1,0 +1,724 @@
+//! Actual cached-bank final clause replay; optional external references affect
+//! evaluation only. Independent lexical consensus is checked separately.
+#![cfg(feature = "parser-model-selection")]
+extern crate alloc;
+#[path = "common/dependency_metrics.rs"]
+mod dependency_metrics;
+#[path = "common/window8_fact_replay.rs"]
+mod facts;
+#[path = "common/parser_fixture.rs"]
+mod fixture;
+#[path = "common/window8_cached_model.rs"]
+mod model;
+#[path = "../src/parser_window8_program_bank.rs"]
+#[allow(dead_code)]
+mod owned_bank;
+#[path = "common/parser_planned_runtime.rs"]
+#[allow(dead_code)] // The shared v2 wrapper is unused by this distinct Source entry.
+mod planned;
+#[path = "common/parser_model_resource.rs"]
+mod resource;
+use conduit_core::*;
+use conduit_language::{parser_model_selection::*, parser_window8::lexical::*, *};
+use conduit_plot::rust_binding::NativeRustBinding;
+use serde_json::{json, Value};
+use std::path::PathBuf;
+fn bytes_hex(bytes: &[u8]) -> String {
+    bytes.iter().map(|byte| format!("{byte:02x}")).collect()
+}
+fn evaluation_source_ids(id: &str) -> (LanguageTextId, LanguageTextRevisionId) {
+    let material = format!("window8/{id}");
+    let revision = format!("window8/{id}/r0");
+    let (material, revision) = if material.len() <= 64 && revision.len() <= 64 {
+        (material, revision)
+    } else {
+        (
+            model::hex(semantic_digest(
+                "language/window8-evaluation-material-id@1",
+                id.as_bytes(),
+            )),
+            model::hex(semantic_digest(
+                "language/window8-evaluation-revision-id@1",
+                id.as_bytes(),
+            )),
+        )
+    };
+    (
+        LanguageTextId::new(material).unwrap(),
+        LanguageTextRevisionId::new(revision).unwrap(),
+    )
+}
+// This opt-in capability is supplied by the immutable-text producer. Finality
+// never grants it. Labels, model scores, and parse agreement never grant it.
+fn reviewed_stability_profile(bytes: &[u8], rows: &Value) -> Result<Vec<(String, u32)>, String> {
+    let profile: Value = serde_json::from_slice(bytes).map_err(|e| e.to_string())?;
+    if profile["schema"] != "language/window8-reviewed-immutable-text@1"
+        || profile["producer"] != "reviewed-authored-immutable-text"
+    {
+        return Err("explicit reviewed immutable producer profile required".into());
+    }
+    let declarations = profile["rows"].as_array().ok_or("profile rows")?;
+    let inputs = rows.as_array().ok_or("evaluation rows")?;
+    if declarations.len() != inputs.len() {
+        return Err("exact profile row coverage required".into());
+    }
+    let mut seen = std::collections::BTreeSet::new();
+    let mut admitted = Vec::new();
+    for row in inputs {
+        let id = row["id"].as_str().ok_or("row id")?;
+        if !seen.insert(id) {
+            return Err("duplicate input identity".into());
+        }
+        let matches = declarations
+            .iter()
+            .filter(|declaration| declaration["id"] == id)
+            .collect::<Vec<_>>();
+        if matches.len() != 1 {
+            return Err("exact unique producer declaration required".into());
+        }
+        let declaration = matches[0];
+        let text = row["text"].as_str().ok_or("row text")?;
+        let scalars = text.chars().count();
+        if declaration["text"] != text
+            || scalars > 4096
+            || declaration["stable_prefix_scalars"].as_u64() != Some(scalars as u64)
+        {
+            return Err(
+                "immutable declaration must match exact text and full scalar extent".into(),
+            );
+        }
+        admitted.push((id.to_owned(), scalars as u32));
+    }
+    Ok(admitted)
+}
+fn stability_revision_id(profile: &[u8], id: &str) -> LanguageTextRevisionId {
+    let mut material = model::hex(semantic_digest(
+        "language/window8-reviewed-immutable-profile@1",
+        profile,
+    ))
+    .into_bytes();
+    material.extend_from_slice(id.as_bytes());
+    LanguageTextRevisionId::new(model::hex(semantic_digest(
+        "language/window8-reviewed-immutable-source-revision@1",
+        &material,
+    )))
+    .unwrap()
+}
+#[test]
+fn immutable_profile_requires_exact_explicit_producer_text_and_scalar_extent() {
+    let rows = json!([{"id":"one","text":"é I"}]);
+    let profile = json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"é I","stable_prefix_scalars":3}]});
+    let bytes = serde_json::to_vec(&profile).unwrap();
+    assert_eq!(
+        reviewed_stability_profile(&bytes, &rows).unwrap(),
+        vec![("one".into(), 3)]
+    );
+    for bad in [
+        json!({"schema":"wrong"}),
+        json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"é I","stable_prefix_scalars":4}]}),
+        json!({"schema":"language/window8-reviewed-immutable-text@1","producer":"reviewed-authored-immutable-text","rows":[{"id":"one","text":"e I","stable_prefix_scalars":3}]}),
+    ] {
+        assert!(reviewed_stability_profile(&serde_json::to_vec(&bad).unwrap(), &rows).is_err());
+    }
+    let revision = stability_revision_id(&bytes, "one");
+    assert_ne!(revision, evaluation_source_ids("one").1);
+    assert_ne!(revision, stability_revision_id(&bytes, "two"));
+}
+#[test]
+fn evaluation_source_ids_preserve_short_ids_and_bound_full_original_identity() {
+    let (material, revision) = evaluation_source_ids("reviewed-example");
+    assert_eq!(material.get(), "window8/reviewed-example");
+    assert_eq!(revision.get(), "window8/reviewed-example/r0");
+    let id = "weblog-blogspot.com_tacitusproject_20040712123425_ENG_20040712_123425-0030";
+    let (material, revision) = evaluation_source_ids(id);
+    assert_eq!(
+        material.get(),
+        "96c982be5867f5eec4487c84e002de6ebfe8dcc3bbb1f9e48513c932e27b8629"
+    );
+    assert_eq!(
+        revision.get(),
+        "4e3274c7b95bd9ac9e4772a6d703f2647c7a386aaa5b22189b7737f6c70c5d54"
+    );
+    assert_eq!(material.get().len(), 64);
+    assert_eq!(revision.get().len(), 64);
+    assert_ne!(
+        evaluation_source_ids(&format!("{id}-different")).0,
+        material
+    );
+    let boundary = "x".repeat(53);
+    assert_eq!(
+        evaluation_source_ids(&boundary).1.get(),
+        &format!("window8/{boundary}/r0")
+    );
+    assert_eq!(
+        evaluation_source_ids(&format!("{boundary}x")).1.get().len(),
+        64
+    );
+    let unicode = "é".repeat(26);
+    assert_eq!(
+        evaluation_source_ids(&unicode).1.get(),
+        &format!("window8/{unicode}/r0")
+    );
+    assert_eq!(
+        evaluation_source_ids(&format!("{unicode}é")).1.get().len(),
+        64
+    );
+}
+#[test]
+#[ignore = "explicit long native window8 teaching decode; no heldout accuracy claim"]
+fn actual_cached_window8_reviewed_clause_decode() {
+    let directory =
+        PathBuf::from(std::env::var("WINDOW8_MODEL_DIR").expect("explicit exact model directory"));
+    let weights = std::fs::read(directory.join("ewt_window8.i16")).unwrap();
+    let manifest: Value =
+        serde_json::from_slice(&std::fs::read(directory.join("manifest.json")).unwrap()).unwrap();
+    let profile_bytes = std::fs::read(directory.join("lexical_profile.json")).unwrap();
+    assert_eq!(weights.len(), 64620);
+    assert_eq!(
+        manifest["feature_class_contract_identity"],
+        model::hex(model::feature_contract())
+    );
+    assert_eq!(
+        manifest["model_content_identity"],
+        model::hex(conduit_ai::model_content_digest(&weights))
+    );
+    let teaching_override = std::env::var_os("WINDOW8_TEACHING_ROWS");
+    let teaching_bytes = teaching_override.as_ref().map_or_else(
+        || include_bytes!("../training/ewt_joint_v3_window8/reviewed_teaching.json").to_vec(),
+        |path| std::fs::read(path).expect("exact candidate teaching input"),
+    );
+    if let Some(identity) = manifest["teaching_content_identity"].as_str() {
+        assert_eq!(
+            identity,
+            model::hex(semantic_digest(
+                "language/parser-teaching@1",
+                &teaching_bytes
+            )),
+            "teaching input differs from the trained model manifest"
+        );
+    } else {
+        assert!(
+            teaching_override.is_none(),
+            "candidate teaching requires a pinned content identity"
+        );
+        assert_eq!(
+            model::hex(semantic_digest(
+                "language/parser-teaching@1",
+                &teaching_bytes
+            )),
+            "f62146aa20b5e2360360c3d9597b99e14e56e8e0894429f0f148435c5eb31bd0",
+            "embedded teaching bytes differ from the original legacy input"
+        );
+        assert_eq!(
+            manifest["reviewed_teaching_sha256"],
+            "562a8b8eeb72dd5f2549849d707975a954992f3c4f86df8a9f596383f56eaa5f",
+            "legacy model must retain the original embedded teaching input"
+        );
+    }
+    let teaching: Value = serde_json::from_slice(&teaching_bytes).unwrap();
+    let external = std::env::var_os("WINDOW8_EVALUATION_ROWS");
+    let evaluation = external.is_some();
+    let rows: Value = external.map_or_else(
+        || teaching.clone(),
+        |path| serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap(),
+    );
+    // Separate evidence prevents an evaluation from overwriting TRAIN receipts.
+    let output_directory = if evaluation {
+        PathBuf::from(
+            std::env::var_os("WINDOW8_EVALUATION_OUTPUT")
+                .expect("separate evaluation output directory"),
+        )
+    } else {
+        directory.clone()
+    };
+    std::fs::create_dir_all(&output_directory).unwrap();
+    if evaluation {
+        assert_ne!(
+            output_directory.canonicalize().unwrap(),
+            directory.canonicalize().unwrap(),
+            "evaluation must not overwrite model-directory TRAIN evidence"
+        );
+    }
+    assert!(!rows.as_array().unwrap().is_empty());
+    let mut identities = std::collections::BTreeSet::new();
+    for row in rows.as_array().unwrap() {
+        assert!(identities.insert(row["id"].as_str().unwrap()));
+        let count = row["forms"].as_array().unwrap().len();
+        assert!((1..=8).contains(&count));
+        for field in ["pos", "heads", "relations"] {
+            assert_eq!(row[field].as_array().unwrap().len(), count);
+        }
+        if evaluation {
+            assert!(
+                !teaching
+                    .as_array()
+                    .unwrap()
+                    .iter()
+                    .any(|train| train["text"] == row["text"]),
+                "external evaluation text overlaps reviewed teaching data"
+            );
+        }
+    }
+    // No whole-training disjointness claim: that requires the model's complete
+    // supervision/membership manifest, beyond this teaching-overlap check.
+    let stability_bytes = std::env::var_os("WINDOW8_REVIEWED_IMMUTABLE_PROFILE")
+        .map(|path| std::fs::read(path).expect("exact producer stability profile"));
+    let stability = stability_bytes.as_ref().map(|bytes| {
+        assert!(
+            evaluation,
+            "producer profile requires disjoint external replay output"
+        );
+        reviewed_stability_profile(bytes, &rows)
+            .expect("reviewed producer capability before inference")
+    });
+    let lexical_profile = model::lexical(&profile_bytes);
+    let scorer = resource::categorical(weights, model::signature(), 1);
+    let (definition, contracts) = model::declaration(&scorer, &lexical_profile);
+    let selected = PreparedParserModelSelection::prepare_declared(
+        scorer.clone(),
+        definition,
+        &lexical_profile,
+        &contracts,
+    )
+    .unwrap();
+    eprintln!("window8 cached corpus: numeric Source preparation start");
+    let mut execution = planned::prepare_source_with_inference_budget(
+        scorer.clone(),
+        model::source(&scorer),
+        "window8-learned-model",
+        4096,
+    );
+    eprintln!("window8 cached corpus: numeric Source preparation complete");
+    let prepared_native = std::env::var_os("WINDOW8_PREPARED_NATIVE")
+        .map(|value| {
+            assert_eq!(value, "1", "explicit prepared Native opt-in must be 1");
+            true
+        })
+        .unwrap_or(false);
+    let bank = if prepared_native {
+        owned_bank::Window8ProgramBank::prepare_native(
+            conduit_plot::rust_binding::PreparedNativeFamilyLimits {
+                maximum_types: 64,
+                maximum_laws_per_type: 64,
+                maximum_input_bytes: conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+                maximum_retained_bytes: 256 * 1024 * 1024,
+                maximum_preparation_peak_bytes: 512 * 1024 * 1024,
+                maximum_conversion_requested_bytes: 1024 * 1024 * 1024,
+            },
+        )
+        .expect("complete exact Native output family must prepare before replay")
+    } else {
+        owned_bank::Window8ProgramBank::prepare().unwrap()
+    };
+    let native_admission_receipt = bank.native_storage_receipt().map(|receipt| json!({
+        "types": receipt.types,
+        "retained_heap_bytes_bound": receipt.retained_heap_bytes_bound,
+        "preparation_peak_heap_bytes_bound": receipt.preparation_peak_heap_bytes_bound,
+        "conversion_requested_bytes_bound": receipt.conversion_requested_bytes_bound,
+        "scope": "Native bank output admission only; excludes Reference Source evaluation, ordinary input encoding, model execution, retained outputs and queues"
+    }));
+    eprintln!("window8 Native admission receipt: {native_admission_receipt:?}");
+    eprintln!("window8 cached corpus: fact Source preparation start");
+    let fact_schema = facts::FactSchema::prepare();
+    eprintln!("window8 cached corpus: fact Source preparation complete");
+    let mut vocative_edges = dependency_metrics::VocativeEdges::default();
+    let mut tokens = 0usize;
+    let mut correct_heads = 0usize;
+    let mut correct_base_labels = 0usize;
+    let mut correct_pos = 0usize;
+    let default = LanguageParserRelation::new(
+        LanguageUniversalDependencyRelation::Dep,
+        LanguageParserSubtype::new("".into()).unwrap(),
+    )
+    .unwrap();
+    let classes = (0..76)
+        .map(|code| bank.class(code, &default).unwrap())
+        .collect::<Vec<_>>();
+    let mut invocations = 0;
+    let mut receipts = Vec::new();
+    let mut correct = 0;
+    let started = std::time::Instant::now();
+    for row in rows.as_array().unwrap() {
+        let id = row["id"].as_str().unwrap();
+        let (material_id, original_revision_id) = evaluation_source_ids(id);
+        let revision_id = stability_bytes
+            .as_ref()
+            .map_or(original_revision_id, |profile| {
+                stability_revision_id(profile, id)
+            });
+        let stable_prefix = stability.as_ref().map(|declarations| {
+            declarations
+                .iter()
+                .find(|(identity, _)| identity == id)
+                .unwrap()
+                .1
+        });
+        let source = LanguageTextRevision::new(
+            LanguageTextFinality::Final,
+            LanguageText::new(
+                material_id,
+                LanguageId::new("language/en".into()).unwrap(),
+                revision_id,
+                row["text"].as_str().unwrap().into(),
+            )
+            .unwrap(),
+            None,
+            stability_bytes
+                .as_ref()
+                .map_or_else(model::provenance, |profile| {
+                    LinguisticDerivationProvenance::deterministic_rule(
+                        "reviewed-authored-immutable-text".into(),
+                        model::hex(semantic_digest(
+                            "language/window8-reviewed-immutable-profile@1",
+                            profile,
+                        )),
+                    )
+                    .unwrap()
+                }),
+            0,
+            stable_prefix,
+        )
+        .unwrap();
+        let tape = conduit_language::lexical::prepare_lexical_tape(&source, &lexical_profile, None)
+            .unwrap();
+        assert_eq!(
+            tape.tape()
+                .tokens()
+                .as_slice()
+                .iter()
+                .map(|token| token.surface().as_str())
+                .collect::<Vec<_>>(),
+            row["forms"]
+                .as_array()
+                .unwrap()
+                .iter()
+                .map(|form| form.as_str().unwrap())
+                .collect::<Vec<_>>(),
+            "reference token occurrences must match actual lexical reconstruction"
+        );
+        let lexical = prepare_window8_lexical(&tape).unwrap();
+        conduit_language::validate_text_revision(None, &source, 0, 4096).unwrap();
+        let mut analysis_material = tape.tape().clone().encode().unwrap();
+        analysis_material.extend_from_slice(&selected.compatibility().model_content);
+        analysis_material.extend_from_slice(&selected.compatibility().signature);
+        analysis_material.extend_from_slice(&contracts.feature_contract);
+        analysis_material.extend_from_slice(&contracts.availability_contract);
+        analysis_material.extend_from_slice(&contracts.action_contract);
+        analysis_material.extend_from_slice(&contracts.numeric_indices_contract);
+        analysis_material.extend_from_slice(&contracts.numeric_scores_contract);
+        analysis_material.extend_from_slice(&contracts.joint_choice_contract);
+        let analysis = model::hex(semantic_digest(
+            "language/parser-window8-analysis@3",
+            &analysis_material,
+        ));
+        let basis = LanguageParserBasis::new(
+            LanguageAnalysisRevisionId::new(analysis).unwrap(),
+            source.material().revision().clone(),
+            source.material().identity().clone(),
+        )
+        .unwrap();
+        eprintln!("window8 cached corpus {id}: source/lexical admitted, initialize");
+        let initial = bank
+            .initialize(
+                &LanguageParserWindow8Begin::new(
+                    basis.clone(),
+                    default.clone(),
+                    *lexical.lexical().token_count(),
+                )
+                .unwrap(),
+            )
+            .unwrap();
+        let empty = |identity, active| {
+            LanguageParserWindow8RawHypothesis::new(
+                active,
+                [0; 8],
+                identity,
+                0,
+                0,
+                initial.state().clone(),
+            )
+            .unwrap()
+        };
+        let mut beam = LanguageParserWindow8RawBeam::new(
+            empty(0, true),
+            empty(1, false),
+            empty(2, false),
+            empty(3, false),
+        )
+        .unwrap();
+        let mut identity = 4;
+        let mut epochs = Vec::new();
+        for epoch in 0..32 {
+            eprintln!("window8 cached corpus {id}: epoch {epoch} start");
+            let mut next = LanguageParserWindow8RawBeam::new(
+                empty(0, false),
+                empty(1, false),
+                empty(2, false),
+                empty(3, false),
+            )
+            .unwrap();
+            let candidates = [
+                beam.candidate0(),
+                beam.candidate1(),
+                beam.candidate2(),
+                beam.candidate3(),
+            ];
+            for prior in candidates
+                .into_iter()
+                .filter(|candidate| *candidate.active())
+            {
+                let state = bank.admit_state(prior.state()).unwrap();
+                if bank.complete(&state).unwrap() {
+                    next = bank.merge(next, prior.clone()).unwrap();
+                    continue;
+                }
+                let context = bank.context(&state, &basis).unwrap();
+                let unread = *prior.state().unread() as usize;
+                let choose = unread < *lexical.lexical().token_count() as usize
+                    && *prior.selected() == unread as u64;
+                let alternatives = if choose {
+                    *lexical.projection().tokens()[unread].count()
+                } else {
+                    1
+                };
+                for choice in 0..alternatives {
+                    let mut choices = *prior.choices();
+                    if choose {
+                        choices[unread] = choice;
+                    }
+                    let features = bank.features(&state, &lexical, &basis, choices).unwrap();
+                    let choice_query = LanguageParserWindow8ChoiceQuery::new(
+                        features.query().clone(),
+                        *prior.choices(),
+                        *prior.selected(),
+                    )
+                    .unwrap();
+                    let frontier = bank.choice_frontier(choice_query).unwrap();
+                    eprintln!(
+                        "window8 cached corpus {id}: inference {invocations} epoch {epoch} start"
+                    );
+                    let scores = execution.infer(
+                        invocations,
+                        &features.features().raw().clone().into_structured().unwrap(),
+                    );
+                    invocations += 1;
+                    let StructuredInfoValueShape::Collection(scores) = scores.shape() else {
+                        panic!("bare numerical scores")
+                    };
+                    for (class, value) in classes.iter().zip(scores) {
+                        let proposal = context.propose(class).unwrap();
+                        if !proposal.proposal().accepted() {
+                            continue;
+                        }
+                        let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                            panic!("I64 scalar")
+                        };
+                        let score = i64::from_le_bytes(bytes.try_into().unwrap());
+                        let raw = bank
+                            .score_advance(
+                                LanguageParserWindow8RawAdvance::new(
+                                    choices,
+                                    identity,
+                                    proposal.proposal().clone(),
+                                    *prior.score(),
+                                    *frontier.count(),
+                                    score,
+                                )
+                                .unwrap(),
+                            )
+                            .unwrap();
+                        identity += 1;
+                        next = bank.merge(next, raw).unwrap();
+                    }
+                }
+            }
+            beam = next;
+            eprintln!("window8 cached corpus {id}: epoch {epoch} candidates retained");
+            let mut proofs = Vec::new();
+            for candidate in [
+                beam.candidate0(),
+                beam.candidate1(),
+                beam.candidate2(),
+                beam.candidate3(),
+            ]
+            .into_iter()
+            .filter(|candidate| *candidate.active())
+            {
+                let proof = bank.admit_state(candidate.state()).unwrap();
+                proofs.push(bytes_hex(&proof.proof().clone().encode().unwrap()));
+            }
+            let all_complete = [
+                beam.candidate0(),
+                beam.candidate1(),
+                beam.candidate2(),
+                beam.candidate3(),
+            ]
+            .into_iter()
+            .filter(|candidate| *candidate.active())
+            .all(|candidate| {
+                bank.complete(&bank.admit_state(candidate.state()).unwrap())
+                    .unwrap()
+            });
+            let early_fact = if stability.is_some()
+                && proofs.len() == 4
+                && *lexical.lexical().token_count() > 1
+            {
+                let exact_proofs = [
+                    beam.candidate0(),
+                    beam.candidate1(),
+                    beam.candidate2(),
+                    beam.candidate3(),
+                ]
+                .map(|candidate| bank.admit_state(candidate.state()).unwrap().proof().clone());
+                Some(
+                    match fact_schema.lexical_fact(
+                        lexical.lexical(),
+                        &basis,
+                        &beam,
+                        &exact_proofs,
+                        1,
+                    ) {
+                        Ok(value) => {
+                            json!({"accepted":true,"canonical_bytes":bytes_hex(&value.canonical_bytes().unwrap())})
+                        }
+                        Err(refusal) => json!({"accepted":false,"refusal":refusal}),
+                    },
+                )
+            } else {
+                None
+            };
+            epochs.push(json!({"epoch":epoch,"completed_model_invocations":invocations,"beam_bytes":bytes_hex(&beam.clone().encode().unwrap()),"state_proof_bytes":proofs,"independent_lexical_fact":early_fact,"all_candidates_complete":all_complete}));
+            if all_complete {
+                break;
+            }
+        }
+        assert!(*beam.candidate0().active(), "{id}");
+        let preferred = beam.candidate0();
+        let state = bank.admit_state(preferred.state()).unwrap();
+        let complete = bank.complete(&state).unwrap();
+        let proofs = [
+            beam.candidate0(),
+            beam.candidate1(),
+            beam.candidate2(),
+            beam.candidate3(),
+        ]
+        .map(|candidate| bank.admit_state(candidate.state()).unwrap().proof().clone());
+        let admitted_fact = fact_schema.lexical_fact(lexical.lexical(), &basis, &beam, &proofs, 1);
+        let (fact_bytes, fact_refusal) = match admitted_fact {
+            Ok(value) => (Some(bytes_hex(&value.canonical_bytes().unwrap())), None),
+            Err(refusal) => (None, Some(refusal)),
+        };
+        eprintln!(
+            "window8 cached corpus {id}: independent lexical fact accepted={}",
+            fact_bytes.is_some()
+        );
+        let count = *lexical.lexical().token_count() as usize;
+        let pos = (0..count)
+            .map(|ordinal| {
+                lexical.projection().tokens()[ordinal].codes()
+                    [preferred.choices()[ordinal] as usize]
+            })
+            .collect::<Vec<_>>();
+        let relations = [
+            state.state().relation0(),
+            state.state().relation1(),
+            state.state().relation2(),
+            state.state().relation3(),
+            state.state().relation4(),
+            state.state().relation5(),
+            state.state().relation6(),
+            state.state().relation7(),
+        ];
+        let predicted=(0..count).map(|ordinal|json!({"dependent":ordinal,"head":state.state().heads()[ordinal],"base":format!("{:?}",relations[ordinal].base()).to_lowercase()})).collect::<Vec<_>>();
+        let matches = complete
+            && pos
+                .iter()
+                .enumerate()
+                .all(|(i, value)| row["pos"][i].as_u64() == Some(*value))
+            && predicted.iter().enumerate().all(|(i, value)| {
+                value["head"] == row["heads"][i]
+                    && value["base"].as_str()
+                        == row["relations"][i].as_str().unwrap().split(':').next()
+            });
+        correct += usize::from(matches);
+        tokens += count;
+        for ordinal in 0..count {
+            let head_matches = predicted[ordinal]["head"] == row["heads"][ordinal];
+            vocative_edges.observe(
+                predicted[ordinal]["base"].as_str() == Some("vocative"),
+                row["relations"][ordinal]
+                    .as_str()
+                    .unwrap()
+                    .split(':')
+                    .next()
+                    == Some("vocative"),
+                head_matches,
+            );
+            correct_heads += usize::from(head_matches);
+            correct_base_labels += usize::from(
+                head_matches
+                    && predicted[ordinal]["base"].as_str()
+                        == row["relations"][ordinal]
+                            .as_str()
+                            .unwrap()
+                            .split(':')
+                            .next(),
+            );
+            correct_pos += usize::from(row["pos"][ordinal].as_u64() == Some(pos[ordinal]));
+        }
+        eprintln!(
+            "actual cached corpus window8 {id}: complete={complete}, exact_base_graph={matches}"
+        );
+        receipts.push(json!({"id":id,"text":row["text"],"text_identity":source.material().identity().get(),"source_revision":source.material().revision().get(),"analysis_revision":basis.analysis_revision().get(),"reviewed_immutable_profile":stability_bytes.as_ref().map(|bytes| model::hex(semantic_digest("language/window8-reviewed-immutable-profile@1",bytes))),"source_material_bytes":bytes_hex(&source.clone().encode().unwrap()),"lexical_tape_bytes":bytes_hex(&tape.tape().clone().encode().unwrap()),"basis":bytes_hex(&basis.clone().encode().unwrap()),"state_proof_bytes":bytes_hex(&state.proof().clone().encode().unwrap()),"choices":preferred.choices(),"pos":pos,"predicted":predicted,"complete":complete,"lexical_fact_bytes":fact_bytes,"lexical_fact_refusal":fact_refusal,"epochs":epochs,"root_sentinel":8,"reviewed_train_teaching_demonstration":!evaluation,"external_evaluation_references":evaluation,"model_content":model::hex(selected.compatibility().model_content),"feature_contract":model::hex(contracts.feature_contract),"choice_contract":model::hex(contracts.joint_choice_contract)}));
+        std::fs::write(
+            output_directory.join("native_cached_clause_rows.json"),
+            serde_json::to_vec_pretty(&receipts).unwrap(),
+        )
+        .unwrap();
+    }
+    let result = json!({"native_admission_receipt":native_admission_receipt,"prepared_native_output_admission":prepared_native,"receipts":receipts,"exact_base_graphs":correct,"exact_reference_teaching_graphs":if evaluation {None} else {Some(correct)},"examples":rows.as_array().unwrap().len(),"actual_model_invocations":invocations,"admitted_inference_bound":4096,"elapsed_nanos":started.elapsed().as_nanos().to_string(),"heldout_accuracy_claim":false,"stable_or_played_fact_claim":false,"external_evaluation_references":evaluation,"training_membership_disjointness_verified":false,"metric_token_scope":"all supplied tokens including punctuation; universal base labels only, subtypes excluded","tokens":tokens,"correct_heads":correct_heads,"correct_base_labels":correct_base_labels,"correct_pos":correct_pos,"uas":correct_heads as f64 / tokens as f64,"base_las":correct_base_labels as f64 / tokens as f64,"pos_accuracy":correct_pos as f64 / tokens as f64});
+    let mut result = result;
+    result["vocative_edges"] = json!({
+        "scope": "exact dependent occurrence, governor and universal base relation; wrong governor counts as both false positive and false negative",
+        "true_positive": vocative_edges.true_positive,
+        "false_positive": vocative_edges.false_positive,
+        "false_negative": vocative_edges.false_negative,
+        "precision": vocative_edges.precision(),
+        "recall": vocative_edges.recall(),
+        "undefined_denominator": "null; no perfect-score substitution",
+    });
+    std::fs::write(
+        output_directory.join("native_cached_clause_decode.json"),
+        serde_json::to_vec_pretty(&result).unwrap(),
+    )
+    .unwrap();
+    if !evaluation {
+        assert_eq!(correct, rows.as_array().unwrap().len());
+    }
+}
+
+#[test]
+fn retained_actual_original_source_refuses_fact_before_root_closure() {
+    let project = std::path::Path::new("/home/dancxjo/Documents/Codex/2026-10-06/goal-please-finish-and-close-4907");
+    let rows: Value = serde_json::from_slice(&std::fs::read(project.join("outputs/native-admission-family/vocative-candidate-08425a-prepared-r2/authored_vocative/native_cached_clause_rows.json")).unwrap()).unwrap();
+    let row = &rows[0];
+    let unhex = |text: &str| (0..text.len()).step_by(2).map(|i| u8::from_str_radix(&text[i..i+2],16).unwrap()).collect::<Vec<_>>();
+    let source = LanguageTextRevision::decode(&unhex(row["source_material_bytes"].as_str().unwrap())).unwrap();
+    assert!(source.stable_prefix().is_none());
+    let profile_bytes = std::fs::read(project.join("work/window8/v3-vocative-candidate-pinned-teaching/lexical_profile.json")).unwrap();
+    let profile = model::lexical(&profile_bytes);
+    let tape = conduit_language::lexical::prepare_lexical_tape(&source,&profile,None).unwrap();
+    assert_eq!(bytes_hex(&tape.tape().clone().encode().unwrap()),row["lexical_tape_bytes"].as_str().unwrap());
+    let lexical = prepare_window8_lexical(&tape).unwrap();
+    let basis = LanguageParserBasis::decode(&unhex(row["basis"].as_str().unwrap())).unwrap();
+    let epoch = &row["epochs"][3];
+    let beam = LanguageParserWindow8RawBeam::decode(&unhex(epoch["beam_bytes"].as_str().unwrap())).unwrap();
+    let proofs: [LanguageParserWindow8StateProof;4] = epoch["state_proof_bytes"].as_array().unwrap().iter().map(|p| LanguageParserWindow8StateProof::decode(&unhex(p.as_str().unwrap())).unwrap()).collect::<Vec<_>>().try_into().unwrap();
+    for candidate in [beam.candidate0(),beam.candidate1(),beam.candidate2(),beam.candidate3()] {
+        assert!(*candidate.active()); assert_eq!(candidate.choices()[1],1); assert_eq!(*candidate.selected(),3);
+    }
+    let facts = facts::FactSchema::prepare();
+    assert_eq!(facts.lexical_fact(lexical.lexical(),&basis,&beam,&proofs,1).unwrap_err(),"ViolatedInvariant { index: 0 }");
+    let bank = owned_bank::Window8ProgramBank::prepare().unwrap();
+    assert!(!bank.complete(&bank.admit_state(beam.candidate0().state()).unwrap()).unwrap());
+}

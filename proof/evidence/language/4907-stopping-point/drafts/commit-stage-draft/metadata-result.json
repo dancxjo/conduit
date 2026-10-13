@@ -1,0 +1,10 @@
+{
+  "exit_code": 0,
+  "seconds": 3.864556690037716,
+  "files": {
+    "metadata.rs": "83f06dc13410b74b9471589a20cc61cb068fb2ecc02bfd6dd5fa5e661c3d475b",
+    "parser_session_window8_stage.rs": "a76f56ab793a6d0a2bc4a430a1b1af663d3a4d687e657392b668a366472d82de",
+    "parser_session_window8_commit_candidate.rs": "ca8584e62487d511ff891b67e3e98a1d247b2d4917643340e2a6963c878a6cd5"
+  },
+  "scope": "metadata only, scratch copies, no runtime claim"
+}

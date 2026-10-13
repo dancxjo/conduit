@@ -1,0 +1,357 @@
+[
+  {
+    "path": "/home/dancxjo/conduit-4898-common-greeting",
+    "head": "08b37e146341ba97ba3d6ce6d128f0814bea4aa0",
+    "branch": "refs/heads/codex/4898-common-greeting",
+    "remote_contains": [
+      "origin/codex/4898-common-greeting"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-fixed-neural",
+    "head": "f813938ba22cb23e36181f3e1b9ee2e3c3edb61c",
+    "branch": "refs/heads/codex/4898-fixed-neural",
+    "remote_contains": [
+      "origin/codex/4898-common-greeting",
+      "origin/codex/4898-fixed-neural"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-pair-storage",
+    "head": "a2e8b8b642bcdfed5701da433fb773a3db51032b",
+    "branch": "refs/heads/codex/4898-coherent-public-driver",
+    "remote_contains": [
+      "origin/codex/4898-coherent-public-driver"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4898-topology",
+    "head": "9dae0e112e30e54dd585cb48d2529fc53784ceb8",
+    "branch": "refs/heads/codex/4898-feature-stream",
+    "remote_contains": [
+      "origin/codex/4898-feature-stream"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-asr",
+    "head": "42eee2ec1804fca2465422bfba6c96d3d3bb13f4",
+    "branch": "refs/heads/codex/4907-asr",
+    "remote_contains": [
+      "origin/archive/stopping-20261008/4907-asr"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-decode-accounting",
+    "head": "6d834e917040967aaea6392c6a51af048c4ace75",
+    "branch": "refs/heads/codex/4907-decode-accounting",
+    "remote_contains": [
+      "origin/codex/4907-decode-accounting"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-discourse",
+    "head": "e4ea4e7f7bea42fc3a861e4fb23a3005e55739be",
+    "branch": "refs/heads/codex/4907-discourse",
+    "remote_contains": [
+      "origin/codex/4907-discourse"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-evaluation-identity",
+    "head": "703e0ae3bbdf3b526b6c9d4bd35434b3c9b9d28a",
+    "branch": "refs/heads/codex/4907-evaluation-identity",
+    "remote_contains": [
+      "origin/codex/4898-coherent-public-driver",
+      "origin/codex/4898-pair-storage",
+      "origin/codex/4907-evaluation-identity",
+      "origin/codex/4907-native-reuse"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-foundation-browser-proof",
+    "head": "9d93a81f33aa9a9d067427ac6d427fcf4cf33c36",
+    "branch": "refs/heads/codex/4907-foundation-browser-proof",
+    "remote_contains": [
+      "origin/archive/stopping-20261008/4907-foundation-browser-proof"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-incremental",
+    "head": "798b3e5d6ab94ac89855f15b6ce02c67c8dabccf",
+    "branch": "refs/heads/codex/4907-incremental",
+    "remote_contains": [
+      "origin/codex/4907-incremental"
+    ],
+    "dirty": [
+      "?? semantics/language/work/",
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-joint",
+    "head": "af27dcfa56c38b507eee76d883c4aa09ec836f69",
+    "branch": "refs/heads/codex/4907-joint",
+    "remote_contains": [
+      "origin/codex/4907-incremental",
+      "origin/codex/4907-joint"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-lexical",
+    "head": "c30c3ed2d6a033290a1e8554c5137e550459ab13",
+    "branch": "refs/heads/codex/4907-lexical",
+    "remote_contains": [
+      "origin/codex/4907-discourse",
+      "origin/codex/4907-lexical"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-native-admission",
+    "head": "f3f702075ef96386537884dd5a6755191be21779",
+    "branch": "refs/heads/codex/4907-native-admission",
+    "remote_contains": [
+      "origin/codex/4898-coherent-public-driver",
+      "origin/codex/4898-pair-storage",
+      "origin/codex/4907-decode-accounting",
+      "origin/codex/4907-evaluation-identity"
+    ],
+    "dirty": [
+      "?? semantics/language/tests/parser_lexical_proposer_resource_probe.rs",
+      "?? semantics/language/tests/parser_window8_dev_identity_retry.rs",
+      "?? semantics/language/tests/parser_window8_stability_profile_probe.rs",
+      "?? work-native-readiness.log",
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-native-evaluation",
+    "head": "136a09c1eade49271ac667d220efd10018c1b294",
+    "branch": "refs/heads/codex/4907-native-evaluation",
+    "remote_contains": [
+      "origin/codex/4907-native-evaluation"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-native-reuse",
+    "head": "8e0347c9164175173a503b42bbbccf94a92c2515",
+    "branch": "refs/heads/codex/4907-native-reuse",
+    "remote_contains": [
+      "origin/codex/4907-native-reuse"
+    ],
+    "dirty": [
+      "?? work-core-storage-allocator-final.log",
+      "?? work-core-storage-clippy.log",
+      "?? work-core-storage-final-tests.log",
+      "?? work-core-storage-library.log",
+      "?? work-core-storage-no-std.log",
+      "?? work-core-validator-allocation-probe.log",
+      "?? work-core-validator-allocator-cargo.log",
+      "?? work-core-validator-storage-gate.log",
+      "?? work-core-validator-storage-gate2.log",
+      "?? work-reuse-origin-gates.log",
+      "?? work-sdk256-clippy.log",
+      "?? work-sdk256-gate-final.log",
+      "?? work-sdk256-gate-final2.log",
+      "?? work-sdk256-gate.log",
+      "?? work-source-identity-clippy.log",
+      "?? work-source-identity-gate.log",
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-parser",
+    "head": "51b473b8fb5a34feeba3992edc5e5a6e160cb0f7",
+    "branch": "refs/heads/codex/4907-parser",
+    "remote_contains": [
+      "origin/codex/4907-parser",
+      "origin/codex/4907-scorer"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-pitch-trajectory",
+    "head": "d2dbf28be627d3d3c582db905d4625e571ea3e9c",
+    "branch": "refs/heads/codex/4907-pitch-trajectory",
+    "remote_contains": [
+      "origin/codex/4907-pitch-trajectory",
+      "origin/codex/4907-playback",
+      "origin/codex/4907-playback-proof",
+      "origin/codex/4907-pronunciation"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-playback",
+    "head": "4908e8abd27ed248f2d2bdb795cfc18f8bc32ce3",
+    "branch": "refs/heads/codex/4907-playback",
+    "remote_contains": [
+      "origin/codex/4907-playback",
+      "origin/codex/4907-playback-proof",
+      "origin/codex/4907-pronunciation"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-playback-proof",
+    "head": "ee8b27177c763f426ecc02f0d9d4f645f1201b70",
+    "branch": "refs/heads/codex/4907-playback-proof",
+    "remote_contains": [
+      "origin/codex/4907-playback-proof"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-production-custody",
+    "head": "f2b73f4f2c6909fba82826a8e8b9fad6b2c9e270",
+    "branch": "refs/heads/codex/4907-production-custody",
+    "remote_contains": [
+      "origin/codex/4907-production-custody"
+    ],
+    "dirty": [
+      " M semantics/language/src/parser_session_numeric_plan.rs",
+      " M semantics/language/src/parser_session_window8_observe.rs",
+      " M semantics/language/src/parser_session_window8_preparation.rs",
+      " M semantics/language/src/parser_session_window8_run.rs",
+      " M semantics/language/src/parser_session_window8_stage.rs",
+      " M semantics/language/src/parser_session_window8_transition.rs",
+      " M semantics/language/src/parser_session_window8_working_set.rs",
+      "?? proof/evidence/language/__pycache__/",
+      "?? semantics/language/src/parser_canonical_transaction_ingress.rs",
+      "?? semantics/language/src/parser_custody_initialization.rs",
+      "?? semantics/language/src/parser_independent_commit.rs",
+      "?? semantics/language/src/parser_protected_rebase_ingress.rs",
+      "?? semantics/language/src/parser_session_transaction.rs",
+      "?? semantics/language/src/parser_session_transaction_delta.rs",
+      "?? semantics/language/src/parser_session_window8_commit_candidate.rs",
+      "?? semantics/language/src/parser_session_window8_grow_beam.rs",
+      "?? semantics/language/src/parser_session_window8_session.rs",
+      "?? semantics/language/src/parser_transaction_ingress.rs",
+      "?? semantics/language/tests/parser_custody_initialization.rs",
+      "?? semantics/language/tests/parser_independent_commit.rs",
+      "?? semantics/language/tests/parser_session_transaction.rs",
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-pronunciation",
+    "head": "e96c064e0b85fcc487462eb0408b9b393f7881f4",
+    "branch": "refs/heads/codex/4907-pronunciation",
+    "remote_contains": [
+      "origin/codex/4907-playback-proof",
+      "origin/codex/4907-pronunciation"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-prosody",
+    "head": "916f8af8b6359bc88d17b3e68b7b7247c1fa16ee",
+    "branch": "refs/heads/codex/4907-prosody",
+    "remote_contains": [
+      "origin/codex/4907-pitch-trajectory",
+      "origin/codex/4907-playback",
+      "origin/codex/4907-playback-proof",
+      "origin/codex/4907-pronunciation"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-scorer",
+    "head": "07a421967967b4a3a9cdece1c09ea86cb44da8f3",
+    "branch": "refs/heads/codex/4907-scorer",
+    "remote_contains": [
+      "origin/codex/4907-scorer"
+    ],
+    "dirty": [
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-speech-coverage",
+    "head": "a3240656a2f8372bc7f6ed42866fac486b44cb94",
+    "branch": "refs/heads/codex/4907-speech-coverage",
+    "remote_contains": [
+      "origin/codex/4907-speech-coverage"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-text-material",
+    "head": "b858ed9d8620aba5c66243c4aa9430f6ebd98f91",
+    "branch": "refs/heads/codex/4907-text-material",
+    "remote_contains": [
+      "origin/archive/stopping-20261008/4907-text-material"
+    ],
+    "dirty": []
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-text-revisions",
+    "head": "c02b31605203300773bc40674be186b7e8655453",
+    "branch": "refs/heads/codex/4907-learned-integration",
+    "remote_contains": [
+      "origin/codex/4907-learned-integration"
+    ],
+    "dirty": [
+      "?? proof/evidence/language/__pycache__/",
+      "?? semantics/language/src/parser_custody_initialization.rs",
+      "?? semantics/language/src/parser_independent_commit.rs",
+      "?? semantics/language/src/parser_protected_rebase_ingress.rs",
+      "?? semantics/language/src/parser_session_transaction.rs",
+      "?? semantics/language/src/parser_session_transaction_delta.rs",
+      "?? semantics/language/src/parser_transaction_ingress.rs",
+      "?? semantics/language/tests/parser_custody_initialization.rs",
+      "?? semantics/language/tests/parser_independent_commit.rs",
+      "?? semantics/speech/src/independent_committed_token_role.rs"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-4907-window8",
+    "head": "4389ac2122d9c4cdf726919a406fddfc6e09542d",
+    "branch": "refs/heads/codex/4907-window8",
+    "remote_contains": [
+      "origin/codex/4907-window8"
+    ],
+    "dirty": [
+      "?? semantics/language/src/parser_protected_custody.rs",
+      "?? semantics/language/src/parser_protected_origin.rs",
+      "?? semantics/language/src/parser_retained_commit.rs",
+      "?? semantics/language/tests/common/window8_model.rs",
+      "?? semantics/language/tests/parser_protected_custody.rs",
+      "?? semantics/language/tests/parser_retained_commit.rs",
+      "?? semantics/language/tests/parser_window8_model.rs",
+      "?? work/"
+    ]
+  },
+  {
+    "path": "/home/dancxjo/conduit-5212-common-intent",
+    "head": "6806f08fbb07723237441b97c93cebf5d1e72138",
+    "branch": "refs/heads/codex/5212-common-intent",
+    "remote_contains": [
+      "origin/codex/5212-common-intent"
+    ],
+    "dirty": []
+  }
+]
