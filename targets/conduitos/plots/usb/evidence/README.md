@@ -1,18 +1,39 @@
 # USB architecture acceptance evidence (#5258)
 
-The same checked BOT Source package `e09a9f5aa14c599d85fb7a5ea247c91c0aab5d2d3045efca55bd3f08c003134d` ran unchanged against real emulated xHCI and QEMU storage on x86_64 q35 and AArch64 virt-10.2. Both runs accepted the patterned 512-byte LBA0 block only after a matching successful CSW and retired Play. No Rust storage class parser was added.
+The current execution index is `current-usb-classes-a783be37/`. CDC serial,
+read-only BOT recovery and Audio use byte-identical packaged Source and Root
+requests on x86_64 q35 and AArch64 virt-10.2. ECM executes on x86_64 through the
+separately admitted network Root. Each receipt retains its actual kernel identity;
+these are execution observations of a783be37/a405f218, not execution of the final
+PR head.
 
-| Architecture | Product USB evidence | Remaining disposition |
+| Architecture | Collected product execution | Remaining disposition |
 | --- | --- | --- |
-| x86_64 q35 | BOT emulator with device; immutable receipt retained | Full class/fault acceptance incomplete |
-| AArch64 virt-10.2, neoverse-n2 | Same BOT package, emulator with device; immutable receipt retained | Full class/fault acceptance incomplete |
-| IA-32 PC | Unsupported | No admitted native product USB provider |
-| RISC-V64 virt | Unsupported | No admitted native product USB provider |
-| LoongArch64 virt | Unsupported | No admitted native product USB provider |
+| x86_64 q35 | CDC, ECM, BOT and Audio; exact bytes, zero Play allocation, acknowledged retirement | Hosted closure gates |
+| AArch64 virt-10.2, neoverse-n2 | Same CDC, BOT and Audio Source/Root bytes; zero Play allocation and retirement | ECM network Root deferred to #5490; hosted closure gates |
+| IA-32 PC | Explicitly unsupported | Native product USB provider follow-up #5489 |
+| RISC-V64 virt | Explicitly unsupported | Native product USB provider follow-up #5489 |
+| LoongArch64 virt | Explicitly unsupported | Native product USB provider follow-up #5489 |
 
-`architecture-matrix.json` gives explicit class dispositions. Receipts retain build/media/Source identities, complete serial observations including Boot/Plan/Play and admitted Base/resource identity, firmware/emulator hashes, decoder source, and the unchanged-package comparison. Paths identify original local artifacts; embedded content and hashes preserve the proof independently. Physical/HIL compatibility remains unverified. Compilation is never substituted for execution. These partial rows do not close #5253–#5258.
+`architecture-matrix.json` records exact class dispositions and receipt hashes.
+Fresh BOT recovery includes both a successful independent second request and a
+failed clear-IN that drains without a fabricated result or fresh request. Audio
+retains 72 exact isochronous packets and typed normal drain. CDC retains sixteen
+bidirectional request pairs; ECM retains full-MTU frames and 1460 TCP bytes in
+each direction. These observations complement deterministic fault tests; a
+successful guest alone does not prove every negative case.
 
-The unchanged repeated BOT package `e3ecbad3add0b585cdd5915dd22878424d8f4f57564bbf711c633e31b5f94be9` also completed sixteen serialized READ(10) transactions on both architectures. Exact ordinals 0..31, matching CSWs, block-after-CSW publication and acknowledged Play retirement are decoded in the additional receipts. No emulator allocation counter claim is made.
+`class-lifecycle-acceptance.md` maps the composed serial/ECM negative tests
+to shared native enforcement and states their simulation boundaries.
+
+Historical receipts remain immutable evidence for their original builds.
+Their `remaining` lists and integration fields describe collection-time gaps,
+not the current aggregate audit. In particular, older BOT receipts demonstrate
+patterned block-after-CSW publication and sixteen repeated reads on both
+architectures; newer recovery receipts supply the repaired graph drain and
+retirement proof. No claim is retroactively added to an older receipt.
+Physical/HIL compatibility remains unverified. Compilation is never substituted
+for execution. This index alone does not close #5253–#5258.
 
 Supported native rows use Root-owned coherent DMA and bounded event-ring polling;
 no USB IRQ handler ownership is claimed. The matrix records shared ordering and

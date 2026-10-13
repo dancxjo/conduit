@@ -1,0 +1,9 @@
+{
+  "schema": "conduit.usb/class-lifecycle-log-hashes@1",
+  "scope": "deterministic compiled Source/Plan/Kernel witnesses; native guest receipts remain separate",
+  "files": {
+    "class-lifecycle-clippy.log": "bcfc30002ae599821d5a3982aca19492786c480708906d7cf5184ea9345a8609",
+    "ecm-composed-lifecycle-fixed.log": "f709886261ca0755fe0054daffe4feb82b84ce7d099548182ba9ac76410d0206",
+    "serial-composed-lifecycle.log": "f7dc7cbb77af6ef754b7b49f7c5d532c910580d6dc06e1cf47e490dd12c193da"
+  }
+}
