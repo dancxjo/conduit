@@ -318,7 +318,15 @@ Plan/Play basis is distinct from the Mask's realization Plan/Play.
 
 The shared browser fixture exposed #5469: the view previously reported every
 non-Available Show as Prepared, erasing Closed, Replaced, and Failed truth.
-The view now maps all five existing lifecycle states explicitly. Focused tests
+The view now maps all five existing lifecycle states explicitly. Its serialized
+`show_state` contract is Prepared → `prepared`, Available → `available`,
+Closed → `closed`, Replaced → `replaced`, and Failed → `failed`.
+`show_failure` retains the authoritative failure enum (`AdapterUnavailable`,
+`OutputRejected`, or `DeliveryFailed`) and is null when no failure exists.
+Only an Available Show can report admitted interactions. A serialization
+regression checks the five labels, failure detail, and exact Face identity and
+revision; the former non-Available-to-`prepared` projection fails this corpus.
+Focused tests
 preserve distinct states, refuse argument pressure before emission, and refuse
 returns after closure, replacement, or adapter loss without changing the Face.
 This bounded projection correction is not a new lifecycle or renderer policy;

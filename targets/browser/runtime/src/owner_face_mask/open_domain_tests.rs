@@ -280,3 +280,96 @@ fn browser_mask_refuses_pressure_and_lost_shows_before_typed_emission() {
         assert_eq!(mask.presentation, face);
     }
 }
+
+#[test]
+fn browser_show_serialization_preserves_five_states_and_failure_detail() {
+    use conduit_presentation::ManifestationFailure;
+
+    let face: Presentation = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    ))
+    .unwrap();
+    let mut mask = OwnerBrowserMask::prepare_component_fixture(
+        HostBasis {
+            visual_constraints: None,
+            body_id: face.basis.body_id.clone().unwrap(),
+            host_id: HostId::from("host/browser-show-serialization"),
+            boot_id: BootId::from("boot/browser-show-serialization"),
+        },
+        face.clone(),
+        1,
+        true,
+    )
+    .unwrap();
+    let prepared = mask.show.clone();
+    let view = mask.view();
+    mask.acknowledge(Acknowledgement {
+        show_id: view.show_id,
+        face_id: view.face_id,
+        face_revision: view.face_revision,
+    })
+    .unwrap();
+    let available = mask.show.clone();
+    for (lifecycle, label) in [
+        (ManifestationLifecycle::Prepared, "prepared"),
+        (ManifestationLifecycle::Available, "available"),
+        (ManifestationLifecycle::Closed, "closed"),
+        (ManifestationLifecycle::Replaced, "replaced"),
+        (ManifestationLifecycle::Failed, "failed"),
+    ] {
+        mask.show = match lifecycle {
+            ManifestationLifecycle::Prepared => prepared.clone(),
+            ManifestationLifecycle::Available => available.clone(),
+            ManifestationLifecycle::Failed => available
+                .fail(
+                    ManifestationFailure::AdapterUnavailable,
+                    SignId::from("sign/browser-show-serialization-failed"),
+                )
+                .unwrap(),
+            _ => available
+                .transition(
+                    lifecycle,
+                    SignId::from("sign/browser-show-serialization-retired"),
+                )
+                .unwrap(),
+        };
+        let serialized = serde_json::to_value(mask.view()).unwrap();
+        assert_eq!(serialized["show_state"], label);
+        assert_eq!(
+            serialized["show_failure"],
+            if lifecycle == ManifestationLifecycle::Failed {
+                serde_json::json!("AdapterUnavailable")
+            } else {
+                serde_json::Value::Null
+            }
+        );
+        assert_eq!(serialized["face_id"], face.identity.as_str());
+        assert_eq!(serialized["face_revision"], face.revision.to_string());
+        assert_eq!(
+            serialized["interactions_admitted"],
+            lifecycle == ManifestationLifecycle::Available
+        );
+        if matches!(
+            lifecycle,
+            ManifestationLifecycle::Closed
+                | ManifestationLifecycle::Replaced
+                | ManifestationLifecycle::Failed
+        ) {
+            // The former projection collapsed every retired Show to prepared.
+            assert_ne!(serialized["show_state"], "prepared");
+        }
+    }
+    for failure in [
+        ManifestationFailure::OutputRejected,
+        ManifestationFailure::DeliveryFailed,
+    ] {
+        mask.show = available
+            .fail(failure, SignId::from("sign/browser-show-other-failure"))
+            .unwrap();
+        let serialized = serde_json::to_value(mask.view()).unwrap();
+        assert_eq!(
+            serialized["show_failure"],
+            serde_json::to_value(failure).unwrap()
+        );
+    }
+}
