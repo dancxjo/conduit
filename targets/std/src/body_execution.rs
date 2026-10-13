@@ -16,6 +16,10 @@ use std::path::Path;
 
 mod parsec_instruction_observation;
 pub use parsec_instruction_observation::ParsecInputInstructionObservation;
+#[path = "body_execution/parsec_instruction_effect_observation.rs"]
+mod parsec_instruction_effect_observation;
+pub use parsec_instruction_effect_observation::ParsecInstructionEffectObservation;
+
 mod parsec_terminal;
 mod todo_checkpoint;
 pub(crate) use parsec_terminal::ParsecTerminalAttachment;

@@ -370,6 +370,42 @@ fn read_only_instruction_observation_exists_only_after_exact_scope_and_flush() {
         serialized["body_play"]["active_play_id"],
         play.active_play_id.as_str()
     );
+    let mut source =
+        crate::flow_activation::ParsecInputInstructionSourcePlan::prepare(host.advertisement())
+            .unwrap()
+            .evaluator()
+            .unwrap();
+    let binding = observation.binding().clone().encode().unwrap();
+    let candidate = source
+        .evaluate(
+            map.current_state().unwrap(),
+            &binding,
+            conduit_presentation::ParsecInputInstructionLook::Linear,
+            false,
+        )
+        .unwrap();
+    assert_eq!(
+        observation.effect().canonical_instruction(),
+        candidate.canonical_bytes()
+    );
+    assert_eq!(
+        observation.effect().instruction_producer_plan(),
+        candidate.producer_plan_id()
+    );
+    assert_eq!(
+        observation.effect().instruction_producer_plot(),
+        candidate.producer_plot()
+    );
+    assert_eq!(
+        serialized["effect"]["value_bytes"],
+        candidate.canonical_bytes().len()
+    );
+    assert_ne!(
+        serialized["effect"]["source_node"],
+        serialized["effect"]["effect_node"]
+    );
+    assert_eq!(serialized["effect"]["source_request"], 0);
+    assert_eq!(serialized["effect"]["effect_request"], 0);
     assert!(observation.prompt_text().contains("Input: Space to Begin."));
     keys.cancel();
     assert!(owner

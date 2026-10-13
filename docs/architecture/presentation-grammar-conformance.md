@@ -899,3 +899,11 @@ supplies no runtime input authority. Invented wording refuses even after its
 recorded digest is recomputed. Native, linear and aural Face-only reconstruction
 still preserves the action but loses its current binding. This remains a
 counterexample, not completed instruction encounters in those media.
+The private post-effect observation additionally retains the original canonical
+instruction frame, its checked computational producer Plan/Plot, and the exact
+Source/effect node/call/request and value occurrence. It is Serialize-only data,
+not a deserializable availability witness. A focused actual-owner test compares
+its bytes and producer identities against the checked source; the whole-Body
+journey retains four original frames (1542/1544 bytes) through the remap. Both
+checks and strict all-target Std Clippy pass. These observations supply reusable
+fixture evidence; their serialization cannot grant an input or another Mask.
