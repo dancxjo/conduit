@@ -73,12 +73,12 @@ pub fn checked_parsec_input_instruction() -> Result<CheckedSyntaxDocument, Refus
     .map_err(|_| Refusal::Source)
 }
 
-struct PreparedLaws {
+pub(super) struct PreparedLaws {
     schema: Vec<u8>,
     native: CheckedNativeType,
 }
 impl PreparedLaws {
-    fn new(native: CheckedNativeType) -> Result<Self, Refusal> {
+    pub(super) fn new(native: CheckedNativeType) -> Result<Self, Refusal> {
         // Whole-value invariants require their own prepared evaluator; do not silently skip them.
         if !native.invariants.is_empty() {
             return Err(Refusal::Shape);
@@ -91,7 +91,7 @@ impl PreparedLaws {
             native,
         })
     }
-    fn validate(&self, value: ValidatedCanonicalStructuredValue<'_>) -> Result<(), ()> {
+    pub(super) fn validate(&self, value: ValidatedCanonicalStructuredValue<'_>) -> Result<(), ()> {
         if value.type_bytes() != self.schema {
             return Err(());
         }

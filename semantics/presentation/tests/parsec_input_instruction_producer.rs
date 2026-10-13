@@ -390,3 +390,40 @@ fn forged_revision(canonical: &[u8], field_name: &str, revision: u64) -> Vec<u8>
         .canonical_bytes()
         .unwrap()
 }
+
+#[test]
+fn component_frame_inspection_preserves_original_binding_and_wording_without_allocation() {
+    let fixture = fixture();
+    let mut producer = prepare_checked_parsec_input_instruction(&fixture.custody()).unwrap();
+    let mut inspection =
+        conduit_presentation::PreparedParsecInstructionFrameInspection::prepare().unwrap();
+    for look in [
+        ParsecInputInstructionLook::Arcade,
+        ParsecInputInstructionLook::Linear,
+        ParsecInputInstructionLook::Spoken,
+    ] {
+        for withdrawal in [false, true] {
+            let state = state(false, false, 2);
+            let binding = binding(false, false, 2, true, "Space");
+            let candidate = producer
+                .evaluate(&state, &binding, look, withdrawal)
+                .unwrap();
+            COUNTING.with(|enabled| enabled.set(true));
+            ALLOCATIONS.with(|count| count.set(0));
+            let frame = inspection.inspect(candidate.canonical_bytes()).unwrap();
+            assert_eq!(frame.canonical_bytes(), candidate.canonical_bytes());
+            assert_eq!(frame.wording(), candidate.wording());
+            assert_eq!(frame.withdrawal(), withdrawal);
+            let original = conduit_core::validate_canonical_structured_value(&binding).unwrap();
+            assert_eq!(frame.binding().type_bytes(), original.type_bytes());
+            assert_eq!(frame.binding().value_node(), original.value_node());
+            assert_eq!(ALLOCATIONS.with(Cell::get), 0);
+            COUNTING.with(|enabled| enabled.set(false));
+        }
+    }
+    assert!(inspection.inspect(&[]).is_err());
+    assert!(inspection.inspect(&[0; 4097]).is_err());
+    assert!(inspection
+        .inspect(&binding(false, false, 2, true, "Space"))
+        .is_err());
+}
