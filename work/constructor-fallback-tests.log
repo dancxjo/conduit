@@ -1,0 +1,10 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.34s
+     Running tests/native_invariant_admission.rs (target/debug/deps/native_invariant_admission-edeb5c8b00d24301)
+
+running 2 tests
+test malformed_later_law_does_not_replace_the_original_first_failure ... ok
+test prepared_complete_native_bank_never_allocates_during_reuse ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.04s
+

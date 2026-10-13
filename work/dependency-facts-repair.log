@@ -1,0 +1,132 @@
+   Compiling syn v3.0.6
+   Compiling serde_derive v1.0.229
+   Compiling serde v1.0.229
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+   Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/kernel)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/time)
+   Compiling zeroize v1.9.0
+   Compiling subtle v2.6.1
+   Compiling thiserror-impl v2.0.20
+   Compiling thiserror v2.0.20
+   Compiling curve25519-dalek v4.1.3
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/data)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/human)
+   Compiling serde_json v1.0.151
+   Compiling signature v2.2.0
+   Compiling ed25519 v2.2.3
+   Compiling cobs v0.3.0
+   Compiling postcard v1.1.3
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/presentation)
+   Compiling ed25519-dalek v2.2.0
+   Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/body)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/language)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/audio)
+   Compiling libc v0.2.189
+   Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/web)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/net)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/alife)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/education)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/planner)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/purpose)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/process)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/robotics)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/mechanisms/protocols/midi)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/catalog)
+   Compiling toml_datetime v0.6.11
+   Compiling serde_spanned v0.6.9
+   Compiling toml_edit v0.22.27
+   Compiling toml v0.8.23
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/make/host)
+   Compiling getrandom v0.2.17
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/ai)
+   Compiling static-automata-macros v1.0.3
+   Compiling dirs-sys v0.5.0
+   Compiling static-automata v1.0.3
+   Compiling conduit-plan-lowering v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plan-lowering)
+   Compiling stable_deref_trait v1.2.1
+   Compiling heapless v0.8.0
+   Compiling langtag v1.1.0
+   Compiling dirs v6.0.0
+   Compiling rand_core v0.6.4
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/chat)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/tongues)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/wire)
+   Compiling serde-json-core v0.6.0
+   Compiling speaking v0.1.0 (https://github.com/dancxjo/tongues.git?rev=b5d7535b2ccd3730b4db878fb61b2e4e48ae89c9#b5d7535b)
+   Compiling cipher v0.4.4
+   Compiling universal-hash v0.5.1
+   Compiling poly1305 v0.8.0
+   Compiling chacha20 v0.9.1
+   Compiling rustls-pki-types v1.15.1
+   Compiling chacha20poly1305 v0.10.1
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/std/offers)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/tutorial)
+   Compiling log v0.4.34
+   Compiling ring v0.17.14
+   Compiling noise-rust-crypto v0.6.2
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/mechanisms/protocols/bluetooth)
+   Compiling x25519-dalek v2.0.1
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/patchbay/graph)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/plot-library)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/body-invitation)
+   Compiling patchbay-control v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/patchbay)
+   Compiling smallvec v1.16.1
+   Compiling parking_lot_core v0.9.12
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/patchbay/application)
+   Compiling conduit-protected-line v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/protected-line)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/proof/conformance/signal)
+   Compiling rand_chacha v0.3.1
+   Compiling rustls-webpki v0.103.15
+   Compiling getrandom v0.4.3
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/composite)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/browser/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/tour)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/mechanisms/implementations/synth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/speech)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/birth)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/home)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/semantics/finance)
+   Compiling getrandom v0.3.4
+   Compiling once_cell v1.21.4
+   Compiling rustls v0.23.45
+   Compiling ureq-proto v0.6.4
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/browser/mask-offer)
+   Compiling rand v0.10.2
+   Compiling rand v0.8.8
+   Compiling parking_lot v0.12.5
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/std/make)
+   Compiling webpki-roots v1.0.9
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/make/body)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/conduitos/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/rp2040/make)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/orange-pi/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/raspberry-pi/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/esp32/make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/avr/make)
+   Compiling num_cpus v1.17.0
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/plots/little-seismograph/fixture)
+   Compiling conduitos v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/conduitos)
+   Compiling tungstenite v0.30.0
+   Compiling ureq v3.4.2
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/browser/runtime)
+   Compiling instant-distance v0.6.1
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/proof/conformance/network-r1)
+   Compiling rustls-pemfile v2.2.0
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/proof/conformance/alife-distributed)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/conduitos/mask-offer)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/observatory)
+   Compiling conduit-rp2040-network-realization v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/rp2040/network-realization)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 15m 21s
+     Running tests/parser_window8_dependency_facts_dynamic.rs (target/debug/deps/parser_window8_dependency_facts_dynamic-efdcb85ee8582b31)
+
+running 1 test
+test reviewed_early_dependencies_refuse_provisional_subject_and_unclosed_root ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 48.50s
+

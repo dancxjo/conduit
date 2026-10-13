@@ -1,0 +1,13 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.25s
+     Running tests/structured_expression_equality.rs (target/debug/deps/structured_expression_equality-aef40a0c2dd787d3)
+
+running 5 tests
+test structured_quantity_equality_compares_meaning_across_units ... ok
+test nested_records_compare_each_exact_member ... ok
+test vectors_compare_actual_length_order_and_exact_f32_members ... ok
+test variants_compare_tags_and_ieee_bits_instead_of_float_arithmetic ... ok
+test structured_equality_reuses_complete_input_and_refuses_foreign_or_malformed_bytes ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.08s
+

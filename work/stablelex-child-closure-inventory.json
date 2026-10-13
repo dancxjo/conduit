@@ -1,0 +1,169 @@
+{
+  "header_sha256": "ee3a34933e5648bb012031d5097ea818c528e1bb5f2a6f2305382271eef816f1",
+  "root": "LanguageParserWindow8StableLexicalFact",
+  "unique_types": 32,
+  "unique_type_laws": 118,
+  "encoded_law_bytes": 52029813,
+  "types": [
+    {
+      "type": "LanguageLexicalCandidate",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalCompleteness",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalEntry",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalPos",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalProfile",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalTape",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageLexicalToken",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageParserBasis",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageParserRelation",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageParserWindow8Ancestry",
+      "laws": 10,
+      "law_encoded_bytes": 14930
+    },
+    {
+      "type": "LanguageParserWindow8CheckedHypothesis",
+      "laws": 17,
+      "law_encoded_bytes": 2642362
+    },
+    {
+      "type": "LanguageParserWindow8FactQuery",
+      "laws": 1,
+      "law_encoded_bytes": 392412
+    },
+    {
+      "type": "LanguageParserWindow8Lexical",
+      "laws": 10,
+      "law_encoded_bytes": 2038618
+    },
+    {
+      "type": "LanguageParserWindow8RawHypothesis",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageParserWindow8RawState",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageParserWindow8Snapshot",
+      "laws": 42,
+      "law_encoded_bytes": 32853766
+    },
+    {
+      "type": "LanguageParserWindow8StableLexicalFact",
+      "laws": 8,
+      "law_encoded_bytes": 9295083
+    },
+    {
+      "type": "LanguageParserWindow8StateProof",
+      "laws": 29,
+      "law_encoded_bytes": 4790808
+    },
+    {
+      "type": "LanguageText",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageTextFinality",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageTextPriorRevision",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageTextRevision",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LanguageUniversalDependencyRelation",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticDerivationProvenance",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticDerivationProvenanceDeterministicRule",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticDerivationProvenanceLibrary",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticDerivationProvenanceModel",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticOffsetBasis",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticTokenCategory",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticTokenFeature",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "LinguisticTokenIdentity",
+      "laws": 0,
+      "law_encoded_bytes": 0
+    },
+    {
+      "type": "TextSpan",
+      "laws": 1,
+      "law_encoded_bytes": 1834
+    }
+  ]
+}

@@ -1,0 +1,18 @@
+--- a/semantics/language/tests/common/parser_kernel.rs
++++ b/semantics/language/tests/common/parser_kernel.rs
+@@ -27,7 +27,14 @@
+ }
+ impl Blueprint {
+     pub fn prepare(source: String, entry_name: &str) -> Self {
+-        let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
++        // This pure helper requests no generic Back specializations. Package the
++        // exact Source directly; entry preparation below still checks every
++        // declaration, Native law, plot, and bounded package envelope.
++        let package = ProtocolSourcePackage {
++            schema: conduitos::protocol_source::PACKAGE_SCHEMA.into(),
++            source,
++            specializations: Vec::new(),
++        };
+         let entry =
+             PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
+                 .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));

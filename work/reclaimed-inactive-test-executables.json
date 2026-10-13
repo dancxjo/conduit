@@ -1,0 +1,4673 @@
+{
+  "class": "inactive regenerable old workspace test executables only",
+  "tracked_head": "136a09c1eade49271ac667d220efd10018c1b294",
+  "remote_contains": "origin/codex/4907-native-evaluation",
+  "files": [
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection_report-44c9655de08d66b9",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/names-11d7dd306076cadb",
+      "bytes": 2965616,
+      "blocks": 5784
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_language-f616c6e2ea0a24c2",
+      "bytes": 14997960,
+      "blocks": 29072
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_media_offer_ownership-36e22b33c4dd2391",
+      "bytes": 7800112,
+      "blocks": 15216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hello-d7c6cdaf757f7026",
+      "bytes": 1723096,
+      "blocks": 3360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/signal_garden_plots-879acc3f87546ef9",
+      "bytes": 14829352,
+      "blocks": 28712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/repository_taxonomy-af9c4f2eba1a9279",
+      "bytes": 3566616,
+      "blocks": 6920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_spawn_probe-66eedb5ba4db5952",
+      "bytes": 22959992,
+      "blocks": 44496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_birth_plot-0b80317c82173c8e",
+      "bytes": 20575088,
+      "blocks": 39816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_historical_payload-ba99c3109c3c438e",
+      "bytes": 3588152,
+      "blocks": 6984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_context_selection_vocabulary-22fd9426add4d44e",
+      "bytes": 2857248,
+      "blocks": 5568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/value_constraint_transport-3d6cfca6267cfe66",
+      "bytes": 2627368,
+      "blocks": 5120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_leaf_storage-96580db6c6807605",
+      "bytes": 2963536,
+      "blocks": 5768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_lab_live_server-0636230fbbd4293a",
+      "bytes": 7090064,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-0a0cfc7c1bf62a19",
+      "bytes": 1188592,
+      "blocks": 2328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/grounded_answer_plan-2312f3f0b2aee78c",
+      "bytes": 17931928,
+      "blocks": 34688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/fusion_line_cost-c1866b048f9e82e5",
+      "bytes": 22413096,
+      "blocks": 43384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/protected_session-55a4ce4e6ef60f32",
+      "bytes": 2328568,
+      "blocks": 4536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_data-5e93c3187ddab547",
+      "bytes": 3580632,
+      "blocks": 6976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_observer-1b5065082abe56e6",
+      "bytes": 1513592,
+      "blocks": 2952
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_kernel-dd8b24c7b44bd5b5",
+      "bytes": 15914512,
+      "blocks": 31080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/fragment_set_lowering-09fe4d210eca543d",
+      "bytes": 25195960,
+      "blocks": 48832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_recovery-b0704c3eeec8d06e",
+      "bytes": 20709040,
+      "blocks": 40096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lenia_partition-fcc6e0d87c90ab52",
+      "bytes": 2612328,
+      "blocks": 5096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/effect_proposal-d515e4a59f3f06da",
+      "bytes": 2743552,
+      "blocks": 5344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_sequence_vocabulary-6276cb33f90a3892",
+      "bytes": 2066184,
+      "blocks": 4032
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_body_workbench_proof-5b7ad74f83b405c6",
+      "bytes": 7090144,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/revision-8b1d2ebb04435dfb",
+      "bytes": 1379880,
+      "blocks": 2696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_wire-bd2e30011f5a270c",
+      "bytes": 2643688,
+      "blocks": 5152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/architecture_vocabulary-a126387f20eda06b",
+      "bytes": 1253432,
+      "blocks": 2456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_time_exchange-211ba3466c4b58f2",
+      "bytes": 1310000,
+      "blocks": 2560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/http_identity_classes-388518514ed3c4c8",
+      "bytes": 11979424,
+      "blocks": 23328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/initial_workset-0f1754adc24796d8",
+      "bytes": 32739248,
+      "blocks": 63384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_temporal_vocabulary-b5b6b53105cd1470",
+      "bytes": 2400544,
+      "blocks": 4680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pronunciation_selection-68ccf55150da9a5f",
+      "bytes": 16988168,
+      "blocks": 32984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_midi-fd6d2fde73316a6e",
+      "bytes": 1830592,
+      "blocks": 3576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pool_webchat_server-f60327dced72384d",
+      "bytes": 24640816,
+      "blocks": 47744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_host-6ed93598b85ce6ad",
+      "bytes": 2036112,
+      "blocks": 3976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_replay_policy-a5bbb1ba1bccc982",
+      "bytes": 2306088,
+      "blocks": 4496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_calendar_vocabulary-24732d0015ab4183",
+      "bytes": 2091864,
+      "blocks": 4080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_state-13b652166e6ef4c2",
+      "bytes": 20299392,
+      "blocks": 39296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/generative_interaction-681e5c9209c163de",
+      "bytes": 18737984,
+      "blocks": 36240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_session_vocabulary-681fc5fbb7089436",
+      "bytes": 2144840,
+      "blocks": 4184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_space-86d01d444ae67ac9",
+      "bytes": 1791944,
+      "blocks": 3496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_context-fbae9e67a135e54b",
+      "bytes": 4792640,
+      "blocks": 9336
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_conduitos_mask_offer-501e84d20180d4e0",
+      "bytes": 18259304,
+      "blocks": 35328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/desk_telegraph-6d6e482498ddef55",
+      "bytes": 50414520,
+      "blocks": 97544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/policy_composition-5c7839c67e98973a",
+      "bytes": 17599592,
+      "blocks": 34088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_continuation_dynamic-f2d3d6f71c98d107",
+      "bytes": 37315216,
+      "blocks": 72632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/dsp-c912d8095a0f7429",
+      "bytes": 2534040,
+      "blocks": 4936
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_control-ffe9b29c7f84090b",
+      "bytes": 1105632,
+      "blocks": 2160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/assigned_plan-23801c61084da8f5",
+      "bytes": 20601928,
+      "blocks": 39880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_invariant_admission-edeb5c8b00d24301",
+      "bytes": 9465144,
+      "blocks": 18304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/image_text-c445ebd71e4c4faa",
+      "bytes": 3414496,
+      "blocks": 6640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_interaction-0c0970d38aef9c5b",
+      "bytes": 18979208,
+      "blocks": 36704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/embodiment-9f871c4c0047f486",
+      "bytes": 2394744,
+      "blocks": 4680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/retry_eligibility-d2ceb3d48f8b9660",
+      "bytes": 3025488,
+      "blocks": 5904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_collections-d32af77265d342bb",
+      "bytes": 1079656,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/triple_signal_server-382f1dada1e35afa",
+      "bytes": 7090064,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/relay_service-a1a918d9de05dfa1",
+      "bytes": 1246024,
+      "blocks": 2440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_base_vocabulary-cebd8a108e429831",
+      "bytes": 2503800,
+      "blocks": 4896
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/button_indicator_plot-4ea1adcbb2758958",
+      "bytes": 50454176,
+      "blocks": 97640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_avr_make-4f7061e401bba46c",
+      "bytes": 1998200,
+      "blocks": 3904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_parameters-2396574f1c6c9275",
+      "bytes": 3860416,
+      "blocks": 7512
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_independent_native_receipt-934f0a9df599e1e3",
+      "bytes": 75792096,
+      "blocks": 148000
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/independent_pronunciation-4c02d80851e1342e",
+      "bytes": 1079704,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/manifestation_placement-2c464c39ff90a221",
+      "bytes": 18318624,
+      "blocks": 35432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/static_merge-69eb5730e5431c1f",
+      "bytes": 1118816,
+      "blocks": 2192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/isolated_http_base-95c3ecc166bebb56",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_runtime-a86964c47d186c3f",
+      "bytes": 87323808,
+      "blocks": 169536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/secret_knock_plot-cc55946ddd4d206a",
+      "bytes": 14883032,
+      "blocks": 28816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/orifina_presentation-ff98468794ad8f44",
+      "bytes": 3570416,
+      "blocks": 6936
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/presentation_offer_ownership-86e96b361535d3d8",
+      "bytes": 1144232,
+      "blocks": 2240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_source_canon-7a03a37f28a9d0ae",
+      "bytes": 2678928,
+      "blocks": 5216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/canonical_count-eb5d776eeea1e95f",
+      "bytes": 50347264,
+      "blocks": 97424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_template_vocabulary-dea1cb1b33086df0",
+      "bytes": 2055832,
+      "blocks": 4008
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/global_intent_realization-712fda91776d5832",
+      "bytes": 1079704,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_values-7be9d9bcd63c451a",
+      "bytes": 9241552,
+      "blocks": 17888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_model_signature_vocabulary-ee0ace30117951c2",
+      "bytes": 4514128,
+      "blocks": 8792
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/generic_fact_policy-da8e8c18bf7018ca",
+      "bytes": 17613296,
+      "blocks": 34120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/proof_namespace-88c5a7119fe1a547",
+      "bytes": 1268536,
+      "blocks": 2480
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/triple_source-3446d3de17d5f755",
+      "bytes": 24321992,
+      "blocks": 47128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-a0163d1c19ad0099",
+      "bytes": 1698440,
+      "blocks": 3320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rendezvous_cbor-ceeb00b60ae5a481",
+      "bytes": 1607200,
+      "blocks": 3136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/borrowed_projection-973341a2f4eb56e4",
+      "bytes": 1575936,
+      "blocks": 3072
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/stroke_capture_plot-617329414bfa0a2f",
+      "bytes": 10334200,
+      "blocks": 19992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/mapping_projection-d0a86f7aac981ea0",
+      "bytes": 4210816,
+      "blocks": 8200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/learned_lifecycle-c118a9b6b350208b",
+      "bytes": 3765544,
+      "blocks": 7328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/device_binary-924bc36ed02518e6",
+      "bytes": 12370088,
+      "blocks": 23920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/live_conversation-610506a5423dcf88",
+      "bytes": 19098584,
+      "blocks": 36984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ecmascript_types-f002464167c0951b",
+      "bytes": 9492720,
+      "blocks": 18360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_clock-edfea30ea19d64b8",
+      "bytes": 1292568,
+      "blocks": 2528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_available_partial_model-b444513a773b4d8e",
+      "bytes": 1079824,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pico_midi_fixture-cfbab86c4a288825",
+      "bytes": 1119832,
+      "blocks": 2192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/messaging_plots-82e9b0ff0a83373e",
+      "bytes": 22222432,
+      "blocks": 43088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/measurement_plot-f0c87dc123141b16",
+      "bytes": 12948816,
+      "blocks": 25040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/face-55827d7bacbcae51",
+      "bytes": 3544352,
+      "blocks": 6904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lexical_pronunciation-59b3bc1dd9306fcc",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vision_plots-4e20114ba116e2bb",
+      "bytes": 18195896,
+      "blocks": 35216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-68797f6a8113aa20",
+      "bytes": 1754800,
+      "blocks": 3432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/heterogeneous_capstone-bf8097e04584c123",
+      "bytes": 20626896,
+      "blocks": 39928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/identity_ownership-e344fd0a0408b971",
+      "bytes": 4196080,
+      "blocks": 8160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lenia_plots-214e9ae1527f2104",
+      "bytes": 17637264,
+      "blocks": 34128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_interpretation_refusals-9fc13b6c0d118369",
+      "bytes": 2559496,
+      "blocks": 4992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_interaction_flow-70a3dbd33e3b768a",
+      "bytes": 3789880,
+      "blocks": 7368
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/birth_identity-10f8520507a69eda",
+      "bytes": 2819664,
+      "blocks": 5496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pico_wifi_bootstrap-26cc2342506b1086",
+      "bytes": 24788776,
+      "blocks": 48032
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/intent_inventory-016aeba5721312e1",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/declared_context-951e9d421bf0b040",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/local_model_pool-c0ffb8bf13aac97d",
+      "bytes": 26815320,
+      "blocks": 51888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_committed_dependency-49be3cbec6f8d06a",
+      "bytes": 54985680,
+      "blocks": 107208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_process-832804670e4e2d93",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/route_candidates-64f50ee047fa271b",
+      "bytes": 19684920,
+      "blocks": 38104
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/biography_workset-3879f886fdfe7bc8",
+      "bytes": 3350840,
+      "blocks": 6496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/run_control-1c1b4c3bf3b90830",
+      "bytes": 50279136,
+      "blocks": 97296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/actual_stable_lexical_pronunciation-71d021e0f1ce7ecf",
+      "bytes": 1079792,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/snapshot-44ab95fb291342dc",
+      "bytes": 67770608,
+      "blocks": 131064
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_syntax_catalog-fae19b4f2a5a9e04",
+      "bytes": 12945488,
+      "blocks": 25096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_follow_up-fd0baf8b5f4b1a9c",
+      "bytes": 4100376,
+      "blocks": 7976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_command-3fab6425e9644ddd",
+      "bytes": 2349032,
+      "blocks": 4584
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_network_types-366630e33f1ce44a",
+      "bytes": 4172720,
+      "blocks": 8112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_http_contract_error-d7a00a5ead5b2ae8",
+      "bytes": 1962048,
+      "blocks": 3832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-21685a5af207df2e",
+      "bytes": 2080592,
+      "blocks": 4056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hosted_network-67aef39098f6c5a7",
+      "bytes": 10113232,
+      "blocks": 19728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/experience_plots-345d41867f222673",
+      "bytes": 17717776,
+      "blocks": 34288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/portable_navigation_plots-14b908f412a7a557",
+      "bytes": 18484128,
+      "blocks": 35776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_revision-34d82657d81dc2ff",
+      "bytes": 4152688,
+      "blocks": 8080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_time_refusals-2aa5f3b555829438",
+      "bytes": 2143512,
+      "blocks": 4192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/owned_state_continuity-b010d1081b1d1d41",
+      "bytes": 23564056,
+      "blocks": 45672
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_pcm_clip_profile-97e3ca743a9e2265",
+      "bytes": 3393632,
+      "blocks": 6600
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/recurrence_semantics-ccfb19fdf9a5964f",
+      "bytes": 16363648,
+      "blocks": 31648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reaction_diffusion_kernel-194deb1134f785db",
+      "bytes": 22883616,
+      "blocks": 44360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/json_boolean_summary-9c2488d820a83e0f",
+      "bytes": 1849824,
+      "blocks": 3616
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/revision-02a657a9bb5d9c0c",
+      "bytes": 4384840,
+      "blocks": 8536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/llm_semantic_contracts-c47f310699bbff34",
+      "bytes": 13434552,
+      "blocks": 25984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_fusion_strategy-79c870288c6be1cb",
+      "bytes": 2743336,
+      "blocks": 5344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/intent_sources-93abc88cd25663cc",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/planned_realizations-5dce0faf6cba5858",
+      "bytes": 19705992,
+      "blocks": 38160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/portable_capability-eef1e53406b15ca5",
+      "bytes": 20553488,
+      "blocks": 39784
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_input-9e5af747d79f1ed5",
+      "bytes": 1079568,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/webchat_server-202d1f63ed887c35",
+      "bytes": 7090008,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/delegated_reboot-690f054537e6408a",
+      "bytes": 2764160,
+      "blocks": 5376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_compute-f5e3204e13fd15f5",
+      "bytes": 2834984,
+      "blocks": 5528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-c28057076aced68c",
+      "bytes": 1159240,
+      "blocks": 2264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_beam-56713f8b6cb87c55",
+      "bytes": 12698640,
+      "blocks": 24560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/integer_widening-dcb8c55f90f5b30d",
+      "bytes": 12558432,
+      "blocks": 24288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_tabular-63cd4211f453ada7",
+      "bytes": 3737376,
+      "blocks": 7272
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_time-24cca86826a8e3eb",
+      "bytes": 2040624,
+      "blocks": 3984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/generalized_input_plots-81e5e375ca824fc2",
+      "bytes": 17934384,
+      "blocks": 34712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_graph-5b0291d4e0028559",
+      "bytes": 2723360,
+      "blocks": 5304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/independent_token_role-b8922de5ee04abb9",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_lifecycle_session-50c6676e4ae2c667",
+      "bytes": 16300536,
+      "blocks": 31664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_joint_model-cd9f32958e5ffb8f",
+      "bytes": 31859208,
+      "blocks": 61944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ordered_record_queue-5dd1c736228260d1",
+      "bytes": 12668160,
+      "blocks": 24488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/route_sealing-0192b535165166a6",
+      "bytes": 1969848,
+      "blocks": 3840
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_analysis-e32e98892f6ca785",
+      "bytes": 1079696,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_pool-99665e6db824e3d4",
+      "bytes": 18320896,
+      "blocks": 35416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/little_seismograph-6c6596449fe0e85f",
+      "bytes": 13008040,
+      "blocks": 25152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_catalog-26218092013b3d51",
+      "bytes": 12946328,
+      "blocks": 25096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_compute_host-93e409e4036ea7cb",
+      "bytes": 9135600,
+      "blocks": 17824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_synth-349680f8bc3bd8b3",
+      "bytes": 1079600,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vector_index_lifecycle-5c891a9a5ce0fa7a",
+      "bytes": 2490512,
+      "blocks": 4872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/admission-2a68a7b94c3d612f",
+      "bytes": 2655248,
+      "blocks": 5168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_image_text_record-c513465758063625",
+      "bytes": 3474360,
+      "blocks": 6760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_rhetorical_composition-65cb36859873a238",
+      "bytes": 4148680,
+      "blocks": 8064
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vocative_playback_proof-5d29bf573d19ff91",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_measurement_plot_point-0dc1f864112a80e7",
+      "bytes": 3436544,
+      "blocks": 6680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/local_model_offer-227470d8597abe4d",
+      "bytes": 3073744,
+      "blocks": 5984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/claims-544860b5c9a4eb9a",
+      "bytes": 1420104,
+      "blocks": 2776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_info_family-29d64c6e800825a8",
+      "bytes": 4093888,
+      "blocks": 7968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/input_semantics-17adc09603eb6852",
+      "bytes": 1829824,
+      "blocks": 3576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_compensation-f3050f5b0f7208fe",
+      "bytes": 12475472,
+      "blocks": 24120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_relation_result_profile-5cc83bef310612ab",
+      "bytes": 3985672,
+      "blocks": 7760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/tabular_plots-dd7a12cfedb7bfca",
+      "bytes": 22381200,
+      "blocks": 43400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/compute_resources-b7931877771ab092",
+      "bytes": 19128784,
+      "blocks": 37016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_session_runtime-0ec0ced8a6dfbec3",
+      "bytes": 2988840,
+      "blocks": 5824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_text-47ed8ba3cb6ae4ea",
+      "bytes": 13302320,
+      "blocks": 25728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_context-b3175e3db177bf5e",
+      "bytes": 3090688,
+      "blocks": 6024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_reference-24fb527235755f5f",
+      "bytes": 1750760,
+      "blocks": 3416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_pair_refinements-05ebdfafb5fc9ece",
+      "bytes": 12538232,
+      "blocks": 24248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/character_purpose-65eed6b1d4460994",
+      "bytes": 1598416,
+      "blocks": 3128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/http_hosted-62295ea24a7d4369",
+      "bytes": 51792336,
+      "blocks": 100232
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_body_make-4dc1f5eeb9c75315",
+      "bytes": 45690048,
+      "blocks": 88504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/voyager_explanation-d11734746f328b81",
+      "bytes": 3011656,
+      "blocks": 5888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/integer_categorical_step-a0b68d61fd920a5a",
+      "bytes": 1079696,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rhythm_plots-d5aebb8c1ecaaa62",
+      "bytes": 9859520,
+      "blocks": 19080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/session_resume-fc1fdac448d237be",
+      "bytes": 2317864,
+      "blocks": 4512
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_pete-0cee261b8cd51745",
+      "bytes": 30931960,
+      "blocks": 59944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_plan-72bd6f6ef3c7a053",
+      "bytes": 9901680,
+      "blocks": 19272
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_selector_operation-d3e916fe380ddcf5",
+      "bytes": 3850560,
+      "blocks": 7528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_back-beb4c769f398aad8",
+      "bytes": 23235472,
+      "blocks": 45000
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/framing-caec85d9b0ac1955",
+      "bytes": 1271008,
+      "blocks": 2488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit-d8335732bf975ed5",
+      "bytes": 54592232,
+      "blocks": 105664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/protected_line_browser_peer-7ebc0e9a18df0d70",
+      "bytes": 1219336,
+      "blocks": 2376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/scheduling_plots-bb53697c793ae98c",
+      "bytes": 17732880,
+      "blocks": 34320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_wheel_drop_observation-6c89a2f92fb014d6",
+      "bytes": 3802232,
+      "blocks": 7400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_kernel-71579739061ba845",
+      "bytes": 27592688,
+      "blocks": 53432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/delivery_terminal-7502817135b897f5",
+      "bytes": 1277080,
+      "blocks": 2496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection-50cd67f5b460bd2b",
+      "bytes": 3149440,
+      "blocks": 6128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/triple_plan-7151b4d6e89546b0",
+      "bytes": 19849576,
+      "blocks": 38432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit-24961801b0b3979f",
+      "bytes": 121458920,
+      "blocks": 235192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_web-98a682b5e98127af",
+      "bytes": 3730456,
+      "blocks": 7256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/universal_grammar-237f37fe0e2e60a9",
+      "bytes": 6457808,
+      "blocks": 12552
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_selectors-d9a44de9ea68e3e7",
+      "bytes": 12459552,
+      "blocks": 24096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/interpretation-6cb13ac97d2220cf",
+      "bytes": 4459216,
+      "blocks": 8672
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/mask_wardrobe-73ba3cbc4ac2cbe0",
+      "bytes": 2360632,
+      "blocks": 4608
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_signal_source-914b3a077d6708ee",
+      "bytes": 24445904,
+      "blocks": 47376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_store-2a3eeefecbbfa826",
+      "bytes": 2083064,
+      "blocks": 4064
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_tutorial_playback-e4c111299fd41f0a",
+      "bytes": 2913880,
+      "blocks": 5696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_assigned_plan-d1e219756ebf94a5",
+      "bytes": 1213112,
+      "blocks": 2376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/interactive_presentation-e4d0998720b56728",
+      "bytes": 3460976,
+      "blocks": 6744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_range_observation-9f63cdb6c25e9691",
+      "bytes": 3810856,
+      "blocks": 7416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pure_expression_types-b34d54482d4727ef",
+      "bytes": 4923928,
+      "blocks": 9560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/visual_experience-63320d32e01a815a",
+      "bytes": 2012480,
+      "blocks": 3928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/claims-fd569fe8dda8b346",
+      "bytes": 4337872,
+      "blocks": 8448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_odometry_observation-dc738cbcc0429ce8",
+      "bytes": 3822376,
+      "blocks": 7440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/llm_embodiment-028e558c10c92541",
+      "bytes": 8261464,
+      "blocks": 16120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_reservations-0eb65333d58708f3",
+      "bytes": 3431768,
+      "blocks": 6648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/state_continuity-8c32b8436d626228",
+      "bytes": 4798280,
+      "blocks": 9328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ros2_native_topic_proof-c2eca8068d41f4ec",
+      "bytes": 50567240,
+      "blocks": 97824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_temporal_context-b71274fd58cd8c46",
+      "bytes": 2906032,
+      "blocks": 5664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_orientation_observation-93e2191741ab6ad0",
+      "bytes": 3807952,
+      "blocks": 7408
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_results-6c61354f975d9f0a",
+      "bytes": 4542296,
+      "blocks": 8832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_speech-e0670c4444a25ee5",
+      "bytes": 50688288,
+      "blocks": 98096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pulse_observation-637feea61b5b230c",
+      "bytes": 1857984,
+      "blocks": 3632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_xtask_dispatch-6eabdfeb6d76c00c",
+      "bytes": 5020976,
+      "blocks": 9760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_face_scene-6b64af07835ea5b3",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/startup_chime-1c4a373e95d6c6f5",
+      "bytes": 2213592,
+      "blocks": 4320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/provider_dependency-44c0aa0c45f56ffd",
+      "bytes": 1117784,
+      "blocks": 2184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/image_text_codec-898b34fce780434c",
+      "bytes": 3440896,
+      "blocks": 6696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_stress-b4bb51bdf497fe8a",
+      "bytes": 1079576,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_diagnostics-7c97616a340b4d5e",
+      "bytes": 1543456,
+      "blocks": 3008
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_system_continuity-9b949d3843a2bee2",
+      "bytes": 1079704,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bounded_collect-beeb51acd3a1b2df",
+      "bytes": 1876056,
+      "blocks": 3656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_workbench_host_contract-4d1642c2143b73c3",
+      "bytes": 1079768,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/profile_phones-025faacc9dab6e52",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_pool_selection-140c02a4de05d272",
+      "bytes": 1224304,
+      "blocks": 2392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduitos-3265c330fafb4478",
+      "bytes": 87889848,
+      "blocks": 170704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/output_features-1ee556393ae44988",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reusable_count-72fb13e97d3b8f9e",
+      "bytes": 50331872,
+      "blocks": 97400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_protocol_plots-327797399c61dc48",
+      "bytes": 26017112,
+      "blocks": 50344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_std_host-edf51c140b0c58a5",
+      "bytes": 140277192,
+      "blocks": 272400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_learned_watch_proof-dd7c679c1e1d9109",
+      "bytes": 81905488,
+      "blocks": 158384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/canonical_host_leaves-b96a945a36b6611d",
+      "bytes": 17462440,
+      "blocks": 33776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_style-3f099b0f19e038a7",
+      "bytes": 1079568,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_hosted-46ee5d548cb2f446",
+      "bytes": 7090016,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sealed_state-5dd150d4c6cfd0b7",
+      "bytes": 4027080,
+      "blocks": 7808
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_observation-cf0aa0989bc7032b",
+      "bytes": 12404544,
+      "blocks": 23984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/isolated_base_security-810e3cfbf05003e6",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/installed_body_growth-0237023f7829dead",
+      "bytes": 6476896,
+      "blocks": 12568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_currency-106185aa991c271b",
+      "bytes": 3232768,
+      "blocks": 6296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_model_dimension_constraint-4231fedfc888165e",
+      "bytes": 2761344,
+      "blocks": 5384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lifecycle-cd4bf5b64995448f",
+      "bytes": 3572768,
+      "blocks": 6928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vision_experience_codec-53a9c3c742c72fa4",
+      "bytes": 6820760,
+      "blocks": 13272
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_interaction_vocabulary-c78931fe0af9f40a",
+      "bytes": 3670952,
+      "blocks": 7136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/cross_host-73f00c81cd21861e",
+      "bytes": 63845440,
+      "blocks": 123488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/inventory_definitions-fc6bfc42a19a944a",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_collections-e0a22da53cbf37d3",
+      "bytes": 1355720,
+      "blocks": 2648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback_allocation-38aa223369499c46",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_patchbay_workbench_conformance-103531cec9959de7",
+      "bytes": 19389024,
+      "blocks": 37544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hybrid_retrieval_plan-473cbd25578aa5ac",
+      "bytes": 17852480,
+      "blocks": 34536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_media_planning-37de42addcb85d3b",
+      "bytes": 2171120,
+      "blocks": 4240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hosted_model-dd975914ecacf738",
+      "bytes": 10489832,
+      "blocks": 20448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hold-af97c08d123c8e3a",
+      "bytes": 4001840,
+      "blocks": 7760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/observed_boot_binding-ab0fa3f3f217b148",
+      "bytes": 1918288,
+      "blocks": 3744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bluetooth_route-1fd6d12850411b53",
+      "bytes": 19389744,
+      "blocks": 37544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/quiescent_lifecycle-f32051edb9d3f891",
+      "bytes": 50322656,
+      "blocks": 97360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_retrieval_provenance_vocabulary-4b06412d4fcef5f1",
+      "bytes": 2581664,
+      "blocks": 5040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_purpose-61e9c23fb5f7f9f2",
+      "bytes": 1872856,
+      "blocks": 3664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/membership-ee76136e3f103f7c",
+      "bytes": 1659584,
+      "blocks": 3240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_structured_payload-92d8a306f88dc86e",
+      "bytes": 12480560,
+      "blocks": 24136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_generalized_input-f3c8883dfbb38a26",
+      "bytes": 3286872,
+      "blocks": 6392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/protection_domain_lifecycle-69835466785e1a6b",
+      "bytes": 5246256,
+      "blocks": 10248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/grounded_answer-cfa4398e2593f23e",
+      "bytes": 4420072,
+      "blocks": 8600
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_pool-51b58015c8965a98",
+      "bytes": 1220392,
+      "blocks": 2384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_expression_construction-54b19de253782792",
+      "bytes": 12530512,
+      "blocks": 24232
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/state_prepared_output-cfc5e6133b6f987e",
+      "bytes": 1889432,
+      "blocks": 3696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/memory_lantern_history_storage-f1ae1b7e5e2e08e6",
+      "bytes": 2759904,
+      "blocks": 5376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hard_requirements-676570aad71d11ec",
+      "bytes": 19177520,
+      "blocks": 37136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hybrid_retrieval_codec-46265584aef323f2",
+      "bytes": 4547760,
+      "blocks": 8848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_make-58176065ce5690e8",
+      "bytes": 13520024,
+      "blocks": 26304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/duration-f1718746e0c3b829",
+      "bytes": 1079544,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_signal_server-28c789c5abb28069",
+      "bytes": 7090112,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/xtask-f8011ae9b951709a",
+      "bytes": 120843232,
+      "blocks": 234248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pure_expression_types-e5daa7b2b2b49da7",
+      "bytes": 5018288,
+      "blocks": 9736
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/websocket_line_probe-01ae0ce55e2cc1df",
+      "bytes": 7090064,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/relay_candidate-1563f6185bd946e1",
+      "bytes": 1184616,
+      "blocks": 2320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit-6ac490e0f4ebb8d2",
+      "bytes": 123901048,
+      "blocks": 239960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ros2_base_security-d1bd1ac0c05025a6",
+      "bytes": 8607720,
+      "blocks": 16808
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/record_delivery-abeb1f65382ae1b2",
+      "bytes": 12661800,
+      "blocks": 24488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/homeostasis-ac547c0a03221939",
+      "bytes": 6255256,
+      "blocks": 12208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/info-7e5c82d714cb5ad6",
+      "bytes": 1371984,
+      "blocks": 2680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/finance_plots-6cd14aa38682620b",
+      "bytes": 22355792,
+      "blocks": 43336
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_vocative_protected_replay-69667c4adf882fd7",
+      "bytes": 1079768,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_live_conversation_requirements-b7bb5e863cbeacdf",
+      "bytes": 5348112,
+      "blocks": 10440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_generated_action_affordance-04127130c8cdc452",
+      "bytes": 4023008,
+      "blocks": 7832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/homeostasis_trace-98b002303f9e5e6c",
+      "bytes": 7434096,
+      "blocks": 14480
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/session_checkpoint_wire-bd217631b9fe6cb7",
+      "bytes": 2319200,
+      "blocks": 4520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_structured_payload-7ff06a7c7b83224a",
+      "bytes": 12386368,
+      "blocks": 23952
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_tone_terminal-6a5dee070be14160",
+      "bytes": 2578968,
+      "blocks": 5024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/context_selection_plan-5d084758c89ac658",
+      "bytes": 17862824,
+      "blocks": 34560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_local_model_vocabulary-3a58dcd8cd4d807b",
+      "bytes": 2627624,
+      "blocks": 5128
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_variants-cbb811de342c4d66",
+      "bytes": 2615008,
+      "blocks": 5104
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reaction_diffusion_region-0ce48f420f78e231",
+      "bytes": 2694752,
+      "blocks": 5248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_llm_contract_types-3430c8afc09312bf",
+      "bytes": 2788872,
+      "blocks": 5440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/visual_impression-2c7491f4bfc8ff59",
+      "bytes": 2240344,
+      "blocks": 4368
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/neighbor_match-177f9b86f2229028",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/protected_line_browser_peer-f82c0b0b2809f13c",
+      "bytes": 1079720,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/github_messaging_plan-702a42ca471bd969",
+      "bytes": 21956896,
+      "blocks": 42568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_record-8ed70e1338d0a6c6",
+      "bytes": 12920816,
+      "blocks": 24984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sampled_signal-e83a13cd0f5fa4ac",
+      "bytes": 2913152,
+      "blocks": 5672
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_state_back-031375c7015db2d1",
+      "bytes": 22018168,
+      "blocks": 42688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rag_r5_source_state-0b22de15778da32a",
+      "bytes": 4190952,
+      "blocks": 8152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_publication-50d683071e3cf627",
+      "bytes": 8583256,
+      "blocks": 16760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sealed_state-4ab984cd14c7948d",
+      "bytes": 2951392,
+      "blocks": 5720
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/when_filter-36af51607b637776",
+      "bytes": 12217592,
+      "blocks": 23616
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/mask_journey-2e3bd0a967996073",
+      "bytes": 2249568,
+      "blocks": 4400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/little_life-f082779ce51fdb24",
+      "bytes": 1571040,
+      "blocks": 3064
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rag_r6_questions-ff889db5366229ff",
+      "bytes": 5220856,
+      "blocks": 10152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_context-aed4cee8e93ef455",
+      "bytes": 1079584,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_contact_observation-f28f208cccaa6bf9",
+      "bytes": 3802056,
+      "blocks": 7400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/domain_ownership-129a289ede0a2c65",
+      "bytes": 1221040,
+      "blocks": 2392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/triple_signal_server-f4025f58688762a3",
+      "bytes": 25954272,
+      "blocks": 50288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_toggle_server-4fe9a0a95b3c9a07",
+      "bytes": 25278360,
+      "blocks": 48976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_chord_info-7ddd890aa2ee786f",
+      "bytes": 2097480,
+      "blocks": 4096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_transport-35f6b20ee80926a7",
+      "bytes": 1734248,
+      "blocks": 3384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/instrument_stress-a29b70cd90a5410d",
+      "bytes": 2511696,
+      "blocks": 4896
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/timing-8ba575a69239079a",
+      "bytes": 1079528,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_protection_preparation-6b028c0daabdecb7",
+      "bytes": 1079744,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic-53320ee5d6d39254",
+      "bytes": 1079544,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/realization_offers-07be7731a55b4bda",
+      "bytes": 22612088,
+      "blocks": 43832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native-ff3b3be93450ff58",
+      "bytes": 3442032,
+      "blocks": 6696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_orange_pi-8a8883b87ef11801",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_lexical-fc12646c29b2d5e5",
+      "bytes": 25122624,
+      "blocks": 49024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_byte_observation-d420480835d0a8a4",
+      "bytes": 12387800,
+      "blocks": 23952
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/house_loss_continuity-1fb27a5a94418831",
+      "bytes": 50776424,
+      "blocks": 98224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_plot-7749d849dd40434b",
+      "bytes": 17932472,
+      "blocks": 34992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/occurrence_context-e4a9e1e2d0c6b30f",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/training-07144edb6bf67846",
+      "bytes": 5637704,
+      "blocks": 10960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ordinary_build-292be5de2120fe09",
+      "bytes": 3574904,
+      "blocks": 6944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sound_info-af7d6fdb9402844f",
+      "bytes": 2677064,
+      "blocks": 5216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/current_sample_plan-dfa69780d497d3e2",
+      "bytes": 18810008,
+      "blocks": 36424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_retrieval_family-63e3bcb99a71b88b",
+      "bytes": 4691320,
+      "blocks": 9120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_audio_frame_contracts-36668b6eda1a5f9a",
+      "bytes": 3523080,
+      "blocks": 6856
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_composite-8f09df09dc3a1aa8",
+      "bytes": 7557720,
+      "blocks": 14680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/measurement_window-ffb8243c03f6490f",
+      "bytes": 12910240,
+      "blocks": 24968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/geometry_ownership-5e2d8e778612a354",
+      "bytes": 3793832,
+      "blocks": 7384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_ssd1306-8d31dddece9fa03c",
+      "bytes": 1119376,
+      "blocks": 2192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8-bd8d35e28c2580a0",
+      "bytes": 22931376,
+      "blocks": 44752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_semantic_catalog-41c92c9668232f22",
+      "bytes": 22343576,
+      "blocks": 43288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/continuity-5af85dd15c514ff1",
+      "bytes": 21358064,
+      "blocks": 41344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/timing_profile-59e9c9d95406c66c",
+      "bytes": 21510384,
+      "blocks": 41632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/external_websocket-942e80582fb644e4",
+      "bytes": 12742168,
+      "blocks": 24632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_batch_lifecycle-493fdfc7b3bd24ad",
+      "bytes": 1593960,
+      "blocks": 3112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_lifecycle-9639b5f5703cde21",
+      "bytes": 12615712,
+      "blocks": 24400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/learned_vocative_playback-f2f58b1423888551",
+      "bytes": 1079704,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/data_locality-6a10804b89a396b0",
+      "bytes": 21088816,
+      "blocks": 40824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_application_view_vocabulary-4c997f9825ea9377",
+      "bytes": 2517208,
+      "blocks": 4912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/probability-e6d7d4a20c02f2d5",
+      "bytes": 5366016,
+      "blocks": 10432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/intent_phoneme_inventory-9e7f7e145e06198f",
+      "bytes": 1079696,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/control_loop-ba1b38c5b1ab3f46",
+      "bytes": 2946208,
+      "blocks": 5720
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/flow_select-254343198b864078",
+      "bytes": 17277904,
+      "blocks": 33416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_graph-28005f5327ff38ca",
+      "bytes": 25306728,
+      "blocks": 48968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_keymap_output-27304804299eaeea",
+      "bytes": 2275880,
+      "blocks": 4440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_rp2040_network_realization-7aa5b5f662314bfb",
+      "bytes": 2338688,
+      "blocks": 4544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/visual_observation-66d16bad2553934a",
+      "bytes": 1871224,
+      "blocks": 3656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reboot_denial-30d812831a948a43",
+      "bytes": 2366688,
+      "blocks": 4616
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_model_result_vocabulary-f90f321b40d5cc09",
+      "bytes": 2637328,
+      "blocks": 5144
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_relay-24c9203502b5eec1",
+      "bytes": 17125600,
+      "blocks": 33256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/relation-98c9384e4e733383",
+      "bytes": 6006656,
+      "blocks": 11672
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_ai-c2a4acd7d6c73327",
+      "bytes": 22383800,
+      "blocks": 43352
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/presence-db7f912be81060c6",
+      "bytes": 2411512,
+      "blocks": 4704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_facts_dynamic-b49fe4cf6531e84f",
+      "bytes": 21221520,
+      "blocks": 41264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pattern_comparison_codec-cc2dd517c1b69007",
+      "bytes": 5393136,
+      "blocks": 10504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_purpose-d4afa803ac0ee9f6",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/boundary_intent-86cb00f925bd03b9",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_patchbay_workbench-666e104751ac7227",
+      "bytes": 8997488,
+      "blocks": 17568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_mpu6050-f18b6666552c9046",
+      "bytes": 1167424,
+      "blocks": 2288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/application_view-5f9901f5b8572222",
+      "bytes": 2622008,
+      "blocks": 5120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/face-08e768f701e10398",
+      "bytes": 5097856,
+      "blocks": 9888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/line_admission-c8c387ebe6b3bb86",
+      "bytes": 1485664,
+      "blocks": 2896
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_pair_expression-8d3615f47b379696",
+      "bytes": 12554808,
+      "blocks": 24280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/device_frames-e08582e30ca71493",
+      "bytes": 12411424,
+      "blocks": 24000
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_vocative_prefix-c41fcb2a430bc30a",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_locality-4d4940b40229547c",
+      "bytes": 22480856,
+      "blocks": 43520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_body_camera_realization_capstone-e513c5428f4584d0",
+      "bytes": 35742504,
+      "blocks": 69176
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pattern_comparison_operation-2c86e1834ceeb930",
+      "bytes": 3872256,
+      "blocks": 7568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tutorial_plot-f383e329ffe5c647",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_profiles-fc444f7f3079ca5a",
+      "bytes": 12203576,
+      "blocks": 23592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/step_atomic_discard-018ad271572ca28e",
+      "bytes": 2303152,
+      "blocks": 4496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/deadline_kernel-75c1ac1f5d5f8e72",
+      "bytes": 9160232,
+      "blocks": 17888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_admission_probe-aa6a0253318e5b16",
+      "bytes": 9250552,
+      "blocks": 18056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_cord-11d692da6cddf017",
+      "bytes": 1487128,
+      "blocks": 2904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection_inspection-01621c9aad057f3c",
+      "bytes": 15580880,
+      "blocks": 30160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/host_fences_capstone-471b900bf677a345",
+      "bytes": 27064160,
+      "blocks": 52440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_observations-02d97a8eb61d4064",
+      "bytes": 17558168,
+      "blocks": 34016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/plan_preparation-4035f44cef769161",
+      "bytes": 3225824,
+      "blocks": 6248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_inspection-13224bc89f91b521",
+      "bytes": 1858608,
+      "blocks": 3616
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_body_invitation_plot-3339156a1c9613dc",
+      "bytes": 1079728,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_time_multi_host-25f1b9cb2920f6dd",
+      "bytes": 1412424,
+      "blocks": 2760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/context_selection-dc6893bb35acbc78",
+      "bytes": 4541536,
+      "blocks": 8832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_frame-d663a07bf51765eb",
+      "bytes": 17151352,
+      "blocks": 33184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/session_wire_corpus-9622ec1fe51fbe13",
+      "bytes": 2041704,
+      "blocks": 3984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/experience_temporal-73beb6016d132439",
+      "bytes": 3207320,
+      "blocks": 6248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/continuous_execution-4354d9745667c9f5",
+      "bytes": 1387504,
+      "blocks": 2712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_demo-bf183cd7d9ef31a5",
+      "bytes": 1079664,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/json_collection-40933b01fbc702d1",
+      "bytes": 1920896,
+      "blocks": 3744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_operation-006734f8e5436388",
+      "bytes": 2570784,
+      "blocks": 5008
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_analysis-2fd2d63c728c0f57",
+      "bytes": 18549608,
+      "blocks": 35912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_rag_vocabulary-72e110ba054d04b7",
+      "bytes": 2546832,
+      "blocks": 4968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_ownership-16e503c8d11dbcd7",
+      "bytes": 3891712,
+      "blocks": 7576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_core-c85d7d16d359bdec",
+      "bytes": 9963720,
+      "blocks": 19456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/named_record_expression-a2faaa781d2bd347",
+      "bytes": 12484744,
+      "blocks": 24152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_lexical_ledger_dynamic-e9ffe6923efb0c10",
+      "bytes": 24921208,
+      "blocks": 48416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_values-14e97604f48d4b10",
+      "bytes": 9672648,
+      "blocks": 18720
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pronunciation-3b628565f1b59e49",
+      "bytes": 3176336,
+      "blocks": 6200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues-ea5fd4f1e66ade01",
+      "bytes": 24842032,
+      "blocks": 48136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/application_network_plots-4e057deee713cf05",
+      "bytes": 16619456,
+      "blocks": 32144
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/canonical_text_pipeline-1c413f0cd62849c1",
+      "bytes": 50592224,
+      "blocks": 97880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_timed_pattern_vocabulary-c3ba645065b72d88",
+      "bytes": 2316144,
+      "blocks": 4520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lowering_boundary-21abb03b6b4e489b",
+      "bytes": 1151024,
+      "blocks": 2256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_face_utterance_provenance-9527ab9398f12183",
+      "bytes": 2828576,
+      "blocks": 5512
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_musical_control_event-b2d10fcce979301f",
+      "bytes": 2607496,
+      "blocks": 5080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_spawn_probe-6378477c25cf0ada",
+      "bytes": 7090056,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_token_role-b0bb7b3c38178036",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_vocabulary-0117cefcb559c01a",
+      "bytes": 2742304,
+      "blocks": 5352
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback_tick-74db76c2f40500f6",
+      "bytes": 1806008,
+      "blocks": 3520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_demo-07310b4d113d0dca",
+      "bytes": 20432544,
+      "blocks": 39544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/scoped_degradation-0b17eb3bdad85ffa",
+      "bytes": 3488264,
+      "blocks": 6800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_transition-12fe99e2e2c2ad65",
+      "bytes": 13792256,
+      "blocks": 26696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/workset-c79ded3428e542ec",
+      "bytes": 2500120,
+      "blocks": 4872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/context_match-18f85434ad207378",
+      "bytes": 1079600,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_search-8a8c9d4a921459fa",
+      "bytes": 45016928,
+      "blocks": 87888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/experience_sources-d992fb4ab56cfdab",
+      "bytes": 3399840,
+      "blocks": 6616
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_time-7522f087d3ada55c",
+      "bytes": 2544584,
+      "blocks": 4960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_toggle_server-93479cb91716ecd7",
+      "bytes": 7090112,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal-8e8ec49bfe63e1ec",
+      "bytes": 1292512,
+      "blocks": 2520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_static_assets-6347b7af42f4d54f",
+      "bytes": 61360568,
+      "blocks": 118688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/job_plots-aca549d02f0d2980",
+      "bytes": 17444280,
+      "blocks": 33752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_body_lifecycle_conformance-f055b97bfe22717d",
+      "bytes": 1079784,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/quantity-9700eb1141c5d133",
+      "bytes": 1361920,
+      "blocks": 2664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_mouse_order-eba739cd05bb77ff",
+      "bytes": 17133512,
+      "blocks": 33200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/feature_match-bbf5eefba9c91ad7",
+      "bytes": 1079600,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_field_values-4a7fcd1a74d0e32b",
+      "bytes": 3769192,
+      "blocks": 7336
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/measurement_summary-e4c25c583e84e81d",
+      "bytes": 12880184,
+      "blocks": 24904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/linguistics_plots-87e6820f242863d9",
+      "bytes": 25054672,
+      "blocks": 48608
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_compatible_metrics-3cc7b8b3d419f7e5",
+      "bytes": 2894712,
+      "blocks": 5648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_artifact-fb6b932e29b9d23b",
+      "bytes": 4469280,
+      "blocks": 8696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/mask_topology-2a7450b91e0885aa",
+      "bytes": 17901248,
+      "blocks": 34632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/package_contract-177f4dd738a1ba5f",
+      "bytes": 2500560,
+      "blocks": 4872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/delivery_fanout-ee60c4420d03d3ba",
+      "bytes": 1284888,
+      "blocks": 2512
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_text_types-f501809936b03c05",
+      "bytes": 3421080,
+      "blocks": 6656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_session-33f9c7ad881f42b5",
+      "bytes": 65871024,
+      "blocks": 128184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_education-ea2431d186ac0ddd",
+      "bytes": 3867184,
+      "blocks": 7528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reminder_plots-1cfda5dba80d74f0",
+      "bytes": 17394760,
+      "blocks": 33656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_conduitos_make-39e7fe5ac90864ad",
+      "bytes": 1689024,
+      "blocks": 3304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_linear_framebuffer_make-694359f583b831f7",
+      "bytes": 1079760,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_mouse_lifecycle-c450d9794d6b5332",
+      "bytes": 25497752,
+      "blocks": 49336
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/retention_gap_codec-78565c703c87cf52",
+      "bytes": 1816976,
+      "blocks": 3552
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_allocation-dae4649ca6d32a93",
+      "bytes": 8604152,
+      "blocks": 16800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/graph_admission-e352e89caafbbdde",
+      "bytes": 12700448,
+      "blocks": 24560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/fixed_integer-a2a15b0ad6fbe9e2",
+      "bytes": 1294808,
+      "blocks": 2536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/confined_gear_security-594e35173796c88e",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_lab_split_sessions-b6b7a17f6a783df1",
+      "bytes": 24871152,
+      "blocks": 48200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_invariant_admission-02391283df65ec0d",
+      "bytes": 9463352,
+      "blocks": 18312
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/addressed_utterance-e2909414a3e62f2b",
+      "bytes": 13180848,
+      "blocks": 25480
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_generation-90453155329db259",
+      "bytes": 20331816,
+      "blocks": 39352
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conformance-9ff5177eaf91640e",
+      "bytes": 2573864,
+      "blocks": 5016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lexical-c57c9c0ec257d0aa",
+      "bytes": 13554168,
+      "blocks": 26280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/immutable_expression-12e78cfcf22a51e2",
+      "bytes": 12494560,
+      "blocks": 24160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_learned-e03b905e42af9132",
+      "bytes": 32669224,
+      "blocks": 63312
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/presentation_offer_ownership-12ef124d65ae352d",
+      "bytes": 1143904,
+      "blocks": 2240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection_report-31d1d13088d5cb7a",
+      "bytes": 4359032,
+      "blocks": 8488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/research_capstone-4a398e2359adc2c6",
+      "bytes": 18569504,
+      "blocks": 35968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_webrtc_rendezvous_probe-2a2688a1d0cd85cf",
+      "bytes": 7090160,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/installed_screen_free_birth-59f34571a0bb2e8f",
+      "bytes": 1927792,
+      "blocks": 3760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-5173e2a1233c88a5",
+      "bytes": 1129096,
+      "blocks": 2208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/application_boundary-4e9b5b04f700778b",
+      "bytes": 1118720,
+      "blocks": 2192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_theme_color-9749a20c49e0fc0b",
+      "bytes": 2526688,
+      "blocks": 4928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_dependency_facts_dynamic-0773e3352c9e726a",
+      "bytes": 36571784,
+      "blocks": 71224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prosody-ce984fa0c0838c55",
+      "bytes": 15754736,
+      "blocks": 30576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_quote_transactions-ce8657fb81526f2d",
+      "bytes": 2180312,
+      "blocks": 4248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_live_conversation-8b06274b1d610b06",
+      "bytes": 4398848,
+      "blocks": 8560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_vector_vocabulary-680bad9301a3430a",
+      "bytes": 2894416,
+      "blocks": 5648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_portable_vocabulary-c4b572c43c21813b",
+      "bytes": 2498616,
+      "blocks": 4888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/scheduled_reminder-af74f6f9bce963c0",
+      "bytes": 10098400,
+      "blocks": 19696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_learned_lifecycle_vocabulary-9449d88d738f24e0",
+      "bytes": 3855912,
+      "blocks": 7504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_patchbay_workbench-cda06daad3428855",
+      "bytes": 81376784,
+      "blocks": 157360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/canonical_clock-3387d4292cb71b1e",
+      "bytes": 50310304,
+      "blocks": 97360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/diverse_structured_plots-776ab4a61de6ee3c",
+      "bytes": 17969376,
+      "blocks": 34776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_value_refusals-8230cad9ccbcf675",
+      "bytes": 2728984,
+      "blocks": 5320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_body_camera_realization_capstone-30c4484b232d1306",
+      "bytes": 7090232,
+      "blocks": 13856
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/kind_effects-31f69953698da395",
+      "bytes": 1653640,
+      "blocks": 3224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/time_capstone-f09e1b6bc74de6f8",
+      "bytes": 11710272,
+      "blocks": 22808
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_session_custody-cba3623456ebcdf6",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/control-7449b62135bd9fe0",
+      "bytes": 1079536,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/dynamics_analysis-294b6e809909a788",
+      "bytes": 19078784,
+      "blocks": 36944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection-9eefd0ac06bf989a",
+      "bytes": 1446360,
+      "blocks": 2832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_instrument-1d7e8eb83ba63cf9",
+      "bytes": 2425312,
+      "blocks": 4736
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/state_serialization-0605d75b1c25ca2c",
+      "bytes": 1974184,
+      "blocks": 3848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_chat-d015adfa001ac112",
+      "bytes": 16361712,
+      "blocks": 31680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/family_contracts-b04830c97659424b",
+      "bytes": 12817832,
+      "blocks": 24872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_independent_protection-063882f176bab9f6",
+      "bytes": 1079744,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/material_references-d047eb4d0c7bd5cf",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/dynamics-7aa5175e77044e3a",
+      "bytes": 4413168,
+      "blocks": 8584
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/global_rule_selection-6580faf364daff82",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/startup_cue-e613468740b8b0a0",
+      "bytes": 1491816,
+      "blocks": 2912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/keyboard_source-868dd1ef0f9012e3",
+      "bytes": 2502424,
+      "blocks": 4880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_control-fe21cf73478e6291",
+      "bytes": 12842184,
+      "blocks": 24840
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/voice_allocation-0470cb459d4ab411",
+      "bytes": 2059024,
+      "blocks": 4024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pool_webchat_server-048e1cbf3cfd7c87",
+      "bytes": 7090056,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_profiles-09ed72221760d4ca",
+      "bytes": 12633096,
+      "blocks": 24432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_text_refusals-b6fd72aef9f302a7",
+      "bytes": 2218912,
+      "blocks": 4320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_typography-40c30779c601f4b5",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_button_set_observation-a7be984c74e09f1f",
+      "bytes": 2665432,
+      "blocks": 5200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/two_std_line-de1836cfcd194051",
+      "bytes": 1176824,
+      "blocks": 2304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/regular_inflection-451c62c530a6b98c",
+      "bytes": 3207584,
+      "blocks": 6264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_planner-ce53d7036eb277ff",
+      "bytes": 23679824,
+      "blocks": 45872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/external_mapping-d26ec0e8d2c10451",
+      "bytes": 3985104,
+      "blocks": 7760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/emergency_control-f412ce501b725f88",
+      "bytes": 10934344,
+      "blocks": 21288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_stable_dependency_admission-935da5d28fb41942",
+      "bytes": 48952872,
+      "blocks": 95416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rhythm_composition-182927f9c4b7703e",
+      "bytes": 12940512,
+      "blocks": 25024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/infrared_framing-1455379c898c2fd5",
+      "bytes": 1766016,
+      "blocks": 3456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduitos-da0207e72d534afa",
+      "bytes": 451528,
+      "blocks": 888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/source_extraction-aff51648923e474e",
+      "bytes": 13574576,
+      "blocks": 26256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/named_record_expression-77aafd61154eac87",
+      "bytes": 12585840,
+      "blocks": 24336
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_pool_chat-b655cb1bf2c7b22f",
+      "bytes": 13638456,
+      "blocks": 26392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_expression_construction-a88a9e3f95725a9c",
+      "bytes": 12631936,
+      "blocks": 24424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_neighbors-f48add2315921231",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_three_peer_input_server-84a44a1d06ba9ae7",
+      "bytes": 24456448,
+      "blocks": 47384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_endpoint_read-c9bdd8253623aeb0",
+      "bytes": 13498304,
+      "blocks": 26176
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/house_context-092eead05e547b3a",
+      "bytes": 3958960,
+      "blocks": 7704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_button_planning-8cc91e8b28a7a221",
+      "bytes": 24571080,
+      "blocks": 47624
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_chat-a4f49dbb2bfe0347",
+      "bytes": 15778912,
+      "blocks": 30552
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/character_purpose_continuity-c0659aa6b0eae60c",
+      "bytes": 3862776,
+      "blocks": 7496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_field_bitmap_refusal-8243926715d93709",
+      "bytes": 2494808,
+      "blocks": 4872
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/time_sample_plan-dbd6ca03973159cf",
+      "bytes": 18748016,
+      "blocks": 36312
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pressure_policy-ce5ce6d50bd281d1",
+      "bytes": 19343696,
+      "blocks": 37464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/measurement_processing_reuse-822377b66711e729",
+      "bytes": 13061936,
+      "blocks": 25256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/stable_vocative_continuation-18d94da66fafc14b",
+      "bytes": 1079728,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_coordination-68f751774e696a6b",
+      "bytes": 23470136,
+      "blocks": 45488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback-98bed98c1f415f15",
+      "bytes": 1079544,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_garden_refusal-37836b592508dcea",
+      "bytes": 2501680,
+      "blocks": 4880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_catalog-4f42cef8063e24d1",
+      "bytes": 7100304,
+      "blocks": 13816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_key_modifiers-1710ed0949f4ea82",
+      "bytes": 2112440,
+      "blocks": 4120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_operation-47fa312f419b9c97",
+      "bytes": 2677448,
+      "blocks": 5208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/candidate-aa66a3cbebbe1d96",
+      "bytes": 2575136,
+      "blocks": 5000
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/provenance_disclosure-b47d41c2541b86d6",
+      "bytes": 2556912,
+      "blocks": 4976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/wire_corpus_vectors-943f3a3f45c6d012",
+      "bytes": 1775720,
+      "blocks": 3472
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/v1_history-a7992d9d39a82bec",
+      "bytes": 1483736,
+      "blocks": 2904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_schedule_policies-f068cb567802e7ef",
+      "bytes": 2059176,
+      "blocks": 4016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/websocket_line_probe-2c40a5e1b20c2cf7",
+      "bytes": 9654920,
+      "blocks": 18824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/indicator_resource-55d9eb7a3d2ee38e",
+      "bytes": 50424760,
+      "blocks": 97592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/template_storage_operation-e940a1cbf6af153e",
+      "bytes": 3858136,
+      "blocks": 7536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_execution_refusals-0bf618209b230384",
+      "bytes": 2584544,
+      "blocks": 5040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/profile_bounds-859f8b914f3be8b4",
+      "bytes": 1256848,
+      "blocks": 2456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/terminology_safety-f796740ea4d776fc",
+      "bytes": 1253688,
+      "blocks": 2456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_static_assets-ff1731d1e375f0bb",
+      "bytes": 7090080,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lenia_region_wire-f2937bf013104c72",
+      "bytes": 2321896,
+      "blocks": 4536
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_acceleration_observation-764785183a09f765",
+      "bytes": 3821272,
+      "blocks": 7432
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_source-c3cff98687ae6e23",
+      "bytes": 12919400,
+      "blocks": 24984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_training_vocabulary-ee280f6292c03387",
+      "bytes": 4255928,
+      "blocks": 8288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/quantity_structured-25d5450730f4b4a6",
+      "bytes": 1640400,
+      "blocks": 3200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reaction_diffusion_region_id-27df59c63141645f",
+      "bytes": 2613232,
+      "blocks": 5096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/source_extraction_plan-7315e90ea99e083c",
+      "bytes": 17857576,
+      "blocks": 34544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_boundary_types-19776b0fb3758ba9",
+      "bytes": 2504448,
+      "blocks": 4888
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_replay_payload-09cf71db3e284c0f",
+      "bytes": 3433744,
+      "blocks": 6680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_music_plot-46f63b22d6d59a83",
+      "bytes": 17871296,
+      "blocks": 34592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/current_experience-9cb613dff7e3e4d9",
+      "bytes": 3383912,
+      "blocks": 6584
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_selection_refusals-c1ce8627cc99406a",
+      "bytes": 2565240,
+      "blocks": 5016
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_selection-fb212e12b7a968b8",
+      "bytes": 1902472,
+      "blocks": 3704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_pair-c5522c328ab77e28",
+      "bytes": 1777632,
+      "blocks": 3456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/step_input_bytes-0a86359eec829d95",
+      "bytes": 2245544,
+      "blocks": 4392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_reference_plan-fc5af8589a3145f9",
+      "bytes": 16553384,
+      "blocks": 32024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_research-267cd98a58419b47",
+      "bytes": 1079696,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_temporal_context_vocabulary-700cc646d46b2039",
+      "bytes": 3834960,
+      "blocks": 7464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_mask_offer-408bab5c056ed207",
+      "bytes": 18128728,
+      "blocks": 35064
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_websocket_route-a625c41870c2ea6c",
+      "bytes": 5379400,
+      "blocks": 10504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_r1_network_conformance-1755815c2d0eb453",
+      "bytes": 19191168,
+      "blocks": 37168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/measurement_threshold-3a97e9d5d8e56145",
+      "bytes": 12916088,
+      "blocks": 24984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/render-9a99f9ba9c1d3b96",
+      "bytes": 2935728,
+      "blocks": 5736
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_expression_equality-aef40a0c2dd787d3",
+      "bytes": 12519936,
+      "blocks": 24208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_material-b7bd82ad583b2c00",
+      "bytes": 12361376,
+      "blocks": 23896
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/human_interaction-c1753e5efcb44a9c",
+      "bytes": 3811464,
+      "blocks": 7408
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/robotics_diversity_plots-998e0d49a45aa0e4",
+      "bytes": 17736680,
+      "blocks": 34328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_rp2040_pio_audio_extension-5951de91c8b14e10",
+      "bytes": 1079784,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hosted_job-f4aba14e79e547b7",
+      "bytes": 22562112,
+      "blocks": 43744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/key_event-82086b319efabdc7",
+      "bytes": 1880704,
+      "blocks": 3680
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_plot_library-25a5bc51bfad3b4f",
+      "bytes": 1079656,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/homeostasis_plot-9cc0023631581581",
+      "bytes": 16362720,
+      "blocks": 31704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_rhythm_vocabulary-517522f9dade9eec",
+      "bytes": 2267392,
+      "blocks": 4424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_private_session-35883b7f1d7d6625",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/local_model_need_admission-3e21c99f66892184",
+      "bytes": 25097776,
+      "blocks": 48568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_admission_memo-3db35d8a2bef3009",
+      "bytes": 61416504,
+      "blocks": 119920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/debug_observation-de22a190ac91af9a",
+      "bytes": 2548880,
+      "blocks": 4976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_proximity_observation-4c73fc74ebaf16e2",
+      "bytes": 3801880,
+      "blocks": 7400
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_data_types-f87fb1770d789a41",
+      "bytes": 4511152,
+      "blocks": 8776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_browser_make-3031eeb3ba030503",
+      "bytes": 6242184,
+      "blocks": 12088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_mask-bebab81a1d1d3cbb",
+      "bytes": 25374480,
+      "blocks": 49096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_flow-7521416ba5d590a4",
+      "bytes": 1198624,
+      "blocks": 2344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_application_action-dc27db68a5b524a9",
+      "bytes": 3702784,
+      "blocks": 7200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_source_port-6642998b5a1d4f1d",
+      "bytes": 25066456,
+      "blocks": 48496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/purpose_plots-b0a0362a10eba66b",
+      "bytes": 14650496,
+      "blocks": 28368
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_signal_server-1153028ec31bd7a9",
+      "bytes": 25239416,
+      "blocks": 48912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/navigation-d85a62a01f82ac43",
+      "bytes": 3120608,
+      "blocks": 6072
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/feature_bundle-d1fa5fbb2e3031fb",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_lexical_fact-ee152957d51d2aca",
+      "bytes": 60998080,
+      "blocks": 119112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_selector_plan-3406063e487e3c6a",
+      "bytes": 16381408,
+      "blocks": 31688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_admission-83cd01ae8bc1a38a",
+      "bytes": 2049984,
+      "blocks": 3992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/application_plot-ac0112ea82cd3bb0",
+      "bytes": 14691448,
+      "blocks": 28448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/source_extraction_kernel-b1c6f917e66571af",
+      "bytes": 4883656,
+      "blocks": 9504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rag_r5_grounding-2cad1d00f31f8129",
+      "bytes": 4798536,
+      "blocks": 9328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/portable_renderer-cd6d61d33fedcfbf",
+      "bytes": 18439952,
+      "blocks": 35664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_parity-700f5f52f7eb1198",
+      "bytes": 37575072,
+      "blocks": 73344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_timeline-8af0620d11f89551",
+      "bytes": 12813168,
+      "blocks": 24776
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_experience_vocabulary-27cf798707efa40e",
+      "bytes": 3685440,
+      "blocks": 7168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_sequence_selection-d64af5b9fccaa38d",
+      "bytes": 12416736,
+      "blocks": 24008
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_pair_expression-9263b48e7dcf0af7",
+      "bytes": 12453648,
+      "blocks": 24080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sealed_state-dfac28b7e78e4699",
+      "bytes": 21410520,
+      "blocks": 41456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/flow_zip_plan-76cb94055e2a8e14",
+      "bytes": 18905832,
+      "blocks": 36608
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/training_lifecycle-e9bdfaec88c00989",
+      "bytes": 2676424,
+      "blocks": 5216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_pulse_observation-31629d35ac92ee1b",
+      "bytes": 2120416,
+      "blocks": 4136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pure_protocol_play-966606b06513b548",
+      "bytes": 25828048,
+      "blocks": 49976
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/authoring_truth-c5f5f9d97d10410d",
+      "bytes": 22309848,
+      "blocks": 43248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/owner_presentation_wardrobe-f7c4fba9fb60d0de",
+      "bytes": 27310632,
+      "blocks": 52912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/language_projection-2617169c0f275b24",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_admission-7c0b70e1e64a70ba",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/lifecycle_session_proposal-7832cd16e3ad7511",
+      "bytes": 5003792,
+      "blocks": 9688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_admission-96b7ff98b816206d",
+      "bytes": 28274160,
+      "blocks": 54760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_tone_intent-052139370958a2f6",
+      "bytes": 2396896,
+      "blocks": 4672
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_model_selection-510e36d52be0fdc9",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_references-12d72243edfb7116",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_structured_validation-c86d84f8479201ad",
+      "bytes": 1577416,
+      "blocks": 3080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_bootstrap_plan-a6356d6a8bec4255",
+      "bytes": 19640400,
+      "blocks": 38032
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/declared_realization-3a96902096cdb3f1",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_plot-2300a7f06de0e279",
+      "bytes": 17828640,
+      "blocks": 34784
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reusable_greet-329d4b7c0443c4e0",
+      "bytes": 50309568,
+      "blocks": 97328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/record_transcript-0636908fef9b754e",
+      "bytes": 12727216,
+      "blocks": 24608
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_actual_native_bank-f73f21fe73109163",
+      "bytes": 3319048,
+      "blocks": 6456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_isomorphism-fff81cc5500b81be",
+      "bytes": 6291040,
+      "blocks": 12248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_material-77c91c436d3693c4",
+      "bytes": 12462864,
+      "blocks": 24096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_planned_journal-3328d82111ef4741",
+      "bytes": 1079680,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_evidence_and_faults-df63be35888c9b7e",
+      "bytes": 1365280,
+      "blocks": 2664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reaction_diffusion_partition-8b2ce67dd8eebd50",
+      "bytes": 2991696,
+      "blocks": 5832
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bluetooth_signal_source-3a216be6688977e7",
+      "bytes": 1079688,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/dependency_arcs-a5083ff76c4e08a0",
+      "bytes": 13480888,
+      "blocks": 26136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_body-9d3edf8cc79170a4",
+      "bytes": 7507624,
+      "blocks": 14600
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_speech-45bc2e3fbeb0668c",
+      "bytes": 1142048,
+      "blocks": 2232
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_computed_projection-56f34f8ba97c8422",
+      "bytes": 12375648,
+      "blocks": 23928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_leaf_storage-fd6aa87542396bb8",
+      "bytes": 2874000,
+      "blocks": 5592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rag_semantics-cf3a01bcf44629b1",
+      "bytes": 4399640,
+      "blocks": 8560
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_command-2f51e5cdf23d277f",
+      "bytes": 2626728,
+      "blocks": 5112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-e76a2777b671efb5",
+      "bytes": 1151152,
+      "blocks": 2256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/recurrence_plot-3f8c871a2a6eb3a5",
+      "bytes": 17550640,
+      "blocks": 33960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/normalization-48545ac924df58f5",
+      "bytes": 3186568,
+      "blocks": 6216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/translation_structure-2f3687bb725f3181",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_program_bank-d8f18c89b9d641c0",
+      "bytes": 129273320,
+      "blocks": 252448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_application-498f35b122d6bd5e",
+      "bytes": 24477728,
+      "blocks": 47416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_embodiment-db2b5e6db2adddf1",
+      "bytes": 4271648,
+      "blocks": 8288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/geometry_plots-0957ddfe553bad20",
+      "bytes": 22159024,
+      "blocks": 42960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_home_model-637d1936160382a9",
+      "bytes": 2934512,
+      "blocks": 5720
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ci_workflow_contract-3976b332dc828f44",
+      "bytes": 1164816,
+      "blocks": 2280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_speech-c404ae3a964ef61f",
+      "bytes": 176299536,
+      "blocks": 344320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/source_package-7212713020e9eb4f",
+      "bytes": 3237200,
+      "blocks": 6312
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_raspberry_pi-275477be2be60eba",
+      "bytes": 2021240,
+      "blocks": 3944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/biography_wakes-9729ac2697e985a5",
+      "bytes": 11400224,
+      "blocks": 22192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/diversity-cccbb4adbed1d78c",
+      "bytes": 20255704,
+      "blocks": 39224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/language_revision-81868c01b1732fd4",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_measurement_plot_series-3444604c0940a39b",
+      "bytes": 3477584,
+      "blocks": 6768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_features-7f7dda54c7a459b5",
+      "bytes": 1079600,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/realization_families-28ad34b58ca73e6b",
+      "bytes": 3368832,
+      "blocks": 6568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/data_generation-c4dfb632e2bde872",
+      "bytes": 4078280,
+      "blocks": 7928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-99635bedaaf90f83",
+      "bytes": 1149840,
+      "blocks": 2248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/degraded_profiles-f701ee7e9039306b",
+      "bytes": 20483280,
+      "blocks": 39656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/isolated_file_copy-b398ac771b3a3e0f",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reaction_diffusion_partition-7d2af07247d491da",
+      "bytes": 2776624,
+      "blocks": 5416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/aural-cfca7284d23d8ff3",
+      "bytes": 4251400,
+      "blocks": 8256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_civil_time_vocabulary-90bd3ab088833dee",
+      "bytes": 2145936,
+      "blocks": 4184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_info_wire-2cae82815699ecd7",
+      "bytes": 2233384,
+      "blocks": 4352
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/activation_fragment-a1d41fb9d294170c",
+      "bytes": 3359720,
+      "blocks": 6520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_conditions-d040558b9fa4db89",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/text_lab_live_server-50d6bdd3b8c081d5",
+      "bytes": 25865664,
+      "blocks": 50104
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reference_bindings-75472976936223ba",
+      "bytes": 9937664,
+      "blocks": 19224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_actual_native_bank-ac9cbced6898f6da",
+      "bytes": 3318800,
+      "blocks": 6456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_pete_workload_conformance-d3ae14775d7284ca",
+      "bytes": 30083176,
+      "blocks": 58280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_effect_common-8d1a775ab5b7f103",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/default_output_features-2686fc8ab2f3fc80",
+      "bytes": 1079688,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_image_observation-e839195784978aa6",
+      "bytes": 2170896,
+      "blocks": 4232
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_expression_call-0100ae70a288717c",
+      "bytes": 12408144,
+      "blocks": 23992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/distributed_expansion-0416ed4b7ddee6d5",
+      "bytes": 13526736,
+      "blocks": 26168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pico_usb_source-6941fe537843e66c",
+      "bytes": 23515656,
+      "blocks": 45576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/std_compatibility-44403bf9e5177af5",
+      "bytes": 51885128,
+      "blocks": 100416
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/cross_domain_policy-cbb1f99d7eb43206",
+      "bytes": 20802336,
+      "blocks": 40272
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/r1_three_peer_input_server-e91a120e6579231a",
+      "bytes": 7090120,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hosted_vector_index-1cf9a964c5ca607a",
+      "bytes": 12613072,
+      "blocks": 24552
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/occurrence_membership-7703a24c23e02cd8",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/when_filter-33e20cc2200bc70d",
+      "bytes": 12647152,
+      "blocks": 24456
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/authoring_catalog-60ffb5ebb011fcac",
+      "bytes": 15603232,
+      "blocks": 30216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/chosen_global_rule_profile-034459892e494833",
+      "bytes": 1079712,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/direct_phones-0abcd66f1c5acad4",
+      "bytes": 3113024,
+      "blocks": 6088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/device_binary-92b10623cb841ca4",
+      "bytes": 12471536,
+      "blocks": 24112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/admission_bounds-9bc1ed289a84084c",
+      "bytes": 2153608,
+      "blocks": 4192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_human-bd808931eba26a06",
+      "bytes": 3333352,
+      "blocks": 6488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/image_observation-672874110b1e2989",
+      "bytes": 1783952,
+      "blocks": 3488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/house_conversation-113a761e6cc9d568",
+      "bytes": 16942648,
+      "blocks": 32824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/contextual_intent-fd720630880bc61e",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ecmascript_form-9fef7ee4038064b0",
+      "bytes": 1134264,
+      "blocks": 2216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_byte_observation-057f498959851072",
+      "bytes": 12488872,
+      "blocks": 24152
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_body_summary-1e8bb48b00b62955",
+      "bytes": 4585536,
+      "blocks": 8920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_create_oi-de6414e6fd05bc70",
+      "bytes": 1488608,
+      "blocks": 2912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/external_fore_lines-df0a756dd590b433",
+      "bytes": 5574112,
+      "blocks": 10816
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_model_cache_policy-fa169c2cfc5ecc14",
+      "bytes": 2756760,
+      "blocks": 5384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/proof_dependency_boundary-fc3e457905fa2948",
+      "bytes": 3750888,
+      "blocks": 7280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_musical_pitch-9fb195c492508bbb",
+      "bytes": 2267952,
+      "blocks": 4424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/live_conversation_execution-b047ce1fdc400933",
+      "bytes": 17524056,
+      "blocks": 33944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/discourse-3629ec39e302db80",
+      "bytes": 13773864,
+      "blocks": 26712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/scientific_corpus-bc85d53db2346555",
+      "bytes": 5175976,
+      "blocks": 10056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_stable_dependency_subtype-93c877d22cd63b68",
+      "bytes": 36744016,
+      "blocks": 71728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/std_esp32_bluetooth-229dbc4af8c1a456",
+      "bytes": 19246144,
+      "blocks": 37280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_layout-0a8157710dd0c797",
+      "bytes": 2633600,
+      "blocks": 5136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/portable_ownership-ed82b635cbbbab75",
+      "bytes": 1146672,
+      "blocks": 2240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_protected_line-3fc21081e2ce51a4",
+      "bytes": 1112232,
+      "blocks": 2168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_navigation-28a4d10f9ff7147d",
+      "bytes": 3922672,
+      "blocks": 7632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_planned_model-c00f24f2869a554c",
+      "bytes": 1079656,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_lexical_selection-753bb02e9779cb5a",
+      "bytes": 74649144,
+      "blocks": 145544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/planned_activation_definition-cdcab1977d21be41",
+      "bytes": 7297352,
+      "blocks": 14120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tongues_research-1baa250766cae823",
+      "bytes": 18028424,
+      "blocks": 34912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/state_continuation-f883ae536c849fa4",
+      "bytes": 1910952,
+      "blocks": 3728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_joint-b7444e889a1dda8a",
+      "bytes": 36130112,
+      "blocks": 70096
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_cached_partial_model-f359a77a312e16b4",
+      "bytes": 1079792,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_xtask_dispatch-cc2ea0c631d980ca",
+      "bytes": 4265792,
+      "blocks": 8288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/scheduled_job-c3c0004fbbbe9735",
+      "bytes": 22834776,
+      "blocks": 44264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/std_pico_usb-713197c909e75705",
+      "bytes": 20645536,
+      "blocks": 39960
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_wide_play-81d6f864cd35b6e0",
+      "bytes": 25856408,
+      "blocks": 50112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_std_offers-51486a76c5238393",
+      "bytes": 10177808,
+      "blocks": 19800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/primitive_info-c2c3505c48ae7132",
+      "bytes": 1650296,
+      "blocks": 3216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_audio-acc09bbb56e1279d",
+      "bytes": 3437544,
+      "blocks": 6688
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vector_index_resource-8621585025b873a3",
+      "bytes": 2951848,
+      "blocks": 5752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/wire_corpus-acc120a987c7f899",
+      "bytes": 1801616,
+      "blocks": 3512
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_keyboard_occurrence-03cfc5faa3ee507e",
+      "bytes": 3415064,
+      "blocks": 6640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reaction_diffusion_two_host-3ac89a826d3dc36c",
+      "bytes": 17935344,
+      "blocks": 34704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_reranking_vocabulary-b695d77e3e49637f",
+      "bytes": 3790568,
+      "blocks": 7376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/realization_characteristics-3d6b5f7352461099",
+      "bytes": 18807416,
+      "blocks": 36392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/network_join-5b2e6b7b634f087f",
+      "bytes": 13297864,
+      "blocks": 25728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/intent_realization-4ed212f99af0dc1b",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_bluetooth-14e428e87f600820",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_expression_equality-426ccdf45ab5c963",
+      "bytes": 12525000,
+      "blocks": 24216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_frame_execution-389d536ff9f03e1e",
+      "bytes": 24122528,
+      "blocks": 46752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_remaining_observations-887907f532e3e640",
+      "bytes": 3933960,
+      "blocks": 7656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_alife_distributed_conformance-38b42fd220802bfd",
+      "bytes": 17170752,
+      "blocks": 33224
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_joint_v2_model-652408d834867289",
+      "bytes": 11305608,
+      "blocks": 22032
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/typed_pair_refinements-719678ee27776a82",
+      "bytes": 12639280,
+      "blocks": 24440
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_timing_feedback-474117bcfa7cf16b",
+      "bytes": 2306832,
+      "blocks": 4504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_info-beb5a0daaf680c98",
+      "bytes": 3374632,
+      "blocks": 6568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/base_registry-6bf0090758171935",
+      "bytes": 2026200,
+      "blocks": 3936
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_hosted-3f8fe5508165b832",
+      "bytes": 7139184,
+      "blocks": 13904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_timeline_codec-ddd628faba68bdfe",
+      "bytes": 2106592,
+      "blocks": 4112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_computed_projection-6fe987802f245702",
+      "bytes": 12470192,
+      "blocks": 24112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_ownership-602b16c851fc6e17",
+      "bytes": 1143768,
+      "blocks": 2240
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_battery_observation-4debfc43b4302a06",
+      "bytes": 3807672,
+      "blocks": 7408
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/dormant_readmission-6f39ae002fcab33a",
+      "bytes": 19995976,
+      "blocks": 38712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/admission_documents-5532d6a33199caec",
+      "bytes": 12562952,
+      "blocks": 24504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/integer_widening-7d8f9c432b6d50c0",
+      "bytes": 12659560,
+      "blocks": 24472
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/active_prefix-857f4400a446802c",
+      "bytes": 1855160,
+      "blocks": 3624
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/authoring_compatibility-f78cd66258f27d8b",
+      "bytes": 15881544,
+      "blocks": 30752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/application_resources-0a723797a1fe0d6b",
+      "bytes": 80085000,
+      "blocks": 154880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/base_capability-9a3a0fbdeed8b82b",
+      "bytes": 1497496,
+      "blocks": 2920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-9ba9452e7ca3d0b6",
+      "bytes": 1129096,
+      "blocks": 2208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/immutable_expression-3d14b7e2729b18c7",
+      "bytes": 12064968,
+      "blocks": 23328
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/button_across_room-f546804b2a76a34f",
+      "bytes": 14737120,
+      "blocks": 28528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/tensor-a20c2e1341f994b5",
+      "bytes": 13027832,
+      "blocks": 25200
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/continuity-63c382abd9d19729",
+      "bytes": 2556256,
+      "blocks": 4968
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/external_websocket_plan-98a319adf0284ec6",
+      "bytes": 50869264,
+      "blocks": 98448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/consequential_effect-889ec727cc118b92",
+      "bytes": 1434664,
+      "blocks": 2800
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_address_set-8c7e6c2d4fc76cff",
+      "bytes": 3273728,
+      "blocks": 6368
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/linguistic_prosody-840817a28b6b50f6",
+      "bytes": 1079640,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/flow_each-dcbdc553be64a346",
+      "bytes": 17252360,
+      "blocks": 33368
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_graphics_point-0a680bc7ca6bb48c",
+      "bytes": 2529904,
+      "blocks": 4936
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/planning_advice-bd66eb536f09468e",
+      "bytes": 20158208,
+      "blocks": 39032
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_stream_v2-46dbe00eda8ae962",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/model_effect_plan-c7408dee08e364aa",
+      "bytes": 4259544,
+      "blocks": 8264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/fulfilled-7408fac87464f75b",
+      "bytes": 4639336,
+      "blocks": 8984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_image_text_metadata-4e83477894028020",
+      "bytes": 3195768,
+      "blocks": 6216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_tour_model-38ee375ab2fe8c7c",
+      "bytes": 6766360,
+      "blocks": 13160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/kernel_speech-c09f8331ac0a3b41",
+      "bytes": 19464240,
+      "blocks": 37664
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/civil_deadline-559678cb5390c5e6",
+      "bytes": 3521232,
+      "blocks": 6848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_lifecycle-b7d94d898ebe0223",
+      "bytes": 12717208,
+      "blocks": 24592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_protected_projection-1291e99a64a45d9d",
+      "bytes": 1079720,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_musical_note_family-0f3eaaae282bf1b0",
+      "bytes": 2423952,
+      "blocks": 4728
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/accelerator_admission-45eadedb9e5350ee",
+      "bytes": 3314912,
+      "blocks": 6472
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/xtask-0231f299e134bc29",
+      "bytes": 156131784,
+      "blocks": 302584
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/historical_configuration-a2a39f13bfe17de2",
+      "bytes": 1895512,
+      "blocks": 3704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/temporal_interpretation-15beeca8bf4024f6",
+      "bytes": 4822768,
+      "blocks": 9376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/style_policy-298ee2f08875249b",
+      "bytes": 18583888,
+      "blocks": 36000
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_rp2040-001b5ab19c5e69a1",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/stable_lexical_pronunciation-819c6c320cbb685d",
+      "bytes": 1079728,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/robotics_info-f5f59f5171174ad8",
+      "bytes": 3892216,
+      "blocks": 7576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_emergency_keyword_spotter-825bff7080ac33af",
+      "bytes": 1150872,
+      "blocks": 2248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/device_frames-30e28fb7cd20d019",
+      "bytes": 12505984,
+      "blocks": 24184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/invariance-b180b462186142a9",
+      "bytes": 2068752,
+      "blocks": 4048
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_robotics-db4fe235a40737ea",
+      "bytes": 3993136,
+      "blocks": 7760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/education_plots-f9827e5983f13a06",
+      "bytes": 18030968,
+      "blocks": 34904
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/experience_updates-58ce80f2dc0e7b27",
+      "bytes": 3446128,
+      "blocks": 6696
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rag_r6_plot-f80429ab2bba2bda",
+      "bytes": 18047928,
+      "blocks": 34912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/face_reading-cafc85f4237ea71b",
+      "bytes": 3658960,
+      "blocks": 7120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_reanalysis_dynamic-4180366b96f52cfe",
+      "bytes": 37383560,
+      "blocks": 72760
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/planned_activation-9d25643c6d7f1905",
+      "bytes": 2939064,
+      "blocks": 5704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/incremental_planning-4a7d2f01a027e0ea",
+      "bytes": 3271104,
+      "blocks": 6376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/capability_offer_hygiene-537a307ea6048951",
+      "bytes": 1273352,
+      "blocks": 2480
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/std_pico_bluetooth-960db1889818ba3b",
+      "bytes": 19216368,
+      "blocks": 37208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bitmap_catalog_ownership-8a9c75f17eeef41c",
+      "bytes": 2274968,
+      "blocks": 4448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/revision_lineage-3c5553ada853e134",
+      "bytes": 13436168,
+      "blocks": 26056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-28c5a27bb05aa918",
+      "bytes": 1782800,
+      "blocks": 3488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_content-c5d3cbf7b595f528",
+      "bytes": 1356728,
+      "blocks": 2656
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_alife-b25faa6cf2b48099",
+      "bytes": 2762552,
+      "blocks": 5392
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_net-018a6addeb89b264",
+      "bytes": 1968432,
+      "blocks": 3848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_source_extraction_profile-b3f77ca0769fa3e8",
+      "bytes": 3126216,
+      "blocks": 6088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_patchbay_workbench-175de5c2f6049ccf",
+      "bytes": 91606464,
+      "blocks": 177424
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_admission_probe-cbcbe5723bb30a35",
+      "bytes": 28277360,
+      "blocks": 54784
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_actions-ce9a08fc73895223",
+      "bytes": 3018040,
+      "blocks": 5880
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/body_resource_envelopes-d8f7f390e2b869b1",
+      "bytes": 19190576,
+      "blocks": 37168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_finance-5aed0a5ffa7a6858",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_spore-987cc37e3f5c2191",
+      "bytes": 1792984,
+      "blocks": 3504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_calendar_recurrence-77e1dcee4860bb5f",
+      "bytes": 3882856,
+      "blocks": 7544
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_signal-43753305ae2506ad",
+      "bytes": 5418376,
+      "blocks": 10552
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_selectors-88ad4aa3798aae84",
+      "bytes": 12889080,
+      "blocks": 24928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/draft-f76dc8387ba843e4",
+      "bytes": 3103112,
+      "blocks": 6040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_rate_observation-5dae149758151f88",
+      "bytes": 3221832,
+      "blocks": 6264
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/shared_pool-9b29efe5bd120b7c",
+      "bytes": 3241400,
+      "blocks": 6288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_browser_host-203b82c016a55c38",
+      "bytes": 2437432,
+      "blocks": 4768
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/speech_recognition-d228794745ca8e9a",
+      "bytes": 16674432,
+      "blocks": 32304
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_body_workbench_proof-cd7918aef239a889",
+      "bytes": 37217032,
+      "blocks": 72024
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_presentation-7a683c2de9323024",
+      "bytes": 21940520,
+      "blocks": 42504
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/kernel_allocation-20979607a9cd4333",
+      "bytes": 19397792,
+      "blocks": 37520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_chat-86ed342051b69b49",
+      "bytes": 5748848,
+      "blocks": 11176
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_little_seismograph_fixture-1e18cf6fa0a1cd20",
+      "bytes": 2011264,
+      "blocks": 3928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_observation-8327d094eae615e3",
+      "bytes": 12506008,
+      "blocks": 24184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/clock_admission-e5c41c0be550c216",
+      "bytes": 1780120,
+      "blocks": 3472
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_json_refusals-1ada21457fa0b2ae",
+      "bytes": 2008672,
+      "blocks": 3920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_validation_vocabulary-412e0ea3c94d17b7",
+      "bytes": 2607576,
+      "blocks": 5088
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback_replan-6644656ffa2402d1",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_vocabulary-fbc2db4d1a4ceb17",
+      "bytes": 2468936,
+      "blocks": 4824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ci_workflow_contract-37de97562c9d7ef9",
+      "bytes": 1164768,
+      "blocks": 2280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_learned_watch_proof-db3e0483da828cab",
+      "bytes": 7090136,
+      "blocks": 13848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/language_syntax_owner-84c240c1cff16b7a",
+      "bytes": 1079656,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_offset_basis-2550fa3d08c92138",
+      "bytes": 2813848,
+      "blocks": 5488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/stable_lexical_intent-14c7914ae9fb136d",
+      "bytes": 1079672,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/button_indicator_admission-3a0764febf428bb7",
+      "bytes": 4274984,
+      "blocks": 8344
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_data_refusals-b9ebe2fdfcbced38",
+      "bytes": 2509176,
+      "blocks": 4896
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/universal_dependencies-cb8d09a668e675e6",
+      "bytes": 13221928,
+      "blocks": 25640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_patchbay_workbench-d7440b03d15db1cb",
+      "bytes": 70726984,
+      "blocks": 136984
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_workspace_make-35fc40a4dbc72e6a",
+      "bytes": 9169024,
+      "blocks": 17824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/security_acceptance_matrix-02ae479ab23aeb21",
+      "bytes": 1507072,
+      "blocks": 2936
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vector_retrieval-1383a2725ae7f676",
+      "bytes": 4727896,
+      "blocks": 9192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_presentation_vocabulary-abe1766ec3d0544b",
+      "bytes": 3037296,
+      "blocks": 5928
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback_evidence-85fe8a884791b68c",
+      "bytes": 1079632,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/coverage-8f1ac93035bc946d",
+      "bytes": 4259312,
+      "blocks": 8280
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/allophone_selection-ececd83a1903df7c",
+      "bytes": 1079648,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/utterance_timing-3f9a47f0e7842d5c",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vector_retrieval_capstone-3ecff590972f3f80",
+      "bytes": 26237176,
+      "blocks": 50840
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_empty_grow_dynamic-94cba8cb2e893710",
+      "bytes": 37286144,
+      "blocks": 72568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/canonical_greet-5f584e8d38ecb6c3",
+      "bytes": 50404288,
+      "blocks": 97520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_probability_vocabulary-c4c36c7b6870cc3d",
+      "bytes": 3979296,
+      "blocks": 7744
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_hid_reports-dd16d4939ff90786",
+      "bytes": 26884704,
+      "blocks": 52040
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_joint_v2_decode-2b8683d86dab818f",
+      "bytes": 47505312,
+      "blocks": 92288
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/projection_report-3aa8a1dbbca01fdd",
+      "bytes": 2971704,
+      "blocks": 5784
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_body_camera_realization-b2896b642676062b",
+      "bytes": 20805112,
+      "blocks": 40320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_relay-0324e6706335fcd4",
+      "bytes": 2620592,
+      "blocks": 5080
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/startup-54622a82062b13f3",
+      "bytes": 11158976,
+      "blocks": 21720
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/sampled_signal_mapping-4c8039889a91b0a0",
+      "bytes": 2836864,
+      "blocks": 5520
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/resource_offers-8013f4e4c90e4335",
+      "bytes": 1846776,
+      "blocks": 3592
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_integration_accuracy-9991912cf809f03b",
+      "bytes": 3784288,
+      "blocks": 7360
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_model_contract_refusals-186dc97f057a19be",
+      "bytes": 2585240,
+      "blocks": 5048
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-9bdde65634e0826a",
+      "bytes": 1127440,
+      "blocks": 2208
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_candidate_conflict-200bbc67698bc7da",
+      "bytes": 3324360,
+      "blocks": 6464
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/revision-f23cb540c3a70074",
+      "bytes": 1079544,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/talking_polaroid_composition-82a84460ae8a2477",
+      "bytes": 6253176,
+      "blocks": 12160
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_available-c28e1825973b9e79",
+      "bytes": 32938480,
+      "blocks": 63864
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_plan_lowering-08e496422fa77f4a",
+      "bytes": 3928328,
+      "blocks": 7632
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/back_failure-86dbb3abb030de47",
+      "bytes": 1785984,
+      "blocks": 3496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/playback_lineage-59233ee05d3f0bdd",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-40f22668efa7d448",
+      "bytes": 1151904,
+      "blocks": 2256
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reaction_diffusion-ff8e78bfca2145b2",
+      "bytes": 3961296,
+      "blocks": 7712
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/webchat_server-f3fc4cec3babbff3",
+      "bytes": 49947112,
+      "blocks": 96648
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_speech_vocabulary-6e6f10e81185ab0c",
+      "bytes": 7159272,
+      "blocks": 13952
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_ui-520a36ae9208efca",
+      "bytes": 2757344,
+      "blocks": 5384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/pitch_trajectory-9aeb53fecd7bb1f0",
+      "bytes": 1079624,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/server-5835822dde955599",
+      "bytes": 83092016,
+      "blocks": 160704
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ownership-8be11579240876e5",
+      "bytes": 1133024,
+      "blocks": 2216
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/step_fuel-7510f83f4978ee21",
+      "bytes": 1827320,
+      "blocks": 3576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/named_select-0fcfedad7bf40fdf",
+      "bytes": 2626280,
+      "blocks": 5120
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hybrid_retrieval-5941d8128c9be878",
+      "bytes": 4598200,
+      "blocks": 8944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/mask_plot-1f47a816500457a7",
+      "bytes": 21432464,
+      "blocks": 41448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/source_material-6ade1ca54c32c218",
+      "bytes": 4874672,
+      "blocks": 9488
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/semantic_expression_call-169a893fb5051b2b",
+      "bytes": 12837664,
+      "blocks": 24824
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_signal_conformance-56b0409f3bb4ed98",
+      "bytes": 19139104,
+      "blocks": 37056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hosted_vector_search_plan-06c8dab8a3e1a20c",
+      "bytes": 22048856,
+      "blocks": 42752
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/quantity_mapping_plot-a1d5fcc8be174448",
+      "bytes": 15003896,
+      "blocks": 29056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/linear_navigation-8611e8bff8f1147e",
+      "bytes": 3233728,
+      "blocks": 6296
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/compact_fallback-32e75016f6ab1d40",
+      "bytes": 3144392,
+      "blocks": 6136
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_rag_spans-0771baa61de57679",
+      "bytes": 4238592,
+      "blocks": 8248
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/image_text_plot-8ff3cd00e224b8c0",
+      "bytes": 15006048,
+      "blocks": 29056
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_temporal_instant-00c7f64b346453cd",
+      "bytes": 2210736,
+      "blocks": 4312
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/durable_notebook-9c0d2f7f89636641",
+      "bytes": 23654848,
+      "blocks": 45856
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/session_traffic-7ddba51a2fc1535d",
+      "bytes": 1952408,
+      "blocks": 3808
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_replay_command-b7fbe672c3bad8a2",
+      "bytes": 2262000,
+      "blocks": 4408
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_codec-72faa754d6f5fddb",
+      "bytes": 2007704,
+      "blocks": 3920
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/output_cli-00e2a657085f03ac",
+      "bytes": 1531096,
+      "blocks": 2992
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/patchbay_svg_mask-af9c6ad136eaaec2",
+      "bytes": 16441680,
+      "blocks": 31856
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_embedded_build-6805e9c88504bc5b",
+      "bytes": 20739064,
+      "blocks": 40168
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_host_esp32_make-54d6cb668d3cf508",
+      "bytes": 5101880,
+      "blocks": 9912
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/bme280_compensation-7d9478241a906dcd",
+      "bytes": 12577008,
+      "blocks": 24320
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/hybrid_retrieval_kernel-6a96e2f35d193fdd",
+      "bytes": 19092416,
+      "blocks": 36944
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/browser_webrtc_rendezvous_probe-876277e24ced7977",
+      "bytes": 23450312,
+      "blocks": 45448
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/intent_prosody-f9b24da12fd48bd1",
+      "bytes": 1079608,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/time_window_plan-06d91e98ad1f1733",
+      "bytes": 18787488,
+      "blocks": 36376
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/reaction_diffusion_region_work-e4fe3fe440088573",
+      "bytes": 2998296,
+      "blocks": 5848
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/committed_token_role-715fa6690123d19f",
+      "bytes": 1079656,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_joint_decode-6fac3fd0dfc80f30",
+      "bytes": 45829880,
+      "blocks": 89008
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/performance_policy-493815795808cb29",
+      "bytes": 3169256,
+      "blocks": 6184
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/usb_hid_preparation-6d8e084fbed551d1",
+      "bytes": 24883200,
+      "blocks": 48144
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/structured_info-f6196094174683d9",
+      "bytes": 1866952,
+      "blocks": 3640
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/fulfilled_guidance-8eeb4e68eb8de8e9",
+      "bytes": 5069992,
+      "blocks": 9840
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/rule_evaluation-6546aa3b687bdfe1",
+      "bytes": 1079616,
+      "blocks": 2112
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/replay_output-cbba11809e888e09",
+      "bytes": 2345008,
+      "blocks": 4568
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/interaction_contract-226bc32f24b7d9cf",
+      "bytes": 7882280,
+      "blocks": 15384
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/prepared_sequence_selection-a170f84bc8cf4113",
+      "bytes": 12510912,
+      "blocks": 24192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/native_missing_modality_policy-d7127ea9d8d3d872",
+      "bytes": 2819512,
+      "blocks": 5496
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/parser_window8_dependency_facts_dynamic-efdcb85ee8582b31",
+      "bytes": 33982616,
+      "blocks": 66192
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/ecmascript_types-48bdef041c0e5fb1",
+      "bytes": 9061624,
+      "blocks": 17528
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/vector_exact_search-a63b0a2856d472dc",
+      "bytes": 4876056,
+      "blocks": 9480
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/conduit_observatory-0c24f64c0cca1478",
+      "bytes": 33260912,
+      "blocks": 64576
+    },
+    {
+      "path": "/home/dancxjo/conduit-4907-native-evaluation/target/debug/deps/realization_policy-389e9c50f184cec3",
+      "bytes": 17220584,
+      "blocks": 33368
+    }
+  ],
+  "logical_bytes": 10506163568
+}

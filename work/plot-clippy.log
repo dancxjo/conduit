@@ -1,0 +1,11 @@
+    Checking serde_core v1.0.229
+    Checking serde v1.0.229
+    Checking conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/core)
+    Checking zmij v1.0.23
+    Checking itoa v1.0.18
+    Checking memchr v2.8.3
+    Checking serde_json v1.0.151
+    Checking conduit-kernel v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/kernel)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `dev` profile [unoptimized] target(s) in 20.05s

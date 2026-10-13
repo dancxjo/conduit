@@ -1,0 +1,38 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 9.94s
+     Running tests/device_frames.rs (target/debug/deps/device_frames-e08582e30ca71493)
+
+running 3 tests
+test concatenation_preserves_actual_bytes_and_excludes_padding ... ok
+test byte_access_distinguishes_short_from_malformed_and_never_reads_padding ... ok
+test repeated_frame_composition_uses_only_admitted_storage ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.15s
+
+     Running tests/prepared_leaf_storage.rs (target/debug/deps/prepared_leaf_storage-fd6aa87542396bb8)
+
+running 1 test
+test maximum_text_leaves_do_not_become_recursive_stack_storage ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.00s
+
+     Running tests/prepared_sequence_selection.rs (target/debug/deps/prepared_sequence_selection-d64af5b9fccaa38d)
+
+running 4 tests
+test checking_and_preparation_reject_substituted_index_and_element_types ... ok
+test fixed_collections_obey_the_same_exact_index_contract ... ok
+test runtime_index_obeys_actual_count_and_never_truncates_large_indices ... ok
+test guarded_selection_and_record_elements_are_allocation_free_after_preparation ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.88s
+
+     Running tests/prepared_structured_payload.rs (target/debug/deps/prepared_structured_payload-7ff06a7c7b83224a)
+
+running 4 tests
+test serialized_identity_cannot_relabel_a_different_structured_type ... ok
+test checked_source_preserves_complete_request_and_selects_every_bounded_payload_length ... ok
+test malformed_payload_and_substituted_type_remain_refusals_after_reuse ... ok
+test complete_request_reuse_and_malformed_refusals_do_not_allocate ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 2.30s
+

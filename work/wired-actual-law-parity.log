@@ -1,0 +1,271 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 5.45s
+     Running tests/prepared_actual_native_bank.rs (target/debug/deps/prepared_actual_native_bank-f73f21fe73109163)
+
+running 2 tests
+bank=LanguageParserIndependentProtectedAdmission law=0 bytes=1483355 decode_us=69052 prepare_us=1330 result=None
+bank=LanguageParserIndependentProtectedAdmission law=1 bytes=871790 decode_us=39298 prepare_us=822 result=None
+bank=LanguageParserIndependentProtectedAdmission law=2 bytes=923556 decode_us=41037 prepare_us=892 result=None
+bank=LanguageParserIndependentProtectedAdmission law=3 bytes=1001279 decode_us=44908 prepare_us=946 result=None
+bank=LanguageParserIndependentProtectedAdmission law=4 bytes=816737 decode_us=36847 prepare_us=858 result=None
+bank=LanguageParserIndependentProtectedAdmission law=5 bytes=1483355 decode_us=67814 prepare_us=1267 result=None
+bank=LanguageParserIndependentProtectedAdmission law=6 bytes=871790 decode_us=39273 prepare_us=817 result=None
+bank=LanguageParserIndependentProtectedAdmission law=7 bytes=923556 decode_us=42957 prepare_us=891 result=None
+bank=LanguageParserIndependentProtectedAdmission law=8 bytes=1001279 decode_us=46823 prepare_us=996 result=None
+bank=LanguageParserIndependentProtectedAdmission law=9 bytes=816737 decode_us=38018 prepare_us=848 result=None
+bank=LanguageParserIndependentProtectedAdmission law=10 bytes=1483355 decode_us=67615 prepare_us=1291 result=None
+bank=LanguageParserIndependentProtectedAdmission law=11 bytes=871790 decode_us=40127 prepare_us=819 result=None
+bank=LanguageParserIndependentProtectedAdmission law=12 bytes=923556 decode_us=43060 prepare_us=883 result=None
+bank=LanguageParserIndependentProtectedAdmission law=13 bytes=1001279 decode_us=46554 prepare_us=997 result=None
+bank=LanguageParserIndependentProtectedAdmission law=14 bytes=816737 decode_us=38107 prepare_us=859 result=None
+bank=LanguageParserIndependentProtectedAdmission law=15 bytes=1483355 decode_us=69122 prepare_us=1278 result=None
+bank=LanguageParserIndependentProtectedAdmission law=16 bytes=871790 decode_us=39148 prepare_us=836 result=None
+bank=LanguageParserIndependentProtectedAdmission law=17 bytes=923556 decode_us=41598 prepare_us=900 result=None
+bank=LanguageParserIndependentProtectedAdmission law=18 bytes=1001279 decode_us=45666 prepare_us=999 result=None
+bank=LanguageParserIndependentProtectedAdmission law=19 bytes=816737 decode_us=36792 prepare_us=861 result=None
+bank=LanguageParserIndependentProtectedAdmission law=20 bytes=753742 decode_us=34678 prepare_us=884 result=None
+bank=LanguageParserIndependentProtectedAdmission law=21 bytes=753742 decode_us=34361 prepare_us=900 result=None
+bank=LanguageParserIndependentProtectedAdmission law=22 bytes=753742 decode_us=33299 prepare_us=854 result=None
+bank=LanguageParserIndependentProtectedAdmission law=23 bytes=753742 decode_us=33354 prepare_us=857 result=None
+bank=LanguageParserIndependentProtectedAdmission law=24 bytes=581171 decode_us=25925 prepare_us=641 result=None
+bank=LanguageParserIndependentProtectedAdmission law=25 bytes=581171 decode_us=27304 prepare_us=664 result=None
+bank=LanguageParserIndependentProtectedAdmission law=26 bytes=581171 decode_us=28045 prepare_us=636 result=None
+bank=LanguageParserIndependentProtectedAdmission law=27 bytes=581171 decode_us=27445 prepare_us=661 result=None
+bank=LanguageParserIndependentProtectedAdmission law=28 bytes=382092 decode_us=17748 prepare_us=553 result=None
+bank=LanguageParserIndependentProtectedAdmission law=29 bytes=490775 decode_us=23854 prepare_us=2112 result=None
+bank=LanguageParserStableDependencyAdmission law=0 bytes=245300 decode_us=11595 prepare_us=312 result=None
+bank=LanguageParserStableDependencyAdmission law=1 bytes=299728 decode_us=14197 prepare_us=1776 result=None
+bank=LanguageParserStableDependencyAdmission law=2 bytes=185370 decode_us=9109 prepare_us=251 result=None
+bank=LanguageParserStableDependencyAdmission law=3 bytes=205619 decode_us=9756 prepare_us=242 result=None
+bank=LanguageParserStableDependencyAdmission law=4 bytes=980630 decode_us=46436 prepare_us=1093 result=None
+bank=LanguageParserStableDependencyAdmission law=5 bytes=318453 decode_us=14841 prepare_us=339 result=None
+bank=LanguageParserStableDependencyAdmission law=6 bytes=969232 decode_us=46370 prepare_us=823 result=None
+bank=LanguageParserStableDependencyAdmission law=7 bytes=109318 decode_us=5400 prepare_us=198 result=None
+bank=LanguageParserStableDependencyAdmission law=8 bytes=324070 decode_us=14949 prepare_us=2132 result=None
+bank=LanguageParserWindow8StableLexicalFact law=0 bytes=1208139 decode_us=60012 prepare_us=4737 result=None
+bank=LanguageParserWindow8StableLexicalFact law=1 bytes=934374 decode_us=45656 prepare_us=1023 result=None
+bank=LanguageParserWindow8StableLexicalFact law=2 bytes=934374 decode_us=46565 prepare_us=965 result=None
+bank=LanguageParserWindow8StableLexicalFact law=3 bytes=1449816 decode_us=73074 prepare_us=1501 result=None
+bank=LanguageParserWindow8StableLexicalFact law=4 bytes=934374 decode_us=46274 prepare_us=988 result=None
+bank=LanguageParserWindow8StableLexicalFact law=5 bytes=1449816 decode_us=72403 prepare_us=1451 result=None
+bank=LanguageParserWindow8StableLexicalFact law=6 bytes=934374 decode_us=45935 prepare_us=984 result=None
+bank=LanguageParserWindow8StableLexicalFact law=7 bytes=1449816 decode_us=72384 prepare_us=1429 result=None
+bank=LanguageParserWindow8Snapshot law=0 bytes=225770 decode_us=9702 prepare_us=438 result=None
+bank=LanguageParserWindow8Snapshot law=1 bytes=514680 decode_us=22378 prepare_us=666 result=None
+bank=LanguageParserWindow8Snapshot law=2 bytes=1182496 decode_us=52815 prepare_us=1208 result=None
+bank=LanguageParserWindow8Snapshot law=3 bytes=730972 decode_us=31995 prepare_us=2326 result=None
+bank=LanguageParserWindow8Snapshot law=4 bytes=730972 decode_us=32028 prepare_us=2335 result=None
+bank=LanguageParserWindow8Snapshot law=5 bytes=730972 decode_us=32085 prepare_us=2317 result=None
+bank=LanguageParserWindow8Snapshot law=6 bytes=730972 decode_us=32438 prepare_us=2349 result=None
+bank=LanguageParserWindow8Snapshot law=7 bytes=730972 decode_us=32571 prepare_us=2351 result=None
+bank=LanguageParserWindow8Snapshot law=8 bytes=730972 decode_us=32403 prepare_us=2346 result=None
+bank=LanguageParserWindow8Snapshot law=9 bytes=730972 decode_us=32132 prepare_us=2354 result=None
+bank=LanguageParserWindow8Snapshot law=10 bytes=730972 decode_us=31999 prepare_us=2329 result=None
+bank=LanguageParserWindow8Snapshot law=11 bytes=998057 decode_us=43857 prepare_us=1092 result=None
+bank=LanguageParserWindow8Snapshot law=12 bytes=1182496 decode_us=52418 prepare_us=1198 result=None
+bank=LanguageParserWindow8Snapshot law=13 bytes=730972 decode_us=31845 prepare_us=2322 result=None
+bank=LanguageParserWindow8Snapshot law=14 bytes=730972 decode_us=32269 prepare_us=2358 result=None
+bank=LanguageParserWindow8Snapshot law=15 bytes=730972 decode_us=32105 prepare_us=2321 result=None
+bank=LanguageParserWindow8Snapshot law=16 bytes=730972 decode_us=32237 prepare_us=2333 result=None
+bank=LanguageParserWindow8Snapshot law=17 bytes=730972 decode_us=32163 prepare_us=2333 result=None
+bank=LanguageParserWindow8Snapshot law=18 bytes=730972 decode_us=31995 prepare_us=2334 result=None
+bank=LanguageParserWindow8Snapshot law=19 bytes=730972 decode_us=31985 prepare_us=2529 result=None
+bank=LanguageParserWindow8Snapshot law=20 bytes=730972 decode_us=31855 prepare_us=2324 result=None
+bank=LanguageParserWindow8Snapshot law=21 bytes=998057 decode_us=43799 prepare_us=1071 result=None
+bank=LanguageParserWindow8Snapshot law=22 bytes=1182496 decode_us=52222 prepare_us=1215 result=None
+bank=LanguageParserWindow8Snapshot law=23 bytes=730972 decode_us=32060 prepare_us=2327 result=None
+bank=LanguageParserWindow8Snapshot law=24 bytes=730972 decode_us=32159 prepare_us=2298 result=None
+bank=LanguageParserWindow8Snapshot law=25 bytes=730972 decode_us=31898 prepare_us=2361 result=None
+bank=LanguageParserWindow8Snapshot law=26 bytes=730972 decode_us=32386 prepare_us=2357 result=None
+bank=LanguageParserWindow8Snapshot law=27 bytes=730972 decode_us=31985 prepare_us=2319 result=None
+bank=LanguageParserWindow8Snapshot law=28 bytes=730972 decode_us=32228 prepare_us=2325 result=None
+bank=LanguageParserWindow8Snapshot law=29 bytes=730972 decode_us=32186 prepare_us=2314 result=None
+bank=LanguageParserWindow8Snapshot law=30 bytes=730972 decode_us=32085 prepare_us=2364 result=None
+bank=LanguageParserWindow8Snapshot law=31 bytes=998057 decode_us=44106 prepare_us=1056 result=None
+bank=LanguageParserWindow8Snapshot law=32 bytes=1182496 decode_us=52381 prepare_us=1198 result=None
+actual_stablelex_bytes=126704 laws=8 allocating_us=1768058 preparation_us=17019 prepared_us=443600 constructor_validator_us=458496
+bank=LanguageParserWindow8Snapshot law=33 bytes=730972 decode_us=32133 prepare_us=2339 result=None
+test retained_actual_stable_lexical_complete_bank_parity ... ok
+bank=LanguageParserWindow8Snapshot law=34 bytes=730972 decode_us=32124 prepare_us=2520 result=None
+bank=LanguageParserWindow8Snapshot law=35 bytes=730972 decode_us=32307 prepare_us=2359 result=None
+bank=LanguageParserWindow8Snapshot law=36 bytes=730972 decode_us=31839 prepare_us=2308 result=None
+bank=LanguageParserWindow8Snapshot law=37 bytes=730972 decode_us=32259 prepare_us=2334 result=None
+bank=LanguageParserWindow8Snapshot law=38 bytes=730972 decode_us=31860 prepare_us=2335 result=None
+bank=LanguageParserWindow8Snapshot law=39 bytes=730972 decode_us=31848 prepare_us=2309 result=None
+bank=LanguageParserWindow8Snapshot law=40 bytes=730972 decode_us=31678 prepare_us=2331 result=None
+bank=LanguageParserWindow8Snapshot law=41 bytes=998057 decode_us=43649 prepare_us=1049 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=0 bytes=205732 decode_us=7719 prepare_us=288 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=1 bytes=205732 decode_us=7716 prepare_us=281 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=2 bytes=205732 decode_us=8009 prepare_us=275 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=3 bytes=205732 decode_us=8068 prepare_us=281 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=4 bytes=205732 decode_us=8017 prepare_us=280 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=5 bytes=205732 decode_us=8054 prepare_us=284 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=6 bytes=205732 decode_us=7938 prepare_us=268 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=7 bytes=205732 decode_us=8026 prepare_us=285 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=8 bytes=110316 decode_us=4265 prepare_us=161 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=9 bytes=110322 decode_us=4471 prepare_us=172 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=10 bytes=110322 decode_us=4413 prepare_us=168 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=11 bytes=110318 decode_us=4608 prepare_us=160 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=12 bytes=110324 decode_us=4453 prepare_us=163 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=13 bytes=110328 decode_us=4386 prepare_us=167 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=14 bytes=111496 decode_us=4425 prepare_us=157 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=15 bytes=111534 decode_us=4458 prepare_us=163 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=16 bytes=111546 decode_us=4399 prepare_us=156 result=None
+bank=LanguageParserJointStableFact law=0 bytes=139983 decode_us=6407 prepare_us=194 result=None
+bank=LanguageParserJointStableFact law=1 bytes=1118239 decode_us=50625 prepare_us=2542 result=None
+bank=LanguageParserJointStableFact law=2 bytes=434775 decode_us=18685 prepare_us=1497 result=None
+bank=LanguageParserJointStableFact law=3 bytes=495534 decode_us=22196 prepare_us=453 result=None
+bank=LanguageParserJointStableFact law=4 bytes=609209 decode_us=27505 prepare_us=562 result=None
+bank=LanguageParserJointStableFact law=5 bytes=495534 decode_us=22777 prepare_us=462 result=None
+bank=LanguageParserJointStableFact law=6 bytes=3782714 decode_us=170935 prepare_us=3348 result=None
+bank=LanguageParserJointStableFact law=7 bytes=609209 decode_us=27641 prepare_us=527 result=None
+bank=LanguageParserJointStableFact law=8 bytes=495534 decode_us=22182 prepare_us=467 result=None
+bank=LanguageParserJointStableFact law=9 bytes=3782714 decode_us=170947 prepare_us=3235 result=None
+bank=LanguageParserJointStableFact law=10 bytes=609209 decode_us=26623 prepare_us=544 result=None
+bank=LanguageParserJointStableFact law=11 bytes=495534 decode_us=21774 prepare_us=448 result=None
+bank=LanguageParserJointStableFact law=12 bytes=3782714 decode_us=170626 prepare_us=3328 result=None
+bank=LanguageParserJointStableFact law=13 bytes=609209 decode_us=26624 prepare_us=558 result=None
+bank=LanguageParserJointRuntimeHypothesis law=0 bytes=36614 decode_us=1430 prepare_us=52 result=None
+bank=LanguageParserJointRuntimeHypothesis law=1 bytes=36666 decode_us=1402 prepare_us=49 result=None
+bank=LanguageParserJointRuntimeHypothesis law=2 bytes=36609 decode_us=1402 prepare_us=45 result=None
+bank_shape=LanguageParserIndependentProtectedAdmission law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=8 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=9 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=10 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=11 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=12 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=13 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=14 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=15 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=16 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=17 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=18 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=19 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=20 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=21 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=22 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=23 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=24 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=25 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=26 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=27 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=28 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserIndependentProtectedAdmission law=29 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserIndependentProtectedAdmission ready=true refusal=None
+bank_shape=LanguageParserJointRuntimeHypothesis law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointRuntimeHypothesis law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointRuntimeHypothesis law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserJointRuntimeHypothesis ready=true refusal=None
+bank_shape=LanguageParserJointStableFact law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=8 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=9 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=10 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=11 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=12 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserJointStableFact law=13 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserJointStableFact ready=true refusal=None
+bank_shape=LanguageParserStableDependencyAdmission law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserStableDependencyAdmission law=8 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserStableDependencyAdmission ready=true refusal=None
+bank_shape=LanguageParserWindow8CheckedHypothesis law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=8 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=9 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=10 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=11 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=12 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=13 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=14 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=15 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8CheckedHypothesis law=16 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserWindow8CheckedHypothesis ready=true refusal=None
+bank_shape=LanguageParserWindow8Snapshot law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=8 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=9 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=10 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=11 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=12 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=13 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=14 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=15 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=16 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=17 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=18 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=19 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=20 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=21 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=22 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=23 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=24 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=25 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=26 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=27 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=28 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=29 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=30 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=31 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=32 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=33 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=34 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=35 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=36 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=37 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=38 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=39 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=40 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8Snapshot law=41 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserWindow8Snapshot ready=true refusal=None
+bank_shape=LanguageParserWindow8StableLexicalFact law=0 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=1 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=2 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=3 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=4 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=5 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=6 input_matches_first=true output=Leaf(KindId("value/bool"))
+bank_shape=LanguageParserWindow8StableLexicalFact law=7 input_matches_first=true output=Leaf(KindId("value/bool"))
+exact_complete_admission=LanguageParserWindow8StableLexicalFact ready=true refusal=None
+complete_bank=LanguageParserIndependentProtectedAdmission total=30 prepared=30 ready=true
+complete_bank=LanguageParserJointRuntimeHypothesis total=3 prepared=3 ready=true
+complete_bank=LanguageParserJointStableFact total=14 prepared=14 ready=true
+complete_bank=LanguageParserStableDependencyAdmission total=9 prepared=9 ready=true
+complete_bank=LanguageParserWindow8CheckedHypothesis total=17 prepared=17 ready=true
+complete_bank=LanguageParserWindow8Snapshot total=42 prepared=42 ready=true
+complete_bank=LanguageParserWindow8StableLexicalFact total=8 prepared=8 ready=true
+test retained_actual_native_law_bank_readiness ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.73s
+

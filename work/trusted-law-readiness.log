@@ -1,0 +1,199 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-4907-native-evaluation/architecture/plot)
+    Finished `test` profile [unoptimized] target(s) in 0.24s
+     Running tests/prepared_actual_native_bank.rs (target/debug/deps/prepared_actual_native_bank-f73f21fe73109163)
+
+running 1 test
+bank=LanguageParserIndependentProtectedAdmission law=0 bytes=1483355 decode_us=134455 prepare_us=2298 result=None
+bank=LanguageParserIndependentProtectedAdmission law=1 bytes=871790 decode_us=81059 prepare_us=1604 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=2 bytes=923556 decode_us=52854 prepare_us=571 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=3 bytes=1001279 decode_us=51663 prepare_us=560 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserIndependentProtectedAdmission law=4 bytes=816737 decode_us=41592 prepare_us=992 result=None
+bank=LanguageParserIndependentProtectedAdmission law=5 bytes=1483355 decode_us=76258 prepare_us=1502 result=None
+bank=LanguageParserIndependentProtectedAdmission law=6 bytes=871790 decode_us=61987 prepare_us=1243 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=7 bytes=923556 decode_us=51266 prepare_us=567 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=8 bytes=1001279 decode_us=50168 prepare_us=545 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserIndependentProtectedAdmission law=9 bytes=816737 decode_us=40065 prepare_us=993 result=None
+bank=LanguageParserIndependentProtectedAdmission law=10 bytes=1483355 decode_us=73887 prepare_us=1531 result=None
+bank=LanguageParserIndependentProtectedAdmission law=11 bytes=871790 decode_us=42688 prepare_us=976 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=12 bytes=923556 decode_us=45632 prepare_us=544 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=13 bytes=1001279 decode_us=49569 prepare_us=540 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserIndependentProtectedAdmission law=14 bytes=816737 decode_us=40828 prepare_us=926 result=None
+bank=LanguageParserIndependentProtectedAdmission law=15 bytes=1483355 decode_us=84840 prepare_us=1497 result=None
+bank=LanguageParserIndependentProtectedAdmission law=16 bytes=871790 decode_us=43629 prepare_us=1013 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=17 bytes=923556 decode_us=46420 prepare_us=528 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=18 bytes=1001279 decode_us=50186 prepare_us=498 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserIndependentProtectedAdmission law=19 bytes=816737 decode_us=39711 prepare_us=938 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=20 bytes=753742 decode_us=35889 prepare_us=619 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=21 bytes=753742 decode_us=36685 prepare_us=658 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=22 bytes=753742 decode_us=36223 prepare_us=622 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=23 bytes=753742 decode_us=35795 prepare_us=604 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserIndependentProtectedAdmission law=24 bytes=581171 decode_us=27280 prepare_us=644 result=None
+bank=LanguageParserIndependentProtectedAdmission law=25 bytes=581171 decode_us=27330 prepare_us=649 result=None
+bank=LanguageParserIndependentProtectedAdmission law=26 bytes=581171 decode_us=27161 prepare_us=629 result=None
+bank=LanguageParserIndependentProtectedAdmission law=27 bytes=581171 decode_us=27438 prepare_us=662 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=28 bytes=382092 decode_us=17450 prepare_us=328 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserIndependentProtectedAdmission law=29 bytes=490775 decode_us=23926 prepare_us=332 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserStableDependencyAdmission law=0 bytes=245300 decode_us=11527 prepare_us=322 result=None
+unsupported_operations={"call:sequence/at", "call:variant/is", "nonleaf_binary:Equal"}
+bank=LanguageParserStableDependencyAdmission law=1 bytes=299728 decode_us=14131 prepare_us=197 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserStableDependencyAdmission law=2 bytes=185370 decode_us=9124 prepare_us=266 result=None
+bank=LanguageParserStableDependencyAdmission law=3 bytes=205619 decode_us=9874 prepare_us=256 result=None
+bank=LanguageParserStableDependencyAdmission law=4 bytes=980630 decode_us=47060 prepare_us=1120 result=None
+bank=LanguageParserStableDependencyAdmission law=5 bytes=318453 decode_us=14884 prepare_us=336 result=None
+bank=LanguageParserStableDependencyAdmission law=6 bytes=969232 decode_us=46084 prepare_us=878 result=None
+bank=LanguageParserStableDependencyAdmission law=7 bytes=109318 decode_us=5372 prepare_us=201 result=None
+unsupported_operations={"call:sequence/at", "nonleaf_binary:Equal"}
+bank=LanguageParserStableDependencyAdmission law=8 bytes=324070 decode_us=15006 prepare_us=153 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"call:sequence/at", "call:value/u64", "call:variant/is"}
+bank=LanguageParserWindow8StableLexicalFact law=0 bytes=1208139 decode_us=62143 prepare_us=678 result=Some(InvalidProgram)
+bank=LanguageParserWindow8StableLexicalFact law=1 bytes=934374 decode_us=47799 prepare_us=1053 result=None
+bank=LanguageParserWindow8StableLexicalFact law=2 bytes=934374 decode_us=48074 prepare_us=1055 result=None
+bank=LanguageParserWindow8StableLexicalFact law=3 bytes=1449816 decode_us=74889 prepare_us=1505 result=None
+bank=LanguageParserWindow8StableLexicalFact law=4 bytes=934374 decode_us=47569 prepare_us=1016 result=None
+bank=LanguageParserWindow8StableLexicalFact law=5 bytes=1449816 decode_us=73313 prepare_us=1418 result=None
+bank=LanguageParserWindow8StableLexicalFact law=6 bytes=934374 decode_us=47174 prepare_us=1019 result=None
+bank=LanguageParserWindow8StableLexicalFact law=7 bytes=1449816 decode_us=74506 prepare_us=1483 result=None
+bank=LanguageParserWindow8Snapshot law=0 bytes=225770 decode_us=10071 prepare_us=480 result=None
+bank=LanguageParserWindow8Snapshot law=1 bytes=514680 decode_us=23184 prepare_us=715 result=None
+bank=LanguageParserWindow8Snapshot law=2 bytes=1182496 decode_us=54468 prepare_us=1257 result=None
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=3 bytes=730972 decode_us=33186 prepare_us=724 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=4 bytes=730972 decode_us=33286 prepare_us=718 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=5 bytes=730972 decode_us=33303 prepare_us=697 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=6 bytes=730972 decode_us=33462 prepare_us=730 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=7 bytes=730972 decode_us=33214 prepare_us=717 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=8 bytes=730972 decode_us=33377 prepare_us=710 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=9 bytes=730972 decode_us=33301 prepare_us=718 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=10 bytes=730972 decode_us=33335 prepare_us=709 result=Some(InvalidProgram)
+bank=LanguageParserWindow8Snapshot law=11 bytes=998057 decode_us=46208 prepare_us=1073 result=None
+bank=LanguageParserWindow8Snapshot law=12 bytes=1182496 decode_us=54705 prepare_us=1238 result=None
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=13 bytes=730972 decode_us=32941 prepare_us=720 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=14 bytes=730972 decode_us=33388 prepare_us=712 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=15 bytes=730972 decode_us=33469 prepare_us=709 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=16 bytes=730972 decode_us=33669 prepare_us=724 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=17 bytes=730972 decode_us=33668 prepare_us=677 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=18 bytes=730972 decode_us=33393 prepare_us=733 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=19 bytes=730972 decode_us=33483 prepare_us=726 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=20 bytes=730972 decode_us=33591 prepare_us=726 result=Some(InvalidProgram)
+bank=LanguageParserWindow8Snapshot law=21 bytes=998057 decode_us=46647 prepare_us=1144 result=None
+bank=LanguageParserWindow8Snapshot law=22 bytes=1182496 decode_us=54901 prepare_us=1249 result=None
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=23 bytes=730972 decode_us=33194 prepare_us=694 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=24 bytes=730972 decode_us=33649 prepare_us=704 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=25 bytes=730972 decode_us=33614 prepare_us=739 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=26 bytes=730972 decode_us=33902 prepare_us=747 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=27 bytes=730972 decode_us=33753 prepare_us=712 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=28 bytes=730972 decode_us=33773 prepare_us=716 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=29 bytes=730972 decode_us=33160 prepare_us=721 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=30 bytes=730972 decode_us=33252 prepare_us=720 result=Some(InvalidProgram)
+bank=LanguageParserWindow8Snapshot law=31 bytes=998057 decode_us=45811 prepare_us=1074 result=None
+bank=LanguageParserWindow8Snapshot law=32 bytes=1182496 decode_us=54145 prepare_us=1223 result=None
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=33 bytes=730972 decode_us=32906 prepare_us=715 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=34 bytes=730972 decode_us=33221 prepare_us=703 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=35 bytes=730972 decode_us=33393 prepare_us=716 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=36 bytes=730972 decode_us=33218 prepare_us=720 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=37 bytes=730972 decode_us=33358 prepare_us=708 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=38 bytes=730972 decode_us=33214 prepare_us=710 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=39 bytes=730972 decode_us=33353 prepare_us=690 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:sequence/length"}
+bank=LanguageParserWindow8Snapshot law=40 bytes=730972 decode_us=33178 prepare_us=710 result=Some(InvalidProgram)
+bank=LanguageParserWindow8Snapshot law=41 bytes=998057 decode_us=45936 prepare_us=1148 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=0 bytes=205732 decode_us=8121 prepare_us=296 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=1 bytes=205732 decode_us=8001 prepare_us=293 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=2 bytes=205732 decode_us=8365 prepare_us=281 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=3 bytes=205732 decode_us=8389 prepare_us=305 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=4 bytes=205732 decode_us=8402 prepare_us=302 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=5 bytes=205732 decode_us=8414 prepare_us=295 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=6 bytes=205732 decode_us=8411 prepare_us=299 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=7 bytes=205732 decode_us=8411 prepare_us=298 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=8 bytes=110316 decode_us=4473 prepare_us=170 result=None
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserWindow8CheckedHypothesis law=9 bytes=110322 decode_us=4563 prepare_us=107 result=Some(UnsupportedType("structured expression runtime"))
+unsupported_operations={"nonleaf_binary:Equal"}
+bank=LanguageParserWindow8CheckedHypothesis law=10 bytes=110322 decode_us=4558 prepare_us=102 result=Some(UnsupportedType("structured expression runtime"))
+bank=LanguageParserWindow8CheckedHypothesis law=11 bytes=110318 decode_us=4647 prepare_us=172 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=12 bytes=110324 decode_us=4524 prepare_us=160 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=13 bytes=110328 decode_us=4540 prepare_us=168 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=14 bytes=111496 decode_us=4590 prepare_us=166 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=15 bytes=111534 decode_us=4616 prepare_us=171 result=None
+bank=LanguageParserWindow8CheckedHypothesis law=16 bytes=111546 decode_us=4569 prepare_us=157 result=None
+bank=LanguageParserJointStableFact law=0 bytes=139983 decode_us=6678 prepare_us=205 result=None
+unsupported_operations={"call:sequence/at", "call:value/u64", "call:variant/is"}
+bank=LanguageParserJointStableFact law=1 bytes=1118239 decode_us=51946 prepare_us=467 result=Some(InvalidProgram)
+unsupported_operations={"call:sequence/at", "call:value/u64", "call:variant/is"}
+bank=LanguageParserJointStableFact law=2 bytes=434775 decode_us=19214 prepare_us=239 result=Some(InvalidProgram)
+bank=LanguageParserJointStableFact law=3 bytes=495534 decode_us=23403 prepare_us=484 result=None
+bank=LanguageParserJointStableFact law=4 bytes=609209 decode_us=28665 prepare_us=587 result=None
+bank=LanguageParserJointStableFact law=5 bytes=495534 decode_us=23317 prepare_us=502 result=None
+bank=LanguageParserJointStableFact law=6 bytes=3782714 decode_us=176943 prepare_us=3478 result=None
+bank=LanguageParserJointStableFact law=7 bytes=609209 decode_us=28624 prepare_us=578 result=None
+bank=LanguageParserJointStableFact law=8 bytes=495534 decode_us=23282 prepare_us=492 result=None
+bank=LanguageParserJointStableFact law=9 bytes=3782714 decode_us=176627 prepare_us=3443 result=None
+bank=LanguageParserJointStableFact law=10 bytes=609209 decode_us=27723 prepare_us=562 result=None
+bank=LanguageParserJointStableFact law=11 bytes=495534 decode_us=22542 prepare_us=485 result=None
+bank=LanguageParserJointStableFact law=12 bytes=3782714 decode_us=177416 prepare_us=3456 result=None
+bank=LanguageParserJointStableFact law=13 bytes=609209 decode_us=27787 prepare_us=565 result=None
+bank=LanguageParserJointRuntimeHypothesis law=0 bytes=36614 decode_us=1511 prepare_us=51 result=None
+bank=LanguageParserJointRuntimeHypothesis law=1 bytes=36666 decode_us=1495 prepare_us=55 result=None
+bank=LanguageParserJointRuntimeHypothesis law=2 bytes=36609 decode_us=1490 prepare_us=48 result=None
+exact_complete_admission=LanguageParserIndependentProtectedAdmission ready=false refusal=Some(InvalidLaw { index: 2, refusal: UnsupportedType("structured expression runtime") })
+exact_complete_admission=LanguageParserJointRuntimeHypothesis ready=true refusal=None
+exact_complete_admission=LanguageParserJointStableFact ready=false refusal=Some(InvalidLaw { index: 1, refusal: InvalidProgram })
+exact_complete_admission=LanguageParserStableDependencyAdmission ready=false refusal=Some(InvalidLaw { index: 1, refusal: UnsupportedType("structured expression runtime") })
+exact_complete_admission=LanguageParserWindow8CheckedHypothesis ready=false refusal=Some(InvalidLaw { index: 9, refusal: UnsupportedType("structured expression runtime") })
+exact_complete_admission=LanguageParserWindow8Snapshot ready=false refusal=Some(InvalidLaw { index: 3, refusal: InvalidProgram })
+exact_complete_admission=LanguageParserWindow8StableLexicalFact ready=false refusal=Some(InvalidLaw { index: 0, refusal: InvalidProgram })
+complete_bank=LanguageParserIndependentProtectedAdmission total=30 prepared=16 ready=false
+complete_bank=LanguageParserJointRuntimeHypothesis total=3 prepared=3 ready=true
+complete_bank=LanguageParserJointStableFact total=14 prepared=12 ready=false
+complete_bank=LanguageParserStableDependencyAdmission total=9 prepared=7 ready=false
+complete_bank=LanguageParserWindow8CheckedHypothesis total=17 prepared=15 ready=false
+complete_bank=LanguageParserWindow8Snapshot total=42 prepared=10 ready=false
+complete_bank=LanguageParserWindow8StableLexicalFact total=8 prepared=7 ready=false
+test retained_actual_native_law_bank_readiness ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 4.81s
+

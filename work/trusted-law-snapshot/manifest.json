@@ -1,0 +1,779 @@
+{
+  "source_header": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/semantic_types.rs",
+  "header_sha256": "ee3a34933e5648bb012031d5097ea818c528e1bb5f2a6f2305382271eef816f1",
+  "banks": [
+    {
+      "name": "LanguageParserIndependentProtectedAdmission",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_708.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-0.bin",
+          "sha256": "27e8d44c6e3c8871a21d620f5c6fa16a874bdc6362eea3535c474e775a2a47aa",
+          "bytes": 1483355
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_709.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-1.bin",
+          "sha256": "a7941ee39abcbff083c0d558637bc16a1eed4c17aec4769bf40121cdb11d3b01",
+          "bytes": 871790
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_710.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-2.bin",
+          "sha256": "3ee921bb626397ee3bb83bab345e6cbb6274956620fbe3e385dbb15330a89fc1",
+          "bytes": 923556
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_711.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-3.bin",
+          "sha256": "e423f73f48c9d50c0f921c0d0ade2d02e66b8b5a4fb3fda33f8af18863e8b12f",
+          "bytes": 1001279
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_712.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-4.bin",
+          "sha256": "360b1b6e7849b37bde3107e936e76e9c7f900ee8d455f1b029a85d24b3b86b9a",
+          "bytes": 816737
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_713.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-5.bin",
+          "sha256": "6f843605f2059c9f0f194df04be766fb74dd80deadae4aa83e83cde98dcd000e",
+          "bytes": 1483355
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_714.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-6.bin",
+          "sha256": "69126365b5559578d851e40410b9c202a728cd747000c95f595213f7e839476b",
+          "bytes": 871790
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_715.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-7.bin",
+          "sha256": "b1f93a297be48cf7a3617db1a1f1f49940733019f4d9d6b0ad45700c599cab1a",
+          "bytes": 923556
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_716.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-8.bin",
+          "sha256": "263ffbc95169697e860bdc48a98ad0a6c796adf5e217ca591476b800fcafda8c",
+          "bytes": 1001279
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_717.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-9.bin",
+          "sha256": "57c2debba341084800ee2bf1d48ddf873d3874bed09a42c780be1886d327075e",
+          "bytes": 816737
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_718.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-10.bin",
+          "sha256": "a3efc348a8bde903d312825bbc30bad087b6b503aeba26b7be7bcea1304087e1",
+          "bytes": 1483355
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_719.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-11.bin",
+          "sha256": "ca8dadc32af18aa4ae12cab12b71661bcb66ff8e874890ea8e950b8c62780278",
+          "bytes": 871790
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_720.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-12.bin",
+          "sha256": "30acc9799dff63c4c76ff2126353db2507b4e85efcf58c8924fa68882758768d",
+          "bytes": 923556
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_721.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-13.bin",
+          "sha256": "7abecdb26f2ead43afa8976ac93bbd9358f1c33fabddfc4eb34a6efb5f865a12",
+          "bytes": 1001279
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_722.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-14.bin",
+          "sha256": "7638ccfa951453f2be8befdb91ed9e5cb1828b824ea8cfb3b239304b04cd4622",
+          "bytes": 816737
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_723.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-15.bin",
+          "sha256": "759c4922bfe3224f1e95aebadac7ffa9e21c567a992760ee824f511e9cb505be",
+          "bytes": 1483355
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_724.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-16.bin",
+          "sha256": "230fe6ca01b75714e308f3bf890d514184190e33a69c9610e9ea5ae225486c21",
+          "bytes": 871790
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_725.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-17.bin",
+          "sha256": "ba17b4dcd089dde26e7ed5dd47dbc23b2e43c0124aeeacea0ede17d81693eea9",
+          "bytes": 923556
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_726.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-18.bin",
+          "sha256": "99b98b801c78a6f3fae680f76501c5a4a31ca3772836c3c4973fc1a487ae7dc2",
+          "bytes": 1001279
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_727.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-19.bin",
+          "sha256": "41c3d90879a7f604696d43107c493718f62d7bfc199ab8bc60febda350509b9a",
+          "bytes": 816737
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_728.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-20.bin",
+          "sha256": "8f040c56599f5d04e1eea1a1db4025af17ae1dec8c698af82ef6d05030f9c621",
+          "bytes": 753742
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_729.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-21.bin",
+          "sha256": "76b85005901c66e4a26c9a7517cedae24c6ca6cdc308570c3e649b41c0c38c4e",
+          "bytes": 753742
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_730.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-22.bin",
+          "sha256": "7527383d53b964f01b6444333c40f8b2459a5af0ee466d63f19b6576c216634d",
+          "bytes": 753742
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_731.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-23.bin",
+          "sha256": "0e03f572fc5a2becd46e492110f59e3c89197fbed60551411200dcdd06654aeb",
+          "bytes": 753742
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_732.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-24.bin",
+          "sha256": "577785f2729b221f3c9794fd09e1bb9e9e154fcdf96c8f8307c0e009ef6a3864",
+          "bytes": 581171
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_733.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-25.bin",
+          "sha256": "db39942b198ea97df1b61127e8be8441b944358bd17b39b5a237897bfa968c1e",
+          "bytes": 581171
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_734.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-26.bin",
+          "sha256": "002c738ac0d3003691a0556a28e3a249c765961f75a4d49df6c452b4fb65e154",
+          "bytes": 581171
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_735.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-27.bin",
+          "sha256": "eef75e28db07e26a59192d48dfc5aa8e13ead9c00a304c7b40f65cea2fdf7917",
+          "bytes": 581171
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_736.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-28.bin",
+          "sha256": "f10b29c1b584e668793eae68f6ac1fdc0f4ffefa1eced694ded89ec2d3007424",
+          "bytes": 382092
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_737.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserIndependentProtectedAdmission-29.bin",
+          "sha256": "39e5164e345cb8a5b9b9bd4548b36f8aa92c721e437aca70fa93fd170e1a0728",
+          "bytes": 490775
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserStableDependencyAdmission",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_587.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-0.bin",
+          "sha256": "598a05619ed577f3c4a365da99de0540116b9cd46ee0f5abf066f62abc48963c",
+          "bytes": 245300
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_588.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-1.bin",
+          "sha256": "8a83cf84c41411832f7c50486a4cd66305843068a6383e06a630197a2f655e39",
+          "bytes": 299728
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_589.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-2.bin",
+          "sha256": "505c6163860b4105176cf39dc7f9705232c0bc338c1ff59fde37c2b598768161",
+          "bytes": 185370
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_590.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-3.bin",
+          "sha256": "a57bcd10dd641038cd589ada4c18e0a5f04fb188d372dc6db626a67831f2a8cb",
+          "bytes": 205619
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_591.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-4.bin",
+          "sha256": "c263f8ffbce9edc4bb3cacd2d898882259d2dffb033a84dac56c89d583a35840",
+          "bytes": 980630
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_592.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-5.bin",
+          "sha256": "67cfb01b266f0189aafd52dd889d103fcd7795aab35295aa66cc9dd3acc111d5",
+          "bytes": 318453
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_593.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-6.bin",
+          "sha256": "b83ce27db41c3b0eaab28372edfc7cc3d582d97dc80b88c4b3e3385ba962acf8",
+          "bytes": 969232
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_594.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-7.bin",
+          "sha256": "14eaf231ffba5da44f8356c71518294b8fe5816e70313b6ef013f432d479c6a9",
+          "bytes": 109318
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_595.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserStableDependencyAdmission-8.bin",
+          "sha256": "6d023eb7ed4eb0cf0817352d7a924f7a46b81de928f1eccd16f7a7187eed9b80",
+          "bytes": 324070
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserWindow8StableLexicalFact",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_294.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-0.bin",
+          "sha256": "10c7b2654c91777ffa60f4e0ce953c75522a93d94551f36170fd804fa699da3c",
+          "bytes": 1208139
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_295.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-1.bin",
+          "sha256": "9112359eefb869546b8d0d37614d3e3d8978225315a01dde022b7c9f7861fec9",
+          "bytes": 934374
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_296.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-2.bin",
+          "sha256": "7fd21dfad54709c98faa5c7a06b044f41752aac4ce7868fe3d13cd0c4db9af81",
+          "bytes": 934374
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_297.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-3.bin",
+          "sha256": "cd4edff5de56063532e279f8753934b239fb179e2056df0171b36500aa50ee28",
+          "bytes": 1449816
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_298.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-4.bin",
+          "sha256": "884f188b45888fb66b8c8e5460e60bf0a417ca977e349292c34d65fb4a6d5f86",
+          "bytes": 934374
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_299.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-5.bin",
+          "sha256": "2b1e3491b0b41bae25f66ee891c973a53b31f6e8fb5dd75a7a5374fdbcce0105",
+          "bytes": 1449816
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_300.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-6.bin",
+          "sha256": "b2ca5a65914f157c8d316ce30a7e6acff24293bb348270849c63873022487f9b",
+          "bytes": 934374
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_301.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8StableLexicalFact-7.bin",
+          "sha256": "44776bd6823feced982def781288eb89966683a348f2577b679b176573b7a199",
+          "bytes": 1449816
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserWindow8Snapshot",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_249.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-0.bin",
+          "sha256": "867d53dd27e0dd75db6bcad26a75ee0749486a166724961c4ef1e398e0a703b5",
+          "bytes": 225770
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_250.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-1.bin",
+          "sha256": "d70580d09cb65041e8fc00422a1ae977dc97b28bbda9d3afaceeb0163dcaf00a",
+          "bytes": 514680
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_251.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-2.bin",
+          "sha256": "2de25c260e373de54bdc7368f4fd5ba1fb80876fed54f7210276e6855625dd5a",
+          "bytes": 1182496
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_252.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-3.bin",
+          "sha256": "a1179c58e95b4dbede93d46dba65bcc87c1011836e33de793117f39c4fa7d38b",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_253.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-4.bin",
+          "sha256": "10fcbc382cac7b8f9b0889c96b4f30bca1c7ad4c02f4288eacd4e1ad1bb443bd",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_254.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-5.bin",
+          "sha256": "a3cab08a735452c506c20c466ea08b1f2d5701e8fe79b88a2bccd0ad1557126b",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_255.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-6.bin",
+          "sha256": "ef2e1874dad31d5a42ee239607cd747030d8af36488cd5054dbaf3136a436454",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_256.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-7.bin",
+          "sha256": "88e1800e053979310cb3ca43a9f3d67d861dfe04ca29b83c528f823f3e1b6493",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_257.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-8.bin",
+          "sha256": "d60d057ec0f877cfdeca4af5bcbdfcc43f0555b2fa4f58140003b280d1dc84aa",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_258.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-9.bin",
+          "sha256": "2be049bc1f5b4cadb808cd09a9b458de854b96b17854e0fe32553786f23b4bb0",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_259.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-10.bin",
+          "sha256": "3a9248dc6777c0ccf70190d4026581bf89e5d5d3ac1d347e2c09326756c85058",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_260.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-11.bin",
+          "sha256": "7eaf148f329ce8cc1c8a5e4c9a1c229beb1010062bbfc727a4c82b34a95f6a66",
+          "bytes": 998057
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_261.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-12.bin",
+          "sha256": "a0ed2dd974088b37a0f971ce589139ce1d977397823396e2684e742a492e7d02",
+          "bytes": 1182496
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_262.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-13.bin",
+          "sha256": "ac71bb72b47d2d03e0cde7dc91a506c2f190d5eb473a9a897cde31e7ad68a114",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_263.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-14.bin",
+          "sha256": "ff7914b869fcfd299dad3c74f52239bcab8f17ddaf315a175d0225cde01c90ed",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_264.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-15.bin",
+          "sha256": "d6eca038f565713baed5694bf2b0f3f629641b261c2c90225609d3a054a46129",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_265.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-16.bin",
+          "sha256": "bc5e9c65dda7be98a2c07539fdb9b7ae12c93348d2743d0bb3af141fca20bf0e",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_266.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-17.bin",
+          "sha256": "1bb28743643f7b07bbdadf7e97f9471ea91c3632b5a88902cc6f5a8597da839b",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_267.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-18.bin",
+          "sha256": "e687de712042c0d4886fe55dc8f6c7ab84a66173709c91099fdf1073a5e0316c",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_268.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-19.bin",
+          "sha256": "0fabadd4a6bb35c33cce97d4dd3fb69128b64ffed57426264cce80edd35756d1",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_269.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-20.bin",
+          "sha256": "b1fb2b1ebaf4c2d778610661b613da6ab287f1bdbba15c2422cba5846be5be48",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_270.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-21.bin",
+          "sha256": "caa94116d3de612195a784c8f8a34f12f9d1cef73e952bf8cb0e6ba08930f7a7",
+          "bytes": 998057
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_271.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-22.bin",
+          "sha256": "4970ab6f26bbff3df7ace117e2735919b92f6c97ae1594d1d80ef00362af512f",
+          "bytes": 1182496
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_272.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-23.bin",
+          "sha256": "7969e3f58b3a0c5e07707b6465791d4dedd94e5ef500f41320294bc5e1850ea2",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_273.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-24.bin",
+          "sha256": "3b1e72df1f3e8c25bf5d883a1d5eaa32afc58c32b6009f62158273a843494281",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_274.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-25.bin",
+          "sha256": "8b3c40234496b1b19e50677404b88175c261a1480eeb3330a2152b4578ef40be",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_275.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-26.bin",
+          "sha256": "c5218484dfaf4d882b4b05c15cbeb59fb885402816eabbfb90898fc98eda92df",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_276.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-27.bin",
+          "sha256": "3e87259dec4eaa89bc5dd006ac46687cc1ea30a44fc6d5c9bd3951b41f448496",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_277.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-28.bin",
+          "sha256": "cec851e82879883472f327e6aa519c9f6ac14eadb7e97ef43f704da730c57e16",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_278.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-29.bin",
+          "sha256": "c9811c49b025b4b0bb841e7c8732237fb9aa7eef291f0b81d798c3f131f71450",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_279.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-30.bin",
+          "sha256": "9fa2cdbd5bef2c645d3ba808ecd45a445ba3aa1076a2d90a79c42e717f653c08",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_280.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-31.bin",
+          "sha256": "63eaf1e9d43222d74d19b895e0e23cbb39c9936176d7eb96342f425e3d08f1a8",
+          "bytes": 998057
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_281.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-32.bin",
+          "sha256": "621a400dd4a12cbf198612bb8872010030b905121c56e2486e41eb606c25e912",
+          "bytes": 1182496
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_282.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-33.bin",
+          "sha256": "863ec096109911b1ac5bb68fe0c5a1f661fbd91f4249bddccdc20144f6c43ccf",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_283.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-34.bin",
+          "sha256": "04dc5b629d0c22835b90be9fe720bc041c4d284a4db89ae8d92cda5c4991761d",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_284.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-35.bin",
+          "sha256": "81c6a1c06a7001e8abc3892f8b8cba214d883d8405ec1fa3b16702d9bb33978b",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_285.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-36.bin",
+          "sha256": "eca14ff70d9cba6f88ca84bc8d077799b73ab592e1b6565e2c62c0d2bd707417",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_286.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-37.bin",
+          "sha256": "ac51f29c23229ee56513fa8acc08d04bca728330dd0511e61855fb1980a46135",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_287.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-38.bin",
+          "sha256": "09fe7b689f9c7e9478fe4e0978df99d4b08dfd5ecc036358c0bc06a4d57f66fd",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_288.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-39.bin",
+          "sha256": "33416407f8e58a188ded72afcfda863ea83bde681fb2e40b13c24c803d9bb210",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_289.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-40.bin",
+          "sha256": "1d2a82cf4d23b855cd9b92465835dbfc867dac2a22d424e725286b40ccfe4e99",
+          "bytes": 730972
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_290.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8Snapshot-41.bin",
+          "sha256": "3ac4397e9797a9b4a7b6096d54aa36a94864262d4d419bc5f119172305d8b1d2",
+          "bytes": 998057
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserWindow8CheckedHypothesis",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_231.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-0.bin",
+          "sha256": "90ab67332c3e723a5443ee491d26d94eedd5b33b8ab9926b7b1e5ccc804fc3e4",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_232.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-1.bin",
+          "sha256": "64d342a4edb3a7704c450c8920a91072eea1cf215ff749ad57261c78a955ae5c",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_233.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-2.bin",
+          "sha256": "4dfa3ca7827bd21e9568e4033d5557d5729a46cc1ff7747d0af5bda3efa14eb4",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_234.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-3.bin",
+          "sha256": "968ed79749988c7a9dc1005c2738e41d2a13ea833e822f56f39e118c0b827ec4",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_235.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-4.bin",
+          "sha256": "674d6d57c1d6f970ba81e08cbe8343bfb33979ab45f98fc90526fcf78cc209a5",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_236.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-5.bin",
+          "sha256": "0114b816bd7b2bbc7ddafeea124bdba622792dafd4e5d7e605cfb20b29b89606",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_237.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-6.bin",
+          "sha256": "a8cffbcb539ef75a9ee69b5b9bedd4fa2ff0c3425f86372ba0b843af8fee8df7",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_238.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-7.bin",
+          "sha256": "964e38de28726fb2715440400b98ff371aa07913519e34ded9a737960b29e783",
+          "bytes": 205732
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_239.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-8.bin",
+          "sha256": "8dec0f1ad517b0f5c80be3852a78c87e54351c0d420fcf0471d0f1cbb2d2418e",
+          "bytes": 110316
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_240.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-9.bin",
+          "sha256": "a7af25295d576b32553c4a363f44adfcd36f478c72493502a1445fd58f48a35b",
+          "bytes": 110322
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_241.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-10.bin",
+          "sha256": "1d3e70966343cae31ba907595476a76353636451d36951821ea1db9da436b65d",
+          "bytes": 110322
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_242.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-11.bin",
+          "sha256": "e2a20b4233e59c8f4f1b089162b2625cd7a2cc30d523f1e6401d25cbd62bb8ea",
+          "bytes": 110318
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_243.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-12.bin",
+          "sha256": "c4c1b110430ceaae475ba93d9c69180eed98ef0baae17c67be81ce06bf33ba77",
+          "bytes": 110324
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_244.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-13.bin",
+          "sha256": "addcd465062e28aafedfdfc96c735b3316ee57ffedae9b374463323ecbeada1b",
+          "bytes": 110328
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_245.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-14.bin",
+          "sha256": "68268f2eabc5ad8c7395587ab3c93438dfb1aacd5acc43c553fa3cb6075c5173",
+          "bytes": 111496
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_246.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-15.bin",
+          "sha256": "917ea5fb810143be7b15e1b22ada13b7bff7d3b119c55ccc87984fdb93ab1ff0",
+          "bytes": 111534
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_247.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserWindow8CheckedHypothesis-16.bin",
+          "sha256": "5cd23647d8af0cd8c7e577dadb6839779f4ca40d683806339de6359076159344",
+          "bytes": 111546
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserJointStableFact",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_571.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-0.bin",
+          "sha256": "1cd56be482a60965034493f930119f58c8295f67463111fb4fb1fa779c762fbb",
+          "bytes": 139983
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_572.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-1.bin",
+          "sha256": "5f6a70ec00ac65f1f5ca8d17bb107a25738b72fee35d40a6e834feec8a514b9f",
+          "bytes": 1118239
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_573.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-2.bin",
+          "sha256": "038ce7934b5d79bc3ba32f435432059cb8711f4327c65766860e7b2257cc1d68",
+          "bytes": 434775
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_574.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-3.bin",
+          "sha256": "8356f1314882cd21a6840fd18613c376c64b2038135bf71573d6c0fcb3e92acd",
+          "bytes": 495534
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_575.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-4.bin",
+          "sha256": "5322d5ebc0413a40200e405ced982419dc6baa5c1db70ce87e2953084cb0cdf9",
+          "bytes": 609209
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_576.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-5.bin",
+          "sha256": "0f947de3926dbba02fcc3bac8073f3ba437e79a2cb75c00856760c6eaf757deb",
+          "bytes": 495534
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_577.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-6.bin",
+          "sha256": "956213f857e5e6d4ee9fefd65cbcbaf8a2c20ece93ce3eec090265872338c328",
+          "bytes": 3782714
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_578.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-7.bin",
+          "sha256": "0e45abf7c9f58467c5ceb09feb1f528a5f66422a273c52c527cb5471c241fe70",
+          "bytes": 609209
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_579.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-8.bin",
+          "sha256": "14c273df2b80bc67ac712f8f6cdc4459c3f32f0b89d439d02697298ba44d1b40",
+          "bytes": 495534
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_580.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-9.bin",
+          "sha256": "cfdccafdb0ed8be568bed79b85b919ca40cc033b3dfcc26d117de48e55a34a44",
+          "bytes": 3782714
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_581.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-10.bin",
+          "sha256": "55ece4e958b17401137a21d8fde618970c25ca6e73aa1ad88fba15492c144836",
+          "bytes": 609209
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_582.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-11.bin",
+          "sha256": "bc31d3d41497e2ef6c6ccf62f348d4dd39fae55080daff2c508f709e9a535602",
+          "bytes": 495534
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_583.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-12.bin",
+          "sha256": "933134d4415d6456ad1a6a05fba3b983ecab5e137924c9e1c0cbdb62dc4d94ff",
+          "bytes": 3782714
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_584.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointStableFact-13.bin",
+          "sha256": "d14376a69a4f4dada376dff85d601768b627e5f8d2c5d76f2aa4c0e05c0763d3",
+          "bytes": 609209
+        }
+      ]
+    },
+    {
+      "name": "LanguageParserJointRuntimeHypothesis",
+      "laws": [
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_437.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointRuntimeHypothesis-0.bin",
+          "sha256": "bd80ba52dc23376c4da3c7dc53583648dd3ea05abfed63fd93b8b710107ae8fe",
+          "bytes": 36614
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_438.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointRuntimeHypothesis-1.bin",
+          "sha256": "890a0447c4d83003ce66e34621deecc8f29ca658d3dd939863b02d0edea8e314",
+          "bytes": 36666
+        },
+        {
+          "source_path": "/home/dancxjo/conduit-4907-text-revisions/target/debug/build/conduit-language-66b63170b7b5d838/out/native_binding_bytes_439.bin",
+          "path": "/home/dancxjo/conduit-4907-native-evaluation/work/trusted-law-snapshot/LanguageParserJointRuntimeHypothesis-2.bin",
+          "sha256": "f729669086c9a0cfa6ef6e9f04729579a3748d94108702cc0e054d3ecbf10712",
+          "bytes": 36609
+        }
+      ]
+    }
+  ]
+}
