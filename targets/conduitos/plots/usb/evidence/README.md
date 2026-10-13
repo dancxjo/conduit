@@ -22,3 +22,10 @@ deferred under #5258. IA-32, RISC-V64 and LoongArch64 have no admitted USB provi
 no separately filed USB provider bring-up issue was identified, so their explicit
 unsupported dispositions remain tracked by #5258. This does not imply those
 architectures lack other product capabilities.
+
+The `hosts-conduitos` CI shard discovers ConduitOS integration targets through
+`tools/xtask/src/suites/host_protocol_shards.rs`; it includes
+`usb_architecture_evidence`, which verifies the five target dispositions and
+exact retained receipt hashes. The HID and protocol-Plot integration binaries
+are assigned to their existing browser and workbench shards. This gate checks
+retained evidence integrity; it does not substitute a device execution claim.
