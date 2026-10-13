@@ -1,0 +1,22 @@
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+warning: unused import: `TrainingExampleIdentityPages`
+ --> mechanisms/implementations/burn-model/tests/corpus_cursor.rs:2:36
+  |
+2 | use conduit_ai::{TrainStepOutcome, TrainingExampleIdentityPages};
+  |                                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  |
+  = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-burn-model` (test "corpus_cursor") generated 1 warning (run `cargo fix --test "corpus_cursor" -p conduit-burn-model` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 6.51s
+     Running tests/corpus_cursor.rs (/home/dancxjo/conduit/target/debug/deps/corpus_cursor-203165ae64548bfb)
+
+running 4 tests
+test cancellation_evaluation_and_failed_checkpoint_distinguish_live_and_durable_cursor ... ok
+test changed_actual_payload_recipe_and_missing_owner_refuse_before_any_state_mutation ... ok
+test actual_next_tensors_resume_across_seeded_epoch_boundary_without_replayed_caller_batch ... ok
+test training_only_cadence_stable_order_and_cursor_tampering_are_explicit ... ok
+
+test result: ok. 4 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+

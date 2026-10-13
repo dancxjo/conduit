@@ -1,0 +1,105 @@
+{
+  "base": "d932da60c7f04bde62c797126e298e38aa9819d0",
+  "sources": {
+    "mechanisms/implementations/burn-model/src/adapter.rs": "cd79016b7fbae05a4416b816fd3a1c4a180ce456131fc4e618c846ad3d343ea4",
+    "mechanisms/implementations/burn-model/src/checkpoint.rs": "717da65b248eb8a9dabe6a91f0b714c248e2568007589f290a2ccf9b5cbbac54",
+    "mechanisms/implementations/burn-model/src/checkpoint_manifest.rs": "d30f2af5a9461b04897cc379312f1378c217da2e247b3b475ed06bc296e2b739",
+    "mechanisms/implementations/burn-model/src/lib.rs": "60620aee3a0dcb38b8589957c2684b473d75c14e9d307c9e57c57fc01ff2472c",
+    "mechanisms/implementations/burn-model/src/training_step.rs": "2e8ffc531aa73ae9bffbbc9989c2c9a3abe3448b05da5f0c53fd661b876999da",
+    "semantics/ai/src/model_work_contract.rs": "1099be7d07a700d254d12456f2efaedb7ccfcdda7426c54a027e9447f1a9a247",
+    "semantics/ai/src/training.rs": "5db77525a0c67936481610366166230ff5ec69ba069230767be1c2c21d368b24",
+    "targets/std/src/hosted_burn_work.rs": "d6b7b3f625126f1949711d851276fbfb8afff73d614416dfc5d9fdb0ecb18e59",
+    "targets/std/tests/burn_plot_journey.rs": "cf7bfffd9a6aab15c2444d04b83ab21269e9fb6462a32c0c92f66d3a107b87d0",
+    "mechanisms/implementations/burn-model/src/corpus.rs": "09dca6589324c2fc6d81cd1eb32a6f14ba9950a1db1ec6a3c8601d5502d51b08",
+    "mechanisms/implementations/burn-model/tests/corpus_cursor.rs": "1e542ce53fcb172ad2a96107838a2a38e922b67298e4600bf27e727712d26d73",
+    "mechanisms/implementations/burn-model/tests/common/corpus.rs": "b3f476a9f79737c0718f0655ff228d3b6480c8f533022c88aaeab45fba9207d1"
+  },
+  "unchanged": true,
+  "results": [
+    {
+      "name": "burn-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-burn-model"
+      ],
+      "exit": 0,
+      "seconds": 4.1101780899916776
+    },
+    {
+      "name": "plot-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "burn-model",
+        "--test",
+        "burn_plot_journey"
+      ],
+      "exit": 0,
+      "seconds": 1.9356410710024647
+    },
+    {
+      "name": "ai-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "test",
+        "--locked",
+        "-p",
+        "conduit-ai",
+        "--lib",
+        "--test",
+        "training",
+        "--test",
+        "training_lifecycle",
+        "--test",
+        "native_training_vocabulary"
+      ],
+      "exit": 0,
+      "seconds": 37.521138028998394
+    },
+    {
+      "name": "clippy-final",
+      "command": [
+        "cargo",
+        "+stable",
+        "clippy",
+        "--locked",
+        "-p",
+        "conduit-burn-model",
+        "-p",
+        "conduit-ai",
+        "-p",
+        "conduit-std-host",
+        "--features",
+        "conduit-std-host/burn-model",
+        "--lib",
+        "--test",
+        "corpus_cursor",
+        "--test",
+        "checkpoint_contract",
+        "--test",
+        "training",
+        "--test",
+        "training_lifecycle",
+        "--test",
+        "native_training_vocabulary",
+        "--test",
+        "burn_plot_journey",
+        "--",
+        "-D",
+        "warnings"
+      ],
+      "exit": 0,
+      "seconds": 210.56820476800203
+    }
+  ]
+}

@@ -1,0 +1,26 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/assigned-plan)
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/core)
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/data)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+warning: unused import: `ToString`
+  --> semantics/ai/src/model_work_contract.rs:12:22
+   |
+12 |     string::{String, ToString},
+   |                      ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+warning: `conduit-ai` (lib) generated 1 warning (run `cargo fix --lib -p conduit-ai` to apply 1 suggestion)
+    Finished `test` profile [unoptimized] target(s) in 15.48s
+     Running tests/corpus_cursor.rs (/home/dancxjo/conduit/target/debug/deps/corpus_cursor-203165ae64548bfb)
+
+running 3 tests
+test cancellation_evaluation_and_failed_checkpoint_distinguish_live_and_durable_cursor ... ok
+test actual_next_tensors_resume_across_seeded_epoch_boundary_without_replayed_caller_batch ... ok
+test changed_actual_payload_recipe_and_missing_owner_refuse_before_any_state_mutation ... ok
+
+test result: ok. 3 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.13s
+

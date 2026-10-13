@@ -1,0 +1,15 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+    Finished `test` profile [unoptimized] target(s) in 1.24s
+     Running tests/corpus_cursor.rs (/home/dancxjo/conduit/target/debug/deps/corpus_cursor-203165ae64548bfb)
+
+running 7 tests
+test preparation_enforces_exact_membership_payload_and_declared_tail_and_resource_bounds ... ok
+test cancellation_evaluation_and_failed_checkpoint_distinguish_live_and_durable_cursor ... ok
+test corpus_memory_admission_and_unload_release_owned_progress ... ok
+test changed_actual_payload_recipe_and_missing_owner_refuse_before_any_state_mutation ... ok
+test actual_next_tensors_resume_across_seeded_epoch_boundary_without_replayed_caller_batch ... ok
+test stable_order_and_descriptor_version_are_checked_without_reopening_legacy_manual_state ... ok
+test training_only_cadence_stable_order_and_cursor_tampering_are_explicit ... ok
+
+test result: ok. 7 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+

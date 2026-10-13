@@ -1,0 +1,57 @@
+    Checking crossbeam-utils v0.8.23
+    Checking rand v0.10.3
+    Checking parking_lot v0.12.5
+    Checking bytes v1.12.1
+    Checking thiserror v2.0.20
+    Checking concurrent-queue v2.5.0
+    Checking data-encoding v2.11.1
+    Checking async-channel v2.5.0
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/assigned-plan)
+    Checking rand_distr v0.6.0
+    Checking crypto-common v0.1.7
+    Checking cubecl-environment v0.11.0
+    Checking digest v0.10.7
+   Compiling conduit-core v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/core)
+    Checking sha2 v0.10.9
+    Checking cubecl-common v0.11.0
+    Checking burn-std v0.22.0
+    Checking burn-backend v0.22.0
+    Checking burn-pack v0.22.0
+    Checking burn-ir v0.22.0
+    Checking burn-autodiff v0.22.0
+    Checking burn-flex v0.22.0
+    Checking burn-dispatch v0.22.0
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/plot)
+    Checking burn-tensor v0.22.0
+    Checking burn-core v0.22.0
+    Checking burn-linalg v0.22.0
+    Checking burn-nn v0.22.0
+    Checking burn-store v0.22.0
+    Checking burn-optim v0.22.0
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/time)
+    Checking burn v0.22.0
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/data)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+warning: unused import: `ToString`
+  --> semantics/ai/src/model_work_contract.rs:12:22
+   |
+12 |     string::{String, ToString},
+   |                      ^^^^^^^^
+   |
+   = note: `#[warn(unused_imports)]` (part of `#[warn(unused)]`) on by default
+
+warning: `conduit-ai` (lib) generated 1 warning (run `cargo fix --lib -p conduit-ai` to apply 1 suggestion)
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+error[E0624]: method `validate_batch` is private
+   --> mechanisms/implementations/burn-model/src/corpus.rs:146:46
+    |
+146 |         for batch in &rebuilt.batches { self.validate_batch(&batch.tensors, &batch.identity)?; }
+    |                                              ^^^^^^^^^^^^^^ private method
+    |
+   ::: mechanisms/implementations/burn-model/src/training_step.rs:220:5
+    |
+220 |     fn validate_batch(&self, batch: &ModelBatch, identity: &TrainingBatch) -> Result<(), Error> {
+    |     ------------------------------------------------------------------------------------------- private method defined here
+
+For more information about this error, try `rustc --explain E0624`.
+error: could not compile `conduit-burn-model` (lib) due to 1 previous error

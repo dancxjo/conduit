@@ -1,0 +1,43 @@
+   Compiling conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+warning: function `finite_corpus_order` is never used
+   --> mechanisms/implementations/burn-model/tests/common/mod.rs:338:8
+    |
+338 | pub fn finite_corpus_order(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `#[warn(dead_code)]` (part of `#[warn(unused)]`) on by default
+
+warning: function `finite_corpus` is never used
+   --> mechanisms/implementations/burn-model/tests/common/mod.rs:383:8
+    |
+383 | pub fn finite_corpus(
+    |        ^^^^^^^^^^^^^
+
+warning: `conduit-burn-model` (test "checkpoint_contract") generated 2 warnings
+    Finished `test` profile [unoptimized] target(s) in 1.46s
+     Running tests/checkpoint_contract.rs (/home/dancxjo/conduit/target/debug/deps/checkpoint_contract-703e3f8582549fce)
+
+running 9 tests
+test failed_pointer_replacement_never_advertises_partial_bundle ... ok
+test cancellation_and_stale_resume_preserve_live_and_durable_progress ... ok
+test checkpoint_failure_retains_durable_cursor ... ok
+test inference_reexport_preserves_checkpoint_generation_and_identity ... ok
+test inference_off_ramp_has_no_resume_authority ... ok
+test incompatible_recipe_and_corrupt_checkpoint_refuse_without_mutation ... ok
+test corrupt_weight_member_refuses_without_replacing_model ... ok
+test checkpoint_reload_preserves_inference ... ok
+test fresh_runtime_resumes_recorded_step_cursor ... ok
+
+test result: ok. 9 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.09s
+
+     Running tests/corpus_cursor.rs (/home/dancxjo/conduit/target/debug/deps/corpus_cursor-203165ae64548bfb)
+
+running 5 tests
+test cancellation_evaluation_and_failed_checkpoint_distinguish_live_and_durable_cursor ... ok
+test changed_actual_payload_recipe_and_missing_owner_refuse_before_any_state_mutation ... ok
+test actual_next_tensors_resume_across_seeded_epoch_boundary_without_replayed_caller_batch ... ok
+test stable_order_and_descriptor_version_are_checked_without_reopening_legacy_manual_state ... ok
+test training_only_cadence_stable_order_and_cursor_tampering_are_explicit ... ok
+
+test result: ok. 5 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 0.19s
+

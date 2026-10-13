@@ -1,0 +1,7 @@
+Prepared finite corpora now own the actual TrainingBatch and inline ModelBatch tensors. Ordinary `TrainNext` chooses the next batch internally and commits its compact deterministic cursor alongside model progress. Durable checkpoints validate a freshly admitted exact corpus before restoring the next batch, including seeded order across epoch boundaries.
+
+Depends on #5208; based on its exact published source d932da60c7f04bde62c797126e298e38aa9819d0. References #5205 without claiming voice/tutorial application acceptance or whole-issue closure. Existing manual batch checkpoints remain format 1; cursor checkpoints use explicit format 2.
+
+Admission covers conservative retained-owner and next-batch staging estimates, metadata, order and cursor storage. This finite manual corpus profile is not a whole-process heap ceiling. Cancellation/evaluation preserve progress; failed checkpoint publication preserves the older durable pointer even when live training has advanced. Unload releases the corpus owner.
+
+Validation: 36 Burn runtime tests plus 4 doc tests (1 existing ignored), 34 scoped AI tests, both ordinary Plot journeys, and strict scoped Clippy. Additional parent gates passed AI all targets with kernel-operation-owners (292 tests) and both std Plot journeys with the strong feature combination. Evidence preserves raw logs, failed compile/lint probes, and exact source hashes: tests ran on the dirty implementation tree and hashes were reverified identical before committing; the second commit adds evidence only.

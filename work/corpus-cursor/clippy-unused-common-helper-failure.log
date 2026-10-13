@@ -1,0 +1,26 @@
+   Compiling conduit-assigned-plan v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/assigned-plan)
+    Checking conduit-core v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/core)
+    Checking conduit-plot v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/architecture/plot)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/time)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/data)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/ai)
+    Checking conduit-burn-model v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/mechanisms/implementations/burn-model)
+error: function `finite_corpus_order` is never used
+   --> mechanisms/implementations/burn-model/tests/common/mod.rs:338:8
+    |
+338 | pub fn finite_corpus_order(
+    |        ^^^^^^^^^^^^^^^^^^^
+    |
+    = note: `-D dead-code` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[expect(dead_code)]` or `#[allow(dead_code)]`
+
+error: function `finite_corpus` is never used
+   --> mechanisms/implementations/burn-model/tests/common/mod.rs:383:8
+    |
+383 | pub fn finite_corpus(
+    |        ^^^^^^^^^^^^^
+
+error: could not compile `conduit-burn-model` (test "inference_only") due to 2 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `conduit-burn-model` (test "training_contract") due to 2 previous errors
+error: could not compile `conduit-burn-model` (test "state_safety") due to 2 previous errors
