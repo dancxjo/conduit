@@ -3,7 +3,10 @@ use conduit_body::{
     ResidentPlot, WakeLifecycle,
 };
 use conduit_core::{
-    seal_plan, CheckedPlotId, ExpandedPlotId, Plan, PlanId, PlotIdentity, SignId, SourceDocumentId,
+    seal_plan, BodyClockCorrelation, BodyTimeQuality, BodyTimeRequirement, BodyTimeTolerance,
+    BootId, CheckedPlotId, ClockProvenance, ExpandedPlotId, HostId, MonotonicClockIdentity,
+    MonotonicDuration, MonotonicInstant, Plan, PlanId, PlotIdentity, SignId, SourceDocumentId,
+    TemporalScale,
 };
 
 fn resident(name: &str) -> ResidentPlot {
@@ -255,4 +258,99 @@ fn workload_change_replaces_the_plan_and_play_without_replacing_the_wake() {
         replaced.plans[1].state,
         conduit_body::WakePlanState::Playing
     );
+}
+
+#[test]
+fn body_time_requirement_is_bound_to_body_plan_without_changing_legacy_identity() {
+    let wake = two_plot_wake();
+    let plots = [resident("dashboard"), resident("service")]
+        .into_iter()
+        .map(|plot| BodyPlotPlan {
+            plan: plan(&plot, "body-time"),
+            plot,
+        })
+        .collect::<Vec<_>>();
+    let legacy = BodyPlan::seal(&wake, plots.clone()).unwrap();
+    let legacy_roundtrip: BodyPlan =
+        serde_json::from_str(&serde_json::to_string(&legacy).unwrap()).unwrap();
+    assert_eq!(legacy_roundtrip.plan_id, legacy.plan_id);
+    assert_eq!(legacy_roundtrip.body_time_requirement, None);
+
+    let requirement = BodyTimeRequirement::new(
+        wake.body_id.as_str().into(),
+        BodyTimeTolerance::new(2, TemporalScale::Milliseconds),
+        MonotonicDuration::new(500, TemporalScale::Milliseconds),
+    )
+    .unwrap();
+    let qualified = BodyPlan::seal_with_body_time(&wake, plots.clone(), requirement).unwrap();
+    assert_ne!(qualified.plan_id, legacy.plan_id);
+    assert_eq!(qualified.validate_for(&wake), Ok(()));
+    assert_eq!(qualified.verify_seal(), Ok(()));
+
+    let mut tampered = qualified.clone();
+    tampered.body_time_requirement = None;
+    assert_eq!(tampered.verify_seal(), Err(BodyPlanError::InvalidIdentity));
+    let mut tampered = qualified.clone();
+    tampered.body_time_requirement = Some(
+        BodyTimeRequirement::new(
+            wake.body_id.as_str().into(),
+            BodyTimeTolerance::new(3, TemporalScale::Milliseconds),
+            MonotonicDuration::new(500, TemporalScale::Milliseconds),
+        )
+        .unwrap(),
+    );
+    assert_eq!(tampered.verify_seal(), Err(BodyPlanError::InvalidIdentity));
+    let wrong_basis = BodyTimeRequirement::new(
+        "body/other".into(),
+        BodyTimeTolerance::new(2, TemporalScale::Milliseconds),
+        MonotonicDuration::new(500, TemporalScale::Milliseconds),
+    )
+    .unwrap();
+    assert_eq!(
+        BodyPlan::seal_with_body_time(&wake, plots, wrong_basis),
+        Err(BodyPlanError::InvalidBodyTimeRequirement)
+    );
+}
+
+#[test]
+fn body_time_quality_converts_horizon_to_local_clock_scale() {
+    let clock = MonotonicClockIdentity::new(
+        HostId::from("host/local"),
+        BootId::from("boot/local"),
+        "steady".into(),
+        TemporalScale::Microseconds,
+        1,
+        1,
+    )
+    .unwrap();
+    let sample = MonotonicInstant::new(1_000_000, clock).unwrap();
+    let correlation = BodyClockCorrelation::new(
+        "body/one".into(),
+        TemporalScale::Milliseconds,
+        1,
+        sample.clone(),
+        10_000,
+        0,
+        0,
+        1,
+        10_000_000,
+        ClockProvenance::External {
+            provider_id: "provider/test".into(),
+            admission_reference: "admitted/test".into(),
+            policy_id: "policy/test".into(),
+        },
+    )
+    .unwrap();
+    let requirement = BodyTimeRequirement::new(
+        "body/one".into(),
+        BodyTimeTolerance::new(2, TemporalScale::Milliseconds),
+        MonotonicDuration::new(500, TemporalScale::Milliseconds),
+    )
+    .unwrap();
+    match requirement.assess(&correlation, &sample) {
+        BodyTimeQuality::Ready { horizon, .. } => {
+            assert_eq!(horizon.local_sample.ticks(), 1_500_000);
+        }
+        other => panic!("expected admitted mixed-scale horizon, got {other:?}"),
+    }
 }

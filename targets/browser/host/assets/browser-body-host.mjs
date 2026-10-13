@@ -3,6 +3,7 @@ import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLA
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { createPitchTonePerformer, drainBrowserEffects } from "./browser-plot-effects.mjs";
+import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
 import { manifestApplicationView } from "./application-presentation.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
@@ -166,7 +167,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   let pcmAudio = null, pushToTalk = null;
   const dispatchController = new AbortController();
   let closeResult = null;
-  let input = null, timerSlots = [], clock = false, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
+  let input = null, timerSlots = [], clock = false, monotonicTimer = null, closed = false, started = null, completion = null, startAccepted = false, terminal = null;
   let startOutcome = "not-attempted";
   const window = outputRoot.ownerDocument.defaultView;
   const tone = createPitchTonePerformer(window);
@@ -196,8 +197,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       routing?.attach(input);
     }
     if (demand.has(TIMER) || demand.has(CLOCK)) {
-      if (typeof window.setTimeout !== "function" || typeof window.performance?.now !== "function" ||
-          !Number.isFinite(window.performance.now())) throw new Error("browser timer unavailable");
+      monotonicTimer = createBrowserMonotonicTimer(window, hostId, bootId);
       timerSlots = Array.from({ length: demand.get(TIMER) ?? 0 }, () => ({ pending: null, cancel: null }));
       clock = demand.has(CLOCK);
     }
@@ -221,7 +221,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (slots.size !== (demand.get(PRESENTATION) ?? 0)) throw new Error("presentation acquisition does not match demand");
   } catch (error) {
-    audio?.close();pcmAudio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
+    monotonicTimer?.close();audio?.close();pcmAudio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
   }
 
   const assertCurrent = () => {
@@ -239,22 +239,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
   };
-  const delay = (duration, signal, timerOwner) => new Promise((resolve, reject) => {
-    const timer = timerOwner;
-    if (!timer || timer.pending !== null || !Number.isSafeInteger(duration) || duration < 0 || duration > 60_000) {
-      reject(new Error("browser timer request exceeds acquisition"));return;
-    }
-    const finish = error => {
-      window.clearTimeout(timer.pending);timer.pending = null;timer.cancel = null;
-      signal.removeEventListener("abort", abort);
-      error ? reject(error) : resolve();
-    };
-    const abort = () => finish(new Error("browser timer cancelled"));
-    timer.cancel = abort;
-    timer.pending = window.setTimeout(() => finish(), duration);
-    signal.addEventListener("abort", abort, { once: true });
-    if (signal.aborted) abort();
-  });
+  const delay = (duration, signal, timerOwner) => monotonicTimer.wait(duration, signal, timerOwner);
   const perform = async (effect, signal) => {
     assertCurrent();
     if (effect.host_id !== hostId || effect.boot_id !== bootId ||
@@ -276,7 +261,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     if (effect.effect_kind === "clock-observation") {
       if (!clock) throw new Error("browser clock not acquired");
       const bytes = new Uint8Array(8);
-      new DataView(bytes.buffer).setBigUint64(0, BigInt(Math.floor(window.performance.now() * 1000)), true);
+      new DataView(bytes.buffer).setBigUint64(0, BigInt(monotonicTimer.nowMicros()), true);
       return bytes;
     }
     if (effect.effect_kind === "pointer-event") {
@@ -403,6 +388,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (closed) return closeResult;
       closed = true;
       dispatchController.abort();
+      monotonicTimer?.close();
       audio?.close();
       pcmAudio?.close();
       routing?.close();

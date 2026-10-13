@@ -14,7 +14,11 @@ use conduit_plan_lowering::{
     fragment_set::{lower_local_fragment_set, FragmentSetBounds},
     lowering::{KernelIdentityMap, LoweredHostCall, FIXED_KERNEL_STORAGE_PROFILE},
 };
-use std::{io::Write, time::Duration};
+use std::io::Write;
+
+mod clock_observation;
+use crate::body_execution::ObservedKernelEvent;
+use clock_observation::KernelClockObservations;
 
 pub(crate) struct BodyKernel {
     scheduler: InstalledScheduler,
@@ -26,6 +30,7 @@ pub(crate) struct BodyKernel {
     text_state_hosts: Vec<Option<super::text_state_back::TextStateHost>>,
     input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
     requests: Vec<HostCallRequest>,
+    clock_observations: KernelClockObservations,
 }
 
 pub(crate) struct BodyKernelResult {
@@ -35,6 +40,7 @@ pub(crate) struct BodyKernelResult {
     pub partitions: Vec<KernelIdentityMap>,
     pub requests: Vec<HostCallRequest>,
     pub events: Vec<KernelEvent>,
+    pub clock_observations: Vec<ObservedKernelEvent>,
 }
 
 fn keyboard(contract: &conduit_core::HostCallContractId) -> bool {
@@ -202,6 +208,7 @@ impl BodyKernel {
             text_state_hosts,
             input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
             requests: Vec::with_capacity(request_capacity),
+            clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
         })
     }
 
@@ -211,6 +218,8 @@ impl BodyKernel {
         clock: &mut T,
         input: Option<&mut dyn HostedKeyboardAdapter>,
         control: &RunControl,
+        host_id: &conduit_core::HostId,
+        boot_id: &conduit_core::BootId,
     ) -> BodyKernelResult {
         let mut keys = super::keyboard_input_host::KeyboardInputHost::new(
             input,
@@ -222,6 +231,12 @@ impl BodyKernel {
         let result = (|| -> Result<TerminalDisposition, String> {
             let mut cancelling = false;
             loop {
+                self.clock_observations.capture_new(
+                    self.scheduler.signs().events(),
+                    clock,
+                    host_id,
+                    boot_id,
+                );
                 if !cancelling && control.requested_stop().is_some() {
                     self.scheduler
                         .cancel()
@@ -254,6 +269,12 @@ impl BodyKernel {
                     }
                 }
                 while let Some(request) = self.scheduler.next_host_request() {
+                    self.clock_observations.capture_new(
+                        self.scheduler.signs().events(),
+                        clock,
+                        host_id,
+                        boot_id,
+                    );
                     if !self.requests.iter().any(|observed| {
                         observed.node == request.node && observed.call == request.call
                     }) {
@@ -533,11 +554,11 @@ impl BodyKernel {
                     if timer(&operation.contract_id) {
                         let duration =
                             conduit_time::decode_tick(input).map_err(|error| error.to_string())?;
-                        if let Some(now) = clock.monotonic_now_ms() {
-                            deadlines.arm(request, duration, now)?;
-                            continue;
-                        }
-                        clock.wait(Duration::from_millis(duration));
+                        let now = clock.monotonic_now_ms().ok_or_else(|| {
+                            "admitted monotonic wait Base is unavailable".to_string()
+                        })?;
+                        deadlines.arm(request, duration, now)?;
+                        continue;
                     } else if !simple_presentation_host::present(
                         operation.target_kind.as_ref(),
                         input,
@@ -557,11 +578,17 @@ impl BodyKernel {
                         )
                         .map_err(|error| format!("Body Host completion: {error:?}"))?;
                 }
-                match self
+                let status = self
                     .scheduler
                     .step()
-                    .map_err(|error| format!("Body kernel: {error:?}"))?
-                {
+                    .map_err(|error| format!("Body kernel: {error:?}"))?;
+                self.clock_observations.capture_new(
+                    self.scheduler.signs().events(),
+                    clock,
+                    host_id,
+                    boot_id,
+                );
+                match status {
                     SchedulerStatus::Drained => return Ok(TerminalDisposition::Completed),
                     SchedulerStatus::Cancelled => {
                         return Ok(TerminalDisposition::Cancelled {
@@ -587,6 +614,12 @@ impl BodyKernel {
                 }
             }
         })();
+        self.clock_observations.capture_new(
+            self.scheduler.signs().events(),
+            clock,
+            host_id,
+            boot_id,
+        );
         let mut cleanup_failure = None;
         let (terminal, failure) = match result {
             Ok(terminal) => (terminal, None),
@@ -606,6 +639,12 @@ impl BodyKernel {
                 )
             }
         };
+        self.clock_observations.capture_new(
+            self.scheduler.signs().events(),
+            clock,
+            host_id,
+            boot_id,
+        );
         BodyKernelResult {
             terminal,
             failure,
@@ -613,6 +652,7 @@ impl BodyKernel {
             partitions: self.partitions,
             requests: self.requests,
             events: self.scheduler.signs().events().collect(),
+            clock_observations: self.clock_observations.into_observations(),
         }
     }
 }
