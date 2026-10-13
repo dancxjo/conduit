@@ -1,0 +1,18 @@
+{
+  "proof_class": "emulator-with-device",
+  "architectures": [
+    "x86_64",
+    "aarch64"
+  ],
+  "same_checked_package_bytes": true,
+  "same_root_request_bytes": true,
+  "source_sha256": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+  "root_sha256": "4acd344bc7b7bc49b76f198ea8ba0a949cf64b992e6cda2fe5bc904eb059f7c7",
+  "pcm_packets": 72,
+  "exact_pcm_wire_bytes": 13824,
+  "normal_drain_phase": 3,
+  "play_allocation_attempts": 0,
+  "acknowledged_retirement": true,
+  "physical_or_audible_output": false,
+  "integration": "pending"
+}
