@@ -891,3 +891,11 @@ completed in 12.50 seconds with all original action/state assertions intact.
 Native/browser/linear/spoken instruction encounters still need their own actual
 transport/effect evidence. This establishes neither physical controller input,
 scanout, speaker delivery nor completed cross-Mask acceptance.
+
+The actual-artifact product diagnostic now consumes the fresh Source/effect
+exchange. One explicitly prepared computational evaluator reproduces the checked
+instruction wording for all observations and negative records; that fixture
+supplies no runtime input authority. Invented wording refuses even after its
+recorded digest is recomputed. Native, linear and aural Face-only reconstruction
+still preserves the action but loses its current binding. This remains a
+counterexample, not completed instruction encounters in those media.

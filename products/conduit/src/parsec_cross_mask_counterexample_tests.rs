@@ -3,13 +3,52 @@
 //! reconstruct its Faces; they do not prove scanout, delivered speech or browser Show.
 use conduit_plot::rust_binding::NativeRustBinding;
 use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, GraphicsClipClass,
-    GraphicsTextRole, MaskShow, ParsecMapTransitionResult, Presentation,
+    plan_face_utterances, render_linear_presentation, ActionInputBindingProposalInfo,
+    FaceUtteranceProvenance, GraphicsClipClass, GraphicsTextRole, MaskShow,
+    ParsecInputInstructionLook, ParsecMapTransitionResult, PreparedParsecInputInstruction,
+    Presentation,
 };
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
-fn correlate(exchange: &Value, index: usize) -> Result<Presentation, String> {
+/// Independent computational validation on an explicitly selected software Host.
+/// This fixture never supplies current input, Show custody or a runtime grant.
+fn prepared_instruction_wording() -> PreparedParsecInputInstruction {
+    use conduit_std_host::flow_activation::{
+        required_parsec_input_instruction_offer, ParsecInputInstructionSourcePlan,
+    };
+    let baseline = conduit_std_host::StdHost::new_with_config(conduit_std_host::StdHostConfig {
+        host_id: "proof/parsec-artifact-wording".into(),
+        boot_id: "proof/parsec-artifact-wording/boot".into(),
+        offer_generation: conduit_core::OfferGeneration(1),
+    });
+    let mut advertisement = baseline.advertisement().clone();
+    let offer = required_parsec_input_instruction_offer().unwrap();
+    if let Some(existing) = advertisement
+        .capabilities
+        .iter()
+        .find(|existing| existing.capability_id == offer.capability_id)
+    {
+        assert_eq!(existing, &offer);
+    } else {
+        advertisement.capabilities.push(offer);
+    }
+    advertisement
+        .capabilities
+        .sort_by(|left, right| left.capability_id.cmp(&right.capability_id));
+    // Exact source offer is selected before constructing this computational Host.
+    let host = conduit_std_host::StdHost::from_advertisement(advertisement).unwrap();
+    ParsecInputInstructionSourcePlan::prepare(host.advertisement())
+        .unwrap()
+        .evaluator()
+        .unwrap()
+}
+
+fn correlate(
+    exchange: &Value,
+    index: usize,
+    instruction: &mut PreparedParsecInputInstruction,
+) -> Result<Presentation, String> {
     let observation = &exchange["instructions"][index];
     let face: Presentation = serde_json::from_value(observation["face"].clone())
         .map_err(|error| format!("{error:?}"))?;
@@ -63,7 +102,7 @@ fn correlate(exchange: &Value, index: usize) -> Result<Presentation, String> {
     if face.actions.len() != 1 || face.actions[0].identity != action {
         return Err("source action differs from retained Face".into());
     }
-    let (revision, keyboard) = if index == 0 {
+    let state = if index == 0 {
         let bytes: Vec<u8> = serde_json::from_value(
             exchange["body_plan"]["plots"][0]["plan"]["activations"][0]["Scan"]
                 ["initial_accumulator"]
@@ -78,10 +117,7 @@ fn correlate(exchange: &Value, index: usize) -> Result<Presentation, String> {
         if *initial.state().started() || face.actions[0].identity != "game/start" {
             return Err("genesis/action correlation mismatch".into());
         }
-        (
-            *initial.state().mapping_revision(),
-            *initial.state().keyboard(),
-        )
+        initial.state().clone()
     } else {
         let result = &exchange["source_results"][index - 1];
         let bytes: Vec<u8> = serde_json::from_value(result["canonical_result_bytes"].clone())
@@ -99,18 +135,34 @@ fn correlate(exchange: &Value, index: usize) -> Result<Presentation, String> {
         {
             return Err("canonical source result disagrees with documentary state".into());
         }
-        (
-            *decoded.state().mapping_revision(),
-            *decoded.state().keyboard(),
-        )
+        decoded.state().clone()
     };
+    let revision = *state.mapping_revision();
+    let keyboard = *state.keyboard();
     let label = if keyboard { "Enter" } else { "Space" };
     let text = observation["prompt_text"]
         .as_str()
         .ok_or("missing flushed prompt")?;
     let digest: Vec<u8> = serde_json::from_value(observation["prompt_text_sha256"].clone())
         .map_err(|error| format!("{error:?}"))?;
-    if binding["mapping_revision"] != revision
+    let canonical_state = state.encode().map_err(|error| format!("{error:?}"))?;
+    let proposal: ActionInputBindingProposalInfo =
+        serde_json::from_value(binding.clone()).map_err(|error| format!("{error:?}"))?;
+    let canonical_binding = proposal.encode().map_err(|error| format!("{error:?}"))?;
+    let candidate = instruction
+        .evaluate(
+            &canonical_state,
+            &canonical_binding,
+            ParsecInputInstructionLook::Linear,
+            false,
+        )
+        .map_err(|error| format!("checked instruction wording: {error:?}"))?;
+    // Re-evaluation confirms exact authored wording only. Captured IDs and this
+    // candidate are documentary metadata, never Source/effect runtime custody.
+    let expected_text = format!("\r\u{1b}[2K{}", candidate.wording());
+    if candidate.withdrawal()
+        || candidate.binding_bytes() != canonical_binding
+        || binding["mapping_revision"] != revision
         || binding["control_identity"]
             != if keyboard {
                 "keyboard/enter"
@@ -118,7 +170,7 @@ fn correlate(exchange: &Value, index: usize) -> Result<Presentation, String> {
                 "control/fire"
             }
         || binding["control_label"] != label
-        || text != format!("\r\u{1b}[2KPress {label} to {}.", face.actions[0].name)
+        || text != expected_text
         || digest != Sha256::digest(text.as_bytes()).to_vec()
         || observation["input_view_epoch"] != observation["show"]["show"]["play_sequence"]
         || observation["producer_plan_id"]
@@ -228,6 +280,9 @@ fn actual_parsec_instruction_is_lost_at_face_only_mask_boundary() {
     ] {
         assert_eq!(exchange[key].as_array().unwrap().len(), 4);
     }
+    // This consumer explicitly targets source-authored instruction captures;
+    // legacy Rust-formatted Press captures remain separate historical evidence.
+    let mut instruction = prepared_instruction_wording();
     for index in 0..4 {
         let receipt = &exchange["scan_child_signs"][index];
         assert_eq!(
@@ -237,7 +292,7 @@ fn actual_parsec_instruction_is_lost_at_face_only_mask_boundary() {
         assert_eq!(receipt["invocation"], index);
         assert!(receipt["sign_event_count"].as_u64().unwrap() > 0);
         assert_eq!(exchange["source_results"][index]["fore_sequence"], index);
-        let face = correlate(&exchange, index).unwrap();
+        let face = correlate(&exchange, index, &mut instruction).unwrap();
         reconstruct_without_instruction(&face);
     }
     assert_eq!(
@@ -262,11 +317,32 @@ fn actual_parsec_instruction_is_lost_at_face_only_mask_boundary() {
     // never standalone fabricated runtime authority or scheduler admission tests.
     let mut changed = exchange.clone();
     changed["instructions"][3]["binding"] = exchange["instructions"][2]["binding"].clone();
-    assert!(correlate(&changed, 3).is_err(), "stale/substituted binding");
+    assert!(
+        correlate(&changed, 3, &mut instruction).is_err(),
+        "stale/substituted binding"
+    );
     changed["instructions"][3]["binding"] = Value::Null;
-    assert!(correlate(&changed, 3).is_err(), "missing binding");
+    assert!(
+        correlate(&changed, 3, &mut instruction).is_err(),
+        "missing binding"
+    );
     changed = exchange.clone();
     changed["instructions"][3]["binding"]["offered_action"]["action_identity"] =
         "game/start".into();
-    assert!(correlate(&changed, 3).is_err(), "Look-style action rewrite");
+    assert!(
+        correlate(&changed, 3, &mut instruction).is_err(),
+        "Look-style action rewrite"
+    );
+    changed = exchange.clone();
+    let invented = format!(
+        "{} Invented activation instruction.",
+        changed["instructions"][3]["prompt_text"].as_str().unwrap()
+    );
+    changed["instructions"][3]["prompt_text"] = invented.clone().into();
+    changed["instructions"][3]["prompt_text_sha256"] =
+        serde_json::to_value(Sha256::digest(invented.as_bytes()).to_vec()).unwrap();
+    assert!(
+        correlate(&changed, 3, &mut instruction).is_err(),
+        "rehashed non-source wording"
+    );
 }
