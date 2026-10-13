@@ -37,7 +37,7 @@ export function admissionPlan(paths, metadata, root) {
       if (members.some(pkg => pkg.name === name)) selected.add(name);
     }
   }
-  return { packages: [...selected].sort(), native: nativeRisk(paths), smoke: paths.some(name => /^(?:architecture|targets\/std|targets\/browser)\//.test(name)) };
+  return { packages: [...selected].sort(), broad, native: nativeRisk(paths), smoke: paths.some(name => /^(?:architecture|targets\/std|targets\/browser)\//.test(name)) };
 }
 
 export function runAdmission(paths, metadata, root, run) {
@@ -46,7 +46,7 @@ export function runAdmission(paths, metadata, root, run) {
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
   run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings']);
   const catalogChanges = paths.filter(name => name.startsWith('semantics/catalog/') && !name.endsWith('.md'));
-  const numericalCatalog = catalogChanges.length > 0 && catalogChanges.every(name =>
+  const numericalCatalog = !plan.broad && catalogChanges.length > 0 && catalogChanges.every(name =>
     /^semantics\/catalog\/(?:src\/numerical_realization(?:_back)?\.rs|numerical\/|tests\/numerical_realization(?:\.rs|\/))/.test(name));
   // Numerical registration changes affect the whole consumer library, but do
   // not require compiling every unrelated UI/network integration-test binary.
@@ -56,7 +56,7 @@ export function runAdmission(paths, metadata, root, run) {
     { name: 'conduit-std-host', directory: 'targets/std/', allowed: /^targets\/std\/(?:src\/(?:lib|installed_std|numerical_host)\.rs|src\/installed_std\/(?:back_capacity|back_kind|back_step|catalog|numerical_back|numerical_back_tests|structured_values_back)\.rs|tests\/numerical_offers\.rs)$/, test: 'numerical_offers' },
   ].filter(consumer => {
     const changes = paths.filter(name => name.startsWith(consumer.directory) && !name.endsWith('.md') && !name.startsWith('targets/std/offers/'));
-    return plan.packages.includes(consumer.name) && changes.some(name => name.includes('numerical')) && changes.every(name => consumer.allowed.test(name));
+    return !plan.broad && plan.packages.includes(consumer.name) && changes.some(name => name.includes('numerical')) && changes.every(name => consumer.allowed.test(name));
   });
   const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog') && !consumers.some(consumer => consumer.name === name));
   if (packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
