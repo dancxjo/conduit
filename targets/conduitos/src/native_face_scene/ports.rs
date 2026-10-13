@@ -33,7 +33,7 @@ pub(super) fn label(face: &Presentation, port: &PresentationSubject) -> String {
     format!("{direction} {kind} · {}", port.name)
 }
 
-fn endpoint<'a>(
+pub(super) fn endpoint<'a>(
     face: &'a Presentation,
     cord: &PresentationSubject,
     name: &str,
