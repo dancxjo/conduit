@@ -60,6 +60,12 @@ impl BootArena {
         self.with_state(|state| state.live_bytes())
     }
 
+    /// Monotonic GlobalAlloc entry counts, including refused attempts.
+    /// These expose churn even when allocations are immediately released.
+    pub fn attempts(&self) -> (u64, u64) {
+        self.with_state(|state| (state.allocation_attempts, state.reallocation_attempts))
+    }
+
     pub fn capacity(&self) -> usize {
         self.with_state(|state| state.capacity())
     }
@@ -98,14 +104,20 @@ pub enum ArenaError {
 
 unsafe impl GlobalAlloc for BootArena {
     unsafe fn alloc(&self, layout: Layout) -> *mut u8 {
-        self.with_state(|state| state.allocate(layout))
+        self.with_state(|state| {
+            state.allocation_attempts = state.allocation_attempts.saturating_add(1);
+            state.allocate(layout)
+        })
     }
     unsafe fn dealloc(&self, pointer: *mut u8, layout: Layout) {
         self.with_state(|state| state.release(pointer, layout));
     }
     unsafe fn realloc(&self, pointer: *mut u8, layout: Layout, new_size: usize) -> *mut u8 {
         // SAFETY: GlobalAlloc supplies the exact live allocation and Layout.
-        self.with_state(|state| unsafe { state.resize(pointer, layout, new_size) })
+        self.with_state(|state| {
+            state.reallocation_attempts = state.reallocation_attempts.saturating_add(1);
+            unsafe { state.resize(pointer, layout, new_size) }
+        })
     }
 }
 

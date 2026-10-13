@@ -1,5 +1,7 @@
 //! Prepared finite metadata composition; no audio or cadence interpretation.
-use super::contract::{ISOCHRONOUS_OUT_MAXIMUM_BYTES, IsochronousOutContract};
+use super::contract::{
+    ISOCHRONOUS_OUT_MAXIMUM_BYTES, ISOCHRONOUS_OUT_MAXIMUM_PACKETS, IsochronousOutContract,
+};
 use crate::usb_base::isochronous_schedule::IsochronousOutSnapshot;
 use alloc::{
     string::{String, ToString},
@@ -132,8 +134,8 @@ impl PreparedIsochronousResultEncoder {
         let StructuredInfoTypeShape::Sequence { element, .. } = sequence.shape() else {
             return Err(Error::WrongType);
         };
-        let mut packets = Vec::with_capacity(8);
-        for _ in 0..8 {
+        let mut packets = Vec::with_capacity(ISOCHRONOUS_OUT_MAXIMUM_PACKETS);
+        for _ in 0..ISOCHRONOUS_OUT_MAXIMUM_PACKETS {
             packets.push(MetadataRecord::new(element)?);
         }
         let mut zero_packet = MetadataRecord::new(element)?;
@@ -149,17 +151,26 @@ impl PreparedIsochronousResultEncoder {
                 contract.result_type(),
                 ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
             )?,
-            completed: PreparedStructuredComposer::new(&completed, 2048)?,
-            short: PreparedStructuredComposer::new(&case(contract.result_type(), "short")?, 2048)?,
+            completed: PreparedStructuredComposer::new(
+                &completed,
+                ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
+            )?,
+            short: PreparedStructuredComposer::new(
+                &case(contract.result_type(), "short")?,
+                ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
+            )?,
             missed: PreparedStructuredComposer::new(
                 &case(contract.result_type(), "missed-service")?,
-                2048,
+                ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
             )?,
             stopped: PreparedStructuredComposer::new(
                 &case(contract.result_type(), "underrun")?,
-                2048,
+                ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
             )?,
-            sequence: PreparedStructuredComposer::new(&sequence, 2048)?,
+            sequence: PreparedStructuredComposer::new(
+                &sequence,
+                ISOCHRONOUS_OUT_MAXIMUM_BYTES as usize,
+            )?,
             packets,
             fault_packet: MetadataRecord::new(element)?,
             snapshot: MetadataRecord::new(&case(contract.result_type(), "snapshot")?)?,
@@ -205,10 +216,11 @@ impl PreparedIsochronousResultEncoder {
         completed: &[IsochronousCompletion],
         outcome: IsochronousOutcome,
     ) -> Result<&[u8], Error> {
-        if completed.len() > 8 {
+        if completed.len() > ISOCHRONOUS_OUT_MAXIMUM_PACKETS {
             return Err(Error::WrongCollectionLength);
         }
-        let mut packets = [validate_canonical_structured_value(&self.zero_packet)?; 8];
+        let mut packets = [validate_canonical_structured_value(&self.zero_packet)?;
+            ISOCHRONOUS_OUT_MAXIMUM_PACKETS];
         for (index, (encoder, packet)) in self.packets.iter_mut().zip(completed).enumerate() {
             packets[index] = validate_canonical_structured_value(encoder.packet(*packet)?)?;
         }

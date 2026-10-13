@@ -181,14 +181,30 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
         // The composite kernel prepares one fragment Play with sequence zero.
         // Its identity remains distinct from the aggregate Body Play identity.
         let active = bind_active_play(&plan.plan_id, &hosts[0].host_id, &hosts[0].boot_id, 0);
-        let possession = issuer
-            .issue(
-                plan,
-                &active,
-                &ImplementationId::from(crate::usb_base::control_factory::CONTROL_IMPLEMENTATION),
-                work_units,
+        let has_control = plan
+            .fragments
+            .iter()
+            .flat_map(|fragment| &fragment.placements)
+            .any(|gear| {
+                gear.implementation_id.as_str()
+                    == crate::usb_base::control_factory::CONTROL_IMPLEMENTATION
+            });
+        let possession = if has_control {
+            Some(
+                issuer
+                    .issue(
+                        plan,
+                        &active,
+                        &ImplementationId::from(
+                            crate::usb_base::control_factory::CONTROL_IMPLEMENTATION,
+                        ),
+                        work_units,
+                    )
+                    .map_err(Reason::Possession)?,
             )
-            .map_err(Reason::Possession)?;
+        } else {
+            None
+        };
         let endpoint_possession = endpoint_issuer
             .issue(
                 plan,
@@ -208,21 +224,36 @@ pub(crate) fn prepare_native_usb_endpoint_protocol<P: I2cProvider, C: MonotonicD
                 &hosts[0].boot_id,
             )
             .map_err(Reason::Lifecycle)?;
-        match PreparedProtocolBodyPlay::prepare_usb_protocol(
-            artifact,
-            retained_session.take().expect("retained body"),
-            body_play_sequence,
-            crate::protocol_play::UsbProtocolAdmission {
-                additional_remote_sign_items,
-                ready,
-                control_table: possession.table,
-                control_handle: possession.handle,
-                control_claim: possession.claim,
-                endpoint_table: endpoint_possession.table,
-                endpoint_handle: endpoint_possession.handle,
-                endpoint_claim: endpoint_possession.claim,
-            },
-        ) {
+        let result = match possession {
+            Some(possession) => PreparedProtocolBodyPlay::prepare_usb_protocol(
+                artifact,
+                retained_session.take().expect("retained body"),
+                body_play_sequence,
+                crate::protocol_play::UsbProtocolAdmission {
+                    additional_remote_sign_items,
+                    ready,
+                    control_table: possession.table,
+                    control_handle: possession.handle,
+                    control_claim: possession.claim,
+                    endpoint_table: endpoint_possession.table,
+                    endpoint_handle: endpoint_possession.handle,
+                    endpoint_claim: endpoint_possession.claim,
+                },
+            ),
+            None => PreparedProtocolBodyPlay::prepare_usb_endpoint_only(
+                artifact,
+                retained_session.take().expect("retained body"),
+                body_play_sequence,
+                crate::protocol_play::UsbEndpointAdmission {
+                    additional_remote_sign_items,
+                    ready,
+                    endpoint_table: endpoint_possession.table,
+                    endpoint_handle: endpoint_possession.handle,
+                    endpoint_claim: endpoint_possession.claim,
+                },
+            ),
+        };
+        match result {
             Ok(play) => Ok(play),
             Err(refusal) => {
                 retained_session = Some(refusal.session);
@@ -246,3 +277,7 @@ mod duplex;
 #[cfg(all(target_arch = "x86_64", feature = "native-owner-network"))]
 pub(crate) use duplex::NativeEthernetPreparation;
 pub(crate) use duplex::prepare_native_usb_duplex;
+
+#[cfg(all(test, target_arch = "x86_64"))]
+#[path = "native_usb_endpoint_tests.rs"]
+mod endpoint_tests;

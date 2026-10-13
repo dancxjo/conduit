@@ -1,0 +1,21 @@
+{
+  "aarch64_firmware_sha256": null,
+  "architecture": "x86_64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-ecm-integrated-kernel-full-mtu/qemu-wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "5fc8f8640e2ef70f3ae96edf7d97f2377709f2f7735982d62208bbe40f57e284",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-retired",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "q35-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "788e79ee9da30545b6eb85b1871f66d9094f3701059913bb322f254e3b6a37dc",
+  "usb_devices": []
+}

@@ -334,3 +334,31 @@ bounded_arena_test!(
     resize_moves_only_when_a_live_neighbor_prevents_growth,
     resize_moves_only_when_a_live_neighbor_prevents_growth_contract
 );
+
+fn attempt_counts_expose_churn_and_refused_reallocation_contract() {
+    let fixture = Fixture::new(4096);
+    let arena = &fixture.arena;
+    let layout = Layout::from_size_align(64, 32).unwrap();
+    assert_eq!(arena.attempts(), (0, 0));
+    unsafe {
+        for _ in 0..16 {
+            let pointer = arena.alloc(layout);
+            assert!(!pointer.is_null());
+            arena.dealloc(pointer, layout);
+        }
+        assert_eq!(arena.live_bytes(), 0);
+        assert_eq!(arena.attempts(), (16, 0));
+        let pointer = arena.alloc(layout);
+        arena.seal();
+        assert!(arena.realloc(pointer, layout, 128).is_null());
+        assert!(arena.alloc(layout).is_null());
+        arena.dealloc(pointer, layout);
+    }
+    assert_eq!(arena.live_bytes(), 0);
+    assert_eq!(arena.attempts(), (18, 1));
+}
+
+bounded_arena_test!(
+    attempt_counts_expose_churn_and_refused_reallocation,
+    attempt_counts_expose_churn_and_refused_reallocation_contract
+);

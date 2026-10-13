@@ -1,0 +1,28 @@
+{
+  "proof_class": "native-qemu-x86_64",
+  "kernel_build": {
+    "schema": "conduit.conduitos.build/v2",
+    "artifact_role": "product-host",
+    "base_commit": "d2ab8e8aa20a3468a41294d364ae8dbc63a61ca5",
+    "architecture": "x86_64",
+    "rust_target": "x86_64-unknown-none",
+    "limine_crate": "0.5.0",
+    "elf_sha256": "e1497eeaaccb734750f940a457e319e331632e7701156e57bb9545b477330859"
+  },
+  "package_sha256": "03de725b1218d7ba8a5d9d21b58fbb11ff14089b0353619ac782cc53af6d87ab",
+  "public_observation_order": [
+    "snapshot",
+    "provider-lost"
+  ],
+  "actual_wire_packets": 4,
+  "exact_pcm_prefix_bytes": 768,
+  "native_completed_prefix_packets": 4,
+  "all_prefix_frames_requested_actual_verified": true,
+  "no_packets_after_detach": true,
+  "terminal_phase": 1,
+  "original_pcm_retained": true,
+  "acknowledged_stop": true,
+  "alloc_attempts": 0,
+  "realloc_attempts": 0,
+  "scope": "actual pending ISO device loss; not short/missed-service/underrun/pressure or universal physical proof"
+}

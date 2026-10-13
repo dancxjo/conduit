@@ -1,10 +1,29 @@
 //! Every external request route must authorize before reaching physical work.
+#[cfg(test)]
 pub(super) fn authorized_route<'a>(
     ingress: &'a str,
     authorize: &str,
     placements: &[(&str, &str, bool)],
     connections: &[(&'a str, &'a str)],
 ) -> bool {
+    authorized_routes(ingress, &[authorize], placements, connections)
+}
+
+pub(super) fn authorized_routes<'a>(
+    ingress: &'a str,
+    authorizers: &[&str],
+    placements: &[(&str, &str, bool)],
+    connections: &[(&'a str, &'a str)],
+) -> bool {
+    if authorizers.is_empty()
+        || authorizers.len() > 2
+        || authorizers
+            .iter()
+            .enumerate()
+            .any(|(index, id)| id.is_empty() || authorizers[..index].contains(id))
+    {
+        return false;
+    }
     let mut pending = alloc::vec![ingress];
     let mut visited = alloc::vec::Vec::new();
     let mut reaches_authorize = false;
@@ -13,7 +32,7 @@ pub(super) fn authorized_route<'a>(
             continue;
         }
         visited.push(id);
-        if id == authorize {
+        if authorizers.contains(&id) {
             reaches_authorize = true;
             continue;
         }
@@ -93,5 +112,35 @@ mod tests {
             &[("start", STATE, false)],
             &[("start", "start")]
         ));
+    }
+    #[test]
+    fn independently_authorized_branches_still_reject_any_physical_bypass() {
+        let nodes = [
+            ("start", PURE, false),
+            ("later", STATE, false),
+            ("usb", "usb-read", true),
+        ];
+        let edges = [("start", "first"), ("start", "later"), ("later", "second")];
+        assert!(authorized_routes(
+            "start",
+            &["first", "second"],
+            &nodes,
+            &edges
+        ));
+        let mut bypass = edges.to_vec();
+        bypass.push(("later", "usb"));
+        assert!(!authorized_routes(
+            "start",
+            &["first", "second"],
+            &nodes,
+            &bypass
+        ));
+        assert!(!authorized_routes(
+            "start",
+            &["first", "first"],
+            &nodes,
+            &edges
+        ));
+        assert!(!authorized_routes("start", &[], &nodes, &edges));
     }
 }

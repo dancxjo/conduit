@@ -1,0 +1,16 @@
+{
+  "proof_class": "deterministic-kernel-native-binding-fixture",
+  "test": "duplex_control_dispatch_waits_for_original_bulk_kernel_obligation_retirement",
+  "source_commit": "0ec05f8f1",
+  "tests_passed": 1,
+  "genuine_selected_bindings": 3,
+  "retained_bulk_kernel_obligations_block_control": true,
+  "completed_unconsumed_obligations_block_control": true,
+  "control_dispatch_after_exact_retirement": true,
+  "native_pending_maps_empty": true,
+  "native_configure_receipts": "simulated",
+  "native_transfer_or_source_reset_sequence_proven": false,
+  "emulator_proven": false,
+  "physical_proven": false,
+  "test_log_sha256": "e47ed985d9cf4f3dd483ec8958d6a9acacfcc4131010f930dc706fb516473d9c"
+}

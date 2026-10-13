@@ -1,0 +1,12 @@
+{
+  "scope": "actual corrected product guest with independent selected Base pools",
+  "package_sha256": "aa97ab31bd832d4de650e1d71978eba50f186aa632b3e44f4775f327400e8106",
+  "outcome": "refused at storage ingress before class Play effects",
+  "reason": "request bypasses storage authorization",
+  "missing_gate": "raw caller request must pass actual selected authorize node before reaching effectful Source state",
+  "not_claimed": [
+    "composed recovery",
+    "successful storage settlement",
+    "reentry allocation/retirement"
+  ]
+}

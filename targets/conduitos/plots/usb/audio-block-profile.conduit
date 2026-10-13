@@ -1,0 +1,65 @@
+# All original PCM laws are preserved. This is a narrower UAC realization.
+plot usb-audio-block-header-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (.header.representation is signed16-little-endian && .header.sample-rate-hz == 48000 && .header.layout is stereo-left-right && .header.frame-count == 384 && .header.clock-id > 0 && .header.payload-bytes == 1536 && !.header.discontinuity && .header.start-frame <= 18446744073709551231 && .cadence.sample_rate == 48000 && .cadence.channels == 2 && .cadence.sample_bytes == 2 && .cadence.phase == (.header.start-frame / 48) % 1000 && sequence/length(.packets) == 8)
+plot usb-audio-block-clock-supported (
+    input: UsbAudioBlockSchedulingInput...| >> supported: Boolean...|
+) = (.clock.current-microframe < 16384 && .clock.scheduling-threshold <= 248 && .clock.service-interval-microframes == 8 && .clock.maximum-packet-bytes == 192 && .clock.pending-packets == 0 && .clock.maximum-pending-packets == 8 && .clock.dma-resource-bytes == 3072)
+plot usb-audio-block-packet-0-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 0).wire) == 192 && sequence/at(.packets, 0).frame < 2048))
+plot usb-audio-block-adjacent-0-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 0).frame >= 2048 ? false : sequence/at(.packets, 1).frame == (sequence/at(.packets, 0).frame + 1) % 2048))
+plot usb-audio-block-packet-1-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 1).wire) == 192 && sequence/at(.packets, 1).frame < 2048))
+plot usb-audio-block-adjacent-1-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 1).frame >= 2048 ? false : sequence/at(.packets, 2).frame == (sequence/at(.packets, 1).frame + 1) % 2048))
+plot usb-audio-block-packet-2-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 2).wire) == 192 && sequence/at(.packets, 2).frame < 2048))
+plot usb-audio-block-adjacent-2-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 2).frame >= 2048 ? false : sequence/at(.packets, 3).frame == (sequence/at(.packets, 2).frame + 1) % 2048))
+plot usb-audio-block-packet-3-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 3).wire) == 192 && sequence/at(.packets, 3).frame < 2048))
+plot usb-audio-block-adjacent-3-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 3).frame >= 2048 ? false : sequence/at(.packets, 4).frame == (sequence/at(.packets, 3).frame + 1) % 2048))
+plot usb-audio-block-packet-4-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 4).wire) == 192 && sequence/at(.packets, 4).frame < 2048))
+plot usb-audio-block-adjacent-4-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 4).frame >= 2048 ? false : sequence/at(.packets, 5).frame == (sequence/at(.packets, 4).frame + 1) % 2048))
+plot usb-audio-block-packet-5-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 5).wire) == 192 && sequence/at(.packets, 5).frame < 2048))
+plot usb-audio-block-adjacent-5-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 5).frame >= 2048 ? false : sequence/at(.packets, 6).frame == (sequence/at(.packets, 5).frame + 1) % 2048))
+plot usb-audio-block-packet-6-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 6).wire) == 192 && sequence/at(.packets, 6).frame < 2048))
+plot usb-audio-block-adjacent-6-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 6).frame >= 2048 ? false : sequence/at(.packets, 7).frame == (sequence/at(.packets, 6).frame + 1) % 2048))
+plot usb-audio-block-packet-7-supported (
+    pcm: UsbAudioPcmBlock...| >> supported: Boolean...|
+) = (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 7).wire) == 192 && sequence/at(.packets, 7).frame < 2048))
+# This exact checked projection preserves every authored deadline and byte.
+# It never derives cadence or rewrites controller geometry in native code.
+plot usb-audio-block-request (
+    pcm: UsbAudioPcmBlock...| >> request: UsbIsochronousOutRequest...|
+) = (batch({ packets: [{ frame: sequence/at(.packets, 0).frame, wire: sequence/at(.packets, 0).wire }, { frame: sequence/at(.packets, 1).frame, wire: sequence/at(.packets, 1).wire }, { frame: sequence/at(.packets, 2).frame, wire: sequence/at(.packets, 2).wire }, { frame: sequence/at(.packets, 3).frame, wire: sequence/at(.packets, 3).wire }, { frame: sequence/at(.packets, 4).frame, wire: sequence/at(.packets, 4).wire }, { frame: sequence/at(.packets, 5).frame, wire: sequence/at(.packets, 5).wire }, { frame: sequence/at(.packets, 6).frame, wire: sequence/at(.packets, 6).wire }, { frame: sequence/at(.packets, 7).frame, wire: sequence/at(.packets, 7).wire }] }))
+plot usb-audio-block-continuity-supported (
+    input: UsbAudioBlockContinuity...| >> supported: Boolean...|
+) = (.previous.clock-id == .next.clock-id && .previous.sample-rate-hz == .next.sample-rate-hz && .previous.representation is signed16-little-endian && .next.representation is signed16-little-endian && .previous.layout is stereo-left-right && .next.layout is stereo-left-right && .previous.frame-count == 384 && .next.frame-count == 384 && !.previous.discontinuity && !.next.discontinuity && .previous.start-frame <= 18446744073709551231 && .next.start-frame == .previous.start-frame + 384)
+
+# Balanced expression preserves all block laws without a second zip specialization.
+plot usb-audio-block-admitted (
+ pcm: UsbAudioPcmBlock...| <= 4096B >> supported: Boolean...|
+) = (((((((.header.representation is signed16-little-endian) && (.header.sample-rate-hz == 48000)) && ((.header.layout is stereo-left-right) && (.header.frame-count == 384))) && (((.header.clock-id > 0) && (.header.payload-bytes == 1536)) && ((!.header.discontinuity) && (.header.start-frame <= 18446744073709551231)))) && ((((.cadence.sample_rate == 48000) && (.cadence.channels == 2)) && ((.cadence.sample_bytes == 2) && (.cadence.phase == (.header.start-frame / 48) % 1000))) && (((sequence/length(.packets) == 8) && (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 0).wire) == 192 && sequence/at(.packets, 0).frame < 2048))) && ((sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 1).wire) == 192 && sequence/at(.packets, 1).frame < 2048)) && (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 2).wire) == 192 && sequence/at(.packets, 2).frame < 2048)))))) && (((((sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 3).wire) == 192 && sequence/at(.packets, 3).frame < 2048)) && (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 4).wire) == 192 && sequence/at(.packets, 4).frame < 2048))) && ((sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 5).wire) == 192 && sequence/at(.packets, 5).frame < 2048)) && (sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 6).wire) == 192 && sequence/at(.packets, 6).frame < 2048)))) && (((sequence/length(.packets) != 8 ? false : (bytes/length(sequence/at(.packets, 7).wire) == 192 && sequence/at(.packets, 7).frame < 2048)) && (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 0).frame >= 2048 ? false : sequence/at(.packets, 1).frame == (sequence/at(.packets, 0).frame + 1) % 2048))) && ((sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 1).frame >= 2048 ? false : sequence/at(.packets, 2).frame == (sequence/at(.packets, 1).frame + 1) % 2048)) && (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 2).frame >= 2048 ? false : sequence/at(.packets, 3).frame == (sequence/at(.packets, 2).frame + 1) % 2048))))) && (((sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 3).frame >= 2048 ? false : sequence/at(.packets, 4).frame == (sequence/at(.packets, 3).frame + 1) % 2048)) && (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 4).frame >= 2048 ? false : sequence/at(.packets, 5).frame == (sequence/at(.packets, 4).frame + 1) % 2048))) && ((sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 5).frame >= 2048 ? false : sequence/at(.packets, 6).frame == (sequence/at(.packets, 5).frame + 1) % 2048)) && (sequence/length(.packets) != 8 ? false : (sequence/at(.packets, 6).frame >= 2048 ? false : sequence/at(.packets, 7).frame == (sequence/at(.packets, 6).frame + 1) % 2048)))))))

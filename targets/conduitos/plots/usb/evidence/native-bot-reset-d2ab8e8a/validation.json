@@ -1,0 +1,12 @@
+{
+  "proof_class": "native-x86_64-emulator-external-device",
+  "exact_three_request_ack_pairs": true,
+  "bulk_transactions_after_recovery_start": 0,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "normal_retirement": true,
+  "package_sha256": "92ef99a8142b1bc282f1b90e5ca9a56d0ce7ba94fc17302592622ec3733f8224",
+  "kernel_source": "d2ab8e8aa20a3468a41294d364ae8dbc63a61ca5",
+  "scope": "Standalone recovery from quiescent attachment; firmware enumeration precedes recovery. Not interrupted BOT transaction reentry or physical proof."
+}

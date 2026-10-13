@@ -1,0 +1,13 @@
+# Setup completion feeds the state already retaining the original PCM.
+plot usb-audio-playback (
+    >> pcm: UsbAudioPcmBlock...| <= 4096B
+    ended: UsbAudioPlaybackState...| >>
+    observed: UsbIsochronousOutResult...| >>
+) {
+    setup: usb-audio-negotiate
+    playback: usb-audio-playback-admitted
+    pcm >> playback.pcm
+    setup.accepted >> usb-audio-admission-evidence() >> playback.setup
+    playback.ended >> ended
+    playback.observed >> observed
+}

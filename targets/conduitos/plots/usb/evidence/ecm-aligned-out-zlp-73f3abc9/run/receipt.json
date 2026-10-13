@@ -1,0 +1,21 @@
+{
+  "aarch64_firmware_sha256": null,
+  "architecture": "x86_64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-ecm-packet-boundary-proof/run-aligned-tcp/qemu-wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "f422a73c2c4f877306e50dc6cdfb64ee79988052d0dd523d15d3e7b4bff779a7",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-retired",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "q35-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "71378e4d09ffaa3688eee81f290f2548f155412a5a5fdfde0a9d828f70c646b2",
+  "usb_devices": []
+}

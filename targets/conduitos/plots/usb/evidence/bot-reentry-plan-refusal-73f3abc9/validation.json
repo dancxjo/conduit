@@ -1,0 +1,12 @@
+{
+  "scope": "actual x86_64 product guest, exact checked Source with two Root-supplied values and independently backed storage pairs",
+  "outcome": "refused before Plan/Play effects",
+  "kernel_source": "73f3abc97",
+  "reason": "multiple pools for class machine/storage/block-read-transaction in first planning profile",
+  "missing_gate": "select required pool using exact selected capability advertised Base ownership",
+  "not_claimed": [
+    "Source recovery execution",
+    "successful or stalled storage result",
+    "reentry allocation/retirement"
+  ]
+}

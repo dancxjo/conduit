@@ -1,0 +1,79 @@
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/planner)
+    Finished `test` profile [unoptimized] target(s) in 1.92s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduit_planner-7ece9e7f9b650810)
+
+running 71 tests
+test canonical::default_queues::tests::abnormal_cord_budget_uses_terminal_contract_not_payload_contract ... ok
+test degradation_explanation_tests::keeps_specific_refusal_distinct_from_body_wide_failure ... ok
+test degradation_explanation_tests::names_failure_continuing_work_and_distinct_fresh_plan ... ok
+test degradation_explanation_tests::refuses_any_claim_of_automatic_retry ... ok
+test degraded_profile_explanation_tests::names_requested_surviving_policy_plan_and_current_signs ... ok
+test diagnostic::tests::current_observation_refusal_is_distinct_and_redacted ... ok
+test diagnostic::tests::front_mismatch_is_structured_without_nominal_or_private_detail ... ok
+test diagnostic::tests::hard_requirement_refusal_has_a_stable_non_policy_code ... ok
+test diagnostic::tests::missing_front_compatible_offer_has_a_stable_functional_code ... ok
+test diagnostic::tests::semantic_contract_mismatch_is_distinct_from_front_mismatch ... ok
+test diagnostic::tests::unreviewed_failures_do_not_collapse_into_a_generic_public_code ... ok
+test dormant_readmission_explanation_tests::names_unused_current_and_selection_truth_without_legacy_rank ... ok
+test dormant_readmission_explanation_tests::refuses_laundered_history_or_nonreplacement_evidence ... ok
+test language_coverage_tests::fore_equality_cannot_admit_french_or_undeclared_back_in_any_ordinary_entrance ... ok
+test language_coverage_tests::multilingual_and_narrow_backs_share_kind_and_policy_runs_after_coverage ... ok
+test language_coverage_tests::selected_coverage_is_retained_and_cannot_change_under_the_same_plan_identity ... ok
+test language_coverage_tests::variety_requirement_and_back_sensitivity_are_separate_exact_facts ... ok
+test proof::heterogeneous::explanation_tests::patchbay_keeps_measurements_decisions_and_proof_class_distinct ... ok
+test resource_binding::pool_selection::tests::base_free_profile_keeps_unique_class_selection_and_refuses_ambiguity ... ok
+test resource_binding::pool_selection::tests::capability_base_with_no_owned_matching_pool_can_use_unique_host_shared_pool ... ok
+test resource_binding::pool_selection::tests::compute_minima_use_the_same_exact_selected_base_pool_resolution ... ok
+test resource_binding::pool_selection::tests::exhausted_owned_pool_never_falls_back_to_large_host_shared_pool ... ok
+test resource_binding::pool_selection::tests::missing_foreign_class_multiple_owned_and_ambiguous_base_provenance_refuse ... ok
+test resource_binding::pool_selection::tests::owned_capacity_is_independent_and_never_borrows_another_base_pool ... ok
+test resource_binding::pool_selection::tests::shared_host_fallback_refuses_foreign_only_and_multiple_unowned_class_pools ... ok
+test resource_binding::pool_selection::tests::two_same_class_base_owners_bind_each_selected_capability_to_its_own_pool ... ok
+test startup::tests::malformed_declared_delay_refuses_as_invalid_state_instead_of_an_ordinary_cycle ... ok
+test startup::tests::only_declared_next_breaks_the_response_cycle_and_its_startup_dependency ... ok
+test startup::tests::retained_state_or_a_state_kind_name_does_not_authorize_a_delay_cut ... ok
+test state_delay::analysis::tests::analysis_retains_the_identity_validated_by_ordinary_graph_admission ... ok
+test state_delay::analysis::tests::composition_preserves_each_domain_and_multiplies_raw_representations ... ok
+test state_delay::analysis::tests::continuation_and_fuel_do_not_change_retained_value_cardinality ... ok
+test state_delay::analysis::tests::huge_finite_capacity_is_retained_without_materializing_or_enumerating_it ... ok
+test state_delay::analysis::tests::invalid_mutated_bound_is_not_reported_as_a_finite_proof ... ok
+test state_delay::analysis::tests::raw_byte_domain_count_includes_empty_and_absent_candidates ... ok
+test state_delay::tests::admitted_state_self_feedback_crosses_the_delay_boundary ... ok
+test state_delay::tests::explicit_state_is_the_only_cycle_cut ... ok
+test state_delay::tests::ordinary_cycle_survives_an_unrelated_state_cut ... ok
+test state_delay::tests::ordinary_self_cycle_is_not_a_state_boundary ... ok
+test state_delay::tests::unrelated_state_does_not_hide_an_ordinary_self_cycle ... ok
+test survival_policy_explanation_tests::names_policy_tradeoffs_and_fresh_plan_without_a_fallback_flag ... ok
+test tests::a_self_cord_is_runtime_routing_not_a_startup_cycle ... ok
+test tests::admitted_host_input_source_breaks_only_its_runtime_response_cycle ... ok
+test tests::default_placement_uses_capabilities_across_hosts ... ok
+test tests::default_placement_uses_hosts ... ok
+test tests::line_mechanism_policy_neither_selects_nor_authorizes_capability_base_providers ... ok
+test tests::local_resource_cord_seals_exact_source_binding_without_bearer_material ... ok
+test tests::parses_block_placement_file ... ok
+test tests::planning_binds_exact_authority_and_rejects_missing_stale_or_ambiguous_grants ... ok
+test tests::planning_binds_exact_contract_profile_and_every_port ... ok
+test tests::planning_binds_one_exact_observed_link_and_rejects_unproven_remote_bases ... ok
+test tests::planning_link_binding_mutations_change_fragment_identity ... ok
+test tests::planning_rejects_cyclic_startup_dependencies ... ok
+test tests::planning_rejects_invalid_host_call_requirements ... ok
+test tests::planning_rejects_invalid_unavailable_ambiguous_and_exhausted_resources ... ok
+test tests::planning_rejects_same_front_with_different_semantics_and_front_changes ... ok
+test tests::planning_rejects_unknown_host ... ok
+test tests::planning_seals_canonical_terminal_transduction_into_the_exact_placement ... ok
+test tests::planning_verification_rejects_each_top_level_plot_identity_mutation ... ok
+test tests::protected_resource_tests::choices_are_exact_boot_scoped_plan_bindings ... ok
+test tests::protected_resource_tests::grants_reject_incoherent_policy_and_handle_reuse ... ok
+test tests::quantity_connection_limits::heterogeneous_connection_limits_preserve_defaults_and_refuse_unfit_overrides ... ok
+test tests::resource_cord_refuses_cross_host_before_line_selection ... ok
+test tests::retained_duration_derives_exact_state_plan_truth ... ok
+test tests::unchanged_signal_plot_plans_entirely_onto_pico_local_advertisement ... ok
+test wcet::tests::bounded_dependencies_compose_with_exact_basis ... ok
+test wcet::tests::finite_capacity_does_not_imply_wcet ... ok
+test wcet::tests::large_finite_work_remains_valid_outside_deadline_region ... ok
+test wcet::tests::replan_must_keep_region_identity_and_deadline ... ok
+test wcet::tests::replan_must_keep_the_admitted_resource_ceiling ... ok
+test wcet::tests::replan_rejects_a_timing_regression_and_preserves_admission ... ok
+
+test result: ok. 71 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 6.23s
+

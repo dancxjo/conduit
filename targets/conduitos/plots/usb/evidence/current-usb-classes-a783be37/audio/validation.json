@@ -1,0 +1,12 @@
+{
+  "proof_class": "emulator-with-device",
+  "packets": 72,
+  "exact_pcm_wire_bytes": 13824,
+  "normal_drain_phase": 3,
+  "public_typed_completions": 72,
+  "play_allocations": 0,
+  "play_reallocations": 0,
+  "acknowledged_stop": true,
+  "retired": true,
+  "physical_or_audible_output": false
+}

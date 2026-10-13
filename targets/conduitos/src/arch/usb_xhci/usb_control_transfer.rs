@@ -283,7 +283,7 @@ impl UsbControlTransfer {
         &mut self,
         device: &UsbDevice,
     ) -> Result<(), UsbControlCallRefusal> {
-        self.check_attachment(device)?;
+        let dma = self.check_attachment(device)?;
         if let Some(submission) = self.pending.as_ref() {
             match unsafe { self.owner.discard_quiesced(submission) } {
                 Ok(())
@@ -292,6 +292,10 @@ impl UsbControlTransfer {
             }
             self.pending = None;
         }
+        // SAFETY: this method requires original-controller acknowledged stop
+        // of the exact attachment. Failed stop never reaches this retirement.
+        // The producer position and reservation sequence remain unchanged.
+        unsafe { (*dma).control_cursor.retire_stopped() };
         Ok(())
     }
 

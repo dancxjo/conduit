@@ -1,0 +1,63 @@
+# Setup-only checked class route. The ordinary kernel and admitted USB control
+# offer own effects; this Plot owns exact descriptor/alternate/rate policy.
+with machine/usb/control/request as UsbControlRequest
+with machine/usb/control/result as UsbControlResult
+with flow/zip/feedback/paired as UsbAudioSetupPair
+
+type UsbAudioSetupState = {
+    phase: U64
+    terminal: Boolean
+}
+type UsbAudioSetupRoute =
+    control UsbAudioSetupState
+    | stopped UsbAudioSetupState
+type UsbAudioSetupEvent = {
+    descriptor: Boolean
+    zero-ack: Boolean
+    set-ack: Boolean
+    get-ack: Boolean
+}
+type UsbAudioSetupTransition = {
+    previous: UsbAudioSetupState
+    accepted: Boolean
+}
+plot usb-audio-setup-start (
+    start: Text >> state: UsbAudioSetupState
+) = ({ phase: 0, terminal: false })
+plot usb-audio-setup-route (
+    state: UsbAudioSetupState...| >> route: UsbAudioSetupRoute...|
+) = (.terminal || .phase >= 5 ? stopped(.) : control(.))
+plot usb-audio-setup-request (
+    state: UsbAudioSetupState...| >> request: UsbControlRequest...|
+) = (.phase == 0 ? { setup: 0x0064000002000680, output: [] } : (.phase == 1 ? { setup: 0x0000000000010900, output: [] } : (.phase == 2 ? { setup: 0x0000000100010b01, output: [] } : (.phase == 3 ? { setup: 0x0003000101000122, output: [128, 187, 0] } : { setup: 0x00030001010081a2, output: [] }))))
+plot usb-audio-setup-observation (
+ completion: UsbControlResult...| >> event: UsbAudioSetupEvent...|
+) = ({ descriptor: !(. is completed) ? false : (.completed.transferred != 100 || .completed.short || sequence/length(.completed.input) != 100 ? false : (((((((sequence/at(.completed.input, 0) == 9 && sequence/at(.completed.input, 1) == 2) && (sequence/at(.completed.input, 2) == 100 && sequence/at(.completed.input, 3) == 0)) && ((sequence/at(.completed.input, 4) == 2 && sequence/at(.completed.input, 5) == 1) && (sequence/at(.completed.input, 6) == 0 && sequence/at(.completed.input, 7) == 128))) && (((sequence/at(.completed.input, 8) == 50 && sequence/at(.completed.input, 9) == 9) && (sequence/at(.completed.input, 10) == 4 && sequence/at(.completed.input, 11) == 0)) && ((sequence/at(.completed.input, 12) == 0 && sequence/at(.completed.input, 13) == 0) && (sequence/at(.completed.input, 14) == 1 && sequence/at(.completed.input, 15) == 1)))) && ((((sequence/at(.completed.input, 16) == 0 && sequence/at(.completed.input, 17) == 0) && (sequence/at(.completed.input, 18) == 9 && sequence/at(.completed.input, 19) == 36)) && ((sequence/at(.completed.input, 20) == 1 && sequence/at(.completed.input, 21) == 0) && (sequence/at(.completed.input, 22) == 1 && sequence/at(.completed.input, 23) == 30))) && (((sequence/at(.completed.input, 24) == 0 && sequence/at(.completed.input, 25) == 1) && (sequence/at(.completed.input, 26) == 1 && sequence/at(.completed.input, 27) == 12)) && ((sequence/at(.completed.input, 28) == 36 && sequence/at(.completed.input, 29) == 2) && (sequence/at(.completed.input, 30) == 1 && sequence/at(.completed.input, 31) == 1))))) && (((((sequence/at(.completed.input, 32) == 1 && sequence/at(.completed.input, 33) == 0) && (sequence/at(.completed.input, 34) == 2 && sequence/at(.completed.input, 35) == 3)) && ((sequence/at(.completed.input, 36) == 0 && sequence/at(.completed.input, 37) == 0) && (sequence/at(.completed.input, 38) == 0 && sequence/at(.completed.input, 39) == 9))) && (((sequence/at(.completed.input, 40) == 36 && sequence/at(.completed.input, 41) == 3) && (sequence/at(.completed.input, 42) == 2 && sequence/at(.completed.input, 43) == 1)) && ((sequence/at(.completed.input, 44) == 3 && sequence/at(.completed.input, 45) == 0) && (sequence/at(.completed.input, 46) == 1 && sequence/at(.completed.input, 47) == 0)))) && ((((sequence/at(.completed.input, 48) == 9 && sequence/at(.completed.input, 49) == 4) && (sequence/at(.completed.input, 50) == 1 && sequence/at(.completed.input, 51) == 0)) && ((sequence/at(.completed.input, 52) == 0 && sequence/at(.completed.input, 53) == 1) && (sequence/at(.completed.input, 54) == 2 && sequence/at(.completed.input, 55) == 0))) && (((sequence/at(.completed.input, 56) == 0 && sequence/at(.completed.input, 57) == 9) && (sequence/at(.completed.input, 58) == 4 && sequence/at(.completed.input, 59) == 1)) && ((sequence/at(.completed.input, 60) == 1 && sequence/at(.completed.input, 61) == 1) && (sequence/at(.completed.input, 62) == 1 && sequence/at(.completed.input, 63) == 2)))))) && ((((((sequence/at(.completed.input, 64) == 0 && sequence/at(.completed.input, 65) == 0) && (sequence/at(.completed.input, 66) == 7 && sequence/at(.completed.input, 67) == 36)) && ((sequence/at(.completed.input, 68) == 1 && sequence/at(.completed.input, 69) == 1) && (sequence/at(.completed.input, 70) == 1 && sequence/at(.completed.input, 71) == 1))) && (((sequence/at(.completed.input, 72) == 0 && sequence/at(.completed.input, 73) == 11) && (sequence/at(.completed.input, 74) == 36 && sequence/at(.completed.input, 75) == 2)) && ((sequence/at(.completed.input, 76) == 1 && sequence/at(.completed.input, 77) == 2) && (sequence/at(.completed.input, 78) == 2 && sequence/at(.completed.input, 79) == 16)))) && ((((sequence/at(.completed.input, 80) == 1 && sequence/at(.completed.input, 81) == 128) && (sequence/at(.completed.input, 82) == 187 && sequence/at(.completed.input, 83) == 0)) && ((sequence/at(.completed.input, 84) == 9 && sequence/at(.completed.input, 85) == 5) && (sequence/at(.completed.input, 86) == 1 && sequence/at(.completed.input, 87) == 13))) && (((sequence/at(.completed.input, 88) == 192 && sequence/at(.completed.input, 89) == 0) && (sequence/at(.completed.input, 90) == 1 && sequence/at(.completed.input, 91) == 0)) && ((sequence/at(.completed.input, 92) == 0 && sequence/at(.completed.input, 93) == 7) && (sequence/at(.completed.input, 94) == 37 && sequence/at(.completed.input, 95) == 1))))) && ((sequence/at(.completed.input, 96) == 1 && sequence/at(.completed.input, 97) == 0) && (sequence/at(.completed.input, 98) == 0 && sequence/at(.completed.input, 99) == 0))))), zero-ack: (. is completed ? (.completed.transferred == 0 && !.completed.short && sequence/length(.completed.input) == 0) : false), set-ack: (. is completed ? (.completed.transferred == 3 && !.completed.short && sequence/length(.completed.input) == 0) : false), get-ack: (. is completed ? (.completed.transferred != 3 || .completed.short || sequence/length(.completed.input) != 3 ? false : (sequence/at(.completed.input, 0) == 128 && sequence/at(.completed.input, 1) == 187 && sequence/at(.completed.input, 2) == 0)) : false) })
+plot usb-audio-setup-accept (
+    pair: UsbAudioSetupPair...| >> transition: UsbAudioSetupTransition...|
+) = ({ previous: .0, accepted: .0.terminal || .0.phase >= 5 ? false : (.0.phase == 0 ? .1.descriptor : (.0.phase == 1 || .0.phase == 2 ? .1.zero-ack : (.0.phase == 3 ? .1.set-ack : .1.get-ack))) })
+plot usb-audio-setup-advance (
+    transition: UsbAudioSetupTransition...| >> state: UsbAudioSetupState...|
+) = ({ phase: .accepted && .previous.phase < 5 ? .previous.phase + 1 : .previous.phase, terminal: !.accepted || .previous.phase == 4 })
+plot usb-audio-setup-completed (
+    state: UsbAudioSetupState...| >> accepted: Boolean...|
+) = (.terminal && .phase == 5)
+plot usb-audio-negotiate (
+    accepted: Boolean...| >>
+) {
+    seed: flow/singleton
+    state: state/seeded/flow/until
+    route: usb-audio-setup-route()
+    join: flow/zip/feedback
+    control: machine/usb/control
+    observation: usb-audio-setup-observation()
+    "start" >> usb-audio-setup-start() >> seed.value
+    seed.flow >> state.seed
+    state.current >> route
+    route >> select(UsbAudioSetupRoute.control, unmatched=drop) >> join.left
+    route >> select(UsbAudioSetupRoute.control, unmatched=drop) >> usb-audio-setup-request() >> control.request
+    control.result >> observation
+    observation >> join.right
+    join.paired >> usb-audio-setup-accept() >> usb-audio-setup-advance() >> state.next
+    route >> select(UsbAudioSetupRoute.stopped, unmatched=drop) >> usb-audio-setup-completed() >> accepted
+}

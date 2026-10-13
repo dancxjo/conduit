@@ -64,6 +64,18 @@ pub(crate) struct UsbProtocolAdmission {
     target_arch = "x86_64",
     all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
 ))]
+pub(crate) struct UsbEndpointAdmission {
+    pub additional_remote_sign_items: u16,
+    pub ready: crate::arch::ReadyUsbProtocolHost,
+    pub endpoint_table: BaseCapabilityTable,
+    pub endpoint_handle: BaseCapabilityHandle,
+    pub endpoint_claim: BaseOperationClaim,
+}
+
+#[cfg(any(
+    target_arch = "x86_64",
+    all(target_arch = "aarch64", not(feature = "aarch64-orange-pi-5"))
+))]
 pub(crate) struct UsbIsochronousAdmission {
     pub additional_remote_sign_items: u16,
     pub ready: crate::arch::ReadyUsbIsochronousHost,

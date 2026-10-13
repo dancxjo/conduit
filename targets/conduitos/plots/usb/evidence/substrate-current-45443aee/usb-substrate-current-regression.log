@@ -1,0 +1,167 @@
+   Compiling conduit-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/plot)
+   Compiling conduit-thermostat-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/thermostat/model)
+   Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/time)
+   Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/language)
+   Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/human)
+   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/presentation)
+   Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/data)
+   Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/audio)
+   Compiling conduit-web v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/web)
+   Compiling conduit-alife v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/alife)
+   Compiling conduit-text v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/text)
+   Compiling conduit-net v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/net)
+   Compiling conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/planner)
+   Compiling conduit-education v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/education)
+   Compiling conduit-robotics v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/robotics)
+   Compiling conduit-process v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/process)
+   Compiling conduit-purpose v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/purpose)
+   Compiling conduit-midi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/protocols/midi)
+   Compiling conduit-ai v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/ai)
+   Compiling conduit-semantic-catalog v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/catalog)
+   Compiling conduit-host-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/make/host)
+   Compiling conduit-signal v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/signal)
+   Compiling conduit-tongues v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/tongues)
+   Compiling conduit-chat v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/chat)
+   Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/todo/model)
+   Compiling conduit-wire v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/wire)
+   Compiling conduit-std-offers v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std/offers)
+   Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/protocols/bluetooth)
+   Compiling conduit-speech v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/speech)
+   Compiling conduit-tutorial-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/tutorial)
+   Compiling conduit-body-invitation-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/body-invitation)
+   Compiling conduit-plot-library v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/plot-library)
+   Compiling conduit-signal-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/signal)
+   Compiling conduit-host-browser-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/make)
+   Compiling patchbay-graph v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/patchbay/graph)
+   Compiling conduit-finance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/finance)
+   Compiling patchbay-application v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/patchbay/application)
+   Compiling conduit-browser-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/mask-offer)
+   Compiling conduit-host-hosted v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std/make)
+   Compiling conduit-body-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/make/body)
+   Compiling conduit-linear-framebuffer-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/implementations/linear-framebuffer-make)
+   Compiling conduit-host-avr-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/avr/make)
+   Compiling conduit-host-conduitos-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/make)
+   Compiling conduit-host-raspberry-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/raspberry-pi/make)
+   Compiling conduit-host-orange-pi v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/orange-pi/make)
+   Compiling conduit-host-rp2040 v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/rp2040/make)
+   Compiling conduit-host-esp32-make v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/esp32/make)
+   Compiling conduit-tour-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/tour)
+   Compiling conduit-thermostat-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/thermostat/face)
+   Compiling conduit-birth-plot v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/birth)
+   Compiling conduit-synth v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/mechanisms/implementations/synth)
+   Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/little-seismograph/fixture)
+   Compiling conduit-home-model v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/semantics/home)
+   Compiling conduit-composite v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/composite)
+   Compiling conduit-r1-network-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/network-r1)
+   Compiling conduit-alife-distributed-conformance v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/proof/conformance/alife-distributed)
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+   Compiling conduit-todo-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/plots/todo/face)
+   Compiling conduit-conduitos-mask-offer v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/mask-offer)
+   Compiling conduit-observatory v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/architecture/observatory)
+   Compiling conduit-browser-runtime v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/browser/runtime)
+   Compiling conduit-std-host v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/std)
+    Finished `test` profile [unoptimized] target(s) in 4m 28s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 98 tests
+test arch::usb_xhci::control::tests::output_data_is_bounded_and_preserves_neighboring_dma_storage ... ok
+test arch::usb_xhci::attachment::continuity_tests::acknowledgement_cannot_copy_commands_or_other_change_bits ... ok
+test arch::usb_xhci::duplex_installation::geometry::tests::each_real_dma_region_requires_exact_coherent_mapping_and_geometry ... ok
+test arch::usb_xhci::duplex_installation::geometry::tests::duplex_identities_require_one_actual_epoch_and_distinct_native_providers ... ok
+test arch::usb_xhci::control_installation::outbound_refusal_tests::control_only_adapter_rejects_an_unexpected_outbound_owner ... ok
+test arch::usb_xhci::attachment::continuity_tests::foreign_controller_or_attachment_is_refused_without_access ... ok
+test arch::usb_xhci::control_owner::tests::virtual_physical_overflow_and_misalignment_refuse_without_dereferencing_memory ... ok
+test arch::usb_xhci::configuration_snapshot::tests::foreign_controller_is_rejected_without_mmio_or_dma_access ... ok
+test arch::usb_xhci::duplex_installation::geometry::tests::transport_dma_cannot_alias_another_endpoint_or_control_storage ... ok
+test arch::usb_xhci::control::tests::pending_or_uncertain_td_refuses_before_mutating_dma_payload_or_ring ... ok
+test arch::usb_xhci::configuration_snapshot::tests::exact_attachment_is_required_even_with_equal_descriptor_bytes ... ok
+test arch::usb_xhci::duplex_installation::retention::tests::charge_contains_inline_host_and_actual_heap_terminals_without_double_counting ... ok
+test arch::usb_xhci::duplex_installation::retention::tests::both_independent_grants_must_cover_their_exact_retained_share ... ok
+test arch::usb_xhci::control_owner::tests::selected_dma_requires_every_fixed_page_and_the_last_byte_to_map_contiguously ... ok
+test arch::usb_xhci::control_owner::transfer::terminal_tests::only_exact_native_stall_can_become_a_typed_stalled_observation ... ok
+test arch::usb_xhci::control_installation::tests::claim_cannot_substitute_native_provider_generation_resource_or_envelope ... ok
+test arch::usb_xhci::dma::tests::dma_storage_rejects_stale_or_unowned_device_attachments ... ok
+test arch::usb_xhci::endpoint_read::transfer::tests::foreign_stall_events_cannot_authorize_fault_retirement ... ok
+test arch::usb_xhci::duplex_installation::retention::tests::receipt_reports_actual_input_and_exact_declared_and_required_bounds ... ok
+test arch::usb_xhci::endpoint_read::window::tests::capture_dma_checks_every_buffer_extent_including_segment_edges ... ok
+test arch::usb_xhci::endpoint_read_proof::dma::tests::eight_capture_storage_fits_every_aligned_physical_base ... ok
+test arch::usb_xhci::duplex_installation::retention::tests::one_live_entry_does_not_hide_an_oversized_retained_table ... ok
+test arch::usb_xhci::endpoint_read::transfer::tests::only_the_exact_native_transfer_event_can_supply_a_received_extent ... ok
+test arch::usb_xhci::endpoint_setup::tests::bounded_bulk_profile_retains_packet_and_refuses_unproved_realizations ... ok
+test arch::usb_xhci::endpoint_setup::tests::native_setup_refuses_overflow_overlap_and_segment_crossing_before_writing_dma ... ok
+test arch::usb_xhci::endpoint_setup::tests::interrupt_contexts_preserve_exact_direction_packet_and_realized_interval ... ok
+test arch::usb_xhci::endpoint_setup::tests::packet_profiles_refuse_cross_speed_or_unsupported_transfer_types ... ok
+test arch::usb_xhci::endpoint_write_transfer::tests::foreign_stall_events_cannot_authorize_fault_retirement ... ok
+test arch::usb_xhci::endpoint_write_transfer::tests::outbound_completion_requires_exact_identity_and_success ... ok
+test arch::usb_xhci::control::tests::broader_request_bounds_cannot_broaden_native_dma_geometry ... ok
+test arch::usb_xhci::control_installation::tests::native_provider_generation_must_equal_actual_attachment_epoch ... ok
+test arch::usb_xhci::attachment::continuity_tests::connected_baseline_requires_clear_connect_change ... ok
+test arch::usb_xhci::endpoint_setup::isochronous_tests::iso_out_context_uses_zero_cerr_and_actual_full_speed_service_geometry ... ok
+test arch::usb_xhci::attachment::continuity_tests::repeated_disconnect_cannot_restore_the_baseline_through_current_connected_status ... ok
+test arch::usb_xhci::endpoint_setup::outbound_tests::adding_either_direction_preserves_existing_slot_context_entries ... ok
+test arch::usb_xhci::endpoint_setup::outbound_tests::bulk_out_configuration_has_even_dci_and_output_endpoint_type ... ok
+test arch::usb_xhci::duplex_installation::retention::tests::short_claim_and_issuer_names_cannot_hide_large_allocations ... ok
+test arch::usb_xhci::isochronous_out::tests::late_or_noncontiguous_deadlines_refuse_before_dma_or_ring_mutation ... ok
+test arch::usb_xhci::isochronous_out::tests::eight_reserved_packets_preserve_payloads_and_pressure_without_mutation ... ok
+test arch::usb_xhci::isochronous_out::tests::foreign_events_and_underrun_do_not_release_pending_buffers ... ok
+test arch::usb_xhci::isochronous_installation::tests::resource_charge_includes_rounded_metadata_original_tables_inline_and_dma ... ok
+test arch::usb_xhci::native_host::event_routing::tests::stall_identity_routes_but_does_not_grant_retirement ... ok
+test arch::usb_xhci::isochronous_installation::tests::retained_resource_gate_accepts_exact_charge_and_refuses_one_byte_less ... ok
+test arch::usb_xhci::native_host::event_routing::tests::either_direction_can_complete_first_without_consuming_its_sibling ... ok
+test arch::usb_xhci::isochronous_out::tests::missed_service_retires_only_its_exact_td_and_quarantines_remaining_dma ... ok
+test arch::usb_xhci::native_host::event_routing::tests::foreign_and_late_events_never_select_a_live_lease ... ok
+test arch::usb_xhci::isochronous_out::tests::ten_thousand_exact_iso_completions_reuse_ring_cycles_and_fixed_storage ... ok
+test arch::usb_xhci::control::tests::actual_dma_publication_reuses_a_fixed_ring_across_ten_thousand_transfers ... ok
+test arch::usb_xhci::endpoint_read_proof::tests::explicit_root_recipe_prepares_the_same_checked_source_and_exact_endpoint_possession ... ok
+test arch::usb_xhci::isochronous_installation::tests::full_native_preparation_retained_storage_is_measured_with_allocator_rounding ... ok
+test arch::usb_xhci::native_host::independent_tests::refused_begin_closes_both_directions_until_acknowledged_cancellation ... ok
+test arch::usb_xhci::native_host::independent_tests::refused_original_stop_keeps_staged_pair_and_root_marker_quarantined ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_foreign_stop_keeps_revoked_lease_and_dma ... ok
+test arch::usb_xhci::native_host::independent_tests::sticky_attachment_fault_closes_both_directions_until_original_stop ... ok
+test arch::usb_xhci::native_host::independent_tests::terminal_storage_is_reserved_only_for_duplex_before_play ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_acknowledged_cancel_rejects_late_original_events_and_both_kernel_tokens ... ok
+test arch::usb_xhci::protocol_installation::tests::actual_endpoint_dma_requires_contiguous_exact_mapping ... ok
+test arch::usb_xhci::tests::admitted_devices_have_distinct_fixed_dma_storage ... ok
+test arch::usb_xhci::tests::all_failures_are_machine_readable_and_distinct ... ok
+test arch::usb_xhci::tests::bounded_configuration_retains_structural_truth_without_semantics ... ok
+test arch::usb_xhci::tests::completion_identities_fail_separately ... ok
+test arch::usb_xhci::tests::completion_lengths_preserve_short_and_reject_out_of_envelope_residuals ... ok
+test arch::usb_xhci::tests::descriptor_devices_begin_in_the_primary_dma_slot ... ok
+test arch::usb_xhci::tests::excessive_descriptor_record_count_refuses ... ok
+test arch::usb_xhci::tests::excessive_endpoint_count_refuses ... ok
+test arch::usb_xhci::tests::excessive_interface_count_refuses ... ok
+test arch::usb_xhci::tests::interface_and_endpoint_limits_are_finite ... ok
+test arch::usb_xhci::tests::malformed_descriptor_chain_refuses ... ok
+test arch::usb_xhci::tests::oversized_configuration_refuses_before_parsing ... ok
+test arch::usb_xhci::tests::port_reset_distinguishes_progress_failure_and_vanish ... ok
+test arch::usb_xhci::tests::reattachment_cannot_inherit_device_instance_identity ... ok
+test arch::usb_xhci::tests::setup_stage_distinguishes_no_data_out_and_in ... ok
+test arch::usb_xhci::tests::short_packet_and_stall_are_explicit_control_outcomes ... ok
+test arch::usb_xhci::tests::unsupported_configuration_without_endpoint_refuses ... ok
+test arch::usb_xhci::transfer::completion_tests::foreign_events_and_real_endpoint_failures_stay_distinct ... ok
+test arch::usb_xhci::transfer::completion_tests::full_and_no_data_operations_finish_only_on_status ... ok
+test arch::usb_xhci::transfer::completion_tests::malformed_stage_counts_and_duplicate_short_events_are_not_success ... ok
+test arch::usb_xhci::transfer::completion_tests::short_data_waits_for_status_and_retains_its_residual ... ok
+test arch::usb_xhci::transfer::completion_tests::stall_code_requires_exact_original_slot_endpoint_and_td_pointer ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_connected_replacement_is_stale_and_does_not_publish_provider_loss ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_loss_after_live_checkpoint_failed_stop_retains_original_tokens_and_dma ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_loss_after_live_checkpoint_settles_original_kernel_tokens_once ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_original_endpoint_leases_route_out_before_in_without_double_completion ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_stall_failed_stop_retains_both_original_dma_reservations ... ok
+test arch::usb_xhci::native_host::paired_lease_tests::paired_stall_retires_both_original_leases_only_after_acknowledged_stop ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_failed_stop_keeps_revoked_lease_and_dma ... ok
+test arch::usb_xhci::native_host::independent_tests::staged_pair_cannot_publish_before_shared_retirement_and_publishes_each_once ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::bound_control_lease_retires_only_after_original_stop_ack ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::failed_original_stop_keeps_aggregate_quarantined ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::foreign_command_pointer_cannot_retire_original_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::foreign_slot_success_cannot_retire_original_dma ... ok
+test arch::usb_xhci::native_host::stop_ack_tests::original_successful_stop_retires_aggregate_marker_once ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::mid_request_cancel_rejects_original_token_and_stopped_poll ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::failed_stop_retains_original_dma_and_kernel_token_until_acknowledgement ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_underrun_event_flows_through_native_encoder_and_checked_source ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_missed_event_flows_through_native_encoder_and_checked_source ... ok
+test arch::usb_xhci::isochronous_installation::tests::fault_pipeline::actual_short_event_flows_through_native_encoder_and_checked_source ... ok
+test arch::usb_xhci::endpoint_read_proof::possession::tests::eight_selected_endpoint_owners_have_distinct_table_scoped_possession ... ok
+
+test result: ok. 98 passed; 0 failed; 0 ignored; 0 measured; 828 filtered out; finished in 17.32s
+

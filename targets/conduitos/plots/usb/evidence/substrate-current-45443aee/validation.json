@@ -1,0 +1,13 @@
+{
+  "proof_class": "hosted-deterministic-native-mechanism-and-product-planning",
+  "source_head": "45443aee92ffba521ffd8b63d4a3fe1fa8f6ea36",
+  "native_usb_tests_passed": 98,
+  "offer_identity_tests_passed": 94,
+  "failures": 0,
+  "physical_proof": false,
+  "scope": "Hosted tests validate actual lease/Kernel handling with simulated controller observations; ordinary guest class receipts separately prove installed product execution. Does not certify integrated dev or all issue acceptance.",
+  "logs": {
+    "usb-substrate-current-regression.log": "4602e53e45463f3f03cf87fb559bbfca12ffac76e226e20fac3a573bd9060b4a",
+    "usb-offer-identity-current-regression.log": "4900bbebdb9967e746a3b7c566db007b012a791c5ce1186e00181e993a90e7da"
+  }
+}

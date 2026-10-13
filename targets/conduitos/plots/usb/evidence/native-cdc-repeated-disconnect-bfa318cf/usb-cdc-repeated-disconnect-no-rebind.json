@@ -1,0 +1,64 @@
+{
+  "validation": "passed",
+  "kernel_source": "bfa318cf0128b5fcf223b3588f63ae68af0977b2",
+  "package_sha256": "15a4b501b95e978c03c0f3a2bc9e966d44fa182280d6349f2664c754b9fca8b1",
+  "scope": "same original Boot acknowledged loss retirement, followed by two deterministic external device reconnect/disconnect cycles; no implicit rebind",
+  "root_outcome": "protocol-step-budget-exhausted",
+  "normal_flow_retirement": false,
+  "acknowledged_cancel_retirement": true,
+  "late_native_completion_claimed": false,
+  "first_attempt": "run: fixture stop-wait bug, no repeat cycles, not passed",
+  "checks": {
+    "python3 work/usb-cdc-repeated-disconnect-proof-new/check_wire.py": {
+      "original_in": 515477504,
+      "original_in_cancelled": true,
+      "post_stop_reconnects": 2,
+      "post_stop_disconnects": 2,
+      "host_control_or_bulk_after_initial_disconnect": 0,
+      "implicit_rebind_observed": false
+    },
+    "work/usb-cdc-repeated-disconnect-proof-new/decode work/usb-cdc-repeated-disconnect-proof-new/run-v2/serial.log": {
+      "serial_results": 2,
+      "transmitted": 1,
+      "terminal": "provider-lost",
+      "retired": true
+    },
+    "python3 work/usb-audio-integration/targets/conduitos/plots/usb/proof/check_play_receipts.py": {
+      "acknowledged_stop": true,
+      "allocation_attempts": 0,
+      "body": "e872746bf170f74eb15cba18e3144f9c13278c76f0a5d1fec6a3e72172ed82b0",
+      "plan": "body-plan/sha256:a2e7834d6e3f93e7f5d846870d9c0b7434fbdb79e3bf896971f636bd2487654c",
+      "play": "body-play/sha256:e4b8d7d5c9dda0a096ab3609c9fa161746f016a9da69802e60191fde9ea87d53",
+      "reallocation_attempts": 0,
+      "scope": "bound product Play receipts",
+      "wire_or_physical_output_proven": false
+    }
+  },
+  "commands": [
+    [
+      "python3",
+      "work/usb-cdc-repeated-disconnect-proof-new/check_wire.py",
+      "work/usb-cdc-repeated-disconnect-proof-new/run-v2"
+    ],
+    [
+      "work/usb-cdc-repeated-disconnect-proof-new/decode",
+      "work/usb-cdc-repeated-disconnect-proof-new/run-v2/serial.log"
+    ],
+    [
+      "python3",
+      "work/usb-audio-integration/targets/conduitos/plots/usb/proof/check_play_receipts.py",
+      "work/usb-cdc-repeated-disconnect-proof-new/run-v2/serial.log"
+    ]
+  ],
+  "sha256": {
+    "work/usb-cdc-repeated-disconnect-proof-new/device_v2.py": "8761cbed2d5f4a11e2933a01115787357fe80ea96d61f74238de7b82d55b0cc2",
+    "work/usb-cdc-repeated-disconnect-proof-new/run_v2.py": "3eb1cff8c9445591d913d58fc23a4fface1522c64bcf2e133294f3306bf8bc6f",
+    "work/usb-cdc-repeated-disconnect-proof-new/decode.rs": "b957bdaa1737b9f20bd761cbb46bd91c9aa76d453b6f70e08629233a0cc91fb4",
+    "work/usb-cdc-repeated-disconnect-proof-new/decode": "e1b7dcc2b97a252f5712facc64fab83ae422f76c3412ee74e7a47d0e8f68cca2",
+    "work/usb-cdc-repeated-disconnect-proof-new/check_wire.py": "725ae811adc9405412611e075e7b5648eb7b1a7699b0da0892b14cabe7938352",
+    "work/usb-cdc-repeated-disconnect-proof-new/run-v2/serial.log": "7e46f51dc9af975e135ac3d12921ff084ffd6617cbe1bbb38d589021001ade0d",
+    "work/usb-cdc-repeated-disconnect-proof-new/run-v2/wire.jsonl": "35dc556438c213f5d6c1912b376512f5de9648f26d776b9876d6fa60dda49af3",
+    "work/usb-cdc-repeated-disconnect-proof-new/run-v2/device.log": "bb1932f91774c007fde440b1c8851142515ae71050d6c9ba159c294c9aa6e100",
+    "work/usb-cdc-repeated-disconnect-proof-new/run-v2/receipt.json": "7713ea80b863cfcf801e80a803d58242ab8636bacdfd0607f9d6b800bcfd823f"
+  }
+}

@@ -1,0 +1,10 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 12.29s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 2 tests
+test protocol_source::native_usb_preparation::endpoint_tests::unchanged_endpoint_source_prepares_dispatches_and_cancels_without_control_possession ... ok
+test protocol_source::native_usb_preparation::endpoint_tests::wrong_endpoint_authority_refuses_before_effect_and_retains_original_body ... ok
+
+test result: ok. 2 passed; 0 failed; 0 ignored; 0 measured; 973 filtered out; finished in 5.62s
+

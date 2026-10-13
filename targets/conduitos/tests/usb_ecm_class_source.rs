@@ -489,3 +489,6 @@ mod reuse;
 
 #[path = "usb_ecm_class_source/admission.rs"]
 mod admission;
+
+#[path = "usb_ecm_class_source/pair_envelope.rs"]
+mod pair_envelope;

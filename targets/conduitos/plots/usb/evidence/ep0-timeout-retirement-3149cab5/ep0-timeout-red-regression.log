@@ -1,0 +1,23 @@
+   Compiling conduitos v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos)
+    Finished `test` profile [unoptimized] target(s) in 13.11s
+     Running unittests src/lib.rs (../usb-target/debug/deps/conduitos-6ed99a4ed0c43888)
+
+running 1 test
+test arch::usb_xhci::native_host::stop_ack_tests::timeout::submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success ... FAILED
+
+failures:
+
+---- arch::usb_xhci::native_host::stop_ack_tests::timeout::submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success stdout ----
+
+thread 'arch::usb_xhci::native_host::stop_ack_tests::timeout::submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success' (455276) panicked at targets/conduitos/src/arch/usb_xhci/usb_native_host/stop_ack_tests/timeout.rs:135:9:
+assertion failed: !transfer.retains_native_submission() &&
+    !transfer.retains_settlement_obligation()
+note: run with `RUST_BACKTRACE=1` environment variable to display a backtrace
+
+
+failures:
+    arch::usb_xhci::native_host::stop_ack_tests::timeout::submitted_ep0_timeout_retains_dma_until_exact_stop_and_rejects_late_success
+
+test result: FAILED. 0 passed; 1 failed; 0 ignored; 0 measured; 926 filtered out; finished in 0.46s
+
+error: test failed, to rerun pass `-p conduitos --lib`

@@ -1,0 +1,44 @@
+# PcmFrameHeader is the existing semantics/audio owner, not a USB sample type.
+# The finite profile only narrows the supported realization of that meaning.
+type UsbAudioPcmPacket = {
+    header: PcmFrameHeader
+    cadence: UsbPcmCadence
+    wire: Bytes <= 256B
+    frame: U64 in 0..=2047
+}
+type UsbAudioPcmBatch = {
+    packets: collection UsbAudioPcmPacket = 8
+    transfer: UsbIsochronousOutRequest
+}
+type UsbAudioNegotiation = {
+    configuration: UsbControlResult
+    alternate: UsbControlResult
+    set-rate: UsbControlResult
+    get-rate: UsbControlResult
+}
+type UsbAudioPacketObservation = {
+    packet: UsbAudioPcmPacket
+    cadence-bytes: U64
+}
+type UsbAudioTerminal =
+    completed
+    | short
+    | missed-service
+    | underrun
+    | provider-lost
+    | drained
+    | unsupported
+# Cancellation remains the kernel's cancellation truth, never a fabricated
+# successful ISO result. Native stop failure remains quarantined possession.
+type UsbAudioBatchDecision =
+    accepted UsbIsochronousOutRequest
+    | unsupported
+
+type UsbAudioPcmPair = {
+    previous: UsbAudioPcmPacket
+    next: UsbAudioPcmPacket
+}
+type UsbAudioSchedulingInput = {
+    packet: UsbAudioPcmPacket
+    clock: UsbIsochronousClock
+}

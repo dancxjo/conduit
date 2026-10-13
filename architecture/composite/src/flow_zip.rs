@@ -26,6 +26,7 @@ pub struct FlowZipBack {
     output_staged: bool,
     finish_after_commit: bool,
     closing: bool,
+    drain_right_until_close: bool,
     terminal: bool,
     output_maximum: u32,
     finite: bool,
@@ -65,11 +66,27 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
         // A finite close discards already-admitted unmatched queue entries,
         // one bounded consumption per step, before retiring this operation.
         if self.closing {
+            // LEFT-first feedback closure cannot retire from an empty queue
+            // snapshot: the finite event producer may still publish later.
+            if self.drain_right_until_close && !self.right_closed {
+                if io.input_abnormal(PortId(1)).is_some() {
+                    return fail(917);
+                }
+                if io.input_closed(PortId(1)) {
+                    io.consume_closed(PortId(1))
+                        .expect("remaining feedback event close");
+                    self.right_closed = true;
+                    return StepOutcome::Progress;
+                }
+            }
             for port in [PortId(0), PortId(1)] {
                 if io.input(port).is_some() {
                     io.consume(port).expect("queued unmatched finite zip value");
                     return StepOutcome::Progress;
                 }
+            }
+            if self.drain_right_until_close && !self.right_closed {
+                return StepOutcome::Await;
             }
             self.terminal = true;
             return StepOutcome::Complete;
@@ -107,6 +124,9 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 }
                 io.consume_closed(port)
                     .expect("present flow/zip normal close");
+                if self.feedback && port == PortId(0) && !self.right_closed {
+                    self.drain_right_until_close = true;
+                }
                 if pair_ready {
                     let output_len = self.encode_pair().unwrap_or(0);
                     if output_len == 0 {
@@ -120,6 +140,10 @@ impl<const PORTS: usize> StepBack<PORTS> for FlowZipBack {
                 }
                 self.left_len = None;
                 self.right_len = None;
+                if self.drain_right_until_close {
+                    self.closing = true;
+                    return StepOutcome::Progress;
+                }
                 if self.finite {
                     for other in [PortId(0), PortId(1)] {
                         if io.input(other).is_some() {
@@ -298,6 +322,7 @@ impl FlowZipBack {
             output_staged: false,
             finish_after_commit: false,
             closing: false,
+            drain_right_until_close: false,
             terminal: false,
             finite: false,
             feedback: false,
@@ -329,6 +354,7 @@ impl FlowZipBack {
             output_staged: false,
             finish_after_commit: false,
             closing: false,
+            drain_right_until_close: false,
             terminal: false,
             finite: false,
             feedback: false,

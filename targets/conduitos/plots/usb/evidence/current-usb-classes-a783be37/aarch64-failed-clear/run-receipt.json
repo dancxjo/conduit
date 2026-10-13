@@ -1,0 +1,22 @@
+{
+  "aarch64_firmware_sha256": "e264b5d66d05ad3abad9ec0b63dcf0c956007a3af9345dd03f79c5246ffcb392",
+  "architecture": "aarch64",
+  "emulator": "/home/dancxjo/Documents/Codex/2026-10-10/goal-please-finish-and-close-conduit/work/usb-audio-integration/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+  "fixture_input": {
+    "command": null,
+    "injected": false,
+    "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+    "maximum_reports": 0,
+    "requested": false
+  },
+  "image_sha256": "bebc6c0520036ad4b187ca64c7c3df6bde8dca90f3478489b335a7ca4d0144b4",
+  "maximum_transcript_bytes": 2097152,
+  "outcome": "play-retired",
+  "physical_compatibility": "unverified",
+  "proof_class": "freestanding-emulator",
+  "qemu_profile": "virt-10.2-gic2-coherent-pcie-single-cpu-512m-headless",
+  "schema": "conduit.conduitos/protocol-run-receipt@1",
+  "serial_sha256": "05255a85de3dfa93f6cb682ed2d4b4d82af2d8f08ffee5b88265d8d5851cbe2f",
+  "usb_devices": [],
+  "usb_storage_fixture": null
+}

@@ -192,6 +192,15 @@ impl<'a> EndpointReadTransfer<'a> {
             .ok_or(EndpointNativeRefusal::Pending)
     }
 
+    pub(in crate::arch::usb_xhci) fn retired_dequeue(
+        &self,
+        device: &UsbDevice,
+    ) -> Result<(u64, u32), EndpointNativeRefusal> {
+        self.validate_settlement_idle(device)?;
+        let (slot, cycle) = self.dma.cursor.position();
+        Ok((self.dma.ring_physical + (slot * 16) as u64, cycle))
+    }
+
     pub fn ring_position(&self) -> (usize, u32) {
         self.dma.cursor.position()
     }
@@ -295,7 +304,8 @@ impl<'a> EndpointReadTransfer<'a> {
     }
 
     /// # Safety
-    /// The sole original controller has acknowledged stop for this exact slot.
+    /// The sole original controller has acknowledged stop for this exact slot,
+    /// or acknowledged Reset Endpoint for this exact originally halted queue.
     /// A stall event or disconnected-port observation alone grants no retirement.
     pub(in crate::arch::usb_xhci) unsafe fn finish_fault_quiesced(
         &mut self,
