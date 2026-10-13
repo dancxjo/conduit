@@ -570,3 +570,7 @@ fn push(
         .push(command.map_err(|_| FaceSceneError::SceneBound)?)
         .map_err(|_| FaceSceneError::SceneBound)
 }
+
+#[cfg(test)]
+#[path = "native_face_scene/open_domain_tests.rs"]
+mod open_domain_tests;

@@ -116,6 +116,7 @@ pub(in crate::durable_host_control) struct SpeechWorker {
     control: RunControl,
     source: SpeechSource,
     source_show: MaskShow,
+    checked_template: bool,
     thread: JoinHandle<Option<(StdHost, Result<Value, SpeechFailure>)>>,
 }
 
@@ -192,6 +193,18 @@ impl DurableHostRuntime {
                 show,
             )
         };
+        let has_template = source.is_direct() && self.spoken_template_session.is_some();
+        if source.is_direct()
+            && !has_template
+            && matches!(
+                show.planned_mask.mask.plot_name.as_str(),
+                "owner_spoken_brief_template_mask" | "owner_spoken_expanded_template_mask"
+            )
+        {
+            return Err(
+                "checked template reading has no remaining private execution session".into(),
+            );
+        }
         let scope = source.scope();
         if equipment.as_ref().map_or_else(
             || !owner.host.current().spoken_artifact_only_route_is_current(),
@@ -205,14 +218,19 @@ impl DurableHostRuntime {
             crate::durable_host::fresh_identity("selected-speech", source.identity());
         // Start the worker before moving the Host. Failed spawn leaves it with
         // the owner; failed handoff returns the Host for restoration.
-        let (sender, receiver) = mpsc::sync_channel::<Option<StdHost>>(1);
+        let (sender, receiver) = mpsc::sync_channel::<
+            Option<(
+                StdHost,
+                Option<conduit_std_host::spoken_template_execution::SpokenTemplateExecutionSession>,
+            )>,
+        >(1);
         let control = RunControl::default();
         let worker_control = control.clone();
         let worker_show = show.clone();
         let thread = std::thread::Builder::new()
             .name("conduit-owner-selected-speech".into())
             .spawn(move || {
-                let mut host = receiver.recv().ok().flatten()?;
+                let (mut host, template) = receiver.recv().ok().flatten()?;
                 #[cfg(test)]
                 if let Some(gate) = equipment
                     .as_ref()
@@ -222,6 +240,40 @@ impl DurableHostRuntime {
                     gate.wait();
                 }
                 let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {
+                    if let Some(mut template) = template {
+                        let mut batches = Vec::with_capacity(MAXIMUM_BATCHES);
+                        while !template.complete() {
+                            match template.read_next(
+                                &mut host,
+                                &face,
+                                &worker_show,
+                                &worker_control,
+                            ) {
+                                Ok(_) => batches.push(json!(template
+                                    .receipts()
+                                    .last()
+                                    .ok_or_else(|| SpeechFailure::Failed(
+                                        "completed template frame has no private receipt".into()
+                                    ))?)),
+                                Err(detail) => {
+                                    return Err(SpeechFailure::Partial {
+                                        cause: Box::new(if worker_control.stop_requested() {
+                                            SpeechFailure::Cancelled(detail)
+                                        } else {
+                                            SpeechFailure::Failed(detail)
+                                        }),
+                                        completed_batches: batches,
+                                    })
+                                }
+                            }
+                        }
+                        let summary = template.finish().map_err(SpeechFailure::Failed)?;
+                        return Ok(json!({"schema":"conduit.body/selected-speech-terminal@1",
+                            "outcome":"completed", "source_show_id":worker_show.show_id,
+                            "completed_batch_count":batches.len(), "batches":batches,
+                            "reader_scope":"checked-template-remaining", "speaker_played":false,
+                            "template_execution":summary}));
+                    }
                     play_selected(
                         &mut host,
                         &face,
@@ -249,8 +301,14 @@ impl DurableHostRuntime {
                 return Err(error);
             }
         };
-        if let Err(error) = sender.send(Some(host)) {
-            if let Some(host) = error.0 {
+        let template = if has_template {
+            self.spoken_template_session.take()
+        } else {
+            None
+        };
+        if let Err(error) = sender.send(Some((host, template))) {
+            if let Some((host, template)) = error.0 {
+                self.spoken_template_session = template;
                 owner.host.restore_after_play(host)?;
             }
             let _ = thread.join();
@@ -261,6 +319,7 @@ impl DurableHostRuntime {
             control,
             source,
             source_show: show,
+            checked_template: has_template,
             thread,
         });
         self.speech_terminal = None;
@@ -310,7 +369,7 @@ impl DurableHostRuntime {
                     "boot_id":owner.host.advertisement().boot_id.as_str(),
                     "offer_generation":owner.host.advertisement().offer_generation.0,
                     "source_show_still_current":source_current,
-                    "source_mask":source_mask, "reader_scope":worker.source.scope().name(),
+                    "source_mask":source_mask, "reader_scope":if worker.checked_template {"checked-template-remaining"} else {worker.source.scope().name()},
                     "completed_batch_count":completed_batches.len(),
                     "batches":completed_batches,
                     "detail":failure.detail()})

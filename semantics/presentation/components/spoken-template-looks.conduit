@@ -1,0 +1,31 @@
+# Two finite rhetorical expressions over the same Face-selected slots.
+# Both retain every supplied essential slot. No model, provider or application state.
+type SpokenTemplateSlots = {
+    title: Text <= 8192B
+    status: Text <= 8192B
+    item_one: Text <= 8192B
+    item_two: Text <= 8192B
+    item_three: Text <= 8192B
+    actions: Text <= 8192B
+}
+type SpokenTemplateOutput = {
+    identity: Text <= 128B not in [""]
+    revision: U16 in 1..=1
+    a: Text <= 8192B
+    b: Text <= 8192B
+    c: Text <= 8192B
+    d: Text <= 8192B
+    e: Text <= 8192B
+    f: Text <= 8192B
+    g: Text <= 8192B
+    h: Text <= 8192B
+    i: Text <= 8192B
+}
+plot spoken/brief-template (
+ >> slots: SpokenTemplateSlots
+ wording: SpokenTemplateOutput >>
+) = {identity: "spoken/brief@1", revision: 1, a: .title, b: .status, c: .item_one, d: .item_two, e: .item_three, f: .actions, g: "", h: "", i: ""}
+plot spoken/expanded-template (
+ >> slots: SpokenTemplateSlots
+ wording: SpokenTemplateOutput >>
+) = {identity: "spoken/expanded@1", revision: 1, a: "Current view:", b: .title, c: .status, d: "Items:", e: .item_one, f: .item_two, g: .item_three, h: "Actions and availability:", i: .actions}

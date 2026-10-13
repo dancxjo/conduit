@@ -70,7 +70,7 @@ pub(super) fn install_configured_with_todo(
             .and_then(|value| value.selected_speech.clone()),
         selected_speech::Change::Replace(selection) => {
             selection.validate()?;
-            Some(selection)
+            Some(*selection)
         }
         selected_speech::Change::Remove => None,
     };

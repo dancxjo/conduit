@@ -7,7 +7,7 @@ fn legacy() -> (PathBuf, PathBuf, String) {
     let installed = install_configured(
         &manifest,
         &state,
-        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_speech::Change::Replace(Box::new(selected_speech::fixture_retained_selection())),
         selected_model::Change::Preserve,
     )
     .unwrap();
@@ -48,7 +48,7 @@ fn legacy() -> (PathBuf, PathBuf, String) {
 fn legacy_selection_requires_explicit_replacement_or_removal() {
     for change in [
         selected_speech::Change::Remove,
-        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_speech::Change::Replace(Box::new(selected_speech::fixture_retained_selection())),
     ] {
         let (manifest, state, host_id) = legacy();
         assert!(read_installation(&state.join("installation.json"))
@@ -107,7 +107,7 @@ fn replacement_cannot_reuse_undeclared_legacy_selection() {
     assert!(install_configured(
         &manifest,
         &state,
-        selected_speech::Change::Replace(unreviewed),
+        selected_speech::Change::Replace(Box::new(unreviewed)),
         selected_model::Change::Preserve,
     )
     .unwrap_err()
@@ -178,7 +178,7 @@ fn todo_checkpoint_and_speech_selection_survive_one_installation() {
     install_configured_with_todo(
         &manifest,
         &state,
-        selected_speech::Change::Replace(selected_speech::fixture_retained_selection()),
+        selected_speech::Change::Replace(Box::new(selected_speech::fixture_retained_selection())),
         selected_model::Change::Preserve,
         selected_todo::Change::Replace(selected_todo::Selection::select(&root, None).unwrap()),
     )

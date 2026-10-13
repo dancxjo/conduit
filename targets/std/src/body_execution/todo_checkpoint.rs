@@ -53,6 +53,7 @@ impl StdHost {
             Some((fore.inputs, false, fore.output)),
             None,
             Some((checkpoint.root, checkpoint.identity)),
+            None,
             started,
         )
     }
@@ -81,6 +82,7 @@ impl StdHost {
             Some((&[], false, fore_output)),
             None,
             Some((checkpoint.root, checkpoint.identity)),
+            None,
             started,
         )
     }
@@ -146,6 +148,7 @@ impl StdHost {
             None,
             Some((fore.queue, fore.output)),
             Some((checkpoint.root, checkpoint.identity)),
+            None,
             started,
         )
     }

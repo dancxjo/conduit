@@ -183,6 +183,49 @@ fn exact_source_and_selected_plan_bind_renderer_configuration() {
         options: options(),
         boundary_limits: &boundaries,
     };
+    let checked_plan = prepare_checked_source_plan(
+        &checked,
+        &expanded,
+        &profiles,
+        &CanonicalBackCatalog::new(),
+        &plan,
+        selection(),
+    )
+    .unwrap();
+    assert_eq!(checked_plan.plan(), &plan);
+    assert_eq!(checked_plan.expanded(), &expanded);
+    let mut forged_plan = plan.clone();
+    forged_plan.plan_id = PlanId::from("plan/forged-custody");
+    assert!(matches!(
+        prepare_checked_source_plan(
+            &checked,
+            &expanded,
+            &profiles,
+            &CanonicalBackCatalog::new(),
+            &forged_plan,
+            selection(),
+        ),
+        Err(CheckedSourcePlanRefusal::PlanReproduction)
+    ));
+    let mut changed_host = host.clone();
+    changed_host.boot_id = BootId::from("boot/replaced-input-host");
+    assert!(matches!(
+        prepare_checked_source_plan(
+            &checked,
+            &expanded,
+            &profiles,
+            &CanonicalBackCatalog::new(),
+            &plan,
+            CheckedSourcePlanInputs {
+                hosts: std::slice::from_ref(&changed_host),
+                placements: &placements,
+                bases: &[],
+                options: options(),
+                boundary_limits: &boundaries,
+            },
+        ),
+        Err(CheckedSourcePlanRefusal::PlanReproduction)
+    ));
     let prepared = prepare_configured_mask(
         &checked,
         &expanded,

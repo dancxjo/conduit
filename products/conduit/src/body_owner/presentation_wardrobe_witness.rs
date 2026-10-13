@@ -41,6 +41,9 @@ impl Owner {
     pub(crate) fn current_direct_spoken_route<'a>(
         host: &super::OwnerHost,
         cached: Option<&'a LocalOwnerMaskRouteSeal>,
+        template: Option<
+            &conduit_std_host::direct_spoken_template_mask::PreparedDirectSpokenTemplateMask,
+        >,
         session: &conduit_body::BodyLifecycleSession,
         face: &conduit_presentation::Presentation,
     ) -> Result<Option<&'a LocalOwnerMaskRouteSeal>, String> {
@@ -48,6 +51,18 @@ impl Owner {
             return Ok(None);
         };
         if host.is_playing() || !host.current().spoken_mask_provider_is_current() {
+            return Ok(None);
+        }
+        if let Some(template) = template {
+            if template.validate_current(host.current(), face).is_err()
+                || template.mask().planned_mask != seal.planned_mask
+            {
+                return Ok(None);
+            }
+        } else if matches!(
+            seal.planned_mask.mask.plot_name.as_str(),
+            "owner_spoken_brief_template_mask" | "owner_spoken_expanded_template_mask"
+        ) {
             return Ok(None);
         }
         let grants = [

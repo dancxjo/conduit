@@ -13,6 +13,7 @@ impl StdHost {
         timer: &mut T,
         control: &RunControl,
     ) -> Result<StdRunReport, String> {
+        preparation.validate_template_host(self.advertisement())?;
         self.run_fragment_owned_with_keyboard_to(
             fragment,
             output,
