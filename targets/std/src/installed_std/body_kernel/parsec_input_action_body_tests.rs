@@ -77,12 +77,20 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
         }
     }
     #[derive(Default)]
-    struct Shows(Vec<(Presentation, MaskShow)>);
+    struct Shows(Vec<(Presentation, MaskShow)>, Vec<serde_json::Value>);
     impl BodyParsecShowObserver for Shows {
         fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String> {
             show.validate(face)
                 .map_err(|error| format!("Show: {error:?}"))?;
             self.0.push((face.clone(), show.clone()));
+            Ok(())
+        }
+        fn instruction_observed(
+            &mut self,
+            observation: &crate::body_execution::ParsecInputInstructionObservation,
+        ) -> Result<(), String> {
+            self.1
+                .push(serde_json::to_value(observation).map_err(|error| error.to_string())?);
             Ok(())
         }
     }
@@ -177,6 +185,59 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
     assert!(instructions.contains("Press Enter to game/shoot."));
     assert!(instructions.contains("Input unavailable."));
     assert!(instructions.ends_with("Input unavailable.\r\n"));
+    if let Some(path) = std::env::var_os("CONDUIT_CROSS_MASK_PARSEC_EXCHANGE") {
+        let path = std::path::PathBuf::from(path);
+        assert!(
+            path.is_absolute(),
+            "explicit Parsec evidence path must be absolute"
+        );
+        assert!(
+            !shows.1.is_empty(),
+            "actual flushed instruction observations required"
+        );
+        assert!(shows
+            .1
+            .iter()
+            .any(|value| value["binding"]["control_label"] == "Space"));
+        assert!(shows
+            .1
+            .iter()
+            .any(|value| value["binding"]["control_label"] == "Enter"));
+        let bytes = serde_json::to_vec_pretty(&serde_json::json!({
+            "schema": "conduit.proof/parsec-input-mask-exchange@1",
+            "proof_class": "actual software keyboard/terminal Body Play; other Masks require independent reconstruction",
+            "body_plan": plan, "issued_body_play": report.play,
+            "show_occurrences": shows.0, "instructions": shows.1,
+            "source_results": results.iter().zip(capture.values.iter().filter(|value|
+                value.front_port_id.as_str() == "states")).map(|(result, delivery)| serde_json::json!({
+                    "fore_sequence": delivery.sequence,
+                    "canonical_result_bytes": delivery.bytes,
+                    "accepted": result.accepted(),
+                    "state": {"started": result.state().started(), "keyboard": result.state().keyboard(),
+                        "mapping_revision": result.state().mapping_revision()},
+                })).collect::<Vec<_>>(),
+            "scan_child_signs": report.scan_child_signs.as_ref().expect("actual child sign receipts").iter()
+                .map(|receipt| serde_json::json!({
+                    "parent_active_play_id": receipt.parent_active_play_id,
+                    "activation_id": receipt.activation_id, "selected_plan_id": receipt.selected_plan_id,
+                    "invocation": receipt.invocation, "child_host_id": receipt.child_host_id,
+                    "child_active_play_id": receipt.child_active_play_id,
+                    "sign_event_count": receipt.events.len(),
+                })).collect::<Vec<_>>(),
+            "terminal": report.terminal,
+            "final_prompt_withdrawn": instructions.ends_with("Input unavailable.\r\n"),
+        })).unwrap();
+        use std::io::Write;
+        #[cfg(unix)]
+        use std::os::unix::fs::OpenOptionsExt;
+        let mut options = std::fs::OpenOptions::new();
+        options.write(true).create_new(true);
+        #[cfg(unix)]
+        options.mode(0o600);
+        let mut output = options.open(path).unwrap();
+        output.write_all(&bytes).unwrap();
+        output.flush().unwrap();
+    }
     let status = report.live_fore_status.unwrap();
     assert_eq!(
         (status.queue_accepted, status.kernel_admitted, status.queued),

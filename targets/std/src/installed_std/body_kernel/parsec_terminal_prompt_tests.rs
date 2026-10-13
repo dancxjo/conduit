@@ -322,3 +322,57 @@ fn flushed_prompt_authorizes_only_current_source_control_and_consistent_typed_re
         None
     );
 }
+
+#[test]
+fn read_only_instruction_observation_exists_only_after_exact_scope_and_flush() {
+    let (host, plan, play, identity, _, _) = super::super::tests::fixture();
+    let mut map =
+        ParsecAcknowledgedMap::prepare(&plan, host.advertisement(), &play, &identity).unwrap();
+    map.confirm(host.advertisement(), &play).unwrap();
+    let mut owner = ParsecTerminalOwner::prepare(&plan, host.advertisement(), 80, 24).unwrap();
+    let mut output = Vec::new();
+    owner
+        .ensure_present(&map, host.advertisement(), &mut output)
+        .unwrap();
+    let mut adapter = Pending;
+    let (mut keys, requests) = prepared_keys(&mut adapter, host.advertisement(), &plan, &play);
+    assert!(owner
+        .instruction_observation(&map, host.advertisement(), &keys)
+        .unwrap()
+        .is_none());
+    accept(&mut keys, &requests);
+    assert!(owner
+        .instruction_observation(&map, host.advertisement(), &keys)
+        .unwrap()
+        .is_none());
+    owner
+        .sync_prompt(&map, host.advertisement(), &keys, &mut output)
+        .unwrap();
+    let observation = owner
+        .instruction_observation(&map, host.advertisement(), &keys)
+        .unwrap()
+        .unwrap();
+    assert_eq!(observation.binding().control_label(), "Space");
+    assert_eq!(
+        observation.binding().offered_action().action_identity(),
+        "game/start"
+    );
+    assert_eq!(observation.face().actions[0].identity, "game/start");
+    assert_eq!(
+        observation.show().show.play_sequence,
+        observation.input_view_epoch()
+    );
+    let serialized = serde_json::to_value(&observation).unwrap();
+    assert_eq!(
+        serialized["body_play"]["active_play_id"],
+        play.active_play_id.as_str()
+    );
+    assert!(observation
+        .prompt_text()
+        .contains("Press Space to game/start."));
+    keys.cancel();
+    assert!(owner
+        .instruction_observation(&map, host.advertisement(), &keys)
+        .unwrap()
+        .is_none());
+}

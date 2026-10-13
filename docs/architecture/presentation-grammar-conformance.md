@@ -800,3 +800,21 @@ as do six checked-policy regressions, workspace formatting and patch hygiene.
 This is not #5369 or #5355 acceptance. The current instruction is a terminal
 sidecar; post-flush observation and cross-Mask instruction reconstruction remain
 required before the Parsec specimen is accepted.
+
+### Post-flush Parsec instruction observations
+
+The optional Body observer now receives a Serialize-only instruction snapshot
+from the private owner after current accepted scope, checked policy correlation
+and successful terminal write/flush. The snapshot carries its exact Face/Show,
+issued Body Play, Host/Boot/offer generation, source producer Plan/Plot, binding,
+prompt-text digest and epoch. There is no deserialization or replay admission
+API. Existing Show observers retain their default behavior.
+
+Twenty-seven Parsec tests pass, including observation absence before acceptance
+or flush and after cancellation. An explicit private export from the actual
+combined Body journey records four post-flush instructions (Space/Start,
+Space/Shoot twice and Enter/Shoot), four actual Shows, four canonical source
+transition frames, four child receipt identities and final prompt withdrawal.
+The export refuses to overwrite existing evidence. Std all-target Clippy with
+burn-model and warnings denied passes. This is software input/terminal evidence;
+it does not establish reconstruction of the instruction by other Masks.
