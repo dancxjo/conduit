@@ -41,7 +41,7 @@ fn checked_corpus_preserves_parity_overflow_and_source_with_cold_warm_rows() {
             assert!(program.evaluate(&u64::MAX.to_le_bytes()).is_err());
             assert!(evaluator.evaluate(&u64::MAX.to_le_bytes()).is_err());
             assert!(evaluator.evaluate(&[0]).is_err());
-            // One explicit untimed warm-up is above; timed loops include decode/assert.
+            // One explicit untimed warm-up is above; timed loops include byte assertions.
             let start = Instant::now();
             for _ in 0..ITERATIONS {
                 let bytes = evaluator.evaluate(black_box(&input)).unwrap();
@@ -66,7 +66,7 @@ fn checked_corpus_preserves_parity_overflow_and_source_with_cold_warm_rows() {
             let native_ns = start.elapsed().as_nanos();
             println!(
                 "EXPRESSION_BASELINE_ROW={}",
-                serde_json::json!({"row":row,"operations":operations,"iterations":ITERATIONS,"parse_check_full_corpus_ns":parse_check_ns,"expand_selected_plot_ns":expand_ns,"decode_prepare_ns":prepare_ns,"warm_evaluate_decode_assert_ns":warm_ns,"native_checked_add_assert_ns":native_ns,"source_document_id":checked.source_document_id.as_str(),"checked_plot_id":authored.expanded.checked_plot_id.as_str(),"expanded_plot_id":authored.expanded.expanded_plot_id.as_str(),"program_hex_bytes":encoded.len(),"output_bytes":8,"tree_layout":"balanced","warm_allocations":allocations.allocations,"warm_reallocations":allocations.reallocations,"profile":"local test profile; no kernel/browser timing"})
+                serde_json::json!({"row":row,"operations":operations,"iterations":ITERATIONS,"parse_check_full_corpus_ns":parse_check_ns,"expand_selected_plot_ns":expand_ns,"decode_prepare_ns":prepare_ns,"warm_evaluate_byte_assert_ns":warm_ns,"native_checked_add_assert_ns":native_ns,"source_document_id":checked.source_document_id.as_str(),"checked_plot_id":authored.expanded.checked_plot_id.as_str(),"expanded_plot_id":authored.expanded.expanded_plot_id.as_str(),"program_hex_bytes":encoded.len(),"output_bytes":8,"tree_layout":"balanced","warm_allocations":allocations.allocations,"warm_reallocations":allocations.reallocations,"profile":"local test profile; no kernel/browser timing"})
             );
         }
     }
