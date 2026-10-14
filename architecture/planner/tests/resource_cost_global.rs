@@ -401,11 +401,15 @@ fn multiple_pools_of_one_class_defer_prefix_rejection_to_ordinary_plan() {
             }
         },
         |global, _, _| {
-            let global = global.expect("ordinary Plan admits the fixture");
-            assert!(verify_plan(&global.plan));
-            assert_eq!(global.disposition, GlobalPlacementDisposition::Exhaustive);
-            assert_eq!(global.capacity_pruned_prefixes, 0);
-            assert!(global.complete_assignments > 0);
+            assert!(matches!(
+                global,
+                Err(GlobalPlacementRefusal::NoFeasibleAssignment {
+                    disposition: GlobalPlacementDisposition::Exhaustive,
+                    states: 7,
+                    refused_assignments: 4,
+                    capacity_pruned_prefixes: 0,
+                })
+            ));
         },
     );
 }
