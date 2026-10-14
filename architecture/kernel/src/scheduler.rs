@@ -23,8 +23,10 @@ mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod host_call_settlement;
+mod ready_set;
 mod remote_fanout;
 mod retirement;
+use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
 use active_capacity::validate_active_capacity;
@@ -933,7 +935,7 @@ pub struct FixedScheduler<
     signs: E,
     cords: [CordState; CORDS],
     queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
-    ready: [bool; NODES],
+    ready: ReadySet<NODES>,
     completed: [bool; NODES],
     cursor: usize,
     host_request_cursor: usize,
@@ -1037,7 +1039,7 @@ where
             signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
-            ready: core::array::from_fn(|node| node < active_nodes),
+            ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
             cursor: 0,
             host_request_cursor: 0,
@@ -1523,7 +1525,7 @@ where
         state.next_remote_sequence = next_sequence;
         state.offered_remote_sequence = None;
         state.remote_accepted = false;
-        self.ready[usize::from(source_node.0)] = true;
+        self.ready.set(usize::from(source_node.0), true);
         self.signs.record_remote(
             source_node,
             source_port,
@@ -1595,7 +1597,7 @@ where
             }
         }
         self.cords[cord_index].next_remote_sequence = next_sequence;
-        self.ready[usize::from(sink_node.0)] = true;
+        self.ready.set(usize::from(sink_node.0), true);
         self.signs.record_remote(
             sink_node,
             sink_port,
@@ -1683,7 +1685,7 @@ where
         self.cords[cord_index].producer_closed = true;
         self.cords[cord_index].producer_abnormal = abnormal_terminal.is_some();
         self.cords[cord_index].abnormal_terminal = abnormal_terminal;
-        self.ready[usize::from(sink_node.0)] = true;
+        self.ready.set(usize::from(sink_node.0), true);
         self.signs.record_remote(
             sink_node,
             sink_port,
@@ -1802,12 +1804,12 @@ where
     }
 
     pub fn has_ready_work(&self) -> bool {
-        (0..self.active_nodes).any(|node| {
+        self.ready.round_robin(0, self.active_nodes).any(|node| {
             let waiting_for_host_completion =
                 self.pending_host_calls.iter().flatten().any(|pending| {
                     usize::from(pending.request.node.0) == node && pending.completion.is_none()
                 });
-            self.ready[node]
+            self.ready.contains(node)
                 && !self.completed[node]
                 && (!waiting_for_host_completion
                     || self.drivers[node].accepts_input_while_host_call_pending())
@@ -1878,7 +1880,7 @@ where
             .as_mut()
             .ok_or(SchedulerError::HostCallCompletionRejected)?
             .completion = Some(outcome);
-        self.ready[usize::from(pending.request.node.0)] = true;
+        self.ready.set(usize::from(pending.request.node.0), true);
         self.signs.record(
             pending.request.node,
             None,
@@ -1896,14 +1898,22 @@ where
     }
 
     fn next_ready(&mut self) -> Option<usize> {
-        for offset in 0..self.active_nodes {
+        let mut candidates = self.ready.round_robin(self.cursor, self.active_nodes);
+        loop {
+            let node = candidates.next();
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.ready_bytes += candidates.take_byte_probes() as u64;
+                self.scan_counts.set(counts);
+            }
+            let Some(node) = node else { break };
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
                 counts.next_ready_nodes += 1;
                 self.scan_counts.set(counts);
             }
-            let node = (self.cursor + offset) % self.active_nodes;
             let pending = self.pending_host_calls.iter();
             #[cfg(test)]
             let pending = pending.inspect(|_| {
@@ -1914,7 +1924,7 @@ where
             let waiting_for_host_completion = pending.flatten().any(|pending| {
                 usize::from(pending.request.node.0) == node && pending.completion.is_none()
             });
-            if self.ready[node]
+            if self.ready.contains(node)
                 && !self.completed[node]
                 && (!waiting_for_host_completion
                     || self.drivers[node].accepts_input_while_host_call_pending())
@@ -2194,9 +2204,10 @@ where
             }
         }
         match outcome {
-            StepOutcome::Progress => {
-                self.ready[node] = io.host_request.is_none() && io.host_cancellation.is_none()
-            }
+            StepOutcome::Progress => self.ready.set(
+                node,
+                io.host_request.is_none() && io.host_cancellation.is_none(),
+            ),
             StepOutcome::Yield => {
                 self.signs.record(
                     NodeId(as_u16(node)?),
@@ -2204,12 +2215,12 @@ where
                     None,
                     KernelEventKind::StepYielded,
                 )?;
-                self.ready[node] = true;
+                self.ready.set(node, true);
             }
-            StepOutcome::Await => self.ready[node] = false,
+            StepOutcome::Await => self.ready.set(node, false),
             StepOutcome::Complete => {
                 self.completed[node] = true;
-                self.ready[node] = false;
+                self.ready.set(node, false);
                 self.close_outputs(node)?;
                 if let Some(source) = self.projected_recovery_source[node].take() {
                     self.unresolved_abnormal[usize::from(source.0)] = None;
@@ -2244,7 +2255,7 @@ where
             }
             StepOutcome::Abnormal { port, terminal } => {
                 self.completed[node] = true;
-                self.ready[node] = false;
+                self.ready.set(node, false);
                 let routed = self.abnormally_terminate_outputs(node, port, terminal)?;
                 self.signs.record(
                     NodeId(as_u16(node)?),
@@ -2346,7 +2357,7 @@ where
             self.push(cord, value)?;
             self.cords[cord].quiescence_armed = false;
             if let Some((sink, _)) = spec.sink_local() {
-                self.ready[usize::from(sink.0)] = true;
+                self.ready.set(usize::from(sink.0), true);
             }
             self.signs
                 .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
@@ -2866,7 +2877,7 @@ where
             consumed_values[port] = Some(value);
             let spec = self.cord_specs[usize::from(cord.0)];
             if let Some((source_node, _)) = spec.source_local() {
-                self.ready[usize::from(source_node.0)] = true;
+                self.ready.set(usize::from(source_node.0), true);
             }
             self.signs.record(
                 NodeId(as_u16(node)?),
@@ -3059,7 +3070,7 @@ where
                     self.values.release(superseded)?;
                 }
                 if let CordEndpoint::Local { node, .. } = target.sink {
-                    self.ready[usize::from(node.0)] = true;
+                    self.ready.set(usize::from(node.0), true);
                 }
                 self.signs.record(
                     NodeId(as_u16(node)?),
@@ -3457,7 +3468,7 @@ where
                 }
                 self.cords[cord].producer_closed = true;
                 if let CordEndpoint::Local { node, .. } = target.sink {
-                    self.ready[usize::from(node.0)] = true;
+                    self.ready.set(usize::from(node.0), true);
                 } else {
                     let CordEndpoint::Remote(endpoint) = target.sink else {
                         unreachable!("remote output closure has remote sink")
@@ -3556,7 +3567,7 @@ where
             self.cords[cord].abnormal_terminal =
                 (spec.track != AssignedConnectionTrack::AbnormalTerminal).then_some(terminal);
             if let CordEndpoint::Local { node, .. } = target.sink {
-                self.ready[usize::from(node.0)] = true;
+                self.ready.set(usize::from(node.0), true);
             } else {
                 let CordEndpoint::Remote(endpoint) = target.sink else {
                     unreachable!("remote output closure has remote sink")
