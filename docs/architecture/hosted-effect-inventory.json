@@ -131,17 +131,17 @@
     },
     {
       "family": "pico-indicator-device",
-      "semantic_kinds": ["presentation/indicator"],
+      "semantic_kinds": ["face/indicator"],
       "implementation_owner": "conduit-std-host pico_indicator",
       "source_paths": ["targets/std/src/pico_indicator.rs"],
       "external_mechanism": "attached Pico control process/device path",
-      "contracts": ["selected presentation Base and device authority"],
+      "contracts": ["selected face Base and device authority"],
       "boundary": "legacy Host process",
       "enforcement_class": "cooperative",
       "ambient_privileges": ["Host process and selected device helper authority"],
       "proposed_base_owner": "conduit-base-indicator-device",
       "migration_status": "pending",
-      "adversarial_proof": "physical presentation proof is not hostile isolation"
+      "adversarial_proof": "physical face proof is not hostile isolation"
     },
     {
       "family": "isolated-exact-endpoint-http-client",

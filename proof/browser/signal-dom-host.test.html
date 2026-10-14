@@ -42,10 +42,10 @@ const effect = (host, sequence) => ({
   requestId: sequence,
   operationId: 0,
   hostCallContractId: "conduit.host/present@1",
-  presentationId: `presentation/${host}/${sequence}`,
+  faceId: `face/${host}/${sequence}`,
   signId: `sign/${host}/${sequence}`,
   placementId: `placement/${host}/show`,
-  presentationKind: "presentation/signal",
+  faceKind: "face/signal",
   value: {
     valueKind: "value/signal",
     encoded: encodeSignal(sequence, sequence % 2 === 1),
@@ -99,8 +99,8 @@ try {
     ),
     "both Rust runtimes correlate sixteen DOM completions without capacity growth",
   );
-  const hostAFirst = runtimeResults[0].presentations[0];
-  const hostBFirst = runtimeResults[1].presentations[0];
+  const hostAFirst = runtimeResults[0].faces[0];
+  const hostBFirst = runtimeResults[1].faces[0];
   assert(
     hostAFirst.sourceDocumentId === hostBFirst.sourceDocumentId &&
       hostAFirst.checkedPlotId === hostBFirst.checkedPlotId &&
@@ -115,9 +115,9 @@ try {
       hostAFirst.planId !== hostBFirst.planId &&
       hostAFirst.fragmentId !== hostBFirst.fragmentId &&
       hostAFirst.activePlayId !== hostBFirst.activePlayId &&
-      hostAFirst.presentationId !== hostBFirst.presentationId &&
+      hostAFirst.faceId !== hostBFirst.faceId &&
       hostAFirst.signId !== hostBFirst.signId,
-    "host-scoped plan, fragment, play, presentation, and sign identities remain independent",
+    "host-scoped plan, fragment, play, face, and sign identities remain independent",
   );
 
   const mismatchRuntime = await instantiateBrowserRuntime(wasmBytes, 0);
@@ -167,12 +167,12 @@ try {
     "platform failure becomes an honest Rust terminal failure",
   );
 
-  const duplicate = hosts[0].completePresentation(runtimeResults[0].presentations[0]);
+  const duplicate = hosts[0].completeFace(runtimeResults[0].faces[0]);
   assert(
-    duplicate.code === BrowserDomFailure.DuplicatePresentation,
-    "duplicate presentation fails closed",
+    duplicate.code === BrowserDomFailure.DuplicateFace,
+    "duplicate face fails closed",
   );
-  const overflow = hosts[0].completePresentation(effect("a", 16));
+  const overflow = hosts[0].completeFace(effect("a", 16));
   assert(
     overflow.code === BrowserDomFailure.ReceiptCapacity,
     "receipt store is item and byte bounded",
@@ -184,8 +184,8 @@ try {
     maximumReceiptItems: 1,
     maximumReceiptBytes: 18,
   });
-  assert(itemBoundHost.completePresentation(effect("item-bound", 0)).ok, "item bound admits one");
-  const itemOverflow = itemBoundHost.completePresentation(effect("item-bound", 1));
+  assert(itemBoundHost.completeFace(effect("item-bound", 0)).ok, "item bound admits one");
+  const itemOverflow = itemBoundHost.completeFace(effect("item-bound", 1));
   assert(itemOverflow.code === BrowserDomFailure.ReceiptCapacity, "item bound rejects two");
   const byteBoundHost = new BrowserDomHost({
     hostId: "browser-host-byte-bound",
@@ -194,15 +194,15 @@ try {
     maximumReceiptItems: 2,
     maximumReceiptBytes: 9,
   });
-  assert(byteBoundHost.completePresentation(effect("byte-bound", 0)).ok, "byte bound admits nine");
-  const byteOverflow = byteBoundHost.completePresentation(effect("byte-bound", 1));
+  assert(byteBoundHost.completeFace(effect("byte-bound", 0)).ok, "byte bound admits nine");
+  const byteOverflow = byteBoundHost.completeFace(effect("byte-bound", 1));
   assert(byteOverflow.code === BrowserDomFailure.ReceiptCapacity, "byte bound rejects eighteen");
-  const malformed = hosts[1].completePresentation({
+  const malformed = hosts[1].completeFace({
     ...effect("b", 16),
     value: { valueKind: "value/signal", encoded: [1, 2, 3] },
   });
   assert(
-    malformed.code === BrowserDomFailure.InvalidPresentation,
+    malformed.code === BrowserDomFailure.InvalidFace,
     "malformed signal fails closed",
   );
   assert(hosts[0].receipts().length === 16, "host A retains sixteen receipts");

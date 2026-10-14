@@ -13,7 +13,7 @@ conduit-education = { path = "../education" }
 conduit-human = { path = "../human" }
 conduit-midi = { path = "../../mechanisms/protocols/midi" }
 conduit-net = { path = "../net", default-features = false, features = ["plot-catalog"] }
-conduit-presentation = { path = "../presentation" }
+conduit-face = { path = "../face" }
 conduit-process = { path = "../process" }
 conduit-purpose = { path = "../purpose" }
 conduit-robotics = { path = "../robotics" }

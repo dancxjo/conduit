@@ -1,10 +1,9 @@
 //! One semantic Face for a provisioned guest awaiting real owner admission.
 use alloc::{format, vec, vec::Vec};
 use conduit_birth_plot::BirthFaceBasis;
-use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationProperty, PresentationPropertyValue, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    Face, FaceBasis, FaceDisclosure, FaceDisclosureLevel, FaceProperty, FacePropertyValue,
+    FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
 
 use super::{Error, FrontDoor};
@@ -22,11 +21,11 @@ impl FrontDoor {
     // The freestanding product binary uses this library entry; hosted library
     // builds do not link that binary and cannot see its call site.
     #[allow(dead_code)]
-    pub(crate) fn joining_face(&self, producer: &BirthFaceBasis) -> Result<Presentation, Error> {
+    pub(crate) fn joining_face(&self, producer: &BirthFaceBasis) -> Result<Face, Error> {
         self.joining
             .as_ref()
             .ok_or(Error::ActionUnavailable)?
-            .presentation(self, Some(producer))
+            .face(self, Some(producer))
     }
 
     pub fn await_join(&mut self, pending: PendingNativeJoin) -> Result<(), Error> {
@@ -60,7 +59,7 @@ impl FrontDoor {
                 .as_ref()
                 .is_some_and(|journey| journey.body_id.is_some())
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         joining.1 = Some(part);
         self.advance()
@@ -72,19 +71,19 @@ impl FrontDoor {
 }
 
 impl PendingJoinView {
-    pub(super) fn presentation(
+    pub(super) fn face(
         &self,
         door: &FrontDoor,
         producer: Option<&BirthFaceBasis>,
-    ) -> Result<Presentation, Error> {
+    ) -> Result<Face, Error> {
         if let Some(part) = &self.1 {
-            return self.admitted_presentation(door, producer, part);
+            return self.admitted_face(door, producer, part);
         }
         let host = format!("host/{}/{}", door.host_id.as_str(), door.boot_id.as_str());
         let candidate = format!("candidate/{}", self.0.spore_id);
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             door.revision,
-            PresentationBasis {
+            FaceBasis {
                 body_id: None,
                 wake_id: None,
                 source_document_id: producer.map(|basis| basis.producer_plot.source_document_id.clone()),
@@ -95,41 +94,41 @@ impl PendingJoinView {
                 sign_ids: Vec::new(),
             },
             vec![
-                PresentationSubject {
+                FaceSubject {
                     identity: host.clone(),
-                    role: PresentationRole::Host,
+                    role: FaceRole::Host,
                     name: "This ConduitOS host".into(),
                 },
-                PresentationSubject {
+                FaceSubject {
                     identity: candidate.clone(),
-                    role: PresentationRole::Candidate,
+                    role: FaceRole::Candidate,
                     name: "Invitation to another Body".into(),
                 },
             ],
-            vec![PresentationRelationship {
+            vec![FaceRelationship {
                 source: host.clone(),
                 target: candidate.clone(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             }],
             vec![
-                property(&host, "current-body", PresentationPropertyValue::Text("none".into())),
-                property(&candidate, "target-body-id", PresentationPropertyValue::Identity(self.0.body_id.clone())),
-                property(&candidate, "invitation-id", PresentationPropertyValue::Identity(self.0.invitation_id.clone())),
-                property(&candidate, "spore-id", PresentationPropertyValue::Identity(self.0.spore_id.clone())),
-                property(&candidate, "owner-route-candidates", PresentationPropertyValue::Count(
+                property(&host, "current-body", FacePropertyValue::Text("none".into())),
+                property(&candidate, "target-body-id", FacePropertyValue::Identity(self.0.body_id.clone())),
+                property(&candidate, "invitation-id", FacePropertyValue::Identity(self.0.invitation_id.clone())),
+                property(&candidate, "spore-id", FacePropertyValue::Identity(self.0.spore_id.clone())),
+                property(&candidate, "owner-route-candidates", FacePropertyValue::Count(
                     self.0.rendezvous.as_ref().map_or(0, |route| route.candidates.len()) as u64,
                 )),
-                property(&candidate, "membership-admitted", PresentationPropertyValue::Flag(false)),
-                property(&candidate, "owner-receipt-verified", PresentationPropertyValue::Flag(
+                property(&candidate, "membership-admitted", FacePropertyValue::Flag(false)),
+                property(&candidate, "owner-receipt-verified", FacePropertyValue::Flag(
                     self.0.owner_exchange == OwnerExchange::ReceiptVerified,
                 )),
             ],
             vec![
-                PresentationText {
+                FaceText {
                     subject: host.clone(),
                     text: "This host prepared an invitation-bound admission request. It has not joined a Body, and no Plan or Play is active here.".into(),
                 },
-                PresentationText {
+                FaceText {
                     subject: candidate.clone(),
                     text: match self.0.owner_exchange {
                         OwnerExchange::ReceiptVerified => "The owner returned an exact verified admission receipt. This guest has not installed membership yet. Local Birth is unavailable; it will not create a different Body.".into(),
@@ -141,32 +140,32 @@ impl PendingJoinView {
             ],
             Vec::new(),
             vec![
-                PresentationDisclosure {
+                FaceDisclosure {
                     subject: candidate,
-                    level: PresentationDisclosureLevel::Primary,
+                    level: FaceDisclosureLevel::Primary,
                 },
-                PresentationDisclosure {
+                FaceDisclosure {
                     subject: host,
-                    level: PresentationDisclosureLevel::Context,
+                    level: FaceDisclosureLevel::Context,
                 },
             ],
         )
-        .map_err(|_| Error::Presentation)
+        .map_err(|_| Error::Face)
     }
 
-    fn admitted_presentation(
+    fn admitted_face(
         &self,
         door: &FrontDoor,
         producer: Option<&BirthFaceBasis>,
         admitted: &crate::native_guest_part::NativeGuestPart,
-    ) -> Result<Presentation, Error> {
+    ) -> Result<Face, Error> {
         let host = format!("host/{}/{}", door.host_id.as_str(), door.boot_id.as_str());
         let credential = admitted.credential();
         let body = format!("body/{}", credential.body_id.as_str());
         let part = format!("part/{}", credential.part_id.as_str());
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             door.revision,
-            PresentationBasis {
+            FaceBasis {
                 body_id: Some(credential.body_id.clone()),
                 wake_id: None,
                 source_document_id: producer.map(|basis| basis.producer_plot.source_document_id.clone()),
@@ -177,38 +176,38 @@ impl PendingJoinView {
                 sign_ids: Vec::new(),
             },
             vec![
-                PresentationSubject { identity: host.clone(), role: PresentationRole::Host, name: "This ConduitOS host".into() },
-                PresentationSubject { identity: body.clone(), role: PresentationRole::Body, name: "Joined Body".into() },
-                PresentationSubject { identity: part.clone(), role: PresentationRole::Part, name: "This host's admitted Part".into() },
+                FaceSubject { identity: host.clone(), role: FaceRole::Host, name: "This ConduitOS host".into() },
+                FaceSubject { identity: body.clone(), role: FaceRole::Body, name: "Joined Body".into() },
+                FaceSubject { identity: part.clone(), role: FaceRole::Part, name: "This host's admitted Part".into() },
             ],
             vec![
-                PresentationRelationship { source: body.clone(), target: part.clone(), kind: PresentationRelationshipKind::Contains },
-                PresentationRelationship { source: part.clone(), target: host.clone(), kind: PresentationRelationshipKind::Contains },
+                FaceRelationship { source: body.clone(), target: part.clone(), kind: FaceRelationshipKind::Contains },
+                FaceRelationship { source: part.clone(), target: host.clone(), kind: FaceRelationshipKind::Contains },
             ],
             vec![
-                property(&body, "body-id", PresentationPropertyValue::Identity(credential.body_id.as_str().into())),
-                property(&part, "part-id", PresentationPropertyValue::Identity(credential.part_id.as_str().into())),
-                property(&part, "credential-id", PresentationPropertyValue::Identity(credential.credential_id.as_str().into())),
-                property(&part, "membership-admitted", PresentationPropertyValue::Flag(true)),
-                property(&part, "present-at-admission", PresentationPropertyValue::Flag(admitted.is_present())),
-                property(&body, "workset-known-here", PresentationPropertyValue::Flag(false)),
+                property(&body, "body-id", FacePropertyValue::Identity(credential.body_id.as_str().into())),
+                property(&part, "part-id", FacePropertyValue::Identity(credential.part_id.as_str().into())),
+                property(&part, "credential-id", FacePropertyValue::Identity(credential.credential_id.as_str().into())),
+                property(&part, "membership-admitted", FacePropertyValue::Flag(true)),
+                property(&part, "present-at-admission", FacePropertyValue::Flag(admitted.is_present())),
+                property(&body, "workset-known-here", FacePropertyValue::Flag(false)),
             ],
             vec![
-                PresentationText { subject: body.clone(), text: "The owner admitted this host to this Body. Its workset and current lifecycle have not yet been transferred here.".into() },
-                PresentationText { subject: part.clone(), text: "This Part was present on this Host and Boot at admission. Later owner presence has not been reconciled. There is no local Body Plan or Play; local Birth remains unavailable.".into() },
+                FaceText { subject: body.clone(), text: "The owner admitted this host to this Body. Its workset and current lifecycle have not yet been transferred here.".into() },
+                FaceText { subject: part.clone(), text: "This Part was present on this Host and Boot at admission. Later owner presence has not been reconciled. There is no local Body Plan or Play; local Birth remains unavailable.".into() },
             ],
             Vec::new(),
             vec![
-                PresentationDisclosure { subject: body, level: PresentationDisclosureLevel::Primary },
-                PresentationDisclosure { subject: part, level: PresentationDisclosureLevel::Primary },
-                PresentationDisclosure { subject: host, level: PresentationDisclosureLevel::Context },
+                FaceDisclosure { subject: body, level: FaceDisclosureLevel::Primary },
+                FaceDisclosure { subject: part, level: FaceDisclosureLevel::Primary },
+                FaceDisclosure { subject: host, level: FaceDisclosureLevel::Context },
             ],
-        ).map_err(|_| Error::Presentation)
+        ).map_err(|_| Error::Face)
     }
 }
 
-fn property(subject: &str, name: &str, value: PresentationPropertyValue) -> PresentationProperty {
-    PresentationProperty {
+fn property(subject: &str, name: &str, value: FacePropertyValue) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
         value,
@@ -248,13 +247,13 @@ mod tests {
         })
         .unwrap();
         assert!(door.joining_pending());
-        let face = door.presentation().unwrap();
+        let face = door.face().unwrap();
         face.validate().unwrap();
         assert!(face.basis.body_id.is_none());
         assert!(face.actions.is_empty());
         assert!(face.properties.iter().any(|property| {
             property.name == "membership-admitted"
-                && property.value == PresentationPropertyValue::Flag(false)
+                && property.value == FacePropertyValue::Flag(false)
         }));
         assert!(
             face.text
@@ -325,12 +324,12 @@ mod tests {
             owner_exchange: OwnerExchange::NotAttempted,
         })
         .unwrap();
-        let face = door.presentation().unwrap();
+        let face = door.face().unwrap();
         face.validate().unwrap();
         assert!(face.basis.body_id.is_none());
         assert!(face.properties.iter().any(|property| {
             property.name == "owner-route-candidates"
-                && property.value == PresentationPropertyValue::Count(1)
+                && property.value == FacePropertyValue::Count(1)
         }));
         assert!(face.text.iter().any(|text| {
             text.text
@@ -339,17 +338,17 @@ mod tests {
 
         door.joining.as_mut().unwrap().0.owner_exchange =
             OwnerExchange::Refused("virtio-net-absent");
-        let refused = door.presentation().unwrap();
+        let refused = door.face().unwrap();
         assert!(refused.text.iter().any(|text| {
             text.text.contains("virtio-net-absent") && text.text.contains("unjoined")
         }));
         assert!(refused.basis.body_id.is_none());
 
         door.joining.as_mut().unwrap().0.owner_exchange = OwnerExchange::ReceiptVerified;
-        let verified = door.presentation().unwrap();
+        let verified = door.face().unwrap();
         assert!(verified.properties.iter().any(|property| {
             property.name == "owner-receipt-verified"
-                && property.value == PresentationPropertyValue::Flag(true)
+                && property.value == FacePropertyValue::Flag(true)
         }));
         assert!(
             verified

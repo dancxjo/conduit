@@ -70,7 +70,7 @@ test("one Workspace Body later admits independent browser Hosts", async ({ page,
       replacement_plan_distinct: true,
     });
     expect(receipt.parts).toHaveLength(4);
-    expect(receipt.parts.filter(({ presentation_state }) => presentation_state === "offline")).toHaveLength(1);
+    expect(receipt.parts.filter(({ face_state }) => face_state === "offline")).toHaveLength(1);
     expect(receipt.declared_bounds.body_parts).toBe(16);
   } finally {
     for (const context of contexts) await context.close().catch(() => {});

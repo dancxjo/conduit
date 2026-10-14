@@ -230,7 +230,7 @@ mod tests {
         assert_eq!(file_copy.unsatisfied_prerequisites, ["base:storage"]);
         for kind in [
             "layout/inset",
-            "presentation/bool",
+            "face/bool",
             "logic/not",
             "logic/compare",
             "logic/select",

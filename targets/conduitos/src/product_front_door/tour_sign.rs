@@ -7,20 +7,20 @@ use crate::{
     identity::{self, BootIdentities},
     make::MakeRecord,
     tour_product::{TourProduct, TourProductUpdate},
-    tour_shell::ShellPresentationReceipt,
+    tour_shell::ShellFaceReceipt,
 };
 
 pub(super) fn emit_tour_sign(
     tour: &TourProduct,
     update: Option<&TourProductUpdate>,
-    shell: &ShellPresentationReceipt,
+    shell: &ShellFaceReceipt,
     identities: &BootIdentities,
     make: &MakeRecord,
 ) {
     let state = tour.controller().state();
     let play = update.and_then(|value| value.play.as_ref());
     let line = format!(
-        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v2\",\"status\":\"{}\",\"revision\":{},\"chapter\":{},\"stage\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":{},\"checked_plot_id\":{},\"expanded_plot_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"terminal\":{},\"manifestations\":{},\"comparison_expanded_plot_id\":{},\"comparison_plan_id\":{},\"source_fragment_id\":{},\"sink_fragment_id\":{},\"source_active_play_id\":{},\"sink_active_play_id\":{},\"line_id\":{},\"transferred_values\":{},\"workspace_surface_id\":\"{}\",\"workspace_presentation_id\":\"{}\",\"workspace_manifestation_id\":\"{}\",\"status_surface_id\":\"{}\",\"status_presentation_id\":\"{}\",\"status_manifestation_id\":\"{}\",\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
+        "CONDUIT_TOUR_SIGN {{\"schema\":\"conduit.conduitos.tour/v2\",\"status\":\"{}\",\"revision\":{},\"chapter\":{},\"stage\":{},\"specimen_id\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"source_document_id\":{},\"checked_plot_id\":{},\"expanded_plot_id\":{},\"plan_id\":{},\"active_play_id\":{},\"result\":{},\"terminal\":{},\"manifestations\":{},\"comparison_expanded_plot_id\":{},\"comparison_plan_id\":{},\"source_fragment_id\":{},\"sink_fragment_id\":{},\"source_active_play_id\":{},\"sink_active_play_id\":{},\"line_id\":{},\"transferred_values\":{},\"workspace_surface_id\":\"{}\",\"workspace_face_id\":\"{}\",\"workspace_manifestation_id\":\"{}\",\"status_surface_id\":\"{}\",\"status_face_id\":\"{}\",\"status_manifestation_id\":\"{}\",\"frame_sequence\":{},\"surfaces_composed\":{},\"damage_count\":{},\"proof_class\":\"freestanding-emulator\",\"bounded\":true}}\n",
         match state.phase {
             conduit_tour_model::TourWorkspacePhase::LessonReady => "tour-opened",
             conduit_tour_model::TourWorkspacePhase::ResultVisible => "result-visible",
@@ -92,10 +92,10 @@ pub(super) fn emit_tour_sign(
                 .map(|proof| u64::from(proof.transferred_values))
         })),
         shell.workspace.surface_id,
-        shell.workspace.presentation_id.as_str(),
+        shell.workspace.face_id.as_str(),
         shell.workspace.manifestation_id.as_str(),
         shell.status.surface_id,
-        shell.status.presentation_id.as_str(),
+        shell.status.face_id.as_str(),
         shell.status.manifestation_id.as_str(),
         shell.frame.frame_sequence,
         shell.frame.surfaces_composed,

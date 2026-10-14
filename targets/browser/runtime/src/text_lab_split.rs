@@ -1,6 +1,6 @@
 //! Browser production-kernel half of the exact split Text Lab Plan.
 
-use crate::presentation_nucleus::uppercase_utf8;
+use crate::face_nucleus::uppercase_utf8;
 use conduit_kernel::scheduler::{
     FixedScheduler, SchedulerStatus, StepBack, StepInputBytes, StepIo, StepOutcome,
 };
@@ -108,7 +108,7 @@ impl BrowserTextLabFragment {
     pub fn prepare(base_instance: &str) -> Result<Self, String> {
         let exact = exact_text_lab_split_plan(
             base_instance,
-            &crate::presentation_nucleus::browser_text_upper_offer(),
+            &crate::face_nucleus::browser_text_upper_offer(),
         )?;
         let fragment = exact
             .plan

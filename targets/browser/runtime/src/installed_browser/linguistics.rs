@@ -7,7 +7,7 @@ use super::BrowserBack;
 use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,
     HostCallContractId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
-    StructuredInfoValue, MAXIMUM_STRUCTURED_CANONICAL_BYTES, PRESENTATION_RESOURCE_CLASS,
+    StructuredInfoValue, FACE_RESOURCE_CLASS, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 use conduit_plot::rust_binding::NativeRustBinding;
@@ -15,7 +15,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 const ARTIFACT: &str = "conduit-browser-runtime/installed-linguistics@2";
 const TOKENIZE_IMPLEMENTATION: &str = "browser/kernel-language-tokenize-four@2";
 const ANNOTATE_IMPLEMENTATION: &str = "browser/kernel-language-annotate-four@2";
-const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-structured-info@1";
+const FACE_IMPLEMENTATION: &str = "browser/face-structured-info@1";
 const HOST_CALL: &str = "conduit.host/browser-linguistics@1";
 
 pub(super) static TOKENIZE: BrowserInstallation = BrowserInstallation {
@@ -30,11 +30,11 @@ pub(super) static ANNOTATE: BrowserInstallation = BrowserInstallation {
     prepare: prepare_annotate,
     perform: Some(perform_annotate),
 };
-pub(super) static PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: PRESENTATION_IMPLEMENTATION,
-    offer: presentation_offer,
-    prepare: prepare_presentation,
-    perform: Some(perform_presentation),
+pub(super) static FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: FACE_IMPLEMENTATION,
+    offer: face_offer,
+    prepare: prepare_face,
+    perform: Some(perform_face),
 };
 
 pub(super) fn install_catalogs(
@@ -43,10 +43,10 @@ pub(super) fn install_catalogs(
 ) -> Result<(), String> {
     use conduit_plot::KindSignature;
     conduit_language::install_linguistics_catalogs(startup, profile)?;
-    let contract = presentation_contract();
+    let contract = face_contract();
     startup.insert(KindSignature {
-        kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
+        kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
+        startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
     })?;
     profile
         .insert_kind(contract.into())
@@ -72,19 +72,16 @@ fn annotate_offer() -> CapabilityOffer {
     )
 }
 
-fn presentation_offer() -> CapabilityOffer {
+fn face_offer() -> CapabilityOffer {
     BackOfferBuilder::new(
-        presentation_contract().into(),
+        face_contract().into(),
         Back {
-            capability_id: CapabilityId::from(PRESENTATION_IMPLEMENTATION),
-            execution_profile_id: ExecutionProfileId::from(PRESENTATION_IMPLEMENTATION),
-            implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
+            capability_id: CapabilityId::from(FACE_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(FACE_IMPLEMENTATION),
+            implementation_id: ImplementationId::from(FACE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
-            host_calls: vec![operation(PRESENTATION_IMPLEMENTATION, 0)],
-            resource_requirements: vec![conduit_core::resource_requirement(
-                PRESENTATION_RESOURCE_CLASS,
-                1,
-            )],
+            host_calls: vec![operation(FACE_IMPLEMENTATION, 0)],
+            resource_requirements: vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
             authority_requirements: Vec::new(),
         },
     )
@@ -127,8 +124,8 @@ fn operation(target: &str, output: u32) -> HostCallRequirement {
     }
 }
 
-fn presentation_contract() -> conduit_semantic_catalog::StructuredValueContract {
-    conduit_semantic_catalog::structured_presentation_contract(
+fn face_contract() -> conduit_semantic_catalog::StructuredValueContract {
+    conduit_semantic_catalog::structured_face_contract(
         conduit_language::ANNOTATION_BUNDLE_FOUR_TYPE,
         &conduit_language::annotation_bundle_four_type(),
     )
@@ -181,12 +178,12 @@ fn admit_prepared_language(
     Ok(())
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserBack::presentation(
+    validate_placement(placement, &face_offer())?;
+    Ok(BrowserBack::face(
         MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         1,
     ))
@@ -212,16 +209,17 @@ fn perform_annotate(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHost
     })
 }
 
-fn perform_presentation(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     let value = StructuredInfoValue::from_canonical_bytes(input)
-        .map_err(|error| format!("decode structured presentation: {error:?}"))?;
+        .map_err(|error| format!("decode structured face: {error:?}"))?;
     if value.value_type() != &conduit_language::annotation_bundle_four_type() {
-        return Err("structured presentation has the wrong exact linguistic type".into());
+        return Err("structured face has the wrong exact linguistic type".into());
     }
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
-            kind_id: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND,
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::STRUCTURED_FACE_KIND,
             canonical_value: input.to_vec(),
         }),
     })
@@ -264,10 +262,10 @@ mod tests {
         let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
         let plot = conduit_plot::expand_canonical_plot(&checked, "preparation-language", &catalog)
             .unwrap();
-        let hosts = [crate::installed_browser::advertisement_for_presentation(
+        let hosts = [crate::installed_browser::advertisement_for_face(
             "browser/fixture".into(),
             "boot/fixture".into(),
-            crate::installed_browser::PresentationProfile::Annotation,
+            crate::installed_browser::FaceProfile::Annotation,
         )];
         let placements = conduit_planner::default_expanded_placements(&plot, &hosts).unwrap();
         conduit_planner::plan_expanded_canonical_with_options(
@@ -350,7 +348,7 @@ mod tests {
                 annotate_offer(),
                 conduit_language::annotate_four_semantic_contract(),
             ),
-            (presentation_offer(), presentation_contract().into()),
+            (face_offer(), face_contract().into()),
         ] {
             assert_eq!(offer.startup_parameters, semantic.startup_parameters);
             assert_eq!(offer.shorthand, semantic.shorthand);

@@ -4,7 +4,7 @@ use super::*;
 use crate::terminal_face_mask::TerminalFaceMask;
 #[cfg(unix)]
 use crate::{hosted_terminal_mask_host::receive_terminal_frame_and_ack, StdHost};
-use conduit_presentation::*;
+use conduit_face::*;
 #[allow(
     dead_code,
     clippy::duplicate_mod,
@@ -26,11 +26,11 @@ fn host() -> HostAdvertisement {
         planner_capabilities: vec![],
     }
 }
-fn face(revision: u64) -> Presentation {
+fn face(revision: u64) -> Face {
     let plan = producer_fixture::producer_plan();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(plan.source_document_id),
@@ -40,31 +40,31 @@ fn face(revision: u64) -> Presentation {
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "clock".into(),
-            role: PresentationRole::Document,
+            role: FaceRole::Document,
             name: "A useful clock".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "clock".into(),
             text: "Ready to start.".into(),
         }],
-        vec![PresentationAction {
+        vec![FaceAction {
             identity: "start".into(),
             intent: "clock/start".into(),
             target: "clock".into(),
             name: "Start".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         }],
         vec![],
     )
     .unwrap()
 }
-fn show(execution: &mut HostedTerminalMaskExecution, face: &Presentation) -> MaskShow {
+fn show(execution: &mut HostedTerminalMaskExecution, face: &Face) -> MaskShow {
     let mut renderer = TerminalFaceMask::prepare(face.clone(), 80, 24).unwrap();
     let mut fixture_terminal = Vec::new();
     renderer.present(execution, &mut fixture_terminal).unwrap();
@@ -84,7 +84,7 @@ fn attached_owner_host_waits_for_actual_foreground_flush_before_available_show()
         .iter()
         .any(|resource| resource.pool_id.as_str() == "terminal/input"));
     assert!(current.capabilities.iter().any(|offer| {
-        offer.implementation.implementation_id.as_str() == "presentation/terminal-input@1"
+        offer.implementation.implementation_id.as_str() == "face/terminal-input@1"
     }));
     let face = face(7);
     let (finished, release) = std::sync::mpsc::sync_channel::<()>(1);
@@ -106,8 +106,8 @@ fn attached_owner_host_waits_for_actual_foreground_flush_before_available_show()
         available.planned_mask.plan.fragments[0].offer_generation,
         current.offer_generation
     );
-    assert_eq!(available.presentation_id, face.identity);
-    assert_eq!(available.presentation_revision, face.revision);
+    assert_eq!(available.face_id, face.identity);
+    assert_eq!(available.face_revision, face.revision);
     assert_eq!(
         lower_plan_fragment(&available.planned_mask.plan.fragments[0])
             .unwrap()
@@ -166,7 +166,7 @@ fn ordinary_mask_runs_to_real_renderer_call_then_show_and_interaction_fore() {
     let available = show(&mut execution, &face);
     assert_eq!(available.show.lifecycle, ManifestationLifecycle::Available);
     assert_ne!(
-        available.presentation_plan_id,
+        available.face_plan_id,
         Some(available.planned_mask.plan.plan_id.clone())
     );
     let interaction = FaceInteraction::new(&face, &available, "start", "clock", vec![], 0).unwrap();
@@ -253,13 +253,13 @@ fn failed_terminal_write_cancels_kernel_without_available_show() {
 fn oversized_face_refuses_before_admitting_a_play() {
     let face = face(1);
     let text = vec![
-        PresentationText {
+        FaceText {
             subject: "clock".into(),
             text: "x".repeat(1024)
         };
         140
     ];
-    let large = Presentation::new_with_semantics(
+    let large = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,

@@ -23,9 +23,9 @@ pub fn mapper_offer() -> CapabilityOffer {
 
 /// Current Boolean state manifested through the existing stdout Host Call.
 pub fn indicator_offer() -> CapabilityOffer {
-    let stdout = crate::bool_presentation_offer();
+    let stdout = crate::bool_face_offer();
     button_offer(
-        conduit_semantic_catalog::indicator_state_presentation_semantic_contract(),
+        conduit_semantic_catalog::indicator_state_face_semantic_contract(),
         INDICATOR,
         stdout.host_calls,
         stdout.resource_requirements,

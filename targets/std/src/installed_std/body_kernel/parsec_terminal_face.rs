@@ -1,17 +1,16 @@
 //! Parsec-owned semantic shell; action identity comes only from checked policy output.
 use conduit_body::{BodyPlan, BodyPlayIdentity};
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
-    ActionInputBindingProposalInfo, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationBasis, PresentationDisclosureLevel,
-    PresentationRole, PresentationSubject, SourceEvaluatedParsecInputProposal,
+use conduit_face::{
+    ActionInputBindingProposalInfo, Face, FaceAction, FaceActionAvailability, FaceBasis,
+    FaceDisclosureLevel, FaceRole, FaceSubject, SourceEvaluatedParsecInputProposal,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub(super) fn project(
     plan: &BodyPlan,
     play: &BodyPlayIdentity,
     proposal: &SourceEvaluatedParsecInputProposal<'_>,
-) -> Result<Presentation, String> {
+) -> Result<Face, String> {
     if !play.validate_for(plan) || plan.plots.len() != 1 {
         return Err("Parsec Face differs from current Body Play".into());
     }
@@ -22,9 +21,9 @@ pub(super) fn project(
     }
     let source = &plan.plots[0].plan;
     let action = policy.offered_action().action_identity();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         *policy.mapping_revision(),
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(plan.body_id.clone()),
             wake_id: Some(plan.wake_id.clone()),
             source_document_id: Some(source.source_document_id.clone()),
@@ -34,22 +33,22 @@ pub(super) fn project(
             active_play_id: Some(play.active_play_id.clone()),
             sign_ids: vec![],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "parsec/game".into(),
-            role: PresentationRole::Region,
+            role: FaceRole::Region,
             name: "Parsec".into(),
         }],
         vec![],
         vec![],
         vec![],
-        vec![PresentationAction {
+        vec![FaceAction {
             identity: action.into(),
             intent: action.into(),
             target: "parsec/game".into(),
             name: action.into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::Primary,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::Primary,
+            availability: FaceActionAvailability::Available,
         }],
         vec![],
     )

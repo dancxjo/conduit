@@ -4,21 +4,21 @@
 //! acknowledged speech batch per Play. The opening artifact never claims that
 //! all Face clauses have already been spoken.
 
+use conduit_face::{
+    DirectArtifactAcknowledgedSpokenShow, Face, ManifestationLifecycle, MaskShow, PlannedMaskPlot,
+    SpokenMaskArtifactReceipt,
+};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallId, PortId, RequestId,
     ValueRef,
 };
-use conduit_presentation::{
-    DirectArtifactAcknowledgedSpokenShow, ManifestationLifecycle, MaskShow, PlannedMaskPlot,
-    Presentation, SpokenMaskArtifactReceipt,
-};
 
 const MAX_OPENING_BYTES: usize = 256;
-const MAX_FACE_BYTES: u32 = conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32;
+const MAX_FACE_BYTES: u32 = conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32;
 
 pub struct DirectSpokenMaskPreparation {
-    pub presentation: Presentation,
+    pub face: Face,
     pub planned_mask: PlannedMaskPlot,
     pub front_subject: String,
     pub target_subject: String,
@@ -26,7 +26,7 @@ pub struct DirectSpokenMaskPreparation {
     pub available_sign: conduit_core::SignId,
     encoded_face: Vec<u8>,
     wording: std::collections::VecDeque<Vec<u8>>,
-    checked_template: Option<conduit_presentation::SpokenTemplateOpeningEvidence>,
+    checked_template: Option<conduit_face::SpokenTemplateOpeningEvidence>,
     template_host: Option<conduit_core::HostAdvertisement>,
     template_mask: Option<PlannedMaskPlot>,
 }
@@ -54,21 +54,21 @@ impl DirectSpokenMaskPreparation {
 
     #[allow(clippy::too_many_arguments)]
     pub fn new(
-        presentation: Presentation,
+        face: Face,
         planned_mask: PlannedMaskPlot,
         front_subject: String,
         target_subject: String,
         prepared_sign: conduit_core::SignId,
         available_sign: conduit_core::SignId,
     ) -> Result<Self, String> {
-        let encoded_face = serde_json::to_vec(&presentation)
-            .map_err(|error| format!("encode direct Face: {error}"))?;
+        let encoded_face =
+            serde_json::to_vec(&face).map_err(|error| format!("encode direct Face: {error}"))?;
         if encoded_face.len() > MAX_FACE_BYTES as usize {
             return Err("direct spoken Mask Face exceeds admitted bound".into());
         }
-        let wording = prepare_wording_items(&presentation)?;
+        let wording = prepare_wording_items(&face)?;
         Ok(Self {
-            presentation,
+            face,
             planned_mask,
             front_subject,
             target_subject,
@@ -86,7 +86,7 @@ impl DirectSpokenMaskPreparation {
     #[allow(clippy::too_many_arguments)]
     pub(crate) fn new_checked_template_opening(
         host: &crate::StdHost,
-        presentation: Presentation,
+        face: Face,
         planned_mask: PlannedMaskPlot,
         front_subject: String,
         target_subject: String,
@@ -95,14 +95,14 @@ impl DirectSpokenMaskPreparation {
         reading: &crate::spoken_template_reading::PreparedSpokenTemplateReading,
     ) -> Result<Self, String> {
         let mut prepared = Self::new(
-            presentation,
+            face,
             planned_mask,
             front_subject,
             target_subject,
             prepared_sign,
             available_sign,
         )?;
-        reading.validate_current(host, &prepared.presentation)?;
+        reading.validate_current(host, &prepared.face)?;
         prepared.template_host = Some(host.advertisement().clone());
         prepared.template_mask = Some(prepared.planned_mask.clone());
         let opening = reading.opening_wording();
@@ -110,7 +110,7 @@ impl DirectSpokenMaskPreparation {
             return Err("checked template opening exceeds admitted Mask wording".into());
         }
         prepared.wording = std::collections::VecDeque::from([opening.as_bytes().to_vec()]);
-        prepared.checked_template = Some(conduit_presentation::SpokenTemplateOpeningEvidence {
+        prepared.checked_template = Some(conduit_face::SpokenTemplateOpeningEvidence {
             wording: reading.receipt().clone(),
             opening_wording: opening.into(),
             frame_count: u16::try_from(reading.frames_count())
@@ -137,7 +137,7 @@ impl DirectSpokenMaskPreparation {
                     return Err("checked template differs from selected Mask namespace".into());
                 }
                 evidence
-                    .validate(&self.presentation)
+                    .validate(&self.face)
                     .map_err(|error| format!("checked template opening: {error:?}"))
             }
             (None, None)
@@ -153,7 +153,7 @@ impl DirectSpokenMaskPreparation {
         }
     }
 
-    pub fn checked_template(&self) -> Option<&conduit_presentation::SpokenTemplateOpeningEvidence> {
+    pub fn checked_template(&self) -> Option<&conduit_face::SpokenTemplateOpeningEvidence> {
         self.checked_template.as_ref()
     }
 
@@ -176,10 +176,8 @@ impl DirectSpokenMaskPreparation {
     }
 }
 
-pub fn prepare_wording_items(
-    presentation: &Presentation,
-) -> Result<std::collections::VecDeque<Vec<u8>>, String> {
-    let clauses = crate::spoken_face_mask::primary_face_clauses(presentation)
+pub fn prepare_wording_items(face: &Face) -> Result<std::collections::VecDeque<Vec<u8>>, String> {
+    let clauses = crate::spoken_face_mask::primary_face_clauses(face)
         .map_err(|error| format!("project direct Face speech: {error:?}"))?;
     let mut opening = String::new();
     for clause in clauses {
@@ -231,7 +229,7 @@ impl DirectSpokenMaskSession {
             .map_err(|error| format!("decode direct spoken artifact receipt: {error}"))?;
         let prepared = MaskShow::prepared(
             &self.prepared.planned_mask,
-            &self.prepared.presentation,
+            &self.prepared.face,
             self.active_play.clone(),
             self.prepared.front_subject.clone(),
             self.prepared.target_subject.clone(),
@@ -250,7 +248,7 @@ impl DirectSpokenMaskSession {
             checked_template: self.prepared.checked_template.clone(),
         };
         shown
-            .validate(&self.prepared.presentation)
+            .validate(&self.prepared.face)
             .map_err(|error| format!("invalid direct spoken Show: {error:?}"))?;
         serde_json::to_vec(&shown).map_err(|error| format!("encode direct spoken Show: {error}"))
     }
@@ -363,9 +361,8 @@ mod tests {
     use super::*;
     use conduit_body::Body;
     use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
-    use conduit_presentation::{
-        PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel, PresentationRole,
-        PresentationSubject, PresentationText,
+    use conduit_face::{
+        FaceBasis, FaceDisclosure, FaceDisclosureLevel, FaceRole, FaceSubject, FaceText,
     };
 
     #[test]
@@ -377,9 +374,9 @@ mod tests {
             SignId::from("sign/direct-voice/born"),
         )
         .unwrap();
-        let face = Presentation::new_with_semantics(
+        let face = Face::new_with_semantics(
             1,
-            PresentationBasis {
+            FaceBasis {
                 body_id: Some(body.body_id),
                 wake_id: None,
                 source_document_id: None,
@@ -389,21 +386,21 @@ mod tests {
                 active_play_id: None,
                 sign_ids: vec![],
             },
-            vec![PresentationSubject {
+            vec![FaceSubject {
                 identity: "body/current".into(),
-                role: PresentationRole::Body,
+                role: FaceRole::Body,
                 name: "Current body".into(),
             }],
             vec![],
             vec![],
-            vec![PresentationText {
+            vec![FaceText {
                 subject: "body/current".into(),
                 text: "Ready to create a Body.".into(),
             }],
             vec![],
-            vec![PresentationDisclosure {
+            vec![FaceDisclosure {
                 subject: "body/current".into(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             }],
         )
         .unwrap();

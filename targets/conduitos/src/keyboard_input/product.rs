@@ -8,7 +8,7 @@ use conduit_human::KeyEvent;
 /// Play. Physical transitions cross the local-rescue boundary while their
 /// provenance is still known, then are canonicalized into the exact finite
 /// `input/keyboard` queue. The next USB transfer is armed before a bounded
-/// semantic/presentation service slice drains portable `KeyEvent` values.
+/// semantic/face service slice drains portable `KeyEvent` values.
 pub fn run_product(
     session: &mut HidKeyboardSession,
     controller: &mut XhciReady,
@@ -30,7 +30,7 @@ pub fn run_product(
 
     loop {
         // Publish the next transfer before giving admitted semantic work or
-        // presentation/export a turn.
+        // face/export a turn.
         if !session.followup_pending() {
             session
                 .begin_followup(controller, device)
@@ -131,7 +131,7 @@ pub enum ProductInputEvent {
 
 /// Deliver at most the exact admitted keyboard queue capacity. If any keyboard
 /// work ran, return immediately so the caller can re-check the physical source;
-/// presentation/export service runs only from an already-idle ingress turn.
+/// face/export service runs only from an already-idle ingress turn.
 fn service_product_ingress(
     ingress: &mut KeyboardIngress,
     interact: &mut impl FnMut(ProductInputEvent) -> Result<ProductInputControl, &'static str>,

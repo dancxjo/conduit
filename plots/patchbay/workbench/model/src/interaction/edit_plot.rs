@@ -179,8 +179,8 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
             INVOKE_KIND,
             vec![
                 request_id.as_str().to_owned(),
-                invocation.presentation_id.clone(),
-                invocation.presentation_revision.to_string(),
+                invocation.face_id.clone(),
+                invocation.face_revision.to_string(),
                 invocation.action_id.clone(),
                 invocation.action.as_str().to_owned(),
                 invocation.target_identity.clone(),
@@ -203,7 +203,17 @@ pub(super) fn request_source(request: &PatchbayInteractionRequest) -> String {
 fn edit_request_source(request_id: &PatchbayInteractionRequestId, edit: &PatchbayEdit) -> String {
     let basis = edit.basis();
     let (primary, secondary, key, value) = match edit {
-        PatchbayEdit::PlaceGear { kind_id, .. } => (kind_id.as_str(), "", "", None),
+        // The operation-specific secondary Text carries the construction name.
+        PatchbayEdit::PlaceGear {
+            kind_id,
+            data_label,
+            ..
+        } => (
+            kind_id.as_str(),
+            data_label.as_deref().unwrap_or(""),
+            "",
+            None,
+        ),
         PatchbayEdit::DuplicateGear {
             subject_identity, ..
         }
@@ -302,6 +312,7 @@ pub(super) fn edit_from_configuration(
         "place-gear" => PatchbayEdit::PlaceGear {
             basis,
             kind_id: primary,
+            data_label: (!secondary.is_empty()).then_some(secondary),
         },
         "duplicate-gear" => PatchbayEdit::DuplicateGear {
             basis,

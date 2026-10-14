@@ -113,7 +113,7 @@ fn canonical_constituent(
         .expect("the installed text state catalogs are disjoint");
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)
         .expect("the installed Morse catalogs are disjoint");
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)
         .expect("the installed indicator catalog is disjoint");
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profiles)
         .expect("the installed typed-record catalogs are disjoint");

@@ -155,7 +155,7 @@ fn current_offer_artifact_must_match_the_sealed_selection() {
     let capability = fixed
         .capabilities
         .iter_mut()
-        .find(|capability| capability.implementation == TEXT_PRESENTATION_IMPLEMENTATION)
+        .find(|capability| capability.implementation == TEXT_FACE_IMPLEMENTATION)
         .unwrap();
     capability.artifact_build = "replacement-build";
     fixed.validate().unwrap();
@@ -172,7 +172,7 @@ fn indicator_and_text_receive_distinct_exact_effect_scopes() {
     let prepared = crate::tour_morse_plan::prepare(&ids, &fixed, "build").unwrap();
     let fragment = &prepared.plan.fragments[0];
     let region = &fragment.execution_regions[0].region_id;
-    let admit = |presentation| {
+    let admit = |face| {
         SerialScope::admit_selected(
             &prepared.plan,
             &fragment.host_id,
@@ -183,12 +183,12 @@ fn indicator_and_text_receive_distinct_exact_effect_scopes() {
                 parse_identity(prepared.active_play.active_play_id.as_str()).unwrap(),
             ),
             &fixed,
-            presentation,
+            face,
         )
         .unwrap()
     };
-    let indicator = admit(Presentation::Indicator);
-    let text = admit(Presentation::Text);
+    let indicator = admit(Face::Indicator);
+    let text = admit(Face::Text);
     assert_eq!(indicator.scope.maximum_operations, 1);
     assert_eq!(
         indicator.scope.maximum_parameter_bytes,
@@ -206,26 +206,24 @@ fn current_offer_contract_must_match_the_sealed_selection() {
     let capability = fixed
         .capabilities
         .iter_mut()
-        .find(|capability| capability.implementation == TEXT_PRESENTATION_IMPLEMENTATION)
+        .find(|capability| capability.implementation == TEXT_FACE_IMPLEMENTATION)
         .unwrap();
-    capability.contract_revision = "conduit.presentation/text@replacement";
+    capability.contract_revision = "conduit.face/text@replacement";
     fixed.validate().unwrap();
     assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
 }
 
 #[test]
-fn presentation_completion_envelope_is_independent_of_semantic_output() {
+fn face_completion_envelope_is_independent_of_semantic_output() {
     let (mut plan, binding, fixed) = fixture();
     let placement = plan.fragments[0]
         .placements
         .iter_mut()
-        .find(|placement| {
-            placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
-        })
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND)
         .unwrap();
     assert_eq!(
         placement.host_calls[0].maximum_output_bytes,
-        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+        conduit_core::MAX_FACE_COMPLETION_BYTES
     );
     placement.host_calls[0].maximum_output_bytes += 1;
     // Re-seal the changed test Plan so refusal cannot be attributed to its seal.
@@ -268,12 +266,12 @@ fn tour_timer_count_scope_distinguishes_semantic_value_and_physical_digits() {
     let placement = fragment
         .placements
         .iter()
-        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::COUNT_PRESENTATION_KIND)
+        .find(|p| p.kind_id.as_str() == conduit_semantic_catalog::COUNT_FACE_KIND)
         .unwrap();
     assert_eq!(placement.host_calls[0].maximum_input_bytes, 8);
     assert_eq!(
         placement.host_calls[0].maximum_output_bytes,
-        conduit_core::MAX_PRESENTATION_COMPLETION_BYTES
+        conduit_core::MAX_FACE_COMPLETION_BYTES
     );
     assert_eq!(count.scope.maximum_parameter_bytes, 20);
     assert_eq!(count.scope.maximum_operations, 2);

@@ -35,7 +35,7 @@ pub(super) struct TimerBack {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct TickPresentationBack {
+pub(super) struct TickFaceBack {
     pub pending: bool,
     pub complete: bool,
 }
@@ -60,7 +60,7 @@ pub(super) struct UpperBack {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub(super) struct PresentationBack {
+pub(super) struct FaceBack {
     pub(super) pending: bool,
     pub complete: bool,
 }
@@ -69,9 +69,9 @@ pub(super) struct PresentationBack {
 pub(super) enum PlannedBack {
     Literal(LiteralBack),
     Upper(UpperBack),
-    Presentation(PresentationBack),
+    Face(FaceBack),
     Timer(TimerBack),
-    TickPresentation(TickPresentationBack),
+    TickFace(TickFaceBack),
 }
 
 impl StepBack<PORTS> for PlannedBack {
@@ -83,18 +83,18 @@ impl StepBack<PORTS> for PlannedBack {
         match self {
             Self::Literal(back) => back.step(io),
             Self::Upper(back) => back.step(io),
-            Self::Presentation(back) => back.step(io),
+            Self::Face(back) => back.step(io),
             Self::Timer(back) => back.step(io),
-            Self::TickPresentation(back) => back.step(io),
+            Self::TickFace(back) => back.step(io),
         }
     }
     fn cancel(&mut self) {
         match self {
             Self::Literal(back) => back.state = LiteralState::Cancelled,
             Self::Upper(back) => back.pending = false,
-            Self::Presentation(back) => back.pending = false,
+            Self::Face(back) => back.pending = false,
             Self::Timer(back) => back.state = TimerState::Cancelled,
-            Self::TickPresentation(back) => back.pending = false,
+            Self::TickFace(back) => back.pending = false,
         }
     }
 }
@@ -113,7 +113,7 @@ impl StepBack<PORTS> for LiteralBack {
     }
 }
 
-impl StepBack<PORTS> for PresentationBack {
+impl StepBack<PORTS> for FaceBack {
     fn step(
         &mut self,
         io: &mut StepIo<PORTS>,
@@ -208,7 +208,7 @@ impl UpperBack {
     }
 }
 
-impl PresentationBack {
+impl FaceBack {
     pub(super) fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         step_sink(
             &mut self.pending,
@@ -227,7 +227,7 @@ impl PresentationBack {
     }
 }
 
-impl TickPresentationBack {
+impl TickFaceBack {
     pub(super) fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         step_sink(
             &mut self.pending,

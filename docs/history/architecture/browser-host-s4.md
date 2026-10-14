@@ -10,7 +10,7 @@ through the shared lowering contract, and installs the numeric result into the
 same port-aware `conduit-kernel` scheduler model used by production `StdHost`.
 The production browser crate has no alternate executor.
 
-The JavaScript adapter accepts only a `presentation/signal` request with the
+The JavaScript adapter accepts only a `face/signal` request with the
 exact source, checked, expanded, plan, fragment, host, boot, active-play,
 node/request/operation, presentation, sign, and placement identities
 issued by Rust. It

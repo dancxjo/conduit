@@ -25,7 +25,7 @@ test("Face interaction carries exact caller-owned semantic basis", async () => {
     base: "https://conduit.test/",
     fetch: async (_url, options) => { request = options; return response({ revision: 2 }); },
   });
-  const interaction = { presentation_id: "face/1", presentation_revision: 1, kind: "select", subject: "gear/a" };
+  const interaction = { face_id: "face/1", face_revision: 1, kind: "select", subject: "gear/a" };
   assert.deepEqual(await client.interact(interaction), { revision: 2 });
   assert.equal(request.method, "POST");
   assert.deepEqual(JSON.parse(request.body), interaction);

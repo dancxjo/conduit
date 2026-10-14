@@ -127,6 +127,9 @@ pub(super) fn prepare_ordinary_operation(
         .iter()
         .find(|placement| &placement.placement_id == placement_id)
         .ok_or_else(|| "lowered node has no planned placement".to_string())?;
+    if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+        conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    }
     let factory = factory(&placement.implementation_id).ok_or_else(|| {
         "planned implementation is not installed or lacks sealed State".to_string()
     })?;
@@ -165,6 +168,9 @@ pub(crate) fn state_storage_profile() -> conduit_plan_lowering::lowering::Kernel
 pub(super) fn back_budget(
     placement: &conduit_core::PlannedGear,
 ) -> Result<super::factory::BackBudget, String> {
+    if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+        conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    }
     if placement.implementation_id.as_str() == conduit_std_offers::STATE_VALUE_STD_IMPLEMENTATION {
         // Reserve the selected implementation's fixed envelope. Exact authored
         // initialization and the sealed per-cell capacity are checked on prepare.

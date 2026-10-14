@@ -1,6 +1,6 @@
 use alloc::string::String;
 
-use conduit_presentation::ManifestationId;
+use conduit_face::ManifestationId;
 
 use super::{NativeCompositor, NativeCompositorError};
 
@@ -117,7 +117,7 @@ impl NativeCompositor {
     }
 }
 
-fn contains(bounds: conduit_presentation::LayoutRect, x: u32, y: u32) -> bool {
+fn contains(bounds: conduit_face::LayoutRect, x: u32, y: u32) -> bool {
     let left = i64::from(bounds.x);
     let top = i64::from(bounds.y);
     let right = left + i64::from(bounds.width);

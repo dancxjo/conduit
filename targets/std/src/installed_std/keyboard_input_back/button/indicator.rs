@@ -96,7 +96,12 @@ fn validate(placement: &PlannedGear, offer: CapabilityOffer) -> Result<(), Strin
         || placement.outputs != offer.outputs
         || placement.host_calls != offer.host_calls
         || placement.limits != offer.limits
-        || !placement.configuration.is_empty()
+        || (if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+            placement.configuration.len() != 1
+                || conduit_semantic_catalog::face_data_label(&placement.configuration).is_err()
+        } else {
+            !placement.configuration.is_empty()
+        })
         || !placement.authority.is_empty()
         || placement.resources.len() != offer.resource_requirements.len()
         || !offer.resource_requirements.iter().all(|required| {
@@ -152,8 +157,8 @@ fn prepare_indicator(
     _: &mut HostedValueStore,
 ) -> Result<InstalledBack, String> {
     validate(placement, indicator_offer(placement))?;
-    Ok(InstalledBack::BoolPresentation(
-        crate::installed_std::bool_presentation::BoolPresentationBack::new(u64::from(
+    Ok(InstalledBack::BoolFace(
+        crate::installed_std::bool_face::BoolFaceBack::new(u64::from(
             BUTTON_TRANSITION_MAXIMUM_VALUES,
         )),
     ))

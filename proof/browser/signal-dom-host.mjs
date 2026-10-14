@@ -1,16 +1,16 @@
 export const BrowserDomFailure = Object.freeze({
   InvalidBinding: "CND-BRW-S4-001",
-  InvalidPresentation: "CND-BRW-S4-002",
-  DuplicatePresentation: "CND-BRW-S4-003",
+  InvalidFace: "CND-BRW-S4-002",
+  DuplicateFace: "CND-BRW-S4-003",
   ReceiptCapacity: "CND-BRW-S4-004",
 });
 
 const SIGNAL_VALUE_KIND = "value/signal";
-const SIGNAL_PRESENTATION_KIND = "presentation/signal";
+const SIGNAL_FACE_KIND = "face/signal";
 const BOOL_VALUE_KIND = "value/bool";
-const BOOL_PRESENTATION_KIND = "presentation/bool";
-const LOCAL_PRESENTATION_EFFECT = 2;
-const DISTRIBUTED_PRESENTATION_EFFECT = 3;
+const BOOL_FACE_KIND = "face/bool";
+const LOCAL_FACE_EFFECT = 2;
+const DISTRIBUTED_FACE_EFFECT = 3;
 const SIGNAL_ENCODED_LENGTH = 9;
 const MAXIMUM_IDENTITY_LENGTH = 256;
 
@@ -54,7 +54,7 @@ function decodeSignal(value) {
 }
 
 export class BrowserDomHost {
-  #presentationIds = new Set();
+  #faceIds = new Set();
   #receipts = [];
   #receiptBytes = 0;
 
@@ -75,7 +75,7 @@ export class BrowserDomHost {
     this.maximumReceiptBytes = maximumReceiptBytes;
   }
 
-  completePresentation(effect) {
+  completeFace(effect) {
     const identityFields = [
       effect?.sourceDocumentId,
       effect?.checkedPlotId,
@@ -85,7 +85,7 @@ export class BrowserDomHost {
       effect?.hostId,
       effect?.bootId,
       effect?.activePlayId,
-      effect?.presentationId,
+      effect?.faceId,
       effect?.signId,
       effect?.hostCallContractId,
       effect?.placementId,
@@ -102,14 +102,14 @@ export class BrowserDomHost {
       effect?.baseInstanceId,
     ];
     const hasRemoteIdentity = remoteIdentityFields.some((value) => value !== undefined);
-    const requiresRemoteIdentity = effect?.kind === DISTRIBUTED_PRESENTATION_EFFECT;
-    const presentation = effect?.presentationKind === SIGNAL_PRESENTATION_KIND
+    const requiresRemoteIdentity = effect?.kind === DISTRIBUTED_FACE_EFFECT;
+    const face = effect?.faceKind === SIGNAL_FACE_KIND
       ? decodeSignal(effect?.value)
-      : effect?.presentationKind === BOOL_PRESENTATION_KIND
+      : effect?.faceKind === BOOL_FACE_KIND
         ? decodeBoolean(effect?.value, this.#receipts.length)
         : null;
     if (identityFields.some((value) => !boundedIdentity(value)) ||
-        (effect?.kind !== LOCAL_PRESENTATION_EFFECT && !requiresRemoteIdentity) ||
+        (effect?.kind !== LOCAL_FACE_EFFECT && !requiresRemoteIdentity) ||
         requiresRemoteIdentity !== hasRemoteIdentity ||
         (requiresRemoteIdentity &&
           remoteIdentityFields.some((value) => !boundedIdentity(value))) ||
@@ -118,14 +118,14 @@ export class BrowserDomHost {
         !Number.isSafeInteger(effect?.requestNode) ||
         !Number.isSafeInteger(effect?.requestId) ||
         !Number.isSafeInteger(effect?.operationId) ||
-        !presentation) {
-      return failure(BrowserDomFailure.InvalidPresentation, "malformed-effect");
+        !face) {
+      return failure(BrowserDomFailure.InvalidFace, "malformed-effect");
     }
-    if (this.#presentationIds.has(effect.presentationId)) {
-      return failure(BrowserDomFailure.DuplicatePresentation, effect.presentationId);
+    if (this.#faceIds.has(effect.faceId)) {
+      return failure(BrowserDomFailure.DuplicateFace, effect.faceId);
     }
     if (this.#receipts.length === this.maximumReceiptItems ||
-        this.#receiptBytes + presentation.encoded.length > this.maximumReceiptBytes) {
+        this.#receiptBytes + face.encoded.length > this.maximumReceiptBytes) {
       return failure(BrowserDomFailure.ReceiptCapacity, "receipt-store-full");
     }
 
@@ -138,16 +138,16 @@ export class BrowserDomHost {
       planId: effect.planId,
       fragmentId: effect.fragmentId,
       activePlayId: effect.activePlayId,
-      presentationId: effect.presentationId,
+      faceId: effect.faceId,
       signId: effect.signId,
       requestNode: effect.requestNode,
       requestId: effect.requestId,
       operationId: effect.operationId,
       hostCallContractId: effect.hostCallContractId,
       placementId: effect.placementId,
-      sequence: presentation.sequence.toString(),
-      level: presentation.level,
-      encoded: presentation.encoded,
+      sequence: face.sequence.toString(),
+      level: face.level,
+      encoded: face.encoded,
       ...(hasRemoteIdentity
         ? {
             sourceFragmentId: effect.sourceFragmentId,
@@ -168,20 +168,20 @@ export class BrowserDomHost {
     output.dataset.planId = receipt.planId;
     output.dataset.fragmentId = receipt.fragmentId;
     output.dataset.activePlayId = receipt.activePlayId;
-    output.dataset.presentationId = receipt.presentationId;
+    output.dataset.faceId = receipt.faceId;
     output.dataset.signId = receipt.signId;
     output.dataset.requestId = String(receipt.requestId);
     output.dataset.placementId = receipt.placementId;
     output.dataset.sequence = receipt.sequence;
     output.dataset.level = String(receipt.level);
     output.textContent =
-      `receipt ${effect.presentationKind} host=${receipt.hostId} boot=${receipt.bootId} ` +
+      `receipt ${effect.faceKind} host=${receipt.hostId} boot=${receipt.bootId} ` +
       `placement=${receipt.placementId} sequence=${receipt.sequence} level=${receipt.level}`;
     this.root.append(output);
 
-    this.#presentationIds.add(effect.presentationId);
+    this.#faceIds.add(effect.faceId);
     this.#receipts.push(receipt);
-    this.#receiptBytes += presentation.encoded.length;
+    this.#receiptBytes += face.encoded.length;
     return Object.freeze({
       ok: true,
       completion: Object.freeze({
@@ -197,7 +197,7 @@ export class BrowserDomHost {
         requestId: effect.requestId,
         operationId: effect.operationId,
         hostCallContractId: effect.hostCallContractId,
-        presentationId: effect.presentationId,
+        faceId: effect.faceId,
         signId: effect.signId,
         placementId: effect.placementId,
         ...(hasRemoteIdentity
@@ -215,7 +215,7 @@ export class BrowserDomHost {
           : {}),
         value: Object.freeze({
           valueKind: effect.value.valueKind,
-          encoded: presentation.encoded,
+          encoded: face.encoded,
         }),
         success: true,
       }),

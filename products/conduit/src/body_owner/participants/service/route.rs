@@ -4,7 +4,7 @@ use conduit_core::{
     BaseImplementationId, BaseInstanceId, CredentialReferenceId, LineAvailability,
     LinkAuthorityReference, LinkCredentialReference, LinkLimits,
 };
-use conduit_presentation::{
+use conduit_face::{
     FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
     RemoteOwnerMaskRouteError, RemoteOwnerMaskRouteSeal,
 };
@@ -143,11 +143,11 @@ impl Owner {
         binding: &LinkBindingId,
         request: &OwnerFaceSnapshotRequest,
         show: &MaskShow,
-        look: conduit_presentation::ComponentMaskLook,
-        recipe: conduit_presentation::TodoComponentRecipe,
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
         self.validate_browser_mask_show(window_id, binding, request, show)?;
-        let previous_wardrobe = self.presentation_wardrobe.clone();
+        let previous_wardrobe = self.face_wardrobe.clone();
         let window = self.pending_browser.as_mut().ok_or("window-not-active")?;
         let WindowState::Active {
             credential,
@@ -168,13 +168,13 @@ impl Owner {
         let result = self
             .browser_mask_route(window_id, &credential, binding, Some(&lines))
             .and_then(|route| {
-                self.select_component_presentation_route(&route)?;
+                self.select_component_face_route(&route)?;
                 Ok(route)
             });
         match result {
             Ok(route) => Ok(route),
             Err(error) => {
-                self.presentation_wardrobe = previous_wardrobe;
+                self.face_wardrobe = previous_wardrobe;
                 if let Some(window) = self.pending_browser.as_mut() {
                     window.component_mask_selection = previous_selection;
                     if let WindowState::Active {
@@ -242,8 +242,8 @@ impl Owner {
             let browser = &observation.advertisement;
             let (mask_source, mask_root, mask_offer) = match window.component_mask_selection {
                 Some((look, recipe)) => (
-                    conduit_presentation::TODO_COMPONENT_MASK_SOURCE,
-                    conduit_presentation::todo_component_mask_root(look, recipe),
+                    conduit_face::TODO_COMPONENT_MASK_SOURCE,
+                    conduit_face::todo_component_mask_root(look, recipe),
                     conduit_browser_mask_offer::configured_offer(),
                 ),
                 None => (
@@ -294,7 +294,7 @@ impl Owner {
         })();
         self.pending_browser = Some(window);
         let selected = result?;
-        self.admit_browser_presentation_route(&selected)?;
+        self.admit_browser_face_route(&selected)?;
         Ok(selected)
     }
 
@@ -362,7 +362,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             local,
@@ -374,11 +374,11 @@ impl Owner {
             super::super::super::super::super::current_time_millis()?,
         );
         let selected = self
-            .presentation_wardrobe
+            .face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?
+            .ok_or("owner face wardrobe is not admitted")?
             .selected_show(&self.session, &face, &current)
-            .map_err(super::super::super::presentation_wardrobe_runtime::wardrobe_error)?;
+            .map_err(super::super::super::face_wardrobe_runtime::wardrobe_error)?;
         if selected != show {
             return Err("stale owner Mask Show".into());
         }

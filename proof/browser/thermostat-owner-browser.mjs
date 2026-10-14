@@ -51,11 +51,11 @@ const owner = args => {
 };
 const ownerFace = () => {
   const result = owner(['body', 'face', '--state-dir', state, '--json']);
-  return { schema: result.schema, presentation: result.presentation, presentation_revision_decimal: result.presentation_revision_decimal };
+  return { schema: result.schema, face: result.face, face_revision_decimal: result.face_revision_decimal };
 };
 const ownerStatus = () => owner(['body', 'status', '--state-dir', state, '--json']);
 const before = ownerFace();
-const bodyId = before.presentation.basis.body_id;
+const bodyId = before.face.basis.body_id;
 await mkdir(output, { mode: 0o700 });
 let server, browser, page;
 const errors = [];
@@ -153,15 +153,15 @@ try {
     assert.equal(view.body_id, bodyId);
     assert.equal(view.show_state, 'available');
     assert.equal(view.interactions_admitted, true);
-    assert.equal(canonical.presentation.identity, view.face_id);
+    assert.equal(canonical.face.identity, view.face_id);
     assert.equal(status.biography.body_id, bodyId);
     assert.equal(status.realization.plan.plan_id, runBasis.plan_id);
     assert.equal(status.realization.play.active_play_id, runBasis.active_play_id);
-    assert.equal(canonical.presentation.basis.plan_id, null);
-    assert.equal(canonical.presentation.basis.active_play_id, null);
-    const provenance = canonical.presentation.subjects.filter(subject => subject.identity.startsWith('contribution/foreground/'));
+    assert.equal(canonical.face.basis.plan_id, null);
+    assert.equal(canonical.face.basis.active_play_id, null);
+    const provenance = canonical.face.subjects.filter(subject => subject.identity.startsWith('contribution/foreground/'));
     assert.ok(provenance.some(subject => {
-      const properties = canonical.presentation.properties.filter(property => property.subject === subject.identity);
+      const properties = canonical.face.properties.filter(property => property.subject === subject.identity);
       return properties.some(property => property.name === 'plan-id' && property.value.Identity === runBasis.plan_id)
         && properties.some(property => property.name === 'active-play-id' && property.value.Identity === runBasis.active_play_id);
     }), 'canonical foreground contribution must retain this live Body Plan/Play provenance');
@@ -232,7 +232,7 @@ try {
     } catch (error) { return { accepted: false, refusal: error.message }; }
   }, { view: staleView, action: staleAction });
   assert.equal(stale.accepted, false, 'previous acknowledged Show must refuse after a new action');
-  assert.deepEqual(ownerFace().presentation.properties, beforeStale.presentation.properties, 'stale Show cannot mutate thermostat');
+  assert.deepEqual(ownerFace().face.properties, beforeStale.face.properties, 'stale Show cannot mutate thermostat');
   await refresh();
   await observe('refresh-after-stale');
   await targetWording('21.5 °C');

@@ -3,9 +3,7 @@
 
 use super::{body::HostSource, constant_time_equal, DurableHostRuntime, PROTOCOL};
 use conduit_core::PlanId;
-use conduit_presentation::{
-    FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction,
-};
+use conduit_face::{FaceInteraction, LocalOwnerMaskRouteSeal, MaskShow, MaskWardrobeAction};
 use conduit_std_host::{
     terminal_face_mask::TerminalMaskExecution, terminal_mask_execution::HostedTerminalMaskExecution,
 };

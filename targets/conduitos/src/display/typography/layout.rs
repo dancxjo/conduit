@@ -2,7 +2,7 @@
 
 use super::{GlyphRaster, TextRole, TextScale, metrics, scaled_glyph};
 use crate::display::DisplayError;
-use conduit_presentation::MAX_GRAPHICS_TEXT_BYTES;
+use conduit_face::MAX_GRAPHICS_TEXT_BYTES;
 
 pub struct PositionedGlyph {
     pub glyph: GlyphRaster,

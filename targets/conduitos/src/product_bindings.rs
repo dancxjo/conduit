@@ -59,7 +59,7 @@ pub(crate) fn binding_for_intent(intent: &str) -> Option<ProductBinding> {
     PRODUCT_BINDINGS
         .iter()
         .copied()
-        .find(|binding| binding.action.presentation_intent() == intent)
+        .find(|binding| binding.action.face_intent() == intent)
 }
 
 #[cfg(test)]
@@ -87,7 +87,7 @@ mod tests {
             );
             assert_eq!(binding_for_usage(binding.usage), Some(*binding));
             assert_eq!(
-                binding_for_intent(binding.action.presentation_intent()),
+                binding_for_intent(binding.action.face_intent()),
                 Some(*binding)
             );
         }
@@ -98,7 +98,7 @@ mod tests {
         assert_eq!(binding_for_usage(40), None);
         assert_eq!(binding_for_usage(u8::MAX), None);
         assert_eq!(
-            binding_for_intent(PatchbayAction::OpenBack.presentation_intent()),
+            binding_for_intent(PatchbayAction::OpenBack.face_intent()),
             None
         );
         assert_eq!(binding_for_intent("conduit.intent/unknown@1"), None);

@@ -1,17 +1,16 @@
 use super::*;
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
-use conduit_presentation::{
-    FaceActionArgument, ManifestationLifecycle, PresentationAction, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+use conduit_face::{
+    FaceAction, FaceActionArgument, FaceDisclosure, FaceDisclosureLevel, FaceProperty,
+    FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
+    ManifestationLifecycle,
 };
 
-fn face_with_action() -> (Presentation, MaskShow) {
+fn face_with_action() -> (Face, MaskShow) {
     let plot = common::checked_renderer_plot();
     let plan = common::plan_for(
         &plot,
@@ -19,49 +18,49 @@ fn face_with_action() -> (Presentation, MaskShow) {
             "linux-host",
             "linux-boot",
             "renderer-wayland",
-            "presentation/renderer-wayland@1",
+            "face/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/base/wayland-surface@1",
+            "face/base/wayland-surface@1",
             common::WAYLAND_RESOURCE,
         ),
     );
-    let base = common::presentation(&plot, &plan);
+    let base = common::face(&plot, &plan);
     let mut basis = base.basis;
     // This is a Host-owned Crèche Face. No Body exists at this stage.
     basis.body_id = None;
     basis.wake_id = None;
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         1,
         basis,
         vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: "patchbay/plot".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Current view".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "arrival".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Welcome".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "draft".into(),
-                role: PresentationRole::TextEntry,
+                role: FaceRole::TextEntry,
                 name: "Body name".into(),
             },
         ],
         vec![],
-        vec![PresentationProperty {
+        vec![FaceProperty {
             subject: "draft".into(),
             name: "current name".into(),
-            value: PresentationPropertyValue::Text("New Body".into()),
+            value: FacePropertyValue::Text("New Body".into()),
         }],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "arrival".into(),
             text: "Choose a name, then decide when to begin.".into(),
         }],
         vec![
-            PresentationAction {
+            FaceAction {
                 identity: "birth/set-name".into(),
                 intent: "birth/set-name".into(),
                 target: "draft".into(),
@@ -69,17 +68,17 @@ fn face_with_action() -> (Presentation, MaskShow) {
                 arguments: vec![
                     FaceActionArgument::text("name".into(), "Body name".into(), 1, 32).unwrap(),
                 ],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
-            PresentationAction {
+            FaceAction {
                 identity: "birth/confirm".into(),
                 intent: "birth/confirm".into(),
                 target: "arrival".into(),
                 name: "Create Body".into(),
                 arguments: vec![],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
         ],
         vec![],
@@ -104,69 +103,69 @@ fn mechanical_projection_matches_interactive_wording_before_any_show() {
 fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all() {
     let (base, _) = face_with_action();
     let mut actions = base.actions.clone();
-    actions[0].availability = PresentationActionAvailability::Unavailable {
+    actions[0].availability = FaceActionAvailability::Unavailable {
         reason_code: "not-now".into(),
         explanation: "This action cannot be used now.".into(),
     };
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         2,
         base.basis,
         vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: "body".into(),
-                role: PresentationRole::Body,
+                role: FaceRole::Body,
                 name: "Current Body".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "result".into(),
-                role: PresentationRole::Status,
+                role: FaceRole::Status,
                 name: "Result".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "context".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Groceries".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "draft".into(),
-                role: PresentationRole::TextEntry,
+                role: FaceRole::TextEntry,
                 name: "Draft".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "arrival".into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "Arrival".into(),
             },
         ],
         vec![],
         vec![],
         vec![
-            PresentationText {
+            FaceText {
                 subject: "body".into(),
                 text: "Lulled with one resident Plot.".into(),
             },
-            PresentationText {
+            FaceText {
                 subject: "result".into(),
                 text: "Two things remain.".into(),
             },
-            PresentationText {
+            FaceText {
                 subject: "context".into(),
                 text: "Groceries list.".into(),
             },
         ],
         actions,
         vec![
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: "body".into(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             },
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: "result".into(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             },
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: "context".into(),
-                level: PresentationDisclosureLevel::Context,
+                level: FaceDisclosureLevel::Context,
             },
         ],
     )
@@ -184,7 +183,7 @@ fn direct_opening_leads_with_context_then_result_and_leaves_detail_to_read_all()
 fn direct_opening_offers_content_action_without_generic_context_navigation() {
     let (base, _) = face_with_action();
     let make_face = |actions| {
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             base.revision,
             base.basis.clone(),
             base.subjects.clone(),
@@ -192,9 +191,9 @@ fn direct_opening_offers_content_action_without_generic_context_navigation() {
             base.properties.clone(),
             base.text.clone(),
             actions,
-            vec![PresentationDisclosure {
+            vec![FaceDisclosure {
                 subject: "arrival".into(),
-                level: PresentationDisclosureLevel::Context,
+                level: FaceDisclosureLevel::Context,
             }],
         )
         .unwrap()
@@ -218,55 +217,55 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "todo/list".into(),
-        role: PresentationRole::Collection,
+        role: FaceRole::Collection,
         name: "Groceries".into(),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: "todo/list".into(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "todo/status".into(),
-        role: PresentationRole::Status,
+        role: FaceRole::Status,
         name: "Progress".into(),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: "todo/status".into(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
     for index in 0..20 {
         let identity = format!("item/{index}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: if index < 3 {
                 format!("Open item {index}")
             } else {
                 format!("Completed item {index}")
             },
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: identity,
             level: if index < 3 {
-                PresentationDisclosureLevel::Primary
+                FaceDisclosureLevel::Primary
             } else {
-                PresentationDisclosureLevel::SelectedDetail
+                FaceDisclosureLevel::SelectedDetail
             },
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         2,
         base.basis,
         subjects,
         base.relationships,
         base.properties,
-        vec![PresentationText {
+        vec![FaceText {
             subject: "todo/status".into(),
             text: "3 things left · 17 completed".into(),
         }],
-        vec![PresentationAction {
+        vec![FaceAction {
             identity: "todo.add".into(),
             intent: "todo/add@1".into(),
             target: "todo/list".into(),
@@ -274,8 +273,8 @@ fn direct_opening_bounds_long_collections_without_losing_full_reading() {
             arguments: vec![
                 FaceActionArgument::text("text".into(), "Item text".into(), 1, 256).unwrap(),
             ],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         }],
         disclosures,
     )
@@ -313,21 +312,21 @@ fn read_current_items_uses_the_same_show_without_completed_detail() {
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
     for index in 0..20 {
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: format!("item/{index}"),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: format!("Task {index}"),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: format!("item/{index}"),
             level: if index < 3 {
-                PresentationDisclosureLevel::Primary
+                FaceDisclosureLevel::Primary
             } else {
-                PresentationDisclosureLevel::SelectedDetail
+                FaceDisclosureLevel::SelectedDetail
             },
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         2,
         base.basis,
         subjects,
@@ -360,10 +359,10 @@ fn read_current_items_uses_the_same_show_without_completed_detail() {
     finished.revision += 1;
     for disclosure in &mut finished.disclosures {
         if disclosure.subject.starts_with("item/") {
-            disclosure.level = PresentationDisclosureLevel::SelectedDetail;
+            disclosure.level = FaceDisclosureLevel::SelectedDetail;
         }
     }
-    let finished = Presentation::new_with_semantics(
+    let finished = Face::new_with_semantics(
         finished.revision,
         finished.basis,
         finished.subjects,
@@ -395,34 +394,34 @@ fn long_primary_list_reads_bounded_items_and_offers_exact_detail_command() {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "todo/status".into(),
-        role: PresentationRole::Status,
+        role: FaceRole::Status,
         name: "4 remaining".into(),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: "todo/status".into(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
     for index in 0..4 {
         let identity = format!("item/{index}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: format!("Open item {index}"),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: identity,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         2,
         base.basis,
         subjects,
         base.relationships,
         base.properties,
-        vec![PresentationText {
+        vec![FaceText {
             subject: "todo/status".into(),
             text: "4 remaining".into(),
         }],
@@ -476,29 +475,29 @@ fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
     let mut subjects = base.subjects.clone();
     for subject in &mut subjects {
         subject.role = match subject.identity.as_str() {
-            "arrival" => PresentationRole::Semantic(kind_id("document/main")),
-            "draft" => PresentationRole::Semantic(kind_id("document/article")),
-            _ => PresentationRole::Semantic(kind_id("document/navigation")),
+            "arrival" => FaceRole::Semantic(kind_id("document/main")),
+            "draft" => FaceRole::Semantic(kind_id("document/article")),
+            _ => FaceRole::Semantic(kind_id("document/navigation")),
         };
     }
-    subjects.extend((0..80).map(|number| PresentationSubject {
+    subjects.extend((0..80).map(|number| FaceSubject {
         identity: format!("item/{number:03}"),
-        role: PresentationRole::Item,
+        role: FaceRole::Item,
         name: format!("Item {number}"),
     }));
     let mut actions = base.actions.clone();
-    actions[1].availability = PresentationActionAvailability::Unavailable {
+    actions[1].availability = FaceActionAvailability::Unavailable {
         reason_code: "birth/name-missing".into(),
         explanation: "Give the Body a name first.".into(),
     };
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         subjects,
-        vec![PresentationRelationship {
+        vec![FaceRelationship {
             source: "arrival".into(),
             target: "draft".into(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         }],
         base.properties,
         base.text,
@@ -538,7 +537,7 @@ fn screen_free_reader_reaches_below_viewport_and_navigates_semantic_roles() {
         .command(
             &face,
             &show,
-            ReaderCommand::NextRole(PresentationRole::Semantic(kind_id("document/article"))),
+            ReaderCommand::NextRole(FaceRole::Semantic(kind_id("document/article"))),
             3,
         )
         .unwrap();
@@ -566,7 +565,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         base.subjects,
@@ -624,7 +623,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
     boolean[0].arguments[0].value_name = "Include Plot".into();
     boolean[0].arguments[0].contract =
         CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap();
-    let boolean_face = Presentation::new_with_semantics(
+    let boolean_face = Face::new_with_semantics(
         face.revision + 1,
         face.basis.clone(),
         face.subjects.clone(),
@@ -658,7 +657,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let crowded = Presentation::new_with_semantics(
+    let crowded = Face::new_with_semantics(
         face.revision + 1,
         face.basis,
         face.subjects,
@@ -692,7 +691,7 @@ fn spoken_reader_names_finite_text_choices_and_refuses_unoffered_value() {
         }],
     )
     .unwrap();
-    let disguised = Presentation::new_with_semantics(
+    let disguised = Face::new_with_semantics(
         crowded.revision + 1,
         crowded.basis,
         crowded.subjects,
@@ -758,17 +757,17 @@ fn requested_items_close_before_later_non_item_face_clauses() {
     let mut disclosures = base.disclosures;
     for number in 18..=20 {
         let identity = format!("todo/item/{number}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: format!("Long-list item {number}"),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: identity,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         subjects,
@@ -899,21 +898,21 @@ fn final_primary_item_batch_completes_before_excluded_completed_detail() {
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
     for index in 0..20 {
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: format!("item/{index}"),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: format!("Task {index}"),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: format!("item/{index}"),
             level: if index < 3 {
-                PresentationDisclosureLevel::Primary
+                FaceDisclosureLevel::Primary
             } else {
-                PresentationDisclosureLevel::SelectedDetail
+                FaceDisclosureLevel::SelectedDetail
             },
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         subjects,
@@ -952,7 +951,7 @@ fn final_primary_item_batch_completes_before_excluded_completed_detail() {
     assert!(reader.next_batch_with_limits(1, 64).unwrap().is_none());
 }
 
-fn focus_action(session: &mut SpokenFaceSession, face: &Presentation, show: &MaskShow, id: &str) {
+fn focus_action(session: &mut SpokenFaceSession, face: &Face, show: &MaskShow, id: &str) {
     let target = session
         .plan()
         .clauses
@@ -1248,8 +1247,8 @@ fn utf8_chunking_never_splits_a_character() {
 fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
     let (base, _) = face_with_action();
     let mut properties = base.properties.clone();
-    properties[0].value = PresentationPropertyValue::Text("é".repeat(512));
-    let face = Presentation::new_with_semantics(
+    properties[0].value = FacePropertyValue::Text("é".repeat(512));
+    let face = Face::new_with_semantics(
         base.revision + 1,
         base.basis.clone(),
         base.subjects.clone(),
@@ -1301,8 +1300,8 @@ fn one_long_face_fact_streams_in_order_and_refresh_resets_indexed_focus() {
     assert!(reader.next_segment().unwrap().is_none());
 
     let mut changed = face.clone();
-    changed.properties[0].value = PresentationPropertyValue::Text("New name".into());
-    changed = Presentation::new_with_semantics(
+    changed.properties[0].value = FacePropertyValue::Text("New name".into());
+    changed = Face::new_with_semantics(
         face.revision + 1,
         changed.basis,
         changed.subjects,

@@ -4,10 +4,10 @@
 //! Pages and focus belong to this Mask; an ordinary Mask executor must still
 //! acknowledge scanout before using the returned mappings to make interactions.
 use alloc::{string::String, vec::Vec};
-use conduit_presentation::{
-    FaceActionArgument, FaceInteraction, FaceInteractionArgument, GraphicsCommand,
-    GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole, LayoutRect, MaskShow,
-    Presentation, PresentationAction, PresentationContentId,
+use conduit_face::{
+    Face, FaceAction, FaceActionArgument, FaceContentId, FaceInteraction, FaceInteractionArgument,
+    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
+    LayoutRect, MaskShow,
 };
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
@@ -55,13 +55,13 @@ pub struct FaceControl {
 pub struct FaceHit<'a> {
     pub bounds: LayoutRect,
     pub control: FaceControl,
-    pub action: &'a PresentationAction,
+    pub action: &'a FaceAction,
     pub argument: Option<&'a FaceActionArgument>,
 }
 
 pub struct FaceFrame<'a> {
     pub scene: GraphicsScene,
-    pub presentation_id: &'a PresentationContentId,
+    pub face_id: &'a FaceContentId,
     pub revision: u64,
     pub page: usize,
     pub pages: usize,
@@ -83,7 +83,7 @@ impl FaceFrame<'_> {
 /// One admitted display extent. Changing extent prepares a new scene document;
 /// it cannot reinterpret, replace, or mutate its retained semantic Face.
 pub struct NativeFaceScene {
-    face: Presentation,
+    face: Face,
     screen: LayoutRect,
     text_scale_percent: u16,
     primary: Vec<layout::Row>,
@@ -98,12 +98,12 @@ pub struct NativeFaceScene {
 }
 
 impl NativeFaceScene {
-    pub fn prepare(face: Presentation, width: u16, height: u16) -> Result<Self, FaceSceneError> {
+    pub fn prepare(face: Face, width: u16, height: u16) -> Result<Self, FaceSceneError> {
         Self::prepare_with_input(face, width, height, true)
     }
 
     pub fn prepare_with_input(
-        face: Presentation,
+        face: Face,
         width: u16,
         height: u16,
         interaction_admitted: bool,
@@ -138,12 +138,12 @@ impl NativeFaceScene {
     /// Realize source-owned structural geometry and the admitted visual facet
     /// over this exact Face. Layout retains all original control references.
     pub fn prepare_configured(
-        face: Presentation,
+        face: Face,
         width: u16,
         height: u16,
         interaction_admitted: bool,
-        recipe: &conduit_presentation::PreparedComponentRecipe,
-        expression: &conduit_presentation::AdmittedVisualExpression,
+        recipe: &conduit_face::PreparedComponentRecipe,
+        expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
         if recipe.reading.source_face_identity != face.identity.as_str()
             || recipe.reading.source_face_revision != face.revision
@@ -164,8 +164,8 @@ impl NativeFaceScene {
         }
         let scale = expression.expression.text_scale_percent;
         let padding = match expression.expression.density {
-            conduit_presentation::VisualDensity::Compact => SPACE_SM,
-            conduit_presentation::VisualDensity::Spacious => SPACE_SM * 2,
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
         };
         scene.primary = layout::admit_with_expression(
             primary,
@@ -190,18 +190,18 @@ impl NativeFaceScene {
     /// Generic semantic projection when configured structural capacity is unavailable.
     /// User text requirements still use the same measured and rasterized scale.
     pub fn prepare_visual_fallback(
-        face: Presentation,
+        face: Face,
         width: u16,
         height: u16,
         interaction_admitted: bool,
-        expression: &conduit_presentation::AdmittedVisualExpression,
+        expression: &conduit_face::AdmittedVisualExpression,
     ) -> Result<Self, FaceSceneError> {
         let mut scene = Self::prepare_with_input(face, width, height, interaction_admitted)?;
         let (primary, details) = document::prepare(&scene.face, interaction_admitted)?;
         let scale = expression.expression.text_scale_percent;
         let padding = match expression.expression.density {
-            conduit_presentation::VisualDensity::Compact => SPACE_SM,
-            conduit_presentation::VisualDensity::Spacious => SPACE_SM * 2,
+            conduit_face::VisualDensity::Compact => SPACE_SM,
+            conduit_face::VisualDensity::Spacious => SPACE_SM * 2,
         };
         scene.primary =
             layout::admit_with_expression(primary, scene.screen, SPACE_XL, 1, scale, padding)?;
@@ -216,7 +216,7 @@ impl NativeFaceScene {
         self.text_scale_percent
     }
 
-    pub fn presentation(&self) -> &Presentation {
+    pub fn face(&self) -> &Face {
         &self.face
     }
 
@@ -331,11 +331,11 @@ impl NativeFaceScene {
     /// Resolve a retained frame mapping only against its exact Face identity.
     pub fn resolve(
         &self,
-        presentation_id: &PresentationContentId,
+        face_id: &FaceContentId,
         revision: u64,
         control: FaceControl,
-    ) -> Result<(&PresentationAction, Option<&FaceActionArgument>), FaceSceneError> {
-        if presentation_id != &self.face.identity || revision != self.face.revision {
+    ) -> Result<(&FaceAction, Option<&FaceActionArgument>), FaceSceneError> {
+        if face_id != &self.face.identity || revision != self.face.revision {
             return Err(FaceSceneError::StaleFace);
         }
         let action = self
@@ -362,7 +362,7 @@ impl NativeFaceScene {
     /// arguments are supplied atomically and validated by the existing boundary.
     pub fn interaction(
         &self,
-        presentation_id: &PresentationContentId,
+        face_id: &FaceContentId,
         revision: u64,
         control: FaceControl,
         show: &MaskShow,
@@ -372,7 +372,7 @@ impl NativeFaceScene {
         if !self.interaction_admitted {
             return Err(FaceSceneError::InputUnavailable);
         }
-        let (action, _) = self.resolve(presentation_id, revision, control)?;
+        let (action, _) = self.resolve(face_id, revision, control)?;
         FaceInteraction::new(
             &self.face,
             show,
@@ -536,7 +536,7 @@ impl NativeFaceScene {
         )?;
         Ok(FaceFrame {
             scene,
-            presentation_id: &self.face.identity,
+            face_id: &self.face.identity,
             revision: self.face.revision,
             page: self.page,
             pages: self.pages(),
@@ -566,7 +566,7 @@ impl NativeFaceScene {
 
 fn push(
     scene: &mut GraphicsScene,
-    command: Result<GraphicsCommand, conduit_presentation::GraphicsError>,
+    command: Result<GraphicsCommand, conduit_face::GraphicsError>,
 ) -> Result<(), FaceSceneError> {
     scene
         .push(command.map_err(|_| FaceSceneError::SceneBound)?)

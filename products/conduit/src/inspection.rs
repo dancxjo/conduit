@@ -118,7 +118,7 @@ fn inspect_sign(bytes: &[u8]) -> Result<String, String> {
         serde_json::from_slice(bytes).map_err(|error| format!("decode Sign artifact: {error}"))?;
     conduit_observatory::validate_sign_artifact(&artifact)?;
     Ok(format!(
-        "Sign {}\nHost {}\nBoot {}\nsequence {}\nPlay {}\nPlan {}\nplacement {}\nconnection {}\npresentation {}\nkind {:?}\n",
+        "Sign {}\nHost {}\nBoot {}\nsequence {}\nPlay {}\nPlan {}\nplacement {}\nconnection {}\nface {}\nkind {:?}\n",
         artifact.identity.sign_id.as_str(),
         artifact.identity.host_id.as_str(),
         artifact.identity.boot_id.as_str(),
@@ -145,9 +145,9 @@ fn inspect_sign(bytes: &[u8]) -> Result<String, String> {
             .map_or("none", conduit_core::ConnectionId::as_str),
         artifact
             .sign
-            .presentation_id
+            .face_id
             .as_ref()
-            .map_or("none", conduit_core::PresentationId::as_str),
+            .map_or("none", conduit_core::FaceId::as_str),
         artifact.sign.kind,
     ))
 }

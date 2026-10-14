@@ -2,8 +2,8 @@
 
 use conduit_body::{BodyMembership, PartId};
 use conduit_core::{ArtifactId, Plan, SignId};
+use conduit_face::{Face, ManifestationSet};
 use conduit_host_make::{BuildManifest, HostImage, ImageBootIdentity};
-use conduit_presentation::{ManifestationSet, Presentation};
 use serde::Serialize;
 
 pub(super) const SCHEMA: &str = "conduit.host/multi-profile-body-capstone@1";
@@ -25,8 +25,8 @@ pub struct UpdateEvidence {
     pub semantic_subject: String,
     pub semantic_action: String,
     pub sign_id: SignId,
-    pub prior_presentation_id: String,
-    pub revised_presentation_id: String,
+    pub prior_face_id: String,
+    pub revised_face_id: String,
     pub native_manifestation_id: String,
     pub browser_manifestation_id: String,
 }
@@ -48,10 +48,10 @@ pub struct CapstoneReceipt {
     pub membership: BodyMembership,
     pub part_ids: Vec<PartId>,
     pub plan: Plan,
-    pub initial_presentation: Presentation,
+    pub initial_face: Face,
     pub initial_manifestations: ManifestationSet,
     pub replaced_manifestations: ManifestationSet,
-    pub revised_presentation: Presentation,
+    pub revised_face: Face,
     pub revised_manifestations: ManifestationSet,
     pub update: UpdateEvidence,
     pub refusals: RefusalEvidence,

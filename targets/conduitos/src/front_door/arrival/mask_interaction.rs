@@ -1,10 +1,10 @@
 //! Exact current Crèche Face and typed actions for an ordinary native Mask.
 use super::{Error, FrontDoor};
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis, BirthFaceRefusal};
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
+use conduit_face::{Face, FaceInteraction, MaskShow};
 
 impl FrontDoor {
-    pub fn creche_face(&self, basis: &BirthFaceBasis) -> Result<Presentation, Error> {
+    pub fn creche_face(&self, basis: &BirthFaceBasis) -> Result<Face, Error> {
         if basis.host_id != self.host_id || basis.boot_id != self.boot_id {
             return Err(Error::StaleInput);
         }
@@ -13,7 +13,7 @@ impl FrontDoor {
             .ok_or(Error::ActionUnavailable)?
             .draft
             .face(basis)
-            .map_err(|_| Error::Presentation)
+            .map_err(|_| Error::Face)
     }
 
     /// A birth selection still goes through ProductJourney's one lifecycle

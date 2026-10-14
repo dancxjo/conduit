@@ -67,7 +67,7 @@ conduit-patchbay-workbench = { path = "../../plots/patchbay/workbench/model" }
 conduit-signal = { path = "../../semantics/signal" }
 conduit-synth = { path = "../../mechanisms/implementations/synth" }
 conduit-planner = { path = "../../architecture/planner" }
-conduit-presentation = { path = "../../semantics/presentation", features = ["plot-catalog"] }
+conduit-face = { path = "../../semantics/face", features = ["plot-catalog"] }
 conduit-plan-lowering = { path = "../../architecture/plan-lowering", default-features = false }
 conduit-patchbay-workbench-conformance = { path = "../../proof/conformance/patchbay-workbench" }
 conduit-std-host = { path = "../../targets/std", features = ["local-model-proof", "pete-create"] }

@@ -43,7 +43,7 @@ pub(crate) fn test_observer_offer() -> CapabilityOffer {
             TICK_ENCODED_LEN,
         )],
         resource_requirements: vec![conduit_core::resource_requirement(
-            conduit_core::PRESENTATION_RESOURCE_CLASS,
+            conduit_core::FACE_RESOURCE_CLASS,
             1,
         )],
         authority_requirements: Vec::new(),
@@ -87,8 +87,8 @@ pub(crate) fn test_catalog() -> conduit_plot::ProfileCatalog {
         .expect("data Text catalogs are exact and unique");
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut catalog)
         .expect("timing catalogs are exact and unique");
-    conduit_semantic_catalog::install_bool_presentation_catalog(&mut catalog)
-        .expect("Boolean presentation catalog is exact and unique");
+    conduit_semantic_catalog::install_bool_face_catalog(&mut catalog)
+        .expect("Boolean face catalog is exact and unique");
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut catalog)
         .expect("logic catalogs are exact and unique");
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut catalog)
@@ -101,25 +101,25 @@ pub(crate) fn test_catalog() -> conduit_plot::ProfileCatalog {
         .expect("layout catalogs are exact and unique");
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut catalog)
         .expect("input semantic catalogs are exact and unique");
-    conduit_semantic_catalog::install_presentation_composition_catalogs(&mut startup, &mut catalog)
-        .expect("presentation composition catalogs are exact and unique");
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut catalog)
+        .expect("face composition catalogs are exact and unique");
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut catalog)
         .expect("graphics catalogs are exact and unique");
-    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut catalog)
-        .expect("graphics presentation catalog is exact and unique");
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut catalog)
-        .expect("graphics presentation catalog is exact and unique");
+    conduit_semantic_catalog::install_graphics_face_catalog(&mut startup, &mut catalog)
+        .expect("graphics face catalog is exact and unique");
+    conduit_face::install_bitmap_face_catalog(&mut startup, &mut catalog)
+        .expect("graphics face catalog is exact and unique");
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut catalog)
         .expect("sound catalogs are exact and unique");
     catalog
         .insert(KindProjection {
-            kind_id: kind_id("conduit-test/presentation-sink"),
-            kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
-            inputs: test_presentation_sink_offer().inputs,
+            kind_id: kind_id("conduit-test/face-sink"),
+            kind_contract_revision: KindIdentity::from("conduit-test/face-sink@1"),
+            inputs: test_face_sink_offer().inputs,
             outputs: Vec::new(),
             configuration: Default::default(),
         })
-        .expect("presentation sink is unique");
+        .expect("face sink is unique");
     catalog
         .insert(KindProjection {
             kind_id: kind_id("conduit-test/graphics-sink"),
@@ -135,7 +135,7 @@ pub(crate) fn test_catalog() -> conduit_plot::ProfileCatalog {
             kind_contract_revision: KindIdentity::from("conduit-test/layout-sink@1"),
             inputs: vec![PortDescriptor {
                 port_id: conduit_core::port_id("in"),
-                value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
+                value_kind: kind_id(conduit_face::LAYOUT_FRAME_KIND),
                 direction: PortDirection::Input,
                 temporal: conduit_core::PortTemporal::Value,
                 abnormal_kind: None,
@@ -166,7 +166,7 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
         },
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("in"),
-            value_kind: kind_id(conduit_presentation::LAYOUT_FRAME_KIND),
+            value_kind: kind_id(conduit_face::LAYOUT_FRAME_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Value,
             abnormal_kind: None,
@@ -178,31 +178,31 @@ pub(crate) fn test_layout_sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u32,
+            max_queue_bytes: conduit_face::MAX_LAYOUT_FRAME_BYTES as u32,
         },
     }
 }
 
-pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
+pub(crate) fn test_face_sink_offer() -> CapabilityOffer {
     conduit_core::capability_offer_from_parts! {
         semantic_contract: Default::default(),
         startup_parameters: vec![],
         shorthand: None,
-        capability_id: CapabilityId::from("test-presentation-sink"),
-        kind_id: kind_id("conduit-test/presentation-sink"),
-        kind_contract_revision: KindIdentity::from("conduit-test/presentation-sink@1"),
+        capability_id: CapabilityId::from("test-face-sink"),
+        kind_id: kind_id("conduit-test/face-sink"),
+        kind_contract_revision: KindIdentity::from("conduit-test/face-sink@1"),
         implementation: conduit_core::ImplementationOffer {
             execution_profile_id: ExecutionProfileId::from(
-                "conduit-test/presentation-sink-kernel@1",
+                "conduit-test/face-sink-kernel@1",
             ),
             implementation_id: conduit_core::ImplementationId::from(
-                "conduit-test/presentation-sink-implementation@1",
+                "conduit-test/face-sink-implementation@1",
             ),
-            artifact_id: ArtifactId::from("conduit-std-host/test-presentation-sink@1"),
+            artifact_id: ArtifactId::from("conduit-std-host/test-face-sink@1"),
         },
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("in"),
-            value_kind: kind_id(conduit_presentation::PRESENTATION_COMPOSITION_KIND),
+            value_kind: kind_id(conduit_face::FACE_COMPOSITION_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Value,
             abnormal_kind: None,
@@ -214,7 +214,7 @@ pub(crate) fn test_presentation_sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            max_queue_bytes: conduit_face::MAX_FACE_COMPOSITION_BYTES as u32,
         },
     }
 }
@@ -236,7 +236,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
         },
         inputs: vec![PortDescriptor {
             port_id: conduit_core::port_id("in"),
-            value_kind: kind_id(conduit_presentation::GRAPHICS_SCENE_KIND),
+            value_kind: kind_id(conduit_face::GRAPHICS_SCENE_KIND),
             direction: PortDirection::Input,
             temporal: conduit_core::PortTemporal::Value,
             abnormal_kind: None,
@@ -248,7 +248,7 @@ pub(crate) fn test_graphics_sink_offer() -> CapabilityOffer {
         limits: CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u32,
+            max_queue_bytes: conduit_face::MAX_FACE_COMPOSITION_BYTES as u32,
         },
     }
 }

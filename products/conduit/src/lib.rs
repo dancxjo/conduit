@@ -1,7 +1,7 @@
 //! Reusable public product entrances shared by packaged Conduit applications.
 
 #[cfg(test)]
-#[path = "../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../semantics/face/tests/common/mod.rs"]
 mod mask_test_common;
 
 mod hosted_two_std;
@@ -102,11 +102,13 @@ mod tests {
     fn library_entrance_runs_the_same_real_hosted_plot_pipeline() {
         let mut output = Vec::new();
         let execution = execute_hosted_plot(
-            "plot hosted-library {\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: presentation/text\n  words >> change >> result\n}.\n",
+            "plot hosted-library {\n  words: text/literal(\"hello\")\n  change: text/upper\n  result: face/text(\"Message\")\n  words >> change >> result\n}.\n",
             &mut output,
         )
         .unwrap();
-        assert!(String::from_utf8(output).unwrap().contains("\nHELLO\n"));
+        assert!(String::from_utf8(output)
+            .unwrap()
+            .contains("\nMessage: HELLO\n"));
         assert!(!execution.plan.plan_id.as_str().is_empty());
         assert!(execution
             .observations
@@ -118,7 +120,7 @@ mod tests {
     fn two_host_entrance_retains_fragments_plays_line_and_delivery() {
         let mut output = Vec::new();
         let execution = execute_hosted_two_std_plot(
-            "plot hello-across {\n  message: text/literal(\"hello across one Cord\")\n  show: presentation/text\n  message >> show\n}\n",
+            "plot hello-across {\n  message: text/literal(\"hello across one Cord\")\n  show: face/text(\"Message\")\n  message >> show\n}\n",
             &mut output,
         )
         .unwrap();

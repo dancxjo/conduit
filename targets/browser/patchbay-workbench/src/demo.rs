@@ -6,12 +6,11 @@ use conduit_patchbay_workbench::{
 use patchbay_application::PatchbayNavigationProjection;
 
 pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
-    let (presentation, parts) =
-        conduit_patchbay_workbench::portable_demonstration_with_parts_and_adapter(
-            &patchbay_hosted::HostedPatchbayAdapter,
-        )?;
+    let (face, parts) = conduit_patchbay_workbench::portable_demonstration_with_parts_and_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )?;
     let execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/host"),
@@ -26,7 +25,7 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
     snapshot
         .attach_parts(parts)
         .map_err(|error| error.to_string())?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.face)?;
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
@@ -35,9 +34,9 @@ pub fn demonstration_snapshot() -> Result<RendererSnapshot, String> {
 }
 
 pub fn recursive_plot_demonstration_snapshot() -> Result<RendererSnapshot, String> {
-    let presentation = conduit_patchbay_workbench::recursive_plot_demonstration()?;
+    let face = conduit_patchbay_workbench::recursive_plot_demonstration()?;
     let execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/recursive-plot"),
@@ -48,11 +47,11 @@ pub fn recursive_plot_demonstration_snapshot() -> Result<RendererSnapshot, Strin
     )
     .map_err(|error| error.to_string())?;
     execution.validate().map_err(|error| error.to_string())?;
-    patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
+    patchbay_application::PatchbayEntranceState::enter(&execution.face)
         .map_err(|error| format!("recursive Plot entrance: {error:?}"))?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.face)?;
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
@@ -62,22 +61,22 @@ pub fn recursive_plot_demonstration_snapshot() -> Result<RendererSnapshot, Strin
 fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), String> {
     let find = |role| {
         snapshot
-            .presentation
+            .face
             .subjects
             .iter()
             .find(|subject| subject.role == role)
             .map(|subject| subject.identity.clone())
             .ok_or_else(|| format!("documentary debugger fixture has no {role:?}"))
     };
-    let gear = find(conduit_presentation::PresentationRole::Gear)?;
-    let port = find(conduit_presentation::PresentationRole::Port)?;
-    let cord = find(conduit_presentation::PresentationRole::Cord)?;
+    let gear = find(conduit_face::FaceRole::Gear)?;
+    let port = find(conduit_face::FaceRole::Port)?;
+    let cord = find(conduit_face::FaceRole::Cord)?;
     let execution = serde_json::json!({
         "body": vec![21; 32], "plan": vec![22; 32], "play": vec![23; 32]
     });
-    let debugger: patchbay_application::DebuggerPresentation = serde_json::from_value(
+    let debugger: patchbay_application::DebuggerFace = serde_json::from_value(
         serde_json::json!({
-            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
+            "schema": patchbay_application::DEBUGGER_FACE_SCHEMA,
             "execution": execution,
             "revision": 3,
             "tick": 0,
@@ -147,11 +146,11 @@ fn attach_documentary_debugger(snapshot: &mut RendererSnapshot) -> Result<(), St
 }
 
 pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
-    let presentation = conduit_patchbay_workbench::llm_documentary_presentation_with_adapter(
+    let face = conduit_patchbay_workbench::llm_documentary_face_with_adapter(
         &patchbay_hosted::HostedPatchbayAdapter,
     )?;
     let execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/llm-documentary"),
@@ -163,7 +162,7 @@ pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
     .map_err(|error| error.to_string())?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.face)?;
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
@@ -171,13 +170,13 @@ pub fn llm_documentary_snapshot() -> Result<RendererSnapshot, String> {
 }
 
 pub fn llm_embodiment_snapshot(stage: usize) -> Result<RendererSnapshot, String> {
-    let presentation = conduit_patchbay_workbench::llm_embodiment_documentary_presentations()
+    let face = conduit_patchbay_workbench::llm_embodiment_documentary_faces()
         .map_err(|error| format!("{error:?}"))?
         .into_iter()
         .nth(stage)
         .ok_or("LLM embodiment stage must be 0, 1, or 2")?;
     let execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/llm-embodiment"),
@@ -189,7 +188,7 @@ pub fn llm_embodiment_snapshot(stage: usize) -> Result<RendererSnapshot, String>
     .map_err(|error| error.to_string())?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(|error| error.to_string())?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.face)?;
     snapshot
         .attach_navigation(navigation)
         .map_err(|error| error.to_string())?;
@@ -214,7 +213,7 @@ fn text_lab_snapshot(
     explanation: conduit_patchbay_workbench::TextLabSplitExplanation,
 ) -> Result<RendererSnapshot, String> {
     let execution = prepare_renderer_execution(
-        explanation.presentation,
+        explanation.face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/text-lab"),

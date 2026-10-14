@@ -12,7 +12,7 @@ The package does not plan, schedule, execute semantic implementations, adapt
 host effects, or own product lifecycle. `NodeId`, kernel `PortId`, `CordId`, and
 the other compact numeric identities stay below this boundary. The retained
 `KernelIdentityMap` is the exact correspondence back to plan identities used by
-hosts, signs, diagnostics, and presentation.
+hosts, signs, diagnostics, and face.
 
 ## Fixed storage profile
 

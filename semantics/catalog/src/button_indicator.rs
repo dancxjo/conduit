@@ -20,8 +20,8 @@ pub const BUTTON_SOURCE_KIND: &str = "input/button";
 pub const BUTTON_SOURCE_REVISION: &str = "conduit.input/button@3";
 pub const BUTTON_INDICATOR_STATE_KIND: &str = "input/button-indicator-state";
 pub const BUTTON_INDICATOR_STATE_REVISION: &str = "conduit.input/button-indicator-state@1";
-pub const INDICATOR_STATE_PRESENTATION_KIND: &str = "presentation/indicator-state";
-pub const INDICATOR_STATE_PRESENTATION_REVISION: &str = "conduit.presentation/indicator-state@1";
+pub const INDICATOR_STATE_FACE_KIND: &str = "face/indicator-state";
+pub const INDICATOR_STATE_FACE_REVISION: &str = "conduit.face/indicator-state@1";
 pub const BUTTON_TRANSITION_MAXIMUM_BYTES: u32 =
     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32;
 pub const BUTTON_TRANSITION_MAXIMUM_VALUES: u16 = 8;
@@ -126,9 +126,9 @@ pub fn button_indicator_state_contract() -> StandardKindContract {
     }
 }
 
-pub fn indicator_state_presentation_contract() -> StandardKindContract {
+pub fn indicator_state_face_contract() -> StandardKindContract {
     StandardKindContract {
-        kind_id: kind_id(INDICATOR_STATE_PRESENTATION_KIND),
+        kind_id: kind_id(INDICATOR_STATE_FACE_KIND),
         plain_name: "Indicator state".to_string(),
         summary: "Manifest one current semantic indicator state through admitted host machinery."
             .to_string(),
@@ -140,7 +140,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
             abnormal_kind: None,
         }],
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: crate::data_label_configuration(),
         limits: CapabilityLimits {
             max_active_instances: 8,
             max_queue_items: 1,
@@ -150,7 +150,7 @@ pub fn indicator_state_presentation_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
-        example: "indicator: presentation/indicator-state".to_string(),
+        example: "indicator: face/indicator-state(\"Indicator state\")".to_string(),
     }
 }
 
@@ -165,10 +165,10 @@ pub fn button_indicator_state_semantic_contract() -> Kind {
     )
 }
 
-pub fn indicator_state_presentation_semantic_contract() -> Kind {
+pub fn indicator_state_face_semantic_contract() -> Kind {
     semantic_contract(
-        indicator_state_presentation_contract(),
-        INDICATOR_STATE_PRESENTATION_REVISION,
+        indicator_state_face_contract(),
+        INDICATOR_STATE_FACE_REVISION,
     )
 }
 
@@ -274,7 +274,7 @@ pub fn install_button_indicator_catalogs(
     for contract in [
         button_source_semantic_contract(),
         button_indicator_state_semantic_contract(),
-        indicator_state_presentation_semantic_contract(),
+        indicator_state_face_semantic_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -283,8 +283,23 @@ pub fn install_button_indicator_catalogs(
                 .iter()
                 .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
-                    value_type: "Count".into(),
-                    default: Some("2".into()),
+                    value_type: if matches!(
+                        field.rule,
+                        conduit_core::KindConfigurationRule::DataLabel { .. }
+                    ) {
+                        "Text"
+                    } else {
+                        "Count"
+                    }
+                    .into(),
+                    default: if matches!(
+                        field.rule,
+                        conduit_core::KindConfigurationRule::DataLabel { .. }
+                    ) {
+                        None
+                    } else {
+                        Some("2".into())
+                    },
                 })
                 .collect(),
         })?;
@@ -363,12 +378,7 @@ mod tests {
             PortTemporal::Flow { closes: false }
         );
         assert_eq!(mapping.outputs[0].temporal, PortTemporal::Current);
-        assert_eq!(
-            indicator_state_presentation_contract()
-                .limits
-                .max_queue_items,
-            1
-        );
+        assert_eq!(indicator_state_face_contract().limits.max_queue_items, 1);
         for (contract, revision) in [
             (button_source_semantic_contract(), BUTTON_SOURCE_REVISION),
             (
@@ -376,12 +386,17 @@ mod tests {
                 BUTTON_INDICATOR_STATE_REVISION,
             ),
             (
-                indicator_state_presentation_semantic_contract(),
-                INDICATOR_STATE_PRESENTATION_REVISION,
+                indicator_state_face_semantic_contract(),
+                INDICATOR_STATE_FACE_REVISION,
             ),
         ] {
             assert_eq!(contract.kind_contract_revision.as_str(), revision);
-            assert!(contract.startup_parameters.is_empty());
+            if revision == INDICATOR_STATE_FACE_REVISION {
+                assert_eq!(contract.startup_parameters[0].name, "label");
+                assert!(!contract.startup_parameters[0].has_default);
+            } else {
+                assert!(contract.startup_parameters.is_empty());
+            }
         }
     }
 

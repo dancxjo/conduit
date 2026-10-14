@@ -5,7 +5,7 @@ fn checked_source_and_biography_replay_as_one_owner_transaction() {
     use conduit_core::bind_sign;
 
     const SOURCE: &str =
-        "plot retained-clock {\n clock: time/every(2s)\n clock >> presentation/tick\n}\n";
+        "plot retained-clock {\n clock: time/every(2s)\n clock >> face/tick(\"Clock tick\")\n}\n";
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "owner-source-journal",
         "checked-clock",

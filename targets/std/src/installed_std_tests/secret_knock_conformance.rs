@@ -143,7 +143,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
         conduit_std_offers::template_storage_std_offer(),
         conduit_std_offers::final_normalized_pattern_std_offer(),
         conduit_std_offers::compare_pattern_std_offer(),
-        conduit_std_offers::structured_presentation_std_offer(
+        conduit_std_offers::structured_face_std_offer(
             conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
             &conduit_semantic_catalog::pattern_comparison_type(),
         ),
@@ -169,10 +169,7 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
             "pool/secret-knock-templates",
             conduit_std_offers::TEMPLATE_STORAGE_RESOURCE_CLASS,
         ),
-        (
-            "pool/secret-knock-presentation",
-            conduit_core::PRESENTATION_RESOURCE_CLASS,
-        ),
+        ("pool/secret-knock-face", conduit_core::FACE_RESOURCE_CLASS),
     ] {
         if !advertisement
             .resources
@@ -353,12 +350,12 @@ fn secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play(
     let kernel = report.kernel.unwrap();
     assert_eq!(kernel.post_play_start_allocations, 0);
     assert!(kernel.identity.lengths().0 >= 8);
-    assert_eq!(kernel.presentation_ids.len(), 1);
+    assert_eq!(kernel.face_ids.len(), 1);
     let presented = report
         .observations
         .iter()
         .find_map(|observation| match &observation.kind {
-            ObservationKind::ValuePresented { value } => Some(value),
+            ObservationKind::ValuePresented { value, .. } => Some(value),
             _ => None,
         })
         .expect("comparison has one correlated manifestation");

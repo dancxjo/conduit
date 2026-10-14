@@ -90,7 +90,7 @@ impl JourneyLossKind {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum JourneyError {
-    StalePresentation,
+    StaleFace,
     WrongTarget,
     PlotNotOpened,
     AlreadyBorn,
@@ -113,7 +113,7 @@ pub enum JourneyError {
 impl JourneyError {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::StalePresentation => "product-interaction-stale-presentation",
+            Self::StaleFace => "product-interaction-stale-face",
             Self::WrongTarget => "product-interaction-wrong-target",
             Self::PlotNotOpened => "product-birth-plot-not-open",
             Self::AlreadyBorn => "product-birth-duplicate",
@@ -135,7 +135,7 @@ impl JourneyError {
             Self::Kernel => "product-kernel-refused",
             Self::InputUnavailable => "product-input-unavailable",
             Self::InputSequenceExhausted => "product-input-sequence-exhausted",
-            Self::RevisionExhausted => "product-presentation-revision-exhausted",
+            Self::RevisionExhausted => "product-face-revision-exhausted",
             Self::Mask(error) => error.as_str(),
         }
     }
@@ -327,7 +327,7 @@ impl ProductJourney {
         &mut self,
         action: JourneyAction,
         target_identity: impl Into<String>,
-        presentation_revision: u64,
+        face_revision: u64,
     ) -> Result<JourneyRequest, JourneyError> {
         let sequence = self.request_sequence;
         self.request_sequence = self
@@ -339,9 +339,9 @@ impl ProductJourney {
                 "conduitos/product-interaction/{}/{sequence}",
                 action.as_str()
             ),
-            format!("conduitos/product-presentation/{presentation_revision}"),
-            presentation_revision,
-            format!("action/{}/{presentation_revision}", action.as_str()),
+            format!("conduitos/product-face/{face_revision}"),
+            face_revision,
+            format!("action/{}/{face_revision}", action.as_str()),
             action,
             target_identity,
         )
@@ -354,10 +354,10 @@ impl ProductJourney {
         identities: &BootIdentities,
         offer: &HostOffer<'_>,
         build_id: &str,
-        current_presentation_revision: u64,
+        current_face_revision: u64,
     ) -> Result<(), JourneyError> {
-        if request.presentation_revision != current_presentation_revision {
-            return Err(JourneyError::StalePresentation);
+        if request.face_revision != current_face_revision {
+            return Err(JourneyError::StaleFace);
         }
         self.validate_target(&request)?;
         match request.action {

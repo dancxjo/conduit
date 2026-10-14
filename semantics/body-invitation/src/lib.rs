@@ -1,5 +1,5 @@
 #![no_std]
-//! Portable presentation of one finite Body invitation.
+//! Portable face of one finite Body invitation.
 
 extern crate alloc;
 
@@ -7,17 +7,17 @@ extern crate alloc;
 mod generated {
     include!(concat!(env!("OUT_DIR"), "/semantic_types.rs"));
 }
-pub use generated::InvitationPresentationRefusal;
+pub use generated::InvitationFaceRefusal;
 
 use alloc::{format, vec, vec::Vec};
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
-    SemanticApplicationView, SemanticPresentationNode, StatusKind,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, FaceMechanism, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, StatusKind,
 };
 
 pub const MAX_INVITATION_TRANSFER_BYTES: usize = 8_192;
 
-pub struct InvitationPresentation<'a> {
+pub struct InvitationFace<'a> {
     pub invitation_id: &'a str,
     pub body_id: &'a str,
     pub body_name: &'a str,
@@ -27,11 +27,8 @@ pub struct InvitationPresentation<'a> {
     pub share_available: bool,
 }
 
-impl InvitationPresentation<'_> {
-    pub fn view(
-        &self,
-        revision: u32,
-    ) -> Result<SemanticApplicationView, InvitationPresentationRefusal> {
+impl InvitationFace<'_> {
+    pub fn view(&self, revision: u32) -> Result<SemanticApplicationView, InvitationFaceRefusal> {
         if self.invitation_id.is_empty()
             || self.body_id.is_empty()
             || self.body_name.is_empty()
@@ -40,11 +37,11 @@ impl InvitationPresentation<'_> {
             || !self.transfer_uri.is_ascii()
             || !self.transfer_uri.contains('#')
         {
-            return Err(InvitationPresentationRefusal::InvalidInvitation);
+            return Err(InvitationFaceRefusal::InvalidInvitation);
         }
         let mut children = vec![node(
             "invitation-status",
-            PresentationMechanism::Status {
+            FaceMechanism::Status {
                 kind: StatusKind::Ordinary,
                 title: "Single-use Body invitation".into(),
                 detail: format!(
@@ -56,7 +53,7 @@ impl InvitationPresentation<'_> {
         )];
         children.push(node(
             "invitation-link",
-            PresentationMechanism::CodeBlock {
+            FaceMechanism::CodeBlock {
                 language: "uri-fragment".into(),
                 code: self.transfer_uri.into(),
             },
@@ -64,7 +61,7 @@ impl InvitationPresentation<'_> {
         ));
         children.push(node(
             "invitation-actions",
-            PresentationMechanism::ActionGroup {
+            FaceMechanism::ActionGroup {
                 label: "Transfer this invitation".into(),
             },
             vec![
@@ -82,23 +79,22 @@ impl InvitationPresentation<'_> {
         let view = SemanticApplicationView {
             revision,
             root: node(
-                "invitation-presentation",
-                PresentationMechanism::Panel {
+                "invitation-face",
+                FaceMechanism::Panel {
                     title: self.body_name.into(),
                 },
                 children,
             ),
         };
-        view.lower()
-            .map_err(|_| InvitationPresentationRefusal::Presentation)?;
+        view.lower().map_err(|_| InvitationFaceRefusal::Face)?;
         Ok(view)
     }
 }
 
-fn action(key: &str, identity: &str, label: &str, available: bool) -> SemanticPresentationNode {
+fn action(key: &str, identity: &str, label: &str, available: bool) -> SemanticFaceNode {
     node(
         key,
-        PresentationMechanism::Action(SemanticAction {
+        FaceMechanism::Action(SemanticAction {
             identity: identity.into(),
             event: ApplicationEventKind::Activate,
             label: label.into(),
@@ -114,12 +110,8 @@ fn action(key: &str, identity: &str, label: &str, available: bool) -> SemanticPr
     )
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,

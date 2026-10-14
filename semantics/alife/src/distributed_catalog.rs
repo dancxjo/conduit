@@ -49,7 +49,7 @@ fn field_bitmap_definition() -> KindProjection {
         )],
         outputs: vec![port(
             "bitmap",
-            conduit_presentation::GRAY8_BITMAP_INFO_KIND,
+            conduit_face::GRAY8_BITMAP_INFO_KIND,
             PortDirection::Output,
             closing_flow(),
         )],

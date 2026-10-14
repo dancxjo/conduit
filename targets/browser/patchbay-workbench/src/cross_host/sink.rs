@@ -127,7 +127,7 @@ impl Sink {
             }
             _ => {
                 return Err(CrossHostRendererError::Session(
-                    "renderer expected one offered Presentation".into(),
+                    "renderer expected one offered Face".into(),
                 ))
             }
         };
@@ -237,9 +237,7 @@ impl Sink {
         line.close(None)
             .map_err(|error| CrossHostRendererError::Line(error.to_string()))?;
         let execution = self.execution.ok_or_else(|| {
-            CrossHostRendererError::Presentation(
-                "renderer adapter did not create a Manifestation".into(),
-            )
+            CrossHostRendererError::Face("renderer adapter did not create a Manifestation".into())
         })?;
         RendererSnapshot::from_execution(execution).map_err(Into::into)
     }
@@ -259,7 +257,7 @@ impl Sink {
                 "renderer Host Call input drifted from admitted Info".into(),
             ));
         }
-        let presentation = decode_presentation(planned)?;
+        let face = decode_face(planned)?;
         let renderer_fragment = fragment_for(&self.renderer_plan, &identity.host_id)?;
         if renderer_fragment.boot_id != identity.boot_id {
             return Err(CrossHostRendererError::Plan(
@@ -268,12 +266,12 @@ impl Sink {
         }
         self.execution = Some(
             RendererExecution::prepare_planned(
-                presentation,
+                face,
                 self.renderer_plan.clone(),
                 identity.target_subject.clone(),
                 SignId::from("patchbay-html/cross-host-prepared"),
             )
-            .map_err(|error| CrossHostRendererError::Presentation(error.to_string()))?,
+            .map_err(|error| CrossHostRendererError::Face(error.to_string()))?,
         );
         Ok(())
     }

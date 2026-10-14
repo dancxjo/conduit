@@ -125,7 +125,7 @@ exactly even though converting 1 °F to a finite decimal °C coordinate is inexa
 plot convert-pitch-demo {
     operation: units/convert(source = 1kHz, to = Hz)
     exact: units/converted-equals(expected = 1000Hz)
-    show: presentation/text
+    show: face/text("Message")
     operation.receipt >> exact.receipt
     exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
 }.

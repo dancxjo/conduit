@@ -14,13 +14,13 @@ function fixture() {
       return { identity: { ...remoteAdvertisement, plan_id: plan.plan_id, active_play_id: "play/presenter" }, hello_frames: [[1]] }; },
     async releaseRemote() { events.push("release"); } };
   const joined = { ...remoteAdvertisement, advertisement: remoteAdvertisement, line };
-  const presenter = { observations: () => [{ class_id: "presentation" }],
+  const presenter = { observations: () => [{ class_id: "face" }],
     bind(id) { events.push(`bind:${id}`); }, async perform() {}, close() { events.push("presenter-close"); } };
   const remote = { identity: { ...localAdvertisement, plan_id: plan.plan_id, active_play_id: "play/browser" }, close() { events.push("remote-close"); } };
   return { api: {}, localAdvertisement, joined, plan, request() {},
     outputRoot: { ownerDocument: { defaultView: {} } }, events,
     acquire() { events.push("acquire"); return presenter; },
-    openRemote(options) { events.push("open"); assert.deepEqual(options.observations, [{ class_id: "presentation" }]); return remote; } };
+    openRemote(options) { events.push("open"); assert.deepEqual(options.observations, [{ class_id: "face" }]); return remote; } };
 }
 
 test("Workspace tutorial Presenter binds one exact browser and planned Presenter Host", async () => {

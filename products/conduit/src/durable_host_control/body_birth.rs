@@ -5,8 +5,8 @@
 
 use super::{DurableHostRuntime, HostSource};
 use conduit_birth_plot::{BirthActionOutcome, BirthDraft, HostOwnedBirthFaceBasis};
+use conduit_face::{Face, FaceInteraction, MaskShow};
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation};
 use patchbay_hosted::HostedPatchbayAdapter;
 use std::{path::Path, sync::Arc};
 
@@ -17,10 +17,10 @@ pub(super) struct ServiceBirth {
 }
 
 pub(crate) enum BirthTransition {
-    Changed(Presentation),
+    Changed(Face),
     Born {
         body_id: conduit_body::BodyId,
-        presentation: Presentation,
+        face: Face,
     },
 }
 
@@ -28,7 +28,7 @@ impl DurableHostRuntime {
     pub(super) fn birth_face(
         &mut self,
         root: &Path,
-    ) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+    ) -> Result<(Face, conduit_core::HostAdvertisement), String> {
         refuse_pending_birth_publication(root)?;
         let HostSource::Bare(host) = &self.host else {
             return Err("installed Host already belongs to a Body".into());
@@ -141,12 +141,8 @@ impl DurableHostRuntime {
                     running: None,
                 };
                 self.birth = None;
-                let presentation =
-                    presented.map_err(|_| super::CONTROL_OUTCOME_UNKNOWN.to_owned())?;
-                Ok(BirthTransition::Born {
-                    body_id,
-                    presentation,
-                })
+                let face = presented.map_err(|_| super::CONTROL_OUTCOME_UNKNOWN.to_owned())?;
+                Ok(BirthTransition::Born { body_id, face })
             }
         }
     }
@@ -168,22 +164,20 @@ fn debug(error: impl std::fmt::Debug) -> String {
 }
 
 #[cfg(unix)]
-pub(crate) fn face(
-    state_dir: &Path,
-) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+pub(crate) fn face(state_dir: &Path) -> Result<(Face, conduit_core::HostAdvertisement), String> {
     use super::{Request, Response, PROTOCOL};
     match super::body::call(
         state_dir,
-        Request::BirthFace {
+        Request::BirthWidgetFace {
             protocol: PROTOCOL,
             token: super::body::token(state_dir)?,
         },
     )? {
-        Response::BirthFace {
+        Response::BirthWidgetFace {
             protocol: PROTOCOL,
-            presentation,
+            face,
             advertisement,
-        } => Ok((*presentation, advertisement)),
+        } => Ok((*face, advertisement)),
         Response::Refused { code, .. } if code == super::CONTROL_OUTCOME_UNKNOWN => Err(code),
         Response::Refused { code, .. } => Err(format!("installed Birth refused Face: {code}")),
         _ => Err("installed Host returned the wrong Birth Face response".into()),
@@ -208,15 +202,15 @@ pub(crate) fn interact(
     )? {
         Response::BirthChanged {
             protocol: PROTOCOL,
-            presentation,
-        } => Ok(BirthTransition::Changed(*presentation)),
+            face,
+        } => Ok(BirthTransition::Changed(*face)),
         Response::BirthCompleted {
             protocol: PROTOCOL,
             body_id,
-            presentation,
+            face,
         } => Ok(BirthTransition::Born {
             body_id,
-            presentation: *presentation,
+            face: *face,
         }),
         Response::Refused { code, .. } if code == super::CONTROL_OUTCOME_UNKNOWN => Err(code),
         Response::Refused { code, .. } => Err(format!("installed Birth refused action: {code}")),
@@ -225,9 +219,7 @@ pub(crate) fn interact(
 }
 
 #[cfg(not(unix))]
-pub(crate) fn face(
-    _state_dir: &Path,
-) -> Result<(Presentation, conduit_core::HostAdvertisement), String> {
+pub(crate) fn face(_state_dir: &Path) -> Result<(Face, conduit_core::HostAdvertisement), String> {
     Err("installed screen-free Birth requires local Unix control".into())
 }
 

@@ -71,7 +71,7 @@ function requireStatus(status, operation) {
 }
 
 export async function runDistributedToggleRuntime(runtime, line, domHost) {
-  const presentations = [];
+  const faces = [];
   let sessionFramesSent = 0;
   let sessionFramesReceived = 0;
   for (;;) {
@@ -93,15 +93,15 @@ export async function runDistributedToggleRuntime(runtime, line, domHost) {
     }
     if (pending?.kind === OUTPUT_PRESENT) {
       const effect = decodeEffect(pending.bytes);
-      const result = domHost.completePresentation(effect);
+      const result = domHost.completeFace(effect);
       if (!result.ok) throw new Error(`${result.code} ${result.detail}`);
       const completion = completionBytes(effect, successfulCompletion(effect));
       writeInput(runtime, completion);
       requireStatus(
         runtime.api.conduit_browser_toggle_distributed_complete(completion.length),
-        "presentation completion",
+        "face completion",
       );
-      presentations.push(effect);
+      faces.push(effect);
       continue;
     }
     if (runtime.api.conduit_browser_toggle_distributed_status() === STATUS_COMPLETE) break;
@@ -119,6 +119,6 @@ export async function runDistributedToggleRuntime(runtime, line, domHost) {
     capacityStable: runtime.api.conduit_browser_toggle_distributed_capacity_stable() === 1,
     sessionFramesSent,
     sessionFramesReceived,
-    presentations: Object.freeze(presentations),
+    faces: Object.freeze(faces),
   });
 }

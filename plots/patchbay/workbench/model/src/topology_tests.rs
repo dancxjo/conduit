@@ -56,7 +56,7 @@ fn fleet_snapshot(link_available: bool) -> ObservatorySnapshot {
     let observations = vec![Observation {
         sign_id: SignId::from("fleet/sign-1"),
         active_play_id: None,
-        presentation_id: None,
+        face_id: None,
         host_id: laptop.host_id.clone(),
         boot_id: laptop.boot_id.clone(),
         plan_id: None,
@@ -251,7 +251,7 @@ fn portable_planner_offers_are_visible_only_when_reported() {
 }
 
 #[test]
-fn absent_reports_and_presentation_controls_cannot_invent_facts() {
+fn absent_reports_and_face_controls_cannot_invent_facts() {
     let topology = PatchbayTopology::new(1).unwrap();
     let empty = topology.document(Some("invented")).unwrap();
     assert_eq!(

@@ -31,7 +31,7 @@ conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "ste
 conduit-planner = { path = "../../architecture/planner" }
 conduit-signal = { path = "../signal", features = ["host-profile"] }
 conduit-signal-conformance = { path = "../../proof/conformance/signal" }
-conduit-presentation = { path = "../presentation" }
+conduit-face = { path = "../face" }
 postcard = { version = "1", features = ["alloc"] }
 
 [build-dependencies]

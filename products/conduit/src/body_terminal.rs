@@ -1,5 +1,5 @@
 //! Local terminal Mask for the installed owner's current authoritative Face.
-//! Local navigation is presentation state. Actions cross the ordinary terminal
+//! Local navigation is face state. Actions cross the ordinary terminal
 //! Mask interaction Fore and then the authenticated current owner control route.
 
 use std::{
@@ -8,7 +8,7 @@ use std::{
 };
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 use conduit_std_host::terminal_face_mask::{
     TerminalFaceMask, TerminalInput, TerminalInputOutcome, TerminalMaskExecution,
 };
@@ -182,7 +182,7 @@ pub(crate) fn run(
 }
 
 fn prepare(
-    face: &Presentation,
+    face: &Face,
     host: &HostAdvertisement,
 ) -> Result<(TerminalFaceMask, HostedTerminalMaskExecution), String> {
     let admitted = face.actions.iter().any(|action| {
@@ -210,7 +210,7 @@ fn present(
     let status = writeln!(
         output,
         "\r\nOwner Face revision {} · Show {} · Host {} · Boot {}",
-        mask.presentation().revision,
+        mask.face().revision,
         show.show_id.as_str(),
         host.host_id.as_str(),
         host.boot_id.as_str(),

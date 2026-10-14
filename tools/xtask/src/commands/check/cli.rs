@@ -42,7 +42,7 @@ pub enum CheckSuite {
     PlotS3,
     Observatory,
     SemanticCatalog,
-    /// Execute authored quantity mappings through the std production kernel and presentation.
+    /// Execute authored quantity mappings through the std production kernel and face.
     QuantityMapping,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
@@ -53,8 +53,8 @@ pub enum CheckSuite {
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
-    /// Prove owner-issued presentation routes without waking the workload.
-    OwnerPresentation,
+    /// Prove owner-issued face routes without waking the workload.
+    OwnerFace,
     /// Run the Linux Landlock/seccomp hosted Base confinement proof.
     HostedBaseIsolation,
     /// Prove the exact-endpoint OS-capability-mediated HTTP Base.

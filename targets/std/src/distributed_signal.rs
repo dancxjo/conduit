@@ -606,7 +606,7 @@ impl DistributedSource {
                             &self.binding,
                             sequence,
                             &payload,
-                        ));
+                        )?);
                         break;
                     }
                     other => return Err(format!("unexpected delivery response {other:?}")),

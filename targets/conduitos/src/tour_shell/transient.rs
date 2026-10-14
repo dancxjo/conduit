@@ -1,4 +1,4 @@
-//! Transient Presentation admission, focus, and dismissal lifecycle.
+//! Transient Face admission, focus, and dismissal lifecycle.
 
 use crate::display::PixelTarget;
 
@@ -53,20 +53,20 @@ impl TourShellPresenter {
             u16::try_from(format.width).map_err(|_| TourShellError::Identity)?,
             u16::try_from(format.height).map_err(|_| TourShellError::Identity)?,
         )?;
-        let presentation = tour
+        let face = tour
             .controller()
             .state()
-            .transient_presentation(kind, detail)
+            .transient_face(kind, detail)
             .map_err(|_| TourShellError::Identity)?;
         // Refuse malformed or oversized content before invalidating the
         // currently visible dialog and its input routes.
-        let scene = transient_scene(layout.transient, &presentation, 0)?;
+        let scene = transient_scene(layout.transient, &face, 0)?;
         if self.has_transient() {
             self.dismiss(Slot::Transient)?;
         }
         let receipt = self.present_surface(
             Slot::Transient,
-            &presentation,
+            &face,
             kind.subject_identity(),
             layout.transient,
             3,
@@ -85,15 +85,15 @@ impl TourShellPresenter {
             .find(|state| state.slot == Slot::Workspace)
             .and_then(|state| state.manifestation_id.clone())
             .ok_or(TourShellError::Identity)?;
-        let parent_presentation_id = tour
+        let parent_face_id = tour
             .controller()
             .state()
-            .workspace_presentation()
+            .workspace_face()
             .map_err(|_| TourShellError::Identity)?
             .identity;
         Ok(ShellTransientReceipt {
             kind,
-            parent_presentation_id,
+            parent_face_id,
             parent_manifestation_id,
             transient: receipt,
             frame,

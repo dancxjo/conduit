@@ -1,5 +1,5 @@
-# Portable Body invitation presentation meaning. Rust consumes generated bindings.
+# Portable Body invitation face meaning. Rust consumes generated bindings.
 
-type InvitationPresentationRefusal =
+type InvitationFaceRefusal =
     invalid-invitation
-    | presentation
+    | face

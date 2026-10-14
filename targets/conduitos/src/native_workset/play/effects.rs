@@ -101,7 +101,7 @@ impl NativeWorksetPlay {
                         .ok_or(PlayRefusal::Kernel)?
                         .apply(input)
                     {
-                        Ok(Some(text)) => Some(NativePresentation::new(text)?),
+                        Ok(Some(text)) => Some(NativeFace::new(text)?),
                         Ok(None) => None,
                         Err(conduit_semantic_catalog::TextStateRefusal::CapacityExhausted) => {
                             return self.failed(request, FailureCode::StateCapacityExhausted, 82);
@@ -111,9 +111,9 @@ impl NativeWorksetPlay {
                     self.output(request, output.as_ref().map(|text| text.text().as_bytes()))
                 }
             }
-            Effect::Presentation => {
-                let text = NativePresentation::new(input)?;
-                if self.presentations[plot].is_some() {
+            Effect::Face => {
+                let text = NativeFace::new(input)?;
+                if self.faces[plot].is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
                 #[cfg(all(target_arch = "x86_64", target_os = "none"))]
@@ -123,7 +123,7 @@ impl NativeWorksetPlay {
                     }
                 }
                 self.output(request, None)?;
-                if self.presentations[plot].replace(text).is_some() {
+                if self.faces[plot].replace(text).is_some() {
                     return Err(PlayRefusal::InputPressure);
                 }
                 Ok(())
@@ -167,8 +167,8 @@ impl NativeWorksetPlay {
                 self.application_requests[plot] = authority_request;
                 self.output(request, Some(&view))
             }
-            Effect::ApplicationPresentation => {
-                let view = conduit_presentation::ApplicationView::decode(input)
+            Effect::ApplicationFace => {
+                let view = conduit_face::ApplicationView::decode(input)
                     .map_err(|_| PlayRefusal::Kernel)?;
                 self.output(request, None)?;
                 if self.application_views[plot].replace(view).is_some() {

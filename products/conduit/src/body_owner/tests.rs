@@ -2,9 +2,9 @@ use super::super::scoped_todo_initial;
 use super::*;
 use conduit_core::PlannedActivationEntry;
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::PresentationRole;
+use conduit_face::FaceRole;
 use conduit_std_host::{StdHostComposition, StdHostConfig};
-const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+const SOURCE: &str = "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.";
 const CLOCK_SOURCE: &str = include_str!("../../../../plots/clock/main.conduit");
 const TODO_SOURCE: &str = include_str!("../../../../plots/todo/live.conduit");
 fn source() -> conduit_plot::ExpandedAuthoringPlot {
@@ -144,7 +144,7 @@ fn spoken_next_play_capacity_report_is_safe_while_worker_owns_host() {
         Owner::open(host("boot/spoken-capacity"), resident(&plot), None, "Test").unwrap();
     let taken = owner.host.take_for_play().unwrap();
     assert!(owner.host.is_playing());
-    assert!(!super::presentation_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
+    assert!(!super::face_wardrobe_report::spoken_artifact_can_start_new_play(&owner.host));
     owner.host.restore_after_play(taken).unwrap();
 }
 
@@ -188,7 +188,7 @@ fn owner_refuses_worker_host_with_changed_offers_at_same_generation() {
 
 #[test]
 fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability() {
-    use conduit_presentation::{CurrentOwnerPresentationRoute, MaskShowDisposition};
+    use conduit_face::{CurrentOwnerFaceRoute, MaskShowDisposition};
 
     let checked = source();
     let mut owner = Owner::open(
@@ -210,7 +210,7 @@ fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability(
     )
     .unwrap()
     .is_some());
-    let next_face = conduit_presentation::Presentation::new(
+    let next_face = conduit_face::Face::new(
         face.revision + 1,
         face.basis.clone(),
         face.subjects.clone(),
@@ -227,12 +227,12 @@ fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability(
     )
     .unwrap()
     .is_none());
-    let current = [CurrentOwnerPresentationRoute::Local {
+    let current = [CurrentOwnerFaceRoute::Local {
         seal: &seal,
         owner_offer: owner.host.advertisement(),
     }];
     let mask = seal.planned_mask.mask.plot_identity.clone();
-    let mut wardrobe = presentation_wardrobe::OwnerPresentationWardrobe::seal(
+    let mut wardrobe = face_wardrobe::OwnerFaceWardrobe::seal(
         &owner.session,
         &face,
         &current,
@@ -267,7 +267,7 @@ fn missing_owner_route_witness_keeps_the_sealed_plan_and_withdraws_availability(
     ));
     let mut stale_offer = owner.host.advertisement().clone();
     stale_offer.offer_generation.0 += 1;
-    let stale = [CurrentOwnerPresentationRoute::Local {
+    let stale = [CurrentOwnerFaceRoute::Local {
         seal: &seal,
         owner_offer: &stale_offer,
     }];
@@ -312,14 +312,14 @@ fn owner_face_uses_checked_names_at_birth_and_after_fresh_boot() {
         let body = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Body)
+            .find(|subject| subject.role == FaceRole::Body)
             .unwrap()
             .name
             .clone();
         let plot = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Plot)
+            .find(|subject| subject.role == FaceRole::Plot)
             .unwrap()
             .name
             .clone();
@@ -485,15 +485,15 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         .unwrap();
     assert_eq!(
         stop.availability,
-        conduit_presentation::PresentationActionAvailability::Available
+        conduit_face::FaceActionAvailability::Available
     );
     assert_eq!(
         lull.availability,
-        conduit_presentation::PresentationActionAvailability::Available
+        conduit_face::FaceActionAvailability::Available
     );
-    let response = conduit_presentation::OwnerFaceSnapshotResponse::Snapshot {
-        schema: conduit_presentation::OWNER_FACE_RESPONSE_SCHEMA.into(),
-        presentation: Box::new(playing_face),
+    let response = conduit_face::OwnerFaceSnapshotResponse::Snapshot {
+        schema: conduit_face::OWNER_FACE_RESPONSE_SCHEMA.into(),
+        face: Box::new(playing_face),
         interactions_admitted: true,
         route: None,
     };
@@ -503,7 +503,7 @@ fn service_clock_runs_with_durable_live_play_and_explicit_lull() {
         "playing Face is only {face_bytes} bytes"
     );
     assert!(
-        face_bytes <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES,
+        face_bytes <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES,
         "playing Face needs {face_bytes} bytes"
     );
     assert_eq!(
@@ -656,9 +656,7 @@ fn lulled_clock_interval_replaces_checked_workset_and_next_plan_without_rebirth(
 
 #[test]
 fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
-    use conduit_presentation::{
-        FaceInteraction, FaceInteractionArgument, PresentationActionAvailability,
-    };
+    use conduit_face::{FaceActionAvailability, FaceInteraction, FaceInteractionArgument};
     use conduit_std_host::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
     use conduit_std_host::terminal_mask_execution::HostedTerminalMaskExecution;
 
@@ -723,16 +721,13 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
     assert!(inspection.contains("checked-plot-id"));
     assert!(face.disclosures.iter().any(|disclosure| {
         disclosure.subject == action.target
-            && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary
+            && disclosure.level == conduit_face::FaceDisclosureLevel::Primary
     }));
     assert!(face
         .text
         .iter()
         .any(|text| text.text == "The ticker emits a pulse every 1000 milliseconds."));
-    assert_eq!(
-        action.availability,
-        PresentationActionAvailability::Available
-    );
+    assert_eq!(action.availability, FaceActionAvailability::Available);
     assert_eq!(action.arguments.len(), 1);
     let start = face
         .actions
@@ -751,11 +746,8 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .find(|action| action.intent == super::clock_interval::CLOCK_LULL_ACTION)
         .unwrap();
     assert_eq!(stop.name, "Stop the ticker");
-    assert_eq!(
-        start.availability,
-        PresentationActionAvailability::Available
-    );
-    assert_eq!(wake.availability, PresentationActionAvailability::Available);
+    assert_eq!(start.availability, FaceActionAvailability::Available);
+    assert_eq!(wake.availability, FaceActionAvailability::Available);
     let overview = face
         .actions
         .iter()
@@ -763,13 +755,13 @@ fn terminal_show_returns_one_typed_clock_change_to_the_same_owner() {
         .unwrap();
     assert!(matches!(
         &overview.availability,
-        PresentationActionAvailability::Unavailable { reason_code, .. }
+        FaceActionAvailability::Unavailable { reason_code, .. }
             if reason_code == "owner-action-return-not-admitted"
     ));
     assert!(start.arguments.is_empty());
     assert!(matches!(
         stop.availability,
-        PresentationActionAvailability::Unavailable { .. }
+        FaceActionAvailability::Unavailable { .. }
     ));
     let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).unwrap();
     let mut execution = HostedTerminalMaskExecution::new(owner.host.advertisement()).unwrap();
@@ -883,8 +875,12 @@ fn subsequent_runs_keep_body_and_create_distinct_admitted_plays() {
 
 #[test]
 fn unsupported_advertised_call_retains_untyped_refusal_without_inventing_play() {
-    let plot = crate::plot_source::parse("plot refused {\n upper: text/upper\n show: presentation/text\n \"Hello.\" >> upper >> show\n}.")
-        .unwrap().expand_entry_for_authoring().unwrap();
+    let plot = crate::plot_source::parse(
+        "plot refused {\n upper: text/upper\n show: face/text(\"Message\")\n \"Hello.\" >> upper >> show\n}.",
+    )
+    .unwrap()
+    .expand_entry_for_authoring()
+    .unwrap();
     let mut owner = Owner::open(host("boot/refused"), resident(&plot), None, "Refused").unwrap();
     owner.plan(&plot).unwrap();
     let proposal = owner.session.realization().unwrap().plan.plan_id.clone();

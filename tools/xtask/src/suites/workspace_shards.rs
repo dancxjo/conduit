@@ -59,7 +59,7 @@ package_test_shard!(
         "conduit-patchbay-workbench-conformance",
         "conduit-semantic-catalog",
         "conduit-midi",
-        "conduit-presentation",
+        "conduit-face",
         "conduit-protected-line",
         "conduit-process",
         "conduit-purpose",

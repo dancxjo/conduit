@@ -53,7 +53,7 @@ for (const [name, sourceText, accepted] of [
           continue;
         }
         if (status < 0) throw new Error(`scoped glyph: ${JSON.stringify(effect)}`);
-        if (effect.effect_kind !== "manifestation" || effect.presentation_kind !== "presentation/bool-value" || effect.text !== "true") throw new Error(`scoped glyph: ${JSON.stringify(effect)}`);
+        if (effect.effect_kind !== "manifestation" || effect.face_kind !== "face/bool-value" || effect.text !== "true") throw new Error(`scoped glyph: ${JSON.stringify(effect)}`);
         document.querySelector("#result").textContent = effect.text;
         const play = encoder.encode(effect.active_play_id);
         const placement = encoder.encode(effect.placement_id);

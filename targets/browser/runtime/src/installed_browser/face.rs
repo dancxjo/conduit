@@ -1,0 +1,311 @@
+//! Browser face capability installations.
+
+use super::factory::{
+    validate_placement, BrowserHostResult, BrowserInstallation, BrowserManifestation,
+};
+use super::BrowserBack;
+use conduit_core::{
+    kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityLimits, CapabilityOffer,
+    ExecutionProfileId, HostCallContractId, HostCallRequirement, ImplementationId, PlannedGear,
+    FACE_RESOURCE_CLASS,
+};
+use conduit_kernel::HostedValueStore;
+
+const INDICATOR_IMPLEMENTATION: &str = "browser/dom-indicator@2";
+const ARTIFACT: &str = "conduit-browser-runtime/installed-face@1";
+const HOST_CALL: &str = "conduit.host/browser-present-indicator@1";
+const BOOL_IMPLEMENTATION: &str = "browser/face-bool@1";
+const BOOL_HOST_CALL: &str = "conduit.host/browser-present-current-bool@1";
+const PATCHBAY_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
+const PATCHBAY_HOST_CALL: &str = "conduit.host/browser-present-patchbay@1";
+const GARDEN_IMPLEMENTATION: &str = "browser/face-garden-state@1";
+const GARDEN_HOST_CALL: &str = "conduit.host/browser-present-garden-state@1";
+
+pub(super) static INDICATOR: BrowserInstallation = BrowserInstallation {
+    implementation_id: INDICATOR_IMPLEMENTATION,
+    offer: indicator_offer,
+    prepare,
+    perform: Some(perform),
+};
+pub(super) static BOOL: BrowserInstallation = BrowserInstallation {
+    implementation_id: BOOL_IMPLEMENTATION,
+    offer: bool_offer,
+    prepare: prepare_bool,
+    perform: Some(perform_bool),
+};
+pub(super) static PATCHBAY: BrowserInstallation = BrowserInstallation {
+    implementation_id: PATCHBAY_IMPLEMENTATION,
+    offer: patchbay_offer,
+    prepare: prepare_patchbay,
+    perform: Some(perform_patchbay),
+};
+pub(super) static GARDEN: BrowserInstallation = BrowserInstallation {
+    implementation_id: GARDEN_IMPLEMENTATION,
+    offer: garden_offer,
+    prepare: prepare_garden,
+    perform: Some(perform_garden),
+};
+
+fn garden_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::garden_state_face_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from(GARDEN_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from(GARDEN_IMPLEMENTATION),
+            implementation_id: ImplementationId::from(GARDEN_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(GARDEN_HOST_CALL),
+                target_kind: Some(kind_id("face/browser-garden-state")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
+        },
+    )
+    .narrow_capacity(CapabilityLimits {
+        max_active_instances: 1,
+        max_queue_items: 1,
+        max_queue_bytes: super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+    })
+    .expect("browser Garden face capacity narrows its semantic contract")
+    .build()
+}
+
+fn prepare_garden(
+    placement: &PlannedGear,
+    _values: &mut HostedValueStore,
+) -> Result<BrowserBack, String> {
+    validate_placement(placement, &garden_offer())?;
+    Ok(BrowserBack::face(
+        super::MAXIMUM_BROWSER_VALUE_BYTES as u32,
+        1,
+    ))
+}
+
+fn perform_garden(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    let mut manifestation = garden_manifestation(input)?;
+    manifestation.data_label = super::factory::manifestation_label(placement)?;
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(manifestation),
+    })
+}
+
+fn garden_manifestation(input: &[u8]) -> Result<BrowserManifestation, String> {
+    conduit_semantic_catalog::decode_garden_state(input)
+        .map_err(|_| "decode Garden state face: malformed exact state".to_string())?;
+    Ok(BrowserManifestation {
+        data_label: None,
+        kind_id: conduit_semantic_catalog::GARDEN_STATE_FACE_KIND,
+        canonical_value: input.to_vec(),
+    })
+}
+
+fn patchbay_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::patchbay_face_contracts()[0].clone();
+    conduit_semantic_catalog::realization_offer(
+        contract,
+        conduit_semantic_catalog::PATCHBAY_FACE_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: PATCHBAY_IMPLEMENTATION,
+            execution_profile: "browser/patchbay-kernel-hosted@1",
+            implementation: PATCHBAY_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(PATCHBAY_HOST_CALL),
+            target_kind: Some(kind_id("face/patchbay-surface")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_semantic_catalog::MAX_PATCHBAY_FACE_BYTES,
+            maximum_output_bytes: 0,
+        }],
+        vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
+}
+
+fn prepare_patchbay(
+    placement: &PlannedGear,
+    _values: &mut HostedValueStore,
+) -> Result<BrowserBack, String> {
+    validate_placement(placement, &patchbay_offer())?;
+    Ok(BrowserBack::face(
+        conduit_semantic_catalog::MAX_PATCHBAY_FACE_BYTES,
+        1,
+    ))
+}
+
+fn perform_patchbay(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    if input.len() > conduit_semantic_catalog::MAX_PATCHBAY_FACE_BYTES as usize {
+        return Err("Patchbay face exceeds the admitted byte bound".into());
+    }
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(BrowserManifestation {
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::PATCHBAY_FACE_KIND,
+            canonical_value: input.to_vec(),
+        }),
+    })
+}
+
+fn bool_offer() -> CapabilityOffer {
+    conduit_semantic_catalog::realization_offer(
+        conduit_semantic_catalog::bool_face_contract(),
+        conduit_semantic_catalog::BOOL_FACE_CONTRACT_REVISION,
+        conduit_semantic_catalog::RealizationOfferIdentity {
+            capability: BOOL_IMPLEMENTATION,
+            execution_profile: BOOL_IMPLEMENTATION,
+            implementation: BOOL_IMPLEMENTATION,
+            artifact: ARTIFACT,
+        },
+        vec![HostCallRequirement {
+            contract_id: HostCallContractId::from(BOOL_HOST_CALL),
+            target_kind: Some(kind_id("face/browser-current-bool")),
+            maximum_in_flight: 1,
+            maximum_input_bytes: conduit_core::BOOL_ENCODED_LEN as u32,
+            maximum_output_bytes: 0,
+        }],
+        vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
+        Vec::new(),
+    )
+}
+
+fn prepare_bool(
+    placement: &PlannedGear,
+    _values: &mut HostedValueStore,
+) -> Result<BrowserBack, String> {
+    validate_placement(placement, &bool_offer())?;
+    Ok(BrowserBack::face(
+        conduit_core::BOOL_ENCODED_LEN as u32,
+        conduit_semantic_catalog::MAX_TOGGLE_VALUES as u32,
+    ))
+}
+
+fn perform_bool(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    conduit_core::InfoBool::decode(input)
+        .map_err(|error| format!("decode current Boolean face: {error:?}"))?;
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(BrowserManifestation {
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::BOOL_FACE_KIND,
+            canonical_value: input.to_vec(),
+        }),
+    })
+}
+
+fn indicator_offer() -> CapabilityOffer {
+    BackOfferBuilder::new(
+        conduit_semantic_catalog::indicator_face_semantic_contract(),
+        Back {
+            capability_id: CapabilityId::from("browser/indicator-face@2"),
+            execution_profile_id: ExecutionProfileId::from("browser/face-indicator@2"),
+            implementation_id: ImplementationId::from(INDICATOR_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(ARTIFACT),
+            host_calls: vec![HostCallRequirement {
+                contract_id: HostCallContractId::from(HOST_CALL),
+                target_kind: Some(kind_id("face/browser-indicator")),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
+                maximum_output_bytes: 0,
+            }],
+            resource_requirements: vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build()
+}
+
+fn prepare(placement: &PlannedGear, _values: &mut HostedValueStore) -> Result<BrowserBack, String> {
+    validate_placement(placement, &indicator_offer())?;
+    Ok(BrowserBack::face(
+        placement.host_calls[0].maximum_input_bytes,
+        4,
+    ))
+}
+
+fn perform(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    conduit_text::MorsePattern::decode(input)
+        .map_err(|error| format!("decode indicator Morse pattern: {error:?}"))?;
+    Ok(BrowserHostResult {
+        output: None,
+        manifestation: Some(BrowserManifestation {
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::INDICATOR_FACE_KIND,
+            canonical_value: input.to_vec(),
+        }),
+    })
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::Scalar;
+
+    #[test]
+    fn current_bool_offer_and_manifestation_are_distinct_from_one_value_presenter() {
+        let offer = bool_offer();
+        assert_eq!(
+            offer.kind_id.as_str(),
+            conduit_semantic_catalog::BOOL_FACE_KIND
+        );
+        assert_eq!(
+            offer.inputs[0].temporal,
+            conduit_core::PortTemporal::Current
+        );
+        assert_eq!(
+            conduit_core::InfoBool::decode(&conduit_core::InfoBool::TRUE.encode()).unwrap(),
+            conduit_core::InfoBool::TRUE
+        );
+    }
+
+    #[test]
+    fn garden_presenter_preserves_exact_state_and_refuses_malformed_input() {
+        let offer = garden_offer();
+        let semantic = conduit_semantic_catalog::garden_state_face_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert!(offer.limits.max_queue_bytes < semantic.limits.max_queue_bytes);
+        let canonical =
+            conduit_semantic_catalog::garden_state_value(conduit_semantic_catalog::GardenState {
+                vitality: Scalar::from_raw_microunits(500_000),
+                activity: Scalar::from_raw_microunits(250_000),
+                step: 3,
+            })
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+        let manifestation = garden_manifestation(&canonical).unwrap();
+        assert_eq!(
+            manifestation.kind_id,
+            conduit_semantic_catalog::GARDEN_STATE_FACE_KIND
+        );
+        assert_eq!(manifestation.canonical_value, canonical);
+        assert!(garden_manifestation(b"not Garden state").is_err());
+    }
+
+    #[test]
+    fn indicator_presenter_preserves_its_exact_semantic_contract() {
+        let offer = indicator_offer();
+        let semantic = conduit_semantic_catalog::indicator_face_semantic_contract();
+        assert_eq!(offer.startup_parameters, semantic.startup_parameters);
+        assert_eq!(offer.kind_id, semantic.kind_id);
+        assert_eq!(
+            offer.kind_contract_revision,
+            semantic.kind_contract_revision
+        );
+        assert_eq!(offer.inputs, semantic.inputs);
+        assert_eq!(offer.outputs, semantic.outputs);
+        assert_eq!(offer.limits, semantic.limits);
+    }
+}

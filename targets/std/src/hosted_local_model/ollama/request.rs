@@ -1,6 +1,6 @@
 //! Existing finite inference request shapes and configuration helpers.
 use super::*;
-use conduit_presentation::GenerativePresenterInput;
+use conduit_face::GenerativePresenterInput;
 
 impl OllamaLocalModelAdapter {
     pub(super) fn generate(
@@ -57,7 +57,7 @@ impl OllamaLocalModelAdapter {
         let input: GenerativePresenterInput = serde_json::from_str(semantic_data)
             .map_err(|_| LocalModelAdapterTerminal::InvalidStructuredResult)?;
         let available_actions = input
-            .presentation
+            .face
             .actions
             .iter()
             .filter(|action| action.availability.is_available())

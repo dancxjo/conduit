@@ -160,16 +160,16 @@ fn machine_readable_semantic_contracts_have_exact_distinct_fronts() {
 }
 
 #[test]
-fn generative_presentation_is_structured_and_distinct_from_input_interpretation() {
+fn generative_face_is_structured_and_distinct_from_input_interpretation() {
     let present = llm_contract(LLM_PRESENT_KIND).unwrap();
     let interpret = llm_contract(LLM_INTERPRET_KIND).unwrap();
     assert_eq!(
         present.inputs[0].value_kind.as_str(),
-        "conduit.presentation/generative-presenter-input@1"
+        "conduit.face/generative-presenter-input@1"
     );
     assert_eq!(
         present.outputs[0].value_kind.as_str(),
-        "conduit.presentation/generated-manifestation-candidate@2"
+        "conduit.face/generated-manifestation-candidate@2"
     );
     assert_eq!(
         present.kind_contract_revision.as_str(),

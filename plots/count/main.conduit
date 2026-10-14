@@ -10,6 +10,6 @@ plot count (
 plot count-demo {
     clock: time/every(1s)
     count: count(2)
-    show: presentation/count
+    show: face/count("Current count")
     clock >> count >> show
 }

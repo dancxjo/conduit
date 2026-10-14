@@ -32,7 +32,7 @@ export default defineConfig({
     "pool-webchat.spec.mjs",
     "r1-three-peer-input.spec.mjs",
     "triple-signal.spec.mjs",
-    "presentation-nucleus.spec.mjs",
+    "face-nucleus.spec.mjs",
     "browser-host-calls.spec.mjs",
     "browser-pointer.spec.mjs",
     "browser-human-input.spec.mjs",

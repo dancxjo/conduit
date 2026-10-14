@@ -6,7 +6,7 @@
 
 use conduit_body::{BodyBiographyRecord, BodyId};
 use conduit_core::SignId;
-use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
+use conduit_face::{FaceAspect, FaceDepth, FacePlace};
 use serde::Serialize;
 
 use crate::{
@@ -23,8 +23,8 @@ pub struct ReadableBodyHistory {
     pub evidence_revision: u64,
     pub body_id: BodyId,
     pub friendly_name: String,
-    pub place: PresentationPlace,
-    pub aspect: PresentationAspect,
+    pub place: FacePlace,
+    pub aspect: FaceAspect,
     pub access: BodyHistoryAccess,
     pub entries: Vec<BodyHistoryEntry>,
     pub archived: Option<ReadableArchivedBodyHistory>,
@@ -42,7 +42,7 @@ pub struct ReadableArchivedBodyHistory {
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize)]
 pub struct BodyHistoryAccess {
-    pub exact_evidence_depth: PresentationDepth,
+    pub exact_evidence_depth: FaceDepth,
     pub alternate_manifestation: BodyHistoryManifestation,
 }
 
@@ -75,14 +75,14 @@ pub struct BodyHistoryExactEvidence {
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize)]
 /// A requested exact-evidence destination, not an invented `Follow` relation.
-/// A presentation adapter must admit this Sign subject before advertising the
+/// A face adapter must admit this Sign subject before advertising the
 /// corresponding focus operation.
 pub struct BodyHistoryInspectTarget {
     pub sign_id: SignId,
     pub subject_identity: String,
-    pub place: PresentationPlace,
-    pub aspect: PresentationAspect,
-    pub depth: PresentationDepth,
+    pub place: FacePlace,
+    pub aspect: FaceAspect,
+    pub depth: FaceDepth,
 }
 
 impl ReadableBodyHistory {
@@ -128,9 +128,9 @@ impl ReadableBodyHistory {
                         inspect: BodyHistoryInspectTarget {
                             sign_id: record.sign_id.clone(),
                             subject_identity: format!("sign/{}", record.sign_id.as_str()),
-                            place: PresentationPlace::Body,
-                            aspect: PresentationAspect::Signs,
-                            depth: PresentationDepth::Exact,
+                            place: FacePlace::Body,
+                            aspect: FaceAspect::Signs,
+                            depth: FaceDepth::Exact,
                         },
                         linear,
                     })
@@ -142,10 +142,10 @@ impl ReadableBodyHistory {
             evidence_revision,
             body_id: evidence.body_id.clone(),
             friendly_name: evidence.friendly_name.clone(),
-            place: PresentationPlace::Body,
-            aspect: PresentationAspect::Signs,
+            place: FacePlace::Body,
+            aspect: FaceAspect::Signs,
             access: BodyHistoryAccess {
-                exact_evidence_depth: PresentationDepth::Exact,
+                exact_evidence_depth: FaceDepth::Exact,
                 alternate_manifestation: BodyHistoryManifestation::Linear,
             },
             entries,

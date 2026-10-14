@@ -145,7 +145,7 @@ impl<const PORTS: usize> StepBack<PORTS> for SpeechBack {
                     return failure(FailureCode::InvalidInput, 5);
                 }
                 io.consume_host_completion()
-                    .expect("observed Tongues presentation completion");
+                    .expect("observed Tongues face completion");
                 *stage = 2;
                 match outcome.disposition {
                     HostCallDisposition::Completed => StepOutcome::Complete,
@@ -356,7 +356,7 @@ fn scheduler(
                     .host_calls
                     .iter()
                     .find(|op| op.node == node.node)
-                    .ok_or("presentation host_call missing")?
+                    .ok_or("face host_call missing")?
                     .call,
                 maximum_input_bytes: lowered
                     .host_calls

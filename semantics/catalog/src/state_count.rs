@@ -15,8 +15,8 @@ pub const STATE_COUNT_KIND: &str = "state/count";
 pub const STATE_COUNT_VALUE_KIND: &str = "value/count";
 pub const STATE_COUNT_CONTRACT_REVISION: &str = "conduit.std/state-count@2";
 
-pub const COUNT_PRESENTATION_KIND: &str = "presentation/count";
-pub const COUNT_PRESENTATION_CONTRACT_REVISION: &str = "conduit.std/presentation-count@2";
+pub const COUNT_FACE_KIND: &str = "face/count";
+pub const COUNT_FACE_CONTRACT_REVISION: &str = "conduit.std/face-count@2";
 pub const COUNT_ENCODED_LEN: u32 = 8;
 pub const MAX_COUNT_VALUES: u64 = 5;
 
@@ -86,10 +86,10 @@ pub fn state_count_semantic_contract() -> Kind {
     }
 }
 
-pub fn count_presentation_contract() -> StandardKindContract {
+pub fn count_face_contract() -> StandardKindContract {
     StandardKindContract {
-        kind_id: kind_id(COUNT_PRESENTATION_KIND),
-        plain_name: "Count presentation".to_string(),
+        kind_id: kind_id(COUNT_FACE_KIND),
+        plain_name: "Count face".to_string(),
         summary: "Present each exact current count observation while its play remains alive."
             .to_string(),
         inputs: vec![PortDescriptor {
@@ -100,7 +100,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
             abnormal_kind: None,
         }],
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: crate::data_label_configuration(),
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 4,
@@ -110,7 +110,7 @@ pub fn count_presentation_contract() -> StandardKindContract {
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
-        example: "show: presentation/count".to_string(),
+        example: "show: face/count(\"Event count\")".to_string(),
     }
 }
 
@@ -122,10 +122,7 @@ pub fn install_count_pipeline_catalogs(
     use conduit_plot::KindSignature;
     for (contract, revision) in [
         (state_count_contract(), STATE_COUNT_CONTRACT_REVISION),
-        (
-            count_presentation_contract(),
-            COUNT_PRESENTATION_CONTRACT_REVISION,
-        ),
+        (count_face_contract(), COUNT_FACE_CONTRACT_REVISION),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -134,11 +131,20 @@ pub fn install_count_pipeline_catalogs(
                 .iter()
                 .map(|field| conduit_plot::StartupParameterSignature {
                     name: field.key.clone(),
-                    value_type: "Count".to_string(),
-                    default: Some(match field.default_value {
-                        ConfigurationValue::U64(value) => value.to_string(),
-                        _ => unreachable!("count family only has Count startup values"),
-                    }),
+                    value_type: if matches!(field.rule, KindConfigurationRule::DataLabel { .. }) {
+                        "Text"
+                    } else {
+                        "Count"
+                    }
+                    .to_string(),
+                    default: if matches!(field.rule, KindConfigurationRule::DataLabel { .. }) {
+                        None
+                    } else {
+                        Some(match field.default_value {
+                            ConfigurationValue::U64(value) => value.to_string(),
+                            _ => unreachable!("count family only has Count startup values"),
+                        })
+                    },
                 })
                 .collect(),
         })?;
@@ -163,11 +169,11 @@ mod tests {
         assert_eq!(state.outputs[0].temporal, PortTemporal::Current);
         assert_eq!(state.configuration[0].key, "start");
 
-        let presentation = count_presentation_contract();
-        assert_eq!(presentation.inputs[0].temporal, PortTemporal::Current);
-        assert_ne!(state.kind_id, presentation.kind_id);
+        let face = count_face_contract();
+        assert_eq!(face.inputs[0].temporal, PortTemporal::Current);
+        assert_ne!(state.kind_id, face.kind_id);
         assert!(state.browser_manifestation_honest);
-        assert!(presentation.browser_manifestation_honest);
+        assert!(face.browser_manifestation_honest);
         let semantics = state_count_semantic_contract();
         assert_eq!(
             semantics.kind_contract_revision.as_str(),
@@ -184,9 +190,9 @@ mod tests {
         let mut startup = conduit_plot::StartupCatalog::new();
         let mut profile = conduit_plot::ProfileCatalog::new();
         conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-        crate::install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
+        crate::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
         install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
-        let source = "plot count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\nplot main {\n    clock: time/every(1s)\n    count: count\n    show: presentation/count\n    clock >> count >> show\n}\n";
+        let source = "plot count (\n    start: Count = 0\n    bump: Tick... >> value: $Count\n) {\n    gear: state/count(start)\n    bump >> gear.bump\n    gear.value >> value\n}\nplot main {\n    clock: time/every(1s)\n    count: count\n    show: face/count(\"Event count\")\n    clock >> count >> show\n}\n";
         let syntax = conduit_plot::parse_syntax_document(source);
         let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
         let expanded = conduit_plot::expand_canonical_plot(&checked, "main", &profile).unwrap();

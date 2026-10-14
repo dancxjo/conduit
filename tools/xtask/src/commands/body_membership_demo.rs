@@ -25,7 +25,8 @@ const BUILD_STEPS: &[Step] = &[
             "wasm32-unknown-unknown",
             "--release",
         ],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::new(
         "journey.body-membership.native",
         "Build the native Parts steward",

@@ -25,7 +25,7 @@
 <text class="port-name" text-anchor="end" x="1479" y="414">text</text>
 </g>
 <g><rect class="gear" x="1830" y="330" width="280" height="120" rx="10"/><path class="header" d="M1830,340 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>welcome/inline-bdd5a9e19019-0 — kind presentation/text</title>
+<title>welcome/inline-bdd5a9e19019-0 — kind face/text</title>
 <use href="#gear-mark" x="1842" y="341" width="28" height="28"/><text class="label" x="1880" y="352">inline-bdd5a9e19019-0</text><text class="kind" x="1880" y="373">welcome/inline-bdd5a9e19019-0</text>
 <g><title>text: value/text</title><circle class="port input-port" cx="1830" cy="410" r="5"/></g>
 <text class="port-name" text-anchor="start" x="1841" y="414">text</text>

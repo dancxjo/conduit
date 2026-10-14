@@ -5,11 +5,11 @@ use conduit_core::{
     LinkLimits, OfferGeneration, PlanId, PortId, ResourceClassId, ResourceHandleId, SignId,
     PROTOCOL_VERSION,
 };
-use conduit_human::{MediaConstraints, MediaFlowBounds};
-use conduit_presentation::{
+use conduit_face::{
     OwnerFaceSnapshotRequest, OwnerFaceSnapshotResponse, OWNER_FACE_REQUEST_SCHEMA,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
+use conduit_human::{MediaConstraints, MediaFlowBounds};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, LineAttachment, SessionBinding,
     SessionEndpointIdentity, SessionFrame, SessionLimits, SessionMessage,

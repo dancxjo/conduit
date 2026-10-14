@@ -3,8 +3,8 @@ plot kernel-multivalue {
     split: flow/tee
     even: flow/filter-even
     latest: state/latest
-    show-even: presentation/show
-    show-latest: presentation/show
+    show-even: face/show("Signal")
+    show-latest: face/show("Signal")
 
     clock.tick >> split.in
     split.left >> even.in

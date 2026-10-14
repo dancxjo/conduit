@@ -1,26 +1,24 @@
-use conduit_presentation::{
-    FaceInteraction, MaskShow, Presentation, PresentationBasis, PresentationContributionBasis,
-};
+use conduit_face::{Face, FaceBasis, FaceContributionBasis, FaceInteraction, MaskShow};
 use conduit_thermostat_face::{
     fragment, thermostat_command_from_contributed_interaction, ThermostatFaceError,
 };
 use conduit_thermostat_plot::{Command, Mode, ThermostatState};
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
-fn basis() -> PresentationContributionBasis {
-    PresentationContributionBasis {
+fn basis() -> FaceContributionBasis {
+    FaceContributionBasis {
         checked_plot_id: "checked/thermostat".into(),
         plan_id: "plan/thermostat".into(),
         active_play_id: "play/thermostat".into(),
         required_interaction_context: None,
     }
 }
-fn face(state: &ThermostatState) -> (Presentation, MaskShow) {
+fn face(state: &ThermostatState) -> (Face, MaskShow) {
     let basis = basis();
     let fragment = fragment(state, basis.clone(), true).unwrap();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         u64::from(state.revision),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some("source/thermostat".into()),
@@ -91,7 +89,7 @@ fn face_cannot_redefine_an_offered_thermostat_action_contract() {
         .find(|action| action.identity == "thermostat.raise")
         .unwrap()
         .intent = "foreign/raise@1".into();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         original.revision,
         original.basis,
         original.subjects,

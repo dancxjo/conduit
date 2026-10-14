@@ -48,7 +48,7 @@ impl BrowserChatBack {
 
     pub(crate) fn submit() -> Self {
         Self::Submit(Request::new(
-            conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
+            conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
         ))
     }
 

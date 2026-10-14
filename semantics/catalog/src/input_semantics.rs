@@ -2,7 +2,7 @@
 
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
-    TEXT_PRESENTATION_VALUE_KIND,
+    TEXT_FACE_VALUE_KIND,
 };
 #[cfg(feature = "plot-catalog")]
 use alloc::string::String;
@@ -81,7 +81,7 @@ pub fn keymap_contract() -> StandardKindContract {
         )],
         outputs: vec![port(
             "text",
-            TEXT_PRESENTATION_VALUE_KIND,
+            TEXT_FACE_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
@@ -233,10 +233,7 @@ mod tests {
             .iter()
             .all(|port| port.value_kind.as_str() == KEY_EVENT_INFO_ID));
         let keymap = keymap_contract();
-        assert_eq!(
-            keymap.outputs[0].value_kind.as_str(),
-            TEXT_PRESENTATION_VALUE_KIND
-        );
+        assert_eq!(keymap.outputs[0].value_kind.as_str(), TEXT_FACE_VALUE_KIND);
         assert_eq!(
             keymap.configuration[0].default_value,
             ConfigurationValue::Text(CONDUIT_INTL_LAYOUT.to_string())

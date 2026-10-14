@@ -16,13 +16,13 @@ pub struct Execution {
     control: RunControl,
     outputs: mpsc::Receiver<Result<ThermostatState, String>>,
     worker: Option<JoinHandle<Result<BodyRunReport, String>>>,
-    basis: conduit_presentation::PresentationContributionBasis,
+    basis: conduit_face::FaceContributionBasis,
     body_id: BodyId,
     body_plan: BodyPlan,
 }
 pub struct ResultState {
     pub state: ThermostatState,
-    pub basis: conduit_presentation::PresentationContributionBasis,
+    pub basis: conduit_face::FaceContributionBasis,
     pub body_id: BodyId,
 }
 fn error(error: impl core::fmt::Debug) -> String {
@@ -190,7 +190,7 @@ impl Execution {
             worker: Some(worker),
             body_id: play.body_id,
             body_plan: retained_body_plan,
-            basis: conduit_presentation::PresentationContributionBasis {
+            basis: conduit_face::FaceContributionBasis {
                 checked_plot_id,
                 plan_id: play.plan_id,
                 active_play_id: play.active_play_id,

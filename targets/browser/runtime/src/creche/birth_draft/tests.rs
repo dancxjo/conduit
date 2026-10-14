@@ -1,5 +1,5 @@
 use super::*;
-use conduit_presentation::{ApplicationComponent, ApplicationView};
+use conduit_face::{ApplicationComponent, ApplicationView};
 use serde_json::{json, Value};
 
 fn open_request() -> OpenRequest {
@@ -83,7 +83,7 @@ fn replaced_generation_and_stale_or_malformed_events_leave_draft_unchanged() {
     assert!(current
         .event(old_revision)
         .unwrap_err()
-        .contains("StalePresentation"));
+        .contains("StaleFace"));
     for (action, kind, value) in [
         ("creche.plot.0", "change", "yes"),
         ("creche.plot.01", "change", "true"),
@@ -125,7 +125,7 @@ fn oversized_inventory_is_refused_before_replacing_the_current_draft() {
 }
 
 #[test]
-fn abi_view_is_the_encoded_shared_presentation_and_rejects_stale_mounts() {
+fn abi_view_is_the_encoded_shared_face_and_rejects_stale_mounts() {
     CURRENT
         .with(|slot| slot.borrow_mut().open(open_request()))
         .unwrap();

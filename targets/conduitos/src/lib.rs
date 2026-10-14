@@ -38,6 +38,8 @@ pub mod dual_region_plan;
 pub mod ethernet_frame;
 mod execution_region;
 pub mod expression_host_call;
+#[path = "face_nucleus/offers.rs"]
+mod face_offers;
 pub mod flow_concat_finite;
 pub mod flow_merge_finite;
 pub mod flow_singleton;
@@ -150,8 +152,6 @@ pub mod pc_speaker_play;
 pub mod planned_kernel;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod pointer_offer;
-#[path = "presentation_nucleus/offers.rs"]
-mod presentation_offers;
 pub mod protected_line_support;
 pub mod protected_region;
 #[cfg(feature = "native-owner-network")]
@@ -203,6 +203,8 @@ pub mod virtio_tls_fixture;
 mod wss_candidate_support;
 // Product entrances remain out of A0-A4 proof appliances. Non-x86_64 targets
 // admit these modules only through distinct PROFILE-selected product features.
+#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
+pub mod face_nucleus;
 #[cfg(any(
     test,
     target_arch = "x86_64",
@@ -255,8 +257,6 @@ mod native_surface_possession;
     feature = "aarch64-orange-pi-5"
 ))]
 mod native_surface_provider;
-#[cfg(any(test, target_arch = "x86_64", feature = "hosted-tools"))]
-pub mod presentation_nucleus;
 #[cfg(any(test, target_arch = "x86_64"))]
 pub mod product_bases;
 #[cfg(any(

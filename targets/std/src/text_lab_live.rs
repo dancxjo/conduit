@@ -24,7 +24,7 @@ fn return_line_loss(
     sequence: u64,
     transport_failure: &str,
 ) -> String {
-    let browser_upper = conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer();
+    let browser_upper = conduit_browser_runtime::face_nucleus::browser_text_upper_offer();
     let outcome = match exact_text_lab_line_loss_outcome(base, &browser_upper, TEXT_LAB_RETURN_LINE)
     {
         Ok(outcome) => outcome,
@@ -194,7 +194,7 @@ impl TextLabLiveServer {
     pub fn run<W: Write>(self, report: &mut W) -> Result<(), String> {
         let exact = exact_text_lab_split_plan(
             &self.url,
-            &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+            &conduit_browser_runtime::face_nucleus::browser_text_upper_offer(),
         )?;
         let forward_binding = binding(
             &exact.plan,
@@ -254,7 +254,7 @@ impl TextLabLiveServer {
                 .map_err(|detail| {
                     return_line_loss(&exact.plan, &self.url, "return-accepted", sequence, &detail)
                 })?;
-            native.drive_presentation((sequence + 1) as usize)?;
+            native.drive_face((sequence + 1) as usize)?;
             returned
                 .send(SessionMessage::Delivered { sequence })
                 .map_err(|detail| {
@@ -291,7 +291,7 @@ impl TextLabLiveServer {
         native.close_return_input()?;
         native.finish()?;
         if native.presented() != "HELLO" {
-            return Err("native Text Lab Presentation did not manifest HELLO".into());
+            return Err("native Text Lab Face did not manifest HELLO".into());
         }
         forward.close()?;
         returned.close()?;

@@ -78,17 +78,17 @@ where
                     .map_err(|_| MachineRunError::KernelFailure)?;
                 continue;
             }
-            if !kernel.is_presentation_request(&request) {
+            if !kernel.is_face_request(&request) {
                 return Err(MachineRunError::UnexpectedHostCall);
             }
             kernel.present_value(request, serial)?;
-            observed.presentation_input.set(
+            observed.face_input.set(
                 kernel
                     .host_value(request.input.value)
                     .map_err(|_| MachineRunError::KernelFailure)?,
             )?;
             kernel
-                .complete_presentation(request)
+                .complete_face(request)
                 .map_err(|_| MachineRunError::KernelFailure)?;
         }
 
@@ -110,7 +110,7 @@ where
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: 0,
                     idle_entries: idle.idle_count(),
-                    serial_presentations: serial.presentation_count(),
+                    serial_faces: serial.face_count(),
                     clock_monotonic: clock.now() >= started,
                     pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness: false,

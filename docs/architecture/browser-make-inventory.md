@@ -25,7 +25,7 @@ admitted. This avoids repeating physical and IPA catalog preparation while
 opening the installed Crèche inventory under the finite control deadline.
 
 Workspace preparation and each Plot library render retain one immutable installed catalog pair while
-checking consecutive documents with the same presentation profile. A profile
+checking consecutive documents with the same face profile. A profile
 change drops that pair before preparing its replacement; finishing the operation
 drops the preparation owner. Checking, local offers and planning share the same
 original checked inventory. Each library render also prepares the installed Plot backs once per profile.
@@ -44,7 +44,7 @@ missing lexical glyph bindings still refuse.
 
 | Runtime mechanism | Make classification | Runtime prerequisite truth |
 | --- | --- | --- |
-| DOM presentation | selectable structural and portable presentation bases | initialized surface |
+| DOM face | selectable structural and portable face bases | initialized surface |
 | keyboard and pointer | selectable portable human-input bases | focus/page lifecycle; no permission claim at BUILD |
 | IndexedDB application storage | selectable durable-storage base | secure context, availability, quota, schema and corruption checks |
 | WebSocket | selectable line base | secure context plus endpoint and credential truth |
@@ -53,7 +53,7 @@ missing lexical glyph bindings still refuse.
 | Web Audio output | no selectable reviewed realization | API presence alone is insufficient; intentionally unadvertised |
 | WebSerial and WebUSB | selectable device bases | secure context, user activation, permission, explicit device acquisition |
 | browser host identity and body membership | host mechanism, not a configurable semantic base | durable profile and admitted membership authority |
-| application package loader/presentation bridge | Host Call and product substrate | exact admitted package bytes |
+| application package loader/face bridge | Host Call and product substrate | exact admitted package bytes |
 | Book runners and browser proof fixtures | application/proof code, never ordinary host choices | intentionally excluded |
 | touch and gamepad | portable value contracts and deterministic fixtures exist, but no selectable live browser realization exists | intentionally unadvertised |
 
@@ -123,14 +123,14 @@ one selected PROFILE; only their artifact layout and size may differ.
 
 ## Human-facing realization boundary
 
-`BROWSER_HUMAN_PRESENTATION_REALIZATIONS` is the checked join between each
+`BROWSER_HUMAN_FACE_REALIZATIONS` is the checked join between each
 make identity and its portable kind, ordinary runtime implementation,
 runtime artifact identity, Host Call contract, and finite limits. Runtime
 tests compare that table to the real installed `CapabilityOffer`s so a label in
 the configurator cannot silently drift away from what the planner selects.
 
 The ordinary installed-browser advertisement is constructed from the selected
-make identities. A viewer with only `browser/dom-presentation@1` has no
+make identities. A viewer with only `browser/dom-face@1` has no
 keyboard offer and no window-input resource. The control-surface profile adds
 `browser/keyboard-events@1` and `browser/pointer-events@1`; their presence in a
 superset WASM alone grants no offer.

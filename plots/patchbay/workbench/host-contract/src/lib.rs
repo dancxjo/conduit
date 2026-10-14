@@ -15,7 +15,7 @@ use conduit_plot::ExpandedCanonicalPlot;
 pub enum PatchbayHostProfile {
     Signal,
     Text,
-    /// Ordinary Patchbay authoring: text, exact Quantity mapping and presentation.
+    /// Ordinary Patchbay authoring: text, exact Quantity mapping and face.
     Authoring,
     Reference,
     PicoSimulation,

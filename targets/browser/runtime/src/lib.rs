@@ -1,9 +1,8 @@
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, kind_id, ArtifactId, BaseImplementationId,
-    BootId, CapabilityId, CapabilityLimits, HostAdvertisement, HostCallContractId, HostId,
+    bind_active_play, bind_face, bind_sign, kind_id, ArtifactId, BaseImplementationId, BootId,
+    CapabilityId, CapabilityLimits, FaceIdentity, HostAdvertisement, HostCallContractId, HostId,
     HostProfileId, ImplementationId, OfferGeneration, PlacementId, PlanFragment,
-    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, PresentationIdentity, SignIdentity,
-    PROTOCOL_VERSION,
+    PlannerCapabilityOffer, PlannerLimits, PlannerProfileId, SignIdentity, PROTOCOL_VERSION,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, SchedulerError, SchedulerStatus, StepBack, StepInputBytes,
@@ -37,6 +36,7 @@ mod creche;
 mod device_base;
 mod distributed;
 mod distributed_toggle;
+pub mod face_nucleus;
 pub mod flow_activation;
 pub mod human_media;
 #[cfg_attr(not(feature = "plot-runner"), allow(unused_imports, dead_code))]
@@ -46,7 +46,6 @@ mod membership_abi;
 mod owner_face_mask;
 #[cfg(feature = "plot-runner")]
 mod plot_runner;
-pub mod presentation_nucleus;
 #[cfg(feature = "protected-line")]
 mod protected_line_abi;
 mod rendezvous_cbor_abi;
@@ -137,7 +136,7 @@ enum PendingEffect {
 struct PreparedProjection {
     node: NodeId,
     signal: Signal,
-    presentation: PresentationIdentity,
+    face: FaceIdentity,
     sign: SignIdentity,
 }
 
@@ -547,7 +546,7 @@ impl BrowserSession {
                 &request_identity.contract_id,
                 &placement.placement_id,
             )?;
-            write_presentation_frame(&mut output, projection, input)?;
+            write_face_frame(&mut output, projection, input)?;
             write_common_frame(
                 &mut expected,
                 EFFECT_PRESENT as u8,
@@ -557,7 +556,7 @@ impl BrowserSession {
                 &request_identity.contract_id,
                 &placement.placement_id,
             )?;
-            write_presentation_completion_frame(&mut expected, projection, input)?;
+            write_face_completion_frame(&mut expected, projection, input)?;
             self.current = Some(PendingEffect::Present {
                 request,
                 projection: self.next_projection,
@@ -867,7 +866,7 @@ fn prepare_kernel(
             sequence,
         )
         .expect("planned Signal fields are valid");
-        let presentation = bind_presentation(
+        let face = bind_face(
             &active_play.active_play_id,
             &show_placement.placement_id,
             sequence,
@@ -879,20 +878,15 @@ fn prepare_kernel(
             sequence,
         );
         identity
-            .bind_presentation(&lowered.identity, show_node, request, &presentation)
+            .bind_face(&lowered.identity, show_node, request, &face)
             .map_err(|_| ERROR_START)?;
         identity
-            .bind_sign(
-                &sign,
-                Some(show_node),
-                Some(request),
-                Some(&presentation.presentation_id),
-            )
+            .bind_sign(&sign, Some(show_node), Some(request), Some(&face.face_id))
             .map_err(|_| ERROR_START)?;
         projections.push(PreparedProjection {
             node: show_node,
             signal,
-            presentation,
+            face,
             sign,
         });
     }
@@ -944,49 +938,43 @@ fn write_common_frame(
     writer.text(placement_id.as_str())
 }
 
-fn write_presentation_frame(
+fn write_face_frame(
     writer: &mut FrameWriter<'_>,
     projection: &PreparedProjection,
     input: &[u8],
 ) -> Result<(), i32> {
-    write_typed_presentation_frame(
-        writer,
-        projection,
-        "presentation/signal",
-        "value/signal",
-        input,
-    )
+    write_typed_face_frame(writer, projection, "face/signal", "value/signal", input)
 }
 
-fn write_typed_presentation_frame(
+fn write_typed_face_frame(
     writer: &mut FrameWriter<'_>,
     projection: &PreparedProjection,
-    presentation_kind: &str,
+    face_kind: &str,
     value_kind: &str,
     input: &[u8],
 ) -> Result<(), i32> {
-    writer.text(projection.presentation.presentation_id.as_str())?;
+    writer.text(projection.face.face_id.as_str())?;
     writer.text(projection.sign.sign_id.as_str())?;
-    writer.text(presentation_kind)?;
+    writer.text(face_kind)?;
     writer.text(value_kind)?;
     writer.bytes(input)
 }
 
-fn write_presentation_completion_frame(
+fn write_face_completion_frame(
     writer: &mut FrameWriter<'_>,
     projection: &PreparedProjection,
     input: &[u8],
 ) -> Result<(), i32> {
-    write_typed_presentation_completion_frame(writer, projection, "value/signal", input)
+    write_typed_face_completion_frame(writer, projection, "value/signal", input)
 }
 
-fn write_typed_presentation_completion_frame(
+fn write_typed_face_completion_frame(
     writer: &mut FrameWriter<'_>,
     projection: &PreparedProjection,
     value_kind: &str,
     input: &[u8],
 ) -> Result<(), i32> {
-    writer.text(projection.presentation.presentation_id.as_str())?;
+    writer.text(projection.face.face_id.as_str())?;
     writer.text(projection.sign.sign_id.as_str())?;
     writer.text(value_kind)?;
     writer.bytes(input)
@@ -1100,7 +1088,7 @@ fn build_advertisement(host_id: &str, boot_id: &str) -> HostAdvertisement {
             },
             conduit_core::capability_offer_from_parts! {
                 semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
-                startup_parameters: vec![],
+                startup_parameters: conduit_signal::show_semantic_contract().startup_parameters,
                 shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),
                 kind_id: kind_id(SHOW_KIND),

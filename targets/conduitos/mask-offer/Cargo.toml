@@ -8,4 +8,4 @@ publish = false
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
-conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-face = { path = "../../../semantics/face" }

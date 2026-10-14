@@ -135,7 +135,10 @@ impl Kind {
                 ) => crate::kind_id(crate::DURATION_INFO_ID),
                 _ => field.default_value.semantic_kind(),
             };
-            if front.value_type != semantic_kind {
+            if front.value_type != semantic_kind
+                || (matches!(field.rule, crate::KindConfigurationRule::DataLabel { .. })
+                    && front.has_default)
+            {
                 return Err(KindValidationError::ConfigurationFrontMismatch);
             }
         }
@@ -1300,6 +1303,21 @@ mod tests {
         );
         let decoded: CapabilityOffer = serde_json::from_value(json).unwrap();
         assert_eq!(decoded.state_retention, Some(support));
+    }
+
+    #[test]
+    fn data_label_contract_cannot_advertise_an_implicit_name() {
+        let mut kind = contract();
+        kind.startup_parameters = crate::data_label_startup_front();
+        kind.configuration = crate::data_label_configuration();
+        assert_eq!(kind.validate(), Ok(()));
+        kind.startup_parameters[0].has_default = true;
+        kind.configuration[0].default_value =
+            crate::ConfigurationValue::Text("Room temperature".into());
+        assert_eq!(
+            kind.validate(),
+            Err(KindValidationError::ConfigurationFrontMismatch)
+        );
     }
 
     #[test]

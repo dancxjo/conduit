@@ -2,22 +2,22 @@
 use super::*;
 use crate::native_compositor::ScanoutAcknowledgement;
 use conduit_core::{HostBaseId, PortDirection, SignId};
+use conduit_face::{ManifestationLifecycle, MaskShow};
 use conduit_kernel::scheduler::{HostCallRequest, RemoteIngressOutcome, SchedulerStatus};
 use conduit_kernel::{
     BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, NodeId, RequestId, SignSink,
 };
 use conduit_plan_lowering::lowering::LoweredForePort;
-use conduit_presentation::{ManifestationLifecycle, MaskShow};
 
 pub struct NativeMaskRendererRequest {
-    pub(super) presentation: Presentation,
+    pub(super) face: Face,
     pub(super) prepared_show: MaskShow,
     display_base_id: HostBaseId,
 }
 
 impl NativeMaskRendererRequest {
-    pub fn presentation(&self) -> &Presentation {
-        &self.presentation
+    pub fn face(&self) -> &Face {
+        &self.face
     }
     pub fn prepared_show(&self) -> &MaskShow {
         &self.prepared_show
@@ -44,15 +44,13 @@ pub struct PreparedNativeMaskPlay {
 impl PreparedNativeMaskPlay {
     pub fn prepare(
         planned: &PlannedMaskPlot,
-        presentation: &Presentation,
+        face: &Face,
         play_sequence: u64,
         front_subject: &str,
         surface_id: &str,
         display_base_id: HostBaseId,
     ) -> Result<Self, NativeMaskPlayError> {
-        presentation
-            .validate()
-            .map_err(|_| NativeMaskPlayError::Presentation)?;
+        face.validate().map_err(|_| NativeMaskPlayError::Face)?;
         if planned.plan.fragments.len() != 1 || display_base_id.as_str().is_empty() {
             return Err(NativeMaskPlayError::Plan);
         }
@@ -65,25 +63,24 @@ impl PreparedNativeMaskPlay {
         );
         let prepared_show = MaskShow::prepared(
             planned,
-            presentation,
+            face,
             active.clone(),
             front_subject.into(),
             surface_id.into(),
             SignId::from("conduitos/mask/render-prepared"),
         )
-        .map_err(|_| NativeMaskPlayError::Presentation)?;
-        let presentation_bytes =
-            serde_json::to_vec(presentation).map_err(|_| NativeMaskPlayError::Value)?;
-        if presentation_bytes.len() > MAX_MASK_VALUE_BYTES {
+        .map_err(|_| NativeMaskPlayError::Face)?;
+        let face_bytes = serde_json::to_vec(face).map_err(|_| NativeMaskPlayError::Value)?;
+        if face_bytes.len() > MAX_MASK_VALUE_BYTES {
             return Err(NativeMaskPlayError::Value);
         }
-        let show_value_id = show_value_id(planned, presentation, &active);
+        let show_value_id = show_value_id(planned, face, &active);
         let show_bytes = serde_json::to_vec(&ShowValue {
-            schema: "conduit.presentation/show-value@1",
+            schema: "conduit.face/show-value@1",
             mask_plan_id: planned.plan.plan_id.as_str(),
             active_play_id: active.active_play_id.as_str(),
-            presentation_id: presentation.identity.as_str(),
-            presentation_revision: presentation.revision,
+            face_id: face.identity.as_str(),
+            face_revision: face.revision,
             show_value_id: &show_value_id,
         })
         .map_err(|_| NativeMaskPlayError::Value)?;
@@ -110,7 +107,7 @@ impl PreparedNativeMaskPlay {
             || call.call != HostCallId(0)
             || call.contract_id.as_str() != "conduit.host/present@1"
             || call.target_kind.as_ref().map(|kind| kind.as_str())
-                != Some("presentation/base/conduitos-surface@1")
+                != Some("face/base/conduitos-surface@1")
         {
             return Err(NativeMaskPlayError::Shape);
         }
@@ -120,7 +117,7 @@ impl PreparedNativeMaskPlay {
             .find(|node| {
                 fragment.placements.iter().any(|placement| {
                     placement.placement_id == node.placement_id
-                        && placement.kind_id.as_str() == conduit_presentation::FACE_INTERACTION_KIND
+                        && placement.kind_id.as_str() == conduit_face::FACE_INTERACTION_KIND
                 })
             })
             .ok_or(NativeMaskPlayError::Shape)?
@@ -132,12 +129,12 @@ impl PreparedNativeMaskPlay {
         let interaction_call = interaction_calls.next().ok_or(NativeMaskPlayError::Shape)?;
         if interaction_calls.next().is_some()
             || interaction_call.call != HostCallId(0)
-            || interaction_call.contract_id.as_str() != "conduit.host/presentation-interaction@1"
+            || interaction_call.contract_id.as_str() != "conduit.host/face-interaction@1"
             || interaction_call
                 .target_kind
                 .as_ref()
                 .map(|kind| kind.as_str())
-                != Some(conduit_presentation::FACE_INTERACTION_VALUE_KIND)
+                != Some(conduit_face::FACE_INTERACTION_VALUE_KIND)
         {
             return Err(NativeMaskPlayError::Shape);
         }
@@ -154,7 +151,7 @@ impl PreparedNativeMaskPlay {
         let interaction_fore = fore("interaction", PortDirection::Output)?;
         let mut scheduler = alloc::boxed::Box::new(scheduler(fragment, &lowered)?);
         if scheduler
-            .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &presentation_bytes)
+            .admit_remote_input(face_fore.endpoint, face_fore.cord, 0, &face_bytes)
             .map_err(|_| NativeMaskPlayError::ForeAdmit)?
             != (RemoteIngressOutcome::Accepted { sequence: 0 })
         {
@@ -172,7 +169,7 @@ impl PreparedNativeMaskPlay {
                     || scheduler
                         .host_value(request.input.value)
                         .map_err(|_| NativeMaskPlayError::Value)?
-                        != presentation_bytes
+                        != face_bytes
                     || scheduler.next_host_request().is_some()
                 {
                     scheduler
@@ -195,7 +192,7 @@ impl PreparedNativeMaskPlay {
             scheduler,
             request,
             renderer: NativeMaskRendererRequest {
-                presentation: presentation.clone(),
+                face: face.clone(),
                 prepared_show,
                 display_base_id: display_base_id.clone(),
             },
@@ -207,8 +204,8 @@ impl PreparedNativeMaskPlay {
             receipt: Some(NativeMaskPlayReceipt {
                 mask_plan_id: planned.plan.plan_id.clone(),
                 active_play_id: active.active_play_id,
-                presentation_id: presentation.identity.as_str().into(),
-                presentation_revision: presentation.revision,
+                face_id: face.identity.as_str().into(),
+                face_revision: face.revision,
                 show_value_id,
                 scanout_frame_sequence: 0,
                 scanout_pixels_written: 0,
@@ -230,8 +227,8 @@ impl PreparedNativeMaskPlay {
     ) -> Result<NativeMaskInteractionSession, NativeMaskPlayError> {
         let actual = ack.composition();
         let expected = &self.renderer.prepared_show.show;
-        if actual.presentation_id != expected.presentation_id
-            || ack.presentation_revision() != expected.presentation_revision
+        if actual.face_id != expected.face_id
+            || ack.face_revision() != expected.face_revision
             || actual.manifestation_id != expected.manifestation_id
             || actual.plan_id != expected.plan_id
             || actual.active_play_id != expected.active_play_id
@@ -324,11 +321,11 @@ impl PreparedNativeMaskPlay {
                         ManifestationLifecycle::Available,
                         SignId::from("conduitos/mask/render-available"),
                     )
-                    .map_err(|_| NativeMaskPlayError::Presentation)?;
+                    .map_err(|_| NativeMaskPlayError::Face)?;
                 self.renderer
                     .prepared_show
-                    .validate(&self.renderer.presentation)
-                    .map_err(|_| NativeMaskPlayError::Presentation)?;
+                    .validate(&self.renderer.face)
+                    .map_err(|_| NativeMaskPlayError::Face)?;
                 let receipt = self.receipt.as_mut().ok_or(NativeMaskPlayError::Kernel)?;
                 receipt.kernel_signs = self.scheduler.signs().len();
                 receipt.scanout_frame_sequence = ack.frame_sequence();

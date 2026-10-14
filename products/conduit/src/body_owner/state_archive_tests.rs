@@ -173,7 +173,7 @@ fn archive_rejects_missing_predecessor_and_foreign_head_before_publication() {
 fn installed_owner_continues_past_active_sign_capacity_and_resumes_same_body() {
     use super::super::controller::Owner;
 
-    const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+    const SOURCE: &str = "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.";
     let root = std::env::temp_dir().join(super::super::super::fresh_identity(
         "owner-archive-test",
         "boundary",

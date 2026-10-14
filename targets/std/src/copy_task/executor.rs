@@ -238,7 +238,7 @@ fn use_protected_copy_resources(
 
 fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::PlannedGear, String> {
     if fragment.placements.len() != 2 || fragment.connections.len() != 1 {
-        return Err("copy Plan fragment must contain copy, presentation, and one Cord".to_string());
+        return Err("copy Plan fragment must contain copy, face, and one Cord".to_string());
     }
     let placement = fragment
         .placements
@@ -272,22 +272,21 @@ fn exact_copy_placement(fragment: &PlanFragment) -> Result<&conduit_core::Planne
         .iter()
         .find(|candidate| {
             candidate.implementation_id.as_str()
-                == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+                == conduit_std_offers::COPY_RESULT_FACE_IMPLEMENTATION
         })
-        .ok_or_else(|| "copy Plan has no result presentation placement".to_string())?;
-    let presentation_offer = conduit_std_offers::copy_result_presentation_offer();
-    if presenter.kind_id != presentation_offer.kind_id
-        || presenter.kind_contract_revision != presentation_offer.kind_contract_revision
-        || presenter.execution_profile_id != presentation_offer.implementation.execution_profile_id
-        || presenter.artifact_id != presentation_offer.implementation.artifact_id
-        || presenter.inputs != presentation_offer.inputs
+        .ok_or_else(|| "copy Plan has no result face placement".to_string())?;
+    let face_offer = conduit_std_offers::copy_result_face_offer();
+    if presenter.kind_id != face_offer.kind_id
+        || presenter.kind_contract_revision != face_offer.kind_contract_revision
+        || presenter.execution_profile_id != face_offer.implementation.execution_profile_id
+        || presenter.artifact_id != face_offer.implementation.artifact_id
+        || presenter.inputs != face_offer.inputs
         || !presenter.outputs.is_empty()
-        || presenter.host_calls != presentation_offer.host_calls
+        || presenter.host_calls != face_offer.host_calls
         || presenter.resources.len() != 1
     {
         return Err(
-            "copy result presentation identity does not match the installed implementation"
-                .to_string(),
+            "copy result face identity does not match the installed implementation".to_string(),
         );
     }
     let connection = &fragment.connections[0];
@@ -396,12 +395,12 @@ fn execute_copy(
     let (mut scheduler, success_encoded) = prepare_copy_scheduler(fragment, source_bytes)?;
     let lowered =
         lower_plan_fragment(fragment).map_err(|error| format!("lower copy: {error:?}"))?;
-    let presentation_node = fragment
+    let face_node = fragment
         .placements
         .iter()
         .find(|placement| {
             placement.implementation_id.as_str()
-                == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+                == conduit_std_offers::COPY_RESULT_FACE_IMPLEMENTATION
         })
         .and_then(|placement| {
             lowered
@@ -410,16 +409,16 @@ fn execute_copy(
                 .find(|node| node.placement_id == placement.placement_id)
         })
         .map(|node| node.node)
-        .ok_or_else(|| "copy result presentation node is missing".to_string())?;
+        .ok_or_else(|| "copy result face node is missing".to_string())?;
     let mut result = None;
     let mut presented_encoded =
         Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
     loop {
         while let Some(request) = scheduler.next_host_request() {
-            if request.node == presentation_node {
+            if request.node == face_node {
                 let encoded = scheduler
                     .host_value(request.input.value)
-                    .map_err(|error| format!("read copy presentation: {error:?}"))?;
+                    .map_err(|error| format!("read copy face: {error:?}"))?;
                 presented_encoded.extend_from_slice(encoded);
                 scheduler
                     .complete_host_call(
@@ -431,7 +430,7 @@ fn execute_copy(
                             failure: None,
                         },
                     )
-                    .map_err(|error| format!("complete copy presentation: {error:?}"))?;
+                    .map_err(|error| format!("complete copy face: {error:?}"))?;
                 continue;
             }
             if stop.is_requested()
@@ -537,9 +536,9 @@ fn execute_copy(
         None
     } else {
         let value = conduit_core::StructuredInfoValue::from_canonical_bytes(&presented_encoded)
-            .map_err(|error| format!("decode copy presentation: {error:?}"))?;
+            .map_err(|error| format!("decode copy face: {error:?}"))?;
         if value.value_type() != &conduit_semantic_catalog::copy_result_type() {
-            return Err("copy presentation has the wrong exact type".into());
+            return Err("copy face has the wrong exact type".into());
         }
         Some(value)
     };

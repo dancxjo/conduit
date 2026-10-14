@@ -2,7 +2,7 @@
 
 use super::*;
 
-const MAX_PRESENTATION_REFRESHES: u8 = 4;
+const MAX_FACE_REFRESHES: u8 = 4;
 const REFRESH_SCHEMA: &str = "conduit.body/native-owner-return-refresh@1";
 const REFRESH_RESPONSE_SCHEMA: &str = "conduit.body/native-owner-return-refresh-response@1";
 
@@ -51,8 +51,8 @@ impl NativeOwnerReturnRoute {
         identities: BootIdentities,
         prior: &NativeGuestFace,
         show: &MaskShow,
-        look: conduit_presentation::ComponentMaskLook,
-        recipe: conduit_presentation::TodoComponentRecipe,
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
     ) -> Result<NativeGuestFace, &'static str> {
         self.refresh_with_selection(identities, prior, Some((show, look, recipe)))
     }
@@ -63,15 +63,15 @@ impl NativeOwnerReturnRoute {
         prior: &NativeGuestFace,
         selection: Option<(
             &MaskShow,
-            conduit_presentation::ComponentMaskLook,
-            conduit_presentation::TodoComponentRecipe,
+            conduit_face::ComponentMaskLook,
+            conduit_face::TodoComponentRecipe,
         )>,
     ) -> Result<NativeGuestFace, &'static str> {
         let show_valid = match selection {
             Some((show, _, _)) => self.acknowledged_show.as_ref() == Some(show),
             None => self.acknowledged_show.is_none(),
         };
-        if !self.available() || !show_valid || self.refreshes >= MAX_PRESENTATION_REFRESHES {
+        if !self.available() || !show_valid || self.refreshes >= MAX_FACE_REFRESHES {
             return Err("native-owner-refresh-unavailable");
         }
         self.active = false;
@@ -88,16 +88,16 @@ impl NativeOwnerReturnRoute {
             return Err("native-owner-refresh-stale-boot");
         }
         let mut request = owner_request(&self.receipt);
-        request.last_seen_revision = Some(prior.presentation().revision);
-        request.last_seen_identity = Some(prior.presentation().identity.clone());
+        request.last_seen_revision = Some(prior.face().revision);
+        request.last_seen_identity = Some(prior.face().identity.clone());
         let length = if let Some((show, look, recipe)) = selection {
             let look = match look {
-                conduit_presentation::ComponentMaskLook::Compact => "compact",
-                conduit_presentation::ComponentMaskLook::Spacious => "spacious",
+                conduit_face::ComponentMaskLook::Compact => "compact",
+                conduit_face::ComponentMaskLook::Spacious => "spacious",
             };
             let recipe = match recipe {
-                conduit_presentation::TodoComponentRecipe::Flat => "flat",
-                conduit_presentation::TodoComponentRecipe::Grouped => "grouped",
+                conduit_face::TodoComponentRecipe::Flat => "flat",
+                conduit_face::TodoComponentRecipe::Grouped => "grouped",
             };
             serde_json_core::to_slice(
                 &ComponentSelection {
@@ -198,9 +198,9 @@ fn validated_refresh(
     let face = NativeGuestFace::from_owner_response(receipt, response.face)
         .map_err(|_| "native-owner-refresh-face-invalid")?;
     if !face.interactions_admitted()
-        || face.presentation().revision < prior.presentation().revision
-        || (face.presentation().revision == prior.presentation().revision
-            && face.presentation().identity != prior.presentation().identity)
+        || face.face().revision < prior.face().revision
+        || (face.face().revision == prior.face().revision
+            && face.face().identity != prior.face().identity)
         || face.route().map(|route| &route.planned_mask)
             != prior.route().map(|route| &route.planned_mask)
     {
@@ -213,8 +213,8 @@ fn validated_component_selection(
     receipt: &PortableAdmissionReceipt,
     prior: &NativeGuestFace,
     response: RefreshResponse,
-    look: conduit_presentation::ComponentMaskLook,
-    recipe: conduit_presentation::TodoComponentRecipe,
+    look: conduit_face::ComponentMaskLook,
+    recipe: conduit_face::TodoComponentRecipe,
 ) -> Result<(NativeGuestFace, NativeOwnerReturnGrant), &'static str> {
     if response.schema != REFRESH_RESPONSE_SCHEMA {
         return Err("native-owner-refresh-schema-invalid");
@@ -232,7 +232,7 @@ fn validated_component_selection(
     )
     .map_err(|_| "native-owner-component-plan-invalid")?;
     if !face.interactions_admitted()
-        || face.presentation() != prior.presentation()
+        || face.face() != prior.face()
         || face.route().map(|route| &route.planned_mask) != Some(&expected.planned_mask)
     {
         return Err("native-owner-component-face-or-plan-changed");
@@ -246,7 +246,7 @@ mod tests {
     use alloc::boxed::Box;
     use conduit_body::{Body, MembershipCredential, SPAWN_ADMISSION_RECEIPT_SCHEMA};
     use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
-    use conduit_presentation::{Face, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA};
+    use conduit_face::{BodyFace, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA};
 
     #[test]
     fn refresh_requires_exact_credential_and_admitted_current_face() {
@@ -285,7 +285,7 @@ mod tests {
             plan_created: false,
             play_created: false,
         };
-        let presentation = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             7,
@@ -294,10 +294,10 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let snapshot = || OwnerFaceSnapshotResponse::Snapshot {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            presentation: Box::new(presentation.clone()),
+            face: Box::new(face.clone()),
             interactions_admitted: false,
             route: None,
         };

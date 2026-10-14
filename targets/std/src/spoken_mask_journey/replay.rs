@@ -1,9 +1,9 @@
 //! Correlate a retained Presenter result; this adapter performs no inference.
-use conduit_presentation::GenerativePresenterRequest;
+use conduit_face::GenerativePresenterRequest;
 
 pub(super) struct Replay {
     pub(super) offer: conduit_ai::LocalModelOffer,
-    pub(super) retained: conduit_presentation::GeneratedManifestationCandidate,
+    pub(super) retained: conduit_face::GeneratedManifestationCandidate,
 }
 impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
     fn offer(&self) -> &conduit_ai::LocalModelOffer {
@@ -27,10 +27,8 @@ impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
         };
         let mut manifestation = self.retained.clone();
         manifestation.request_identity = request.request_identity;
-        manifestation.source_presentation_identity =
-            request.semantic_data.source_presentation_identity;
-        manifestation.source_presentation_revision =
-            request.semantic_data.source_presentation_revision;
+        manifestation.source_face_identity = request.semantic_data.source_face_identity;
+        manifestation.source_face_revision = request.semantic_data.source_face_revision;
         manifestation.template_contract_revision = request.policy.template_contract_revision;
         manifestation.candidate_identity = manifestation.digest();
         match serde_json::to_vec(&manifestation) {
@@ -44,7 +42,7 @@ impl crate::hosted_local_model::HostedLocalModelAdapter for Replay {
     }
 }
 pub(super) fn offer(
-    retained: &conduit_presentation::GeneratedManifestationCandidate,
+    retained: &conduit_face::GeneratedManifestationCandidate,
 ) -> conduit_ai::LocalModelOffer {
     use conduit_ai::{
         LlmDeterminismProfile, LlmWorkBounds, LocalModelCachePolicy, LocalModelComputeNeed,

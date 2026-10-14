@@ -1,7 +1,7 @@
 //! Finite, toolkit-independent facts shared by Patchbay renderers.
 
 use crate::{
-    DistributedRoutePresentation, EditorDiagnostic, PatchbayGraph, PlanDocument, PlayDocument,
+    DistributedRouteFace, EditorDiagnostic, PatchbayGraph, PlanDocument, PlayDocument,
     PlotDocumentView, SourceSelection,
 };
 use conduit_core::{
@@ -98,39 +98,39 @@ pub struct RendererIdentityProjection {
     pub sign_ids: Vec<SignId>,
 }
 
-/// One immutable revision of the ordinary Patchbay presentation surface.
+/// One immutable revision of the ordinary Patchbay face surface.
 ///
 /// Renderers may retain their own finite layout, viewport, theme, disclosure,
 /// and focus state. None of that state enters this projection.
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PatchbayPresentation {
+pub struct PatchbayFace {
     pub revision: u64,
     pub document: PlotDocumentView,
     pub plan: Option<PlanDocument>,
     pub play: Option<PlayDocument>,
     pub topology: Option<ObservatoryReport>,
-    pub routes: Vec<DistributedRoutePresentation>,
+    pub routes: Vec<DistributedRouteFace>,
     pub graph: Option<PatchbayGraph>,
-    pub attempted_edit: Option<AttemptedEditPresentation>,
+    pub attempted_edit: Option<AttemptedEditFace>,
     pub sound_inspection: Option<SoundRealizationInspection>,
     pub policy_explanations: Vec<conduit_planner::PolicyChoiceExplanation>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct AttemptedEditPresentation {
+pub struct AttemptedEditFace {
     pub revision: u64,
     pub source: String,
     pub diagnostics: Vec<EditorDiagnostic>,
 }
 
-impl PatchbayPresentation {
+impl PatchbayFace {
     pub fn new(
         revision: u64,
         document: PlotDocumentView,
         plan: Option<PlanDocument>,
         play: Option<PlayDocument>,
         topology: Option<ObservatoryReport>,
-        routes: Vec<DistributedRoutePresentation>,
+        routes: Vec<DistributedRouteFace>,
     ) -> Result<Self, RendererProjectionError> {
         let graph_items = document
             .checked
@@ -297,7 +297,7 @@ impl PatchbayPresentation {
 
     pub fn with_attempted_edit(
         mut self,
-        attempted: AttemptedEditPresentation,
+        attempted: AttemptedEditFace,
     ) -> Result<Self, RendererProjectionError> {
         if attempted.revision <= self.document.revision
             || attempted.source.len() > crate::MAX_PLOT_SOURCE_BYTES

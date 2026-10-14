@@ -262,10 +262,10 @@ pub use requirements::{plan_with_hard_requirements, HardRealizationRequirements}
 pub use retry::{admit_explicit_retry, RetryAdmission, RetryAdmissionBasis};
 pub use selected_plan_sealing::seal_exact_plan_with_selected_realizations;
 pub use style::{
-    dos_shell_style, presentation_style_characteristics, select_realization_with_style, NamedStyle,
-    PresentationStyleFacts, StyleId, StylePreferenceEvidence, StylePreferenceOutcome,
-    StyleSelection, DOS_SHELL_STYLE_ID, PRESENTATION_DENSITY, PRESENTATION_FRAMING,
-    PRESENTATION_KEYBOARD_VISIBLE, PRESENTATION_PALETTE_CLASS, PRESENTATION_TEXT_LAYOUT,
+    dos_shell_style, face_style_characteristics, select_realization_with_style, FaceStyleFacts,
+    NamedStyle, StyleId, StylePreferenceEvidence, StylePreferenceOutcome, StyleSelection,
+    DOS_SHELL_STYLE_ID, FACE_DENSITY, FACE_FRAMING, FACE_KEYBOARD_VISIBLE, FACE_PALETTE_CLASS,
+    FACE_TEXT_LAYOUT,
 };
 pub use survival_policy::{
     select_plan_with_survival_policy, triage_scarce_resource, ExplicitCriticality,

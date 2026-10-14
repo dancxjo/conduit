@@ -9,12 +9,12 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
+use conduit_face::{
+    FaceRole, LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId,
+    ManifestationLifecycle, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_plot::{ProfileCatalog, parse};
-use conduit_presentation::{
-    LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationId, ManifestationLifecycle,
-    PresentationRole, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
-};
 
 use super::{Error as FrontDoorError, FrontDoor};
 use crate::{
@@ -25,9 +25,9 @@ use crate::{
     },
 };
 
-const SURFACE_CLASS: &str = "presentation/surface";
+const SURFACE_CLASS: &str = "face/surface";
 const SURFACE_ID: &str = "conduitos/front-door/surface/0";
-const RENDERER_FORM: &str = "plot front {\n    renderer: presentation/renderer\n}\n";
+const RENDERER_FORM: &str = "plot front {\n    renderer: face/renderer(\"Body view\")\n}\n";
 
 pub struct FrontDoorPresenter {
     plan: Plan,
@@ -57,7 +57,7 @@ impl PresenterError {
             Self::Catalog => "front-door-presenter-catalog-refused",
             Self::Plan => "front-door-presenter-plan-refused",
             Self::Identity => "front-door-presenter-identity-refused",
-            Self::StaleRevision => "front-door-presentation-revision-stale",
+            Self::StaleRevision => "front-door-face-revision-stale",
             Self::FrontDoor(error) => error.as_str(),
             Self::Compositor(error) => error.as_str(),
         }
@@ -103,7 +103,7 @@ impl FrontDoorPresenter {
                 artifact_id: ArtifactId::from(image_id),
                 host_call: HostCallRequirement {
                     contract_id: HostCallContractId::from("conduit.host/present@1"),
-                    target_kind: Some(kind_id("presentation/base/native-compositor@1")),
+                    target_kind: Some(kind_id("face/base/native-compositor@1")),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                     maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
@@ -178,7 +178,7 @@ impl FrontDoorPresenter {
             .map_err(PresenterError::Compositor)
     }
 
-    /// Relinquish retained scanout storage before another shell presentation
+    /// Relinquish retained scanout storage before another shell face
     /// becomes the active owner of the finite native display service.
     pub fn suspend(&mut self) -> Result<(), PresenterError> {
         if self.surface_admitted {
@@ -192,24 +192,22 @@ impl FrontDoorPresenter {
         Ok(())
     }
 
-    /// Retain a new presentation revision without touching scanout.  This is
-    /// the semantic/presentation boundary; a cooperative host chooses when a
+    /// Retain a new face revision without touching scanout.  This is
+    /// the semantic/face boundary; a cooperative host chooses when a
     /// separate frame phase composes its pending damage.
     pub fn stage(
         &mut self,
         front_door: &FrontDoor,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, PresenterError> {
-        let presentation = front_door
-            .presentation()
-            .map_err(PresenterError::FrontDoor)?;
-        if presentation.revision <= self.last_revision {
+        let face = front_door.face().map_err(PresenterError::FrontDoor)?;
+        if face.revision <= self.last_revision {
             return Err(PresenterError::StaleRevision);
         }
-        let front_subject = presentation
+        let front_subject = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Host)
+            .find(|subject| subject.role == FaceRole::Host)
             .ok_or(PresenterError::Identity)?
             .identity
             .clone();
@@ -217,10 +215,10 @@ impl FrontDoorPresenter {
             &self.plan.plan_id,
             &self.host_id,
             &self.boot_id,
-            presentation.revision,
+            face.revision,
         );
         let manifestation = Manifestation::prepared(
-            &presentation,
+            &face,
             &self.plan,
             active,
             self.placement_id.clone(),
@@ -262,7 +260,7 @@ impl FrontDoorPresenter {
         let receipt = self
             .compositor
             .update_surface(
-                &presentation,
+                &face,
                 &manifestation,
                 &self.plan,
                 SURFACE_ID,
@@ -277,7 +275,7 @@ impl FrontDoorPresenter {
                 .map_err(PresenterError::Compositor)?;
         }
         self.last_manifestation_id = Some(receipt.manifestation_id.clone());
-        self.last_revision = presentation.revision;
+        self.last_revision = face.revision;
         Ok(receipt)
     }
 
@@ -383,10 +381,7 @@ mod tests {
         let mut presenter = presenter();
         let mut display = MemoryDisplay::available();
         let receipt = presenter.present(&door, &mut display).unwrap();
-        assert_eq!(
-            receipt.presentation_id,
-            door.presentation().unwrap().identity
-        );
+        assert_eq!(receipt.face_id, door.face().unwrap().identity);
         assert_eq!(receipt.host_id.as_str(), "host");
         assert_eq!(receipt.boot_id.as_str(), "boot");
         assert_eq!(receipt.offer_generation, OfferGeneration(4));
@@ -434,10 +429,7 @@ mod tests {
         let mut display = MemoryDisplay::available();
 
         let receipt = presenter.stage(&door, &mut display).unwrap();
-        assert_eq!(
-            receipt.presentation_id,
-            door.presentation().unwrap().identity
-        );
+        assert_eq!(receipt.face_id, door.face().unwrap().identity);
         assert_eq!(presenter.compositor_frame_sequence(), 0);
         assert!(display.pixels.iter().all(|pixel| *pixel == 0));
 
@@ -449,7 +441,7 @@ mod tests {
     #[test]
     fn graphical_and_linear_presenters_consume_the_same_portable_action_truth() {
         let door = door();
-        let portable = door.presentation().unwrap();
+        let portable = door.face().unwrap();
         let mut display = MemoryDisplay::available();
         let graphical = presenter().present(&door, &mut display).unwrap();
         let linear = crate::linear_presenter::LinearPresenter::prepare(
@@ -462,10 +454,10 @@ mod tests {
         .unwrap()
         .present(&portable)
         .unwrap();
-        assert_eq!(graphical.presentation_id, portable.identity);
-        assert_eq!(linear.presentation.presentation_id, portable.identity);
+        assert_eq!(graphical.face_id, portable.identity);
+        assert_eq!(linear.face.face_id, portable.identity);
         for action in &portable.actions {
-            assert!(linear.presentation.lines.iter().any(|line| {
+            assert!(linear.face.lines.iter().any(|line| {
                 line.contains(&format!("id={:?}", action.identity))
                     && line.contains(&format!("intent={:?}", action.intent))
             }));

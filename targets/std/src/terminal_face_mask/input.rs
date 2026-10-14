@@ -1,5 +1,5 @@
 use super::*;
-use conduit_presentation::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct TerminalControl {

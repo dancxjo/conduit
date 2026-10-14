@@ -1,7 +1,5 @@
 use conduit_core::{BootId, HostId, SignId};
-use conduit_presentation::{
-    PresentationAspect, PresentationDepth, PresentationPlace, PresentationRole, ProjectionItem,
-};
+use conduit_face::{FaceAspect, FaceDepth, FacePlace, FaceRole, ProjectionItem};
 
 use crate::{PlotCandidate, ZeroBodyFrontDoor};
 
@@ -19,27 +17,23 @@ fn explicit_seed(label: &str, source_name: &str, freshness: u64) -> PlotCandidat
 
 fn projected_roles(
     projection: &crate::ZeroBodyFrontDoorProjection,
-    place: PresentationPlace,
-) -> Vec<PresentationRole> {
+    place: FacePlace,
+) -> Vec<FaceRole> {
     let mut cursor = projection.navigation.cursor.clone();
     cursor.place = place;
-    cursor.aspect = PresentationAspect::Structure;
+    cursor.aspect = FaceAspect::Structure;
     cursor.focus = None;
-    cursor.depth = PresentationDepth::Primary;
+    cursor.depth = FaceDepth::Primary;
     projection
         .navigation
         .projection
-        .project(
-            &projection.presentation,
-            &projection.navigation.navigation,
-            &cursor,
-        )
+        .project(&projection.face, &projection.navigation.navigation, &cursor)
         .unwrap()
         .items
         .iter()
         .filter_map(|membership| match &membership.item {
             ProjectionItem::Subject(identity) => projection
-                .presentation
+                .face
                 .subjects
                 .iter()
                 .find(|subject| &subject.identity == identity)
@@ -61,57 +55,57 @@ fn opening_a_seed_moves_the_default_cursor_from_entrance_to_program() {
         .add_plot(explicit_seed("Second", "second.conduit", 2))
         .unwrap();
     let initial = session.project().unwrap();
-    assert_eq!(initial.navigation.cursor.place, PresentationPlace::Entrance);
+    assert_eq!(initial.navigation.cursor.place, FacePlace::Entrance);
     assert_eq!(initial.navigation.navigation.places.len(), 1);
     let seeds = initial
-        .presentation
+        .face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Plot)
+        .filter(|subject| subject.role == FaceRole::Plot)
         .map(|subject| subject.identity.clone())
         .collect::<Vec<_>>();
     assert_eq!(seeds.len(), 3);
 
     session
-        .open_subject(&seeds[0], initial.presentation.revision)
+        .open_subject(&seeds[0], initial.face.revision)
         .unwrap();
     let opened = session.project().unwrap();
-    assert!(opened.presentation.basis.body_id.is_none());
-    assert_eq!(opened.navigation.cursor.place, PresentationPlace::Program);
+    assert!(opened.face.basis.body_id.is_none());
+    assert_eq!(opened.navigation.cursor.place, FacePlace::Program);
     assert_eq!(opened.navigation.navigation.places.len(), 2);
-    let entrance = projected_roles(&opened, PresentationPlace::Entrance);
-    let program = projected_roles(&opened, PresentationPlace::Program);
+    let entrance = projected_roles(&opened, FacePlace::Entrance);
+    let program = projected_roles(&opened, FacePlace::Program);
     assert_eq!(
         entrance
             .iter()
-            .filter(|role| **role == PresentationRole::Plot)
+            .filter(|role| **role == FaceRole::Plot)
             .count(),
         seeds.len()
     );
     assert_eq!(
         program
             .iter()
-            .filter(|role| **role == PresentationRole::Plot)
+            .filter(|role| **role == FaceRole::Plot)
             .count(),
         1
     );
     assert_eq!(
         opened
-            .presentation
+            .face
             .disclosures
             .iter()
             .filter(|disclosure| {
-                opened.presentation.subjects.iter().any(|subject| {
-                    subject.identity == disclosure.subject && subject.role == PresentationRole::Plot
-                }) && disclosure.level == conduit_presentation::PresentationDisclosureLevel::Primary
+                opened.face.subjects.iter().any(|subject| {
+                    subject.identity == disclosure.subject && subject.role == FaceRole::Plot
+                }) && disclosure.level == conduit_face::FaceDisclosureLevel::Primary
             })
             .count(),
         1
     );
-    assert!(program.contains(&PresentationRole::Plot));
-    assert!(program.contains(&PresentationRole::Gear));
-    assert!(!program.contains(&PresentationRole::Host));
-    assert!(!program.contains(&PresentationRole::Body));
+    assert!(program.contains(&FaceRole::Plot));
+    assert!(program.contains(&FaceRole::Gear));
+    assert!(!program.contains(&FaceRole::Host));
+    assert!(!program.contains(&FaceRole::Body));
 }
 
 #[test]
@@ -124,18 +118,16 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
     .unwrap();
     let initial = session.project().unwrap();
     let seed = initial
-        .presentation
+        .face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Plot)
+        .find(|subject| subject.role == FaceRole::Plot)
         .unwrap()
         .identity
         .clone();
-    session
-        .open_subject(&seed, initial.presentation.revision)
-        .unwrap();
+    session.open_subject(&seed, initial.face.revision).unwrap();
     let opened = session.project().unwrap();
-    let embodied = session.birth(opened.presentation.revision).unwrap();
+    let embodied = session.birth(opened.face.revision).unwrap();
     let projected = embodied.project().unwrap();
 
     assert_eq!(
@@ -146,50 +138,50 @@ fn birth_removes_entrance_and_keeps_program_and_body_subject_sets_distinct() {
             .iter()
             .map(|place| place.place)
             .collect::<Vec<_>>(),
-        vec![PresentationPlace::Body, PresentationPlace::Program]
+        vec![FacePlace::Body, FacePlace::Program]
     );
-    assert_eq!(projected.navigation.cursor.place, PresentationPlace::Body);
+    assert_eq!(projected.navigation.cursor.place, FacePlace::Body);
     let body = projected
         .navigation
         .projection
         .project(
-            &projected.presentation,
+            &projected.face,
             &projected.navigation.navigation,
             &projected.navigation.cursor,
         )
         .unwrap();
     assert!(body.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Body))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.face.subjects.iter().any(|subject| subject.identity == *identity && subject.role == FaceRole::Body))
     }));
     assert!(body.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Plot))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.face.subjects.iter().any(|subject| subject.identity == *identity && subject.role == FaceRole::Plot))
     }));
     assert!(!body.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord)))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.face.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, FaceRole::Gear | FaceRole::Port | FaceRole::Cord)))
     }));
 
     let mut plot_cursor = projected.navigation.cursor.clone();
-    plot_cursor.place = PresentationPlace::Program;
+    plot_cursor.place = FacePlace::Program;
     plot_cursor.focus = projected
         .navigation
         .navigation
         .places
         .iter()
-        .find(|place| place.place == PresentationPlace::Program)
+        .find(|place| place.place == FacePlace::Program)
         .map(|place| place.root_subject.clone());
     let plot = projected
         .navigation
         .projection
         .project(
-            &projected.presentation,
+            &projected.face,
             &projected.navigation.navigation,
             &plot_cursor,
         )
         .unwrap();
     assert!(plot.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && subject.role == PresentationRole::Gear))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.face.subjects.iter().any(|subject| subject.identity == *identity && subject.role == FaceRole::Gear))
     }));
     assert!(!plot.items.iter().any(|item| {
-        matches!(&item.item, ProjectionItem::Subject(identity) if projected.presentation.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, PresentationRole::Body | PresentationRole::Part | PresentationRole::Host | PresentationRole::Line)))
+        matches!(&item.item, ProjectionItem::Subject(identity) if projected.face.subjects.iter().any(|subject| subject.identity == *identity && matches!(subject.role, FaceRole::Body | FaceRole::Part | FaceRole::Host | FaceRole::Line)))
     }));
 }

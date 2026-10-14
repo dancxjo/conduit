@@ -1,8 +1,8 @@
 plot host-face-snapshot (
- >> snapshot: Presentation
- face: Presentation >>
+ >> snapshot: Face
+ face: Face >>
 ) {
- forward: presentation/tee
+ forward: face/tee("Shared Face")
  snapshot >> forward.source
- forward.presentation >> face
+ forward.face >> face
 }

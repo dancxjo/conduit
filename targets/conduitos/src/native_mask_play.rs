@@ -18,6 +18,8 @@ pub use prepared::PreparedNativeMaskPlay;
 #[cfg(any(test, feature = "native-compositor"))]
 use alloc::{string::String, vec::Vec};
 #[cfg(any(test, feature = "native-compositor"))]
+use conduit_face::{Face, PlannedMaskPlot};
+#[cfg(any(test, feature = "native-compositor"))]
 use conduit_kernel::scheduler::{CordSpec, FixedScheduler};
 #[cfg(any(test, feature = "native-compositor"))]
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedValueStore};
@@ -25,8 +27,6 @@ use conduit_kernel::{FixedHostCallBindings, FixedRoutes, FixedSignLog, HostedVal
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 #[cfg(any(test, feature = "native-compositor"))]
 use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment};
-#[cfg(any(test, feature = "native-compositor"))]
-use conduit_presentation::{PlannedMaskPlot, Presentation};
 #[cfg(any(test, feature = "native-compositor"))]
 use serde::Serialize;
 #[cfg(any(test, feature = "native-compositor"))]
@@ -50,7 +50,7 @@ const HOST_BINDINGS: usize = 4;
 #[cfg(any(test, feature = "native-compositor"))]
 const VALUES: usize = CORDS + NODES;
 #[cfg(any(test, feature = "native-compositor"))]
-const INTERACTION_VALUE_BYTES: usize = conduit_presentation::MAX_FACE_INTERACTION_BYTES;
+const INTERACTION_VALUE_BYTES: usize = conduit_face::MAX_FACE_INTERACTION_BYTES;
 #[cfg(any(test, feature = "native-compositor"))]
 const STORAGE_VALUE_BYTES: usize = MAX_MASK_VALUE_BYTES;
 // Five Face/Show queues, one interaction queue, and the two Host Call results.
@@ -79,8 +79,8 @@ type Scheduler = FixedScheduler<
 pub struct NativeMaskPlayReceipt {
     pub mask_plan_id: conduit_core::PlanId,
     pub active_play_id: conduit_core::ActivePlayId,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub show_value_id: String,
     pub scanout_frame_sequence: u64,
     pub scanout_pixels_written: u32,
@@ -93,7 +93,7 @@ pub struct NativeMaskPlayReceipt {
 #[cfg(any(test, feature = "native-compositor"))]
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum NativeMaskPlayError {
-    Presentation,
+    Face,
     Plan,
     Shape,
     Kernel,
@@ -106,7 +106,7 @@ pub enum NativeMaskPlayError {
     PendingRenderer,
     RendererMismatch,
     RendererFailed,
-    Interaction(conduit_presentation::FaceInteractionRefusal),
+    Interaction(conduit_face::FaceInteractionRefusal),
     Pressure,
     Cancelled,
 }
@@ -117,8 +117,8 @@ struct ShowValue<'a> {
     schema: &'static str,
     mask_plan_id: &'a str,
     active_play_id: &'a str,
-    presentation_id: &'a str,
-    presentation_revision: u64,
+    face_id: &'a str,
+    face_revision: u64,
     show_value_id: &'a str,
 }
 
@@ -127,7 +127,7 @@ struct ShowValue<'a> {
 #[cfg(test)]
 pub fn run(
     _planned: &PlannedMaskPlot,
-    _presentation: &Presentation,
+    _face: &Face,
     _play_sequence: u64,
 ) -> Result<NativeMaskPlayReceipt, NativeMaskPlayError> {
     Err(NativeMaskPlayError::PendingRenderer)
@@ -136,7 +136,7 @@ pub fn run(
 #[cfg(any(test, feature = "native-compositor"))]
 fn show_value_id(
     planned: &PlannedMaskPlot,
-    presentation: &Presentation,
+    face: &Face,
     active: &conduit_core::ActivePlayIdentity,
 ) -> String {
     let digest = Sha256::digest(
@@ -144,8 +144,8 @@ fn show_value_id(
             "native-mask-show@1\n{}\n{}\n{}\n{}\n",
             planned.plan.plan_id.as_str(),
             active.active_play_id.as_str(),
-            presentation.identity.as_str(),
-            presentation.revision
+            face.identity.as_str(),
+            face.revision
         )
         .as_bytes(),
     );
@@ -206,17 +206,17 @@ fn scheduler(
         .placements
         .iter()
         .map(|placement| match placement.kind_id.as_str() {
-            conduit_presentation::SHOW_RESOURCE_SOURCE_KIND => Ok(MaskBack::ResourceSource),
-            conduit_presentation::PRESENTATION_TEE_KIND => Ok(MaskBack::Tee),
-            conduit_presentation::RENDERER_KIND
-            | conduit_presentation::RESOURCE_RENDERER_KIND
+            conduit_face::SHOW_RESOURCE_SOURCE_KIND => Ok(MaskBack::ResourceSource),
+            conduit_face::FACE_TEE_KIND => Ok(MaskBack::Tee),
+            conduit_face::RENDERER_KIND
+            | conduit_face::RESOURCE_RENDERER_KIND
             | conduit_conduitos_mask_offer::NATIVE_COMPONENT_RENDERER_KIND => {
                 Ok(MaskBack::Renderer {
                     pending: false,
                     emitted: false,
                 })
             }
-            conduit_presentation::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
+            conduit_face::FACE_INTERACTION_KIND => Ok(MaskBack::Interaction {
                 seen_face: false,
                 pending: false,
             }),
@@ -257,7 +257,7 @@ fn admitted_value_bytes(lowered: &LoweredPlanFragment) -> Result<u32, NativeMask
         }
         let bound = match call.contract_id.as_str() {
             "conduit.host/present@1" => MAX_MASK_VALUE_BYTES,
-            "conduit.host/presentation-interaction@1" => INTERACTION_VALUE_BYTES,
+            "conduit.host/face-interaction@1" => INTERACTION_VALUE_BYTES,
             _ => return Err(NativeMaskPlayError::Shape),
         } as u32;
         if call.binding.maximum_output_bytes > bound {

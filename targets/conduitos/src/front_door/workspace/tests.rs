@@ -6,7 +6,11 @@ use conduit_body::{Body, BodyWorkset};
 use conduit_core::{BootId, HostId, OfferGeneration, SignId};
 
 fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
-    let resident = native_workset::resident(NativePlot::MemoryLantern).unwrap();
+    fixture_with_plot(NativePlot::MemoryLantern)
+}
+
+fn fixture_with_plot(plot: NativePlot) -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
+    let resident = native_workset::resident(plot).unwrap();
     let body = Body::born_with_plots(
         BodyWorkset::one(resident.clone()).unwrap(),
         1,
@@ -21,7 +25,7 @@ fn fixture() -> (FrontDoor, JourneyProjection, WorkspaceProjection) {
         revision: journey.revision,
         plots: vec![WorkspacePlot {
             plot: resident.clone(),
-            title: "Memory Lantern",
+            title: plot.title(),
             foreground: true,
             input: None,
         }],
@@ -77,7 +81,7 @@ fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
     let (mut door, mut journey, workspace) = fixture();
     assert_eq!(
         door.play_refused("state-capacity-exhausted"),
-        Err(Error::Presentation)
+        Err(Error::Face)
     );
     journey.status = JourneyStatus::Stopped;
     door.observe_body(journey.clone(), workspace.clone())
@@ -104,17 +108,24 @@ fn stopped_play_refusal_remains_visible_until_a_new_play_starts() {
 
 #[test]
 fn canonical_insertion_requires_workload_evidence_and_preserves_existing_identities() {
-    let (mut door, mut journey, mut workspace) = fixture();
+    let memory = native_workset::resident(NativePlot::MemoryLantern).unwrap();
+    let keyboard = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
+    let (existing_kind, added_kind) = if keyboard < memory {
+        (NativePlot::MemoryLantern, NativePlot::KeyboardCanvas)
+    } else {
+        (NativePlot::KeyboardCanvas, NativePlot::MemoryLantern)
+    };
+    let (mut door, mut journey, mut workspace) = fixture_with_plot(existing_kind);
     journey.workload_revision = Some(0);
     door.observe_body(journey.clone(), workspace.clone())
         .unwrap();
-    let added = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
+    let added = native_workset::resident(added_kind).unwrap();
     assert!(added < workspace.plots[0].plot);
     workspace.plots.insert(
         0,
         WorkspacePlot {
             plot: added,
-            title: NativePlot::KeyboardCanvas.title(),
+            title: added_kind.title(),
             foreground: false,
             input: None,
         },

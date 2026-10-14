@@ -19,7 +19,7 @@ use crate::{
     ordinary_plan::PreparationError,
 };
 
-pub const PLOT_SOURCE: &str = "plot conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: presentation/tick\n    upper: text/upper\n    text: presentation/text\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-two-regions {\n    clock: time/tick(count = 1, period-ms = 1)\n    ticks: face/tick(\"Clock tick\")\n    upper: text/upper\n    text: face/text(\"Message\")\n    clock >> ticks\n    \"Hello, ConduitOS\" >> upper >> text\n}\n";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const PLACEMENT_COUNT: usize = 5;
 const CORD_COUNT: usize = 3;
@@ -151,7 +151,7 @@ fn checked_expanded_plot() -> Result<conduit_plot::ExpandedCanonicalPlot, Prepar
         .map_err(|_| PreparationError::PlotRejected)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
     stage(b"catalogs");
     let checked = conduit_plot::check_syntax_document(&syntax, &startup)
@@ -183,16 +183,12 @@ fn advertisement(
     }
     let mut capabilities = vec![
         crate::functional_offers::tick_offer(),
-        crate::presentation_offers::presentation_offer_for(
-            conduit_semantic_catalog::TICK_PRESENTATION_KIND,
-        )
-        .expect("ConduitOS owns tick presentation"),
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::TICK_FACE_KIND)
+            .expect("ConduitOS owns tick face"),
         crate::functional_offers::text_literal_offer(),
         crate::functional_offers::text_upper_offer(),
-        crate::presentation_offers::presentation_offer_for(
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-        )
-        .expect("ConduitOS owns text presentation"),
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::TEXT_FACE_KIND)
+            .expect("ConduitOS owns text face"),
     ];
     for (index, capability) in capabilities.iter_mut().enumerate() {
         let fixed_capability = &fixed.capabilities[index];

@@ -6,12 +6,12 @@ use conduit_core::{
     port_id, prepare_plan_on_hosts, ConnectionTrack, HostAdvertisement, PlannedActivationEntry,
     PortDirection, ValuePayload,
 };
+use conduit_face::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     rust_binding::NativeRustBinding, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use std::{collections::BTreeMap, sync::Arc};
 
 fn advertisement() -> HostAdvertisement {

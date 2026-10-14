@@ -1,10 +1,10 @@
 //! Policy conformance against the actual Todo-owned Face projection.
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
-use conduit_presentation::*;
+use conduit_face::*;
 use conduit_std_host::spoken_face_mask::*;
 use conduit_todo_plot::{TodoItem, TodoState};
 
-fn todo(open: usize, total: usize, actions: bool) -> Presentation {
+fn todo(open: usize, total: usize, actions: bool) -> Face {
     let state = TodoState {
         title: "Courses & groceries".into(),
         revision: total as u32,
@@ -23,7 +23,7 @@ fn todo(open: usize, total: usize, actions: bool) -> Presentation {
     };
     let fragment = conduit_todo_face::todo_fragment(
         &state,
-        PresentationContributionBasis {
+        FaceContributionBasis {
             checked_plot_id: CheckedPlotId::from("checked/todo"),
             plan_id: PlanId::from("plan/todo"),
             active_play_id: ActivePlayId::from("play/todo"),
@@ -32,9 +32,9 @@ fn todo(open: usize, total: usize, actions: bool) -> Presentation {
         actions,
     )
     .unwrap();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         u64::from(state.revision),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),
@@ -105,7 +105,7 @@ fn todo_speech_pages_are_finite_complete_and_bound_to_one_face() {
         ids,
         face.subjects
             .iter()
-            .filter(|item| item.role == PresentationRole::Item)
+            .filter(|item| item.role == FaceRole::Item)
             .map(|item| item.identity.clone())
             .collect::<Vec<_>>()
     );
@@ -142,12 +142,12 @@ fn todo_speech_empty_finished_and_unknown_detail_stay_truthful() {
     }
     let base = todo(3, 20, true);
     let mut properties = base.properties.clone();
-    properties.push(PresentationProperty {
+    properties.push(FaceProperty {
         subject: "todo/list".into(),
         name: "future-field".into(),
-        value: PresentationPropertyValue::Text("diagnostic-only".into()),
+        value: FacePropertyValue::Text("diagnostic-only".into()),
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         base.revision,
         base.basis.clone(),
         base.subjects.clone(),
@@ -175,8 +175,8 @@ fn todo_speech_model_cannot_invent_completion_actions_or_selected_detail() {
     let index = outline.text_indices[0];
     let wording = &face.text[index as usize];
     let mut proposal = GeneratedWordingProposal {
-        source_presentation_identity: face.identity.as_str().into(),
-        source_presentation_revision: face.revision,
+        source_face_identity: face.identity.as_str().into(),
+        source_face_revision: face.revision,
         clauses: vec![GeneratedWordingClause::Text {
             index,
             subject: wording.subject.clone(),
@@ -220,7 +220,7 @@ fn todo_speech_model_cannot_invent_completion_actions_or_selected_detail() {
         outline.render_model_wording(&face, &proposal),
         Err(GeneratedWordingRefusal::InventedClaim)
     );
-    proposal.source_presentation_revision += 1;
+    proposal.source_face_revision += 1;
     assert_eq!(
         outline.render_model_wording(&face, &proposal),
         Err(GeneratedWordingRefusal::StaleFace)

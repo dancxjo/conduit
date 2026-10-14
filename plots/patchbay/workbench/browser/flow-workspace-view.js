@@ -4,7 +4,7 @@ const e = React.createElement;
 export function WorkspaceDecoration({ data }) {
   return e("aside", { className: `workspace-${data.kind}`, "aria-label": `${data.kind}: ${data.title}` },
     e("strong", null, data.title),
-    data.kind === "frame" && e("small", null, `Presentation frame${data.collapsed ? " (collapsed)" : ""} — not a semantic scope`),
+    data.kind === "frame" && e("small", null, `Face frame${data.collapsed ? " (collapsed)" : ""} — not a semantic scope`),
   );
 }
 

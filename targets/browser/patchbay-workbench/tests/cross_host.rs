@@ -1,12 +1,12 @@
 use conduit_browser_patchbay_workbench::cross_host_demonstration_snapshot;
 use conduit_core::{bind_active_play, verify_plan, BaseImplementationId};
+use conduit_face::ManifestationLifecycle;
 use conduit_patchbay_workbench::{
-    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, PRESENTATION_PROJECT_KIND,
+    CROSS_HOST_RENDERER_GEAR, CROSS_HOST_SOURCE_GEAR, FACE_PROJECT_KIND,
 };
-use conduit_presentation::ManifestationLifecycle;
 
 #[test]
-fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
+fn one_exact_face_crosses_the_planned_line_into_the_html_renderer() {
     let snapshot = cross_host_demonstration_snapshot().unwrap();
     let plan = &snapshot.renderer.plan;
     assert!(verify_plan(plan));
@@ -34,10 +34,7 @@ fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
         .unwrap();
     assert_ne!(source.host_id, renderer.host_id);
     assert_ne!(source.boot_id, renderer.boot_id);
-    assert_eq!(
-        source.placements[0].kind_id.as_str(),
-        PRESENTATION_PROJECT_KIND
-    );
+    assert_eq!(source.placements[0].kind_id.as_str(), FACE_PROJECT_KIND);
 
     let connection = source.connections.first().unwrap();
     let line = connection.selected_line.as_ref().unwrap();
@@ -73,8 +70,5 @@ fn one_exact_presentation_crosses_the_planned_line_into_the_html_renderer() {
     );
     // The presented subject's Plan remains distinct from the delivery Plan that
     // realizes this renderer invocation.
-    assert_ne!(
-        snapshot.presentation.basis.plan_id.as_ref(),
-        Some(&plan.plan_id)
-    );
+    assert_ne!(snapshot.face.basis.plan_id.as_ref(), Some(&plan.plan_id));
 }

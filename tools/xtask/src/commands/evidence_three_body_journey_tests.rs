@@ -33,7 +33,7 @@ fn mask_actions(track: usize) -> Vec<MaskActionObservation> {
     let replacement_plan = format!("mask-plan-{track}-replacement");
     let primary_mask = format!("mask-{track}-primary");
     let alternate_mask = format!("mask-{track}-alternate");
-    conduit_presentation::MASK_JOURNEY_ACTIONS
+    conduit_face::MASK_JOURNEY_ACTIONS
         .iter()
         .enumerate()
         .map(|(position, action)| {
@@ -90,18 +90,15 @@ fn track(index: usize) -> BodyTrack {
         .iter()
         .map(|(id, assertion)| receipt(index, id, assertion))
         .collect::<Vec<_>>();
-    receipts.extend(
-        conduit_presentation::MASK_JOURNEY_ACTIONS
-            .iter()
-            .enumerate()
-            .map(|(position, action)| {
-                receipt(
-                    index,
-                    &format!("mask.action-{position}"),
-                    &format!("mask-{}", action.id()),
-                )
-            }),
-    );
+    receipts.extend(conduit_face::MASK_JOURNEY_ACTIONS.iter().enumerate().map(
+        |(position, action)| {
+            receipt(
+                index,
+                &format!("mask.action-{position}"),
+                &format!("mask-{}", action.id()),
+            )
+        },
+    ));
     let mask_actions = mask_actions(index);
     let mut actions = vec![
         TrackActionObservation {

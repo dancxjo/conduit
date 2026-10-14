@@ -14,15 +14,15 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
   new Uint8Array(memory.buffer, 448 * 1024, ABI_IDENTITY.length).set(ABI_IDENTITY);
   const effect = index => ({ host_id: "host", boot_id: "boot", active_play_id: "play", placement_id: `placement-${index}`, plan_id: "partition", request_sequence: index,
     ...(applicationEvent ? { effect_kind: "application-event", checked_plot_id: "checked/application", request_sequence: index } : timerEffects ? { effect_kind: "timer", duration_millis: timerDuration } : {
-      effect_kind: "manifestation", presentation_id: "presentation", observation_sequence: index,
-      presentation_kind: "presentation/text", text,
+      effect_kind: "manifestation", face_id: "face", observation_sequence: index,
+      face_kind: "face/text", data_label: "Greeting", text,
     }) });
   const api = {
     memory,
     conduit_browser_runtime_abi_revision: () => 1,
     conduit_browser_runtime_abi_identity_ptr: () => 448 * 1024,
     conduit_browser_runtime_abi_identity_len: () => ABI_IDENTITY.length,
-    conduit_browser_plot_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-presentation@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
+    conduit_browser_plot_human_machinery() { output({ schema: "conduit.browser/selected-human-machinery@1", limits: { maximum_gears: 32 }, implementations: [{ id: "browser/dom-face@1", revision: 1 }, { id: "browser/pointer-events@1", revision: 1 }] });return 0; },
     conduit_browser_plot_output_ptr: () => 0, conduit_browser_plot_output_len: () => length,
     conduit_browser_body_input_ptr: () => 256 * 1024, conduit_browser_body_input_capacity: () => 256 * 1024,
     conduit_browser_body_start(length) {
@@ -59,7 +59,7 @@ function fixture({ applicationEvent = false, timer = false, timerEffects = timer
     ? { pool_id: "browser/window-input", class_id: "conduit.resource/browser-window-input@1", units: inputUnits }
     : clock ? { pool_id: "browser/monotonic-millisecond-timer", class_id: "conduit.resource/monotonic-millisecond-timer-slot@1", units: 1 }
     : timerEffects ? { pool_id: "browser/timer", class_id: "conduit.resource/timer-slot@1", units: 1 }
-      : { pool_id: "browser/presentation", class_id: "conduit.resource/presentation-slot@1", units: 1 };
+      : { pool_id: "browser/face", class_id: "conduit.resource/face-slot@1", units: 1 };
   const placements = Array.from({ length: timerEffects || 1 }, (_, index) => ({ placement_id: `placement-${index}`, gear_id: `gear-${index}`, resources: [resource] }));
   const proposal = { schema: "conduit.body/execution-proposal@1", wake: {
     wake_id: "wake", lifecycle: "AwaitingPlan", plans: [],
@@ -124,7 +124,7 @@ test("acquisition reports owned slots without starting a play or copying offer c
   assert.throws(() => owner.observations(), /reserved/);
   const receipt = await owner.run();
   assert.equal(receipt.disposition, "completed");
-  assert.equal(f.outputRoot.children[0].textContent, "hello");
+  assert.equal(f.outputRoot.children[0].textContent, "Greeting: hello");
   assert.deepEqual(f.outputRoot.children[0].dataset, {
     hostId: "host",
     bootId: "boot",
@@ -132,9 +132,10 @@ test("acquisition reports owned slots without starting a play or copying offer c
     planId: "partition",
     activePlayId: "play",
     placementId: "placement-0",
-    presentationId: "presentation",
+    faceId: "face",
     observationSequence: 0,
-    presentationKind: "presentation/text",
+    faceKind: "face/text",
+    dataLabel: "Greeting",
   });
   assert.throws(() => owner.run(), /exactly once/);
   const closed = owner.close();

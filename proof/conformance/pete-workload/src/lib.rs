@@ -17,6 +17,9 @@ mod tests {
         ImplementationId, ImplementationOffer, OfferGeneration, Plan, SignId, TemporalInstant,
         TemporalScale, ValuePayload,
     };
+    use conduit_face::{
+        Face, FaceBasis, FaceDisclosure, FaceDisclosureLevel, FaceRole, FaceSubject, FaceText,
+    };
     use conduit_human::{
         body_self_experience, inspect_current_experience_item, BodySelfObservation,
         CurrentExperience, ExperienceCertainty, ExperienceLimits, ExperienceSourceRef,
@@ -33,10 +36,6 @@ mod tests {
     use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
     use conduit_plot::rust_binding::BoundedSequence;
     use conduit_plot::{CompositeFrontTerminal, ExpandedAuthoringPlot};
-    use conduit_presentation::{
-        Presentation, PresentationBasis, PresentationDisclosure, PresentationDisclosureLevel,
-        PresentationRole, PresentationSubject, PresentationText,
-    };
     use conduit_std_host::StdHost;
 
     #[test]
@@ -284,9 +283,9 @@ mod tests {
                     _ => None,
                 }
             }));
-            let presentation = Presentation::new_with_semantics(
+            let face = Face::new_with_semantics(
                 4,
-                PresentationBasis {
+                FaceBasis {
                     body_id: None,
                     wake_id: None,
                     source_document_id: None,
@@ -296,35 +295,34 @@ mod tests {
                     active_play_id: None,
                     sign_ids: basis_signs,
                 },
-                vec![PresentationSubject {
+                vec![FaceSubject {
                     identity: subject.clone(),
-                    role: PresentationRole::Info,
+                    role: FaceRole::Info,
                     name: "Homeostatic state".into(),
                 }],
                 vec![],
                 vec![],
-                vec![PresentationText {
+                vec![FaceText {
                     subject: subject.clone(),
                     text: "Pete's current structured self-state.".into(),
                 }],
                 vec![],
-                vec![PresentationDisclosure {
+                vec![FaceDisclosure {
                     subject: subject.clone(),
-                    level: PresentationDisclosureLevel::Primary,
+                    level: FaceDisclosureLevel::Primary,
                 }],
             )
             .unwrap();
             let trace = inspect_current_experience_item(&experience, &subject).unwrap();
-            assert!(presentation
+            assert!(face
                 .subjects
                 .iter()
                 .any(|candidate| candidate.identity == subject));
             assert!(trace.item.sources.iter().all(|source| match source {
-                ExperienceSourceRef::Sign(sign_id) => presentation.basis.sign_ids.contains(sign_id),
+                ExperienceSourceRef::Sign(sign_id) => face.basis.sign_ids.contains(sign_id),
                 _ => true,
             }));
-            let manifestation =
-                conduit_presentation::render_linear_presentation(&presentation).unwrap();
+            let manifestation = conduit_face::render_linear_face(&face).unwrap();
             assert!(format!("{manifestation:?}").contains("structured self-state"));
         }
         assert_eq!(body.body_id, body_plan.body_id);

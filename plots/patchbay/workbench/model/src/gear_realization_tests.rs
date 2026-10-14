@@ -62,7 +62,7 @@ fn two_hosts() -> Vec<conduit_core::HostAdvertisement> {
 }
 
 #[test]
-fn flipping_is_durable_presentation_state_and_preserves_the_exact_gear_context() {
+fn flipping_is_durable_face_state_and_preserves_the_exact_gear_context() {
     let (_, graph) = specimen();
     let gear = graph.subject_ref(&graph.gears[0].identity).unwrap();
     let identities = (

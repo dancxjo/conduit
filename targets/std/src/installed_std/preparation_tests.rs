@@ -23,8 +23,7 @@ fn plans() -> [conduit_core::Plan; 2] {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let host = crate::StdHost::new();
     let source = include_str!("../../../../plots/clock/main.conduit");
     [source.to_string(), source.replace("1s", "2s")].map(|source| {
@@ -59,10 +58,7 @@ fn real_partition_operations_use_global_slots_and_original_placement_identity() 
         .unwrap();
         let offset = index * 2;
         assert!(matches!(&drivers[offset], InstalledBack::Tick(_)));
-        assert!(matches!(
-            &drivers[offset + 1],
-            InstalledBack::TickPresentation(_)
-        ));
+        assert!(matches!(&drivers[offset + 1], InstalledBack::TickFace(_)));
         for (slot, driver) in drivers.iter().enumerate() {
             if slot < offset || slot >= offset + 2 {
                 assert!(matches!(driver, InstalledBack::Inactive));
@@ -135,15 +131,13 @@ fn two_real_clock_partitions_remain_live_then_stop_through_the_shared_kernel_ins
             } else {
                 assert_eq!(
                     operation.target_kind,
-                    Some(conduit_core::kind_id(
-                        conduit_std_offers::TICK_PRESENTATION_TARGET,
-                    ))
+                    Some(conduit_core::kind_id(conduit_std_offers::TICK_FACE_TARGET,))
                 );
                 ticks[partition].push(
                     conduit_time::decode_tick(kernel.host_value(request.input.value).unwrap())
                         .unwrap(),
                 );
-                assert!(crate::installed_std::simple_presentation_host::present(
+                assert!(crate::installed_std::simple_face_host::present(
                     operation.target_kind.as_ref(),
                     kernel.host_value(request.input.value).unwrap(),
                     &mut output,

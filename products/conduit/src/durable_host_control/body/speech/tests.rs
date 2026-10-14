@@ -3,7 +3,7 @@ use crate::durable_host::owner::{BrowserAdmittedSnapshot, BrowserCarrierLineEvid
 use crate::durable_host_control::terminal_attach;
 use conduit_body::{ResidentPlot, SpawnInvitationSecret};
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::ManifestationLifecycle;
+use conduit_face::ManifestationLifecycle;
 use conduit_std_host::{
     browser_admission::{
         BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In,
@@ -231,10 +231,10 @@ fn acknowledged_browser_show(
         .push(conduit_browser_mask_offer::offer());
     advertisement
         .resources
-        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+        .retain(|resource| resource.class_id.as_str() != conduit_core::FACE_RESOURCE_CLASS);
     advertisement.resources.push(conduit_core::resource_offer(
-        "browser/presentation",
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        "browser/face",
+        conduit_core::FACE_RESOURCE_CLASS,
         1,
     ));
     advertisement
@@ -312,7 +312,7 @@ fn acknowledged_browser_show(
     )
     .unwrap();
     let request = OwnerFaceSnapshotRequest {
-        schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+        schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
         credential_id: snapshot.credential.credential_id.as_str().into(),
         body_id: snapshot.credential.body_id.clone(),
         part_id: snapshot.credential.part_id.clone(),
@@ -349,7 +349,7 @@ fn selected_direct_readout_stops_and_restores_the_one_current_host() {
     let (host, mut equipment) = selected_host(&root);
     let original = host.advertisement().clone();
     let plot = crate::plot_source::parse(
-        "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()

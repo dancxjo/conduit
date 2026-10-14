@@ -406,7 +406,7 @@ impl BoundedScanActivationHost {
             .map_or(&[], KernelCompositeHost::cancellation_failures)
     }
 
-    /// Receipt-correlated child Signs for presentation after the bounded Play.
+    /// Receipt-correlated child Signs for face after the bounded Play.
     /// The selected Plan and prepared child identities remain the source of
     /// provenance; this snapshot never grants a new Host route.
     pub fn storage_capacities(&self) -> (usize, usize, usize, usize) {

@@ -1,6 +1,6 @@
 #![cfg(feature = "native-compositor")]
 
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 use conduitos::display::typography::{TextRole, render_text};
 use conduitos::display::{DisplayError, DisplayFormat, PixelTarget, RetainedPixelTarget};
 use std::{
@@ -113,8 +113,8 @@ fn first_and_repeated_frames_have_no_runtime_font_allocations() {
 
 #[test]
 fn icons_and_rounded_shapes_have_no_frame_allocations() {
-    use conduit_presentation::{
-        GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, PresentationIconKey,
+    use conduit_face::{
+        FaceIconKey, GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
     };
 
     let mut surface = Surface {
@@ -131,7 +131,7 @@ fn icons_and_rounded_shapes_have_no_frame_allocations() {
     TRACK.with(|track| track.set(true));
     let mut written = 0_u64;
     for _ in 0..128 {
-        for icon in PresentationIconKey::ALL {
+        for icon in FaceIconKey::ALL {
             let mut scene = GraphicsScene::empty();
             scene
                 .push(

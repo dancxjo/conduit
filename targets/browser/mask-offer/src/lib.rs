@@ -10,11 +10,11 @@ use conduit_core::{
     kind_id, port_id, resource_requirement, ArtifactId, Back, BackOfferBuilder, CapabilityId,
     CapabilityLimits, ExecutionProfileId, HostAdvertisement, HostCallContractId,
     HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
-    PortTemporal, PRESENTATION_RESOURCE_CLASS,
+    PortTemporal, FACE_RESOURCE_CLASS,
 };
-use conduit_presentation::{
+use conduit_face::{
     install_mask_plot_value_aliases, MaskPlot, PlannedMaskPlot, FACE_INTERACTION_VALUE_KIND,
-    PRESENTATION_VALUE_KIND, SHOW_VALUE_KIND,
+    FACE_VALUE_KIND, SHOW_VALUE_KIND,
 };
 
 mod remote;
@@ -42,11 +42,11 @@ pub fn kind() -> Kind {
     Kind {
         startup_parameters: vec![],
         shorthand: None,
-        kind_id: kind_id("presentation/browser-dom-mask"),
-        kind_contract_revision: KindIdentity::from("conduit.browser/presentation-dom-mask@1"),
+        kind_id: kind_id("face/browser-dom-mask"),
+        kind_contract_revision: KindIdentity::from("conduit.browser/face-dom-mask@1"),
         inputs: vec![port(
-            "presentation",
-            PRESENTATION_VALUE_KIND,
+            "face",
+            FACE_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Value,
         )],
@@ -84,20 +84,20 @@ pub fn offer() -> conduit_core::CapabilityOffer {
             artifact_id: ArtifactId::from("artifact/browser-runtime"),
             host_calls: vec![HostCallRequirement {
                 contract_id: HostCallContractId::from(MASK_OPERATION),
-                target_kind: Some(kind_id("presentation/browser-dom-mask")),
+                target_kind: Some(kind_id("face/browser-dom-mask")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MASK_BYTES,
                 maximum_output_bytes: MASK_BYTES,
             }],
-            resource_requirements: vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+            resource_requirements: vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
             authority_requirements: vec![],
         },
     )
     .build()
 }
 
-pub const MASK_SOURCE: &str = "plot browser-graphical (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
-pub const ALTERNATE_MASK_SOURCE: &str = "plot browser-graphical-alternate (\n >> face: Presentation\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: presentation/browser-dom-mask\n face >> mask.presentation\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+pub const MASK_SOURCE: &str = "plot browser-graphical (\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: face/browser-dom-mask\n face >> mask.face\n mask.interaction >> interaction\n mask.show >> show\n}\n";
+pub const ALTERNATE_MASK_SOURCE: &str = "plot browser-graphical-alternate (\n >> face: Face\n interaction: FaceInteraction...| >>\n show: Show >>\n) {\n mask: face/browser-dom-mask\n face >> mask.face\n mask.interaction >> interaction\n mask.show >> show\n}\n";
 
 #[derive(Clone, Copy)]
 struct OwnerCarrierForeLimits {
@@ -130,13 +130,13 @@ fn planned_mask_configuration(
 ) -> Result<
     (
         PlannedMaskPlot,
-        Option<conduit_presentation::ConfiguredMaskConfiguration>,
+        Option<conduit_face::ConfiguredMaskConfiguration>,
     ),
     String,
 > {
-    let configured = source == conduit_presentation::TODO_COMPONENT_MASK_SOURCE;
+    let configured = source == conduit_face::TODO_COMPONENT_MASK_SOURCE;
     let definition = if configured {
-        conduit_presentation::component_mask_kind(MASK_BYTES)
+        conduit_face::component_mask_kind(MASK_BYTES)
     } else {
         kind()
     };
@@ -162,13 +162,10 @@ fn planned_mask_configuration(
         .map_err(|error| format!("{error:?}"))?;
     if configured {
         for (alias, schema) in [
-            (
-                "ComponentRecipeInfo",
-                conduit_presentation::component_recipe_type(),
-            ),
+            ("ComponentRecipeInfo", conduit_face::component_recipe_type()),
             (
                 "VisualExpressionInfo",
-                conduit_presentation::visual_expression_type(),
+                conduit_face::visual_expression_type(),
             ),
         ] {
             let profile = schema.profile().map_err(|error| format!("{error:?}"))?;
@@ -213,7 +210,7 @@ fn planned_mask_configuration(
                     if direction == PortDirection::Output
                         && binding.front_port_id == mask.interaction_output.front_port_id =>
                 {
-                    (1, conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32)
+                    (1, conduit_face::MAX_FACE_INTERACTION_BYTES as u32)
                 }
                 Some(_) => return Err("unexpected browser Mask Fore boundary".into()),
                 None => (4, MASK_BYTES),
@@ -254,13 +251,13 @@ fn planned_mask_configuration(
             check_syntax_document(&syntax, &startup).map_err(|error| format!("{error:?}"))?;
         let empty = BTreeMap::new();
         let lines = BTreeMap::new();
-        let prepared = conduit_presentation::prepare_configured_mask(
+        let prepared = conduit_face::prepare_configured_mask(
             &checked,
             &authoring,
             &profiles,
             &conduit_plot::CanonicalBackCatalog::new(),
             &planned,
-            conduit_presentation::ConfiguredMaskPlanningInputs {
+            conduit_face::ConfiguredMaskPlanningInputs {
                 hosts: core::slice::from_ref(host),
                 placements: &placements,
                 bases: &[],
@@ -275,7 +272,7 @@ fn planned_mask_configuration(
                 },
                 boundary_limits: &boundary_limits,
             },
-            &kind_id(conduit_presentation::COMPONENT_MASK_KIND),
+            &kind_id(conduit_face::COMPONENT_MASK_KIND),
         )
         .map_err(|error| format!("configured browser Mask admission: {error:?}"))?;
         Some(prepared.configuration())
@@ -317,9 +314,9 @@ pub fn configured_offer() -> conduit_core::CapabilityOffer {
     back.capability_id = CapabilityId::from("capability/browser-component-mask");
     back.implementation_id = ImplementationId::from("implementation/browser-component-mask");
     for requirement in &mut back.host_calls {
-        requirement.target_kind = Some(kind_id(conduit_presentation::COMPONENT_MASK_KIND));
+        requirement.target_kind = Some(kind_id(conduit_face::COMPONENT_MASK_KIND));
     }
-    BackOfferBuilder::new(conduit_presentation::component_mask_kind(MASK_BYTES), back).build()
+    BackOfferBuilder::new(conduit_face::component_mask_kind(MASK_BYTES), back).build()
 }
 
 /// Re-admit the component from current actual Host offers and exact Fore budgets.
@@ -328,13 +325,13 @@ pub fn configured_offer() -> conduit_core::CapabilityOffer {
 pub fn configured_mask_configuration(
     host: &HostAdvertisement,
     planned: &PlannedMaskPlot,
-) -> Result<Option<conduit_presentation::ConfiguredMaskConfiguration>, String> {
+) -> Result<Option<conduit_face::ConfiguredMaskConfiguration>, String> {
     let configured = planned
         .plan
         .fragments
         .iter()
         .flat_map(|fragment| &fragment.placements)
-        .any(|placement| placement.kind_id.as_str() == conduit_presentation::COMPONENT_MASK_KIND);
+        .any(|placement| placement.kind_id.as_str() == conduit_face::COMPONENT_MASK_KIND);
     if !configured {
         return Ok(None);
     }
@@ -364,7 +361,7 @@ pub fn configured_mask_configuration(
     };
     let (expected, configuration) = planned_mask_configuration(
         host,
-        conduit_presentation::TODO_COMPONENT_MASK_SOURCE,
+        conduit_face::TODO_COMPONENT_MASK_SOURCE,
         root,
         Some(OwnerCarrierForeLimits {
             face_bytes: budget(PortDirection::Input, &planned.mask.face_input.front_port_id)?,
@@ -397,7 +394,7 @@ pub fn configured_mask_configuration(
 mod configured_tests {
     use super::*;
     use conduit_core::*;
-    use conduit_presentation::*;
+    use conduit_face::*;
 
     #[test]
     fn actual_checked_todo_roots_use_exact_configured_offer_and_source_recipe() {
@@ -408,11 +405,7 @@ mod configured_tests {
             offer_generation: OfferGeneration(1),
             profile: HostProfileId::from("browser"),
             bases: vec![],
-            resources: vec![resource_offer(
-                "browser/presentation",
-                PRESENTATION_RESOURCE_CLASS,
-                1,
-            )],
+            resources: vec![resource_offer("browser/face", FACE_RESOURCE_CLASS, 1)],
             planner_capabilities: vec![],
             capabilities: vec![configured_offer()],
         };

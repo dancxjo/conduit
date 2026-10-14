@@ -232,38 +232,36 @@ fn structured_selector_proof_offer(
 }
 
 #[test]
-fn one_typed_presentation_path_inspects_all_five_domains_without_leaf_text() {
+fn one_typed_face_path_inspects_all_five_domains_without_leaf_text() {
     for (sequence, specimen) in specimens().into_iter().enumerate() {
         let observation = Observation {
             sign_id: SignId::from(format!("sign/{sequence}")),
             active_play_id: None,
-            presentation_id: None,
+            face_id: None,
             host_id: HostId::from("host/diverse-structured-proof"),
             boot_id: BootId::from("boot/diverse-structured-proof"),
             plan_id: None,
             placement_id: None,
             connection_id: None,
             kind: ObservationKind::ValuePresented {
+                label: "Domain specimen".into(),
                 value: ValuePayload {
                     value_kind: specimen.value_type.profile().unwrap().value_kind().clone(),
                     encoded: specimen.default_value.canonical_bytes().unwrap(),
                 },
             },
         };
-        let artifact = conduit_presentation::StructuredSignPresentation::from_sign(
+        let artifact = conduit_face::StructuredSignFace::from_sign(
             sequence as u64,
             &observation,
             &specimen.value_type,
         )
         .unwrap();
-        assert_eq!(
-            artifact.presentation.basis.sign_ids,
-            vec![observation.sign_id]
-        );
-        assert!(artifact.presentation.text.is_empty());
-        assert!(artifact.presentation.properties.iter().any(|property| {
+        assert_eq!(artifact.face.basis.sign_ids, vec![observation.sign_id]);
+        assert!(artifact.face.text.is_empty());
+        assert!(artifact.face.properties.iter().any(|property| {
             property.name == "leaf-content-redacted"
-                && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+                && property.value == conduit_face::FacePropertyValue::Flag(true)
         }));
     }
 }

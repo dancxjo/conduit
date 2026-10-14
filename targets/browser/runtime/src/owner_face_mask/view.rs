@@ -1,13 +1,13 @@
 //! Human-readable browser projection of the exact checked Face.
 
 use super::*;
-use conduit_presentation::{PresentationActionAvailability, PresentationPropertyValue};
+use conduit_face::{FaceActionAvailability, FacePropertyValue};
 
 impl OwnerBrowserMask {
     pub(super) fn view(&self) -> FaceView {
         let mut view = project_view(
             &self.body_id,
-            &self.presentation,
+            &self.face,
             &self.planned,
             &self.play,
             &self.show,
@@ -27,7 +27,7 @@ impl OwnerBrowserMask {
 
 pub(crate) fn local_view(
     body_id: &BodyId,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     play: &conduit_core::ActivePlayIdentity,
 ) -> FaceView {
@@ -44,8 +44,8 @@ pub(crate) fn local_view(
 
 fn project_view(
     body_id: &BodyId,
-    face: &Presentation,
-    planned: &conduit_presentation::PlannedMaskPlot,
+    face: &Face,
+    planned: &conduit_face::PlannedMaskPlot,
     play: &conduit_core::ActivePlayIdentity,
     show: &MaskShow,
     interactions_admitted: bool,
@@ -81,16 +81,14 @@ fn project_view(
                 name: subject.name.clone(),
                 role: format!("{:?}", subject.role),
                 semantic_role: match &subject.role {
-                    conduit_presentation::PresentationRole::Semantic(id) => {
-                        Some(id.as_str().into())
-                    }
+                    conduit_face::FaceRole::Semantic(id) => Some(id.as_str().into()),
                     _ => None,
                 },
                 choice_multiplicity: face.properties.iter().find_map(|property| {
                     if property.subject == subject.identity
                         && property.name == "choice-multiplicity"
                     {
-                        if let PresentationPropertyValue::Text(value) = &property.value {
+                        if let FacePropertyValue::Text(value) = &property.value {
                             return Some(value.clone());
                         }
                     }
@@ -101,13 +99,11 @@ fn project_view(
                     .iter()
                     .filter(|property| property.subject == subject.identity)
                     .filter_map(|property| match &property.value {
-                        PresentationPropertyValue::TypedValue { contract, bytes } => {
-                            Some(ValueView {
-                                name: property.name.clone(),
-                                kind: contract.value_kind.as_str().into(),
-                                text: conduit_presentation::display_typed_value(contract, bytes),
-                            })
-                        }
+                        FacePropertyValue::TypedValue { contract, bytes } => Some(ValueView {
+                            name: property.name.clone(),
+                            kind: contract.value_kind.as_str().into(),
+                            text: conduit_face::display_typed_value(contract, bytes),
+                        }),
                         _ => None,
                     })
                     .collect(),
@@ -136,7 +132,7 @@ fn project_view(
                     .iter()
                     .filter(|property| property.subject == subject.identity)
                     .filter_map(|property| match &property.value {
-                        PresentationPropertyValue::Flag(value) => Some(FlagView {
+                        FacePropertyValue::Flag(value) => Some(FlagView {
                             name: property.name.clone(),
                             value: *value,
                         }),
@@ -159,8 +155,8 @@ fn project_view(
             .iter()
             .map(|action| {
                 let (availability, explanation, reason_code) = match &action.availability {
-                    PresentationActionAvailability::Available => ("available", None, None),
-                    PresentationActionAvailability::Unavailable {
+                    FaceActionAvailability::Available => ("available", None, None),
+                    FaceActionAvailability::Unavailable {
                         explanation,
                         reason_code,
                     } => (
@@ -168,7 +164,7 @@ fn project_view(
                         Some(explanation.clone()),
                         Some(reason_code.clone()),
                     ),
-                    PresentationActionAvailability::Refused {
+                    FaceActionAvailability::Refused {
                         explanation,
                         reason_code,
                     } => (
@@ -221,19 +217,17 @@ fn project_view(
     }
 }
 
-fn property_value(value: &PresentationPropertyValue) -> String {
+fn property_value(value: &FacePropertyValue) -> String {
     match value {
-        PresentationPropertyValue::Identity(value) | PresentationPropertyValue::Text(value) => {
-            value.clone()
+        FacePropertyValue::Identity(value) | FacePropertyValue::Text(value) => value.clone(),
+        FacePropertyValue::BaseImplementationId(value) => value.as_str().into(),
+        FacePropertyValue::Count(value) => value.to_string(),
+        FacePropertyValue::Signed(value) => value.to_string(),
+        FacePropertyValue::Flag(value) => value.to_string(),
+        FacePropertyValue::TypedValue { contract, bytes } => {
+            conduit_face::display_typed_value(contract, bytes)
         }
-        PresentationPropertyValue::BaseImplementationId(value) => value.as_str().into(),
-        PresentationPropertyValue::Count(value) => value.to_string(),
-        PresentationPropertyValue::Signed(value) => value.to_string(),
-        PresentationPropertyValue::Flag(value) => value.to_string(),
-        PresentationPropertyValue::TypedValue { contract, bytes } => {
-            conduit_presentation::display_typed_value(contract, bytes)
-        }
-        PresentationPropertyValue::ValueContract(value) => format!("{value:?}"),
-        PresentationPropertyValue::Content(value) => format!("{} content bytes", value.len()),
+        FacePropertyValue::ValueContract(value) => format!("{value:?}"),
+        FacePropertyValue::Content(value) => format!("{} content bytes", value.len()),
     }
 }

@@ -191,6 +191,10 @@ pub enum KindConfigurationRule {
     Quantity,
     Unit,
     TemperatureDifference,
+    /// Required data name in UTF-8 bytes; append variants to preserve existing wire indices.
+    DataLabel {
+        maximum: u32,
+    },
 }
 
 const MAXIMUM_EXACT_JAVASCRIPT_INTEGER: u64 = 9_007_199_254_740_991;
@@ -485,3 +489,7 @@ pub enum KindTerminalBehavior {
     PresentsEachFieldAndCompletesWhenInputCloses,
     CompletesAfterDockedRefusedOrDeadline,
 }
+
+#[cfg(test)]
+#[path = "configuration_rule_codec_tests.rs"]
+mod codec_tests;

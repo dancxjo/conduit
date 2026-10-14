@@ -6,10 +6,10 @@ import { BrowserHostEffectRefusal, createPitchTonePerformer, drainBrowserEffects
 import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
 import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
-import { manifestApplicationView } from "./application-presentation.mjs";
+import { manifestApplicationView } from "./application-face.mjs";
 import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 
-const PRESENTATION = "conduit.resource/presentation-slot@1";
+const FACE = "conduit.resource/face-slot@1";
 const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
@@ -25,7 +25,7 @@ const pools = new Map([
   [AUDIO_CUE_RESOURCE, AUDIO_CUE_POOL],
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
   [MEMORY, "browser/runtime-memory"],
-  [PRESENTATION, "browser/presentation"], [INPUT, "browser/window-input"],
+  [FACE, "browser/face"], [INPUT, "browser/window-input"],
   [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
 
@@ -62,7 +62,7 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
  */
 const owners = new WeakSet();
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
-  presentationRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
+  faceRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
   const external = new Set(externallyManagedPlanIds);
   if (owners.has(api)) throw new Error("browser Body resources already acquired");
@@ -149,7 +149,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     throw new Error("snapshot resource demand exceeds selected storage bounds");
   }
   for (const [kind, units] of demand) {
-    const capacity = [PRESENTATION, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
+    const capacity = [FACE, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
       : kind === MEMORY ? MEMORY_CAPACITY : kind === TIMER ? maximumPlacements : 1;
     if (units > capacity) throw new Error("browser Body resource demand exceeds local bounds");
   }
@@ -201,7 +201,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
   // The single WASM owner leases this local preparation slot. Its bounded
   // template storage is initialized by ordinary kernel preparation before Play.
   const templateSlots = new Set();
-  const presentationTimers = new Map();
+  const faceTimers = new Map();
   const elements = [];
   let audio = null;
   let pcmAudio = null, pushToTalk = null;
@@ -248,25 +248,25 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       timerSlots = Array.from({ length: demand.get(TIMER) ?? 0 }, () => ({ pending: null, cancel: null }));
       clock = demand.has(CLOCK);
     }
-    for (const placement of placements.filter(item => item.resources.some(resource => resource.class_id === PRESENTATION))) {
-      if (!machinery.implementations.some(entry => entry.id === "browser/dom-presentation@1")) throw new Error("browser presentation not installed");
+    for (const placement of placements.filter(item => item.resources.some(resource => resource.class_id === FACE))) {
+      if (!machinery.implementations.some(entry => entry.id === "browser/dom-face@1")) throw new Error("browser face not installed");
       const output = outputRoot.ownerDocument.createElement("output");
       output.dataset.placementId = placement.placement_id;
       output.setAttribute("aria-label", placement.gear_id);
-      const selectedRoot = presentationRootFor?.(Object.freeze({
+      const selectedRoot = faceRootFor?.(Object.freeze({
         checkedPlotId: placementPlots.get(placement.placement_id),
         placementId: placement.placement_id,
         gearId: placement.gear_id,
       })) ?? outputRoot;
       if (!selectedRoot?.isConnected || selectedRoot.ownerDocument !== outputRoot.ownerDocument) {
-        throw new Error("browser presentation root is unavailable");
+        throw new Error("browser face root is unavailable");
       }
       selectedRoot.append(output);
       elements.push(output);
       slots.set(placement.placement_id, output);
-      presentationTimers.set(placement.placement_id, { pending: null, cancel: null });
+      faceTimers.set(placement.placement_id, { pending: null, cancel: null });
     }
-    if (slots.size !== (demand.get(PRESENTATION) ?? 0)) throw new Error("presentation acquisition does not match demand");
+    if (slots.size !== (demand.get(FACE) ?? 0)) throw new Error("face acquisition does not match demand");
   } catch (error) {
     monotonicTimer?.close();audio?.close();pcmAudio?.close();routing?.close();input?.close();elements.forEach(element => element.remove());owners.delete(api);throw error;
   }
@@ -283,7 +283,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Adapter counts come from acquired state; memory names the finite
       // runtime pool whose exact prepared demand is checked at start.
-      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === PRESENTATION ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
+      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
     const snapshotPools = new Map();
@@ -370,32 +370,51 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     }
     if (effect.effect_kind === "manifestation") {
       const output = slots.get(effect.placement_id);
-      if (!output) throw new Error("browser presentation slot not acquired");
+      if (!output) throw new Error("browser face slot not acquired");
       output.dataset.hostId = effect.host_id;
       output.dataset.bootId = effect.boot_id;
       output.dataset.bodyPlanId = started.play.plan_id;
       output.dataset.planId = effect.plan_id;
       output.dataset.activePlayId = effect.active_play_id;
       output.dataset.placementId = effect.placement_id;
-      output.dataset.presentationId = effect.presentation_id;
+      output.dataset.faceId = effect.face_id;
       output.dataset.observationSequence = effect.observation_sequence;
-      output.dataset.presentationKind = effect.presentation_kind;
-      if (effect.presentation_kind === "presentation/application-view" && Array.isArray(effect.application_view)) {
+      output.dataset.faceKind = effect.face_kind;
+      const dataLabel = effect.data_label;
+      if (typeof dataLabel === "string") {
+        output.dataset.dataLabel = dataLabel;
+        output.setAttribute("aria-label", dataLabel);
+      }
+      const namedValue = value => typeof dataLabel === "string" ? `${dataLabel}: ${value}` : value;
+      if (effect.face_kind === "face/application-view" && Array.isArray(effect.application_view)) {
         const channel = applicationChannel(effect.checked_plot_id);
-        channel.manifestation = manifestApplicationView(Uint8Array.from(effect.application_view), output, {
+        let applicationSurface = output;
+        if (typeof dataLabel === "string") {
+          let heading = output.querySelector(':scope > [data-application-data-label]');
+          applicationSurface = output.querySelector(':scope > [data-named-application-surface]');
+          if (!heading || !applicationSurface) {
+            heading = output.ownerDocument.createElement("p");
+            heading.dataset.applicationDataLabel = "";
+            applicationSurface = output.ownerDocument.createElement("div");
+            applicationSurface.dataset.namedApplicationSurface = "";
+            output.replaceChildren(heading, applicationSurface);
+          }
+          heading.textContent = dataLabel;
+        }
+        channel.manifestation = manifestApplicationView(Uint8Array.from(effect.application_view), applicationSurface, {
           eventCapacity: 8,
           eventByteCapacity: 131072,
           choiceScope: effect.active_play_id,
           onEvent: event => publishApplicationEvent(effect.checked_plot_id, event),
         });
-      } else if (typeof effect.text === "string") output.textContent = effect.text;
-      else if (effect.presentation_kind === "presentation/indicator" && Array.isArray(effect.segments) && effect.segments.length <= 256) {
+      } else if (typeof effect.text === "string") output.textContent = namedValue(effect.text);
+      else if (effect.face_kind === "face/indicator" && Array.isArray(effect.segments) && effect.segments.length <= 256) {
         for (const segment of effect.segments) {
           assertCurrent();
-          output.textContent = segment.level ? "on" : "off";
-          await delay(segment.units * effect.unit_millis, signal, presentationTimers.get(effect.placement_id));
+          output.textContent = namedValue(segment.level ? "on" : "off");
+          await delay(segment.units * effect.unit_millis, signal, faceTimers.get(effect.placement_id));
         }
-        output.textContent = "off";
+        output.textContent = namedValue("off");
       } else throw new Error("unsupported browser manifestation");
       return;
     }
@@ -489,7 +508,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       routing?.close();
       input?.close();
       for (const timer of timerSlots) timer.cancel?.();
-      for (const timer of presentationTimers.values()) timer.cancel?.();
+      for (const timer of faceTimers.values()) timer.cancel?.();
       const status = (startAccepted || startOutcome === "unknown") && !terminal ? api.conduit_tour_cancel() : null;
       try {
         const receipt = status !== null && status >= 0 ? readOutput(bridge) : terminal;

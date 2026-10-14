@@ -1,6 +1,6 @@
 //! Realization configuration from the exact current planned renderer placement.
 use super::*;
-use conduit_presentation::{
+use conduit_face::{
     admit_visual_expression, prepare_component_recipe, visual_expression_from_info,
     AdmittedVisualExpression, ConfiguredMaskConfiguration, VisualUserConstraints,
 };
@@ -29,8 +29,8 @@ pub(super) struct ComponentView {
 
 pub(super) fn prepare(
     basis: &HostBasis,
-    planned: &conduit_presentation::PlannedMaskPlot,
-    face: &Presentation,
+    planned: &conduit_face::PlannedMaskPlot,
+    face: &Face,
 ) -> Result<Option<ComponentView>, String> {
     let host = crate::installed_browser::membership_advertisement(
         basis.host_id.clone(),
@@ -49,7 +49,7 @@ pub(super) fn prepare(
     let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
         configuration.expression.canonical_value(),
     )
-    .map_err(|_| conduit_presentation::VisualExpressionRefusal::Encoding)
+    .map_err(|_| conduit_face::VisualExpressionRefusal::Encoding)
     .and_then(visual_expression_from_info);
     let expression = admit_visual_expression(
         requested,

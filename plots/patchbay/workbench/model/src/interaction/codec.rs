@@ -16,8 +16,8 @@ impl PatchbayInteractionRequest {
         };
         patchbay_control::PatchbayControlRequest::new(
             request_id.as_str(),
-            invocation.presentation_id.clone(),
-            invocation.presentation_revision,
+            invocation.face_id.clone(),
+            invocation.face_revision,
             invocation.action_id.clone(),
             invocation.action,
             invocation.target_identity.clone(),
@@ -40,26 +40,26 @@ impl PatchbayInteractionRequest {
 
     pub fn invoke(
         request_id: PatchbayInteractionRequestId,
-        presentation: &conduit_presentation::Presentation,
+        face: &conduit_face::Face,
         action_id: &str,
     ) -> Result<Self, InteractionError> {
         validate_field(action_id)?;
-        let semantic = presentation
+        let semantic = face
             .actions
             .iter()
             .find(|candidate| candidate.identity == action_id)
             .ok_or(InteractionError::Action(
-                conduit_presentation::PresentationActionRefusal::UnknownAction,
+                conduit_face::FaceActionRefusal::UnknownAction,
             ))?;
         let action =
             action_from_intent(&semantic.intent).ok_or(InteractionError::InvalidIdentity)?;
-        validate_field(presentation.identity.as_str())?;
+        validate_field(face.identity.as_str())?;
         validate_field(&semantic.target)?;
         Ok(Self::Invoke {
             request_id,
             invocation: PatchbayInvocation {
-                presentation_id: presentation.identity.as_str().into(),
-                presentation_revision: presentation.revision,
+                face_id: face.identity.as_str().into(),
+                face_revision: face.revision,
                 action_id: semantic.identity.clone(),
                 action,
                 target_identity: semantic.target.clone(),
@@ -103,8 +103,8 @@ impl PatchbayInteractionRequest {
             } => {
                 encoded.push(2);
                 push_field(&mut encoded, request_id.as_str())?;
-                push_field(&mut encoded, &invocation.presentation_id)?;
-                encoded.extend_from_slice(&invocation.presentation_revision.to_le_bytes());
+                push_field(&mut encoded, &invocation.face_id)?;
+                encoded.extend_from_slice(&invocation.face_revision.to_le_bytes());
                 push_field(&mut encoded, &invocation.action_id)?;
                 push_field(&mut encoded, invocation.action.as_str())?;
                 push_field(&mut encoded, &invocation.target_identity)?;
@@ -145,8 +145,8 @@ impl PatchbayInteractionRequest {
             2 => {
                 let request_id =
                     PatchbayInteractionRequestId::new(read_field(encoded, &mut cursor)?)?;
-                let presentation_id = read_field(encoded, &mut cursor)?;
-                let presentation_revision = read_u64(encoded, &mut cursor)?;
+                let face_id = read_field(encoded, &mut cursor)?;
+                let face_revision = read_u64(encoded, &mut cursor)?;
                 let action_id = read_field(encoded, &mut cursor)?;
                 let action = read_field(encoded, &mut cursor)?;
                 let target_identity = read_field(encoded, &mut cursor)?;
@@ -154,8 +154,8 @@ impl PatchbayInteractionRequest {
                 Ok(Self::Invoke {
                     request_id,
                     invocation: PatchbayInvocation {
-                        presentation_id,
-                        presentation_revision,
+                        face_id,
+                        face_revision,
                         action_id,
                         action: PatchbayAction::from_name(&action)
                             .ok_or(InteractionError::MalformedValue)?,
@@ -199,7 +199,20 @@ fn encode_edit(output: &mut Vec<u8>, edit: &PatchbayEdit) -> Result<(), Interact
     output.extend_from_slice(&basis.source_revision.to_le_bytes());
     push_field(output, basis.expanded_plot_id.as_str())?;
     match edit {
-        PatchbayEdit::PlaceGear { kind_id, .. } => push_field(output, kind_id),
+        PatchbayEdit::PlaceGear {
+            kind_id,
+            data_label,
+            ..
+        } => {
+            push_field(output, kind_id)?;
+            // Unnamed non-Face placement retains its existing bounded encoding.
+            // Named placement adds one explicit bounded Text field.
+            if let Some(label) = data_label {
+                output.push(1);
+                push_field(output, label)?;
+            }
+            Ok(())
+        }
         PatchbayEdit::DuplicateGear {
             subject_identity, ..
         }
@@ -248,6 +261,15 @@ fn decode_edit(input: &[u8], cursor: &mut usize) -> Result<PatchbayEdit, Interac
         "place-gear" => Ok(PatchbayEdit::PlaceGear {
             basis,
             kind_id: read_field(input, cursor)?,
+            data_label: if *cursor == input.len() {
+                None
+            } else {
+                if input.get(*cursor) != Some(&1) {
+                    return Err(InteractionError::MalformedValue);
+                }
+                *cursor += 1;
+                Some(read_field(input, cursor)?)
+            },
         }),
         "duplicate-gear" => Ok(PatchbayEdit::DuplicateGear {
             basis,

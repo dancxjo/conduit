@@ -9,7 +9,7 @@ conduit-ai = { path = "../ai", default-features = false }
 conduit-body = { path = "../../architecture/body", default-features = false, features = ["authenticated-admission"] }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-presentation = { path = "../presentation", default-features = false }
+conduit-face = { path = "../face", default-features = false }
 serde = { version = "1", default-features = false, features = ["derive", "alloc"] }
 
 [build-dependencies]

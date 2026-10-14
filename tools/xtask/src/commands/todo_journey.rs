@@ -102,18 +102,16 @@ fn parse_capture(root: &Path, label: &str) -> Result<Value, String> {
 }
 
 fn has_todo_list(face: &Value) -> bool {
-    let presentation = &face["presentation"];
-    presentation["subjects"].as_array().is_some_and(|subjects| {
+    let face = &face["face"];
+    face["subjects"].as_array().is_some_and(|subjects| {
         subjects
             .iter()
             .any(|subject| subject["identity"] == "todo/list")
-    }) && presentation["properties"]
-        .as_array()
-        .is_some_and(|properties| {
-            properties.iter().any(|property| {
-                property["subject"] == "todo/list" && property["name"] == "todo-revision"
-            })
+    }) && face["properties"].as_array().is_some_and(|properties| {
+        properties.iter().any(|property| {
+            property["subject"] == "todo/list" && property["name"] == "todo-revision"
         })
+    })
 }
 
 pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
@@ -225,7 +223,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         )?;
         let before_status = parse_capture(&output, "before-status")?;
         let before_face = parse_capture(&output, "before-face")?;
-        let body_id = before_face["presentation"]["basis"]["body_id"]
+        let body_id = before_face["face"]["basis"]["body_id"]
             .as_str()
             .ok_or("owner Face has no Body ID")?;
         if before_status["body_id"].as_str() != Some(body_id) {
@@ -257,15 +255,15 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
             None,
         )?;
         let after_face = parse_capture(&output, "after-face")?;
-        if after_face["presentation"]["basis"]["body_id"].as_str() != Some(body_id) {
+        if after_face["face"]["basis"]["body_id"].as_str() != Some(body_id) {
             return Err("terminal encounter changed Body identity".into());
         }
         if !has_todo_list(&after_face) {
             return Err("terminal encounter lost the Todo list contribution".into());
         }
         Ok(
-            json!({"body_id":body_id,"before_face_revision":before_face["presentation"]["revision"],
-            "after_face_revision":after_face["presentation"]["revision"],
+            json!({"body_id":body_id,"before_face_revision":before_face["face"]["revision"],
+            "after_face_revision":after_face["face"]["revision"],
             "host_id":before_face["advertisement"]["host_id"],"boot_id":before_face["advertisement"]["boot_id"],
             "terminal_input":script_receipt}),
         )

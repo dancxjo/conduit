@@ -249,6 +249,76 @@ fn runtime_preparation_rechecks_selected_algorithm_ports_and_certificate() {
 #[path = "numerical_realization/execution.rs"]
 mod execution;
 
+#[test]
+fn numerical_face_installer_requires_a_meaningful_explicit_label() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_numerical_catalogs(&mut startup, &mut profile).unwrap();
+    let signature = startup.signature(NUMERICAL_FACE_KIND).unwrap();
+    assert_eq!(signature.startup_parameters[0].name, "label");
+    assert!(signature.startup_parameters[0].default.is_none());
+    let missing = format!("plot main {{\n result: {NUMERICAL_FACE_KIND}\n}}\n");
+    let refusal = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(&missing),
+        &startup,
+    )
+    .unwrap_err();
+    assert!(refusal.message.contains("label"), "{}", refusal.message);
+    for argument in [
+        "\"\"".to_owned(),
+        "\"   \"".to_owned(),
+        "42".to_owned(),
+        "true".to_owned(),
+        "\"Result\\nvalue\"".to_owned(),
+        format!("{:?}", "x".repeat(129)),
+    ] {
+        let source = format!("plot main {{\n result: {NUMERICAL_FACE_KIND}({argument})\n}}\n");
+        match conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        ) {
+            Err(_) => {}
+            Ok(checked) => assert!(
+                conduit_plot::expand_canonical_plot(&checked, "main", &profile).is_err(),
+                "accepted invalid label {argument}"
+            ),
+        }
+    }
+    for argument in [
+        "\"Exact numerical result\"",
+        "label=\"Exact numerical result\"",
+    ] {
+        let source = format!("plot main {{\n result: {NUMERICAL_FACE_KIND}({argument})\n}}\n");
+        let checked = conduit_plot::check_syntax_document(
+            &conduit_plot::parse_syntax_document(&source),
+            &startup,
+        )
+        .unwrap();
+        let expanded = conduit_plot::expand_canonical_plot(&checked, "main", &profile).unwrap();
+        let gear = &expanded.gears[0];
+        assert_eq!(
+            face_data_label(&gear.configuration).unwrap(),
+            "Exact numerical result"
+        );
+        assert_eq!(
+            gear.configuration
+                .iter()
+                .find(|entry| entry.key == "label")
+                .unwrap()
+                .value,
+            ConfigurationValue::Text("Exact numerical result".into())
+        );
+        assert_eq!(
+            gear.inputs[0].value_kind,
+            numerical_result_type()
+                .profile()
+                .unwrap()
+                .value_kind()
+                .clone()
+        );
+    }
+}
+
 #[cfg(feature = "kernel-step")]
 #[test]
 fn binary64_receipt_keeps_ieee_bits_rounding_status_and_error_kind() {

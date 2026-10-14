@@ -119,7 +119,7 @@ Focused deterministic fixtures cover:
   score contracts and exact admitted fallback identities.
 
 These establish development-library conformance, not live parser accuracy,
-model acoustic quality, physical/human presentation proof, new report-producing
+model acoustic quality, physical/human face proof, new report-producing
 Kinds, every adapter's integration or stable-release acceptance.
 
 The reviewed precedent is pinned Tongues

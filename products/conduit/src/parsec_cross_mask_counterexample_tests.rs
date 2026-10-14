@@ -1,13 +1,12 @@
 //! Artifact-driven architecture diagnostic, not binding admission or Mask acceptance.
 //! The producer exercised an actual software-input/terminal Body. These consumers
 //! reconstruct its Faces; they do not prove scanout, delivered speech or browser Show.
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, ActionInputBindingProposalInfo,
+use conduit_face::{
+    plan_face_utterances, render_linear_face, ActionInputBindingProposalInfo, Face,
     FaceUtteranceProvenance, GraphicsClipClass, GraphicsTextRole, MaskShow,
     ParsecInputInstructionLook, ParsecMapTransitionResult, PreparedParsecInputInstruction,
-    Presentation,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use serde_json::Value;
 use sha2::{Digest, Sha256};
 
@@ -48,9 +47,9 @@ pub(super) fn correlate(
     exchange: &Value,
     index: usize,
     instruction: &mut PreparedParsecInputInstruction,
-) -> Result<(Presentation, Vec<u8>), String> {
+) -> Result<(Face, Vec<u8>), String> {
     let observation = &exchange["instructions"][index];
-    let face: Presentation = serde_json::from_value(observation["face"].clone())
+    let face: Face = serde_json::from_value(observation["face"].clone())
         .map_err(|error| format!("{error:?}"))?;
     face.validate().map_err(|error| format!("{error:?}"))?;
     let show: MaskShow = serde_json::from_value(observation["show"].clone())
@@ -77,7 +76,7 @@ pub(super) fn correlate(
             &observation["show"]["show"]["offer_generation"],
         )
         || !equal(
-            &binding["offered_action"]["source_presentation_revision"],
+            &binding["offered_action"]["source_face_revision"],
             &observation["face"]["revision"],
         )
         || !equal(
@@ -186,14 +185,14 @@ pub(super) fn correlate(
     Ok((face, candidate.canonical_bytes().to_vec()))
 }
 
-fn face_json(face: &Presentation) -> Value {
+fn face_json(face: &Face) -> Value {
     serde_json::to_value(face).unwrap()
 }
 
-fn reconstruct_without_instruction(face: &Presentation) {
+fn reconstruct_without_instruction(face: &Face) {
     let action = &face.actions[0];
-    let linear = render_linear_presentation(face).unwrap();
-    assert_eq!(linear.presentation_id, face.identity);
+    let linear = render_linear_face(face).unwrap();
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(linear.revision, face.revision);
     let lines = linear.lines.join("\n");
     assert!(lines.contains(&action.name));
@@ -213,7 +212,7 @@ fn reconstruct_without_instruction(face: &Presentation) {
         .join("\n");
     let mut native =
         conduitos::native_face_scene::NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
-    assert_eq!(native.presentation(), face);
+    assert_eq!(native.face(), face);
     let mut painted = String::new();
     let mut native_actions = String::new();
     let mut hit = false;
@@ -221,7 +220,7 @@ fn reconstruct_without_instruction(face: &Presentation) {
         native.show_details(details);
         for _ in 0..native.pages() {
             let frame = native.frame().unwrap();
-            assert_eq!(frame.presentation_id, &face.identity);
+            assert_eq!(frame.face_id, &face.identity);
             assert_eq!(frame.revision, face.revision);
             hit |= frame.hits.iter().any(|hit| hit.action == action);
             for command in frame.scene.commands() {

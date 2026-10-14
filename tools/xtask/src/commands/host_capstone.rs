@@ -1,10 +1,14 @@
-//! Deterministic PROFILE-built, one-Body presentation capstone.
+//! Deterministic PROFILE-built, one-Body face capstone.
 
 use conduit_body::{AuthenticatedHostObservation, Body, BodyMembership, MembershipProofId, PartId};
 use conduit_core::{
     bind_active_play, resource_offer, ArtifactId, BaseEnforcementClass, BaseImplementationId,
     BaseInstanceId, BaseLifecycle, BaseProviderEntry, BootId, CapabilityId, GearId, HostBaseId,
     HostBaseKindId, HostId, HostProfileId, OfferGeneration, SignId,
+};
+use conduit_face::{
+    renderer_kind_projection, Face, FaceBasis, FaceRole, FaceSubject, FaceText, Manifestation,
+    ManifestationAdmission, ManifestationLifecycle, ManifestationSet,
 };
 use conduit_host_make::{
     bind_runtime_offer, build_default_host_image, check_host_configuration,
@@ -13,11 +17,6 @@ use conduit_host_make::{
 };
 use conduit_planner::{plan, PlacementChoice, PlacementChoices};
 use conduit_plot::{parse, ProfileCatalog};
-use conduit_presentation::{
-    renderer_kind_projection, Manifestation, ManifestationAdmission, ManifestationLifecycle,
-    ManifestationSet, Presentation, PresentationBasis, PresentationRole, PresentationSubject,
-    PresentationText,
-};
 use std::collections::BTreeMap;
 
 #[path = "host_capstone_receipt.rs"]
@@ -34,7 +33,7 @@ mod manifestations;
 use manifestations::{identity_refusals, manifestation_for, mark_replaced};
 
 const PLOT_SOURCE: &str =
-    "plot shared-front {\n    native: presentation/renderer\n    browser: presentation/renderer\n}\n";
+    "plot shared-front {\n    native: face/renderer(\"Body view\")\n    browser: face/renderer(\"Body view\")\n}\n";
 const NATIVE_PROFILE: &str =
     include_str!("../../../../targets/conduitos/profiles/conduitos-native.host.conduit");
 const BROWSER_PROFILE: &str =
@@ -57,14 +56,14 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         "conduitos/native@1",
         "presenter/native-graphical@1",
         &native.image.manifest.image_id,
-        "presentation/base/native-compositor@1",
+        "face/base/native-compositor@1",
     );
     let browser_offer = presenter_offer(
         "presenter/browser",
         "browser/dom-svg@1",
         "presenter/browser-dom-svg@1",
         &browser.image.manifest.image_id,
-        "presentation/base/dom-svg@1",
+        "face/base/dom-svg@1",
     );
     let native_bound = bind_profile(
         &native,
@@ -149,7 +148,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
     };
     let accepted_plan = plan(&plot, &advertisements, &choices, &[]).map_err(debug_error)?;
     let admission = ManifestationAdmission::from_plan(&accepted_plan).map_err(debug_error)?;
-    let initial = presentation(
+    let initial = face(
         &plot,
         &body,
         &wake.wake_id,
@@ -162,14 +161,14 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
 
     let membership_before_refusals = membership.clone();
     let plan_before_refusals = accepted_plan.clone();
-    let presentation_before_refusals = initial.clone();
+    let face_before_refusals = initial.clone();
     let headless_graphical_placement = headless_placement_refuses(&plot, &advertisements);
     let (stale_boot, stale_generation, cross_wired_manifestation) =
         identity_refusals(&initial, &accepted_plan, &initial_manifestations);
     require(
         membership == membership_before_refusals
             && accepted_plan == plan_before_refusals
-            && initial == presentation_before_refusals,
+            && initial == face_before_refusals,
         "negative demonstrations mutated accepted truth",
     )?;
 
@@ -184,7 +183,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         "semantic interaction did not originate through the accepted native Manifestation",
     )?;
     let interaction_manifestation_id = interaction_manifestation.manifestation_id.as_str().into();
-    let revised = presentation(
+    let revised = face(
         &plot,
         &body,
         &wake.wake_id,
@@ -204,7 +203,7 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         revised_manifestations
             .manifestations
             .iter()
-            .all(|item| item.presentation_id == revised.identity),
+            .all(|item| item.face_id == revised.identity),
         "a Presenter did not independently consume revised Body truth",
     )?;
     let native_manifestation =
@@ -235,10 +234,10 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
         membership,
         part_ids,
         plan: accepted_plan,
-        initial_presentation: initial.clone(),
+        initial_face: initial.clone(),
         initial_manifestations,
         replaced_manifestations,
-        revised_presentation: revised.clone(),
+        revised_face: revised.clone(),
         revised_manifestations,
         update: UpdateEvidence {
             source: "manifestation-semantic-action-to-body-truth",
@@ -246,8 +245,8 @@ pub fn prove(source_identity: &str) -> Result<CapstoneReceipt, Box<dyn std::erro
             semantic_subject: "front/main".into(),
             semantic_action: "engage".into(),
             sign_id: SignId::from("capstone/body-truth/2"),
-            prior_presentation_id: initial.identity.as_str().into(),
-            revised_presentation_id: revised.identity.as_str().into(),
+            prior_face_id: initial.identity.as_str().into(),
+            revised_face_id: revised.identity.as_str().into(),
             native_manifestation_id,
             browser_manifestation_id,
         },
@@ -319,7 +318,7 @@ fn bind_profile(
             capabilities: vec![presenter],
             resources: vec![resource_offer(
                 &format!("{host}/surface"),
-                "presentation/surface",
+                "face/surface",
                 1,
             )],
         })
@@ -397,7 +396,7 @@ fn admit_hosts(
     Ok((membership, part_ids))
 }
 
-fn presentation(
+fn face(
     plot: &conduit_plot::CheckedPlot,
     body: &Body,
     wake_id: &conduit_body::WakeId,
@@ -405,10 +404,10 @@ fn presentation(
     revision: u64,
     text: &str,
     sign: &str,
-) -> Result<Presentation, Box<dyn std::error::Error>> {
-    Presentation::new(
+) -> Result<Face, Box<dyn std::error::Error>> {
+    Face::new(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id.clone()),
             wake_id: Some(wake_id.clone()),
             source_document_id: Some(plot.source_document_id.clone()),
@@ -418,14 +417,14 @@ fn presentation(
             active_play_id: None,
             sign_ids: vec![SignId::from(sign)],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "front/main".into(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: "One shared semantic Front".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "front/main".into(),
             text: text.into(),
         }],
@@ -434,7 +433,7 @@ fn presentation(
 }
 
 fn realize(
-    presentation: &Presentation,
+    face: &Face,
     plan: &conduit_core::Plan,
     admission: &ManifestationAdmission,
     phase: &str,
@@ -443,7 +442,7 @@ fn realize(
     for fragment in &plan.fragments {
         for placement in &fragment.placements {
             let prepared = Manifestation::prepared(
-                presentation,
+                face,
                 plan,
                 bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 1),
                 placement.placement_id.clone(),
@@ -468,7 +467,7 @@ fn realize(
             );
         }
     }
-    ManifestationSet::new(presentation, manifestations, plan, admission).map_err(debug_error)
+    ManifestationSet::new(face, manifestations, plan, admission).map_err(debug_error)
 }
 
 fn headless_placement_refuses(

@@ -83,9 +83,9 @@ fn workspace_routes_have_only_bounded_geometry_and_strict_nested_fields() {
 
 #[test]
 fn workspace_migration_maps_only_exact_legacy_subjects_and_drops_selection() {
-    let legacy: LegacyFlowPresentation = serde_json::from_str(
+    let legacy: LegacyFlowFace = serde_json::from_str(
         r#"{
-        "schema":"conduit.patchbay.flow-presentation/v1",
+        "schema":"conduit.patchbay.flow-face/v1",
         "workspaceIdentity":"exact/workspace",
         "nodes":[{"id":"renderer/wrapper","position":{"x":-1.9,"y":2.8},"selected":true}],
         "viewport":{"x":0,"y":0,"zoom":1}

@@ -1,7 +1,7 @@
 //! Kernel Back for the distributed toggle browser sink.
 //!
 //! `ToggleShowBack` awaits canonical Boolean values over the remote cord
-//! and drives `presentation/bool` through the browser kernel.
+//! and drives `face/bool` through the browser kernel.
 
 use conduit_core::BOOL_ENCODED_LEN;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};

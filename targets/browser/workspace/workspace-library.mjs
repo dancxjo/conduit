@@ -1,18 +1,18 @@
-// Host realization of the shared portable plot library presentation.
+// Host realization of the shared portable plot library face.
 const decoder = new TextDecoder('utf-8', { fatal: true });
 
-export function openWorkspaceLibrary({ panel, session, source, inventory, planningLines, presentationFor, onUse, onRemove, onClose, onFailure }) {
-  const presentation = presentationFor(panel);
+export function openWorkspaceLibrary({ panel, session, source, inventory, planningLines, faceFor, onUse, onRemove, onClose, onFailure }) {
+  const face = faceFor(panel);
   let revision = 0, query = '', busy = false;
   const heading = panel.querySelector('h2');
   const render = () => {
     if (panel.hidden) return;
-    if (revision === 0xffff_ffff) throw new Error('Plot chooser presentation revision exhausted');
+    if (revision === 0xffff_ffff) throw new Error('Plot chooser face revision exhausted');
     const currentRevision = ++revision;
     const workloadRevision = session.current().workload_revision;
     const view = session.libraryView(source, query, currentRevision, planningLines());
-    presentation.present('workspace-plot-library', view, { onEvent(event) {
-      presentation.nextEvent('workspace-plot-library');
+    face.present('workspace-plot-library', view, { onEvent(event) {
+      face.nextEvent('workspace-plot-library');
       if (busy) return;
       try {
         if (event.revision !== revision) throw new Error('This plot chooser is stale');

@@ -1,4 +1,4 @@
-//! Revisioned canonical Plot source and a presentation-only checked graph.
+//! Revisioned canonical Plot source and a face-only checked graph.
 
 use conduit_plot::{
     BackStatement, CheckedCordStage, CheckedSyntaxDocument, PlotSyntax, Span, StartupCatalog,

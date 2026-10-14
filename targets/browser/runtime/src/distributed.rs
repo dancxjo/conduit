@@ -1,11 +1,10 @@
 //! Browser/WASM sink half of the distributed Signal realization.
 
 use super::{
-    map_scheduler_error, write_common_frame, write_presentation_completion_frame,
-    write_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
-    PORTS,
+    map_scheduler_error, write_common_frame, write_face_completion_frame, write_face_frame,
+    FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS, PORTS,
 };
-use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId, HostId, PlanFragment};
+use conduit_core::{bind_active_play, bind_face, bind_sign, BootId, HostId, PlanFragment};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
     StepInputBytes, StepIo, StepOutcome,
@@ -37,7 +36,7 @@ const ERROR_NOT_STARTED: i32 = -101;
 const ERROR_PREPARE: i32 = -102;
 const ERROR_SESSION: i32 = -103;
 const ERROR_KERNEL: i32 = -104;
-const ERROR_PRESENTATION: i32 = -105;
+const ERROR_FACE: i32 = -105;
 const ERROR_CANCELLED: i32 = -106;
 const ERROR_SIGN: i32 = -107;
 const ERROR_CAPACITY: i32 = -108;
@@ -264,7 +263,7 @@ impl DistributedSink {
                 .map_err(|_| ERROR_PREPARE)?;
             let signal = conduit_signal::Signal::new(index % 2 == 1, index as u64)
                 .expect("fixture Signal fields are valid");
-            let presentation = bind_presentation(
+            let face = bind_face(
                 &active_play.active_play_id,
                 &placement.placement_id,
                 index as u64,
@@ -276,20 +275,15 @@ impl DistributedSink {
                 index as u64,
             );
             identity
-                .bind_presentation(&lowered.identity, show_node, request, &presentation)
+                .bind_face(&lowered.identity, show_node, request, &face)
                 .map_err(|_| ERROR_PREPARE)?;
             identity
-                .bind_sign(
-                    &sign,
-                    Some(show_node),
-                    Some(request),
-                    Some(&presentation.presentation_id),
-                )
+                .bind_sign(&sign, Some(show_node), Some(request), Some(&face.face_id))
                 .map_err(|_| ERROR_PREPARE)?;
             projections.push(PreparedProjection {
                 node: show_node,
                 signal,
-                presentation,
+                face,
                 sign,
             });
         }
@@ -496,7 +490,7 @@ impl DistributedSink {
         self.clear_output();
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                return self.prepare_presentation(request);
+                return self.prepare_face(request);
             }
             match self.scheduler.step() {
                 Ok(SchedulerStatus::Progress { .. }) => {}
@@ -539,26 +533,23 @@ impl DistributedSink {
         }
     }
 
-    fn prepare_presentation(&mut self, request: HostCallRequest) -> Result<(), i32> {
-        let projection = self
-            .projections
-            .get(self.receipts)
-            .ok_or(ERROR_PRESENTATION)?;
+    fn prepare_face(&mut self, request: HostCallRequest) -> Result<(), i32> {
+        let projection = self.projections.get(self.receipts).ok_or(ERROR_FACE)?;
         let request_identity = self
             .identity
             .request(request.node, request.request)
-            .ok_or(ERROR_PRESENTATION)?;
+            .ok_or(ERROR_FACE)?;
         let placement = &self.fragment.placements[0];
         let input = self
             .scheduler
             .host_value(request.input.value)
             .map_err(|_| ERROR_KERNEL)?;
-        let signal = decode_signal_bytes(input).map_err(|_| ERROR_PRESENTATION)?;
+        let signal = decode_signal_bytes(input).map_err(|_| ERROR_FACE)?;
         if projection.node != request.node
             || projection.signal != signal
             || request_identity.call != request.call
         {
-            return Err(ERROR_PRESENTATION);
+            return Err(ERROR_FACE);
         }
         let active_play_id = self.binding.sink_active_play_id.clone();
         let mut output = FrameWriter::new(&mut self.output);
@@ -572,7 +563,7 @@ impl DistributedSink {
             &placement.placement_id,
         )?;
         write_remote_identity_frame(&mut output, &self.binding)?;
-        write_presentation_frame(&mut output, projection, input)?;
+        write_face_frame(&mut output, projection, input)?;
         self.output_len = output.len();
         let mut expected = FrameWriter::new(&mut self.expected_completion);
         write_common_frame(
@@ -585,25 +576,25 @@ impl DistributedSink {
             &placement.placement_id,
         )?;
         write_remote_identity_frame(&mut expected, &self.binding)?;
-        write_presentation_completion_frame(&mut expected, projection, input)?;
+        write_face_completion_frame(&mut expected, projection, input)?;
         self.expected_completion_len = expected.len();
         self.current = Some((request, self.receipts));
         self.output_kind = OUTPUT_PRESENT;
         Ok(())
     }
 
-    fn complete_presentation(&mut self, completion: &[u8]) -> Result<(), i32> {
-        let (request, projection) = self.current.take().ok_or(ERROR_PRESENTATION)?;
+    fn complete_face(&mut self, completion: &[u8]) -> Result<(), i32> {
+        let (request, projection) = self.current.take().ok_or(ERROR_FACE)?;
         if completion.len() != self.expected_completion_len + 1
             || completion[..self.expected_completion_len]
                 != self.expected_completion[..self.expected_completion_len]
         {
-            return self.fail_session(31, ERROR_PRESENTATION);
+            return self.fail_session(31, ERROR_FACE);
         }
         let success = match completion[self.expected_completion_len] {
             0 => false,
             1 => true,
-            _ => return self.fail_session(33, ERROR_PRESENTATION),
+            _ => return self.fail_session(33, ERROR_FACE),
         };
         if !success || projection != self.receipts {
             self.scheduler
@@ -620,7 +611,7 @@ impl DistributedSink {
                     },
                 )
                 .map_err(|_| ERROR_KERNEL)?;
-            return self.fail_session(32, ERROR_PRESENTATION);
+            return self.fail_session(32, ERROR_FACE);
         }
         self.scheduler
             .complete_host_call(

@@ -1,5 +1,5 @@
 //! Shared bounded chooser geometry for painting, scrolling and hit testing.
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 pub(super) fn row(bounds: LayoutRect, index: usize, scroll: u16) -> LayoutRect {
     let height = bounds

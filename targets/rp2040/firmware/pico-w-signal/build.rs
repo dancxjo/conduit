@@ -4,8 +4,8 @@ use std::fs;
 use std::path::{Path, PathBuf};
 
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, BaseImplementationId, BootId, HostId,
-    PlacementId, PlanId,
+    bind_active_play, bind_face, bind_sign, BaseImplementationId, BootId, HostId, PlacementId,
+    PlanId,
 };
 use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds, GeneratedEmbeddedPlan};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
@@ -24,8 +24,10 @@ use firmware_mode::firmware_mode;
 mod r1_control_images;
 
 const SIGNAL_DEMO_FORM: &str = include_str!("../../../../proof/fixtures/plots/signal-demo.conduit");
-const R1_CONTROL_FORM: &str = include_str!("../../../../proof/fixtures/plots/r1-three-peer-control.conduit");
-const TRIPLE_SIGNAL_FORM: &str = include_str!("../../../../proof/fixtures/plots/triple-signal.conduit");
+const R1_CONTROL_FORM: &str =
+    include_str!("../../../../proof/fixtures/plots/r1-three-peer-control.conduit");
+const TRIPLE_SIGNAL_FORM: &str =
+    include_str!("../../../../proof/fixtures/plots/triple-signal.conduit");
 const IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_SIDECAR";
 const IDENTITY_SIDECAR_RERUN_ENV: &str = "CONDUIT_PICO_SIGNAL_IDENTITY_RERUN";
 const APPLIANCE_IDENTITY_SIDECAR_ENV: &str = "CONDUIT_PICO_APPLIANCE_IDENTITY_SIDECAR";
@@ -44,16 +46,21 @@ fn main() {
     println!("cargo:rerun-if-env-changed=CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR");
     if firmware_mode() == "indicator-resource" {
         if let Some(path) = env::var_os("CONDUIT_PICO_INDICATOR_IDENTITY_SIDECAR") {
-            fs::write(path, serde_json::to_vec_pretty(&serde_json::json!({
-                "schema": "conduit.pico-indicator/image@1",
-                "firmware_mode": "indicator-resource",
-                "firmware_build_id": appliance_build_id,
-                "git_revision": git_revision(),
-                "tree_state": git_tree_state(),
-                "target": env::var("TARGET").unwrap(),
-                "profile": env::var("PROFILE").unwrap(),
-                "conduit_plan_claimed": false,
-            })).unwrap()).expect("indicator build identity must be writable");
+            fs::write(
+                path,
+                serde_json::to_vec_pretty(&serde_json::json!({
+                    "schema": "conduit.pico-indicator/image@1",
+                    "firmware_mode": "indicator-resource",
+                    "firmware_build_id": appliance_build_id,
+                    "git_revision": git_revision(),
+                    "tree_state": git_tree_state(),
+                    "target": env::var("TARGET").unwrap(),
+                    "profile": env::var("PROFILE").unwrap(),
+                    "conduit_plan_claimed": false,
+                }))
+                .unwrap(),
+            )
+            .expect("indicator build identity must be writable");
         }
     }
     println!(
@@ -154,8 +161,8 @@ fn generate_pico_lenia_image(out: &Path) {
         "boot_id": generated.boot_id,
         "active_play_id": active_play.active_play_id.as_str(),
         "boot_sign_id": bind_sign(&fragment.host_id, &fragment.boot_id, None, 0).sign_id.as_str(),
-        "presentation_ids": [],
-        "presentation_sign_ids": [],
+        "face_ids": [],
+        "face_sign_ids": [],
         "terminal_sign_id": bind_sign(&fragment.host_id, &fragment.boot_id, Some(&active_play.active_play_id), 0).sign_id.as_str(),
         "offer_generation": generated.offer_generation,
         "nodes": generated.nodes.len(),
@@ -476,8 +483,8 @@ fn generate_pico_network_image(out: &Path) {
         expanded_plot_id: fragment.expanded_plot_id.as_str().to_owned(),
         active_play_id: active_play.active_play_id.as_str().to_owned(),
         boot_sign_id: boot_sign.sign_id.as_str().to_owned(),
-        presentation_ids: Vec::new(),
-        presentation_sign_ids: Vec::new(),
+        face_ids: Vec::new(),
+        face_sign_ids: Vec::new(),
         terminal_sign_id: attachment_sign.sign_id.as_str().to_owned(),
     };
     let mut module = generated.render_no_alloc_firmware_module();
@@ -619,8 +626,8 @@ struct GeneratedFirmwareIdentity {
     expanded_plot_id: String,
     active_play_id: String,
     boot_sign_id: String,
-    presentation_ids: Vec<String>,
-    presentation_sign_ids: Vec<String>,
+    face_ids: Vec<String>,
+    face_sign_ids: Vec<String>,
     terminal_sign_id: String,
 }
 
@@ -632,15 +639,15 @@ impl GeneratedFirmwareIdentity {
         let active_play = bind_active_play(&plan_id, &host_id, &boot_id, 0);
         let show_placement = show_placement_id(generated);
 
-        let presentation_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
+        let face_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
             .map(|sequence| {
-                bind_presentation(&active_play.active_play_id, &show_placement, sequence)
-                    .presentation_id
+                bind_face(&active_play.active_play_id, &show_placement, sequence)
+                    .face_id
                     .as_str()
                     .to_owned()
             })
             .collect();
-        let presentation_sign_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
+        let face_sign_ids = (0..MAX_STORED_SIGNAL_VALUES as u64)
             .map(|sequence| {
                 bind_sign(
                     &host_id,
@@ -676,8 +683,8 @@ impl GeneratedFirmwareIdentity {
             expanded_plot_id: plot.expanded_plot_id.as_str().to_owned(),
             active_play_id: active_play.active_play_id.as_str().to_owned(),
             boot_sign_id,
-            presentation_ids,
-            presentation_sign_ids,
+            face_ids,
+            face_sign_ids,
             terminal_sign_id,
         }
     }
@@ -745,12 +752,8 @@ fn render_identity_constants(module: &mut String, identity: &GeneratedFirmwareId
     render_string_constant(module, "ACTIVE_PLAY_ID", &identity.active_play_id);
     render_string_constant(module, "BOOT_SIGN_ID", &identity.boot_sign_id);
     render_string_constant(module, "TERMINAL_SIGN_ID", &identity.terminal_sign_id);
-    render_string_array(module, "PRESENTATION_IDS", &identity.presentation_ids);
-    render_string_array(
-        module,
-        "PRESENTATION_SIGN_IDS",
-        &identity.presentation_sign_ids,
-    );
+    render_string_array(module, "FACE_IDS", &identity.face_ids);
+    render_string_array(module, "FACE_SIGN_IDS", &identity.face_sign_ids);
 }
 
 fn render_string_constant(module: &mut String, name: &str, value: &str) {
@@ -775,7 +778,7 @@ fn pico_signal_bounds() -> EmbeddedImageBounds {
         maximum_host_calls: 2,
         maximum_resources: 2,
         maximum_sign_expectations: 8,
-        maximum_configuration_entries: 3,
+        maximum_configuration_entries: 4,
         maximum_ports_per_node:
             conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 2,

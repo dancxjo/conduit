@@ -328,7 +328,7 @@ fn duplicate_connect_and_remove_are_atomic_canonical_plot_edits() {
         .place_palette_kind(0, &conduit_core::kind_id("text/upper"))
         .unwrap();
     editor
-        .place_palette_kind(1, &conduit_core::kind_id("presentation/text"))
+        .place_palette_kind_with_label(1, &conduit_core::kind_id("face/text"), Some("Greeting"))
         .unwrap();
     assert_eq!(editor.duplicate_gear(2, "literal").unwrap(), "literal-2");
 
@@ -408,7 +408,7 @@ fn duplicate_connect_and_remove_are_atomic_canonical_plot_edits() {
 fn incompatible_duplicate_and_stale_composition_edits_preserve_source() {
     let mut editor = PlotEditor::from_source(
         PathBuf::from("compose.conduit"),
-        "plot compose {\n    count: state/count(0)\n    show: presentation/text\n}\n".into(),
+        "plot compose {\n    count: state/count(0)\n    show: face/text(\"Message\")\n}\n".into(),
     )
     .unwrap();
     let graph = PatchbayGraph::from_expanded(&editor.expand_plot("compose").unwrap()).unwrap();

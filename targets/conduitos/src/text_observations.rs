@@ -5,7 +5,7 @@ use crate::composition::MachineRunError;
 pub struct TextObservations {
     pub upper_input: ObservedText,
     pub upper_output: ObservedText,
-    pub presentation_input: ObservedText,
+    pub face_input: ObservedText,
 }
 
 #[derive(Clone, Debug, Eq, PartialEq)]

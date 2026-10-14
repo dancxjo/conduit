@@ -3,9 +3,9 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    presentation_bytes_are_motion_free, presentation_lights, require_provider, CreateUartProvider,
-    PRESENTATION_FULL, PRESENTATION_LIGHTS_OFF, PRESENTATION_LIGHT_STEPS,
-    PRESENTATION_LIGHT_STEP_MS, PRESENTATION_SAFE, PRESENTATION_START,
+    face_bytes_are_motion_free, face_lights, require_provider, CreateUartProvider,
+    FACE_FULL, FACE_LIGHTS_OFF, FACE_LIGHT_STEPS,
+    FACE_LIGHT_STEP_MS, FACE_SAFE, FACE_START,
 };
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Instant, Timer};
@@ -35,7 +35,7 @@ fn reset_report() {
 }
 
 fn write_exact(provider: &mut Provider, bytes: &[u8]) -> bool {
-    presentation_bytes_are_motion_free(bytes)
+    face_bytes_are_motion_free(bytes)
         && !bytes.contains(&140)
         && !bytes.contains(&141)
         && require_provider(provider).is_ok()
@@ -117,11 +117,11 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     create_play::set_state(create_play::RequestState::Active);
 
     let mut completed =
-        create_link_gate::authorized() && write_exact(provider, &PRESENTATION_START);
+        create_link_gate::authorized() && write_exact(provider, &FACE_START);
     START_SENT.store(completed, Ordering::Release);
     if completed {
         watchdog_delay(watchdog, START_SETTLE_MS).await;
-        completed = create_link_gate::authorized() && write_exact(provider, &PRESENTATION_FULL);
+        completed = create_link_gate::authorized() && write_exact(provider, &FACE_FULL);
         FULL_SENT.store(completed, Ordering::Release);
     }
     if completed {
@@ -129,23 +129,23 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     }
 
     let mut step = 0;
-    while completed && step < PRESENTATION_LIGHT_STEPS {
-        completed = write_exact(provider, &presentation_lights(step));
+    while completed && step < FACE_LIGHT_STEPS {
+        completed = write_exact(provider, &face_lights(step));
         if completed {
             LIGHT_STEPS.fetch_add(1, Ordering::AcqRel);
-            watchdog_delay(watchdog, PRESENTATION_LIGHT_STEP_MS).await;
+            watchdog_delay(watchdog, FACE_LIGHT_STEP_MS).await;
         }
         step += 1;
     }
 
-    let lights_off = write_exact(provider, &PRESENTATION_LIGHTS_OFF);
+    let lights_off = write_exact(provider, &FACE_LIGHTS_OFF);
     LIGHTS_OFF_SENT.store(lights_off, Ordering::Release);
-    let safe = write_exact(provider, &PRESENTATION_SAFE);
+    let safe = write_exact(provider, &FACE_SAFE);
     SAFE_SENT.store(safe, Ordering::Release);
     watchdog_delay(watchdog, START_SETTLE_MS).await;
 
     completed
-        && LIGHT_STEPS.load(Ordering::Acquire) == PRESENTATION_LIGHT_STEPS
+        && LIGHT_STEPS.load(Ordering::Acquire) == FACE_LIGHT_STEPS
         && lights_off
         && safe
 }

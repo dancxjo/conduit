@@ -4,7 +4,7 @@ use conduit_body::{BodyLifecycleEvent, BodyState, MembershipEventKind, Membershi
 
 const SEED: &str = r#"plot hello_across {
     message: text/literal("hello across one planned Cord")
-    show: presentation/text
+    show: face/text("Message")
     message >> show
 }"#;
 

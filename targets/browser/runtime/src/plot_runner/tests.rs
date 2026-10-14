@@ -5,7 +5,7 @@ const MAXIMUM_EFFECT_DRIVE_STEPS: usize = crate::installed_browser::BROWSER_ROUT
 const HELLO_LIGHT: &str = r#"plot hello-light {
     message: text/literal("SOS")
     morse: text/morse(120)
-    light: presentation/indicator
+    light: face/indicator("Light signal")
 
     message >> morse >> light
 }.
@@ -120,7 +120,7 @@ fn canonical_button_plot_runs_press_and_release_without_device_identity() {
         else {
             unreachable!()
         };
-        assert_eq!(output.presentation_kind, "presentation/indicator-state");
+        assert_eq!(output.face_kind, "face/indicator-state");
         assert_eq!(
             output.text.as_deref(),
             Some(if pressed { "true" } else { "false" })
@@ -288,7 +288,7 @@ fn memory_lantern_retains_edits_and_backspace_in_one_play() {
             .position(|pending| {
                 matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_))
             })
-            .expect("each edit must update the retained presentation");
+            .expect("each edit must update the retained face");
         let TourHostEffect::Manifestation(output) =
             session.project_pending_effect(output_index).unwrap()
         else {
@@ -408,7 +408,7 @@ fn four_gear_text_plot_runs_without_a_topology_special_case() {
     source: text/literal("hello")
     prefix: text/join("say: ")
     upper: text/upper
-    result: presentation/text
+    result: face/text("Message")
 
     source >> prefix >> upper >> result
 }.
@@ -429,7 +429,7 @@ fn explicit_record_temporal_boundary_runs_the_bounded_queue() {
     queue: record/ordered-send-queue(4, 4096)
     deframe: record/deframe-typed
     decode: record/typed-to-text
-    show: presentation/text
+    show: face/text("Message")
 
     message.text >> encode.text
     encode.record >> frame.record
@@ -450,7 +450,7 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
     let source = r#"plot language-lab {
     tokens: language/tokenize-four(material = { identity: "text/linguistic-specimen", language: "language/english", revision: "source/1", text: "Bright stars shine." })
     annotate: language/annotate-four(language-request = { language: "language/english", variety: none(empty), variety_policy: language_sufficient(empty) })
-    result: presentation/structured-info
+    result: face/structured-info("Observation")
 
     tokens >> annotate >> result
 }.
@@ -463,8 +463,8 @@ fn linguistic_structured_info_runs_through_the_same_browser_envelope() {
         .as_deref()
         .is_some_and(|text| text.starts_with("4 linguistic annotations")));
     assert_eq!(
-        effect.presentation_kind,
-        conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
+        effect.face_kind,
+        conduit_semantic_catalog::STRUCTURED_FACE_KIND
     );
     assert_eq!(session.complete().unwrap().disposition, "completed");
 }
@@ -474,7 +474,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
     let math = r#"plot math-lab {
     source: scalar/literal(1.5)
     scale: math/scale(2.0)
-    result: presentation/scalar
+    result: face/scalar("Result")
     source >> scale >> result
 }.
 "#;
@@ -487,7 +487,7 @@ fn math_and_logic_families_use_the_same_generic_host_path() {
     let logic = r#"plot logic-lab {
     source: boolean/literal(true)
     invert: logic/not
-    result: presentation/bool-value
+    result: face/bool-value("Result")
     source >> invert >> result
 }.
 "#;
@@ -505,7 +505,7 @@ fn typed_fanout_reconverges_without_tour_topology_code() {
     scaled: math/scale(2.0)
     quiet: math/deadband(0.6)
     compare: logic/compare("gt")
-    result: presentation/bool-value
+    result: face/bool-value("Result")
 
     source >> scaled >> compare.left
     source >> quiet >> compare.right
@@ -524,7 +524,7 @@ fn typed_fanout_reconverges_without_tour_topology_code() {
 fn standing_browser_timer_drives_current_count_until_stop_in_one_kernel_play() {
     let source = r#"plot count-over-time {
     count: state/count(start = 0)
-    show: presentation/count
+    show: face/count("Current count")
     clock: time/every(freq = 100ms)
 
     clock.tick >> count.bump
@@ -645,7 +645,7 @@ fn state_time_trace(source: &str) -> (Vec<String>, (u32, u32)) {
 fn pending_browser_timer_cancels_without_becoming_a_completed_tick() {
     let source = r#"plot count-over-time {
     count: state/count(start = 0)
-    show: presentation/count
+    show: face/count("Current count")
     clock: time/every(freq = 100ms)
 
     clock.tick >> count.bump
@@ -722,7 +722,7 @@ fn unchanged_morse_caller_substitutes_direct_and_nested_recursive_realizations()
 fn semantic_kind_without_browser_installation_refuses_before_play() {
     let source = r#"plot missing-installation {
     source: text/literal("hello")
-    result: presentation/text
+    result: face/text("Message")
     unavailable: layout/inset
     source >> result
 }
@@ -742,7 +742,7 @@ fn newly_installed_logic_select_executes_through_the_generic_host() {
     when_false: scalar/literal(1.0)
     when_true: scalar/literal(2.0)
     choose: logic/select
-    show: presentation/scalar
+    show: face/scalar("Result")
     selector.value >> choose.selector
     when_false.value >> choose.when-false
     when_true.value >> choose.when-true
@@ -760,7 +760,7 @@ fn exact_type_mismatch_refuses_before_play_as_source_contract_error() {
     let source = r#"plot wrong-type {
     source: scalar/literal(1.0)
     invert: logic/not
-    result: presentation/bool-value
+    result: face/bool-value("Result")
     source >> invert >> result
 }
 "#;
@@ -776,7 +776,7 @@ fn browser_gear_bound_refuses_before_play() {
     for index in 0..15 {
         source.push_str(&format!(" step{index}: text/upper\n"));
     }
-    source.push_str(" result: presentation/text\n source");
+    source.push_str(" result: face/text(\"Uppercase result\")\n source");
     for index in 0..15 {
         source.push_str(&format!(" >> step{index}"));
     }
@@ -811,7 +811,7 @@ fn browser_cord_bound_refuses_before_play() {
 fn semantic_value_bound_refuses_before_play() {
     let oversized = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize + 1);
     let source = format!(
-        "plot too-much-text {{\n source: text/literal(\"{oversized}\")\n result: presentation/text\n source >> result\n}}\n"
+        "plot too-much-text {{\n source: text/literal(\"{oversized}\")\n result: face/text(\"Message\")\n source >> result\n}}\n"
     );
     let message = TourSession::prepare("browser/tour-test", "browser-boot/tour-test", &source, 15)
         .err()
@@ -845,9 +845,7 @@ fn missing_resource_and_authority_are_distinct_pre_play_refusals() {
     let indicator = without_authority
         .capabilities
         .iter_mut()
-        .find(|offer| {
-            offer.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
-        })
+        .find(|offer| offer.kind_id.as_str() == conduit_semantic_catalog::INDICATOR_FACE_KIND)
         .unwrap();
     indicator.authority_requirements = vec![conduit_core::present_authority_requirement(
         indicator.kind_id.clone(),

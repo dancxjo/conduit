@@ -5,15 +5,13 @@ use crate::flow_activation::{
 use crate::installed_std::body_kernel::QualifiedParsecInstruction;
 use conduit_body::{BodyPlan, BodyPlayIdentity};
 use conduit_core::{ActivePlayIdentity, HostAdvertisement};
+use conduit_face::{ParsecInputInstructionLook, PlannedMaskPlot, PreparedParsecInputInstruction};
 use conduit_kernel::{
     scheduler::{FixedScheduler, HostCallRequest, StepBack},
     BoundedValueRef, HostCallDisposition, HostCallId, HostCallOutcome, NodeId, SignSink, ValueRef,
     ValueStorage,
 };
 use conduit_plan_lowering::lowering::{KernelIdentityMap, LoweredHostCall};
-use conduit_presentation::{
-    ParsecInputInstructionLook, PlannedMaskPlot, PreparedParsecInputInstruction,
-};
 use sha2::{Digest, Sha256};
 
 #[path = "parsec_instruction_source_completion.rs"]

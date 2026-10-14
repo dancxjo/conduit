@@ -37,10 +37,10 @@ pub(super) fn run(plan: &Plan, offer: &HostOffer<'_>) {
         domain.gate_probe(probe, 0);
         let mut serial = arch::Serial::new();
         if domain.present(b"gate-negative", &mut serial) != Err(expected)
-            || serial.presentation_count() != effects
+            || serial.face_count() != effects
             || domain.state_for_probe() != DomainState::Faulted(DomainFault::InvalidGate)
             || domain.present(b"replay", &mut serial).is_ok()
-            || serial.presentation_count() != effects
+            || serial.face_count() != effects
         {
             refuse("gate-negative-mismatch");
         }
@@ -52,7 +52,7 @@ pub(super) fn run(plan: &Plan, offer: &HostOffer<'_>) {
         let mut serial = arch::Serial::new();
         if domain.present(b"stolen", &mut serial)
             != Err(Error::ProtectionCapability(Capability::UnknownHandle))
-            || serial.presentation_count() != 0
+            || serial.face_count() != 0
         {
             refuse("sibling-handle-admitted");
         }
@@ -63,7 +63,7 @@ pub(super) fn run(plan: &Plan, offer: &HostOffer<'_>) {
         if domain.present(b"once", &mut serial).is_err()
             || domain.present(b"twice", &mut serial)
                 != Err(Error::ProtectionCapability(Capability::Exhausted))
-            || serial.presentation_count() != 1
+            || serial.face_count() != 1
         {
             refuse("operation-count-not-enforced");
         }
@@ -84,7 +84,7 @@ pub(super) fn run(plan: &Plan, offer: &HostOffer<'_>) {
         domain.revoke(cause);
         let mut serial = arch::Serial::new();
         if domain.present(b"revoked", &mut serial).is_ok()
-            || serial.presentation_count() != 0
+            || serial.face_count() != 0
             || domain.state_for_probe() != DomainState::Revoked(cause)
         {
             refuse("revoked-domain-operated-base");
@@ -107,10 +107,10 @@ pub(super) fn run(plan: &Plan, offer: &HostOffer<'_>) {
         };
         if domain.present(b"replacement-fixture", &mut serial)
             != Err(Error::ProtectionDomain(DomainRefusal::WrongBinding))
-            || serial.presentation_count() != u32::from(!replace_before)
+            || serial.face_count() != u32::from(!replace_before)
             || domain.state_for_probe() != DomainState::Revoked(Cause::BaseReplaced)
             || domain.present(b"stale", &mut serial).is_ok()
-            || serial.presentation_count() != u32::from(!replace_before)
+            || serial.face_count() != u32::from(!replace_before)
         {
             refuse("provider-replacement-not-fenced");
         }
@@ -123,7 +123,7 @@ impl SerialBase for LostProvider {
     fn present(&mut self, _: &[u8]) -> Result<(), BaseError> {
         Err(BaseError::Unavailable)
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         0
     }
     fn provider_generation(&self) -> Option<u64> {
@@ -143,8 +143,8 @@ impl SerialBase for ReplacedProvider {
         self.generation = 2;
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
-        self.physical.presentation_count()
+    fn face_count(&self) -> u32 {
+        self.physical.face_count()
     }
     fn provider_generation(&self) -> Option<u64> {
         Some(self.generation)

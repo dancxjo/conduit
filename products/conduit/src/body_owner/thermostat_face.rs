@@ -1,8 +1,8 @@
 //! Project only the configured initial Form or output from the current scan.
 use super::Owner;
-use conduit_presentation::{
-    Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceInteraction,
-    FaceNames, FaceResidentPlotName, MaskShow, Presentation, PresentationContributionBasis,
+use conduit_face::{
+    BodyFace, Face, FaceContext, FaceContribution, FaceContributionBasis, FaceContributionRole,
+    FaceFocus, FaceInteraction, FaceNames, FaceResidentPlotName, MaskShow,
 };
 use conduit_thermostat_plot::{Command, ThermostatState};
 
@@ -14,7 +14,7 @@ pub(super) struct ThermostatLive {
 }
 
 impl Owner {
-    pub(super) fn thermostat_basis(&self) -> Result<PresentationContributionBasis, String> {
+    pub(super) fn thermostat_basis(&self) -> Result<FaceContributionBasis, String> {
         if self.resident_name.as_deref() != Some("thermostat/main") {
             return Err("current resident Plot is not Thermostat".into());
         }
@@ -38,7 +38,7 @@ impl Owner {
         {
             return Err("Thermostat resident is absent from the current Plan".into());
         }
-        Ok(PresentationContributionBasis {
+        Ok(FaceContributionBasis {
             checked_plot_id: resident.checked_plot_id.clone(),
             plan_id: realization.plan.plan_id.clone(),
             active_play_id: play.active_play_id.clone(),
@@ -46,10 +46,7 @@ impl Owner {
         })
     }
 
-    pub(super) fn project_thermostat_face(
-        &self,
-        live: &ThermostatLive,
-    ) -> Result<Presentation, String> {
+    pub(super) fn project_thermostat_face(&self, live: &ThermostatLive) -> Result<Face, String> {
         if self.current_play_id() != Some(&live.play) {
             return Err("Thermostat Face cache differs from the current Play".into());
         }
@@ -68,7 +65,7 @@ impl Owner {
             checked_plot_id: &resident.checked_plot_id,
             name: "thermostat/main",
         }];
-        let face = Face::project_with_names(
+        let face = BodyFace::project_with_names(
             &self.session.evidence().body,
             self.session
                 .realization()
@@ -76,7 +73,7 @@ impl Owner {
             live.revision,
             FaceContext::Overview,
             FaceFocus::Body,
-            vec![FaceContribution::from_presentation(
+            vec![FaceContribution::from_face(
                 FaceContributionRole::Foreground,
                 fragment,
             )],
@@ -86,10 +83,10 @@ impl Owner {
             },
         )
         .map_err(|error| format!("owner-thermostat-face-refused:{error:?}"))?;
-        face.presentation
+        face.face
             .validate()
             .map_err(|error| format!("owner-thermostat-face-invalid:{error:?}"))?;
-        Ok(face.presentation)
+        Ok(face.face)
     }
 
     pub(crate) fn resolve_thermostat_interaction(

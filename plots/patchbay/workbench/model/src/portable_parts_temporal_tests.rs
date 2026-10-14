@@ -3,16 +3,16 @@ use conduit_body::{
     HostPresenceClockScale, HostPresenceTable, MembershipProofId, PartId,
 };
 use conduit_core::{BootId, HostId, LinkBindingId, OfferGeneration, SignId};
-use conduit_presentation::{
-    render_linear_presentation, PresentationError, PresentationTemporalRole, TemporalInstant,
-    TemporalReference, TemporalRelation, TemporalScale,
+use conduit_face::{
+    render_linear_face, FaceError, FaceTemporalRole, TemporalInstant, TemporalReference,
+    TemporalRelation, TemporalScale,
 };
 use patchbay_application::PartsView;
 
-use crate::{PatchbayPresentation, PlotEditor, PortableProjectionError};
+use crate::{PatchbayFace, PlotEditor, PortableProjectionError};
 
 fn fixture() -> (
-    PatchbayPresentation,
+    PatchbayFace,
     Body,
     conduit_body::Wake,
     BodyMembership,
@@ -36,8 +36,7 @@ fn fixture() -> (
     let (body, wake) = body
         .wake(2, SignId::from("sign/parts-temporal/woke"))
         .unwrap();
-    let projection =
-        PatchbayPresentation::new(2, editor.view(), None, None, None, Vec::new()).unwrap();
+    let projection = PatchbayFace::new(2, editor.view(), None, None, None, Vec::new()).unwrap();
     let mut membership = BodyMembership::new(body.body_id.clone()).unwrap();
     let part_id = PartId::bind(&body.body_id, "browser", 0).unwrap();
     let proof_id = MembershipProofId::bind("proof/parts-temporal/browser").unwrap();
@@ -142,7 +141,7 @@ fn explicit_reference_attaches_exact_signed_observation_and_recomputes_relation(
     assert_eq!(first.temporal_facts.len(), 1);
     let fact = &first.temporal_facts[0];
     assert_eq!(fact.subject, format!("part/{}", part_id.as_str()));
-    assert_eq!(fact.role, PresentationTemporalRole::Observation);
+    assert_eq!(fact.role, FaceTemporalRole::Observation);
     assert_eq!(
         fact.sign_id,
         Some(SignId::from("sign/parts-temporal/renewed"))
@@ -229,7 +228,7 @@ fn explicit_reference_attaches_exact_signed_observation_and_recomputes_relation(
         present.temporal_facts[0].relation,
         TemporalRelation::Present
     );
-    let linear = render_linear_presentation(&first).unwrap();
+    let linear = render_linear_face(&first).unwrap();
     assert!(linear.lines.iter().any(|line| {
         line.starts_with("TEMPORAL_FACT ")
             && line.contains(&format!("subject=\"part/{}\"", part_id.as_str()))
@@ -267,8 +266,8 @@ fn missing_presence_stays_legacy_exact_and_invalid_relations_fail_closed() {
             &parts,
             wrong_basis,
         ),
-        Err(PortableProjectionError::InvalidPresentation(
-            PresentationError::IncomparableTemporalInstants,
+        Err(PortableProjectionError::InvalidFace(
+            FaceError::IncomparableTemporalInstants,
         ))
     );
 
@@ -281,8 +280,8 @@ fn missing_presence_stays_legacy_exact_and_invalid_relations_fail_closed() {
             &parts,
             wrong_scale,
         ),
-        Err(PortableProjectionError::InvalidPresentation(
-            PresentationError::IncomparableTemporalInstants,
+        Err(PortableProjectionError::InvalidFace(
+            FaceError::IncomparableTemporalInstants,
         ))
     );
 
@@ -295,8 +294,8 @@ fn missing_presence_stays_legacy_exact_and_invalid_relations_fail_closed() {
             &partial,
             reference("reference/partial", 3_000),
         ),
-        Err(PortableProjectionError::InvalidPresentation(
-            PresentationError::InvalidTemporalInstant,
+        Err(PortableProjectionError::InvalidFace(
+            FaceError::InvalidTemporalInstant,
         ))
     );
 
@@ -314,8 +313,8 @@ fn missing_presence_stays_legacy_exact_and_invalid_relations_fail_closed() {
             &overflowing,
             reference("reference/overflow", 3_000),
         ),
-        Err(PortableProjectionError::InvalidPresentation(
-            PresentationError::TemporalIntervalOverflow,
+        Err(PortableProjectionError::InvalidFace(
+            FaceError::TemporalIntervalOverflow,
         ))
     );
 }

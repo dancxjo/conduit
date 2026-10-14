@@ -1,13 +1,13 @@
-//! The installed owner seals a presentation route independently of its
+//! The installed owner seals a face route independently of its
 //! workload Wake. A lulled Body remains able to disclose its current actions.
 
 use super::Owner;
-use conduit_presentation::{LocalOwnerMaskRouteSeal, MaskShow, Presentation};
+use conduit_face::{Face, LocalOwnerMaskRouteSeal, MaskShow};
 
 impl Owner {
     pub(crate) fn seal_attached_terminal_route(
         &self,
-    ) -> Result<(Presentation, LocalOwnerMaskRouteSeal), String> {
+    ) -> Result<(Face, LocalOwnerMaskRouteSeal), String> {
         let face = self.local_face_snapshot()?;
         let planned = self.host.prepare_terminal_mask_execution()?;
         let seal = LocalOwnerMaskRouteSeal::seal_lulled(
