@@ -22,6 +22,23 @@ fn ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody() -> Result
             assert_eq!(value.sequence, index as u64);
             assert_eq!(value.value_kind, conduit_core::kind_id("value/u64"));
         }
+        for bytes in [vec![0, 1], u64::MAX.to_le_bytes().to_vec()] {
+            let mut invalid = prepared.inputs[..1].to_vec();
+            invalid[0].bytes = bytes;
+            let mut refused_outputs = Collector::new();
+            assert!(native(&invalid, &mut Vec::new()).is_err());
+            assert!(prepared
+                .host
+                .run_external_plot_sequence_to(
+                    prepared.plan.fragments[0].clone(),
+                    &invalid,
+                    &mut refused_outputs,
+                    &mut std::io::sink(),
+                    &mut NoTimer,
+                )
+                .is_err());
+            assert!(refused_outputs.values.is_empty());
+        }
         let mut native_outputs = Vec::with_capacity(64);
         native(&prepared.inputs, &mut native_outputs)?;
         let ordered_native = native_outputs.iter().flatten().copied().collect::<Vec<_>>();

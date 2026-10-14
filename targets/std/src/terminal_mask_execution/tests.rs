@@ -277,3 +277,66 @@ fn oversized_face_refuses_before_admitting_a_play() {
     ));
     assert!(!execution.has_pending_play());
 }
+
+#[test]
+fn compact_and_spacious_presentations_return_one_unchanged_face_action() {
+    use crate::terminal_face_mask::{TerminalInput, TerminalInputOutcome};
+    let base = face(9);
+    let face = Face::new_with_semantics(
+        base.revision, base.basis, base.subjects, base.relationships, base.properties,
+        vec![FaceText { subject: "clock".into(), text: "Ready to start this useful clock with the same current action in either presentation.".into() }],
+        base.actions, base.disclosures,
+    ).unwrap();
+    let mut execution = HostedTerminalMaskExecution::new(&host()).unwrap();
+    let original_plan = execution.planned_mask().plan.plan_id.clone();
+    let mut outputs = Vec::new();
+    let mut references = Vec::new();
+    let mut shows = Vec::new();
+    for width in [40, 80] {
+        let mut renderer = TerminalFaceMask::prepare(face.clone(), width, 24).unwrap();
+        renderer.focus_prepared_action("start").unwrap();
+        let mut sink = Vec::new();
+        renderer.present(&mut execution, &mut sink).unwrap();
+        let available = renderer.show().unwrap().clone();
+        available.validate(&face).unwrap();
+        assert_eq!(available.show.lifecycle, ManifestationLifecycle::Available);
+        let TerminalInputOutcome::Interaction(interaction) =
+            renderer.input(TerminalInput::Apply, &available, 0).unwrap()
+        else {
+            panic!("current Start action")
+        };
+        let correlated = execution.interact(interaction).unwrap();
+        let value = correlated.interaction;
+        assert!(value.arguments.is_empty());
+        references.push((
+            value.face_id,
+            value.face_revision,
+            value.action_id,
+            value.target,
+        ));
+        shows.push(available.show_id);
+        outputs.push(sink);
+        assert_eq!(execution.planned_mask().plan.plan_id, original_plan);
+        assert!(!execution.has_pending_play());
+    }
+    assert_ne!(outputs[0], outputs[1], "actual flushed layouts must differ");
+    assert_ne!(shows[0], shows[1]);
+    assert_eq!(references[0], references[1]);
+    assert_eq!(references[0].0, face.identity.as_str());
+    assert_eq!(references[0].2, "start");
+    assert_eq!(references[0].3, "clock");
+    eprintln!(
+        "RENDERER_INTERLOCK_EVIDENCE={}",
+        serde_json::json!({
+            "proof_class":"native-planner-kernel-with-memory-output-sink",
+            "face_id":face.identity.as_str(), "face_revision":face.revision,
+            "face_source_id":face.basis.source_document_id.as_ref().unwrap().as_str(),
+            "mask_source_id":execution.planned_mask().mask.plot_identity.source_document_id.as_str(),
+            "mask_plan_id":original_plan.as_str(),
+            "shows":shows.iter().map(|s| s.as_str()).collect::<Vec<_>>(),
+            "action":"start", "target":"clock", "return_kind":conduit_face::FACE_INTERACTION_VALUE_KIND,
+            "compact_output":String::from_utf8_lossy(&outputs[0]),
+            "spacious_output":String::from_utf8_lossy(&outputs[1])
+        })
+    );
+}

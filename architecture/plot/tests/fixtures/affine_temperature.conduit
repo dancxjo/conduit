@@ -1,0 +1,5 @@
+type ThermalDelta = quantity { dimension: temperature }
+type ThermalPoint = quantity { point: ThermalDelta }
+unit kelvinPoint : ThermalPoint = { reference: origin, scale: 1, delta: { quantity: ThermalDelta, reference: origin, scale: 1 } }
+unit celsiusPoint : ThermalPoint = { reference: kelvinPoint, scale: 1, offset: 273.15, delta: { quantity: ThermalDelta, reference: kelvinPoint, scale: 1 } }
+unit fahrenheitPoint : ThermalPoint = { reference: kelvinPoint, scale: 5/9, offset: 45967/180, delta: { quantity: ThermalDelta, reference: kelvinPoint, scale: 5/9 } }
