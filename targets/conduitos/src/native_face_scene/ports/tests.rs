@@ -294,7 +294,13 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                 "{shown}/{total} cords shown · {} omitted · F2 all facts · F3 return",
                 total - shown
             );
-            assert!(frame.scene.commands().iter().any(|c| c.payload().ends_with(&notice)));
+            assert!(
+                frame
+                    .scene
+                    .commands()
+                    .iter()
+                    .any(|c| c.payload().ends_with(&notice))
+            );
             scene.turn_page(true);
         }
         scene.show_details(true);
