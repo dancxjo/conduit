@@ -117,10 +117,36 @@ fn source_pinned_scalar_profiles_measure_preparation_and_actual_kernel_play() {
     for operations in [1u64, 3, 8, 32] {
         for tape in [false, true] {
             for row in 0..8 {
+                let authoring_started = std::time::Instant::now();
                 let (mut host, plan, program) =
                     prepare(source, &format!("baseline-{operations}"), tape);
+                let authoring_plan_wall_ns = authoring_started.elapsed().as_nanos();
+                let evaluator_started = std::time::Instant::now();
+                let mut evaluator = if tape {
+                    conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program)
+                        .unwrap()
+                } else {
+                    conduit_plot::PreparedPortableExpressionEvaluator::new(&program).unwrap()
+                };
+                let evaluator_preparation_wall_ns = evaluator_started.elapsed().as_nanos();
                 let input = 7u64.to_le_bytes();
                 let expected = program.evaluate(&input).unwrap();
+                assert_eq!(evaluator.evaluate(&input).unwrap(), expected);
+                let warm_started = std::time::Instant::now();
+                for _ in 0..100_000 {
+                    std::hint::black_box(evaluator.evaluate(std::hint::black_box(&input)).unwrap());
+                }
+                let warm_evaluator_wall_ns = warm_started.elapsed().as_nanos();
+                let rust_started = std::time::Instant::now();
+                for _ in 0..100_000 {
+                    std::hint::black_box(
+                        std::hint::black_box(7u64)
+                            .checked_mul(std::hint::black_box(operations + 1))
+                            .unwrap(),
+                    );
+                }
+                let optimized_rust_wall_ns = rust_started.elapsed().as_nanos();
+                println!("SCALAR_MICRO_SAMPLE source={source_identity} operations={operations} tape={tape} row={row} iterations=100000 authoring_plan_wall_ns={authoring_plan_wall_ns} evaluator_preparation_wall_ns={evaluator_preparation_wall_ns} warm_evaluator_wall_ns={warm_evaluator_wall_ns} optimized_rust_wall_ns={optimized_rust_wall_ns} limits={:?}",evaluator.scalar_tape_limits());
                 let mut output = Outputs(Vec::with_capacity(1));
                 let mut clock = PhaseClock::default();
                 let report = host
