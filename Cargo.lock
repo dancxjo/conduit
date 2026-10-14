@@ -2688,6 +2688,7 @@ dependencies = [
  "conduit-face",
  "conduit-planner",
  "conduit-plot",
+ "conduit-std-offers",
  "conduit-todo-plot",
 ]
 

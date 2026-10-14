@@ -4,10 +4,13 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+conduit-core = { path = "../../../architecture/core" }
+conduit-plot = { path = "../../../architecture/plot" }
 conduit-todo-plot = { path = "../model" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 
 [dev-dependencies]
+conduit-std-offers = { path = "../../../targets/std/offers" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-core = { path = "../../../architecture/core" }
 conduit-planner = { path = "../../../architecture/planner" }
