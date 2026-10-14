@@ -1,4 +1,4 @@
-//! Bounded, read-only presentation history over validated Observatory reports.
+//! Bounded, read-only face history over validated Observatory reports.
 
 use conduit_observatory::{build_report, ObservatoryReport, ObservatorySnapshot};
 use std::collections::VecDeque;
@@ -7,7 +7,7 @@ use crate::topology_hosts::render_hosts;
 
 pub const MAX_TOPOLOGY_LINES: usize = 256;
 // The complete standard Hosted adapter report remains below 96 KiB while the
-// independent line bound prevents an oversized presentation projection.
+// independent line bound prevents an oversized face projection.
 pub const MAX_RETAINED_REPORT_BYTES: usize = 96 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -15,7 +15,7 @@ pub enum TopologyViewError {
     ZeroHistoryCapacity,
     InvalidReport(String),
     ReportTooLarge,
-    PresentationTooLarge,
+    FaceTooLarge,
 }
 
 impl std::fmt::Display for TopologyViewError {
@@ -28,8 +28,8 @@ impl std::fmt::Display for TopologyViewError {
             Self::ReportTooLarge => {
                 formatter.write_str("Observatory report exceeds Patchbay retention bounds")
             }
-            Self::PresentationTooLarge => {
-                formatter.write_str("topology presentation exceeds its finite line bound")
+            Self::FaceTooLarge => {
+                formatter.write_str("topology face exceeds its finite line bound")
             }
         }
     }
@@ -66,7 +66,7 @@ impl PatchbayTopology {
         })
     }
 
-    /// Validates and projects before changing retained presentation state.
+    /// Validates and projects before changing retained face state.
     pub fn ingest(&mut self, snapshot: &ObservatorySnapshot) -> Result<(), TopologyViewError> {
         let report = build_report(snapshot).map_err(TopologyViewError::InvalidReport)?;
         let report_bytes = conduit_observatory::render_text_report(&report).len();
@@ -99,7 +99,7 @@ impl PatchbayTopology {
         self.history.back()
     }
 
-    /// Builds a sorted presentation copy. Filtering and sorting never mutate
+    /// Builds a sorted face copy. Filtering and sorting never mutate
     /// either the retained report or its Conduit facts.
     pub fn document(&self, filter: Option<&str>) -> Result<TopologyDocument, TopologyViewError> {
         let mut lines = Vec::new();
@@ -448,7 +448,7 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
 
 pub(crate) fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), TopologyViewError> {
     if lines.len() == MAX_TOPOLOGY_LINES {
-        return Err(TopologyViewError::PresentationTooLarge);
+        return Err(TopologyViewError::FaceTooLarge);
     }
     lines.push(line);
     Ok(())

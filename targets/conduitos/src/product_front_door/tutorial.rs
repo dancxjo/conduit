@@ -4,8 +4,8 @@ use crate::offer::HostOffer;
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn activate(
-    view: &conduit_presentation::ApplicationView,
-    action: &conduit_presentation::ApplicationAction,
+    view: &conduit_face::ApplicationView,
+    action: &conduit_face::ApplicationAction,
     journey: &mut crate::product_journey::ProductJourney,
     door: &mut FrontDoor,
     presenter: &mut crate::front_door::FrontDoorPresenter,
@@ -80,8 +80,8 @@ pub(super) fn navigate(
 pub(super) fn selected_action(
     usage: u8,
     door: &FrontDoor,
-    view: &conduit_presentation::ApplicationView,
-) -> Option<conduit_presentation::ApplicationAction> {
+    view: &conduit_face::ApplicationView,
+) -> Option<conduit_face::ApplicationAction> {
     if usage == 40 {
         door.selected_application_action()
     } else {
@@ -91,8 +91,8 @@ pub(super) fn selected_action(
 }
 
 pub(super) fn event(
-    view: &conduit_presentation::ApplicationView,
-    action: &conduit_presentation::ApplicationAction,
+    view: &conduit_face::ApplicationView,
+    action: &conduit_face::ApplicationAction,
 ) -> ApplicationEvent {
     ApplicationEvent {
         revision: view.revision,

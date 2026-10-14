@@ -1,14 +1,14 @@
 //! Independent workbench realization of canonical graphics obligations.
 //!
 //! The browser Mask may bypass this leaf layer by joining semantic
-//! presentation directly. A ConduitOS framebuffer Mask can consume the
+//! face directly. A ConduitOS framebuffer Mask can consume the
 //! same integer rectangles, clip classes, paint roles, ordering, resolved text,
 //! and canonical icon keys before performing its own admitted raster writes;
 //! framebuffer addresses remain below this contract.
 
-use conduit_presentation::{
-    GraphicsClipClass, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
-    LayoutRect, PresentationIconKey, MAX_GRAPHICS_COMMANDS,
+use conduit_face::{
+    FaceIconKey, GraphicsClipClass, GraphicsCommandKind, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutRect, MAX_GRAPHICS_COMMANDS,
 };
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -19,9 +19,9 @@ pub struct NativeGraphicsObligation<'a> {
     pub clip: GraphicsClipClass,
     pub paint: GraphicsPaintRole,
     pub style: GraphicsShapeStyle,
-    pub text_role: conduit_presentation::GraphicsTextRole,
+    pub text_role: conduit_face::GraphicsTextRole,
     pub resolved_content: &'a str,
-    pub path: Option<conduit_presentation::GraphicsPath>,
+    pub path: Option<conduit_face::GraphicsPath>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -44,7 +44,7 @@ impl NativeGraphicsMask {
             }
             let content = command.payload();
             if command.kind == GraphicsCommandKind::Icon
-                && PresentationIconKey::from_token(content).is_none()
+                && FaceIconKey::from_token(content).is_none()
             {
                 return Err(NativeGraphicsError::UnknownIcon);
             }
@@ -67,11 +67,11 @@ impl NativeGraphicsMask {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::{GraphicsCommand, GraphicsScene};
+    use conduit_face::{GraphicsCommand, GraphicsScene};
 
     #[test]
     fn path_geometry_survives_normalization_without_becoming_text() {
-        use conduit_presentation::{GraphicsPath, GraphicsPoint};
+        use conduit_face::{GraphicsPath, GraphicsPoint};
         let path = GraphicsPath::new(&[
             GraphicsPoint::new(1, 2).unwrap(),
             GraphicsPoint::new(8, 2).unwrap(),
@@ -117,13 +117,8 @@ mod tests {
             .unwrap();
         scene
             .push(
-                GraphicsCommand::icon(
-                    bounds,
-                    clip,
-                    GraphicsPaintRole::Accent,
-                    PresentationIconKey::Presentation,
-                )
-                .unwrap(),
+                GraphicsCommand::icon(bounds, clip, GraphicsPaintRole::Accent, FaceIconKey::Face)
+                    .unwrap(),
             )
             .unwrap();
         let normalized = NativeGraphicsMask::normalize(&scene).unwrap();
@@ -132,7 +127,7 @@ mod tests {
             normalized[0].unwrap().clip,
             GraphicsClipClass::PartiallyClipped
         );
-        assert_eq!(normalized[1].unwrap().resolved_content, "presentation");
+        assert_eq!(normalized[1].unwrap().resolved_content, "face");
         assert_eq!(normalized[1].unwrap().order, 1);
     }
 }

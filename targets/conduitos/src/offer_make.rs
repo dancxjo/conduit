@@ -6,8 +6,8 @@ use crate::{
     identity::BootIdentities,
     keyboard_offer::KeyboardRealization,
     make::{
-        IMPL_KEYBOARD, IMPL_TEXT_LITERAL, IMPL_TEXT_PRESENTATION, IMPL_TEXT_UPPER,
-        IMPL_TICK_PRESENTATION, IMPL_TIME_TICK, MakeRecord,
+        IMPL_KEYBOARD, IMPL_TEXT_FACE, IMPL_TEXT_LITERAL, IMPL_TEXT_UPPER, IMPL_TICK_FACE,
+        IMPL_TIME_TICK, MakeRecord,
     },
     offer::{CpuFeatures, HostOffer},
 };
@@ -56,11 +56,8 @@ impl<'a> ImageBoundHostOffer<'a> {
     ) -> Result<Self, ImageBoundOfferError> {
         make.validate(runtime_arena_bytes)
             .map_err(|_| ImageBoundOfferError::MakeInvalid)?;
-        let required = IMPL_TIME_TICK
-            | IMPL_TICK_PRESENTATION
-            | IMPL_TEXT_LITERAL
-            | IMPL_TEXT_UPPER
-            | IMPL_TEXT_PRESENTATION;
+        let required =
+            IMPL_TIME_TICK | IMPL_TICK_FACE | IMPL_TEXT_LITERAL | IMPL_TEXT_UPPER | IMPL_TEXT_FACE;
         if !make.includes(required) {
             return Err(ImageBoundOfferError::ImplementationNotInImage);
         }
@@ -125,7 +122,7 @@ mod tests {
     use crate::make::{
         ALL_KNOWN_IMPLEMENTATIONS, BASE_DISPLAY_SCANOUT, DRIVER_LINEAR_FRAMEBUFFER,
         FACILITY_NATIVE_COMPOSITOR, IMPL_HTTP_CLIENT, IMPL_LINEAR_PRESENTER, MAKE_SCHEMA,
-        PRESENTER_NATIVE_GRAPHICAL, RESOURCE_PRESENTATION_SURFACE,
+        PRESENTER_NATIVE_GRAPHICAL, RESOURCE_FACE_SURFACE,
     };
 
     fn make() -> MakeRecord {
@@ -137,13 +134,13 @@ mod tests {
             target: "conduitos/x86_64/pc",
             implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
             facilities: FACILITY_NATIVE_COMPOSITOR,
-            resources: RESOURCE_PRESENTATION_SURFACE,
+            resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
             drivers: DRIVER_LINEAR_FRAMEBUFFER,
             presenters: PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
-            presentation_surface_slots: 4,
-            presentation_surface_bytes: 4 * 1024 * 1024,
+            face_surface_slots: 4,
+            face_surface_bytes: 4 * 1024 * 1024,
             runtime_arena_ceiling: 262_144,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,

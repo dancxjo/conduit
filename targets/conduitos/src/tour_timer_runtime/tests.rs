@@ -71,7 +71,7 @@ fn tour_timer_wire_reconstructs_causal_count_progress_without_allocating() {
                     assert!(waiting.replace(request).is_none());
                     timer_requests += 1;
                 } else {
-                    assert!(runtime.is_presentation(&request));
+                    assert!(runtime.is_face(&request));
                     let bytes: [u8; 8] = runtime
                         .host_value(request.input.value)
                         .unwrap()
@@ -79,7 +79,7 @@ fn tour_timer_wire_reconstructs_causal_count_progress_without_allocating() {
                         .unwrap();
                     counts[count_len] = Some(u64::from_le_bytes(bytes));
                     count_len += 1;
-                    runtime.complete_presentation(request).unwrap();
+                    runtime.complete_face(request).unwrap();
                 }
             }
             if count_len == 2 && waiting.is_some() && runtime.pending_host_calls() == 1 {

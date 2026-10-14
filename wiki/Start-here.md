@@ -6,7 +6,7 @@ Conduit body for your examples, or recovers the one it already keeps.
 
 In the Handbook workbench, choose **A clock you can stop**. Read its source:
 `time/every(1s)` produces ticks at an interval, and `>>` connects them to
-`presentation/tick`.
+`face/tick`.
 
 What would happen if you changed `1s` to `2s`? Make a prediction before running
 it.

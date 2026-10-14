@@ -35,14 +35,10 @@ impl TourTimerKernel {
         }
         let timer = node(fragment, conduit_time::TIME_EVERY_KIND)?;
         let count = node(fragment, conduit_semantic_catalog::STATE_COUNT_KIND)?;
-        let presentation = node(fragment, conduit_semantic_catalog::COUNT_PRESENTATION_KIND)?;
+        let face = node(fragment, conduit_semantic_catalog::COUNT_FACE_KIND)?;
         validate_implementation(fragment, timer, crate::offer::TIME_EVERY_IMPLEMENTATION)?;
         validate_implementation(fragment, count, crate::offer::STATE_COUNT_IMPLEMENTATION)?;
-        validate_implementation(
-            fragment,
-            presentation,
-            crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
-        )?;
+        validate_implementation(fragment, face, crate::offer::COUNT_FACE_IMPLEMENTATION)?;
         let period = configured_milliseconds(&fragment.placements[timer].configuration, "freq")?;
         let start = configured_u64(&fragment.placements[count].configuration, "start")?;
         if period != 120 || start != 0 {
@@ -78,7 +74,7 @@ impl TourTimerKernel {
             bindings,
             timer: NodeId(timer as u16),
             count: NodeId(count as u16),
-            presentation: NodeId(presentation as u16),
+            face: NodeId(face as u16),
             period,
             start,
             sign_bytes: lowered.sign_bytes,

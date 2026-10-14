@@ -197,8 +197,7 @@ impl TourSession {
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
                     request_sequence: pending.request.request.0,
-                    maximum_output_bytes: conduit_presentation::MAX_APPLICATION_EVENT_ENCODED_BYTES
-                        as u32,
+                    maximum_output_bytes: conduit_face::MAX_APPLICATION_EVENT_ENCODED_BYTES as u32,
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),
@@ -230,7 +229,7 @@ impl TourSession {
                     })
                     .ok_or("manifestation partition is absent")?;
                 let observation_sequence = pending.request.request.0;
-                let presentation = bind_presentation(
+                let face = bind_face(
                     &self.active_play_id,
                     &placement.placement_id,
                     u64::from(observation_sequence),
@@ -245,11 +244,12 @@ impl TourSession {
                     plan_id: fragment.plan_id.as_str().into(),
                     fragment_id: fragment.fragment_id.as_str().into(),
                     active_play_id: self.active_play_id.as_str().into(),
-                    presentation_id: presentation.presentation_id.as_str().into(),
+                    face_id: face.face_id.as_str().into(),
                     placement_id: placement.placement_id.as_str().into(),
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
-                    presentation_kind: manifestation.kind_id.into(),
+                    face_kind: manifestation.kind_id.into(),
+                    data_label: manifestation.data_label.clone(),
                     observation_sequence,
                     realization: self.realization.as_str(),
                     expanded_gears: self
@@ -266,11 +266,11 @@ impl TourSession {
                     segments,
                     text,
                     application_view: (manifestation.kind_id
-                        == conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND)
+                        == conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND)
                         .then(|| manifestation.canonical_value.clone()),
                     source_interaction: self.source_interaction.clone(),
                 };
-                self.latest_presentation = Some(presentation);
+                self.latest_face = Some(face);
                 Ok(TourHostEffect::Manifestation(Box::new(effect)))
             }
         }

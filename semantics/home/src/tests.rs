@@ -76,16 +76,16 @@ fn journey_identity_is_complete_and_unique() {
 #[test]
 fn every_home_view_lowers_to_the_shared_application_contract() {
     let mut home = HomeModel::new();
-    let launcher = home.presentation(1, &PLOTS).lower().unwrap();
+    let launcher = home.face(1, &PLOTS).lower().unwrap();
     assert_eq!(launcher.actions.len(), HOME_ITEM_COUNT);
     assert_eq!(launcher.actions[0].id, OPEN_TOUR_ACTION_ID);
 
     home.submit_text("plots", &PLOTS);
-    let plots = home.presentation(2, &PLOTS).lower().unwrap();
+    let plots = home.face(2, &PLOTS).lower().unwrap();
     assert_eq!(plots.actions.len(), PLOTS.len());
 
     home.submit_text("open prompt", &PLOTS);
-    let prompt = home.presentation(3, &PLOTS).lower().unwrap();
+    let prompt = home.face(3, &PLOTS).lower().unwrap();
     assert!(prompt.nodes.iter().any(|node| node.key == "command-result"));
 }
 

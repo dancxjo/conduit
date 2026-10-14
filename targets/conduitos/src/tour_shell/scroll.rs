@@ -1,6 +1,6 @@
 //! Finite presenter-local scroll state for independent native surfaces.
 
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 
 use crate::{display::PixelTarget, native_compositor::FrameReceipt};
 
@@ -131,15 +131,15 @@ impl TourShellPresenter {
         let bounds = self.surfaces[index]
             .bounds
             .ok_or(TourShellError::Identity)?;
-        let presentation = self.surfaces[index]
-            .presentation
+        let face = self.surfaces[index]
+            .face
             .clone()
             .ok_or(TourShellError::Identity)?;
         let front = self.surfaces[index]
             .front_subject
             .clone()
             .ok_or(TourShellError::Identity)?;
-        let revised = revised(presentation)?;
+        let revised = revised(face)?;
         let scene = match slot {
             Slot::Inspector => inspector_scene(bounds, &revised, current_offset)?,
             Slot::Transient => transient_scene(bounds, &revised, current_offset)?,
@@ -195,17 +195,16 @@ impl TourShellPresenter {
     }
 }
 
-fn revised(presentation: Presentation) -> Result<Presentation, TourShellError> {
-    Presentation::new(
-        presentation
-            .revision
+fn revised(face: Face) -> Result<Face, TourShellError> {
+    Face::new(
+        face.revision
             .checked_add(1)
             .ok_or(TourShellError::Identity)?,
-        presentation.basis,
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
+        face.basis,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
     )
     .map_err(|_| TourShellError::Identity)
 }

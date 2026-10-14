@@ -8,8 +8,8 @@ use conduit_core::{
     LineAvailabilitySign, LineContinuation, LineContract, LineDuplex, LineId, LineOffer,
     LineOrdering, LineReliability, LineScope, LineSecurity, LineTrafficShape,
     LinkAuthorityReference, LinkBinding, LinkBindingId, LinkCredentialReference, LinkEndpoint,
-    LinkEndpointId, LinkLimits, OfferGeneration, SignId, PRESENTATION_RESOURCE_CLASS,
-    PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    LinkEndpointId, LinkLimits, OfferGeneration, SignId, FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
+    TIMER_RESOURCE_CLASS,
 };
 
 use crate::*;
@@ -27,7 +27,7 @@ pub const DISTRIBUTED_MAXIMUM_FRAME_BYTES: u32 = 2_048;
 pub const PICO_LOCAL_HOST_ID: &str = "s4/pico-local";
 pub const PICO_LOCAL_BOOT_ID: &str = "s4/pico-local-boot";
 pub const PICO_TIMER_POOL_ID: &str = "s4/pico-timer";
-pub const PICO_PRESENTATION_POOL_ID: &str = "s4/pico-cyw43-led";
+pub const PICO_FACE_POOL_ID: &str = "s4/pico-cyw43-led";
 
 pub fn pico_local_advertisement() -> HostAdvertisement {
     HostAdvertisement {
@@ -37,7 +37,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("pico-w-signal-kernel"),
         bases: vec![],
-        resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_PRESENTATION_POOL_ID, 1),
+        resources: signal_resource_offers(PICO_TIMER_POOL_ID, PICO_FACE_POOL_ID, 1),
         planner_capabilities: vec![],
         capabilities: vec![
             conduit_core::capability_offer_from_parts! {
@@ -64,7 +64,7 @@ pub fn pico_local_advertisement() -> HostAdvertisement {
                 },
             },
             conduit_core::capability_offer_from_parts! {
-                startup_parameters: vec![],
+                startup_parameters: conduit_core::data_label_startup_front(),
                 shorthand: None,
                 capability_id: CapabilityId::from("pico-led-show-1"),
                 kind_id: show_kind(),
@@ -134,15 +134,11 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("browser-wasm-kernel"),
         bases: vec![],
-        resources: vec![resource_offer(
-            "s4/browser-dom",
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
+        resources: vec![resource_offer("s4/browser-dom", FACE_RESOURCE_CLASS, 1)],
         planner_capabilities: vec![],
         capabilities: vec![
             conduit_core::capability_offer_from_parts! {
-                startup_parameters: vec![],
+                startup_parameters: conduit_core::data_label_startup_front(),
                 shorthand: None,
                 capability_id: CapabilityId::from("dom-show-1"),
                 kind_id: show_kind(),
@@ -164,7 +160,7 @@ pub fn distributed_browser_sink_advertisement() -> HostAdvertisement {
                     max_queue_bytes: DISTRIBUTED_MAXIMUM_BUFFERED_BYTES,
                 },
             },
-            toggle_browser_presentation_offer(BROWSER_BOOL_PRESENTATION_CAPABILITY),
+            toggle_browser_face_offer(BROWSER_BOOL_FACE_CAPABILITY),
         ],
     }
 }

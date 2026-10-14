@@ -34,7 +34,7 @@ pub struct VoyagerBodyInventory {
     pub accelerator_hosts: u16,
     pub constrained_hosts: u16,
     pub sensor_input_capabilities: u16,
-    pub presentation_capabilities: u16,
+    pub face_capabilities: u16,
     pub line_mechanisms: u16,
     pub dormant_equipment: u16,
     pub recursive_realization_families: u16,

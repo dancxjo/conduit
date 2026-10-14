@@ -43,7 +43,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
 2. Authored plots contain no host, boot, implementation, OS, device, transport,
    socket, address, DOM, GPIO, stdout, credential, or resource-binding facts.
 3. Source, checked plot, expanded plot, plan, fragment, play, sign, and
-   presentation are distinct identities.
+   face are distinct identities.
 4. kinds, implementations, initialized implementations, capabilities, selected
    capabilities, reservations, and active instances are distinct states.
 5. Every executable input/output has an exact typed port. Emission is
@@ -59,7 +59,7 @@ to the canon; changing an invariant requires an explicit architecture issue.
 10. There is one execution kernel. Name and fence fixtures or temporary
     compatibility façades away from production paths.
 11. Pressure, failure, cancellation, sign gaps, stale identities, and unsupported
-    behavior remain distinct and machine-readable, including in presentation.
+    behavior remain distinct and machine-readable, including in face.
 12. Compilation, simulation, browser execution, firmware execution, live
     transport, physical/HIL evidence, and human enactment prove different things.
 

@@ -167,7 +167,7 @@ fn unchanged_signal_plot_plans_lowers_and_generates_one_fixed_image() {
             maximum_host_calls: 2,
             maximum_resources: 2,
             maximum_sign_expectations: 8,
-            maximum_configuration_entries: 3,
+            maximum_configuration_entries: 4,
             maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
             maximum_remote_endpoints: 0,
             maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,

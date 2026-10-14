@@ -1,7 +1,7 @@
 //! Bounded native reading and action navigation over the shared application view.
 //! Only five borrowed rows are rendered per page; no copied text corpus or state model.
 use super::{Error, FrontDoor};
-use conduit_presentation::{
+use conduit_face::{
     ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
     ApplicationView, ApplicationViewNode,
 };
@@ -35,8 +35,7 @@ pub(super) fn rows<'a>(view: &'a ApplicationView, mut visit: impl FnMut(usize, R
                 let mut end = remaining.len();
                 for (count, (byte, character)) in remaining.char_indices().enumerate() {
                     if count == LINE_CHARACTERS
-                        || byte + character.len_utf8()
-                            > conduit_presentation::MAX_GRAPHICS_TEXT_BYTES
+                        || byte + character.len_utf8() > conduit_face::MAX_GRAPHICS_TEXT_BYTES
                     {
                         end = byte;
                         break;
@@ -118,7 +117,7 @@ impl FrontDoor {
         let Some(view) = self.application_view.as_ref() else {
             return Ok(false);
         };
-        view.validate().map_err(|_| Error::Presentation)?;
+        view.validate().map_err(|_| Error::Face)?;
         if !matches!(usage, 75 | 78 | 81 | 82) {
             return Ok(false);
         }

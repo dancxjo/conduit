@@ -27,7 +27,7 @@ export function retainNativeValueEvidence(results, destination, runtime, sourceH
     names.add(row.name);
     if (row.name === 'computed window' || row.name === 'equivalent checked arguments') {
       if (row.effect?.effect_kind !== 'manifestation'
-          || row.effect.presentation_kind !== 'presentation/bool-value' || row.effect.text !== 'true'
+          || row.effect.face_kind !== 'face/bool-value' || row.effect.text !== 'true'
           || !row.effect.active_play_id || row.receipt?.disposition !== 'completed'
           || row.receipt.active_play_id !== row.effect.active_play_id) {
         throw new Error('Native Type proof lacks completed kernel execution');

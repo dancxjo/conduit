@@ -7,7 +7,7 @@ use conduit_semantic_catalog::{
     garden_clock_observation_type, garden_contact_observation_type, install_signal_garden_backs,
     install_signal_garden_catalog, GARDEN_ENRICHED_REDUCER_KIND, GARDEN_ENRICHED_STEP_KIND,
     GARDEN_FIXTURE_KIND, GARDEN_MINIMAL_STEP_KIND, GARDEN_OBSERVATION_COMBINE_KIND,
-    GARDEN_STATE_PRESENTATION_KIND,
+    GARDEN_STATE_FACE_KIND,
 };
 
 const GARDEN: &str = include_str!("../../../plots/signal-garden/main.conduit");
@@ -88,7 +88,7 @@ fn minimal_and_enriched_plots_preserve_distinct_mandatory_source_types() {
 }
 
 #[test]
-fn displayed_garden_keeps_presentation_downstream_of_semantic_state() {
+fn displayed_garden_keeps_face_downstream_of_semantic_state() {
     let (startup, profile) = catalogs();
     let checked = check_syntax_document(&parse_syntax_document(GARDEN), &startup).unwrap();
     let displayed = expand_canonical_plot_for_authoring(
@@ -103,20 +103,20 @@ fn displayed_garden_keeps_presentation_downstream_of_semantic_state() {
         GARDEN_FIXTURE_KIND,
         GARDEN_OBSERVATION_COMBINE_KIND,
         GARDEN_ENRICHED_REDUCER_KIND,
-        GARDEN_STATE_PRESENTATION_KIND,
+        GARDEN_STATE_FACE_KIND,
     ] {
         assert!(displayed
             .gears
             .iter()
             .any(|gear| gear.kind_id.as_str() == expected));
     }
-    let presentation = profile
-        .get(&conduit_core::kind_id(GARDEN_STATE_PRESENTATION_KIND))
+    let face = profile
+        .get(&conduit_core::kind_id(GARDEN_STATE_FACE_KIND))
         .unwrap();
-    assert_eq!(presentation.inputs.len(), 1);
-    assert!(presentation.outputs.is_empty());
+    assert_eq!(face.inputs.len(), 1);
+    assert!(face.outputs.is_empty());
     assert_eq!(
-        presentation.inputs[0].value_kind,
+        face.inputs[0].value_kind,
         conduit_semantic_catalog::garden_state_type()
             .profile()
             .unwrap()

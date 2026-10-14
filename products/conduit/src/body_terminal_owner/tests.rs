@@ -1,11 +1,11 @@
-//! Terminal selection against the actual Todo Face; Show is a presentation fixture.
+//! Terminal selection against the actual Todo Face; Show is a face fixture.
 use super::*;
 use crate::mask_test_common as common;
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
-use conduit_presentation::*;
+use conduit_face::*;
 use conduit_todo_plot::{TodoItem, TodoState};
 
-fn todo(open: usize, total: usize, actions: bool) -> Presentation {
+fn todo(open: usize, total: usize, actions: bool) -> Face {
     let state = TodoState {
         title: "Courses & groceries".into(),
         revision: total as u32,
@@ -24,7 +24,7 @@ fn todo(open: usize, total: usize, actions: bool) -> Presentation {
     };
     let fragment = conduit_todo_face::todo_fragment(
         &state,
-        PresentationContributionBasis {
+        FaceContributionBasis {
             checked_plot_id: CheckedPlotId::from("checked/todo"),
             plan_id: PlanId::from("plan/todo"),
             active_play_id: ActivePlayId::from("play/todo"),
@@ -33,9 +33,9 @@ fn todo(open: usize, total: usize, actions: bool) -> Presentation {
         actions,
     )
     .unwrap();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         u64::from(state.revision),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),
@@ -108,7 +108,7 @@ fn terminal_action_help_names_actual_targets_and_values() {
 #[test]
 fn requested_show_evidence_retains_exact_revision_and_refuses_a_foreign_face() {
     let mut face = todo(2, 3, true);
-    face = Presentation::new_with_semantics(
+    face = Face::new_with_semantics(
         u64::MAX,
         face.basis,
         face.subjects,

@@ -612,7 +612,7 @@ test result: ok. 72 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fin
    Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/data)
    Compiling cobs v0.3.0
    Compiling postcard v1.1.3
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/face)
    Compiling ed25519-dalek v2.2.0
    Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/architecture/body)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/audio)
@@ -1168,9 +1168,9 @@ test installed_std::rhythm_compare_back::tests::performance_close_drains_missed_
 test installed_std::rhythm_compare_host::tests::exact_vectors_report_early_late_recovery_and_deliberate_displacement ... ok
 test installed_std::rhythm_compare_host::tests::malformed_identity_and_finite_capacity_refuse_without_output ... ok
 test installed_std::rhythm_compare_host::tests::note_off_is_ignored_and_drain_emits_each_missed_beat ... ok
-test installed_std::simple_presentation_host::tests::text_output_retains_its_exact_wire_marker_and_human_line ... ok
+test installed_std::simple_face_host::tests::text_output_retains_its_exact_wire_marker_and_human_line ... ok
 test installed_std::body_kernel::live_fore_tests::cancellation_reports_staged_command_not_admitted_to_kernel ... ok
-test installed_std::simple_presentation_host::tests::unsupported_and_malformed_inputs_never_write_success_output ... ok
+test installed_std::simple_face_host::tests::unsupported_and_malformed_inputs_never_write_success_output ... ok
 test installed_std::speech_synthesis_back::tests::fake_provider_emits_three_canonical_contiguous_profile_blocks ... ok
 test installed_std::speech_synthesis_back::tests::operation_pulls_one_block_only_after_each_emit_commits ... ok
 test installed_std::speech_synthesis_back::tests::operation_refuses_a_provider_block_beyond_the_admitted_count ... ok
@@ -1226,9 +1226,9 @@ test installed_std_tests::authored_tone_cancellation_routes_exact_observed_termi
 test installed_std_tests::audio_playback_conformance::exact_grant_and_resource_run_bounded_specimen_through_production_kernel ... ok
 test installed_std_tests::canonical_clock_has_zero_successful_post_play_start_allocations ... ok
 test installed_std_tests::body_causal_evidence_conformance::real_body_failure_correlates_typed_terminal_with_exact_execution_evidence ... ok
-test installed_std_tests::bool_presentation_conformance::current_booleans_manifest_through_the_admitted_std_operation ... ok
+test installed_std_tests::bool_face_conformance::current_booleans_manifest_through_the_admitted_std_operation ... ok
 test installed_std_tests::body_causal_evidence_conformance::real_body_recovery_retains_exact_execution_evidence_without_a_semantic_terminal ... ok
-test installed_std_tests::bool_presentation_conformance::mutated_std_presenter_identity_refuses_before_play ... ok
+test installed_std_tests::bool_face_conformance::mutated_std_presenter_identity_refuses_before_play ... ok
 test installed_std_tests::calendar_provider_conformance::authorized_create_update_and_cancel_chain_exact_receipts_through_plan_and_play ... ok
 test installed_std_tests::canonical_greet_has_zero_successful_post_play_start_allocations ... ok
 test installed_std_tests::canonical_text_pipeline_has_zero_successful_post_play_start_allocations ... ok
@@ -1246,13 +1246,13 @@ test installed_std_tests::calendar_proposal_conformance::checked_calendar_reques
 test installed_std_tests::gate_conformance::gate_zero_capacity_and_mutated_decoder_identity_fail_before_play ... ok
 test installed_std_tests::calendar_provider_conformance::read_and_free_busy_use_distinct_authority_through_plan_and_play ... ok
 test installed_std_tests::gate_conformance::latest_tee_and_gate_run_together_with_closed_open_closed_and_uneven_pressure ... ok
-test installed_std_tests::graphics_conformance::ordinary_presentation_back_lowers_through_multiple_graphics_kinds ... ok
+test installed_std_tests::graphics_conformance::ordinary_face_back_lowers_through_multiple_graphics_kinds ... ok
 test installed_std_tests::image_text_conformance::authored_image_text_runs_through_planner_and_production_kernel ... ok
 test installed_std_tests::input_semantics_conformance::keymap_text_flows_directly_into_text_upper_without_an_adapter ... ok
 test installed_std_tests::input_semantics_conformance::ordinary_plot_splits_text_and_chords_through_the_production_kernel ... ok
 test installed_std_tests::instrument_conformance::render_clock_requires_fresh_current_resource_truth ... ok
 test installed_std_tests::logic_conformance::unsupported_operator_and_incompatible_select_branch_fail_as_authored_plots ... ok
-test installed_std_tests::invalid_utf8_fails_before_a_successful_text_presentation ... ok
+test installed_std_tests::invalid_utf8_fails_before_a_successful_text_face ... ok
 test installed_std_tests::layout_conformance::representative_shell_and_front_execute_as_one_ordinary_plot ... ok
 test installed_std_tests::json_conformance::ordinary_plot_runs_shared_bounded_json_through_the_production_kernel ... ok
 test installed_std_tests::image_text_conformance::authored_image_text_plans_an_exact_remote_framed_record_session ... ok
@@ -1274,7 +1274,7 @@ test installed_std_tests::math_conformance::authored_quantity_plots_execute_and_
 test installed_std_tests::local_vision_conformance::authored_objects_run_through_protected_finite_base_and_production_kernel ... ok
 test installed_std_tests::math_conformance::quantity_range_and_quantization_refusals_reach_the_production_kernel ... ok
 test installed_std_tests::mutated_typed_tee_identity_fails_before_play ... ok
-test installed_std_tests::presentation_composition::ordinary_plot_executes_the_canonical_composition_family ... ok
+test installed_std_tests::face_composition::ordinary_plot_executes_the_canonical_composition_family ... ok
 test installed_std_tests::math_conformance::invalid_clamp_and_mutated_math_implementation_refuse_before_play ... ok
 test installed_std_tests::external_fore_conformance::finite_sequence_uses_one_sealed_flow_and_delivers_in_order_under_capacity_one ... ok
 test installed_std_tests::pure_expression_conformance::anonymous_record_and_tuple_plan_and_play_through_the_std_host ... ok
@@ -1283,7 +1283,7 @@ test installed_std_tests::pure_expression_conformance::fixed_integer_expression_
 test installed_std_tests::navigation_conformance::portable_navigation_executes_as_one_bounded_production_play ... ok
 test installed_std_tests::pattern_comparison_conformance::reusable_pattern_comparison_executes_with_explicit_policy_through_one_play ... ok
 test installed_std_tests::pure_expression_conformance::semantic_call_with_literal_argument_plans_and_plays_as_real_gears ... ok
-test installed_std_tests::math_conformance::quantity_refusals_do_not_make_a_connected_presentation ... ok
+test installed_std_tests::math_conformance::quantity_refusals_do_not_make_a_connected_face ... ok
 test installed_std_tests::pure_expression_conformance::scientific_quantity_comparison_plans_and_plays_through_the_std_host ... ok
 test installed_std_tests::local_vision_description_conformance::authored_description_and_experience_join_through_one_production_play ... ok
 test installed_std_tests::pure_expression_conformance::ternary_selects_one_exact_branch_through_the_std_host ... ok
@@ -1293,7 +1293,7 @@ test installed_std_tests::pure_expression_conformance::one_value_when_plans_and_
 test installed_std_tests::robotics_conformance::portable_drive_meaning_has_one_effect_free_prewake_projection ... ok
 test installed_std_tests::recurrence_conformance::checked_civil_recurrence_executes_through_the_production_kernel ... ok
 test installed_std_tests::sequence_normalization_conformance::reusable_normalization_plot_executes_outside_secret_knock_without_play_allocations ... ok
-test installed_std_tests::structured_values_conformance::authored_quantities_survive_plan_play_sign_and_typed_presentation ... ok
+test installed_std_tests::structured_values_conformance::authored_quantities_survive_plan_play_sign_and_typed_face ... ok
 test installed_std_tests::secret_knock_conformance::secret_knock_composes_input_timing_storage_comparison_and_result_in_one_play ... ok
 test installed_std_tests::template_pattern_selection_conformance::found_storage_result_feeds_reusable_comparison_through_checked_selectors ... ok
 test installed_std_tests::talking_polaroid_body::canonical_image_text_composition_coexists_in_one_body_play ... ok
@@ -1479,7 +1479,7 @@ test tests::exact_signal_fragment_lowers_to_numeric_kernel_tables ... ok
 test tests::unsupported_production_std_plot_fails_closed_without_a_legacy_pump ... ok
 test tests::streamed_output_uses_a_virtual_clock_and_retains_terminal_sign ... ok
 test tests::fresh_starts_get_fresh_boot_ids ... ok
-test installed_std_tests::every_text_presentation_executable_identity_mutation_fails_before_output ... ok
+test installed_std_tests::every_text_face_executable_identity_mutation_fails_before_output ... ok
 test spoken_mask_runtime_tests::screen_free_spoken_producer_actualizes_the_shared_ten_action_journey ... ok
 test todo_checkpoint_transition::tests::checkpoint_offer_transition_keeps_selected_speaker_and_artifact_on_same_boot ... ok
 test installed_std_tests::timing_conformance::identical_simulated_schedules_have_identical_normalized_output_and_signs ... ok
@@ -1512,7 +1512,7 @@ test result: ok. 661 passed; 0 failed; 9 ignored; 0 measured; 0 filtered out; fi
    Compiling conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/architecture/body)
    Compiling conduit-time v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/time)
    Compiling conduit-human v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/human)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/face)
    Compiling conduit-data v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/data)
    Compiling conduit-language v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/language)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/audio)

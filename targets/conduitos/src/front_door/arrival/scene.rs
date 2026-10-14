@@ -2,10 +2,10 @@
 use super::{Arrival, Error};
 use crate::display::{PixelTarget, SPACING};
 use alloc::format;
-use conduit_birth_plot::BirthPresentation;
-use conduit_presentation::{
-    ActionAvailability, FieldKind, GraphicsCommand, GraphicsPaintRole, GraphicsScene,
-    GraphicsShapeStyle, GraphicsTextRole, LayoutRect, PresentationIconKey, PresentationMechanism,
+use conduit_birth_plot::BirthWidgetFace;
+use conduit_face::{
+    ActionAvailability, FaceIconKey, FaceMechanism, FieldKind, GraphicsCommand, GraphicsPaintRole,
+    GraphicsScene, GraphicsShapeStyle, GraphicsTextRole, LayoutRect,
 };
 
 impl Arrival {
@@ -97,16 +97,16 @@ impl Arrival {
             Ok::<(), Error>(())
         };
         line(0, "Conduit / Crèche", false, GraphicsTextRole::Muted)?;
-        let view = self.draft.presentation().map_err(|_| Error::Presentation)?;
+        let view = self.draft.widget_face().map_err(|_| Error::Face)?;
         let mut choice_count = 0;
         let mut selected_title = None;
         let mut review_title = None;
         for node in &view.root.children {
             match (&*node.key, &node.mechanism) {
-                ("creche-heading", PresentationMechanism::Heading { text }) => {
+                ("creche-heading", FaceMechanism::Heading { text }) => {
                     line(30, text, false, GraphicsTextRole::Title)?
                 }
-                ("body-name", PresentationMechanism::FormField(field)) => {
+                ("body-name", FaceMechanism::FormField(field)) => {
                     line(72, &field.help, false, GraphicsTextRole::Body)?;
                     line(108, &field.label, false, GraphicsTextRole::Label)?;
                     let value = if field.value.is_empty() {
@@ -116,7 +116,7 @@ impl Arrival {
                     };
                     line(132, value, self.focus == 0, GraphicsTextRole::Heading)?;
                 }
-                ("name-system", PresentationMechanism::FormField(field)) => {
+                ("name-system", FaceMechanism::FormField(field)) => {
                     let FieldKind::NamedSelect { options } = &field.kind else {
                         return Err(Error::Scene);
                     };
@@ -131,7 +131,7 @@ impl Arrival {
                         GraphicsTextRole::Label,
                     )?;
                 }
-                ("suggest-name", PresentationMechanism::Action(action)) => {
+                ("suggest-name", FaceMechanism::Action(action)) => {
                     line(
                         208,
                         &format!("{}  ·  F2", action.label),
@@ -139,7 +139,7 @@ impl Arrival {
                         GraphicsTextRole::Action,
                     )?;
                 }
-                ("plot-search", PresentationMechanism::FormField(field)) => {
+                ("plot-search", FaceMechanism::FormField(field)) => {
                     line(
                         232,
                         &format!("{}: {}", field.label, field.value),
@@ -147,7 +147,7 @@ impl Arrival {
                         GraphicsTextRole::Code,
                     )?;
                 }
-                ("initial-plots", PresentationMechanism::ChoiceGroup { label, options, .. }) => {
+                ("initial-plots", FaceMechanism::ChoiceGroup { label, options, .. }) => {
                     line(256, label, false, GraphicsTextRole::Label)?;
                     for (index, choice) in options.iter().enumerate() {
                         line(
@@ -171,20 +171,20 @@ impl Arrival {
                     }
                     choice_count = options.len();
                 }
-                ("initial-plots", PresentationMechanism::Status { title, detail, .. }) => {
+                ("initial-plots", FaceMechanism::Status { title, detail, .. }) => {
                     line(256, title, false, GraphicsTextRole::Status)?;
                     if !detail.is_empty() {
                         line(280, detail, false, GraphicsTextRole::Muted)?;
                     }
                     choice_count = 0;
                 }
-                ("selected-plots", PresentationMechanism::Status { title, .. }) => {
+                ("selected-plots", FaceMechanism::Status { title, .. }) => {
                     selected_title = Some(title.as_str());
                 }
-                ("birth-review", PresentationMechanism::Status { title, .. }) => {
+                ("birth-review", FaceMechanism::Status { title, .. }) => {
                     review_title = Some(title.as_str());
                 }
-                ("birth-body", PresentationMechanism::Action(action)) => {
+                ("birth-body", FaceMechanism::Action(action)) => {
                     line(
                         392,
                         &format!("{}  ·  Enter / F3", action.label),
@@ -227,7 +227,7 @@ impl Arrival {
                         },
                         screen,
                         GraphicsPaintRole::Warning,
-                        PresentationIconKey::Warning,
+                        FaceIconKey::Warning,
                     )
                     .map_err(|_| Error::Scene)?,
                 )
@@ -244,7 +244,7 @@ impl Arrival {
                     },
                     screen,
                     GraphicsPaintRole::Success,
-                    PresentationIconKey::Confirm,
+                    FaceIconKey::Confirm,
                 )
                 .map_err(|_| Error::Scene)?,
             )

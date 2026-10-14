@@ -21,7 +21,7 @@ Start with one tiny plot:
 plot meet-one-gear {
     words: text/literal("hello")
     change: text/upper
-    result: presentation/text
+    result: face/text("Message")
 
     words >> change >> result
 }.
@@ -37,7 +37,7 @@ Because the surrounding cords and ports stay compatible, you can change one gear
 plot edit-one-gear {
     words: text/literal("make this loud")
     change: text/upper
-    result: presentation/text
+    result: face/text("Message")
 
     words >> change >> result
 }
@@ -51,9 +51,9 @@ Fan-out is explicit: one output port can feed multiple downstream inputs when ea
 plot branch-a-cord {
     source: text/literal("sos")
     loud: text/upper
-    show: presentation/text
+    show: face/text("Message")
     morse: text/morse(80)
-    light: presentation/indicator
+    light: face/indicator("Light signal")
 
     source >> loud >> show
     source >> morse >> light

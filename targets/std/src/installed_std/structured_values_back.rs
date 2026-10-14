@@ -1,4 +1,4 @@
-//! Installed exact structured literal and presentation operations.
+//! Installed exact structured literal and face operations.
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{
@@ -15,10 +15,10 @@ pub(super) static LITERAL_FACTORY: BackFactory = BackFactory {
     budget: literal_budget,
     prepare: prepare_literal,
 };
-pub(super) static PRESENTATION_FACTORY: BackFactory = BackFactory {
-    implementation_id: conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION,
-    budget: presentation_budget,
-    prepare: prepare_presentation,
+pub(super) static FACE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION,
+    budget: face_budget,
+    prepare: prepare_face,
 };
 
 pub(super) struct StructuredLiteralBack {
@@ -50,19 +50,19 @@ impl StructuredLiteralBack {
     }
 }
 
-pub(super) struct StructuredPresentationBack {
+pub(super) struct StructuredFaceBack {
     pending: Option<RequestId>,
     next: u32,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for StructuredPresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for StructuredFaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return StepOutcome::Fail(step_failure(156));
             }
             io.consume_host_completion()
-                .expect("observed structured Presentation completion");
+                .expect("observed structured Face completion");
             self.pending = None;
             if let Some(failure) = outcome.failure {
                 return StepOutcome::Fail(failure);
@@ -85,9 +85,9 @@ impl<const PORTS: usize> StepBack<PORTS> for StructuredPresentationBack {
                 return StepOutcome::Fail(step_failure(154));
             };
             io.consume(PortId(0))
-                .expect("present structured Presentation input");
+                .expect("present structured Face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("single structured Presentation Host Call");
+                .expect("single structured Face Host Call");
             self.next = next;
             self.pending = Some(request);
             return StepOutcome::Progress;
@@ -107,7 +107,7 @@ fn step_failure(detail: u16) -> conduit_kernel::Failure {
     }
 }
 
-impl StructuredPresentationBack {}
+impl StructuredFaceBack {}
 
 fn configured(placement: &PlannedGear) -> Result<std::borrow::Cow<'_, [u8]>, String> {
     let [entry] = placement.configuration.as_slice() else {
@@ -173,48 +173,45 @@ fn validate_literal(placement: &PlannedGear) -> Result<(), String> {
     Ok(())
 }
 
-fn validate_presentation(placement: &PlannedGear) -> Result<(), String> {
+fn validate_face(placement: &PlannedGear) -> Result<(), String> {
+    conduit_semantic_catalog::face_data_label(&placement.configuration)?;
     let [input] = placement.inputs.as_slice() else {
-        return Err("structured presentation requires one input".into());
+        return Err("structured face requires one input".into());
     };
-    let exact_front = if placement.kind_id
-        == kind_id(conduit_semantic_catalog::NUMERICAL_PRESENTATION_KIND)
+    let exact_front = if placement.kind_id == kind_id(conduit_semantic_catalog::NUMERICAL_FACE_KIND)
     {
-        let contract = conduit_semantic_catalog::numerical_presentation_semantic_contract();
+        let contract = conduit_semantic_catalog::numerical_face_semantic_contract();
         placement.kind_contract_revision == contract.kind_contract_revision
             && placement.inputs == contract.inputs
             && placement.outputs == contract.outputs
             && placement.semantic_contract == contract.semantic_contract()
-    } else if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_PRESENTATION_KIND) {
-        let contract = conduit_semantic_catalog::quantity_presentation_semantic_contract();
+    } else if placement.kind_id == kind_id(conduit_semantic_catalog::QUANTITY_FACE_KIND) {
+        let contract = conduit_semantic_catalog::quantity_face_semantic_contract();
         placement.kind_contract_revision == contract.kind_contract_revision
             && placement.inputs == contract.inputs
             && placement.outputs == contract.outputs
     } else {
-        placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND)
+        placement.kind_id == kind_id(conduit_semantic_catalog::STRUCTURED_FACE_KIND)
             && placement.kind_contract_revision.as_str()
-                == conduit_semantic_catalog::STRUCTURED_PRESENTATION_REVISION
+                == conduit_semantic_catalog::STRUCTURED_FACE_REVISION
     };
     if !exact_front
         || placement.execution_profile_id.as_str()
-            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_PROFILE
+            != conduit_std_offers::STRUCTURED_FACE_STD_PROFILE
         || placement.implementation_id.as_str()
-            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
-        || placement.artifact_id.as_str()
-            != conduit_std_offers::STRUCTURED_PRESENTATION_STD_ARTIFACT
+            != conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
+        || placement.artifact_id.as_str() != conduit_std_offers::STRUCTURED_FACE_STD_ARTIFACT
         || input.port_id.as_str() != "input"
         || input.direction != PortDirection::Input
         || input.temporal != PortTemporal::Value
         || !placement.outputs.is_empty()
         || placement.host_calls.len() != 1
         || placement.host_calls[0].target_kind.as_ref()
-            != Some(&kind_id(
-                conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET,
-            ))
+            != Some(&kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET))
         || placement.resources.len() != 1
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != 1
     {
-        return Err("planned structured presentation differs from its installation".into());
+        return Err("planned structured face differs from its installation".into());
     }
     Ok(())
 }
@@ -231,8 +228,8 @@ fn literal_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     })
 }
 
-fn presentation_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
-    validate_presentation(placement)?;
+fn face_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    validate_face(placement)?;
     Ok(BackBudget {
         value_items: 0,
         value_bytes: 0,
@@ -255,15 +252,13 @@ fn prepare_literal(
     }))
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
-    validate_presentation(placement)?;
-    Ok(InstalledBack::StructuredPresentation(
-        StructuredPresentationBack {
-            pending: None,
-            next: 0,
-        },
-    ))
+    validate_face(placement)?;
+    Ok(InstalledBack::StructuredFace(StructuredFaceBack {
+        pending: None,
+        next: 0,
+    }))
 }

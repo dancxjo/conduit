@@ -238,7 +238,7 @@ impl ParsecTerminalOwner {
             || binding.boot_id() != host.boot_id.as_str()
             || binding.input_plan_id() != input_plan.as_str()
             || *binding.mapping_revision() != *state.mapping_revision()
-            || *binding.offered_action().source_presentation_revision() != face.revision
+            || *binding.offered_action().source_face_revision() != face.revision
             || binding.offered_action().action_identity() != &action.identity
         {
             return Err("Parsec prompt differs from source action/current input/Face/Show".into());
@@ -254,7 +254,7 @@ impl ParsecTerminalOwner {
             .evaluate(
                 map.current_state()?,
                 &binding_bytes,
-                conduit_presentation::ParsecInputInstructionLook::Linear,
+                conduit_face::ParsecInputInstructionLook::Linear,
                 false,
             )
             .map_err(|e| format!("Parsec instruction wording: {e:?}"))?;
@@ -278,7 +278,7 @@ impl ParsecTerminalOwner {
 pub(crate) struct QualifiedParsecInstruction {
     binding: Vec<u8>,
     map: Vec<u8>,
-    face: Presentation,
+    face: Face,
     show: MaskShow,
     parent_plan: conduit_body::BodyPlan,
     parent_play: conduit_body::BodyPlayIdentity,
@@ -297,7 +297,7 @@ impl QualifiedParsecInstruction {
         &self,
         parent_plan: &conduit_body::BodyPlan,
         parent_play: &conduit_body::BodyPlayIdentity,
-        mask: &conduit_presentation::PlannedMaskPlot,
+        mask: &conduit_face::PlannedMaskPlot,
         mask_play: &conduit_core::ActivePlayIdentity,
         host: &HostAdvertisement,
     ) -> Result<(), String> {

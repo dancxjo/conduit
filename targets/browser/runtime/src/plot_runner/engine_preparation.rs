@@ -12,6 +12,11 @@ pub(super) fn validate_envelope(
     lowered: &LoweredPlanFragment,
     allow_one_remote_endpoint: bool,
 ) -> Result<(), String> {
+    for placement in &fragment.placements {
+        if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+            conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+        }
+    }
     let route_targets = lowered
         .routes
         .iter()

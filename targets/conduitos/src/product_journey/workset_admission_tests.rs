@@ -4,19 +4,34 @@ use conduit_birth_plot::BirthSelection;
 use conduit_body::BodyWorkset;
 
 #[test]
-fn canonical_admission_before_foreground_preserves_identity_result_and_presentation() {
+fn canonical_admission_before_foreground_preserves_identity_result_and_face() {
     let (ids, offer, mut journey) = fixture();
     let memory = native_workset::resident(NativePlot::MemoryLantern).unwrap();
     let keyboard = native_workset::resident(NativePlot::KeyboardCanvas).unwrap();
+    let (existing, existing_kind, added, added_kind) = if keyboard < memory {
+        (
+            memory,
+            NativePlot::MemoryLantern,
+            keyboard,
+            NativePlot::KeyboardCanvas,
+        )
+    } else {
+        (
+            keyboard,
+            NativePlot::KeyboardCanvas,
+            memory,
+            NativePlot::MemoryLantern,
+        )
+    };
     assert!(
-        keyboard < memory,
+        added < existing,
         "regression needs insertion before the existing resident"
     );
     journey
         .birth_from_creche(BirthSelection {
             revision: 1,
             friendly_name: "Ordered Body".into(),
-            workset: BodyWorkset::one(memory.clone()).unwrap(),
+            workset: BodyWorkset::one(existing.clone()).unwrap(),
         })
         .unwrap();
     for action in [
@@ -46,8 +61,8 @@ fn canonical_admission_before_foreground_preserves_identity_result_and_presentat
         "profile",
         "build",
         "image",
-        memory.source_document_id.clone(),
-        memory.checked_plot_id.clone(),
+        existing.source_document_id.clone(),
+        existing.checked_plot_id.clone(),
         1,
         true,
     );
@@ -60,12 +75,12 @@ fn canonical_admission_before_foreground_preserves_identity_result_and_presentat
     assert_eq!(after.workload_revision, Some(1));
     assert!(after.active_play_id.is_none());
     let workspace = journey.workspace_projection().unwrap();
-    assert_eq!(workspace.plots[0].plot, keyboard);
-    assert_eq!(workspace.plots[0].title, NativePlot::KeyboardCanvas.title());
+    assert_eq!(workspace.plots[0].plot, added);
+    assert_eq!(workspace.plots[0].title, added_kind.title());
     assert!(!workspace.plots[0].foreground);
-    assert_eq!(workspace.plots[1].plot, memory);
-    assert_eq!(workspace.plots[1].title, NativePlot::MemoryLantern.title());
+    assert_eq!(workspace.plots[1].plot, existing);
+    assert_eq!(workspace.plots[1].title, existing_kind.title());
     assert!(workspace.plots[1].foreground);
     door.observe_product(&journey).unwrap();
-    door.presentation().unwrap();
+    door.face().unwrap();
 }

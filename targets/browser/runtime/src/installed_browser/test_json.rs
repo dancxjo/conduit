@@ -107,12 +107,13 @@ fn source(_: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack,
         .map_err(|e| format!("{e:?}"))
 }
 fn sink(_: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
-    Ok(BrowserBack::presentation(4096, 1))
+    Ok(BrowserBack::face(4096, 1))
 }
 fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
+            data_label: None,
             kind_id: "conduit-test/json-output",
             canonical_value: input.to_vec(),
         }),

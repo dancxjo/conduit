@@ -16,7 +16,7 @@ fn fixture() -> (
     conduit_core::LineOffer,
 ) {
     let plot = conduit_plot::parse(
-        "plot locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: presentation/count\n source.tick >> reduction.bump\n reduction.value >> analysis.value\n}\n",
+        "plot locality {\n source: time/tick(count = 10, period-ms = 1)\n reduction: state/count(0)\n analysis: face/count(\"Current count\")\n source.tick >> reduction.bump\n reduction.value >> analysis.value\n}\n",
         &conduit_semantic_catalog::standard_profile_catalog(),
     ).expect("canonical locality Plot checks");
     let source = common::standard_planning_fixture(

@@ -19,9 +19,9 @@ use conduit_core::{
 pub const TRIGGER_VALUE_KIND: &str = conduit_time::TICK_VALUE_KIND;
 pub const TRIGGER_KIND: &str = "interaction/trigger";
 pub use conduit_semantic_catalog::{
-    BOOL_PRESENTATION_CONTRACT_REVISION as TOGGLE_PRESENTATION_CONTRACT_REVISION,
-    BOOL_PRESENTATION_KIND as TOGGLE_PRESENTATION_KIND,
-    STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION, STATE_TOGGLE_KIND as TOGGLE_KIND,
+    BOOL_FACE_CONTRACT_REVISION as TOGGLE_FACE_CONTRACT_REVISION,
+    BOOL_FACE_KIND as TOGGLE_FACE_KIND, STATE_TOGGLE_CONTRACT_REVISION as TOGGLE_CONTRACT_REVISION,
+    STATE_TOGGLE_KIND as TOGGLE_KIND,
 };
 
 pub fn trigger_front_startup_parameters() -> Vec<conduit_core::FrontStartupParameter> {
@@ -212,8 +212,8 @@ pub(crate) fn extend_profile_catalog(catalog: &mut conduit_plot::ProfileCatalog)
     catalog
         .insert_kind(trigger_semantic_contract())
         .expect("signal profile kinds are unique");
-    conduit_semantic_catalog::install_bool_presentation_catalog(catalog)
-        .expect("toggle presentation kind is unique");
+    conduit_semantic_catalog::install_bool_face_catalog(catalog)
+        .expect("toggle face kind is unique");
     catalog
         .insert_kind(conduit_semantic_catalog::state_toggle_semantic_contract())
         .expect("signal profile kinds are unique");

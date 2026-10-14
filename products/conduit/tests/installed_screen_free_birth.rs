@@ -137,10 +137,10 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     assert_eq!(snapshot.as_object().unwrap().len(), 4);
     assert_eq!(snapshot["schema"], "conduit.body/local-face-snapshot@1");
     assert_eq!(
-        snapshot["presentation_revision_decimal"],
-        snapshot["presentation"]["revision"].to_string()
+        snapshot["face_revision_decimal"],
+        snapshot["face"]["revision"].to_string()
     );
-    assert_eq!(snapshot["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(snapshot["face"]["basis"]["body_id"], body_id);
     assert_eq!(
         snapshot["advertisement"]["host_id"],
         biography["membership"]["parts"][0]["current"]["host_id"]
@@ -165,7 +165,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
     // Start acknowledges admission; the service begins the Play asynchronously.
     // Observe the public lull action before requesting the lifecycle transition.
     let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
-    assert_eq!(playing["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(playing["face"]["basis"]["body_id"], body_id);
     let lull = product(&["body", "lull", "--state-dir", path(&state)]);
     assert!(
         lull.status.success(),
@@ -209,7 +209,7 @@ fn zero_body_client_refuses_two_plots_then_continues_one_retained_body() {
         String::from_utf8_lossy(&recovered.stderr)
     );
     let recovered: Value = serde_json::from_slice(&recovered.stdout).unwrap();
-    assert_eq!(recovered["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(recovered["face"]["basis"]["body_id"], body_id);
     stop_service(&mut service);
     fs::remove_dir_all(state).unwrap();
 }
@@ -359,7 +359,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     assert!(born.contains("Welcome back. Type help for commands."));
 
     let before = local_face(&state);
-    let action = before["presentation"]["actions"]
+    let action = before["face"]["actions"]
         .as_array()
         .unwrap()
         .iter()
@@ -389,7 +389,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
         String::from_utf8_lossy(&started.stderr)
     );
     let after = local_face(&state);
-    assert_ne!(before["presentation"], after["presentation"]);
+    assert_ne!(before["face"], after["face"]);
 
     // Read-only recovery uses the newly projected Face in the same turn;
     // unlike Activate, it cannot accidentally act on the old Show.
@@ -414,7 +414,7 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     );
     // Lull acknowledges the stop request before the worker publishes its terminal Face.
     let after_lull = wait_for_available_action(&state, "conduit.intent/start-clock@1");
-    assert_ne!(after["presentation"], after_lull["presentation"]);
+    assert_ne!(after["face"], after_lull["face"]);
 
     input.write_all(b"activate\n").unwrap();
     let stale = read_until_prompt(&mut output, b"body> ");
@@ -429,8 +429,8 @@ fn post_birth_refuses_stale_activation_and_controls_clock() {
     service = start_service(&state);
     let rebooted = local_face(&state);
     assert_eq!(
-        after_lull["presentation"]["basis"]["body_id"],
-        rebooted["presentation"]["basis"]["body_id"]
+        after_lull["face"]["basis"]["body_id"],
+        rebooted["face"]["basis"]["body_id"]
     );
     assert_ne!(
         after["advertisement"]["boot_id"],
@@ -571,7 +571,7 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
         String::from_utf8_lossy(&born.stderr)
     );
     let before = local_face(&state);
-    let body_id = before["presentation"]["basis"]["body_id"].as_str().unwrap();
+    let body_id = before["face"]["basis"]["body_id"].as_str().unwrap();
     let start = action_id(&before, "conduit.intent/start-clock@1");
     let reopened = product_with_stdin(
         &["body", "screen-free", "--state-dir", path(&state)],
@@ -589,13 +589,13 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
     assert!(readout.contains("Owner action result:"));
     assert!(!readout.contains("Body retained by this installed Host:"));
     let playing = wait_for_available_action(&state, "conduit.intent/lull-clock@1");
-    assert_eq!(playing["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(playing["face"]["basis"]["body_id"], body_id);
 
     stop_service(&mut service);
     fs::remove_file(state.join("control.sock")).unwrap();
     service = start_service(&state);
     let rebooted = local_face(&state);
-    assert_eq!(rebooted["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(rebooted["face"]["basis"]["body_id"], body_id);
     assert_ne!(
         rebooted["advertisement"]["boot_id"],
         before["advertisement"]["boot_id"]
@@ -620,7 +620,7 @@ fn retained_screen_free_entrance_reopens_same_body_and_refuses_stale_boot() {
     fs::remove_file(state.join("control.sock")).unwrap();
     service = start_service(&state);
     let latest = local_face(&state);
-    assert_eq!(latest["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(latest["face"]["basis"]["body_id"], body_id);
     assert_ne!(
         latest["advertisement"]["boot_id"],
         rebooted["advertisement"]["boot_id"]
@@ -646,7 +646,7 @@ fn local_face(state: &Path) -> Value {
 }
 
 fn action_id(face: &Value, intent: &str) -> String {
-    face["presentation"]["actions"]
+    face["face"]["actions"]
         .as_array()
         .unwrap()
         .iter()
@@ -658,7 +658,7 @@ fn action_id(face: &Value, intent: &str) -> String {
 }
 
 fn action_available(face: &Value, intent: &str) -> bool {
-    face["presentation"]["actions"]
+    face["face"]["actions"]
         .as_array()
         .unwrap()
         .iter()
@@ -754,7 +754,7 @@ fn interrupted_birth_publication_is_unknown_and_recovers_without_a_second_birth(
         String::from_utf8_lossy(&recovered.stderr)
     );
     let recovered: Value = serde_json::from_slice(&recovered.stdout).unwrap();
-    assert_eq!(recovered["presentation"]["basis"]["body_id"], body_id);
+    assert_eq!(recovered["face"]["basis"]["body_id"], body_id);
     assert!(!journal.exists());
     stop_service(&mut service);
     fs::remove_dir_all(state).unwrap();

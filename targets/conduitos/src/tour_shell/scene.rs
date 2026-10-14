@@ -1,6 +1,6 @@
-use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
-    Presentation, PresentationIconKey,
+use conduit_face::{
+    Face, FaceIconKey, GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
+    LayoutRect,
 };
 
 use super::TourShellError;
@@ -101,9 +101,7 @@ fn panel_scene(
     scene
         .push(
             GraphicsCommand::text(title_bounds, local, GraphicsPaintRole::Accent, title)
-                .and_then(|command| {
-                    command.with_text_role(conduit_presentation::GraphicsTextRole::Heading)
-                })
+                .and_then(|command| command.with_text_role(conduit_face::GraphicsTextRole::Heading))
                 .map_err(|_| TourShellError::Scene)?,
         )
         .map_err(|_| TourShellError::Scene)?;
@@ -129,16 +127,13 @@ fn panel_scene(
     Ok(scene)
 }
 
-fn first_text(presentation: &Presentation) -> &str {
-    presentation
-        .text
-        .first()
-        .map_or("", |text| text.text.as_str())
+fn first_text(face: &Face) -> &str {
+    face.text.first().map_or("", |text| text.text.as_str())
 }
 
 pub(super) fn status_scene(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
 ) -> Result<GraphicsScene, TourShellError> {
     let local = LayoutRect {
         x: 0,
@@ -159,23 +154,23 @@ pub(super) fn status_scene(
         )
         .map_err(|_| TourShellError::Scene)?;
     for (index, (key, icon)) in [
-        ("body", PresentationIconKey::Body),
-        ("wake", PresentationIconKey::Wake),
-        ("plan", PresentationIconKey::Plan),
-        ("play", PresentationIconKey::Play),
-        ("lines", PresentationIconKey::Line),
-        ("host", PresentationIconKey::Host),
+        ("body", FaceIconKey::Body),
+        ("wake", FaceIconKey::Wake),
+        ("plan", FaceIconKey::Plan),
+        ("play", FaceIconKey::Play),
+        ("lines", FaceIconKey::Line),
+        ("host", FaceIconKey::Host),
     ]
     .into_iter()
     .enumerate()
     {
         let identity = alloc::format!("tour/status/{key}");
-        let subject = presentation
+        let subject = face
             .subjects
             .iter()
             .find(|subject| subject.identity == identity)
             .ok_or(TourShellError::Identity)?;
-        let item = presentation
+        let item = face
             .text
             .iter()
             .find(|item| item.subject == identity)
@@ -217,7 +212,7 @@ pub(super) fn status_scene(
             .push(
                 GraphicsCommand::text(text_bounds, cell, GraphicsPaintRole::Foreground, &text)
                     .and_then(|command| {
-                        command.with_text_role(conduit_presentation::GraphicsTextRole::Label)
+                        command.with_text_role(conduit_face::GraphicsTextRole::Label)
                     })
                     .map_err(|_| TourShellError::Scene)?,
             )
@@ -227,16 +222,16 @@ pub(super) fn status_scene(
 }
 pub(super) fn inspector_scene(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
     if scroll_y > super::scroll::MAX_SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
     }
     let mut scene = panel_scene(bounds, "INSPECTOR", "")?;
-    if let Some(action) = presentation.subjects.iter().find(|subject| {
+    if let Some(action) = face.subjects.iter().find(|subject| {
         subject.identity == conduit_tour_model::INSPECTOR_CLOSE_ACTION_ID
-            && subject.role == conduit_presentation::PresentationRole::Action
+            && subject.role == conduit_face::FaceRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
         crate::native_components::action_button(
@@ -244,52 +239,52 @@ pub(super) fn inspector_scene(
             button,
             button,
             &action.name,
-            Some(PresentationIconKey::Close),
+            Some(FaceIconKey::Close),
         )
         .map_err(|_| TourShellError::Scene)?;
     }
-    super::fields::project(bounds, presentation, scroll_y, Some(&mut scene))?;
+    super::fields::project(bounds, face, scroll_y, Some(&mut scene))?;
     Ok(scene)
 }
 pub(super) fn transient_scene(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
-    if presentation.subjects.iter().any(|subject| {
+    if face.subjects.iter().any(|subject| {
         subject.identity == conduit_tour_model::TourTransientKind::Chooser.subject_identity()
     }) {
-        return chooser_scene(bounds, presentation, scroll_y);
+        return chooser_scene(bounds, face, scroll_y);
     }
-    dialog_scene(bounds, presentation, scroll_y)
+    dialog_scene(bounds, face, scroll_y)
 }
 
 fn dialog_scene(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
     if scroll_y != 0 {
         return Err(TourShellError::Identity);
     }
-    let diagnostic = presentation
+    let diagnostic = face
         .subjects
         .iter()
-        .find(|subject| subject.role == conduit_presentation::PresentationRole::Diagnostic)
+        .find(|subject| subject.role == conduit_face::FaceRole::Diagnostic)
         .ok_or(TourShellError::Identity)?;
-    let detail = presentation
+    let detail = face
         .text
         .iter()
         .find(|text| text.subject == diagnostic.identity)
         .map(|text| text.text.as_str())
         .filter(|text| !text.is_empty())
         .ok_or(TourShellError::Identity)?;
-    let close = presentation
+    let close = face
         .subjects
         .iter()
         .find(|subject| {
             subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
-                && subject.role == conduit_presentation::PresentationRole::Action
+                && subject.role == conduit_face::FaceRole::Action
         })
         .ok_or(TourShellError::Identity)?;
     let local = LayoutRect {
@@ -327,7 +322,7 @@ fn dialog_scene(
         close_bounds,
         local,
         &close.name,
-        Some(PresentationIconKey::Close),
+        Some(FaceIconKey::Close),
     )
     .map_err(|_| TourShellError::Scene)?;
     Ok(scene)
@@ -335,16 +330,16 @@ fn dialog_scene(
 
 fn chooser_scene(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
     scroll_y: u16,
 ) -> Result<GraphicsScene, TourShellError> {
     if scroll_y > SCROLL_CONTENT_HEIGHT {
         return Err(TourShellError::Identity);
     }
-    let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(presentation))?;
-    if let Some(action) = presentation.subjects.iter().find(|subject| {
+    let mut scene = panel_scene(bounds, "CHOOSE GEAR", first_text(face))?;
+    if let Some(action) = face.subjects.iter().find(|subject| {
         subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
-            && subject.role == conduit_presentation::PresentationRole::Action
+            && subject.role == conduit_face::FaceRole::Action
     }) {
         let button = super::controls::inspector_close_bounds(bounds.width);
         crate::native_components::action_button(
@@ -352,7 +347,7 @@ fn chooser_scene(
             button,
             button,
             &action.name,
-            Some(PresentationIconKey::Close),
+            Some(FaceIconKey::Close),
         )
         .map_err(|_| TourShellError::Scene)?;
     }
@@ -378,7 +373,7 @@ fn chooser_scene(
             row,
             viewport,
             &label,
-            Some(PresentationIconKey::GenericGear),
+            Some(FaceIconKey::GenericGear),
         )
         .map_err(|_| TourShellError::Scene)?;
     }

@@ -3,11 +3,11 @@
 use crate::{
     machine::BaseKind,
     offer::{
-        CapabilityOffer, INDICATOR_PRESENTATION_IMPLEMENTATION, MORSE_FLATTEN_IMPLEMENTATION,
+        CapabilityOffer, INDICATOR_FACE_IMPLEMENTATION, MORSE_FLATTEN_IMPLEMENTATION,
         MORSE_INTERSPERSE_IMPLEMENTATION, MORSE_LOOKUP_IMPLEMENTATION,
         MORSE_SYMBOLS_TO_PATTERN_IMPLEMENTATION, PortDirection, PortOffer, SERIAL_MAXIMUM_BYTES,
-        TEXT_CHARACTERS_IMPLEMENTATION, TEXT_LITERAL_IMPLEMENTATION, TEXT_MORSE_IMPLEMENTATION,
-        TEXT_PRESENTATION_IMPLEMENTATION, TEXT_UPPER_IMPLEMENTATION,
+        TEXT_CHARACTERS_IMPLEMENTATION, TEXT_FACE_IMPLEMENTATION, TEXT_LITERAL_IMPLEMENTATION,
+        TEXT_MORSE_IMPLEMENTATION, TEXT_UPPER_IMPLEMENTATION,
     },
 };
 
@@ -44,13 +44,13 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
         secondary_base: None,
         input: Some(PortOffer {
             name: "text",
-            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            value_kind: conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
             direction: PortDirection::Input,
             closes: true,
         }),
         output: Some(PortOffer {
             name: "text",
-            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            value_kind: conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
             direction: PortDirection::Output,
             closes: true,
         }),
@@ -60,11 +60,11 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
     }
 }
 
-pub(super) fn presentation(build_id: &str) -> CapabilityOffer<'_> {
+pub(super) fn face(build_id: &str) -> CapabilityOffer<'_> {
     CapabilityOffer {
-        kind: "presentation/text",
-        contract_revision: "conduit.std/presentation-text@1",
-        implementation: TEXT_PRESENTATION_IMPLEMENTATION,
+        kind: "face/text",
+        contract_revision: "conduit.std/face-text@1",
+        implementation: TEXT_FACE_IMPLEMENTATION,
         artifact_build: build_id,
         host_call: Some("conduit.host/present@1"),
         required_base: BaseKind::Serial,
@@ -93,7 +93,7 @@ pub(super) fn morse(build_id: &str) -> CapabilityOffer<'_> {
         secondary_base: None,
         input: Some(PortOffer {
             name: "text",
-            value_kind: conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            value_kind: conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
             direction: PortDirection::Input,
             closes: true,
         }),
@@ -111,9 +111,9 @@ pub(super) fn morse(build_id: &str) -> CapabilityOffer<'_> {
 
 pub(super) fn indicator(build_id: &str) -> CapabilityOffer<'_> {
     CapabilityOffer {
-        kind: conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND,
-        contract_revision: conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
-        implementation: INDICATOR_PRESENTATION_IMPLEMENTATION,
+        kind: conduit_semantic_catalog::INDICATOR_FACE_KIND,
+        contract_revision: conduit_semantic_catalog::INDICATOR_FACE_CONTRACT_REVISION,
+        implementation: INDICATOR_FACE_IMPLEMENTATION,
         artifact_build: build_id,
         host_call: Some("conduit.host/present-indicator@1"),
         required_base: BaseKind::Serial,

@@ -6,7 +6,7 @@ use conduit_core::{BootId, HostId};
 
 const SEED: &str = r#"plot hello_across {
     message: text/literal("hello")
-    show: presentation/text
+    show: face/text("Message")
     message >> show
 }"#;
 

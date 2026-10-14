@@ -105,7 +105,7 @@ pub enum CapabilityUsefulnessError {
     InvalidCapacityRelation,
     OfferedWithoutExactImplementation,
     RefusalWithoutSubject,
-    PresentationTooLarge,
+    FaceTooLarge,
 }
 
 impl core::fmt::Display for CapabilityUsefulnessError {
@@ -316,9 +316,9 @@ fn push_line(lines: &mut Vec<String>, line: String) -> Result<(), CapabilityUsef
         .try_fold(line.len(), |total, existing| {
             total.checked_add(existing.len())
         })
-        .ok_or(CapabilityUsefulnessError::PresentationTooLarge)?;
+        .ok_or(CapabilityUsefulnessError::FaceTooLarge)?;
     if lines.len() == MAX_USEFULNESS_TEXT_LINES || projected_bytes > MAX_USEFULNESS_TEXT_BYTES {
-        return Err(CapabilityUsefulnessError::PresentationTooLarge);
+        return Err(CapabilityUsefulnessError::FaceTooLarge);
     }
     lines.push(line);
     Ok(())

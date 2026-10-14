@@ -5,7 +5,7 @@
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/audio)
    Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/human)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/face)
    Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/body)
    Compiling conduit-kernel v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/kernel)
    Compiling conduit-education v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/education)

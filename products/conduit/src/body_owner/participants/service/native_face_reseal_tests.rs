@@ -11,10 +11,10 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         .push(conduit_browser_mask_offer::offer());
     browser_offer
         .resources
-        .retain(|resource| resource.class_id.as_str() != conduit_core::PRESENTATION_RESOURCE_CLASS);
+        .retain(|resource| resource.class_id.as_str() != conduit_core::FACE_RESOURCE_CLASS);
     browser_offer.resources.push(conduit_core::resource_offer(
-        "browser/first/presentation",
-        conduit_core::PRESENTATION_RESOURCE_CLASS,
+        "browser/first/face",
+        conduit_core::FACE_RESOURCE_CLASS,
         1,
     ));
     browser_offer
@@ -72,13 +72,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         )
         .unwrap();
     let old_face = owner.local_face_snapshot().unwrap();
-    let old_plan = owner
-        .presentation_wardrobe
-        .as_ref()
-        .unwrap()
-        .plan()
-        .plan_id
-        .clone();
+    let old_plan = owner.face_wardrobe.as_ref().unwrap().plan().plan_id.clone();
     let placement = old_browser.planned_mask.show_placement();
     let play = conduit_core::bind_active_play(
         &old_browser.planned_mask.plan.plan_id,
@@ -86,7 +80,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         &placement.boot_id,
         1,
     );
-    let old_show = conduit_presentation::MaskShow::prepared(
+    let old_show = conduit_face::MaskShow::prepared(
         &old_browser.planned_mask,
         &old_face,
         play,
@@ -96,7 +90,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
     )
     .unwrap()
     .transition(
-        conduit_presentation::ManifestationLifecycle::Available,
+        conduit_face::ManifestationLifecycle::Available,
         conduit_core::SignId::from("sign/test/browser-first-available"),
     )
     .unwrap();
@@ -122,7 +116,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         capabilities: Vec::new(),
         resources: vec![conduit_core::resource_offer(
             "native/test/framebuffer/surface",
-            conduit_presentation::SHOW_RESOURCE_CLASS,
+            conduit_face::SHOW_RESOURCE_CLASS,
             1,
         )],
     };
@@ -212,7 +206,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         panic!("expected active browser")
     };
     assert!(acknowledged_show.is_none());
-    let plan = owner.presentation_wardrobe.as_ref().unwrap().plan();
+    let plan = owner.face_wardrobe.as_ref().unwrap().plan();
     assert_ne!(plan.plan_id, old_plan);
     assert_eq!(plan.routes.len(), 2);
     assert_eq!(plan.face_revision, current_face.revision);
@@ -225,7 +219,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
     let old_revision = owner.session.evidence().body.workload_revision;
     let old_resident = owner.resident.clone().unwrap();
     let next = crate::plot_source::parse(
-        "plot revised {\n show: presentation/text\n \"Revised.\" >> show\n}.",
+        "plot revised {\n show: face/text(\"Message\")\n \"Revised.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()
@@ -277,7 +271,7 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
             &browser_lines.returned,
             &browser_lines.interaction,
         ),
-        Err(conduit_presentation::RemoteOwnerMaskRouteError::StaleBody)
+        Err(conduit_face::RemoteOwnerMaskRouteError::StaleBody)
     ));
     owner.refresh_browser_mask_route_for_current_face().unwrap();
     let window = owner.pending_browser.as_ref().unwrap();
@@ -305,15 +299,6 @@ fn browser_first_native_join_reseals_both_routes_on_one_current_face() {
         .unwrap();
     assert_eq!(resealed_native.body_id, body_id);
     assert_eq!(resealed_native.face_id, changed_face.identity);
-    assert_eq!(
-        owner
-            .presentation_wardrobe
-            .as_ref()
-            .unwrap()
-            .plan()
-            .routes
-            .len(),
-        2
-    );
+    assert_eq!(owner.face_wardrobe.as_ref().unwrap().plan().routes.len(), 2);
     std::fs::remove_dir_all(root).unwrap();
 }

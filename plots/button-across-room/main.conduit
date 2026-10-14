@@ -2,7 +2,7 @@
 plot button_across_room {
     button: input/button
     state: input/button-indicator-state
-    indicator: presentation/indicator-state
+    indicator: face/indicator-state("Button state")
 
     button >> state >> indicator
 }

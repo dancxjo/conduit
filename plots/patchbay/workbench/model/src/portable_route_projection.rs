@@ -1,17 +1,13 @@
-//! Exact route-recovery subjects for portable Patchbay presentation.
+//! Exact route-recovery subjects for portable Patchbay face.
 
-use conduit_presentation::{PresentationPropertyValue, PresentationRole};
+use conduit_face::{FacePropertyValue, FaceRole};
 
-use crate::{portable_projection::ContentBuilder, PatchbayPresentation};
+use crate::{portable_projection::ContentBuilder, PatchbayFace};
 
-pub(super) fn append_routes(
-    presentation: &PatchbayPresentation,
-    document: &str,
-    content: &mut ContentBuilder,
-) {
-    for route in &presentation.routes {
+pub(super) fn append_routes(face: &PatchbayFace, document: &str, content: &mut ContentBuilder) {
+    for route in &face.routes {
         let subject = content.subject(
-            PresentationRole::Route,
+            FaceRole::Route,
             format!(
                 "Route {} under Plan {}",
                 route.same_plan.plan.connection_id.as_str(),
@@ -44,7 +40,7 @@ pub(super) fn append_routes(
 
 fn append_route_identities(
     subject: &str,
-    route: &crate::DistributedRoutePresentation,
+    route: &crate::DistributedRouteFace,
     content: &mut ContentBuilder,
 ) {
     for (name, value) in [
@@ -100,25 +96,21 @@ fn append_route_identities(
             route.refused.observation_sign_id.as_str(),
         ),
     ] {
-        content.property(
-            subject,
-            name,
-            PresentationPropertyValue::Identity(value.into()),
-        );
+        content.property(subject, name, FacePropertyValue::Identity(value.into()));
     }
 }
 
 fn append_line_candidates(
     route: &str,
     phase: &str,
-    plan: &crate::RoutePlanPresentation,
+    plan: &crate::RoutePlanFace,
     unavailable: Option<&conduit_core::LinkBindingId>,
     selected: Option<&conduit_core::LinkBindingId>,
     content: &mut ContentBuilder,
 ) {
     for candidate in &plan.candidates {
         let subject = content.subject(
-            PresentationRole::Cord,
+            FaceRole::Cord,
             format!(
                 "Route candidate {} in Plan {}",
                 candidate.binding_id.as_str(),
@@ -132,26 +124,18 @@ fn append_line_candidates(
             ("binding-id", candidate.binding_id.as_str()),
             ("base-instance-id", candidate.base_instance_id.as_str()),
         ] {
-            content.property(
-                &subject,
-                name,
-                PresentationPropertyValue::Identity(value.into()),
-            );
+            content.property(&subject, name, FacePropertyValue::Identity(value.into()));
         }
-        content.property(
-            &subject,
-            "phase",
-            PresentationPropertyValue::Text(phase.into()),
-        );
+        content.property(&subject, "phase", FacePropertyValue::Text(phase.into()));
         content.property(
             &subject,
             "base",
-            PresentationPropertyValue::BaseImplementationId(candidate.base.clone()),
+            FacePropertyValue::BaseImplementationId(candidate.base.clone()),
         );
         content.property(
             &subject,
             "order",
-            PresentationPropertyValue::Count(candidate.order as u64),
+            FacePropertyValue::Count(candidate.order as u64),
         );
         let status = if unavailable == Some(&candidate.binding_id) {
             "unavailable"
@@ -163,7 +147,7 @@ fn append_line_candidates(
         content.property(
             &subject,
             "route-status",
-            PresentationPropertyValue::Text(status.into()),
+            FacePropertyValue::Text(status.into()),
         );
     }
 }

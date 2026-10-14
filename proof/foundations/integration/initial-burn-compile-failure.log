@@ -29,7 +29,7 @@
    Compiling conduit-process v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/process)
    Compiling conduit-robotics v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/robotics)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/face)
    Compiling conduit-tongues v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/tongues)
    Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/signal)
    Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/chat)

@@ -19,7 +19,7 @@ const report = () => ({
   birth: { source_commit: sha, body_id: bodyId, confirmation_observed: true },
   screen_free_clock: { ...owned, finish: { action_id: 'finish' } },
   owner_direct_speech: { ...owned }, owner_llm_speech: { ...owned },
-  owner_model_route_loss: { ...owned }, presentation_host_recovery: {},
+  owner_model_route_loss: { ...owned }, face_host_recovery: {},
 });
 
 async function fixture(callback) {

@@ -8,10 +8,10 @@ plot greet (
 
 plot welcome {
     hello: greet("Welcome")
-    "Travis" >> hello >> presentation/text
+    "Travis" >> hello >> face/text("Greeting")
 }
 
 plot default-welcome {
     hello: greet
-    "Travis" >> hello >> presentation/text
+    "Travis" >> hello >> face/text("Greeting")
 }

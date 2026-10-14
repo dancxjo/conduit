@@ -1,4 +1,4 @@
-//! Bounded Orbium/Lenia execution retained as exact scalar-presentation checkpoints.
+//! Bounded Orbium/Lenia execution retained as exact scalar-face checkpoints.
 
 use crate::evidence::{
     EvidenceKind, EvidenceManifest, EvidenceOutput, EvidenceProvenance, EvidenceResult,
@@ -56,9 +56,9 @@ pub(super) fn run(output: PathBuf) -> Result<(), Box<dyn std::error::Error>> {
         )
         .into());
     }
-    let transcript = String::from_utf8(run.stdout)
-        .map_err(|_| "Little Life presentation transcript is not UTF-8")?;
-    create_new(&output.join("presentation.txt"), transcript.as_bytes())?;
+    let transcript =
+        String::from_utf8(run.stdout).map_err(|_| "Little Life face transcript is not UTF-8")?;
+    create_new(&output.join("face.txt"), transcript.as_bytes())?;
     let fields = parse_fields(&transcript)?;
     if fields.len() != 32 || fields.iter().map(|field| field.generation).ne(1..=32) {
         return Err("Little Life did not present exactly generations 1 through 32".into());
@@ -135,9 +135,9 @@ fn seal_manifest(workspace: &Path, root: &Path, execution_path: &Path) -> Result
         ))?;
     }
     manifest.declare(output(
-        "little-life.presentation".into(),
+        "little-life.face".into(),
         EvidenceKind::ConsoleTranscript,
-        "presentation.txt".into(),
+        "face.txt".into(),
         "text/plain; charset=utf-8",
         32,
         plan_id,
@@ -180,7 +180,7 @@ fn output(
             plan_id: Some(plan_id.into()),
             active_play_id: Some(active_play_id.into()),
             renderer_id: Some(if generation == 0 {
-                "presentation/gray8-bitmap@1".into()
+                "face/gray8-bitmap@1".into()
             } else {
                 "std/kernel-present-scalar-field@1".into()
             }),
@@ -188,7 +188,7 @@ fn output(
             proof_class: Some(if generation == 0 {
                 "deterministic-orbium-seed-bitmap".into()
             } else {
-                "std-scalar-field-terminal-presentation".into()
+                "std-scalar-field-terminal-face".into()
             }),
             image_width: (kind == EvidenceKind::Screenshot).then_some(if generation == 0 {
                 32
@@ -226,11 +226,9 @@ fn parse_fields(transcript: &str) -> Result<Vec<PresentedField>, String> {
             .map_err(|_| "scalar-field generation is invalid")?;
         let mut rows = Vec::with_capacity(ROWS);
         for _ in 0..ROWS {
-            let row = lines
-                .next()
-                .ok_or("scalar-field presentation is truncated")?;
+            let row = lines.next().ok_or("scalar-field face is truncated")?;
             if row.len() != COLUMNS || !row.bytes().all(|value| RAMP.contains(&value)) {
-                return Err("scalar-field presentation has invalid bounded cells".into());
+                return Err("scalar-field face has invalid bounded cells".into());
             }
             rows.push(row.as_bytes().to_vec());
         }

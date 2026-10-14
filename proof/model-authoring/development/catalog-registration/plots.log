@@ -30,7 +30,7 @@
    Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/human)
    Compiling postcard v1.1.3
    Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/architecture/body)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/face)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/data)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/audio)
    Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/language)

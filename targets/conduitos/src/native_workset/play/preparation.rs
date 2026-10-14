@@ -1,8 +1,6 @@
 //! Numeric composition and all runtime storage admission before Play.
 use super::*;
-use crate::keyboard_text_backs::{
-    ApplicationBack, KeyboardBack, PresentationBack, StreamTransformBack,
-};
+use crate::keyboard_text_backs::{ApplicationBack, FaceBack, KeyboardBack, StreamTransformBack};
 use alloc::vec::Vec;
 use conduit_kernel::{
     FixedHostCallBindings, FixedRoutes, ValueStorage,
@@ -77,9 +75,9 @@ pub(super) fn prepare(
                         initial: true,
                     }),
                 ),
-                super::super::application_delivery::PRESENTATION_IMPLEMENTATION => (
-                    Effect::ApplicationPresentation,
-                    PlannedBack::Presentation(PresentationBack {
+                super::super::application_delivery::FACE_IMPLEMENTATION => (
+                    Effect::ApplicationFace,
+                    PlannedBack::Face(FaceBack {
                         pending: None,
                         next: 0,
                     }),
@@ -128,9 +126,9 @@ pub(super) fn prepare(
                         PlannedBack::TextEdit(StreamTransformBack::new(false)),
                     )
                 }
-                crate::offer::TEXT_PRESENTATION_IMPLEMENTATION => (
-                    Effect::Presentation,
-                    PlannedBack::Presentation(PresentationBack {
+                crate::offer::TEXT_FACE_IMPLEMENTATION => (
+                    Effect::Face,
+                    PlannedBack::Face(FaceBack {
                         pending: None,
                         next: 0,
                     }),
@@ -257,7 +255,7 @@ pub(super) fn prepare(
         editors,
         pending: [None; PLOTS],
         held: [None; 256],
-        presentations: [None; PLOTS],
+        faces: [None; PLOTS],
         application_views: core::array::from_fn(|_| None),
         applications,
         application_requests: core::array::from_fn(|_| None),

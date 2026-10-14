@@ -109,7 +109,7 @@ pub(super) struct InventoryPlot {
     #[serde(default)]
     initial_body_order: Option<u8>,
     #[serde(default)]
-    initial_body_presentation_profile: u8,
+    initial_body_face_profile: u8,
     #[serde(default = "default_true")]
     workspace_catalog: bool,
     pub(super) deterministic: Option<DeterministicOracle>,
@@ -255,7 +255,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
         source: String,
         source_document_id: String,
         checked_plot_id: String,
-        presentation_profile: u8,
+        face_profile: u8,
         required_kinds: Vec<String>,
         unavailable_hint: &'a str,
         #[serde(skip_serializing_if = "Option::is_none")]
@@ -330,7 +330,7 @@ fn bundle_workspace_catalog(root: &Path, output: &Path) -> Result<(), String> {
             source,
             source_document_id: checked.source_document_id.as_str().into(),
             checked_plot_id: entry.checked_plot_id.as_str().into(),
-            presentation_profile: plot.initial_body_presentation_profile,
+            face_profile: plot.initial_body_face_profile,
             required_kinds,
             unavailable_hint: plot
                 .browser_safe_not_applicable
@@ -387,7 +387,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
         slug: &'a str,
         title: &'a str,
         entry: &'a str,
-        presentation_profile: u8,
+        face_profile: u8,
         source: String,
     }
     #[derive(Serialize)]
@@ -403,7 +403,7 @@ fn bundle_initial_body(root: &Path, output: &Path) -> Result<(), String> {
         plots.push(BundledPlot {
             slug: &plot.slug,
             title: &plot.title,
-            presentation_profile: plot.initial_body_presentation_profile,
+            face_profile: plot.initial_body_face_profile,
             entry: &plot.entry,
             source,
         });

@@ -9,7 +9,7 @@ use crate::{
 use conduit_core::{FrontValueLocation, GearId, PortDescriptor};
 
 impl PatchbayGraph {
-    /// Adds one presentation boundary for realization truth already projected
+    /// Adds one face boundary for realization truth already projected
     /// from an admitted recursive Plot Back. The flattened Gears and Cords
     /// remain authoritative; this records only how Patchbay may collapse that
     /// graph behind the checked front.

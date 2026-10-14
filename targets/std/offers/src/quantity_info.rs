@@ -1,4 +1,4 @@
-//! Exact hosted wrapping into the existing structured Quantity presentation type.
+//! Exact hosted wrapping into the existing structured Quantity face type.
 
 use conduit_core::{
     ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId,

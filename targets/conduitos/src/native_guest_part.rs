@@ -261,18 +261,15 @@ mod tests {
         );
         door.await_join(pending()).unwrap();
         door.install_join(part.clone()).unwrap();
-        assert_eq!(
-            door.install_join(part),
-            Err(crate::front_door::Error::Presentation)
-        );
-        let face = door.presentation().unwrap();
+        assert_eq!(door.install_join(part), Err(crate::front_door::Error::Face));
+        let face = door.face().unwrap();
         face.validate().unwrap();
         assert_eq!(face.basis.body_id.unwrap().as_str(), "body/owner");
         assert!(face.basis.wake_id.is_none());
         assert!(face.basis.active_play_id.is_none());
         assert!(face.actions.is_empty());
         assert!(face.subjects.iter().any(|subject| {
-            subject.role == conduit_presentation::PresentationRole::Part
+            subject.role == conduit_face::FaceRole::Part
                 && subject.identity == "part/part/owner-issued"
         }));
         assert!(!door.joining_pending());

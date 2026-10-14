@@ -1,6 +1,6 @@
 //! Preserve actual Presenter speech, without manufacturing narration from receipts.
 use super::PreparedOrifinaJourney;
-use conduit_presentation::GeneratedContentRole;
+use conduit_face::GeneratedContentRole;
 use conduit_std_host::local_model_proof::LocalModelLiveProofReceipt;
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -67,7 +67,7 @@ pub(super) fn retain(
                     let artifacts = audio::produce(
                         output,
                         step_id,
-                        &request.semantic_data.presentation,
+                        &request.semantic_data.face,
                         &proof.manifestation,
                         provider,
                     )?;

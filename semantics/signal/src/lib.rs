@@ -36,12 +36,12 @@ use conduit_core::{
     wait_host_call_requirement, CapabilityLimits, ConfigurationEntry, ConfigurationValue,
     ExecutionProfileId, HostCallRequirement, Kind, KindConfigurationField, KindConfigurationRule,
     KindId, KindIdentity, PortDescriptor, PortDirection, ResourceOffer, ResourceRequirement,
-    ValuePayload, PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    ValuePayload, FACE_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
 pub const SIGNAL_VALUE_KIND: &str = "value/signal";
 pub const PULSE_KIND: &str = "flow/pulse";
-pub const SHOW_KIND: &str = "presentation/show";
+pub const SHOW_KIND: &str = "face/show";
 pub const SIGNAL_PORT: &str = "signal";
 
 #[cfg(feature = "host-profile")]
@@ -65,10 +65,10 @@ pub fn pulse_front_startup_parameters() -> Vec<conduit_core::FrontStartupParamet
     ]
 }
 pub const SIGNAL_ENCODED_LEN: u32 = 9;
-pub const SIGNAL_PRESENTATION_KIND: &str = "presentation/signal";
+pub const SIGNAL_FACE_KIND: &str = "face/signal";
 pub const MAX_SIGNAL_COUNT: u64 = 4_096;
 pub const PULSE_CONTRACT_REVISION: &str = "conduit.signal/flow-pulse@1";
-pub const SHOW_CONTRACT_REVISION: &str = "conduit.signal/presentation-show@1";
+pub const SHOW_CONTRACT_REVISION: &str = "conduit.signal/face-show@1";
 pub const PULSE_EXECUTION_PROFILE: &str = "conduit.signal/pulse-hosted@1";
 pub const SHOW_EXECUTION_PROFILE: &str = "conduit.signal/show-hosted@1";
 pub const SIGNAL_ENCODED_LEN_USIZE: usize = SIGNAL_ENCODED_LEN as usize;
@@ -142,7 +142,7 @@ pub fn pulse_host_call_requirements() -> Vec<HostCallRequirement> {
 #[cfg(feature = "host-profile")]
 pub fn show_host_call_requirements() -> Vec<HostCallRequirement> {
     vec![present_host_call_requirement(
-        kind_id(SIGNAL_PRESENTATION_KIND),
+        kind_id(SIGNAL_FACE_KIND),
         SIGNAL_ENCODED_LEN,
     )]
 }
@@ -154,22 +154,18 @@ pub fn pulse_resource_requirements() -> Vec<ResourceRequirement> {
 
 #[cfg(feature = "host-profile")]
 pub fn show_resource_requirements() -> Vec<ResourceRequirement> {
-    vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+    vec![resource_requirement(FACE_RESOURCE_CLASS, 1)]
 }
 
 #[cfg(feature = "host-profile")]
 pub fn signal_resource_offers(
     timer_pool_id: &str,
-    presentation_pool_id: &str,
+    face_pool_id: &str,
     capacity_units: u32,
 ) -> Vec<ResourceOffer> {
     let mut offers = vec![
         resource_offer(timer_pool_id, TIMER_RESOURCE_CLASS, capacity_units),
-        resource_offer(
-            presentation_pool_id,
-            PRESENTATION_RESOURCE_CLASS,
-            capacity_units,
-        ),
+        resource_offer(face_pool_id, FACE_RESOURCE_CLASS, capacity_units),
     ];
     offers.sort_by(|left, right| left.pool_id.cmp(&right.pool_id));
     offers
@@ -239,17 +235,17 @@ pub fn pulse_semantic_contract() -> Kind {
     }
 }
 
-/// Exact portable show contract. Presentation mechanics remain Host facts.
+/// Exact portable show contract. Face mechanics remain Host facts.
 #[cfg(feature = "host-profile")]
 pub fn show_semantic_contract() -> Kind {
     Kind {
-        startup_parameters: Vec::new(),
+        startup_parameters: conduit_core::data_label_startup_front(),
         shorthand: None,
         kind_id: show_kind(),
         kind_contract_revision: show_contract_revision(),
         inputs: show_inputs(),
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: conduit_core::data_label_configuration(),
         semantic_laws: Default::default(),
         limits: CapabilityLimits {
             max_active_instances: 16,

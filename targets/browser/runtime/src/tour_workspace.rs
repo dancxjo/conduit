@@ -21,7 +21,7 @@ pub extern "C" fn conduit_tour_workspace_view(revision: u32, phase: u8) -> i32 {
         _ => return ERROR_PHASE,
     };
     let encoded = match TourWorkspaceState::canonical(revision, phase)
-        .presentation()
+        .face()
         .and_then(|view| view.lower())
         .and_then(|view| view.encode().map_err(Into::into))
     {
@@ -45,7 +45,7 @@ pub extern "C" fn conduit_tour_workspace_view_len() -> usize {
 
 #[cfg(test)]
 mod tests {
-    use conduit_presentation::{ApplicationComponent, ApplicationView};
+    use conduit_face::{ApplicationComponent, ApplicationView};
 
     use super::*;
 

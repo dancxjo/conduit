@@ -27,7 +27,7 @@ installed hosted operation and host adapter
 ```
 
 Education, vision, structured robotics, job/reminder workflows, recurrence and
-calendar calculation, and direct Patchbay presentation follow the same rule.
+calendar calculation, and direct Patchbay face follow the same rule.
 Provider-specific physical motion authority is not a portable default offer.
 Browser and ConduitOS construct their own realization offers from the portable
 contracts and do not inherit hosted std implementation truth.

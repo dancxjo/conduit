@@ -9,8 +9,7 @@ use super::{
     hid_qmp, hid_run, image, keyboard_run, keyboard_text_run,
     profile::{Paths, EXPECTED_QEMU_SUCCESS, LIMINE_VERSION, QEMU_PROFILE},
     report::{
-        GuestBootSign, GuestKernelSign, GuestPcSpeakerSign, GuestPresentationSign, GuestRun,
-        GuestXhciSign,
+        GuestBootSign, GuestFaceSign, GuestKernelSign, GuestPcSpeakerSign, GuestRun, GuestXhciSign,
     },
     usb_run, ConduitosArch, ConduitosError,
 };
@@ -72,18 +71,15 @@ fn validate_pc_speaker(
     Ok(())
 }
 
-fn validate_presentation(
-    boot: &GuestBootSign,
-    sign: &GuestPresentationSign,
-) -> Result<(), ConduitosError> {
+fn validate_face(boot: &GuestBootSign, sign: &GuestFaceSign) -> Result<(), ConduitosError> {
     let exact_id =
         |value: &str| value.len() == 64 && value.bytes().all(|byte| byte.is_ascii_hexdigit());
-    if sign.schema != "conduit.conduitos.framebuffer-presentation/v1"
+    if sign.schema != "conduit.conduitos.framebuffer-face/v1"
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
         || sign.realization != "recursive"
         || sign.back_kind != conduit_semantic_catalog::PATCHBAY_GEAR_FACE_KIND
-        || sign.back_contract_revision != conduit_semantic_catalog::PATCHBAY_PRESENTATION_REVISION
+        || sign.back_contract_revision != conduit_semantic_catalog::PATCHBAY_FACE_REVISION
         || sign.back_invocation_path != "conduitos-gear-front/front"
         || !exact_id(&sign.back_source_document_id)
         || !exact_id(&sign.back_checked_plot_id)
@@ -94,8 +90,8 @@ fn validate_presentation(
         || sign.display_height < 200
         || sign.display_pitch < sign.display_width.saturating_mul(4)
         || sign.display_bits_per_pixel != 32
-        || sign.execution_profile != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_PROFILE
-        || sign.artifact != conduitos::presentation_nucleus::CONDUITOS_PRESENTATION_ARTIFACT
+        || sign.execution_profile != conduitos::face_nucleus::CONDUITOS_FACE_PROFILE
+        || sign.artifact != conduitos::face_nucleus::CONDUITOS_FACE_ARTIFACT
         || !exact_id(&sign.source_document_id)
         || !exact_id(&sign.checked_plot_id)
         || !exact_id(&sign.expanded_plot_id)
@@ -114,8 +110,8 @@ fn validate_presentation(
         || !sign.completed
     {
         return Err(ConduitosError::refusal(
-            "invalid-presentation-sign",
-            format!("presentation Sign failed exact validation: {sign:?}"),
+            "invalid-face-sign",
+            format!("face Sign failed exact validation: {sign:?}"),
         ));
     }
     Ok(())
@@ -258,7 +254,7 @@ fn validate_kernel(boot: &GuestBootSign, sign: &GuestKernelSign) -> Result<(), C
         || sign.kernel_decisions == 0
         || sign.kernel_signs == 0
         || sign.timer_irq_wakes != 1
-        || sign.serial_presentations != 2
+        || sign.serial_faces != 2
         || !sign.clock_monotonic
         || sign.pending_host_calls != 0
         || !sign.overlap_witness

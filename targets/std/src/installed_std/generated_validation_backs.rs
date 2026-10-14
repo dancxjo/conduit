@@ -162,8 +162,8 @@ fn prepare_envelope(
             first_registered: false,
             pending: None,
             complete: false,
-            first_bound: conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
-            second_bound: conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            first_bound: conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32,
+            second_bound: conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             first_call: HostCallId(1),
             second_call: HostCallId(0),
         },
@@ -182,7 +182,7 @@ fn prepare_validator(
         GeneratedValidatorBack {
             pending: false,
             complete: false,
-            input_bound: conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+            input_bound: conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
         },
     ))
 }
@@ -200,8 +200,8 @@ fn prepare_retain(
             first_registered: false,
             pending: None,
             complete: false,
-            first_bound: conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
-            second_bound: conduit_presentation::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            first_bound: conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
+            second_bound: conduit_face::MAX_GENERATIVE_PRESENTER_OUTPUT_BYTES as u32,
             first_call: HostCallId(0),
             second_call: HostCallId(1),
         },
@@ -221,7 +221,8 @@ fn validate(placement: &PlannedGear, implementation: &str) -> Result<(), String>
         || placement.execution_profile_id != offer.implementation.execution_profile_id
         || placement.artifact_id != offer.implementation.artifact_id
         || placement.host_calls != offer.host_calls
-        || !placement.configuration.is_empty()
+        || placement.configuration.len() != offer.semantic_contract.configuration.len()
+        || conduit_semantic_catalog::face_data_label(&placement.configuration).is_err()
     {
         return Err("planned generated validation stage differs from installed realization".into());
     }
@@ -232,11 +233,10 @@ fn budget(placement: &PlannedGear, implementation: &str) -> Result<BackBudget, S
     validate(placement, implementation)?;
     Ok(BackBudget {
         value_items: 4,
-        value_bytes: (conduit_presentation::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32)
-            .saturating_mul(4),
+        value_bytes: (conduit_face::MAX_GENERATIVE_PRESENTER_INPUT_BYTES as u32).saturating_mul(4),
         host_requests: 2,
         sign_items: 24,
-        maximum_value_bytes: conduit_presentation::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
+        maximum_value_bytes: conduit_face::MAX_GENERATED_VALIDATION_ENVELOPE_BYTES as u32,
     })
 }
 

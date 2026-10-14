@@ -17,7 +17,7 @@ use conduit_body::{
 use conduit_core::{
     AuthorityGrantId, HostAdvertisement, HostId, LineAvailability, LineOffer, LinkBindingId,
 };
-use conduit_presentation::RemoteOwnerMaskRouteSeal;
+use conduit_face::RemoteOwnerMaskRouteSeal;
 use conduit_std_host::browser_admission::{
     BrowserAdmissionEgress as Out, BrowserAdmissionIngress as In, MAX_BROWSER_ADMISSION_FRAME_BYTES,
 };
@@ -126,8 +126,8 @@ pub(crate) struct BrowserWindow {
     state: WindowState,
     // Source-root selection belongs to this participating Mask, not Body state.
     component_mask_selection: Option<(
-        conduit_presentation::ComponentMaskLook,
-        conduit_presentation::TodoComponentRecipe,
+        conduit_face::ComponentMaskLook,
+        conduit_face::TodoComponentRecipe,
     )>,
 }
 
@@ -141,7 +141,7 @@ enum WindowState {
         line_authorization: Box<BrowserLineAuthorization>,
         line_evidence: Option<Box<BrowserCarrierLineEvidence>>,
         route: Option<Box<RemoteOwnerMaskRouteSeal>>,
-        acknowledged_show: Option<Box<conduit_presentation::MaskShow>>,
+        acknowledged_show: Option<Box<conduit_face::MaskShow>>,
     },
 }
 
@@ -436,7 +436,7 @@ impl Owner {
         {
             // Disclosure remains self-reported. Check that this current
             // observation admits the reviewed ordinary browser Mask Plan.
-            // This alone does not admit a cross-Host presentation Line.
+            // This alone does not admit a cross-Host face Line.
             if !observation
                 .advertisement
                 .capabilities
@@ -525,7 +525,7 @@ impl Owner {
                 route: Some(route), ..
             } = &window.state
             {
-                if let Some(wardrobe) = &mut self.presentation_wardrobe {
+                if let Some(wardrobe) = &mut self.face_wardrobe {
                     wardrobe.forget_show_for(&route.route_plan_id);
                 }
             }

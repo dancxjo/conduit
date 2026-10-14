@@ -12,12 +12,12 @@ use conduit_body::{
     MAX_DISCLOSED_RESOURCES,
 };
 use conduit_core::{BootId, HostAdvertisement, HostId, PlanId, PortId, ResourceHandleId};
-use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
-use conduit_presentation::{
+use conduit_face::{
     FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
     OwnerFaceSnapshotResponse, MAX_FACE_INTERACTION_BYTES, MAX_OWNER_FACE_RESPONSE_BYTES,
     OWNER_FACE_RESPONSE_SCHEMA,
 };
+use conduit_human::{AcquiredMediaResource, MediaResourceAvailability};
 use serde::{Deserialize, Serialize};
 use serde_json::Value;
 use std::time::Duration;
@@ -558,8 +558,8 @@ fn validate_ingress(frame: &BrowserAdmissionIngress) -> Result<(), BrowserAdmiss
             if !request.has_exact_basis()
                 || interaction.encode().len() > MAX_FACE_INTERACTION_BYTES
                 || interaction.show_id != show.show_id.as_str()
-                || interaction.face_revision != show.presentation_revision
-                || interaction.face_id != show.presentation_id.as_str()
+                || interaction.face_revision != show.face_revision
+                || interaction.face_id != show.face_id.as_str()
                 || show.show.host_id != request.host_id
                 || show.show.boot_id != request.boot_id
             {
@@ -723,7 +723,7 @@ mod wardrobe_wire_tests {
         .unwrap();
         let part_id = PartId::bind(&body.body_id, "part/wardrobe-test", 1).unwrap();
         let request = OwnerFaceSnapshotRequest {
-            schema: conduit_presentation::OWNER_FACE_REQUEST_SCHEMA.into(),
+            schema: conduit_face::OWNER_FACE_REQUEST_SCHEMA.into(),
             credential_id: "credential/test".into(),
             body_id: body.body_id,
             part_id,

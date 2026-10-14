@@ -42,7 +42,7 @@ and Pico W HIL remain distinct evidence classes.
 | Brainstem command | Disposition | Highest honest Conduit seam | Replacement evidence required before retirement |
 |---|---|---|---|
 | `ping` | delete | host/boot observation and LINE liveness | host fencing distinguishes live host, lost LINE, and lost device |
-| `status` | delete | presentation and Observatory projection | Current plan/play/resource/safety truth is inspectable without private state |
+| `status` | delete | face and Observatory projection | Current plan/play/resource/safety truth is inspectable without private state |
 | `get_capabilities` | delete | `HostAdvertisement` and exact offers | Both hosts advertise exact current resources and implementations |
 | `get_events` | delete | bounded signs and provenance | Required lifecycle, refusal, safety, and terminal signs are retained |
 | `arm`, `disarm` | replace | authority/session grant and revocation | Motion requires an exact grant and revocation reaches safe disposition |
@@ -57,9 +57,9 @@ and Pico W HIL remain distinct evidence classes.
 | `drive_direct`, `drive_arc` | fixture/compose | Create-native lowering or reusable adapter plot | Neither wire shape becomes a separate architecture-defining gear kind |
 | `request_sensors`, `stream_sensors` | delete | typed Current/Flow outputs with finite pressure | Sampling, freshness, capacity, closure, and pressure are explicit |
 | `song_define`, `song_play` | keep | standard music/sound semantics | Existing portable `music/play` plot lowers through bounded Create song slots |
-| `define_chirp`, `play_feedback` | compose | ordinary finite sound plot | Feedback names are presentation/policy choices, not device primitives |
+| `define_chirp`, `play_feedback` | compose | ordinary finite sound plot | Feedback names are face/policy choices, not device primitives |
 | `set_silent` | replace | sound policy/authority or absence of a sound plan | No global private Brainstem audio state remains |
-| `set_lights` | keep | portable indicator/presentation output | Bounded light meaning lowers to the Create LED profile |
+| `set_lights` | keep | portable indicator/face output | Bounded light meaning lowers to the Create LED profile |
 | `dock` | keep | portable docking request | Exact authority, refusal, opcode realization, and terminal sign are proven |
 | `power_state`, `create_power_on`, `create_power_off` | service | power observation and bounded device service action | Unknown/off/on remain distinct; toggle/start/baud actions are authorized |
 | `restart_create` | service | exact composed Create device lifecycle transaction | `create_restart_service` accepts only the existing requested-stop, separately verified off/on power-service, fresh device/mode observation, and exact mode-service signs; it owns no provider, retry, RPC, or palette surface |
@@ -113,9 +113,9 @@ distance.
 | differential motion | keep | `robotics/drive-differential` consuming velocity intent | mandatory safety realization -> Create OI codec -> UART base |
 | zero/stop | keep | actuator safe disposition | priority finite OI stop write; local fallback on provider failure |
 | speaker/song | keep | standard music/sound kinds | finite Create song slots/opcodes -> UART base |
-| feedback chirps | compose | bounded sound plots selected by presentation/policy | same speaker realization |
+| feedback chirps | compose | bounded sound plots selected by face/policy | same speaker realization |
 | dock | keep | portable docking action | Create dock opcode -> UART base |
-| Create LEDs | keep | indicator/presentation output | finite LED opcode -> UART base |
+| Create LEDs | keep | indicator/face output | finite LED opcode -> UART base |
 | Create power toggle | service | power service action | exact GPIO output and timing base; embedded only unless separately offered |
 | translator enable | keep below semantics | attachment safety/resource prerequisite | exact GPIO output; embedded physical configuration only |
 | local status LED | keep | Presenter/host status manifestation | exact GPIO/PWM output |
@@ -181,7 +181,7 @@ for byte unchanged.
 | drive requested/stopped | replace | action admission, play/cancellation, and terminal signs |
 | `CreateNoResponse`, UART framing, timeout, invalid packet | keep | distinct device/base/protocol failure classes |
 | command accepted/rejected/completed history | replace | typed action/refusal/terminal signs |
-| private status snapshot | delete | presentation/Observatory projection from authoritative state |
+| private status snapshot | delete | face/Observatory projection from authoritative state |
 | private capability arrays | delete | exact host advertisements/offers/resources |
 | private event ring/RPC cursor | delete | bounded sign retention using ordinary policy |
 | UART compact command protocol | delete/fixture | Conduit actions/ports over a selected LINE; exact rejection bytes may remain fixtures |
@@ -206,7 +206,7 @@ The exact advertised event inventory has these dispositions:
 | `heartbeat_expired`, `estop_latched`, `estop_cleared` | authority/control-liveness and E-stop safety signs |
 | `imu_frame_received`, `imu_fault`, `tilt_changed`, `imu_calibration_changed`, `impact_detected` | typed inertial observations, calibration identity changes, and safety signs |
 | `contact_withdrawal_started`, `contact_withdrawal_completed` | replace private Brainstem events with exact `contact-withdrawal@1` preemption, progress, and terminal safety evidence; the bounded local reflex is retained under the safety contract above |
-| `audio_state_changed` | sound policy/presentation observation; delete private global state |
+| `audio_state_changed` | sound policy/face observation; delete private global state |
 | `error` | delete generic bucket; retain the narrow typed base/device/protocol/safety/action failure |
 
 Transport reachability never grants motion authority. LINE loss, host loss,
@@ -251,7 +251,7 @@ issue remains open; use [STATUS.md](../../STATUS.md) and the
 | Create restart service | finite attended coordinator over the existing requested-stop, separately verified off/on power transitions, fresh mode observation, and exact mode-restoration signs; no direct UART/GPIO provider, retry, RPC, or gear surface | carrier #135 qualification, Pico power/mode integration, and physical HIL |
 | local safety latch/clear and contact withdrawal | allocator-free persistent multi-hazard envelope with monotonic observation/latch generations; exact conditional clear; plus `contact-withdrawal@1`, which triggers only from a fresh located edge during toward-contact output, retains the preempted command, survives ordinary host/LINE loss, is bounded by 250 ticks/20 mm, is preempted by every stronger invariant, never turns/retries, and stops on every terminal path | integrate exact Pico inputs/watchdog/provider and the reflex ahead of contact-latch settling; wheels-off-floor physical edge/held/stationary/host-loss/stronger-hazard HIL |
 | MPU-6050 orientation/calibration | allocator-free exact I2C identity/configuration/frame protocol; raw acceleration/gyro retained beside calibrated body-frame `robotics/observe-imu`; exact attachment/offer/plan and production-kernel execution; tilt/impact derivation; host/boot/offer/attachment/generation/authority-bound zero-orientation service | exact Pico I2C integration, carrier #135 physical mounting/threshold qualification, safety-envelope coupling, and HIL |
-| SSD1306 local Presenter | allocator-free exact 128x32 I2C initialization/frame protocol; bounded two-line projection of ordinary portable presentation text; exact renderer offer/plan/Manifestation identities; device delivery failure remains a failed manifestation without changing host or motion-safety truth | exact Pico I2C integration, carrier #135 attachment qualification, and physical display HIL |
+| SSD1306 local Presenter | allocator-free exact 128x32 I2C initialization/frame protocol; bounded two-line projection of ordinary portable face text; exact renderer offer/plan/Manifestation identities; device delivery failure remains a failed manifestation without changing host or motion-safety truth | exact Pico I2C integration, carrier #135 attachment qualification, and physical display HIL |
 | std speaker | bounded `music/play` plan/kernel/OI lifecycle plus live machine and human audibility receipts | #837 reconnect/cancellation completion |
 | std indicator | unchanged canonical Signal plot, exact plan/kernel/OI LED lifecycle, and live machine evidence | optional human visibility receipt only where separately required |
 | std differential motion | exact reduced-safety offer/authority, plan-bound floor acknowledgement, kernel TTL stop, and deterministic provider-loss proof | live bounded motion after explicit physical setup confirmation |

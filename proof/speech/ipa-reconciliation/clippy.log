@@ -33,7 +33,7 @@
     Checking cobs v0.3.0
     Checking postcard v1.1.3
     Checking ed25519-dalek v2.2.0
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/semantics/face)
     Checking minicbor v2.3.0
     Checking conduit-body v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/architecture/body)
     Checking conduit-planner v0.1.0 (/home/dancxjo/Documents/Codex/2026-10-08/goal-finish-and-close-out-5260/work/conduit/architecture/planner)

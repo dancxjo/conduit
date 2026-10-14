@@ -36,7 +36,7 @@ conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
 conduit-language = { path = "../../../semantics/language" }
 conduit-net = { path = "../../../semantics/net", features = ["plot-catalog"] }
 conduit-planner = { path = "../../../architecture/planner" }
-conduit-presentation = { path = "../../../semantics/presentation", default-features = false, features = ["plot-catalog"] }
+conduit-face = { path = "../../../semantics/face", default-features = false, features = ["plot-catalog"] }
 conduit-browser-mask-offer = { path = "../mask-offer" }
 conduit-tour-model = { path = "../../../plots/tour" }
 conduit-tutorial-plot = { path = "../../../semantics/tutorial" }

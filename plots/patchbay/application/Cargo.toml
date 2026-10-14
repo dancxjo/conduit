@@ -8,7 +8,7 @@ conduit-core = { path = "../../../architecture/core" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-kernel = { path = "../../../architecture/kernel", features = ["alloc"] }
-conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-face = { path = "../../../semantics/face" }
 patchbay-control = { path = ".." }
 patchbay-graph = { path = "../graph" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

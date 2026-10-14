@@ -47,11 +47,7 @@ pub(super) fn validate(
         || sign.plot_machine_facts
         || sign.keymap_configuration != "conduit-intl"
         || sign.physical_transition_count != 38
-        || sign
-            .presentation_fragments
-            .iter()
-            .map(String::as_str)
-            .ne(expected)
+        || sign.face_fragments.iter().map(String::as_str).ne(expected)
         || sign.visible_ascii != "HELLO"
         || !sign.bounded
         || !sign.completed
@@ -83,7 +79,7 @@ fn validate_observatory(
         conduit_semantic_catalog::KEYBOARD_KIND,
         conduit_semantic_catalog::KEYMAP_KIND,
         conduit_text::TEXT_UPPER_KIND,
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+        conduit_semantic_catalog::TEXT_FACE_KIND,
     ];
     let Some(plan) = snapshot.plans.first() else {
         return Err(ConduitosError::refusal(
@@ -125,7 +121,7 @@ fn validate_observatory(
         "kind=input/keyboard",
         "kind=input/keymap",
         "kind=text/upper",
-        "kind=presentation/text",
+        "kind=face/text",
         "implementation=conduitos/usb-hid-keyboard@1",
         "value_kind=input/key-event@1",
         "conduitos.base/xhci@1",

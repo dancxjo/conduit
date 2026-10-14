@@ -1,4 +1,4 @@
-use conduit_presentation::{Presentation, PresentationRole};
+use conduit_face::{Face, FaceRole};
 use patchbay_application::{
     EntranceAction, EntranceLayer, EntranceRefusal, EntranceUpdateDisposition,
     PatchbayEntranceState,
@@ -6,24 +6,24 @@ use patchbay_application::{
 
 use crate::portable_demonstration;
 
-fn revised(presentation: &Presentation, revision: u64) -> Presentation {
-    Presentation::new_with_semantics(
+fn revised(face: &Face, revision: u64) -> Face {
+    Face::new_with_semantics(
         revision,
-        presentation.basis.clone(),
-        presentation.subjects.clone(),
-        presentation.relationships.clone(),
-        presentation.properties.clone(),
-        presentation.text.clone(),
-        presentation.actions.clone(),
-        presentation.disclosures.clone(),
+        face.basis.clone(),
+        face.subjects.clone(),
+        face.relationships.clone(),
+        face.properties.clone(),
+        face.text.clone(),
+        face.actions.clone(),
+        face.disclosures.clone(),
     )
     .unwrap()
 }
 
 #[test]
 fn front_door_begins_in_world_on_here_and_progressively_exposes_other_layers() {
-    let presentation = portable_demonstration().unwrap();
-    let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
+    let face = portable_demonstration().unwrap();
+    let mut state = PatchbayEntranceState::enter(&face).unwrap();
     assert_eq!(state.layer, EntranceLayer::World);
     assert!(state
         .selected_subject
@@ -31,20 +31,16 @@ fn front_door_begins_in_world_on_here_and_progressively_exposes_other_layers() {
         .is_some_and(|subject| subject.starts_with("part/")));
     assert!(state.available_actions.contains(&EntranceAction::Inspect));
 
-    state
-        .show_layer(&presentation, EntranceLayer::Intent)
-        .unwrap();
-    state
-        .show_layer(&presentation, EntranceLayer::Realization)
-        .unwrap();
+    state.show_layer(&face, EntranceLayer::Intent).unwrap();
+    state.show_layer(&face, EntranceLayer::Realization).unwrap();
     assert_eq!(state.layer, EntranceLayer::Realization);
 
-    let candidate = presentation
+    let candidate = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Candidate)
+        .find(|subject| subject.role == FaceRole::Candidate)
         .unwrap();
-    state.select(&presentation, &candidate.identity).unwrap();
+    state.select(&face, &candidate.identity).unwrap();
     assert_eq!(
         state.available_actions,
         vec![
@@ -57,18 +53,18 @@ fn front_door_begins_in_world_on_here_and_progressively_exposes_other_layers() {
 
 #[test]
 fn exact_revision_updates_preserve_or_explicitly_stale_selection() {
-    let presentation = portable_demonstration().unwrap();
-    let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
-    let host = presentation
+    let face = portable_demonstration().unwrap();
+    let mut state = PatchbayEntranceState::enter(&face).unwrap();
+    let host = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Host)
+        .find(|subject| subject.role == FaceRole::Host)
         .unwrap()
         .identity
         .clone();
-    state.select(&presentation, &host).unwrap();
+    state.select(&face, &host).unwrap();
 
-    let next = revised(&presentation, presentation.revision + 1);
+    let next = revised(&face, face.revision + 1);
     assert_eq!(
         state.update(&next),
         Ok(EntranceUpdateDisposition::SelectionPreserved)
@@ -86,7 +82,7 @@ fn exact_revision_updates_preserve_or_explicitly_stale_selection() {
     actions.retain(|action| action.target != host);
     let mut disclosures = next.disclosures.clone();
     disclosures.retain(|disclosure| disclosure.subject != host);
-    let rebooted = Presentation::new_with_semantics(
+    let rebooted = Face::new_with_semantics(
         next.revision + 1,
         next.basis.clone(),
         subjects,
@@ -110,33 +106,28 @@ fn exact_revision_updates_preserve_or_explicitly_stale_selection() {
 
 #[test]
 fn stale_and_unknown_inputs_refuse_without_shadow_state() {
-    let presentation = portable_demonstration().unwrap();
-    let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
+    let face = portable_demonstration().unwrap();
+    let mut state = PatchbayEntranceState::enter(&face).unwrap();
     let selected = state.selected_subject.clone();
     assert_eq!(
-        state.select(&presentation, "dom/widget/unknown"),
+        state.select(&face, "dom/widget/unknown"),
         Err(EntranceRefusal::UnknownSubject)
     );
     assert_eq!(state.selected_subject, selected);
-    assert_eq!(
-        state.update(&presentation),
-        Err(EntranceRefusal::StaleRevision)
-    );
+    assert_eq!(state.update(&face), Err(EntranceRefusal::StaleRevision));
 }
 
 #[test]
 fn clearing_selection_returns_to_quiet_world_across_revisions() {
-    let presentation = portable_demonstration().unwrap();
-    let mut state = PatchbayEntranceState::enter(&presentation).unwrap();
-    state
-        .show_layer(&presentation, EntranceLayer::Intent)
-        .unwrap();
-    state.clear_selection(&presentation).unwrap();
+    let face = portable_demonstration().unwrap();
+    let mut state = PatchbayEntranceState::enter(&face).unwrap();
+    state.show_layer(&face, EntranceLayer::Intent).unwrap();
+    state.clear_selection(&face).unwrap();
     assert_eq!(state.layer, EntranceLayer::World);
     assert!(state.selected_subject.is_none());
     assert!(state.available_actions.is_empty());
 
-    let next = revised(&presentation, presentation.revision + 1);
+    let next = revised(&face, face.revision + 1);
     assert_eq!(
         state.update(&next),
         Ok(EntranceUpdateDisposition::SelectionPreserved)

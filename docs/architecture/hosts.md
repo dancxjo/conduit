@@ -16,7 +16,7 @@ canonical .conduit source
     -> prepared host-assigned fragments and numeric kernel tables
     -> play through the shared execution kernel
     -> admitted Host Calls and correlated signs
-    -> presentation and a host-specific show
+    -> face and a host-specific show
 ```
 
 Each stage has its own identity. Source spelling is not checked meaning;

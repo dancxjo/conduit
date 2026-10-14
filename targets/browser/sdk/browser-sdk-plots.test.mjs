@@ -3,13 +3,13 @@ import assert from "node:assert/strict";
 import { BrowserPlot, birthBrowserBody, recoverBrowserBody, reviewBrowserPlots } from "./browser-sdk-plots.mjs";
 import { InvalidLifecycleError } from "./browser-sdk.mjs";
 
-const source = 'clock { tick: presentation/tick }.';
+const source = 'clock { tick: face/tick }.';
 const plot = {
   name: "clock",
   source,
   source_document_id: "sha256:source",
   checked_plot_id: "sha256:checked",
-  required_kinds: ["presentation/tick"],
+  required_kinds: ["face/tick"],
 };
 const bodySnapshot = (revision) => ({ schema: "conduit.workspace/body@1", evidence: {
   schema: "conduit.body/biography-evidence@2", body_id: "body/1", body: { workload_revision: revision, workset: { plots: [{ source_document_id: "sha256:source", checked_plot_id: "sha256:checked" }] } },
@@ -25,7 +25,7 @@ test("Plot check projects Rust source and checked identities without parsing in 
   assert.equal(checked.schema, "conduit.browser/checked-source@1");
   assert.equal(checked.sourceDocumentId, "sha256:source");
   assert.equal(checked.plots[0].checkedPlotId, "sha256:checked");
-  assert.deepEqual(checked.requirements.kinds, ["presentation/tick"]);
+  assert.deepEqual(checked.requirements.kinds, ["face/tick"]);
   assert.equal(checked.plots[0].documentSource, source);
 });
 
@@ -79,11 +79,11 @@ test("Host workload review returns bounded realization requirements without crea
     return { status: 0, outputJson: {
       schema: "conduit.creche/plot-workload-review@1",
       review: { schema: "conduit.creche/initial-workload-review@1", proposed_hosts: [], reviewed_realization_count: 1, body_plan_created: false, play_created: false, authority_acquired: false, resources_acquired: false },
-      requirements: { kinds: ["presentation/tick"], resources: [{ host_id: "host/1", resource_class_id: "resource/dom@1", units: 1 }], capabilities: [{ host_id: "host/1", capability_id: "browser/dom@1", active_instances: 1 }] },
+      requirements: { kinds: ["face/tick"], resources: [{ host_id: "host/1", resource_class_id: "resource/dom@1", units: 1 }], capabilities: [{ host_id: "host/1", capability_id: "browser/dom@1", active_instances: 1 }] },
     } };
   } };
   const review = await reviewBrowserPlots({ bridge, host: "host/1", boot: "boot/1", plots: checked.plots });
-  assert.deepEqual(review.requirements.kinds, ["presentation/tick"]);
+  assert.deepEqual(review.requirements.kinds, ["face/tick"]);
   assert.deepEqual(review.requirements.resources[0], { hostId: "host/1", resourceClassId: "resource/dom@1", units: 1 });
   assert.equal(review.bodyPlanCreated, false);
   assert.equal(review.resourcesAcquired, false);
@@ -140,7 +140,7 @@ test("Body Patchbay uses the Rust projection and binds it to exact Body and Boot
           } }],
         } }],
         front_outputs: [],
-        gears: [{ gear_id: "clock/tick", kind_id: "presentation/tick", inputs: [], outputs: [] }],
+        gears: [{ gear_id: "clock/tick", kind_id: "face/tick", inputs: [], outputs: [] }],
         cords: [], realization_gears: [], realization_cords: [], realization_backs: [], diagnostics: [],
       } };
     },
@@ -277,8 +277,8 @@ test("closing a Body settles admitted selection before fencing stale handles", a
   assert.equal(requests.length, count, "closed handles cannot mutate or read the runtime");
 });
 
-test("bundled edits retain reviewed presentation profiles and Patchbay projects exact foreground source", async () => {
-  const original = { slug: "clock", entry: "clock", title: "Clock", source, presentation_profile: 1 };
+test("bundled edits retain reviewed face profiles and Patchbay projects exact foreground source", async () => {
+  const original = { slug: "clock", entry: "clock", title: "Clock", source, face_profile: 1 };
   const bundle = JSON.stringify({ schema: "conduit.creche/reviewed-plot-bundle@2", plots: [original] });
   const added = { ...plot, name: "second", source: "second {}", source_document_id: "source/second", checked_plot_id: "checked/second" };
   let retained = bundle;
@@ -311,7 +311,7 @@ test("bundled edits retain reviewed presentation profiles and Patchbay projects 
     sourceDocumentId: entry.source_document_id, checkedPlotId: entry.checked_plot_id });
   const body = await birthBrowserBody({ bridge, host: "host/1", boot: "boot/1", membership: { advertisement: () => ({}) },
     name: "Bundle", plots: [checked(plot, bundle)], sequence: () => 1 });
-  const incoming = { slug: "second", entry: "second", source: added.source, presentation_profile: 3 };
+  const incoming = { slug: "second", entry: "second", source: added.source, face_profile: 3 };
   const incomingBundle = JSON.stringify({ schema: "conduit.creche/reviewed-plot-bundle@2", plots: [incoming] });
   await body.install(checked(added, incomingBundle));
   assert.deepEqual(JSON.parse(retained).plots, [original, incoming]);

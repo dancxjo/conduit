@@ -7,7 +7,7 @@ edition = "2021"
 conduit-core = { path = "../../../architecture/core" }
 conduit-plot = { path = "../../../architecture/plot" }
 conduit-planner = { path = "../../../architecture/planner" }
-conduit-presentation = { path = "../../../semantics/presentation" }
+conduit-face = { path = "../../../semantics/face" }
 conduit-semantic-catalog = { path = "../../../semantics/catalog", features = ["plot-catalog"] }
 conduit-std-offers = { path = "../../../targets/std/offers" }
 conduit-text = { path = "../../../semantics/text" }

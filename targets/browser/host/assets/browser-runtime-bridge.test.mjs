@@ -139,7 +139,7 @@ test("owner Face interaction bridge retains exact u64 emission bytes", () => {
   const api = runtime();
   const inputPointer = 2048;
   const outputPointer = 32768;
-  const emission = new TextEncoder().encode('{"show":{"presentation_revision":9007199254740993},"interaction":{"face_revision":9007199254740993}}');
+  const emission = new TextEncoder().encode('{"show":{"face_revision":9007199254740993},"interaction":{"face_revision":9007199254740993}}');
   api.conduit_browser_owner_face_input_ptr = () => inputPointer;
   api.conduit_browser_owner_face_input_capacity = () => 16 * 1024;
   api.conduit_browser_owner_face_output_ptr = () => outputPointer;
@@ -273,7 +273,7 @@ test("initial workload review preserves its four exact fields and retires source
 test("canonical owner Face observation preserves exact integer bytes and copies output", () => {
   const api = runtime();
   const pointer = 32768;
-  const bytes = new TextEncoder().encode('{"presentation":{"revision":18446744073709551615,"properties":[{"Count":9007199254740993}]}}');
+  const bytes = new TextEncoder().encode('{"face":{"revision":18446744073709551615,"properties":[{"Count":9007199254740993}]}}');
   api.conduit_browser_owner_face_output_ptr = () => pointer;
   api.conduit_browser_owner_face_output_capacity = () => 64 * 1024;
   api.conduit_browser_owner_face_output_len = () => bytes.length;

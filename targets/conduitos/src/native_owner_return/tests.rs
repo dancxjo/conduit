@@ -2,7 +2,7 @@
 
 use super::*;
 use crate::bounded_websocket::WebSocketError;
-use conduit_presentation::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 
 #[test]
 fn return_connections_never_reuse_ports_after_grant_sequence_reset() {

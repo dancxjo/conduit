@@ -92,7 +92,7 @@ impl PatchbayAction {
         })
     }
 
-    pub const fn presentation_intent(self) -> &'static str {
+    pub const fn face_intent(self) -> &'static str {
         match self {
             Self::OpenBack => "conduit.intent/open@1",
             Self::Save => "conduit.intent/save@1",
@@ -133,8 +133,8 @@ pub enum PatchbayControlError {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PatchbayControlRequest {
     pub request_id: String,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub action_id: String,
     pub action: PatchbayAction,
     pub target_identity: String,
@@ -143,17 +143,17 @@ pub struct PatchbayControlRequest {
 impl PatchbayControlRequest {
     pub fn new(
         request_id: impl Into<String>,
-        presentation_id: impl Into<String>,
-        presentation_revision: u64,
+        face_id: impl Into<String>,
+        face_revision: u64,
         action_id: impl Into<String>,
         action: PatchbayAction,
         target_identity: impl Into<String>,
     ) -> Result<Self, PatchbayControlError> {
         let request_id = request_id.into();
-        let presentation_id = presentation_id.into();
+        let face_id = face_id.into();
         let action_id = action_id.into();
         let target_identity = target_identity.into();
-        for value in [&request_id, &presentation_id, &action_id, &target_identity] {
+        for value in [&request_id, &face_id, &action_id, &target_identity] {
             if value.is_empty() {
                 return Err(PatchbayControlError::EmptyIdentity);
             }
@@ -163,8 +163,8 @@ impl PatchbayControlRequest {
         }
         Ok(Self {
             request_id,
-            presentation_id,
-            presentation_revision,
+            face_id,
+            face_revision,
             action_id,
             action,
             target_identity,
@@ -197,7 +197,7 @@ mod tests {
             assert_eq!(PatchbayAction::from_name(action.as_str()), Some(action));
             assert!(PatchbayControlRequest::new(
                 "request",
-                "presentation",
+                "face",
                 7,
                 "action/current",
                 action,
@@ -209,7 +209,7 @@ mod tests {
         assert_eq!(PatchbayAction::from_name("be_born"), None);
         assert!(PatchbayControlRequest::new(
             "",
-            "presentation",
+            "face",
             0,
             "action/current",
             PatchbayAction::Play,

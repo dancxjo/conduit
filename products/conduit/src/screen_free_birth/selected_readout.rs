@@ -3,7 +3,7 @@
 use std::{io::Write, path::Path, sync::mpsc, thread, time::Duration};
 
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::spoken_face_mask::{
     ReaderCommand, SpokenBatchDelivery, SpokenFaceSession, SpokenTurnOutcome,
 };
@@ -21,7 +21,7 @@ pub(super) enum OutputPhase {
 
 fn face_is_current(
     state_dir: &Path,
-    face: &Presentation,
+    face: &Face,
     advertisement: &HostAdvertisement,
     phase: OutputPhase,
 ) -> Result<bool, String> {
@@ -60,7 +60,7 @@ fn face_is_current(
 
 fn stop_stale_reading(
     reader: &mut SpokenFaceSession,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     sequence: &mut u64,
     output: &mut impl Write,
@@ -85,7 +85,7 @@ pub(super) fn emit_readout(
     input: &mut impl CommandInput,
     playback: Option<&SelectedPlayback>,
     reader: &mut SpokenFaceSession,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     advertisement: &HostAdvertisement,
     sequence: &mut u64,

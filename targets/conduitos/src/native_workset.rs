@@ -14,7 +14,7 @@ pub use catalog::{
 };
 pub use planning::{AdmittedPlotInput, PreparedNativeWorkset, prepare, review};
 pub(crate) use planning::{prepare_exact, propose_partitions};
-pub use play::{NativePresentation, NativeWorksetPlay, PlayRefusal};
+pub use play::{NativeFace, NativeWorksetPlay, PlayRefusal};
 pub use tutorial_application::TutorialAction;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]

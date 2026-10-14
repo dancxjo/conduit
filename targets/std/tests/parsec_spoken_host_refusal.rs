@@ -1,6 +1,6 @@
 //! Captured Parsec Face/component data cannot supply absent speech equipment.
 use conduit_core::OfferGeneration;
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 use conduit_std_host::{StdHost, StdHostComposition, StdHostConfig};
 
 #[test]
@@ -27,7 +27,7 @@ fn captured_parsec_readings_cannot_plan_on_a_host_without_speech_offers() {
     );
     let original_host = host.advertisement().clone();
     for record in records {
-        let face: Presentation = serde_json::from_value(record["face"].clone()).unwrap();
+        let face: Face = serde_json::from_value(record["face"].clone()).unwrap();
         face.validate().unwrap();
         assert_eq!(record["face_revision_decimal"], face.revision.to_string());
         assert_eq!(record["provenance"]["action"], face.actions[0].identity);

@@ -14,7 +14,7 @@ pub(super) fn extend(capabilities: &mut Vec<CapabilityOffer>) {
         installed_std::test_chord_sink_offer(),
         installed_std::test_scalar_source_offer(),
         installed_std::test_layout_sink_offer(),
-        installed_std::test_presentation_sink_offer(),
+        installed_std::test_face_sink_offer(),
         installed_std::test_graphics_sink_offer(),
         installed_std::test_scalar_literal_offer(),
         installed_std::test_scalar_sink_offer(),

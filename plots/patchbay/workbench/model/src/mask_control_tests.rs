@@ -3,10 +3,8 @@ use conduit_body::{
     Body, BodyFaceSelector, BodyPlanningSession, BodyPlanningTransition, BodyWorkset, ResidentPlot,
 };
 use conduit_core::{BaseImplementationId, BootId, HostId, SignId};
+use conduit_face::{Face, FaceBasis, FaceRole, FaceSubject};
 use conduit_planner::{default_expanded_placements, plan_expanded_canonical};
-use conduit_presentation::{
-    Presentation, PresentationBasis, PresentationRole, PresentationSubject,
-};
 use conduit_std_host::StdHost;
 
 #[test]
@@ -42,9 +40,9 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         SignId::from("sign/body-born"),
     )
     .unwrap();
-    let presentation = Presentation::new(
+    let face = Face::new(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id.clone()),
             wake_id: None,
             source_document_id: Some(resident.source_document_id.clone()),
@@ -52,11 +50,11 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
             expanded_plot_id: Some(expanded.expanded_plot_id.clone()),
             plan_id: Some(plot_plan.plan_id.clone()),
             active_play_id: None,
-            sign_ids: vec![SignId::from("sign/presentation")],
+            sign_ids: vec![SignId::from("sign/face")],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "patchbay/self".into(),
-            role: PresentationRole::Document,
+            role: FaceRole::Document,
             name: "Patchbay controlling its own Mask topology".into(),
         }],
         vec![],
@@ -70,7 +68,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         target_subject: format!("target/{label}"),
     };
     let mut controller = MaskControlSession::new(
-        presentation.clone(),
+        face.clone(),
         BodyFaceSelector {
             plot: Some(resident),
             source_placement_id: None,
@@ -108,7 +106,7 @@ fn touch_my_own_patchbay_replans_graphical_parallel_speech_and_back() {
         )
         .unwrap();
     assert_eq!(parallel.chains.len(), 2);
-    assert_eq!(parallel.presentation_id, presentation.identity.as_str());
+    assert_eq!(parallel.face_id, face.identity.as_str());
     assert_eq!(planning.body().body_id, body_id);
     assert_eq!(planning.current_plan().plots, plots);
     assert_ne!(parallel.plan_id, plan_a);

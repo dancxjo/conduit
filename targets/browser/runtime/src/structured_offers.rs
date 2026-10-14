@@ -3,7 +3,7 @@
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    StructuredInfoType, StructuredInfoValue, PRESENTATION_RESOURCE_CLASS,
+    StructuredInfoType, StructuredInfoValue, FACE_RESOURCE_CLASS,
 };
 
 pub(crate) struct BrowserOfferIdentity<'a> {
@@ -31,13 +31,13 @@ pub(crate) fn structured_literal_offer(
     )
 }
 
-pub(crate) fn structured_presentation_offer(
+pub(crate) fn structured_face_offer(
     type_name: &str,
     value_type: &StructuredInfoType,
     identity: BrowserOfferIdentity<'_>,
 ) -> CapabilityOffer {
     exact_offer(
-        conduit_semantic_catalog::structured_presentation_semantic_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_face_semantic_contract(type_name, value_type),
         identity,
         true,
     )
@@ -46,7 +46,7 @@ pub(crate) fn structured_presentation_offer(
 fn exact_offer(
     contract: conduit_core::Kind,
     identity: BrowserOfferIdentity<'_>,
-    presentation: bool,
+    face: bool,
 ) -> CapabilityOffer {
     BackOfferBuilder::new(
         contract,
@@ -55,16 +55,16 @@ fn exact_offer(
             execution_profile_id: ExecutionProfileId::from(identity.profile),
             implementation_id: ImplementationId::from(identity.implementation),
             artifact_id: ArtifactId::from(identity.artifact),
-            host_calls: if presentation {
+            host_calls: if face {
                 vec![present_host_call_requirement(
-                    kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                    kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET),
                     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
                 )]
             } else {
                 Vec::new()
             },
-            resource_requirements: if presentation {
-                vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+            resource_requirements: if face {
+                vec![resource_requirement(FACE_RESOURCE_CLASS, 1)]
             } else {
                 Vec::new()
             },

@@ -4,9 +4,9 @@ use crate::workspace_mask::{
     BrowserMaskAcknowledgement, BrowserMaskEffect, BrowserMaskInteraction, BrowserMaskRuntime,
 };
 use conduit_body::{BodyBiographyEvidence, BodyPlan, Wake};
-use conduit_presentation::{
-    Face, FaceContext, FaceContribution, FaceContributionRole, FaceFocus, FaceNames,
-    FaceResidentPlotName, PresentationContributionBasis,
+use conduit_face::{
+    BodyFace, FaceContext, FaceContribution, FaceContributionBasis, FaceContributionRole,
+    FaceFocus, FaceNames, FaceResidentPlotName,
 };
 
 pub(super) struct ThermostatFace {
@@ -65,8 +65,8 @@ impl ThermostatFace {
             effect: None,
         }))
     }
-    fn basis(&self, play: &conduit_core::ActivePlayId) -> PresentationContributionBasis {
-        PresentationContributionBasis {
+    fn basis(&self, play: &conduit_core::ActivePlayId) -> FaceContributionBasis {
+        FaceContributionBasis {
             checked_plot_id: self.resident.checked_plot_id.clone(),
             plan_id: self.plan.plan_id.clone(),
             active_play_id: play.clone(),
@@ -97,13 +97,13 @@ impl TourSession {
             checked_plot_id: &context.resident.checked_plot_id,
             name: "thermostat/main",
         }];
-        let face = Face::project_with_names(
+        let face = BodyFace::project_with_names(
             &context.evidence.body,
             Some(&context.wake),
             context.publication_revision,
             FaceContext::Overview,
             FaceFocus::Body,
-            vec![FaceContribution::from_presentation(
+            vec![FaceContribution::from_face(
                 FaceContributionRole::Foreground,
                 fragment,
             )],
@@ -122,7 +122,7 @@ impl TourSession {
             context.plan.body_id.clone(),
             self.host_id.clone(),
             self.boot_id.clone(),
-            face.presentation,
+            face.face,
             context.wake.clone(),
             context.plan.clone(),
             mask_sequence,
@@ -156,14 +156,14 @@ impl TourSession {
             .observation();
         let view = crate::owner_face_mask::view::local_view(
             &context.plan.body_id,
-            &observation.presentation,
+            &observation.face,
             &observation.mask_show,
             &observation.mask_play,
         );
         Ok(
             serde_json::json!({ "schema":"conduit.browser/thermostat-face@1",
             "body_plan_id": context.plan.plan_id, "active_play_id": self.active_play_id,
-            "presentation": observation.presentation, "effect": context.effect,
+            "face": observation.face, "effect": context.effect,
             "mask_show": observation.mask_show, "execution": observation.execution, "view": view }),
         )
     }
@@ -178,17 +178,15 @@ impl TourSession {
             .and_then(|context| context.mask.as_mut())
             .ok_or("Thermostat has no pending Show")?;
         let current = mask.observation();
-        if current.mask_show.show.lifecycle
-            == conduit_presentation::ManifestationLifecycle::Available
-        {
+        if current.mask_show.show.lifecycle == conduit_face::ManifestationLifecycle::Available {
             let show = &current.mask_show;
             if ack.show_id != show.show_id.as_str()
                 || ack.manifestation_id != show.show.manifestation_id.as_str()
                 || ack.mask_plan_id != current.planned_mask.plan.plan_id
                 || ack.active_play_id != current.mask_play.active_play_id
                 || ack.placement_id != show.show.placement_id
-                || ack.presentation_id != current.presentation.identity.as_str()
-                || ack.presentation_revision != current.presentation.revision
+                || ack.face_id != current.face.identity.as_str()
+                || ack.face_revision != current.face.revision
             {
                 return Err("Thermostat acknowledgement is stale or mismatched".into());
             }
@@ -220,8 +218,8 @@ impl TourSession {
             .ok_or("Thermostat has no acknowledged Show")?;
         let observation = mask.observation();
         // Validate the exact current canonical contract before consuming the Mask Fore.
-        let interaction = conduit_presentation::FaceInteraction::new(
-            &observation.presentation,
+        let interaction = conduit_face::FaceInteraction::new(
+            &observation.face,
             &observation.mask_show,
             &proposed.action_id,
             &proposed.target,
@@ -231,7 +229,7 @@ impl TourSession {
         .map_err(|error| format!("Thermostat interaction refused: {error:?}"))?;
         let command = conduit_thermostat_face::thermostat_command_from_contributed_interaction(
             &state,
-            &observation.presentation,
+            &observation.face,
             &observation.mask_show,
             &interaction,
             basis,

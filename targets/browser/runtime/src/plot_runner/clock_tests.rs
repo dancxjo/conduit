@@ -14,10 +14,7 @@ fn canonical_clock_executes_five_ticks_then_stops_in_the_browser_kernel() {
                 timers += 1;
             }
             TourHostEffect::Manifestation(value) => {
-                assert_eq!(
-                    value.presentation_kind,
-                    conduit_semantic_catalog::TICK_PRESENTATION_KIND
-                );
+                assert_eq!(value.face_kind, conduit_semantic_catalog::TICK_FACE_KIND);
                 ticks.push(value.text.unwrap());
             }
             _ => panic!("canonical clock requested an unrelated effect"),

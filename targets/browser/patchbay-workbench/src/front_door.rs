@@ -40,7 +40,7 @@ pub(crate) fn snapshot_for_zero_body_front_door(
     let projection = session.project()?;
     let navigation = projection.navigation;
     let execution = prepare_renderer_execution(
-        projection.presentation,
+        projection.face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/front-door"),
@@ -69,7 +69,7 @@ pub(crate) fn snapshot_for_front_door(
     let projection = session.project()?;
     let navigation = projection.navigation;
     let execution = prepare_renderer_execution(
-        projection.presentation,
+        projection.face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/front-door"),
@@ -169,52 +169,52 @@ fn browser_palette_port(port: &conduit_core::PortDescriptor) -> BrowserPalettePo
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::PresentationRole;
+    use conduit_face::FaceRole;
 
     #[test]
     fn public_front_door_truthfully_begins_without_a_body() {
         let snapshot = front_door_snapshot().unwrap();
         assert!(snapshot.parts.is_none());
-        assert!(snapshot.presentation.basis.body_id.is_none());
+        assert!(snapshot.face.basis.body_id.is_none());
         assert!(snapshot.entrance.body_id.is_none());
         assert_eq!(
             snapshot
-                .presentation
+                .face
                 .subjects
                 .iter()
                 .find(|subject| {
                     Some(subject.identity.as_str()) == snapshot.entrance.selected_subject.as_deref()
                 })
                 .map(|subject| subject.role.clone()),
-            Some(PresentationRole::Host)
+            Some(FaceRole::Host)
         );
-        assert!(snapshot.presentation.basis.plan_id.is_none());
+        assert!(snapshot.face.basis.plan_id.is_none());
         assert!(snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .any(|subject| subject.role == PresentationRole::Plot));
+            .any(|subject| subject.role == FaceRole::Plot));
         assert!(!snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .any(|subject| subject.role == PresentationRole::Body));
+            .any(|subject| subject.role == FaceRole::Body));
         let plot_count = snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Plot)
+            .filter(|subject| subject.role == FaceRole::Plot)
             .count();
-        assert_eq!(snapshot.presentation.actions.len(), 2 * plot_count + 1);
-        assert_eq!(snapshot.presentation.disclosures.len(), plot_count + 1);
+        assert_eq!(snapshot.face.actions.len(), 2 * plot_count + 1);
+        assert_eq!(snapshot.face.disclosures.len(), plot_count + 1);
         let plot = snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Plot)
+            .find(|subject| subject.role == FaceRole::Plot)
             .unwrap();
         let actions = snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .filter(|action| action.target == plot.identity)
@@ -223,13 +223,13 @@ mod tests {
         assert_eq!(actions[0].name, "Open");
         assert_eq!(actions[1].name, "Birth");
         let host = snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Host)
+            .find(|subject| subject.role == FaceRole::Host)
             .unwrap();
         let creche_birth = snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .find(|action| action.target == host.identity)

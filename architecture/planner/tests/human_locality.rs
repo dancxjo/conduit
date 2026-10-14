@@ -28,7 +28,7 @@ fn plot() -> conduit_plot::CheckedPlot {
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     conduit_plot::parse(
-        "plot text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n presentation: presentation/text\n keyboard.key >> keymap.key\n keymap.text >> uppercase.source\n uppercase.text >> presentation.text\n}\n",
+        "plot text_lab {\n keyboard: input/keyboard\n keymap: input/keymap\n uppercase: text/upper\n face: face/text(\"Message\")\n keyboard.key >> keymap.key\n keymap.text >> uppercase.source\n uppercase.text >> face.text\n}\n",
         &profile,
     )
     .expect("the unchanged text-lab Plot checks")
@@ -188,7 +188,7 @@ fn requirements() -> BTreeMap<GearId, HardRealizationRequirements> {
 fn policies() -> BTreeMap<GearId, RealizationPolicy> {
     BTreeMap::from([
         (GearId::from("text_lab/keyboard"), prefer_host(LOCAL)),
-        (GearId::from("text_lab/presentation"), prefer_host(LOCAL)),
+        (GearId::from("text_lab/face"), prefer_host(LOCAL)),
     ])
 }
 
@@ -209,7 +209,7 @@ fn plan_fixture(
         (
             (
                 GearId::from("text_lab/uppercase"),
-                GearId::from("text_lab/presentation"),
+                GearId::from("text_lab/face"),
             ),
             vec![lines[1].line_id.clone()],
         ),
@@ -258,7 +258,7 @@ fn human_facing_gears_stay_local_while_heavy_work_uses_an_ordinary_peer_plan() {
     };
     assert_eq!(placement("text_lab/keyboard"), LOCAL);
     assert_eq!(placement("text_lab/uppercase"), REMOTE);
-    assert_eq!(placement("text_lab/presentation"), LOCAL);
+    assert_eq!(placement("text_lab/face"), LOCAL);
     let remote_cords = plan
         .fragments
         .iter()
@@ -311,10 +311,10 @@ fn local_human_preference_retains_its_exact_policy_source() {
     let plot = plot();
     let hosts = hosts();
     let observations = observations(&hosts);
-    let presentation = plot
+    let face = plot
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/face")
         .unwrap();
     let semantic = lifecycle::policy_source(
         "checked-plot/text-lab",
@@ -326,7 +326,7 @@ fn local_human_preference_retains_its_exact_policy_source() {
     let monitor =
         lifecycle::policy_source("monitor/current-resources", 7, PolicyScope::SiteDeployment);
     let selection = select_realization_with_scoped_policy(
-        presentation,
+        face,
         &hosts,
         &[],
         &HardRealizationRequirements::default(),
@@ -339,7 +339,7 @@ fn local_human_preference_retains_its_exact_policy_source() {
         &lifecycle::reviewed_observations(&observations, &monitor),
         11,
     )
-    .expect("attributable workspace policy selects local presentation");
+    .expect("attributable workspace policy selects local face");
     assert_eq!(selection.selection.choice.host_id.as_str(), LOCAL);
     assert_eq!(
         selection.basis.policy_sources,
@@ -362,13 +362,13 @@ fn hard_locality_wins_over_remote_power_and_remote_loss_preserves_local_truth() 
     let plot = plot();
     let hosts = hosts();
     let current_observations = observations(&hosts);
-    let presentation = plot
+    let face = plot
         .gears
         .iter()
-        .find(|gear| gear.gear_id.as_str() == "text_lab/presentation")
+        .find(|gear| gear.gear_id.as_str() == "text_lab/face")
         .unwrap();
     let selection = select_realization_with_characteristics_and_signs(
-        presentation,
+        face,
         &hosts,
         &[],
         &HardRealizationRequirements {

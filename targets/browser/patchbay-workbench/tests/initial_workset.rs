@@ -4,7 +4,7 @@ use conduit_body::{
 };
 use conduit_browser_patchbay_workbench::{body_workbench_snapshot, BrowserBodyWorkbenchEntrance};
 use conduit_core::{CheckedPlotId, SignId, SourceDocumentId};
-use conduit_presentation::PresentationRole;
+use conduit_face::FaceRole;
 
 fn resident(name: &str) -> ResidentPlot {
     ResidentPlot::new(
@@ -49,39 +49,30 @@ fn patchbay_handoff_projects_every_initial_plot_as_ordinary_active_work() {
         3
     );
     assert_eq!(workbench.current["workload_revision"], 0);
-    assert!(snapshot.presentation.properties.iter().any(|property| {
+    assert!(snapshot.face.properties.iter().any(|property| {
         property.subject == format!("body/{}", body.body_id.as_str())
             && property.name == "workload-revision"
-            && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+            && property.value == conduit_face::FacePropertyValue::Count(0)
     }));
     let visible_plots = snapshot
-        .presentation
+        .face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Plot)
+        .filter(|subject| subject.role == FaceRole::Plot)
         .map(|subject| subject.name.as_str())
         .collect::<Vec<_>>();
     for plot in initial {
         assert!(visible_plots.contains(&plot.checked_plot_id.as_str()));
-        assert!(snapshot
-            .presentation
-            .relationships
-            .iter()
-            .any(|relationship| {
-                relationship.source == format!("body/{}", body.body_id.as_str())
-                    && relationship.target == format!("plot/{}", plot.checked_plot_id.as_str())
-                    && relationship.kind
-                        == conduit_presentation::PresentationRelationshipKind::Contains
-            }));
-    }
-    assert!(!snapshot
-        .presentation
-        .relationships
-        .iter()
-        .any(|relationship| {
+        assert!(snapshot.face.relationships.iter().any(|relationship| {
             relationship.source == format!("body/{}", body.body_id.as_str())
-                && relationship.kind == conduit_presentation::PresentationRelationshipKind::Realizes
-                && relationship.target.starts_with("plot/")
+                && relationship.target == format!("plot/{}", plot.checked_plot_id.as_str())
+                && relationship.kind == conduit_face::FaceRelationshipKind::Contains
         }));
-    assert_eq!(snapshot.presentation.basis.body_id, Some(body.body_id));
+    }
+    assert!(!snapshot.face.relationships.iter().any(|relationship| {
+        relationship.source == format!("body/{}", body.body_id.as_str())
+            && relationship.kind == conduit_face::FaceRelationshipKind::Realizes
+            && relationship.target.starts_with("plot/")
+    }));
+    assert_eq!(snapshot.face.basis.body_id, Some(body.body_id));
 }

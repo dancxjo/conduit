@@ -16,7 +16,7 @@
    Compiling conduit-wire v0.1.0 (/home/dancxjo/conduit-portable-foundations/architecture/wire)
    Compiling conduit-chat v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/chat)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/face)
    Compiling conduit-signal v0.1.0 (/home/dancxjo/conduit-portable-foundations/semantics/signal)
    Compiling serde-json-core v0.6.0
    Compiling conduit-todo-plot v0.1.0 (/home/dancxjo/conduit-portable-foundations/plots/todo/model)
@@ -265,7 +265,7 @@ test result: ok. 6 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; fini
 running 11 tests
 test exact_revision_and_front_compatibility_rejects_mutation ... ok
 test implementation_controls_and_determinism_claims_stay_outside_portable_semantics ... ok
-test generative_presentation_is_structured_and_distinct_from_input_interpretation ... ok
+test generative_face_is_structured_and_distinct_from_input_interpretation ... ok
 test confidence_and_work_accounting_are_native_values ... ok
 test llm_work_bounds_are_native_and_exactly_bounded ... ok
 test refusal_failure_cancellation_and_provider_loss_are_terminal_without_payload ... ok
@@ -657,7 +657,7 @@ test future_event_is_a_typed_relation_but_not_an_age ... ok
 test exact_validity_boundaries_determine_duration ... ok
 test clock_basis_and_reference_are_native_with_exact_identity_bounds ... ok
 test event_ordering_refuses_different_clock_bases ... ok
-test model_and_human_presentation_consume_the_same_canonical_relation ... ok
+test model_and_human_face_consume_the_same_canonical_relation ... ok
 test retrieval_cannot_claim_knowledge_after_the_decision_instant ... ok
 test retrieval_intent_names_boundaries_and_rejects_reversed_windows ... ok
 test missing_boundary_and_invalid_intervals_refuse_explicitly ... ok

@@ -14,8 +14,8 @@ pub(crate) use super::test_json_codec::{
 };
 #[cfg(test)]
 pub(crate) use super::test_support::{
-    test_catalog, test_graphics_sink_offer, test_layout_sink_offer, test_observer_offer,
-    test_presentation_sink_offer,
+    test_catalog, test_face_sink_offer, test_graphics_sink_offer, test_layout_sink_offer,
+    test_observer_offer,
 };
 
 pub(crate) fn http_client_resource_class() -> &'static str {

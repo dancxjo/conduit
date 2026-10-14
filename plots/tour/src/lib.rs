@@ -3,10 +3,9 @@
 extern crate alloc;
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_presentation::{
-    ActionAvailability, AdmittedNavigationDestination, ApplicationEventKind, PresentationMechanism,
-    SemanticAction, SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal,
-    StatusKind,
+use conduit_face::{
+    ActionAvailability, AdmittedNavigationDestination, ApplicationEventKind, FaceMechanism,
+    SemanticAction, SemanticApplicationView, SemanticFaceNode, SemanticFaceRefusal, StatusKind,
 };
 
 mod application;
@@ -21,7 +20,7 @@ pub use lesson::{TOUR_LESSON_SUBJECT, tour_stage_source};
 mod navigation;
 mod pointer;
 mod port;
-mod shell_presentations;
+mod shell_faces;
 pub use application::*;
 pub use controller::*;
 pub use gallery::*;
@@ -30,7 +29,7 @@ pub use layout::*;
 pub use navigation::*;
 pub use pointer::*;
 pub use port::*;
-pub use shell_presentations::*;
+pub use shell_faces::*;
 
 pub const CANONICAL_SPECIMEN_ID: &str = "canonical-plot:meet-one-gear";
 pub const CANONICAL_LITERAL: &str = "hello";
@@ -39,7 +38,7 @@ pub const CANONICAL_SOURCE: &str = concat!(
     "plot meet-one-gear {\n",
     "    words: text/literal(\"hello\")\n",
     "    change: text/upper\n",
-    "    result: presentation/text\n\n",
+    "    result: face/text(\"Message\")\n\n",
     "    words >> change >> result\n",
     "}."
 );
@@ -117,12 +116,12 @@ impl TourWorkspaceState {
         }
     }
 
-    pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+    pub fn face(&self) -> Result<SemanticApplicationView, SemanticFaceRefusal> {
         let chapter = TOUR_CHAPTERS
             .get(usize::from(self.progress.chapter))
-            .ok_or(SemanticPresentationRefusal::InvalidNavigation)?;
+            .ok_or(SemanticFaceRefusal::InvalidNavigation)?;
         let chapter_title = crate::lesson::chapter_title(self.progress.chapter)
-            .map_err(|_| SemanticPresentationRefusal::InvalidNavigation)?;
+            .map_err(|_| SemanticFaceRefusal::InvalidNavigation)?;
         let status = match self.phase {
             TourWorkspacePhase::LessonReady => (StatusKind::Ordinary, "Lesson ready"),
             TourWorkspacePhase::ResultVisible => (StatusKind::Success, "Result visible"),
@@ -132,18 +131,18 @@ impl TourWorkspaceState {
             revision: self.revision,
             root: node(
                 "tour",
-                PresentationMechanism::Shell,
+                FaceMechanism::Shell,
                 vec![
                     node(
                         "navigation",
-                        PresentationMechanism::Navigation {
+                        FaceMechanism::Navigation {
                             label: "Conduit products".into(),
                             current: "tour-link".into(),
                         },
                         vec![
                             node(
                                 "tour-link",
-                                PresentationMechanism::NavigationLink {
+                                FaceMechanism::NavigationLink {
                                     label: "Tour".into(),
                                     destination: AdmittedNavigationDestination::Tour,
                                 },
@@ -151,7 +150,7 @@ impl TourWorkspaceState {
                             ),
                             node(
                                 "patchbay-link",
-                                PresentationMechanism::NavigationLink {
+                                FaceMechanism::NavigationLink {
                                     label: "Patchbay".into(),
                                     destination: AdmittedNavigationDestination::Patchbay,
                                 },
@@ -161,16 +160,16 @@ impl TourWorkspaceState {
                     ),
                     node(
                         "workspace",
-                        PresentationMechanism::Workbench,
+                        FaceMechanism::Workbench,
                         vec![
                             node(
                                 "lesson",
-                                PresentationMechanism::Panel {
+                                FaceMechanism::Panel {
                                     title: chapter_title.clone(),
                                 },
                                 vec![node(
                                     "lesson-status",
-                                    PresentationMechanism::Status {
+                                    FaceMechanism::Status {
                                         kind: status.0,
                                         title: chapter_title,
                                         detail: format!(
@@ -185,12 +184,12 @@ impl TourWorkspaceState {
                             ),
                             node(
                                 "patchbay-panel",
-                                PresentationMechanism::Panel {
+                                FaceMechanism::Panel {
                                     title: "Patchbay".into(),
                                 },
                                 vec![node(
                                     "patchbay",
-                                    PresentationMechanism::PatchbayCanvas {
+                                    FaceMechanism::PatchbayCanvas {
                                         label: patchbay_label(self),
                                     },
                                     vec![],
@@ -198,12 +197,12 @@ impl TourWorkspaceState {
                             ),
                             node(
                                 "source-panel",
-                                PresentationMechanism::Panel {
+                                FaceMechanism::Panel {
                                     title: "Source".into(),
                                 },
                                 vec![node(
                                     "source",
-                                    PresentationMechanism::CodeBlock {
+                                    FaceMechanism::CodeBlock {
                                         language: "conduit".into(),
                                         code: self.source.clone(),
                                     },
@@ -212,12 +211,12 @@ impl TourWorkspaceState {
                             ),
                             node(
                                 "result-panel",
-                                PresentationMechanism::Panel {
+                                FaceMechanism::Panel {
                                     title: "Output".into(),
                                 },
                                 vec![node(
                                     "result",
-                                    PresentationMechanism::Status {
+                                    FaceMechanism::Status {
                                         kind: status.0,
                                         title: status.1.into(),
                                         detail: result_detail(self),
@@ -227,7 +226,7 @@ impl TourWorkspaceState {
                             ),
                             node(
                                 "actions",
-                                PresentationMechanism::ActionGroup {
+                                FaceMechanism::ActionGroup {
                                     label: "Tour actions".into(),
                                 },
                                 vec![
@@ -356,10 +355,10 @@ fn action(
     identity: &str,
     label: &str,
     availability: ActionAvailability,
-) -> SemanticPresentationNode {
+) -> SemanticFaceNode {
     node(
         key,
-        PresentationMechanism::Action(SemanticAction {
+        FaceMechanism::Action(SemanticAction {
             identity: identity.into(),
             event: ApplicationEventKind::Activate,
             label: label.into(),
@@ -369,12 +368,8 @@ fn action(
     )
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,
@@ -384,7 +379,7 @@ fn node(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::{ApplicationComponent, ApplicationView};
+    use conduit_face::{ApplicationComponent, ApplicationView};
 
     #[test]
     fn later_exercises_explain_their_shared_execution_evidence() {
@@ -419,7 +414,7 @@ mod tests {
                 if pending {
                     state.progress.run = TourRunState::Running;
                 }
-                let view = state.presentation().unwrap().lower().unwrap();
+                let view = state.face().unwrap().lower().unwrap();
                 assert_eq!(
                     state.run_action_available(),
                     view.actions.iter().any(|action| action.id == RUN_ACTION_ID)
@@ -444,7 +439,7 @@ mod tests {
             TourWorkspacePhase::PatchbayOpen,
         ] {
             let state = TourWorkspaceState::canonical(7, phase);
-            let lowered = state.presentation().unwrap().lower().unwrap();
+            let lowered = state.face().unwrap().lower().unwrap();
             assert_eq!(
                 ApplicationView::decode(&lowered.encode().unwrap()),
                 Ok(lowered.clone())
@@ -499,7 +494,7 @@ mod tests {
         let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
         state.progress.chapter = 4;
         state.progress.stage = 0;
-        let view = state.presentation().unwrap().lower().unwrap();
+        let view = state.face().unwrap().lower().unwrap();
         assert!(!view.actions.iter().any(|action| action.id == RUN_ACTION_ID));
         assert_eq!(
             state.run_availability(),

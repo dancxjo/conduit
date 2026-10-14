@@ -14,8 +14,7 @@ use crate::plot_runner::protocol::{
 };
 use crate::source_interaction::SourceInteractionEvidence;
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, ActivePlayId, PlanFragment,
-    PresentationIdentity,
+    bind_active_play, bind_face, bind_sign, ActivePlayId, FaceIdentity, PlanFragment,
 };
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::{LoweredPlanFragment, RemoteCordDirection};
@@ -56,7 +55,7 @@ pub(super) struct Session {
     sink_active_play_id: ActivePlayId,
     source_interaction: SourceInteractionEvidence,
     pending: Option<PendingHostEffect>,
-    latest_presentation: Option<PresentationIdentity>,
+    latest_face: Option<FaceIdentity>,
     sequence: u64,
     transferred_values: u32,
     deliveries: Vec<conduit_net::RecordDeliveryTracker>,
@@ -160,7 +159,7 @@ impl Session {
             sink_active_play_id: sink_active,
             source_interaction,
             pending: None,
-            latest_presentation: None,
+            latest_face: None,
             sequence: 0,
             transferred_values: 0,
             deliveries: Vec::with_capacity(
@@ -192,12 +191,12 @@ impl Session {
 
     pub(super) fn complete_manifestation(&mut self) -> Result<Output, String> {
         if self.role != Role::Sink || self.stage != Stage::Presenting {
-            return Err("multi-host presentation completion arrived in the wrong phase".into());
+            return Err("multi-host face completion arrived in the wrong phase".into());
         }
         let pending = self
             .pending
             .take()
-            .ok_or_else(|| "multi-host sink has no pending presentation".to_string())?;
+            .ok_or_else(|| "multi-host sink has no pending face".to_string())?;
         engine::complete_host_effect(&mut self.scheduler, &pending)?;
         self.stage = Stage::Accepted;
         let output = Output::Line {
@@ -304,14 +303,14 @@ impl Session {
         let pending = match engine::drive(&mut self.scheduler, &self.fragment)? {
             DriveStatus::Effect(pending) => pending,
             DriveStatus::Quiescent | DriveStatus::SemanticCompleted => {
-                return Err("multi-host sink completed before presentation".into())
+                return Err("multi-host sink completed before face".into())
             }
             DriveStatus::Waiting { .. } => {
                 return Err("multi-host sink awaits a pending effect".into())
             }
         };
         if !matches!(pending.effect, BrowserHostEffect::Manifestation(_)) {
-            return Err("multi-host sink requested a non-presentation Host effect".into());
+            return Err("multi-host sink requested a non-face Host effect".into());
         }
         let manifestation = self.project_manifestation(&pending)?;
         self.pending = Some(pending);
@@ -419,15 +418,15 @@ impl Session {
             .fragment
             .placements
             .get(usize::from(pending.request.node.0))
-            .ok_or_else(|| "multi-host presentation has no planned placement".to_string())?;
+            .ok_or_else(|| "multi-host face has no planned placement".to_string())?;
         let observation_sequence = pending.request.request.0;
-        let presentation = bind_presentation(
+        let face = bind_face(
             &self.sink_active_play_id,
             &placement.placement_id,
             u64::from(observation_sequence),
         );
         let (unit_millis, segments, text) = decode_manifestation(manifestation)?;
-        self.latest_presentation = Some(presentation.clone());
+        self.latest_face = Some(face.clone());
         Ok(TourEffect {
             schema: "conduit.tour/manifestation-effect@3",
             effect_kind: "manifestation",
@@ -437,11 +436,12 @@ impl Session {
             plan_id: self.fragment.plan_id.as_str().into(),
             fragment_id: self.fragment.fragment_id.as_str().into(),
             active_play_id: self.sink_active_play_id.as_str().into(),
-            presentation_id: presentation.presentation_id.as_str().into(),
+            face_id: face.face_id.as_str().into(),
             placement_id: placement.placement_id.as_str().into(),
             host_id: self.fragment.host_id.as_str().into(),
             boot_id: self.fragment.boot_id.as_str().into(),
-            presentation_kind: manifestation.kind_id.into(),
+            face_kind: manifestation.kind_id.into(),
+            data_label: manifestation.data_label.clone(),
             observation_sequence,
             realization: "direct",
             expanded_gears: self

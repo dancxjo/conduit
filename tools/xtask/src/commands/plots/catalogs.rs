@@ -10,16 +10,16 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
     conduit_time::install_historical_timeline_catalog(&mut startup, &mut profile)?;
     conduit_time::install_replay_source_catalog(&mut startup, &mut profile)?;
     conduit_time::install_replay_control_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_rhythm_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profile)?;
@@ -31,13 +31,10 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profile,
-    )?;
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_graphics_face_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
@@ -48,7 +45,7 @@ pub(super) fn catalogs(
     conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_schedule_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profile)?;
-    conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile)?;
+    conduit_face::install_geometry_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_experience_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_purpose_catalogs(&mut startup, &mut profile)?;
@@ -89,21 +86,15 @@ pub(super) fn catalogs(
     )?;
     conduit_semantic_catalog::install_pattern_comparison_catalogs(&mut startup, &mut profile)?;
     startup.insert(conduit_plot::KindSignature {
-        kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
+        kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
+        startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
     })?;
-    let comparison_presentation = conduit_semantic_catalog::structured_presentation_contract(
+    let comparison_face = conduit_semantic_catalog::structured_face_contract(
         conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
-        .insert(conduit_plot::KindProjection {
-            kind_id: comparison_presentation.kind_id,
-            kind_contract_revision: comparison_presentation.kind_contract_revision,
-            inputs: comparison_presentation.inputs,
-            outputs: comparison_presentation.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(comparison_face.into())
         .map_err(|error| error.to_string())?;
     conduit_alife::install_lenia_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_human_media_catalogs(&mut startup, &mut profile)?;
@@ -127,9 +118,9 @@ pub(super) fn catalogs(
     conduit_tongues::install_speech_recognition_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profile)?;
     conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
-    conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_spoken_mask_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_spoken_mask_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_situation_catalog(&mut startup, &mut profile)?;
     conduit_pete::install_pete_memory_catalog(&mut startup, &mut profile)?;
     conduit_data::install_data_text_catalogs(&mut startup, &mut profile)?;

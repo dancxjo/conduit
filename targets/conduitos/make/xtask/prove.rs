@@ -60,15 +60,15 @@ pub fn execute(
         == second.kernel.source_document_id
         && first.kernel.checked_plot_id == second.kernel.checked_plot_id
         && first.kernel.expanded_plot_id == second.kernel.expanded_plot_id
-        && first.presentation.source_document_id == second.presentation.source_document_id
-        && first.presentation.checked_plot_id == second.presentation.checked_plot_id
-        && first.presentation.expanded_plot_id == second.presentation.expanded_plot_id;
+        && first.face.source_document_id == second.face.source_document_id
+        && first.face.checked_plot_id == second.face.checked_plot_id
+        && first.face.expanded_plot_id == second.face.expanded_plot_id;
     let fresh_realization_identities = first.kernel.plan_id != second.kernel.plan_id
         && first.kernel.fragment_id != second.kernel.fragment_id
         && first.kernel.active_play_id != second.kernel.active_play_id
-        && first.presentation.plan_id != second.presentation.plan_id
-        && first.presentation.fragment_id != second.presentation.fragment_id
-        && first.presentation.display_base_id != second.presentation.display_base_id;
+        && first.face.plan_id != second.face.plan_id
+        && first.face.fragment_id != second.face.fragment_id
+        && first.face.display_base_id != second.face.display_base_id;
     if !stable_semantic_identities || !fresh_realization_identities {
         return Err(ConduitosError::refusal(
             "observatory-identity-stage-collapse",
@@ -117,14 +117,14 @@ pub fn execute(
         iso_sha256: image.iso_sha256,
         reproducible_image,
         first_boot: first.boot,
-        first_presentation: first.presentation,
+        first_face: first.face,
         first_kernel: first.kernel,
         first_observatory: first.observatory.clone(),
         first_source_conformance: super::ordinary_source_conformance::capture(
             &first.observatory.plans[0],
         )?,
         second_boot: second.boot,
-        second_presentation: second.presentation,
+        second_face: second.face,
         second_kernel: second.kernel,
         second_source_conformance: super::ordinary_source_conformance::capture(
             &second.observatory.plans[0],

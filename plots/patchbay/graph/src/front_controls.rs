@@ -149,11 +149,13 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                     maximum: *maximum,
                     unit: "µ",
                 },
-                (ConfigurationValue::Text(_), KindConfigurationRule::TextBytes { maximum }) => {
-                    FaceControlKind::ShortText {
-                        maximum_bytes: *maximum,
-                    }
-                }
+                (
+                    ConfigurationValue::Text(_),
+                    KindConfigurationRule::TextBytes { maximum }
+                    | KindConfigurationRule::DataLabel { maximum },
+                ) => FaceControlKind::ShortText {
+                    maximum_bytes: *maximum,
+                },
                 (ConfigurationValue::Text(_), KindConfigurationRule::TextOneOf { values }) => {
                     FaceControlKind::TextChoice {
                         choices: values.clone(),
@@ -274,6 +276,11 @@ fn project_interaction(
                 quantity_value(value, **canonical_unit)?,
             )
         }
+        (ConfigurationValue::Text(value), KindConfigurationRule::DataLabel { maximum }) => (
+            InteractionFamily::text_value(*maximum, false),
+            None,
+            interaction_value(TEXT_INFO_ID, value.as_bytes())?,
+        ),
         (ConfigurationValue::Text(value), KindConfigurationRule::TextBytes { maximum }) => (
             InteractionFamily::text_value(*maximum, true),
             None,

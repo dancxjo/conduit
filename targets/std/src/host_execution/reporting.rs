@@ -81,7 +81,7 @@ mod tests {
             host_id: "host".into(),
             boot_id: "boot".into(),
             plan_id: Some("plan".into()),
-            presentation_id: None,
+            face_id: None,
             placement_id: None,
             connection_id: None,
             kind: ObservationKind::PlanTerminal {

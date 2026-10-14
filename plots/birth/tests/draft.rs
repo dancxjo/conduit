@@ -48,7 +48,7 @@ fn stale_input_empty_names_and_unavailable_plots_refuse_without_changing_selecti
     let selected = draft.selection(draft.revision()).unwrap();
     assert_eq!(
         draft.edit_name(old_revision, "Stale".into()),
-        Err(BirthDraftRefusal::StalePresentation)
+        Err(BirthDraftRefusal::StaleFace)
     );
     assert_eq!(
         draft.select(draft.revision(), 1, true),
@@ -97,7 +97,7 @@ fn search_is_bounded_revisioned_state_that_preserves_selection() {
     assert_eq!(draft.search(), limit);
     assert_eq!(
         draft.search_plots(revision, "stale"),
-        Err(BirthDraftRefusal::StalePresentation)
+        Err(BirthDraftRefusal::StaleFace)
     );
     assert_eq!(draft.search(), limit);
 }
@@ -181,13 +181,10 @@ fn inventory_bounds_and_exact_plot_identities_are_admitted_before_editing() {
 fn name_and_choice_edits_preserve_exact_revisions_and_refusal_precedence() {
     let mut draft = draft();
     let original = draft.selection(draft.revision()).unwrap();
-    assert_eq!(
-        draft.selection(0),
-        Err(BirthDraftRefusal::StalePresentation)
-    );
+    assert_eq!(draft.selection(0), Err(BirthDraftRefusal::StaleFace));
     assert_eq!(
         draft.select(0, usize::MAX, true),
-        Err(BirthDraftRefusal::StalePresentation)
+        Err(BirthDraftRefusal::StaleFace)
     );
     assert_eq!(
         draft.select(draft.revision(), usize::MAX, false),

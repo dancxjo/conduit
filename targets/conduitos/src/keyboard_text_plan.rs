@@ -17,7 +17,7 @@ use crate::{
     ordinary_plan::{PreparationError, advertisement},
 };
 
-pub const PLOT_SOURCE: &str = "plot conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: presentation/text\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
+pub const PLOT_SOURCE: &str = "plot conduitos-keyboard-upper {\n    keyboard: input/keyboard\n    keymap: input/keymap\n    upper: text/upper\n    show: face/text(\"Message\")\n    keyboard.key >> keymap.key\n    keymap.text >> upper.source\n    upper.text >> show.text\n}\n";
 pub const KEYMAP_IMPLEMENTATION: &str = "conduitos/kernel-keymap@1";
 pub const KEYMAP_EXECUTION_PROFILE: &str = "conduitos/portable-input-cooperative@1";
 const PLACEMENTS: usize = 4;
@@ -133,8 +133,8 @@ pub fn validate(
             crate::offer::TEXT_UPPER_IMPLEMENTATION,
         ),
         (
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-            crate::offer::TEXT_PRESENTATION_IMPLEMENTATION,
+            conduit_semantic_catalog::TEXT_FACE_KIND,
+            crate::offer::TEXT_FACE_IMPLEMENTATION,
         ),
     ] {
         let placement = fragment
@@ -180,14 +180,14 @@ pub fn validate(
             "text",
             "upper",
             "source",
-            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
         ),
         (
             "upper",
             "text",
             "show",
             "text",
-            conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND,
+            conduit_semantic_catalog::TEXT_FACE_VALUE_KIND,
         ),
     ];
     for (source_gear, source_port, sink_gear, sink_port, value_kind) in expected {
@@ -365,7 +365,7 @@ mod tests {
     }
 
     #[test]
-    fn presentation_base_loss_and_cord_underprovision_refuse_before_play() {
+    fn face_base_loss_and_cord_underprovision_refuse_before_play() {
         let (identities, mut offer) = fixture();
         offer
             .bases

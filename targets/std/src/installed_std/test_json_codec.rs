@@ -89,7 +89,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkBack {
                 });
             }
             io.consume_host_completion()
-                .expect("observed test JSON presentation");
+                .expect("observed test JSON face");
             self.pending = false;
             return StepOutcome::Complete;
         }
@@ -107,7 +107,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestJsonSinkBack {
                 BoundedValueRef::new(value, conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32)
                     .expect("bounded test JSON input"),
             )
-            .expect("test JSON presentation Host Call");
+            .expect("test JSON face Host Call");
             self.pending = true;
             return StepOutcome::Progress;
         }
@@ -139,7 +139,7 @@ pub(crate) fn sink_offer() -> CapabilityOffer {
         SINK_IMPLEMENTATION,
         PortDirection::Input,
         vec![present_host_call_requirement(
-            kind_id("presentation/stdout-text"),
+            kind_id("face/stdout-text"),
             conduit_web::JSON_MAXIMUM_ENCODED_BYTES as u32,
         )],
     )
@@ -184,7 +184,7 @@ fn offer(
         host_calls,
         resource_requirements: if direction == PortDirection::Input {
             vec![conduit_core::resource_requirement(
-                conduit_core::PRESENTATION_RESOURCE_CLASS,
+                conduit_core::FACE_RESOURCE_CLASS,
                 1,
             )]
         } else {

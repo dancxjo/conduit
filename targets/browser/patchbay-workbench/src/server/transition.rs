@@ -7,7 +7,7 @@ use std::sync::{Arc, Mutex};
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct TransitionInput {
-    presentation_id: String,
+    face_id: String,
     revision: u64,
     action: String,
     subject: Option<String>,
@@ -21,15 +21,15 @@ impl PatchbayHtmlServer {
         let input: TransitionInput =
             serde_json::from_slice(bytes).map_err(|_| ServerError::InvalidRequest)?;
         self.snapshot.interaction.revision = self.snapshot.interaction.revision.saturating_add(1);
-        if input.presentation_id != self.snapshot.presentation.identity.as_str()
+        if input.face_id != self.snapshot.face.identity.as_str()
             || input.revision != self.snapshot.revision
         {
-            self.snapshot.interaction.last_disposition = Some("Refused(StalePresentation)".into());
+            self.snapshot.interaction.last_disposition = Some("Refused(StaleFace)".into());
             if let Some(session) = &self.zero_body_front_door {
                 session
                     .lock()
                     .map_err(|_| ServerError::Interaction("front-door session lock failed".into()))?
-                    .record_refusal("StalePresentation")
+                    .record_refusal("StaleFace")
                     .map_err(ServerError::Interaction)?;
                 self.refresh_front_door()?;
             }
@@ -84,11 +84,11 @@ impl PatchbayHtmlServer {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::PresentationRole;
+    use conduit_face::FaceRole;
 
     fn request(server: &PatchbayHtmlServer, action: &str, subject: Option<&str>) -> Vec<u8> {
         serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity.as_str(),
+            "face_id": server.snapshot.face.identity.as_str(),
             "revision": server.snapshot.revision,
             "action": action,
             "subject": subject,
@@ -111,29 +111,29 @@ mod tests {
             PatchbayHtmlServer::bind_front_door_with_plots_ephemeral(vec![explicit]).unwrap();
         let plot = server
             .snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Plot && subject.name == "Text Lab")
+            .find(|subject| subject.role == FaceRole::Plot && subject.name == "Text Lab")
             .unwrap()
             .identity
             .clone();
         let open = request(&server, "open", Some(&plot));
         let opened = server.apply_front_door_transition(&open).unwrap();
         let opened: crate::RendererSnapshot = serde_json::from_slice(&opened).unwrap();
-        assert!(opened.presentation.basis.body_id.is_none());
+        assert!(opened.face.basis.body_id.is_none());
         assert_eq!(
             opened.interaction.last_disposition.as_deref(),
             Some("Succeeded")
         );
-        assert!(opened.presentation.properties.iter().any(|property| {
+        assert!(opened.face.properties.iter().any(|property| {
             property.subject == plot
                 && property.name == "opened"
-                && property.value == conduit_presentation::PresentationPropertyValue::Flag(true)
+                && property.value == conduit_face::FacePropertyValue::Flag(true)
         }));
 
         let stale = serde_json::to_vec(&serde_json::json!({
-            "presentation_id": opened.presentation.identity.as_str(),
+            "face_id": opened.face.identity.as_str(),
             "revision": opened.revision - 1,
             "action": "birth",
             "subject": plot,
@@ -141,30 +141,29 @@ mod tests {
         .unwrap();
         let stale: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_front_door_transition(&stale).unwrap()).unwrap();
-        assert!(stale.presentation.basis.body_id.is_none());
+        assert!(stale.face.basis.body_id.is_none());
         assert_eq!(
             stale.interaction.last_disposition.as_deref(),
-            Some("Refused(StalePresentation)")
+            Some("Refused(StaleFace)")
         );
-        assert!(stale.presentation.subjects.iter().any(|subject| {
-            subject.role == PresentationRole::Sign
-                && subject.name == "Front-door refusal Sign StalePresentation"
+        assert!(stale.face.subjects.iter().any(|subject| {
+            subject.role == FaceRole::Sign && subject.name == "Front-door refusal Sign StaleFace"
         }));
 
         let birth = server
             .snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .find(|action| action.target == plot && action.intent == "conduit.intent/birth@1")
             .unwrap();
         assert_eq!(
             birth.availability,
-            conduit_presentation::PresentationActionAvailability::Available
+            conduit_face::FaceActionAvailability::Available
         );
         let born = serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity.as_str(),
-            "presentation_revision": server.snapshot.presentation.revision,
+            "face_id": server.snapshot.face.identity.as_str(),
+            "face_revision": server.snapshot.face.revision,
             "kind": "invoke",
             "subject": null,
             "action_id": birth.identity,
@@ -173,7 +172,7 @@ mod tests {
         .unwrap();
         let born: crate::RendererSnapshot =
             serde_json::from_slice(&server.apply_interaction(&born).unwrap()).unwrap();
-        assert!(born.presentation.basis.body_id.is_some());
+        assert!(born.face.basis.body_id.is_some());
         assert_eq!(born.parts.as_ref().unwrap().parts.len(), 1);
         assert_eq!(
             born.interaction.last_disposition.as_deref(),

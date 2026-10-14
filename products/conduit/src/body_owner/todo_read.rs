@@ -8,11 +8,11 @@ use conduit_core::{
     port_id, ActivePlayId, AuthorityGrant, BaseImplementationId, ConnectionTrack, PlanId,
     PortDirection, ResourceAccessMode, ResourceContentRequirement, SignId, TerminalDisposition,
 };
-use conduit_kernel::KernelEventKind;
-use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
-use conduit_presentation::{
+use conduit_face::{
     CommittedStateContributionBasis, CommittedStateOperation, CommittedStateSelection,
 };
+use conduit_kernel::KernelEventKind;
+use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
 use conduit_std_host::body_execution::{
     BodyForeOutputAdapter, BodyRunRequest, TodoCheckpointSelection,
 };

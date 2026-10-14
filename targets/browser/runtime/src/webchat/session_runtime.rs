@@ -1,7 +1,7 @@
 use super::session::{BrowserChatEffect, BrowserChatSession, InteractionFrame};
+use conduit_face::{FaceInteraction, FaceInteractionDisposition};
 use conduit_kernel::scheduler::{HostCallRequest, SchedulerStatus};
 use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
-use conduit_presentation::{FaceInteraction, FaceInteractionDisposition};
 
 impl BrowserChatSession {
     pub(crate) fn effect(&self) -> BrowserChatEffect {
@@ -77,7 +77,7 @@ impl BrowserChatSession {
         }
         if effect == BrowserChatEffect::Present {
             let offer = self.pending_face.take().ok_or(-220)?;
-            let face: conduit_presentation::Presentation =
+            let face: conduit_face::Face =
                 serde_json::from_slice(self.scheduler.host_value(offer.value).map_err(|_| -235)?)
                     .map_err(|_| -235)?;
             let (mut mask, mask_effect) = crate::workspace_mask::BrowserMaskRuntime::prepare(
@@ -95,8 +95,8 @@ impl BrowserChatSession {
                 mask_plan_id: mask_effect.mask_plan_id.clone(),
                 active_play_id: mask_effect.mask_play.active_play_id.clone(),
                 placement_id: mask_effect.placement_id.clone(),
-                presentation_id: mask_effect.presentation_id.clone(),
-                presentation_revision: mask_effect.presentation_revision,
+                face_id: mask_effect.face_id.clone(),
+                face_revision: mask_effect.face_revision,
             })
             .map_err(|_| -235)?;
             let bytes = serde_json::to_vec(&mask_effect).map_err(|_| -235)?;
@@ -148,8 +148,8 @@ impl BrowserChatSession {
         let receipt = mask
             .interact(&crate::workspace_mask::BrowserMaskInteraction {
                 show_id: frame.show_id,
-                presentation_id: frame.presentation_id,
-                presentation_revision: frame.presentation_revision,
+                face_id: frame.face_id,
+                face_revision: frame.face_revision,
                 action_id: frame.action_id,
                 target: frame.target,
                 arguments: frame.arguments,
@@ -259,19 +259,17 @@ impl BrowserChatSession {
                             })
                             .map_err(|_| -239)?;
                     }
-                    self.presentation = self
+                    self.face = self
                         .chat_state
-                        .presentation()
+                        .face()
                         .map_err(|_| -239)?
-                        .with_basis(self.presentation.basis.clone())
+                        .with_basis(self.face.basis.clone())
                         .map_err(|_| -239)?;
-                    let bytes = serde_json::to_vec(&self.presentation).map_err(|_| -239)?;
+                    let bytes = serde_json::to_vec(&self.face).map_err(|_| -239)?;
                     let value = self.scheduler.store_host_value(&bytes).map_err(|_| -232)?;
-                    let output = BoundedValueRef::new(
-                        value,
-                        conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES as u32,
-                    )
-                    .map_err(|_| -232)?;
+                    let output =
+                        BoundedValueRef::new(value, conduit_face::MAX_FACE_TOTAL_BYTES as u32)
+                            .map_err(|_| -232)?;
                     self.complete_request(
                         request,
                         HostCallDisposition::Completed,
@@ -389,8 +387,8 @@ impl BrowserChatSession {
     }
 }
 
-fn interaction_refusal_code(refusal: conduit_presentation::FaceInteractionRefusal) -> i32 {
-    use conduit_presentation::FaceInteractionRefusal as R;
+fn interaction_refusal_code(refusal: conduit_face::FaceInteractionRefusal) -> i32 {
+    use conduit_face::FaceInteractionRefusal as R;
     match refusal {
         R::InvalidFace => -250,
         R::StaleFace => -251,

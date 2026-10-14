@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserBack;
 use conduit_core::{
     kind_id, resource_requirement, wait_host_call_requirement, ConfigurationValue, PlannedGear,
-    PRESENTATION_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
+    FACE_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -17,8 +17,8 @@ use conduit_kernel::{
 const ARTIFACT: &str = "conduit-browser-runtime/installed-state-time@1";
 const TIME_EVERY_IMPLEMENTATION: &str = "browser/kernel-time-every@1";
 const STATE_COUNT_IMPLEMENTATION: &str = "browser/kernel-state-count@1";
-const COUNT_PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-count@1";
-const COUNT_PRESENTATION_OPERATION: &str = "conduit.host/browser-present-count@1";
+const COUNT_FACE_IMPLEMENTATION: &str = "browser/face-count@1";
+const COUNT_FACE_OPERATION: &str = "conduit.host/browser-present-count@1";
 pub(crate) const BROWSER_TIMER_MAXIMUM_MILLIS: u64 = 10_000;
 
 pub(super) static TIME_EVERY: BrowserInstallation = BrowserInstallation {
@@ -35,11 +35,11 @@ pub(super) static STATE_COUNT: BrowserInstallation = BrowserInstallation {
     perform: None,
 };
 
-pub(super) static COUNT_PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: COUNT_PRESENTATION_IMPLEMENTATION,
-    offer: count_presentation_offer,
-    prepare: prepare_count_presentation,
-    perform: Some(perform_count_presentation),
+pub(super) static COUNT_FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: COUNT_FACE_IMPLEMENTATION,
+    offer: count_face_offer,
+    prepare: prepare_count_face,
+    perform: Some(perform_count_face),
 };
 
 fn time_every_offer() -> conduit_core::CapabilityOffer {
@@ -66,19 +66,19 @@ fn state_count_offer() -> conduit_core::CapabilityOffer {
     )
 }
 
-fn count_presentation_offer() -> conduit_core::CapabilityOffer {
+fn count_face_offer() -> conduit_core::CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::count_presentation_contract(),
-        conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-        identity(COUNT_PRESENTATION_IMPLEMENTATION),
+        conduit_semantic_catalog::count_face_contract(),
+        conduit_semantic_catalog::COUNT_FACE_CONTRACT_REVISION,
+        identity(COUNT_FACE_IMPLEMENTATION),
         vec![conduit_core::HostCallRequirement {
-            contract_id: conduit_core::HostCallContractId::from(COUNT_PRESENTATION_OPERATION),
-            target_kind: Some(kind_id("presentation/browser-count")),
+            contract_id: conduit_core::HostCallContractId::from(COUNT_FACE_OPERATION),
+            target_kind: Some(kind_id("face/browser-count")),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_semantic_catalog::COUNT_ENCODED_LEN,
             maximum_output_bytes: 0,
         }],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
 }
@@ -124,21 +124,18 @@ fn prepare_state_count(
     }))
 }
 
-fn prepare_count_presentation(
+fn prepare_count_face(
     placement: &PlannedGear,
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &count_presentation_offer())?;
-    Ok(BrowserBack::presentation(
+    validate_placement(placement, &count_face_offer())?;
+    Ok(BrowserBack::face(
         conduit_semantic_catalog::COUNT_ENCODED_LEN,
         1,
     ))
 }
 
-fn perform_count_presentation(
-    _placement: &PlannedGear,
-    input: &[u8],
-) -> Result<BrowserHostResult, String> {
+fn perform_count_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     let encoded: [u8; conduit_semantic_catalog::COUNT_ENCODED_LEN as usize] = input
         .try_into()
         .map_err(|_| "count manifestation is not an exact Count")?;
@@ -146,7 +143,8 @@ fn perform_count_presentation(
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
-            kind_id: conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::COUNT_FACE_KIND,
             canonical_value: input.to_vec(),
         }),
     })

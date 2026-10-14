@@ -32,7 +32,7 @@ test('retained complete producer packet exposes same-Body refusals and remaining
 test('refusal evidence refuses foreign Body, changed list and false repair even with new file hashes', t => {
   for (const [id, mutate, expected] of [
     ['browser-run', value => { value.body_id = 'body/foreign'; }, /browser source or Body drift/],
-    ['browser-run', value => { value.cross_mask.stale.owner_after.presentation.properties.push({ subject: 'todo/foreign', name: 'complete', value: { Flag: true } }); }, /unchanged same-Body list/],
+    ['browser-run', value => { (value.cross_mask.stale.owner_after.face ?? value.cross_mask.stale.owner_after.presentation).properties.push({ subject: 'todo/foreign', name: 'complete', value: { Flag: true } }); }, /unchanged same-Body list/],
     ['checkpoint-refusal', value => { value.last_execution.verified = true; }, /without verified state/],
     ['repaired-read', value => { value.last_execution.restored_fore_sha256 = `sha256:${'0'.repeat(64)}`; }, /same committed state/],
   ]) {

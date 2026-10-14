@@ -1,12 +1,10 @@
 //! Content-sized labeled fields, bounded by the native scene and scroll budgets.
 use super::TourShellError;
-use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect, Presentation,
-};
+use conduit_face::{Face, GraphicsCommand, GraphicsPaintRole, GraphicsScene, LayoutRect};
 
 pub(super) fn project(
     bounds: LayoutRect,
-    presentation: &Presentation,
+    face: &Face,
     scroll_y: u16,
     mut scene: Option<&mut GraphicsScene>,
 ) -> Result<u16, TourShellError> {
@@ -27,8 +25,8 @@ pub(super) fn project(
             .ok_or(TourShellError::Scene)?,
     };
     let mut next_y = header_height + crate::display::SPACE_SM;
-    for item in &presentation.text {
-        let subject = presentation
+    for item in &face.text {
+        let subject = face
             .subjects
             .iter()
             .find(|subject| subject.identity == item.subject)

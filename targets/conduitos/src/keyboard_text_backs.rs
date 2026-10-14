@@ -34,7 +34,7 @@ impl StreamTransformBack {
 }
 
 #[derive(Clone, Copy)]
-pub(crate) struct PresentationBack {
+pub(crate) struct FaceBack {
     pub(crate) pending: Option<RequestId>,
     pub(crate) next: u32,
 }
@@ -53,7 +53,7 @@ pub(crate) enum PlannedBack {
     Keymap(StreamTransformBack),
     Upper(StreamTransformBack),
     TextEdit(StreamTransformBack),
-    Presentation(PresentationBack),
+    Face(FaceBack),
     Application(ApplicationBack),
 }
 
@@ -66,7 +66,7 @@ impl StepBack<PORTS> for PlannedBack {
         match self {
             Self::Keyboard(back) => back.step(io),
             Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => back.step(io),
-            Self::Presentation(back) => back.step(io),
+            Self::Face(back) => back.step(io),
             Self::Application(back) => back.step(io),
         }
     }
@@ -75,7 +75,7 @@ impl StepBack<PORTS> for PlannedBack {
         match self {
             Self::Keyboard(back) => back.pending = None,
             Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => back.pending = None,
-            Self::Presentation(back) => back.pending = None,
+            Self::Face(back) => back.pending = None,
             Self::Application(back) => back.pending = None,
         }
     }
@@ -182,7 +182,7 @@ impl StreamTransformBack {
     }
 }
 
-impl PresentationBack {
+impl FaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
         if let Some(request) = self.pending {
             let Some((completed, outcome)) = io.host_completion() else {

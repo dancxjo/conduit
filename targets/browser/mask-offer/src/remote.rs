@@ -6,8 +6,8 @@
 use conduit_core::{
     BaseImplementationId, ConnectionTrack, HostAdvertisement, LineOffer, PortDirection,
 };
+use conduit_face::{PlannedMaskPlot, MAX_OWNER_FACE_RESPONSE_BYTES};
 use conduit_planner::{bind_external_fore_lines, ExternalForeLineChoice};
-use conduit_presentation::{PlannedMaskPlot, MAX_OWNER_FACE_RESPONSE_BYTES};
 
 use crate::{planned_mask_with_fore_limits, OwnerCarrierForeLimits};
 
@@ -146,8 +146,7 @@ mod tests {
     use super::*;
     use conduit_core::{
         process_owned_line_offer_with_limits, resource_offer, BootId, HostId, HostProfileId,
-        LineAvailability, LinkLimits, OfferGeneration, PRESENTATION_RESOURCE_CLASS,
-        PROTOCOL_VERSION,
+        LineAvailability, LinkLimits, OfferGeneration, FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
     };
 
     fn host(id: &str, browser: bool) -> HostAdvertisement {
@@ -159,11 +158,7 @@ mod tests {
             profile: HostProfileId::from(if browser { "browser" } else { "hosted" }),
             bases: vec![],
             resources: if browser {
-                vec![resource_offer(
-                    "browser/presentation",
-                    PRESENTATION_RESOURCE_CLASS,
-                    1,
-                )]
+                vec![resource_offer("browser/face", FACE_RESOURCE_CLASS, 1)]
             } else {
                 vec![]
             },
@@ -254,7 +249,7 @@ mod tests {
         );
         assert_eq!(
             fore("interaction").byte_capacity,
-            conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32
+            conduit_face::MAX_FACE_INTERACTION_BYTES as u32
         );
         assert_eq!(
             local.plan.fragments[0].fore_ports[0].byte_capacity,

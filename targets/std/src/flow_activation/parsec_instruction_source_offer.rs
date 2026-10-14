@@ -5,10 +5,10 @@ use conduit_core::{
     KindSemanticLaw, KindTerminalBehavior, PlannedGear, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_plot::{CheckedNativeType, KindSignature, ProfileCatalog, StartupCatalog};
-use conduit_presentation::{
+use conduit_face::{
     checked_parsec_input_instruction, PARSEC_INPUT_INSTRUCTION_FRAME_BYTES, SHOW_VALUE_KIND,
 };
+use conduit_plot::{CheckedNativeType, KindSignature, ProfileCatalog, StartupCatalog};
 
 pub const KIND: &str = "parsec/current-input-instruction";
 pub const REVISION: &str = "conduit.parsec/current-input-instruction@1";

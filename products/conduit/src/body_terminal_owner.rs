@@ -3,7 +3,7 @@
 //! typed action return through the retained Mask Play.
 
 use crate::durable_host_control::terminal_attach::TerminalWardrobeCommand;
-use conduit_presentation::{FaceInteraction, FaceInteractionArgument, MaskShow, Presentation};
+use conduit_face::{Face, FaceInteraction, FaceInteractionArgument, MaskShow};
 use std::{
     io::{BufRead, Read, Write},
     path::Path,
@@ -191,7 +191,7 @@ pub(crate) fn run(
     }
 }
 
-fn report_actions(output: &mut impl Write, face: &Presentation) -> Result<(), String> {
+fn report_actions(output: &mut impl Write, face: &Face) -> Result<(), String> {
     let mut count = 0;
     for action in face
         .actions
@@ -225,7 +225,7 @@ fn report_actions(output: &mut impl Write, face: &Presentation) -> Result<(), St
 }
 
 fn interaction_for_action(
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     identity: Option<&str>,
     value: &str,
@@ -305,10 +305,10 @@ fn report_show(
         .map_err(|error| format!("flush owner terminal receipt: {error}"))
 }
 
-fn evidence_for_show(face: &Presentation, show: &MaskShow) -> Result<serde_json::Value, String> {
+fn evidence_for_show(face: &Face, show: &MaskShow) -> Result<serde_json::Value, String> {
     show.validate(face)
         .map_err(|error| format!("terminal evidence Show: {error:?}"))?;
-    if show.show.lifecycle != conduit_presentation::ManifestationLifecycle::Available {
+    if show.show.lifecycle != conduit_face::ManifestationLifecycle::Available {
         return Err("terminal evidence requires the acknowledged available Show".into());
     }
     Ok(serde_json::json!({

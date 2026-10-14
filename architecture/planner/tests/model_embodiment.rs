@@ -161,7 +161,7 @@ fn graph_plan(stage: usize) -> Plan {
         ),
     ];
     if stage > 0 {
-        let mut presenter = gear("placement/presenter", "presentation/text@1");
+        let mut presenter = gear("placement/presenter", "face/text@1");
         presenter.inputs = vec![port("text", "value/text", PortDirection::Input)];
         placements.push(presenter);
         connections.push(connection(

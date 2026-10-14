@@ -2,7 +2,7 @@
 use super::*;
 use crate::{ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, RunControl};
 use conduit_core::{port_id, ConnectionTrack, OfferGeneration, SignId};
-use conduit_presentation::{DirectArtifactAcknowledgedSpokenShow, PresentationRole};
+use conduit_face::{DirectArtifactAcknowledgedSpokenShow, FaceRole};
 use std::{path::Path, time::Duration};
 
 struct Capture(Vec<ExternalForeDelivery>);
@@ -42,8 +42,7 @@ fn prove_templates(complete: bool) {
     }
     let record: serde_json::Value =
         serde_json::from_slice(&std::fs::read(face_path).unwrap()).unwrap();
-    let face: Presentation =
-        serde_json::from_value(record.get("presentation").unwrap_or(&record).clone()).unwrap();
+    let face: Face = serde_json::from_value(record.get("face").unwrap_or(&record).clone()).unwrap();
     assert!(face.basis.body_id.is_some());
     let config = crate::StdHostConfig {
         host_id: "proof/template-openings".into(),
@@ -108,7 +107,7 @@ fn prove_templates(complete: bool) {
         let front = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Body)
+            .find(|subject| subject.role == FaceRole::Body)
             .unwrap()
             .identity
             .clone();

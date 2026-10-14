@@ -36,7 +36,7 @@ fn lesson_end_reaches_final_paragraph_and_preserves_the_laboratory() {
     assert!(last.payload().ends_with("nearby plots are unaffected."));
     assert_eq!(
         last.clip_class(),
-        conduit_presentation::GraphicsClipClass::FullyVisible
+        conduit_face::GraphicsClipClass::FullyVisible
     );
     let narrative_width = 640 * 46 / 100;
     if current_offset == 0 {

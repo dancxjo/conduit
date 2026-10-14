@@ -19,7 +19,7 @@ pub(super) fn prepare(
     let keyboard_node = node_for(fragment, conduit_semantic_catalog::KEYBOARD_KIND)?;
     let keymap_node = node_for(fragment, conduit_semantic_catalog::KEYMAP_KIND)?;
     let upper_node = node_for(fragment, conduit_text::TEXT_UPPER_KIND)?;
-    let presentation_node = node_for(fragment, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
+    let face_node = node_for(fragment, conduit_semantic_catalog::TEXT_FACE_KIND)?;
     let mut values =
         FixedValueStore::<VALUE_SLOTS, MAX_VALUE_BYTES>::new(VALUE_BYTE_CAPACITY as u32)
             .map_err(|_| PreparationError::KernelRejected)?;
@@ -68,7 +68,7 @@ pub(super) fn prepare(
     }));
     drivers[usize::from(keymap_node.0)] = Some(PlannedBack::Keymap(StreamTransformBack::new(true)));
     drivers[usize::from(upper_node.0)] = Some(PlannedBack::Upper(StreamTransformBack::new(false)));
-    drivers[usize::from(presentation_node.0)] = Some(PlannedBack::Presentation(PresentationBack {
+    drivers[usize::from(face_node.0)] = Some(PlannedBack::Face(FaceBack {
         pending: None,
         next: 0,
     }));
@@ -93,7 +93,7 @@ pub(super) fn prepare(
         keyboard_node,
         keymap_node,
         upper_node,
-        presentation_node,
+        face_node,
         keymap: ConduitIntlKeymap::new(),
     })
 }

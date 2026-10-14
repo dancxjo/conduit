@@ -25,7 +25,7 @@ members = [
 	"semantics/human",
 	"semantics/language",
 	"semantics/net",
-	"semantics/presentation",
+	"semantics/face",
 	"semantics/process",
 	"semantics/purpose",
 	"semantics/robotics",

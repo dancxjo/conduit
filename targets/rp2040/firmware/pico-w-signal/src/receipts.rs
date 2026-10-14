@@ -170,7 +170,7 @@ pub struct BootIdentity {
 }
 
 #[derive(Clone, Copy)]
-pub struct PresentationReceiptIdentity {
+pub struct FaceReceiptIdentity {
     pub firmware_build_id: &'static str,
     pub source_document_id: &'static str,
     pub checked_plot_id: &'static str,
@@ -180,7 +180,7 @@ pub struct PresentationReceiptIdentity {
     pub host_id: &'static str,
     pub boot_id: &'static str,
     pub active_play_id: &'static str,
-    pub presentation_id: &'static str,
+    pub face_id: &'static str,
     pub sign_id: &'static str,
 }
 
@@ -249,12 +249,12 @@ impl UsbCdc {
         self.write_all_mandatory(line.as_bytes()).await
     }
 
-    /// Write a machine-readable receipt for one Signal presentation.
+    /// Write a machine-readable receipt for one Signal face.
     pub async fn write_receipt(
         &mut self,
         sequence: u64,
         level: bool,
-        identity: PresentationReceiptIdentity,
+        identity: FaceReceiptIdentity,
         runtime: &RuntimeTranscriptIdentity,
     ) -> Result<(), UsbSignError> {
         let mut line: HString<RECEIPT_BUFFER_BYTES> = HString::new();
@@ -277,7 +277,7 @@ impl UsbCdc {
                     "\"runtime_active_play_id\":\"{}\",",
                     "\"sequence\":{},",
                     "\"level\":{},",
-                    "\"presentation_id\":\"{}\",",
+                    "\"face_id\":\"{}\",",
                     "\"sign_id\":\"{}\"",
                     "}}\n"
                 ),
@@ -294,7 +294,7 @@ impl UsbCdc {
                 runtime.active_play_id(),
                 sequence,
                 level,
-                identity.presentation_id,
+                identity.face_id,
                 identity.sign_id,
             ),
         )

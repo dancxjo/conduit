@@ -375,7 +375,7 @@ export class BrowserBodyParticipation {
   }
 
   /** Acquire this page's exact resources for an authority-owned external Body proposal. */
-  prepare({ proposal, inputTarget, outputRoot, foregroundPlot, presentationRootFor,
+  prepare({ proposal, inputTarget, outputRoot, foregroundPlot, faceRootFor,
     onApplicationEvent, onTutorialPresenterRequest, externallyManagedPlanIds = [] } = {}) {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential
@@ -391,7 +391,7 @@ export class BrowserBodyParticipation {
       inputTarget,
       outputRoot,
       foregroundPlot,
-      presentationRootFor,
+      faceRootFor,
       onApplicationEvent,
       onTutorialPresenterRequest,
       externallyManagedPlanIds,
@@ -482,8 +482,8 @@ export class BrowserPlay {
     return this.#adapter.acknowledgeThermostatFace({
       show_id: effect.show_id, manifestation_id: effect.manifestation_id,
       mask_plan_id: effect.mask_plan_id, active_play_id: effect.mask_play.active_play_id,
-      placement_id: effect.placement_id, presentation_id: effect.presentation_id,
-      presentation_revision: effect.presentation_revision,
+      placement_id: effect.placement_id, face_id: effect.face_id,
+      face_revision: effect.face_revision,
     });
   }
   submitThermostatInteraction({ view, actionId, target, arguments: actionArguments = [], sequence }) {
@@ -493,8 +493,8 @@ export class BrowserPlay {
     if (!Number.isSafeInteger(sequence) || sequence < 1) throw new RangeError('Face action sequence is invalid');
     const checked = checkedOwnerFaceArguments(view, actionId, target, actionArguments);
     return this.#adapter.submitThermostatInteraction({
-      show_id: view.show_id, presentation_id: view.face_id,
-      presentation_revision: Number(view.face_revision), action_id: actionId,
+      show_id: view.show_id, face_id: view.face_id,
+      face_revision: Number(view.face_revision), action_id: actionId,
       target, arguments: checked, sequence,
     });
   }

@@ -34,7 +34,7 @@ fn fulfillment(ms: i128) -> FulfillmentCostForecast {
 fn exercise(measure: bool) {
     let fixture = triple::exact_plan().unwrap();
     let plot = conduit_plot::parse_with_startup(
-        "plot transfer-trap {\n producer: flow/pulse(count = 1, period-ms = 0, initial = false)\n sink: presentation/show\n producer >> sink\n}\n",
+        "plot transfer-trap {\n producer: flow/pulse(count = 1, period-ms = 0, initial = false)\n sink: face/show(\"Transfer sink\")\n producer >> sink\n}\n",
         &conduit_signal::signal_startup_catalog(), &conduit_signal::signal_profile_catalog()).unwrap();
     let mut remote = fixture.source_advertisement.clone();
     remote.host_id = "fixture/remote-producer".into();

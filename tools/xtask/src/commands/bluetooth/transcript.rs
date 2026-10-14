@@ -132,19 +132,19 @@ pub(super) fn verify_esp32(
         };
     }
 
-    let presentations = lines
+    let faces = lines
         .iter()
         .enumerate()
         .filter(|(_, line)| line.starts_with("CONDUIT_ESP32_PRESENT "))
         .collect::<Vec<_>>();
-    if presentations.len() != 16 {
+    if faces.len() != 16 {
         return Err(format!(
-            "expected 16 exact ESP32 presentations, found {}",
-            presentations.len()
+            "expected 16 exact ESP32 faces, found {}",
+            faces.len()
         ));
     }
     let mut previous = paired;
-    for (expected_sequence, (position, line)) in presentations.into_iter().enumerate() {
+    for (expected_sequence, (position, line)) in faces.into_iter().enumerate() {
         let sequence = expected_sequence.to_string();
         let level = if expected_sequence % 2 == 0 {
             "false"
@@ -156,14 +156,14 @@ pub(super) fn verify_esp32(
             || field(line, "level") != Some(level)
         {
             return Err(format!(
-                "ESP32 presentation {expected_sequence} was missing, duplicated, or out of order"
+                "ESP32 face {expected_sequence} was missing, duplicated, or out of order"
             ));
         }
         previous = position;
     }
     let complete = unique_position(lines, "CONDUIT_ESP32_LINE_COMPLETE final-sequence=16")?;
     if complete <= previous {
-        return Err("ESP32 completion preceded its final presentation".into());
+        return Err("ESP32 completion preceded its final face".into());
     }
     if lines.iter().any(|line| line == "CONDUIT_ESP32_BLE_LOST") {
         return Err("completion proof also claimed transport loss".into());

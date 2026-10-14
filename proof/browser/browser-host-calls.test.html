@@ -2,7 +2,7 @@
 <meta charset="utf-8">
 <title>Conduit browser Host Calls proof</title>
 <button id="artifact">Hand off artifact</button>
-<button id="location">Move presentation location</button>
+<button id="location">Move face location</button>
 <button id="device">Choose device</button>
 <output id="result">ready</output>
 <script type="module">
@@ -63,7 +63,7 @@ document.querySelector("#artifact").addEventListener("click", async () => {
 });
 document.querySelector("#location").addEventListener("click", async () => {
   const outcome = await calls.moveLocation(call("location", "location/proof", {
-    presentationRevision: 4,
+    faceRevision: 4,
     mode: "push",
     path: "/proof/browser/presented-place/",
   }));

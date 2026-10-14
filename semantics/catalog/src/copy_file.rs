@@ -71,7 +71,7 @@ pub fn copy_file_contract() -> StandardKindContract {
 pub fn install_copy_file_catalog(catalog: &mut conduit_plot::ProfileCatalog) -> Result<(), String> {
     for definition in [
         copy_file_contract().into_semantic_contract(COPY_FILE_CONTRACT_REVISION),
-        crate::structured_presentation_contract(COPY_RESULT_TYPE, &copy_result_type()).into(),
+        crate::structured_face_contract(COPY_RESULT_TYPE, &copy_result_type()).into(),
     ] {
         catalog
             .insert_kind(definition)

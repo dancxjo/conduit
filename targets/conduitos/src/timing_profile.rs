@@ -33,7 +33,7 @@ pub struct TimingOffer {
     pub maximum_wake_latency_us: u32,
     pub maximum_kernel_step_us: u32,
     pub maximum_timer_completion_us: u32,
-    pub maximum_presentation_us: u32,
+    pub maximum_face_us: u32,
     pub kernel_step_budget: u16,
     pub arena_bytes: u32,
     pub cord_items: u16,
@@ -58,7 +58,7 @@ impl TimingOffer {
             maximum_wake_latency_us: 100,
             maximum_kernel_step_us: 25,
             maximum_timer_completion_us: 25,
-            maximum_presentation_us: 200,
+            maximum_face_us: 200,
             kernel_step_budget: 16,
             arena_bytes: u32::try_from(host.runtime_arena_bytes).unwrap_or(u32::MAX),
             cord_items: 1,
@@ -152,7 +152,7 @@ pub fn admit(
         .checked_add(timing.maximum_wake_latency_us)
         .and_then(|value| value.checked_add(timing.maximum_timer_completion_us))
         .and_then(|value| value.checked_add(kernel_us))
-        .and_then(|value| value.checked_add(timing.maximum_presentation_us))
+        .and_then(|value| value.checked_add(timing.maximum_face_us))
         .ok_or(Refusal::IncompleteOffer)?;
     if required_us > requirement.deadline_us {
         return Err(Refusal::Unschedulable {
@@ -246,7 +246,7 @@ fn seal_offer(offer: TimingOffer) -> u64 {
         u64::from(offer.maximum_wake_latency_us),
         u64::from(offer.maximum_kernel_step_us),
         u64::from(offer.maximum_timer_completion_us),
-        u64::from(offer.maximum_presentation_us),
+        u64::from(offer.maximum_face_us),
         u64::from(offer.kernel_step_budget),
         u64::from(offer.arena_bytes),
         u64::from(offer.cord_items),
@@ -296,8 +296,8 @@ fn run_kernel(
                     return TimingOutcome::KernelFailure;
                 }
             } else {
-                elapsed = elapsed.saturating_add(offer.maximum_presentation_us);
-                if kernel.complete_presentation(request).is_err() {
+                elapsed = elapsed.saturating_add(offer.maximum_face_us);
+                if kernel.complete_face(request).is_err() {
                     return TimingOutcome::KernelFailure;
                 }
             }

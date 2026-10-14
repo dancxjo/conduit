@@ -2,20 +2,20 @@ import { openBrowserRemoteFragment, runBrowserRemoteFragment } from "../../../ta
 
 const REQUEST_IMPLEMENTATION = "browser/workspace-tutorial-presenter-request@1";
 const MANIFESTATION_IMPLEMENTATION = "browser/workspace-tutorial-manifestation@1";
-const PRESENTATION_RESOURCE = "conduit.resource/presentation-slot@1";
-const PRESENTATION_POOL = "browser/presentation";
-const GENERATED_KIND = "conduit.presentation/generated-manifestation-candidate@1";
+const FACE_RESOURCE = "conduit.resource/face-slot@1";
+const FACE_POOL = "browser/face";
+const GENERATED_KIND = "conduit.face/generated-manifestation-candidate@1";
 const decoder = new TextDecoder("utf-8", { fatal: true });
 
 function acquireTutorialPresenter({ window, outputRoot, host, fragment, request }) {
   const requestPlacements = fragment.placements.filter(item => item.implementation_id === REQUEST_IMPLEMENTATION);
   const manifestationPlacements = fragment.placements.filter(item => item.implementation_id === MANIFESTATION_IMPLEMENTATION);
   const slot = manifestationPlacements[0]?.resources?.filter(resource =>
-    resource.class_id === PRESENTATION_RESOURCE && resource.pool_id === PRESENTATION_POOL && resource.units === 1) ?? [];
+    resource.class_id === FACE_RESOURCE && resource.pool_id === FACE_POOL && resource.units === 1) ?? [];
   if (requestPlacements.length !== 1 || manifestationPlacements.length !== 1 || slot.length !== 1 ||
       !outputRoot?.isConnected || fragment.host_id !== host.host_id || fragment.boot_id !== host.boot_id ||
       fragment.offer_generation !== host.offer_generation) {
-    throw new Error("tutorial Presenter browser fragment does not own its exact source and presentation slot");
+    throw new Error("tutorial Presenter browser fragment does not own its exact source and face slot");
   }
   const output = outputRoot.ownerDocument.createElement("output");
   output.dataset.placementId = manifestationPlacements[0].placement_id;
@@ -34,7 +34,7 @@ function acquireTutorialPresenter({ window, outputRoot, host, fragment, request 
       current();
       return [{
         host_id: host.host_id, boot_id: host.boot_id, offer_generation: host.offer_generation,
-        pool_id: PRESENTATION_POOL, class_id: PRESENTATION_RESOURCE, health: "Ready",
+        pool_id: FACE_POOL, class_id: FACE_RESOURCE, health: "Ready",
         unreserved_units: 1, utilized_units: 0,
         sign_id: `browser-resource/${host.boot_id}/${window.crypto.randomUUID()}`,
       }];
@@ -47,20 +47,20 @@ function acquireTutorialPresenter({ window, outputRoot, host, fragment, request 
         const identity = `tutorial-presenter/${activePlayId}/${effect.request_sequence}`;
         const encoded = await request(identity, effect.request_sequence);
         const value = JSON.parse(decoder.decode(encoded));
-        if (value?.request_identity !== identity || !value.semantic_data?.source_presentation_identity ||
-            !Number.isSafeInteger(value.semantic_data.source_presentation_revision) ||
+        if (value?.request_identity !== identity || !value.semantic_data?.source_face_identity ||
+            !Number.isSafeInteger(value.semantic_data.source_face_revision) ||
             !Number.isSafeInteger(value.bounds?.maximum_output_bytes)) {
           throw new Error("current tutorial Presenter request is malformed");
         }
         pendingRequest = value;
         return encoded;
       }
-      if (effect.effect_kind !== "manifestation" || effect.presentation_kind !== GENERATED_KIND ||
+      if (effect.effect_kind !== "manifestation" || effect.face_kind !== GENERATED_KIND ||
           !Array.isArray(effect.canonical_value)) throw new Error("unsupported tutorial Presenter effect");
       const manifestation = JSON.parse(decoder.decode(Uint8Array.from(effect.canonical_value)));
       if (!pendingRequest || manifestation?.request_identity !== pendingRequest.request_identity ||
-          manifestation.source_presentation_identity !== pendingRequest.semantic_data.source_presentation_identity ||
-          manifestation.source_presentation_revision !== pendingRequest.semantic_data.source_presentation_revision ||
+          manifestation.source_face_identity !== pendingRequest.semantic_data.source_face_identity ||
+          manifestation.source_face_revision !== pendingRequest.semantic_data.source_face_revision ||
           manifestation.template_contract_revision !== pendingRequest.policy.template_contract_revision ||
           !Array.isArray(manifestation.content) || manifestation.content.length > 8 ||
           !Array.isArray(manifestation.affordances) || manifestation.affordances.length > 32) {
@@ -68,10 +68,10 @@ function acquireTutorialPresenter({ window, outputRoot, host, fragment, request 
       }
       const outputBytes = manifestation.content.reduce((sum, segment) => sum + (segment.bytes?.length ?? 0), 0);
       if (outputBytes > pendingRequest.bounds.maximum_output_bytes || manifestation.affordances.some(item =>
-        item.source_presentation_revision !== pendingRequest.semantic_data.source_presentation_revision)) {
+        item.source_face_revision !== pendingRequest.semantic_data.source_face_revision)) {
         throw new Error("generated tutorial manifestation exceeds its request");
       }
-      throw new Error("generated tutorial candidate requires semantic validation before presentation");
+      throw new Error("generated tutorial candidate requires semantic validation before face");
     },
     close() { if (closed) return; closed = true; output.remove(); },
   });

@@ -13,7 +13,7 @@ use conduit_core::{
     bind_sign, BootId, CheckedPlotId, HostId, ImplementationId, OfferGeneration, PlanId, SignId,
     SourceDocumentId,
 };
-use conduit_presentation::{PresentationAspect, PresentationDepth, PresentationPlace};
+use conduit_face::{FaceAspect, FaceDepth, FacePlace};
 
 const HOSTED_PLAN: &str = "plan/roseau-patchbay";
 const HOSTED_IMPLEMENTATION: &str = "browser/patchbay-surface@1";
@@ -104,12 +104,9 @@ fn hosted_history_is_body_signs_with_four_ordered_friendly_and_exact_entries() {
     let history = ReadableBodyHistory::from_attachment(7, &hosted_attachment()).unwrap();
 
     assert_eq!(history.schema, "conduit.body/readable-history@1");
-    assert_eq!(history.place, PresentationPlace::Body);
-    assert_eq!(history.aspect, PresentationAspect::Signs);
-    assert_eq!(
-        history.access.exact_evidence_depth,
-        PresentationDepth::Exact
-    );
+    assert_eq!(history.place, FacePlace::Body);
+    assert_eq!(history.aspect, FaceAspect::Signs);
+    assert_eq!(history.access.exact_evidence_depth, FaceDepth::Exact);
     assert_eq!(
         history.access.alternate_manifestation,
         BodyHistoryManifestation::Linear
@@ -128,9 +125,9 @@ fn hosted_history_is_body_signs_with_four_ordered_friendly_and_exact_entries() {
     assert_eq!(history.entries[2].title, "Host joined");
     assert_eq!(history.entries[3].title, "Graduated from the Crèche");
     assert!(history.entries[3].narrative.contains(HOSTED_PLAN));
-    assert_eq!(history.entries[3].inspect.place, PresentationPlace::Body);
-    assert_eq!(history.entries[3].inspect.aspect, PresentationAspect::Signs);
-    assert_eq!(history.entries[3].inspect.depth, PresentationDepth::Exact);
+    assert_eq!(history.entries[3].inspect.place, FacePlace::Body);
+    assert_eq!(history.entries[3].inspect.aspect, FaceAspect::Signs);
+    assert_eq!(history.entries[3].inspect.depth, FaceDepth::Exact);
     assert_eq!(
         history.entries[3].inspect.subject_identity,
         format!("sign/{}", history.entries[3].exact.record.sign_id.as_str())

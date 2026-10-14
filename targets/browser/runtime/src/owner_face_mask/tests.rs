@@ -6,9 +6,9 @@ use conduit_core::{
     kind_id, process_owned_line_offer_with_limits, BaseImplementationId, CheckedPlotId,
     CheckedValueContract, LineOffer, LinkLimits, SignId, SourceDocumentId, ValueConstraint,
 };
-use conduit_presentation::{
-    Face, FaceActionArgument, FaceContext, FaceFocus, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    BodyFace, FaceAction, FaceActionArgument, FaceActionAvailability, FaceContext,
+    FaceDisclosureLevel, FaceFocus, UTF8_TEXT_VALUE_KIND,
 };
 
 #[test]
@@ -21,7 +21,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
     )
     .unwrap();
     let revision = 9_007_199_254_740_993;
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         revision,
@@ -30,7 +30,7 @@ fn exact_owner_face_runs_the_browser_mask_and_acknowledges_its_show() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let basis = HostBasis {
         visual_constraints: None,
         body_id: body.body_id.clone(),
@@ -68,7 +68,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
         SignId::from("sign/selected-owner-face"),
     )
     .unwrap();
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         4,
@@ -77,7 +77,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let basis = HostBasis {
         visual_constraints: None,
         body_id: body.body_id,
@@ -205,7 +205,7 @@ fn selected_carrier_lines_survive_browser_lowering_and_bound_show() {
     assert_eq!(mask.view().show_state, "available");
     assert!(
         serde_json::to_vec(&mask.show).unwrap().len()
-            <= conduit_presentation::MAX_OWNER_FACE_RESPONSE_BYTES
+            <= conduit_face::MAX_OWNER_FACE_RESPONSE_BYTES
     );
 }
 
@@ -219,7 +219,7 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
     )
     .unwrap();
     let revision = 9_007_199_254_740_993;
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         revision,
@@ -228,9 +228,9 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     let target = face.subjects[0].identity.clone();
-    let action = PresentationAction {
+    let action = FaceAction {
         identity: "body/action/change-clock-interval/1".into(),
         intent: "conduit.intent/change-clock-interval@1".into(),
         target: target.clone(),
@@ -248,10 +248,10 @@ fn current_browser_mask_emits_one_exact_typed_clock_interaction() {
             )
             .unwrap(),
         }],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
+        disclosure: FaceDisclosureLevel::CurrentAction,
+        availability: FaceActionAvailability::Available,
     };
-    let face = Presentation::new_with_semantics_and_temporal(
+    let face = Face::new_with_semantics_and_temporal(
         face.revision,
         face.basis,
         face.subjects,

@@ -1,9 +1,8 @@
 //! Exact, finite debugger Watches layered beside canonical Patchbay truth.
 
 use crate::{
-    debugger_presentation::{event_name, value_presentation},
-    DebuggerExecutionIdentity, DebuggerGapPresentation, DebuggerPresentation,
-    DebuggerValuePresentation,
+    debugger_face::{event_name, value_face},
+    DebuggerExecutionIdentity, DebuggerFace, DebuggerGapFace, DebuggerValueFace,
 };
 use alloc::{borrow::ToOwned, string::String, vec::Vec};
 use conduit_kernel::debug_observation::{
@@ -54,7 +53,7 @@ pub struct DebuggerWatchRate {
 pub struct DebuggerWatchHistoryEntry {
     pub sequence: u64,
     pub event: String,
-    pub value: Option<DebuggerValuePresentation>,
+    pub value: Option<DebuggerValueFace>,
     pub fault_code: Option<u16>,
 }
 
@@ -70,7 +69,7 @@ pub struct DebuggerWatch {
     pub rate: Option<DebuggerWatchRate>,
     pub history: Vec<DebuggerWatchHistoryEntry>,
     pub evicted_history: u64,
-    pub telemetry_gap: Option<DebuggerGapPresentation>,
+    pub telemetry_gap: Option<DebuggerGapFace>,
     /// Bounded semantic views computed by admitted observation operations.
     /// They describe runtime truth; they never own or mutate it.
     #[serde(default, skip_serializing_if = "Vec::is_empty")]
@@ -187,7 +186,7 @@ impl DebuggerWatchSet {
     pub fn capture_current(
         &mut self,
         subject: &str,
-        debugger: &DebuggerPresentation,
+        debugger: &DebuggerFace,
     ) -> Result<bool, DebuggerWatchError> {
         if debugger.execution != self.execution {
             return Err(DebuggerWatchError::StaleExecution);
@@ -316,7 +315,7 @@ impl DebuggerWatchSet {
             let entry = DebuggerWatchHistoryEntry {
                 sequence: record.sequence,
                 event: event_name(record.kind).to_owned(),
-                value: value_presentation(record),
+                value: value_face(record),
                 fault_code: record.fault_code,
             };
             watch.learned_projections.clear();
@@ -345,7 +344,7 @@ impl DebuggerWatchSet {
     }
 
     pub fn note_gap(&mut self, gap: DebugObservationGap) {
-        let gap = DebuggerGapPresentation {
+        let gap = DebuggerGapFace {
             dropped_records: gap.dropped_records,
             first_retained_sequence: gap.first_retained_sequence,
         };

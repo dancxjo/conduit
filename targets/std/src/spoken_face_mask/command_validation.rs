@@ -1,8 +1,8 @@
 //! Read-only validation shared by a speech interruption preflight and command execution.
 
-use conduit_presentation::{
-    FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, FaceUtteranceProvenance,
-    MaskShow, Presentation, PresentationActionAvailability, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    Face, FaceActionAvailability, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal,
+    FaceUtteranceProvenance, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 
 use super::{ReaderCommand, SpokenFaceRefusal, SpokenFaceSession};
@@ -13,7 +13,7 @@ impl SpokenFaceSession {
     /// the command after the old Play has a terminal outcome.
     pub fn accepts_interruption(
         &self,
-        current_face: &Presentation,
+        current_face: &Face,
         current_show: &MaskShow,
         command: &ReaderCommand,
         sequence: u64,
@@ -88,9 +88,7 @@ impl SpokenFaceSession {
             .ok_or(SpokenFaceRefusal::NoActionInFocus)?;
         if !action.availability.is_available() {
             return Err(SpokenFaceRefusal::Interaction(match action.availability {
-                PresentationActionAvailability::Refused { .. } => {
-                    FaceInteractionRefusal::RefusedAction
-                }
+                FaceActionAvailability::Refused { .. } => FaceInteractionRefusal::RefusedAction,
                 _ => FaceInteractionRefusal::UnavailableAction,
             }));
         }

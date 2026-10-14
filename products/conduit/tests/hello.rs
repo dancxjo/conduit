@@ -51,12 +51,12 @@ fn canonical_hello_runs_locally() {
     );
     assert!(
         lines.iter().any(
-            |line| line.contains("kind=presentation/text host=std-host-1 boot=boot-")
-                && line.contains(" implementation=std/kernel-presentation-text@1 ")
+            |line| line.contains("kind=face/text host=std-host-1 boot=boot-")
+                && line.contains(" implementation=std/kernel-face-text@1 ")
         ),
-        "missing canonical presentation placement: {stdout}"
+        "missing canonical face placement: {stdout}"
     );
-    assert!(lines.iter().any(|line| line == &"HELLO, WORLD."));
+    assert!(lines.iter().any(|line| line == &"Greeting: HELLO, WORLD."));
     assert!(
         lines
             .iter()
@@ -220,7 +220,7 @@ fn actual_std_run_writes_a_read_only_observatory_report() {
     );
     assert!(stdout.contains("pressure=unknown"), "{stdout}");
     assert!(
-        stdout.contains("active_play=") && stdout.contains("presentation="),
+        stdout.contains("active_play=") && stdout.contains("face="),
         "{stdout}"
     );
     assert!(stdout.contains("retained="), "{stdout}");

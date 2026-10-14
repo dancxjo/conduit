@@ -46,17 +46,17 @@ Current tree graphical mask:
 
 ```conduit
 plot native-graphical (
-    >> face: Presentation
+    >> face: Face
     interaction: FaceInteraction...| >>
     show: Show >>
 ) {
-    spread: presentation/tee
-    render: presentation/renderer
-    human: face/interaction
+    spread: face/tee("Shared Face")
+    render: face/renderer("Body view")
+    human: face/interaction("User actions")
 
-    face >> spread.presentation
-    spread.presentation >> render.presentation
-    spread.presentation >> human.presentation
+    face >> spread.face
+    spread.face >> render.face
+    spread.face >> human.face
     render.show >> human.show
     render.show >> show
     human.interaction >> interaction

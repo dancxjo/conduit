@@ -271,8 +271,8 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "prove.llm-embodiment.presentation",
-        "Prove Patchbay Presentation distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
+        "prove.llm-embodiment.face",
+        "Prove Patchbay Face distinguishes Plots, Ports, Cords, proposals, decisions, and effect Signs",
         "cargo",
         &["test", "-p", "conduit-patchbay-workbench", "--test", "llm_embodiment"],
         None,
@@ -282,7 +282,7 @@ pub const PROVE_LLM_EMBODIMENT_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.llm-embodiment.patchbay-build",
-        "Build the isolated shared-Presentation Patchbay documentary fixture",
+        "Build the isolated shared-Face Patchbay documentary fixture",
         "cargo",
         &["build", "-p", "conduit-browser-patchbay-workbench"],
         None,
@@ -427,7 +427,8 @@ pub const PROVE_BODY_MEMBERSHIP_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.body-membership.browser-servers",
         "Build bounded browser chat and Body admission Line servers",
@@ -511,7 +512,8 @@ pub const PROVE_BODY_MEMBERSHIP_HIL_BROWSER_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.body-membership-hil.native",
         "Build the native same-Body physical membership verifier",
@@ -585,7 +587,8 @@ pub const PROVE_STD_BROWSER_S4_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.std-browser-s4.patchbay-native-build",
         "Build native Patchbay distributed source artifact",
@@ -631,7 +634,8 @@ pub const PROVE_STD_BROWSER_TOGGLE_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.std-browser-toggle.playwright",
         "Run Playwright distributed toggle spec",
@@ -677,7 +681,8 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.browser-host.entrance-build",
         "Build the standalone browser Host entrance",
@@ -871,7 +876,7 @@ pub const PROVE_PATCHBAY_FRONT_DOOR_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &["proof/browser/conduit_browser_runtime.wasm"],
-    ),
+    ).with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.patchbay-front-door.artifacts",
         "Build the native, HTML, and live front-door capstone artifacts",

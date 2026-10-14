@@ -320,14 +320,14 @@ export async function startOwnerParticipation(application, root) {
     } finally {
       faceBusy = false;
       faceRefresh.disabled = participation?.presenceState() !== 'available';
-      applyPresentation.disabled = !faceView || faceRefresh.disabled || Boolean(speechOperationId);
+      applyFace.disabled = !faceView || faceRefresh.disabled || Boolean(speechOperationId);
       speechControls();
       if (!wardrobeReport) queueMicrotask(refreshWardrobe);
     }
   };
-  const presentationControls = document.createElement('fieldset');
-  const presentationLegend = document.createElement('legend');
-  presentationLegend.textContent = 'Presentation';
+  const faceControls = document.createElement('fieldset');
+  const faceLegend = document.createElement('legend');
+  faceLegend.textContent = 'Face';
   const lookLabel = document.createElement('label');
   lookLabel.textContent = 'Look ';
   const lookSelect = document.createElement('select');
@@ -352,16 +352,16 @@ export async function startOwnerParticipation(application, root) {
     textScaleSelect.append(option);
   }
   textScaleLabel.append(textScaleSelect);
-  const applyPresentation = document.createElement('button'); applyPresentation.type = 'button';
-  applyPresentation.textContent = 'Apply presentation';
-  applyPresentation.disabled = true;
-  applyPresentation.addEventListener('click', () => {
+  const applyFace = document.createElement('button'); applyFace.type = 'button';
+  applyFace.textContent = 'Apply face';
+  applyFace.disabled = true;
+  applyFace.addEventListener('click', () => {
     if (!faceView || faceBusy || speechOperationId) return;
     refreshFace({ look: lookSelect.value, recipe: recipeSelect.value,
       minimumTextScalePercent: Number(textScaleSelect.value) });
   });
-  presentationControls.append(presentationLegend, lookLabel, recipeLabel, textScaleLabel, applyPresentation);
-  faceRefresh.insertAdjacentElement('afterend', presentationControls);
+  faceControls.append(faceLegend, lookLabel, recipeLabel, textScaleLabel, applyFace);
+  faceRefresh.insertAdjacentElement('afterend', faceControls);
   const showState = state => {
     status.textContent = `Browser participation: ${state}.`;
     status.dataset.state = state;
@@ -375,7 +375,7 @@ export async function startOwnerParticipation(application, root) {
       if (faceView) faceStatus.textContent = 'The route to the owner is lost. The last Face is historical.';
       faceView = null;
       faceRefresh.disabled = true;
-      applyPresentation.disabled = true;
+      applyFace.disabled = true;
       faceEvidence.textContent = 'No current sealed browser Show. Previous route evidence is historical.';
       faceComponent.disabled = true;
       actionResult.textContent = 'The owner window is closed; this browser has no current action return.';
@@ -518,7 +518,7 @@ export async function startOwnerParticipation(application, root) {
     biography: () => participation?.biographyEvidence() ?? null,
     face: () => faceView,
     // Preserve exact canonical JSON text for proof capture before any JS parse.
-    selectPresentation: (look, recipe, minimumTextScalePercent) =>
+    selectFace: (look, recipe, minimumTextScalePercent) =>
       refreshFace({ look, recipe, minimumTextScalePercent }),
     submitFaceInteraction: ({ view, actionId, target, arguments: actionArguments }) => {
       if (!participation) throw new Error('Join a current owner before interaction.');

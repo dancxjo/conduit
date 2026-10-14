@@ -64,7 +64,7 @@ fn ordinary_semantics_match_the_materially_different_std_realization() {
         .unwrap();
     let output = String::from_utf8(output).unwrap();
     assert!(timer.0.is_empty());
-    assert!(output.contains("\nHELLO, CONDUITOS\n"));
+    assert!(output.contains("\nMessage: HELLO, CONDUITOS\n"));
     let kernel = report
         .kernel
         .expect("ordinary std realization uses conduit-kernel");

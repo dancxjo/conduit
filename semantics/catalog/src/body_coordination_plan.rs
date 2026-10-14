@@ -1,6 +1,6 @@
 //! Exact two-std-Host realization of the mechanism-free coordination Plot.
 
-use crate::{install_text_pipeline_catalogs, TEXT_PRESENTATION_KIND};
+use crate::{install_text_pipeline_catalogs, TEXT_FACE_KIND};
 use alloc::{
     collections::BTreeMap,
     format,
@@ -12,7 +12,7 @@ use conduit_core::{
     kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
     resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, LineId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
-    PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -150,7 +150,7 @@ fn exact_body_coordination_plan_with_loss(
             placement(
                 "body-coordination/receive-message",
                 &motherbrain,
-                TEXT_PRESENTATION_KIND,
+                TEXT_FACE_KIND,
             )?,
             placement(
                 "body-coordination/reply",
@@ -160,7 +160,7 @@ fn exact_body_coordination_plan_with_loss(
             placement(
                 "body-coordination/receive-reply",
                 &forebrain,
-                TEXT_PRESENTATION_KIND,
+                TEXT_FACE_KIND,
             )?,
         ]),
     };
@@ -217,15 +217,12 @@ fn coordination_host(id: &str, boot_id: BootId) -> HostAdvertisement {
         profile: HostProfileId::from("body-coordination/fixture@1"),
         bases: vec![],
         resources: vec![resource_offer(
-            "body-coordination/presentation",
-            PRESENTATION_RESOURCE_CLASS,
+            "body-coordination/face",
+            FACE_RESOURCE_CLASS,
             1,
         )],
         planner_capabilities: Vec::new(),
-        capabilities: vec![
-            text_literal_fixture_offer(),
-            text_presentation_fixture_offer(),
-        ],
+        capabilities: vec![text_literal_fixture_offer(), text_face_fixture_offer()],
     }
 }
 
@@ -247,21 +244,21 @@ fn text_literal_fixture_offer() -> CapabilityOffer {
     offer
 }
 
-fn text_presentation_fixture_offer() -> CapabilityOffer {
+fn text_face_fixture_offer() -> CapabilityOffer {
     crate::realization_offer(
-        crate::text_presentation_contract(),
-        crate::TEXT_PRESENTATION_CONTRACT_REVISION,
+        crate::text_face_contract(),
+        crate::TEXT_FACE_CONTRACT_REVISION,
         crate::RealizationOfferIdentity {
-            capability: "body-coordination/text-presentation",
+            capability: "body-coordination/text-face",
             execution_profile: "body-coordination/fixture@1",
-            implementation: "body-coordination/text-presentation@1",
+            implementation: "body-coordination/text-face@1",
             artifact: "body-coordination/fixture@1",
         },
         vec![present_host_call_requirement(
-            kind_id("presentation/body-coordination-text"),
+            kind_id("face/body-coordination-text"),
             conduit_text::MAX_TEXT_BYTES,
         )],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
 }

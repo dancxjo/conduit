@@ -13,10 +13,7 @@ fn capstone_retains_exact_cross_profile_body_and_refusal_evidence() {
         .iter()
         .all(|item| item.lifecycle == ManifestationLifecycle::Replaced));
     assert_eq!(receipt.revised_manifestations.manifestations.len(), 2);
-    assert_ne!(
-        receipt.initial_presentation.identity,
-        receipt.revised_presentation.identity
-    );
+    assert_ne!(receipt.initial_face.identity, receipt.revised_face.identity);
     assert_eq!(
         receipt.update.source,
         "manifestation-semantic-action-to-body-truth"

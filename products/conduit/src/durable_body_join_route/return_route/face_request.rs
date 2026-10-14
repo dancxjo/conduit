@@ -1,6 +1,6 @@
 //! Decode a read-only native Face request and its explicit return-route opt-in.
 
-use conduit_presentation::OwnerFaceSnapshotRequest;
+use conduit_face::OwnerFaceSnapshotRequest;
 use serde::Deserialize;
 
 pub(super) const FACE_REQUEST_SCHEMA: &str = "conduit.body/native-owner-face-request@1";
