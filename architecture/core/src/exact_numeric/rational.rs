@@ -158,6 +158,15 @@ impl ExactRational {
         }
         self.numerator.to_u128()
     }
+    /// Project a nonnegative exact coordinate into a bounded unsigned fraction.
+    /// Neither component is rounded, saturated or replaced; wide or negative
+    /// coordinates refuse before consumers adopt a smaller representation.
+    pub fn checked_unsigned_ratio(self) -> Result<(u128, u128), R> {
+        if self.negative {
+            return Err(R::OutOfRange);
+        }
+        Ok((self.numerator.to_u128()?, self.denominator.to_u128()?))
+    }
     pub fn checked_i128(self) -> Result<i128, R> {
         if !self.is_integer() {
             return Err(R::InexactProjection);
