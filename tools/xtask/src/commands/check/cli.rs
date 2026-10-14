@@ -40,6 +40,8 @@ pub enum CheckSuite {
     KernelTakeover,
     PlanningS2,
     PlotS3,
+    /// Report the fixed prepared-expression semantic and timing baseline.
+    ExpressionBaseline,
     Observatory,
     SemanticCatalog,
     /// Execute authored quantity mappings through the std production kernel and face.
