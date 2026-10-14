@@ -37,11 +37,13 @@ measurements, production latency thresholds, confidence in a universal speedup,
 or physical-device evidence. The deterministic scan reduction is the primary
 result. Small/loaded shapes and full variance remain in the raw report.
 
-Validation passed the allocation-enabled kernel suite (78 unit tests plus all
+Validation passed the allocation-enabled kernel suite (79 unit tests plus all
 integration suites), strict all-target Clippy with warnings denied, and the
 no-default-feature kernel check. The packed iterator is compared to linear
 round-robin across active counts/cursors and finite membership patterns spanning
-byte boundaries. A separate allocator probe runs 32 yielding nodes through 160
+byte boundaries, using an independent Boolean membership oracle. A 256-node
+case separately covers isolated and repeated wakeups, clear, removal and cursor
+wrap across byte boundaries. A separate allocator probe runs 32 yielding nodes through 160
 actual scheduler steps to drained completion: order stays fair and allocation
 and reallocation counts are both zero. Existing fuel, cancellation, pressure,
 remote input/output, Host Call, terminal and Sign conformance remains covered.

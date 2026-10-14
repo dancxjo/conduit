@@ -105,10 +105,13 @@ mod tests {
                 for node in 0..active {
                     set.set(node, mask & (1 << (node % 9)) != 0);
                 }
+                for node in 0..active {
+                    assert_eq!(set.contains(node), mask & (1 << (node % 9)) != 0);
+                }
                 for cursor in 0..active.max(1) {
                     let expected = (0..active)
                         .map(|offset| (cursor + offset) % active)
-                        .filter(|&node| set.contains(node))
+                        .filter(|&node| mask & (1 << (node % 9)) != 0)
                         .collect::<std::vec::Vec<_>>();
                     assert_eq!(
                         set.round_robin(cursor, active)
@@ -119,5 +122,33 @@ mod tests {
             }
         }
         assert_eq!(core::mem::size_of::<ReadySet<17>>(), 17);
+    }
+    #[test]
+    fn isolated_wake_clear_and_large_boundaries_preserve_independent_membership() {
+        let mut set = ReadySet::<256>::new(256);
+        set.clear();
+        let mut expected = [false; 256];
+        for node in [0, 7, 8, 63, 64, 127, 128, 254, 255] {
+            set.set(node, true);
+            set.set(node, true);
+            expected[node] = true;
+        }
+        set.set(64, false);
+        expected[64] = false;
+        for (node, expected) in expected.iter().enumerate() {
+            assert_eq!(set.contains(node), *expected);
+        }
+        for cursor in 0..256 {
+            let linear = (0..256)
+                .map(|offset| (cursor + offset) % 256)
+                .filter(|&node| expected[node])
+                .collect::<std::vec::Vec<_>>();
+            assert_eq!(
+                set.round_robin(cursor, 256).collect::<std::vec::Vec<_>>(),
+                linear
+            );
+        }
+        set.clear();
+        assert!(set.round_robin(0, 256).next().is_none());
     }
 }
