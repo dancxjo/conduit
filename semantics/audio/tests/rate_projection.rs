@@ -98,35 +98,39 @@ fn independent_u128_projection_reference_and_profile_extremes() {
 }
 #[test]
 fn repeated_thirds_carry_fractional_frames_without_drift() {
-    let chain = AudioSampleProjectionChain::new(
-        AudioCumulativeFrameBasis::new(basis(8000), 3).unwrap(),
-        BoundedSequence::try_from_iter(vec![duration(1, 3); 3]).unwrap(),
-    )
-    .unwrap();
-    let bytes = chain.clone().encode().unwrap();
-    let result = PreparedAudioSampleProjection::new()
-        .unwrap()
-        .chain(&bytes)
+    for rate in [8000u64, 16000, 48000] {
+        let chain = AudioSampleProjectionChain::new(
+            AudioCumulativeFrameBasis::new(basis(rate), 3).unwrap(),
+            BoundedSequence::try_from_iter(vec![duration(1, 3); 3]).unwrap(),
+        )
         .unwrap();
-    assert_eq!(result.original(), &chain);
-    assert_eq!(result.original_canonical(), bytes);
-    reproduce(result.origin_execution());
-    for (step, (delta, whole, remainder)) in
-        result
-            .steps()
-            .iter()
-            .zip([(2666, 2666, 2), (2667, 5333, 1), (2667, 8000, 0)])
-    {
-        assert_eq!(*step.result().raw().frame_count(), delta);
-        assert_eq!(*step.result().raw().whole_frames(), whole);
-        assert_eq!(*step.result().raw().remainder_numerator(), remainder);
-        assert_eq!(*step.result().cursor().basis().denominator(), 3);
-        reproduce(step.executions());
+        let bytes = chain.clone().encode().unwrap();
+        let result = PreparedAudioSampleProjection::new()
+            .unwrap()
+            .chain(&bytes)
+            .unwrap();
+        assert_eq!(result.original(), &chain);
+        assert_eq!(result.original_canonical(), bytes);
+        reproduce(result.origin_execution());
+        let mut previous_whole = 0;
+        for (index, step) in result.steps().iter().enumerate() {
+            // Independent cumulative integer arithmetic, not provider output.
+            let numerator = rate * (index as u64 + 1);
+            let whole = numerator / 3;
+            let remainder = numerator % 3;
+            assert_eq!(*step.result().raw().frame_count(), whole - previous_whole);
+            assert_eq!(*step.result().raw().whole_frames(), whole);
+            assert_eq!(*step.result().raw().remainder_numerator(), remainder);
+            assert_eq!(*step.result().cursor().basis().denominator(), 3);
+            reproduce(step.executions());
+            previous_whole = whole;
+        }
+        assert_eq!(previous_whole, rate);
+        assert_eq!(
+            result.steps()[2].result().fidelity(),
+            &AudioFrameGridFidelity::Exact
+        );
     }
-    assert_eq!(
-        result.steps()[2].result().fidelity(),
-        &AudioFrameGridFidelity::Exact
-    );
 }
 
 #[path = "rate/refusals.rs"]

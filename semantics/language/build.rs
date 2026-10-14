@@ -10,6 +10,8 @@ fn main() {
     println!("cargo:rerun-if-changed=text_revision.conduit");
     println!("cargo:rerun-if-changed=revision_lineage.conduit");
     println!("cargo:rerun-if-changed=lexical.conduit");
+    println!("cargo:rerun-if-changed=pronunciation_selection.conduit");
+    println!("cargo:rerun-if-changed=lexical_consumer.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
@@ -23,6 +25,8 @@ fn main() {
         include_str!("text_revision.conduit"),
         include_str!("revision_lineage.conduit"),
         include_str!("lexical.conduit"),
+        include_str!("pronunciation_selection.conduit"),
+        include_str!("lexical_consumer.conduit"),
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_available.conduit"),
@@ -38,6 +42,14 @@ fn main() {
             "parser_availability_program.hex",
         ),
         ("language/vocative-discourse", "discourse_program.hex"),
+        (
+            "language/pronunciation-pos",
+            "pronunciation_pos_program.hex",
+        ),
+        (
+            "language/pronunciation-candidate",
+            "pronunciation_candidate_program.hex",
+        ),
         ("language/vocative-prosody", "rich_prosody_program.hex"),
         ("language/fallback-prosody", "fallback_prosody_program.hex"),
     ] {
