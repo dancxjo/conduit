@@ -337,3 +337,41 @@ fn partial_prefix_keeps_legal_alternatives_then_rank_prunes_deterministically() 
     }
     assert_eq!(lexical.tape().source(), &partial);
 }
+
+#[test]
+fn claimed_stability_cannot_extend_beyond_survivor_agreement() {
+    let template = query(1, 2, false, false);
+    let unprocessed = LanguageParserBeamCommitRequest::new(
+        template.beam().clone(),
+        false,
+        LanguageParserRawFrontier::new(template.frontier().basis().clone(), 0, 3).unwrap(),
+        false,
+        1,
+    )
+    .unwrap();
+    let beyond_stable = query(2, 1, false, false);
+    let packets = vec![
+        template.encode().unwrap(),
+        unprocessed.encode().unwrap(),
+        beyond_stable.encode().unwrap(),
+    ];
+    for (bytes, refusal) in play("language-parser-beam-commit", packets)
+        .into_iter()
+        .zip([
+            LanguageParserFrontierRefusal::NotAgreed,
+            LanguageParserFrontierRefusal::InvalidFrontier,
+            LanguageParserFrontierRefusal::BeyondStable,
+        ])
+    {
+        let result = LanguageParserBeamCommitResult::decode(&bytes).unwrap();
+        assert!(
+            !*result.accepted(),
+            "an unproved stable prefix was accepted"
+        );
+        assert_eq!(result.refusal(), &refusal);
+        assert_eq!(*result.frontier().committed(), 0);
+        for candidate in [result.candidate0(), result.candidate1()] {
+            assert_eq!(*candidate.state().committed(), 0);
+        }
+    }
+}
