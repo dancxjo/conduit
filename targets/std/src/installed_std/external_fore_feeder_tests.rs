@@ -32,7 +32,7 @@ fn sixty_four_values_fit_the_finite_fore_envelope_and_sixty_five_refuse() {
         .collect::<Vec<_>>();
     let mut feeder = SequentialForeFeeder::prepare(&[&port], &values).unwrap();
     let mut ingress = PressuredIngress::default();
-    for _ in 0..65 {
+    for _ in 0..66 {
         feeder.feed_next(&mut ingress).unwrap();
     }
     assert_eq!(ingress.accepted, (0..64).collect::<Vec<_>>());
@@ -44,12 +44,16 @@ fn sixty_four_values_fit_the_finite_fore_envelope_and_sixty_five_refuse() {
 
 #[derive(Default)]
 struct PressuredIngress {
+    busy: bool,
     attempts: Vec<(u64, Vec<u8>)>,
     accepted: Vec<u64>,
     closed: Vec<(RemoteEndpointId, CordId)>,
 }
 
 impl ForeIngress for PressuredIngress {
+    fn has_ready_work(&self) -> bool {
+        self.busy
+    }
     fn admit(
         &mut self,
         _: &[(RemoteEndpointId, CordId)],
@@ -83,7 +87,13 @@ fn full_retries_same_value_and_sequence_then_closes_once() {
     let target = (RemoteEndpointId(0), CordId(0));
     let mut feeder = SequentialForeFeeder {
         inputs: &inputs,
-        targets: vec![target],
+        flows: vec![SequenceFlow {
+            front: conduit_core::port_id("values"),
+            track: conduit_core::ConnectionTrack::Payload,
+            targets: vec![target],
+            sequence: 0,
+        }],
+        input_flows: vec![0; inputs.len()],
         next: 0,
         closed: false,
     };
@@ -92,6 +102,9 @@ fn full_retries_same_value_and_sequence_then_closes_once() {
     feeder.feed_next(&mut ingress).unwrap();
     assert!(feeder.is_pending());
     assert_eq!(ingress.accepted, vec![0]);
+    feeder.feed_next(&mut ingress).unwrap();
+    assert!(feeder.is_pending());
+    assert!(ingress.closed.is_empty());
     feeder.feed_next(&mut ingress).unwrap();
     assert!(!feeder.is_pending());
     feeder.feed_next(&mut ingress).unwrap();
@@ -161,4 +174,44 @@ fn live_queue_retains_full_value_then_closes_once_after_drain() {
     assert_eq!(ingress.closed, feeder.targets);
     assert!(queue.submit(&first).is_err());
     assert!(queue.close().is_err());
+}
+
+#[test]
+fn ready_kernel_work_defers_payload_admission_and_final_close() {
+    let input = [ExternalForeInput {
+        front_port_id: conduit_core::port_id("values"),
+        track: conduit_core::ConnectionTrack::Payload,
+        bytes: vec![1],
+    }];
+    let target = (RemoteEndpointId(0), CordId(0));
+    let mut feeder = SequentialForeFeeder {
+        inputs: &input,
+        flows: vec![SequenceFlow {
+            front: input[0].front_port_id.clone(),
+            track: input[0].track,
+            targets: vec![target],
+            sequence: 0,
+        }],
+        input_flows: vec![0],
+        next: 0,
+        closed: false,
+    };
+    let mut ingress = PressuredIngress {
+        busy: true,
+        ..Default::default()
+    };
+    feeder.feed_next(&mut ingress).unwrap();
+    assert!(ingress.attempts.is_empty());
+    ingress.busy = false;
+    feeder.feed_next(&mut ingress).unwrap();
+    assert_eq!(ingress.accepted, vec![0]);
+    assert!(ingress.closed.is_empty());
+    ingress.busy = true;
+    feeder.feed_next(&mut ingress).unwrap();
+    assert!(ingress.closed.is_empty());
+    assert!(feeder.is_pending());
+    ingress.busy = false;
+    feeder.feed_next(&mut ingress).unwrap();
+    assert_eq!(ingress.closed, vec![target]);
+    assert!(!feeder.is_pending());
 }
