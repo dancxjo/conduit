@@ -34,4 +34,8 @@ The broader #5537 requirements for allocation/copy attribution, independent clea
 process repetitions and browser/WASM results remain separate. This baseline is
 an actual native fixed-kernel byte fixture, not authored Source/Plan/Play or a
 physical product performance run. Seventy nonmanual kernel tests and strict
-Clippy pass. The optimized manual run remains pending.
+Clippy pass. The optimized manual run passes and retains 48 rows at Source revision
+`356c88d45734a30afed6993aa98ec12f83c22a35`. Both loaded and sparse cases visit
+3/24/96 readiness nodes for active prefixes 1/8/32. Their admitted work differs:
+loaded cases consume 1/8/32 inputs, while sparse cases consume one. These raw
+counts are mechanical cost evidence, not a provider throughput forecast.
