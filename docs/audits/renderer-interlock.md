@@ -8,13 +8,13 @@ struct; renderer controls must resolve these existing fields.
 
 ## Ownership and checks
 
-| Fact or boundary | Existing owner/check | Remaining proof |
+| Fact or boundary | Existing owner/check | Evidence / remaining gap |
 |---|---|---|
 | Subject, role, label, action target and availability | `face.rs` and `semantics.rs::Face::resolve_action` | Product-specific Face construction must retain actual owner facts |
 | Typed complete argument set | `interaction.rs::FaceInteraction::new`; human_interaction tests | Real adapter event must enter this admission path |
-| Mask Source and checked/expanded identity | `mask_plot.rs::MaskPlot::admit`; common checked browser fixture | Paired compact/spacious terminal output test |
-| Mask Plan and renderer placement | `mask_show.rs::MaskShow::prepared` and planned Mask | Ordinary terminal planner/kernel realization |
-| Acknowledged Show and output lifecycle | Show/Manifestation transitions; portable_renderer tests | Actual Write/flush acknowledgement to a named memory sink |
+| Mask Source and checked/expanded identity | `mask_plot.rs::MaskPlot::admit`; common checked browser fixture | Paired compact/spacious terminal test below |
+| Mask Plan and renderer placement | `mask_show.rs::MaskShow::prepared` and planned Mask | Paired test executes ordinary terminal planner/kernel realization |
+| Acknowledged Show and output lifecycle | Show/Manifestation transitions; portable_renderer tests | Paired test checks Write/flush acknowledgement to named memory sinks |
 | Reverse event correlation | `MaskShow::correlate_interaction`; exact Face/revision/Show fields | Actual DOM correspondence remains #5643 |
 | Pressure, duplicate sequence, cancellation and failure | `interaction_ledger.rs`; human_interaction tests | Installed adapter pressure/cancellation evidence |
 | Browser-local element IDs, focus and coordinates | Selected renderer adapter | These cannot create subject/action meaning or authority |
@@ -34,7 +34,8 @@ unchanged while renderer-local viewport dimensions differ.
 
 The shipped `human_interaction::zero_argument_action_needs_no_counterfeit_empty_input`
 independently checks the zero-argument contract and rejects counterfeit material.
-The new paired test exercises its actual terminal return path. The minimum-width footer now splits keyboard help over two rows instead of
+The new paired test exercises its actual terminal return path. The minimum-width footer now splits keyboard help
+over two rows instead of
 clipping inspect/apply/cancel instructions; content pagination reserves those
 rows and keeps the admitted terminal extent. This does not certify all browser
 or graphical accessibility.
