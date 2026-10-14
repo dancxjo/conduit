@@ -390,3 +390,25 @@ fn selected_plot_report_excludes_unrelated_and_combined_workloads() {
     )
     .is_err());
 }
+
+#[test]
+fn selected_plot_cli_refuses_browser_mode() {
+    use clap::Parser;
+    #[derive(Parser)]
+    struct Entrance {
+        #[command(flatten)]
+        args: PlotsArgs,
+    }
+    assert!(Entrance::try_parse_from([
+        "plots",
+        "run",
+        "--deterministic",
+        "--plot",
+        "physical-values"
+    ])
+    .is_ok());
+    assert!(
+        Entrance::try_parse_from(["plots", "run", "--browser", "--plot", "physical-values"])
+            .is_err()
+    );
+}
