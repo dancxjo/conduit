@@ -1,6 +1,6 @@
 #![allow(dead_code)]
 #[path = "parser_fixture.rs"]
-mod fixture;
+mod symbolic;
 use conduit_language::*;
 use conduit_plot::rust_binding::{BoundedSequence, NativeRustBinding};
 pub fn provenance() -> LinguisticDerivationProvenance {
@@ -65,19 +65,20 @@ pub fn state(committed: u64) -> LanguageParserState {
     state_with_relation(committed, "obj")
 }
 pub fn state_with_relation(committed: u64, relation: &str) -> LanguageParserState {
-    let mut f = fixture::Fixture::new();
+    let mut f = symbolic::Fixture::new();
     let initial = f.initial(2);
     let first = f.step(&initial, "right_arc", "root", "analysis/1");
-    assert!(fixture::accepted(&first));
+    assert!(symbolic::accepted(&first));
     let second = f.step(
-        fixture::field(&first, "state"),
+        symbolic::field(&first, "state"),
         "right_arc",
         relation,
         "analysis/1",
     );
-    assert!(fixture::accepted(&second));
-    let raw = LanguageParserNumericState::from_structured(fixture::field(&second, "state").clone())
-        .unwrap();
+    assert!(symbolic::accepted(&second));
+    let raw =
+        LanguageParserNumericState::from_structured(symbolic::field(&second, "state").clone())
+            .unwrap();
     LanguageParserState::new(
         raw.basis().clone(),
         committed,

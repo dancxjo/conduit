@@ -130,7 +130,7 @@ fn disagreement_pressure_and_cancellation_leave_every_hypothesis_uncommitted() {
         ),
     ];
     let template = query(1, 1, false, false);
-    let packets = cases
+    let mut packets = cases
         .iter()
         .map(|(through, stable, cancelled, pressure, _)| {
             LanguageParserBeamCommitRequest::new(
@@ -145,10 +145,47 @@ fn disagreement_pressure_and_cancellation_leave_every_hypothesis_uncommitted() {
             .encode()
             .unwrap()
         })
-        .collect();
-    for (bytes, (_, _, _, _, refusal)) in play("language-parser-beam-commit", packets)
+        .collect::<Vec<_>>();
+    let mut expected = cases.into_iter().map(|case| case.4).collect::<Vec<_>>();
+    let foreign = LanguageParserBasis::new(
+        LanguageAnalysisRevisionId::new("analysis/foreign".into()).unwrap(),
+        template.frontier().basis().source_revision().clone(),
+        template.frontier().basis().text().clone(),
+    )
+    .unwrap();
+    for (basis, stable, refusal) in [
+        (foreign, 1, LanguageParserFrontierRefusal::WrongBasis),
+        (
+            template.frontier().basis().clone(),
+            5,
+            LanguageParserFrontierRefusal::InvalidFrontier,
+        ),
+    ] {
+        packets.push(
+            LanguageParserBeamCommitRequest::new(
+                template.beam().clone(),
+                false,
+                LanguageParserRawFrontier::new(basis, 0, stable).unwrap(),
+                false,
+                1,
+            )
+            .unwrap()
+            .encode()
+            .unwrap(),
+        );
+        expected.push(refusal);
+    }
+    assert!(LanguageParserBeamCommitRequest::new(
+        template.beam().clone(),
+        false,
+        template.frontier().clone(),
+        false,
+        5
+    )
+    .is_err());
+    for (bytes, refusal) in play("language-parser-beam-commit", packets)
         .into_iter()
-        .zip(cases)
+        .zip(expected)
     {
         let result = LanguageParserBeamCommitResult::decode(&bytes).unwrap();
         assert!(!*result.accepted());
