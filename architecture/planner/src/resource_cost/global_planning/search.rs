@@ -11,6 +11,7 @@ pub(super) struct Search<'a, 'b, 'c> {
     pub(super) states: u32,
     pub(super) complete: u32,
     pub(super) refused: u32,
+    pub(super) capacity_pruned: u32,
     pub(super) disposition: GlobalPlacementDisposition,
     pub(super) best: Option<(Plan, GlobalPlacementScore)>,
     pub(super) work: &'b mut ExactNumericWork,
@@ -28,6 +29,10 @@ impl Search<'_, '_, '_> {
             return;
         }
         self.states += 1;
+        if prefix_capacity::exceeds_minimum_capacity(self.inputs, self.grids, chosen) {
+            self.capacity_pruned += 1;
+            return;
+        }
         if depth == self.grids.len() {
             self.finish(chosen);
             return;

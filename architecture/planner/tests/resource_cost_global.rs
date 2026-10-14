@@ -41,6 +41,7 @@ fn exercise(
         states,
         GlobalPlacementObjective::AggregateFulfillmentTime,
         false,
+        false,
         inspect,
     )
 }
@@ -49,21 +50,54 @@ fn exercise_objective(
     states: u32,
     objective: GlobalPlacementObjective,
     critical_tradeoff: bool,
+    extra_gear: bool,
     inspect: impl FnOnce(
         Result<GlobalPlacementResult, GlobalPlacementRefusal>,
         Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
         &[HostAdvertisement],
     ),
 ) {
+    exercise_configured(
+        constrained_b,
+        states,
+        objective,
+        critical_tradeoff,
+        extra_gear,
+        |_| {},
+        inspect,
+    )
+}
+fn exercise_configured(
+    constrained_b: bool,
+    states: u32,
+    objective: GlobalPlacementObjective,
+    critical_tradeoff: bool,
+    extra_gear: bool,
+    configure: impl FnOnce(&mut [HostAdvertisement]),
+    inspect: impl FnOnce(
+        Result<GlobalPlacementResult, GlobalPlacementRefusal>,
+        Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
+        &[HostAdvertisement],
+    ),
+) {
+    let source = if extra_gear {
+        "plot costs {\n first: flow/pulse(count = 2, period-ms = 0, initial = false)\n second: flow/pulse(count = 3, period-ms = 0, initial = false)\n third: flow/pulse(count = 4, period-ms = 0, initial = false)\n}\n"
+    } else {
+        "plot costs {\n first: flow/pulse(count = 2, period-ms = 0, initial = false)\n second: flow/pulse(count = 3, period-ms = 0, initial = false)\n}\n"
+    };
     let plot = conduit_plot::parse_with_startup(
-        "plot costs {\n first: flow/pulse(count = 2, period-ms = 0, initial = false)\n second: flow/pulse(count = 3, period-ms = 0, initial = false)\n}\n",
-        &conduit_signal::signal_startup_catalog(), &conduit_signal::signal_profile_catalog()).unwrap();
+        source,
+        &conduit_signal::signal_startup_catalog(),
+        &conduit_signal::signal_profile_catalog(),
+    )
+    .unwrap();
     let mut hosts = common::competing_hosts();
     for host in &mut hosts {
         host.capabilities[0].limits.max_active_instances = 1;
         host.capabilities[0].resource_requirements[0].units = 1;
     }
     hosts[1].capabilities[0].limits.max_queue_items = 1;
+    configure(&mut hosts);
     let windows: Vec<_> = hosts
         .iter()
         .map(|host| {
@@ -118,9 +152,17 @@ fn exercise_objective(
     // The two checked startup counts are distinct work classes, so the second
     // operation legitimately has a different demand-specific fulfillment model.
     let forecasts = if critical_tradeoff {
-        [[forecast(1), forecast(6)], [forecast(6), forecast(9)]]
+        [
+            [forecast(1), forecast(6)],
+            [forecast(6), forecast(9)],
+            [forecast(3), forecast(3)],
+        ]
     } else {
-        [[forecast(1), forecast(2)], [forecast(2), forecast(100)]]
+        [
+            [forecast(1), forecast(2)],
+            [forecast(2), forecast(100)],
+            [forecast(3), forecast(3)],
+        ]
     };
     let bound: Vec<Vec<_>> = plot
         .gears
@@ -141,6 +183,7 @@ fn exercise_objective(
             minimum_queue_items: if constrained_b { 2 } else { 0 },
             ..Default::default()
         },
+        HardRealizationRequirements::default(),
     ];
     let policy = RealizationPolicy::default();
     let operations: Vec<_> = plot
@@ -261,7 +304,7 @@ fn joint_mode_improves_aggregate_demand_specific_time_under_shared_capacity() {
             global.score.known_upper_seconds,
             ExactRational::ratio(4, 1000, &mut ExactNumericWork::new(100_000_000)).unwrap()
         );
-        assert!(global.refused_assignments > 0);
+        assert!(global.capacity_pruned_prefixes > 0);
     });
 }
 #[test]
@@ -292,6 +335,7 @@ fn critical_path_mode_selects_parallel_completion_over_smaller_aggregate_time() 
         64,
         GlobalPlacementObjective::CriticalPathFulfillmentTime,
         true,
+        false,
         |global, greedy, _| {
             let global = global.unwrap();
             assert!(verify_plan(&global.plan));
@@ -305,6 +349,67 @@ fn critical_path_mode_selects_parallel_completion_over_smaller_aggregate_time() 
                 global.score.known_upper_seconds,
                 ExactRational::ratio(12, 1000, &mut ExactNumericWork::new(100_000_000)).unwrap()
             );
+        },
+    );
+}
+
+#[test]
+fn overcommitted_prefixes_finish_exhaustively_below_the_unpruned_state_count() {
+    // Three independent unit reservations cannot fit two observed unit pools.
+    // Plain binary assignment traversal needs 15 states. Rejection at depth 2
+    // proves infeasibility within 11, without constructing the pruned suffixes.
+    exercise_objective(
+        false,
+        11,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        true,
+        |global, greedy, _| {
+            assert!(greedy.is_err());
+            assert!(matches!(
+                global,
+                Err(GlobalPlacementRefusal::NoFeasibleAssignment {
+                    disposition: GlobalPlacementDisposition::Exhaustive,
+                    states: 11,
+                    refused_assignments: 0,
+                    capacity_pruned_prefixes: 6,
+                })
+            ));
+        },
+    );
+}
+
+#[test]
+fn multiple_pools_of_one_class_defer_prefix_rejection_to_ordinary_plan() {
+    exercise_configured(
+        false,
+        64,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        false,
+        |hosts| {
+            for host in hosts {
+                let class = &host.capabilities[0].resource_requirements[0].class_id;
+                let mut alternate = host
+                    .resources
+                    .iter()
+                    .find(|pool| &pool.class_id == class)
+                    .unwrap()
+                    .clone();
+                alternate.pool_id = ResourcePoolId::from("alternate/pulse");
+                host.resources.push(alternate);
+            }
+        },
+        |global, _, _| {
+            assert!(matches!(
+                global,
+                Err(GlobalPlacementRefusal::NoFeasibleAssignment {
+                    disposition: GlobalPlacementDisposition::Exhaustive,
+                    states: 7,
+                    refused_assignments: 4,
+                    capacity_pruned_prefixes: 0,
+                })
+            ));
         },
     );
 }
