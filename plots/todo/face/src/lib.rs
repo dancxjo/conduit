@@ -6,6 +6,9 @@
 
 extern crate alloc;
 
+mod facts;
+pub use facts::{TodoFaceFacts, TodoFactRefusal};
+
 mod interaction;
 pub use interaction::{todo_command_from_contributed_interaction, todo_command_from_interaction};
 
