@@ -338,7 +338,10 @@ separation using Actions observations and the publisher's existing
 for that exact source, the latest observed green integration, accepted `main`,
 the latest published release's tested source and accepted main, and the latest
 successful Pages deployment's source. Differences are explicit; a green
-integration alone never asserts promotion or deployment.
+integration alone never asserts promotion or deployment. Candidate
+`head_sha` is labeled as the PR head, separately from its tested merge preview.
+The latter remains `null` until checkout/receipt evidence is observed; a green
+PR-head run must not be presented as proof of an inferred preview identity.
 
 Failed and pending integration/publication, the latest Pages attempt, and active
 queues remain visible. A missing observation is `null`, not success. The report

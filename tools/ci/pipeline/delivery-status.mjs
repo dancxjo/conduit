@@ -14,6 +14,13 @@ function runSummary(run) {
     duration_seconds: completed ? Math.max(0, (Date.parse(run.updated_at) - Date.parse(run.run_started_at)) / 1000) : null };
 }
 
+function candidateSummary(run) {
+  const { source_sha, ...summary } = runSummary(run);
+  return { ...summary, pull_request_head_sha: source_sha,
+    tested_merge_preview_sha: null,
+    identity_note: 'Actions head_sha identifies the PR head; the tested merge preview requires its checkout/receipt evidence.' };
+}
+
 /** Observations only: neither promotion nor deployment is inferred from a green run. */
 export function buildDeliveryStatus({ repository, development, main, integrations, candidates, publications, release, deployments }) {
   exact(development); exact(main);
@@ -37,7 +44,7 @@ export function buildDeliveryStatus({ repository, development, main, integration
     queue: { integrations: integrations.filter(r => r.status !== 'completed').map(runSummary),
       publications: publications.filter(r => r.status !== 'completed').map(runSummary) },
     timing_baseline: { scope: 'bounded Actions sample; duration from Actions run_started_at to updated_at; includes setup, excludes pre-start queue, and is not billed runner cost',
-      candidates: candidates.map(runSummary), integrations: integrations.map(runSummary), publications: publications.map(runSummary) },
+      candidates: candidates.map(candidateSummary), integrations: integrations.map(runSummary), publications: publications.map(runSummary) },
     observation_limit: 'Most recent 100 runs per workflow and 20 Pages deployments; absent evidence remains null.' };
 }
 

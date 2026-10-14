@@ -51,3 +51,11 @@ test('a green manual integration from a feature branch cannot assert green devel
   assert.equal(report.current_integration.conclusion,'failure');
   assert.equal(report.latest_green_integration.source_sha,sha(1));
 });
+
+test('candidate head identity never substitutes for an unobserved tested merge preview', () => {
+  const data=input(); data.candidates=[{...run(sha(3),'success'),event:'pull_request'}];
+  const candidate=buildDeliveryStatus(data).timing_baseline.candidates[0];
+  assert.equal(candidate.pull_request_head_sha,sha(3));
+  assert.equal(candidate.tested_merge_preview_sha,null);
+  assert.equal(Object.hasOwn(candidate,'source_sha'),false);
+});
