@@ -305,3 +305,8 @@ fn observed_capacity(
     }
     Ok(())
 }
+
+mod comparison;
+pub use comparison::{
+    compare_global_placement, GlobalBaselineMetricRefusal, GlobalPlacementComparison,
+};
