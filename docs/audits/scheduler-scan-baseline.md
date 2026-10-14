@@ -23,9 +23,10 @@ the final Idle boundary. Full kernel conformance preserves existing fairness,
 pressure, cancellation, terminal and remote lifecycle behavior.
 
 The manual optimized test runs eight independently prepared trials per specimen,
-with separate preparation and measured Step-to-Idle windows. CPU durations include
-instrumentation, Back checks, Signs and the bounded fixture loop; they are not
-unmodified product Step timings or provider service latency. Startup and ingress
+with separate preparation and measured Step-to-Idle windows. Elapsed durations use `std::time::Instant` and include instrumentation,
+Back checks, Signs and the bounded fixture loop; they are not
+unmodified product Step timings, thread CPU-time measurements or provider
+service latency. Raw traversal counters record mechanical CPU work separately. Startup and ingress
 are outside the Step window. Empty pending-table checks are measured; occupied
 Host Calls are not inferred. There is no scheduler algorithm change, allocator,
 SMP/preemption or synthetic Plan-cost claim, and no automatic timing threshold.
@@ -39,3 +40,7 @@ Clippy pass. The optimized manual run passes and retains 48 rows at Source revis
 3/24/96 readiness nodes for active prefixes 1/8/32. Their admitted work differs:
 loaded cases consume 1/8/32 inputs, while sparse cases consume one. These raw
 counts are mechanical cost evidence, not a provider throughput forecast.
+
+
+A fresh current-dev integration run will retain its own clean Source revision and
+raw rows; the earlier 48-row evidence keeps its original Source identity.
