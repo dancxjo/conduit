@@ -218,3 +218,7 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
 #[cfg(test)]
 #[path = "pure_expression_back/scalar_tape_tests.rs"]
 mod scalar_tape_tests;
+
+#[cfg(test)]
+#[path = "pure_expression_back/scalar_tape_parity_tests.rs"]
+mod scalar_tape_parity_tests;
