@@ -58,3 +58,52 @@ fn foreign_dimensions_negative_frequency_stale_spelling_and_exhausted_work_refus
     .is_err());
     assert!(prepare_exact_audio_frequency(source, "440Hz", &mut ExactNumericWork::new(0)).is_err());
 }
+
+#[test]
+fn authored_phase_retains_exact_scope_and_refuses_foreign_origins() {
+    let anchor = |timeline, origin| {
+        AudioTrajectoryAnchor::new(
+            AudioOriginIdentity::new(origin).unwrap(),
+            AudioTimelineIdentity::new(timeline).unwrap(),
+        )
+        .unwrap()
+    };
+    let time = AudioExactTimeOffset::new(3, 1).unwrap();
+    let phase = AudioPhaseReference::new(
+        anchor(1, 2),
+        time.clone(),
+        4,
+        -1,
+        AudioTrajectoryProvenance::new(
+            AudioTrajectoryProvenanceKind::Authored,
+            "explicit phase reference".into(),
+            None,
+        )
+        .unwrap(),
+    )
+    .unwrap();
+    let decoded = AudioPhaseReference::decode(&phase.clone().encode().unwrap()).unwrap();
+    assert_eq!(decoded, phase);
+    assert_eq!(*decoded.numerator_turns(), -1);
+    assert_eq!(*decoded.denominator(), 4);
+    for (timeline, origin, accepted) in [(1, 2, true), (2, 2, false), (1, 3, false)] {
+        let query = AudioTrajectoryQuery::new(anchor(timeline, origin), time.clone()).unwrap();
+        assert_eq!(
+            AudioPhaseReferenceMatch::new(query, phase.clone()).is_ok(),
+            accepted
+        );
+    }
+    assert!(AudioPhaseReference::new(
+        anchor(1, 2),
+        time,
+        0,
+        1,
+        AudioTrajectoryProvenance::new(
+            AudioTrajectoryProvenanceKind::Authored,
+            "invalid denominator".into(),
+            None
+        )
+        .unwrap()
+    )
+    .is_err());
+}
