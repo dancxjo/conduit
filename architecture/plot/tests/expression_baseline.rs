@@ -33,6 +33,15 @@ fn checked_corpus_preserves_parity_overflow_and_source_with_cold_warm_rows() {
             let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
             let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
             let prepare_ns = start.elapsed().as_nanos();
+            let largest = u64::MAX / (operations + 1);
+            for value in [0_u64, 1, 7, largest] {
+                let input = value.to_le_bytes();
+                let expected = value.checked_mul(operations + 1).unwrap().to_le_bytes();
+                assert_eq!(program.evaluate(&input).unwrap(), expected);
+                assert_eq!(evaluator.evaluate(&input).unwrap(), expected);
+            }
+            assert!(program.evaluate(&(largest + 1).to_le_bytes()).is_err());
+            assert!(evaluator.evaluate(&(largest + 1).to_le_bytes()).is_err());
             let input = 7_u64.to_le_bytes();
             let expected = 7 * (operations + 1);
             let reference = program.evaluate(&input).unwrap();
