@@ -27,8 +27,9 @@ mod generated {
 
 pub use generated::{
     AudioAmplitudePowerEligible, AudioAmplitudePowerRelationship, AudioAmplitudePowerRequest,
-    AudioCycleDuration, AudioFrequencyHz, AudioPhaseReference, AudioPhaseReferenceMatch, AudioPowerRatio, AudioRelativeAmplitude,
-    AudioRenderDemand, AudioResonator, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    AudioCycleDuration, AudioFrequencyControl, AudioFrequencyHz, AudioPhaseReference,
+    AudioPhaseReferenceMatch, AudioPowerRatio, AudioRelativeAmplitude, AudioRenderDemand,
+    AudioResonator, AudioTimeControl, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
     CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
     InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
     ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,

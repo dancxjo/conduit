@@ -42,6 +42,9 @@ is not the nominal numeric payload.
 These measurements matter because a structured value also carries its static
 Type encoding; payload length alone is not its full admission cost.
 
+Checked quantity preparation, explicit origin-bearing transport and authored
+phase references are documented in [EXACT_CONTROLS.md](EXACT_CONTROLS.md).
+
 The bounded trajectory prerequisite is documented in [TRAJECTORIES.md](TRAJECTORIES.md).
 Exact declared rate/cumulative projection and its generic fidelity reports are
 documented in [RATE_PROJECTION.md](RATE_PROJECTION.md). Reference-bearing dB and its explicitly bounded exact-power-of-ten conversion

@@ -4,7 +4,7 @@ use conduit_plot::rust_binding::NativeRustBinding;
 
 #[test]
 fn exact_literals_keep_authored_custody_and_transport_admitted_audio_values() {
-    for literal in ["440Hz", "0.5kHz", "1.25Hz"] {
+    for literal in ["440Hz", "0.5kHz", "1.25Hz", "18446744073709551615Hz"] {
         let source = Quantity::parse_plot_literal(literal).unwrap();
         let value = prepare_exact_audio_frequency(
             source,
@@ -158,4 +158,29 @@ fn checked_source_locals_retain_origin_and_reject_foreign_dimensions_before_tran
         assert_eq!(*delay.value().numerator_seconds(), 1);
         assert_eq!(*delay.value().denominator(), 4);
     }
+}
+
+#[test]
+fn exact_profile_boundaries_refuse_nonfinite_and_preserve_zero_time() {
+    for literal in ["NaNHz", "infHz", "-infHz"] {
+        assert!(Quantity::parse_plot_literal(literal).is_err(), "{literal}");
+    }
+    for literal in ["-1s", "1Hz"] {
+        assert!(prepare_exact_audio_time(
+            Quantity::parse_plot_literal(literal).unwrap(),
+            literal,
+            &mut ExactNumericWork::new(1_000_000_000)
+        )
+        .is_err());
+    }
+    let zero = prepare_exact_audio_time(
+        Quantity::parse_plot_literal("0s").unwrap(),
+        "0s",
+        &mut ExactNumericWork::new(1_000_000_000),
+    )
+    .unwrap();
+    assert_eq!(*zero.value().numerator_seconds(), 0);
+    assert_eq!(*zero.value().denominator(), 1);
+    assert!(AudioFrequencyHz::new(0, 440).is_err());
+    assert!(AudioExactTimeOffset::new(0, 1).is_err());
 }

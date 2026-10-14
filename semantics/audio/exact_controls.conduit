@@ -1,0 +1,11 @@
+# Exact typed control transport preserves declared origin and provenance.
+# Unit conversion is prepared by Core before this Audio control boundary.
+plot audio/frequency-control (
+    >> value: AudioFrequencyControl <=4096B
+    result: AudioFrequencyControl >>
+) = ({anchor: .anchor, provenance: .provenance, value: {numerator_hz: .value.numerator_hz, denominator: .value.denominator}})
+
+plot audio/time-control (
+    >> value: AudioTimeControl <=4096B
+    result: AudioTimeControl >>
+) = ({anchor: .anchor, provenance: .provenance, value: {numerator_seconds: .value.numerator_seconds, denominator: .value.denominator}})

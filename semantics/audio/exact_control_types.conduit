@@ -12,3 +12,15 @@ type AudioPhaseReferenceMatch = {
     query: AudioTrajectoryQuery
     where .reference.anchor == .query.anchor
 }
+
+# Transport custody is explicit and independent from rate/device realization.
+type AudioFrequencyControl = {
+    anchor: AudioTrajectoryAnchor
+    value: AudioFrequencyHz
+    provenance: AudioTrajectoryProvenance
+}
+type AudioTimeControl = {
+    anchor: AudioTrajectoryAnchor
+    value: AudioExactTimeOffset
+    provenance: AudioTrajectoryProvenance
+}
