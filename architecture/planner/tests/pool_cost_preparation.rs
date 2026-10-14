@@ -73,6 +73,15 @@ fn bind_sources<'a>(
 
 #[test]
 fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection() {
+    exercise_demand(1, 0);
+}
+
+#[test]
+fn larger_batch_demand_selects_the_other_worker_in_the_same_plan_envelope() {
+    exercise_demand(20, 1);
+}
+
+fn exercise_demand(demand_bytes: usize, expected_provider: usize) {
     let providers = common::local_model::dual_local_model_providers();
     let expanded = pool_fixture::expanded();
     let hosts = vec![
@@ -86,6 +95,7 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
     );
     assert!(plan.activations.is_empty());
     assert!(verify_plan(&plan));
+    let original_plan_id = plan.plan_id.clone();
     let pool_id = plan.fragments[0].shared_pools[0].pool_id.clone();
     let members = &plan.fragments[0].shared_pools[0].realization_envelope;
     let mut startup = conduit_plot::StartupCatalog::new();
@@ -99,7 +109,7 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
     let codecs = [CostInputCodec::admit(&kind, &codec_revision, 4096, prompt_codec).unwrap()];
     let value = ValuePayload {
         value_kind: kind.clone(),
-        encoded: vec![b'p'],
+        encoded: vec![b'p'; demand_bytes],
     };
     let inputs = [CostInput {
         port: &gear.inputs[0].port_id,
@@ -156,9 +166,9 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
             &sources[1],
             request.class(),
             &metric,
-            point(1, 2),
+            point(1, 10),
             CostNonServiceStages {
-                setup: Some(point(0, 1)),
+                setup: Some(point(1, 1)),
                 queue: Some(point(0, 1)),
                 transfer: Some(point(0, 1)),
             },
@@ -230,9 +240,15 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
     let prepared = (0..2)
         .map(|i| prepare(i, request, &mut work()).ok().unwrap())
         .collect::<Vec<_>>();
-    assert_eq!(prepared[0].cost.duration().upper_nanoseconds(), 333_333_334);
-    assert_eq!(prepared[0].account.work.as_ref().unwrap().3, 1);
-    assert_eq!(prepared[0].account.input_bytes, 1);
+    assert_eq!(
+        prepared[0].cost.duration().upper_nanoseconds(),
+        (demand_bytes as u64 * 1_000_000_000).div_ceil(3)
+    );
+    assert_eq!(
+        prepared[0].account.work.as_ref().unwrap().3,
+        demand_bytes as u64
+    );
+    assert_eq!(prepared[0].account.input_bytes, demand_bytes);
     assert_eq!(
         prepared[0]
             .account
@@ -241,7 +257,7 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
             .unwrap()
             .upper()
             .seconds(),
-        ExactRational::ratio(1, 3, &mut work()).unwrap()
+        ExactRational::ratio(demand_bytes as i128, 3, &mut work()).unwrap()
     );
     assert_eq!(prepared[0].cost.observed().ticks(), 10);
     assert_eq!(prepared[0].cost.expires().ticks(), 30);
@@ -344,11 +360,13 @@ fn workload_forecast_and_independent_current_state_reach_atomic_pool_selection()
         .unwrap();
     let selected_index = members
         .iter()
-        .position(|r| r.host_id == hosts[1].host_id)
+        .position(|r| r.host_id == hosts[expected_provider + 1].host_id)
         .unwrap() as u16;
     assert!(
         matches!(selected.admission, SharedPoolAdmissionOutcome::Selected { member, evidence }
-        if member.placement.realization == selected_index && evidence.observation_sign_ids.contains(&historical_signs[0]) && evidence.observation_sign_ids.contains(&current_signs[0]))
+        if member.placement.realization == selected_index && evidence.observation_sign_ids.contains(&historical_signs[expected_provider]) && evidence.observation_sign_ids.contains(&current_signs[expected_provider]))
     );
     assert_eq!(pool.population(), 1);
+    assert_eq!(plan.plan_id, original_plan_id);
+    assert!(verify_plan(&plan));
 }
