@@ -104,3 +104,12 @@ pub use generated::{
 };
 mod positive_levels;
 pub use positive_levels::*;
+
+pub use generated::{
+    AudioControlConflictPolicy, AudioControlGapPolicy, AudioControlPriorityDecision,
+    AudioControlPriorityInput, AudioControlTrajectorySet, AudioScopedControlTrajectory,
+};
+mod control_trajectories;
+pub use control_trajectories::*;
+
+pub use generated::AudioControlDomainMatch;

@@ -138,3 +138,37 @@ type AudioTrajectoryOrderU32 = {
     where .input.next_start.numerator_seconds <= 4294967295
     where .input.next_start.denominator <= 4294967295
 }
+
+# Independent authored controls share only an explicit abstract query anchor.
+# A control identity is semantic scope, not a phone-box or renderer frame.
+type AudioControlConflictPolicy =
+    refuse_overlap
+    | highest_priority_refuse_tie
+type AudioControlGapPolicy =
+    refuse_any_gap
+type AudioScopedControlTrajectory = {
+    source_scope: Text <= 128B not in [""]
+    control_identity: Text <= 128B not in [""]
+    domain: AudioTrajectoryDomain
+    priority: U16
+    trajectory: AudioQuantityTrajectory
+}
+type AudioControlTrajectorySet = {
+    controls: sequence AudioScopedControlTrajectory in 1..=8
+    conflict: AudioControlConflictPolicy
+    gap: AudioControlGapPolicy
+}
+type AudioControlPriorityInput = {
+    incumbent: U16
+    candidate: U16
+}
+type AudioControlPriorityDecision = {
+    candidate_wins: Boolean
+    equal_priority: Boolean
+}
+
+type AudioControlDomainMatch = {
+    expected: AudioTrajectoryDomain
+    observed: AudioTrajectoryDomain
+    where .expected == .observed
+}
