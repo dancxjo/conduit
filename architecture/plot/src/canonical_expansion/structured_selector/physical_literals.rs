@@ -37,7 +37,23 @@ pub(super) fn bind(
         .collect::<BTreeMap<_, _>>();
     let mut types = Types::new();
     let mut payloads = Payloads::new();
-    walk(expression, &bindings, &startup, &mut types, &mut payloads)?;
+    // Source admission already checked this startup contract. Preserve its
+    // generic Quantity Fore while retaining the complete owned capsule bytes.
+    let generic_quantities = plot
+        .runtime_front
+        .startup_parameters()
+        .iter()
+        .filter(|parameter| parameter.value_type.as_str() == conduit_core::QUANTITY_INFO_ID)
+        .map(|parameter| parameter.name.clone())
+        .collect::<BTreeSet<_>>();
+    walk(
+        expression,
+        &bindings,
+        &startup,
+        &generic_quantities,
+        &mut types,
+        &mut payloads,
+    )?;
     Ok((types, payloads))
 }
 fn text(value: &E) -> Option<String> {
@@ -82,6 +98,7 @@ fn walk(
     value: &mut E,
     bindings: &BTreeMap<String, V>,
     catalog: &crate::StartupCatalog,
+    generic_quantities: &BTreeSet<String>,
     types: &mut Types,
     payloads: &mut Payloads,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
@@ -169,16 +186,21 @@ fn walk(
         None
     };
     if let Some(candidate) = candidate {
+        let generic_bound = matches!(value, E::Atomic(name) if physical_bound && generic_quantities.contains(&name.text));
         let (kind, bytes) = match candidate {
             V::Quantity(value) => (
-                quantity_role_info_id(value.value().family(), value.value().role()).map_err(
-                    |reason| {
-                        CanonicalExpansionDiagnostic::new(
-                            "CND-FRM-046",
-                            format!("invalid family role: {reason:?}"),
-                        )
-                    },
-                )?,
+                if generic_bound {
+                    conduit_core::QUANTITY_INFO_ID.into()
+                } else {
+                    quantity_role_info_id(value.value().family(), value.value().role()).map_err(
+                        |reason| {
+                            CanonicalExpansionDiagnostic::new(
+                                "CND-FRM-046",
+                                format!("invalid family role: {reason:?}"),
+                            )
+                        },
+                    )?
+                },
                 value.value().encode().to_vec(),
             ),
             V::Unit(value) => (
@@ -242,10 +264,24 @@ fn walk(
         E::Atomic(_) | E::Input(_) | E::TypedGlyphLiteral(_) => {}
         E::Projection { value, .. }
         | E::Unary { operand: value, .. }
-        | E::Variant { payload: value, .. } => walk(value, bindings, catalog, types, payloads)?,
+        | E::Variant { payload: value, .. } => walk(
+            value,
+            bindings,
+            catalog,
+            generic_quantities,
+            types,
+            payloads,
+        )?,
         E::Binary { left, right, .. } => {
-            walk(left, bindings, catalog, types, payloads)?;
-            walk(right, bindings, catalog, types, payloads)?
+            walk(left, bindings, catalog, generic_quantities, types, payloads)?;
+            walk(
+                right,
+                bindings,
+                catalog,
+                generic_quantities,
+                types,
+                payloads,
+            )?
         }
         E::Conditional {
             condition,
@@ -253,9 +289,30 @@ fn walk(
             when_false,
             ..
         } => {
-            walk(condition, bindings, catalog, types, payloads)?;
-            walk(when_true, bindings, catalog, types, payloads)?;
-            walk(when_false, bindings, catalog, types, payloads)?
+            walk(
+                condition,
+                bindings,
+                catalog,
+                generic_quantities,
+                types,
+                payloads,
+            )?;
+            walk(
+                when_true,
+                bindings,
+                catalog,
+                generic_quantities,
+                types,
+                payloads,
+            )?;
+            walk(
+                when_false,
+                bindings,
+                catalog,
+                generic_quantities,
+                types,
+                payloads,
+            )?
         }
         E::Tuple { values, .. }
         | E::Collection { values, .. }
@@ -263,12 +320,26 @@ fn walk(
             arguments: values, ..
         } => {
             for value in values {
-                walk(value, bindings, catalog, types, payloads)?
+                walk(
+                    value,
+                    bindings,
+                    catalog,
+                    generic_quantities,
+                    types,
+                    payloads,
+                )?
             }
         }
         E::Record { fields, .. } => {
             for field in fields {
-                walk(&mut field.value, bindings, catalog, types, payloads)?
+                walk(
+                    &mut field.value,
+                    bindings,
+                    catalog,
+                    generic_quantities,
+                    types,
+                    payloads,
+                )?
             }
         }
     }

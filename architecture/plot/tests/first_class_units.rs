@@ -207,3 +207,53 @@ fn intrinsic_custom_quantity_parameters_forward_into_generic_quantity_contracts(
     );
     assert!(check_syntax_document(&invalid, &startup).is_err());
 }
+
+#[test]
+fn expression_binding_preserves_admitted_generic_and_nominal_quantity_fores() {
+    let declarations = "dimension wobble\ntype Wobble = quantity {dimension:wobble}\nunit wob : Wobble = {reference:origin,scale:1}\ntype Holder = {\n quantity: Quantity\n}\n";
+    for (parameter, output, expression, generic) in [
+        ("Quantity", "Holder", "{quantity:seed}", true),
+        ("Wobble", "Wobble", "seed", false),
+    ] {
+        let source = format!("{declarations}plot demo (\n seed: {parameter} = 3wob\n >> tick: Boolean\n result: {output} <=8192B >>\n) = ({expression})\n");
+        let expanded = expand(&source, "demo");
+        let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0]
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "program")
+            .unwrap()
+            .value
+        else {
+            panic!("physical expression program")
+        };
+        let program = conduit_plot::PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        let bytes = program.evaluate(&InfoBool::TRUE.encode()).unwrap();
+        let value = if generic {
+            let record = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+            let StructuredInfoValueShape::Record(fields) = record.shape() else {
+                panic!("holder")
+            };
+            let child = fields[0].value();
+            assert!(
+                matches!(child.value_type().shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() == QUANTITY_INFO_ID)
+            );
+            let StructuredInfoValueShape::Leaf(bytes) = child.shape() else {
+                panic!("quantity")
+            };
+            Quantity::decode(bytes).unwrap()
+        } else {
+            assert!(
+                matches!(program.output_type.shape(), StructuredInfoTypeShape::Leaf(kind) if kind.as_str() != QUANTITY_INFO_ID)
+            );
+            Quantity::decode(&bytes).unwrap()
+        };
+        assert_eq!(value.coefficient(), 3);
+        assert_eq!(value.unit().symbol(), "wob");
+    }
+    for (parameter, argument) in [("Quantity", "wob"), ("Wobble", "1s")] {
+        let source = format!("{declarations}plot demo (\n seed: {parameter} = {argument}\n >> tick: Boolean\n result: Holder <=8192B >>\n) = ({{quantity:seed}})\n");
+        assert!(
+            check_syntax_document(&parse_syntax_document(&source), &StartupCatalog::new()).is_err()
+        );
+    }
+}
