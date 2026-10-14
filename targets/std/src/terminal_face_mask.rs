@@ -11,6 +11,7 @@ use std::io::Write;
 
 #[path = "terminal_face_mask/document.rs"]
 mod document;
+mod footer;
 #[path = "terminal_face_mask/input.rs"]
 mod input;
 #[path = "terminal_face_mask/keyboard.rs"]
@@ -180,7 +181,7 @@ impl TerminalFaceMask {
         }
     }
     fn page_rows(&self) -> usize {
-        self.rows - 5
+        self.rows - 4 - footer::rows(self.interaction_admitted, self.columns)
     }
 
     /// Actual output effect only. A failed/partial write or flush yields no
