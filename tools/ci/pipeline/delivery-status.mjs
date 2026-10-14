@@ -8,7 +8,7 @@ function exact(value) {
 function runSummary(run) {
   if (!run) return null;
   const completed = run.status === 'completed';
-  return { id: run.id, source_sha: exact(run.head_sha), status: run.status,
+  return { id: run.id, branch: run.head_branch, event: run.event, attempt: run.run_attempt, source_sha: exact(run.head_sha), status: run.status,
     conclusion: completed ? run.conclusion : null, url: run.html_url,
     selected_jobs: run.jobs?.filter(job => job.conclusion !== 'skipped').map(job => ({ name: job.name, status: job.status, conclusion: job.conclusion, url: job.html_url })) ?? null,
     duration_seconds: completed ? Math.max(0, (Date.parse(run.updated_at) - Date.parse(run.run_started_at)) / 1000) : null };
@@ -17,6 +17,7 @@ function runSummary(run) {
 /** Observations only: neither promotion nor deployment is inferred from a green run. */
 export function buildDeliveryStatus({ repository, development, main, integrations, candidates, publications, release, deployments }) {
   exact(development); exact(main);
+  integrations = integrations.filter(run => run.head_branch === 'dev');
   const integration = integrations.find(run => run.head_sha === development);
   const green = integrations.find(run => run.status === 'completed' && run.conclusion === 'success');
   const published = release ? { tested_source_sha: exact(release.testedSourceSha),

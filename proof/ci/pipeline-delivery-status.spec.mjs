@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { buildDeliveryStatus } from '../../tools/ci/pipeline/delivery-status.mjs';
 const sha = n => String(n).repeat(40);
-const run = (head, conclusion, status = 'completed') => ({ id: Number(head[0]), head_sha: head, conclusion, status,
+const run = (head, conclusion, status = 'completed') => ({ id: Number(head[0]), head_branch: 'dev', head_sha: head, conclusion, status,
   html_url: 'https://example.test/run', run_started_at: '2026-10-13T00:00:00Z', updated_at: '2026-10-13T00:02:00Z' });
 const input = () => ({ repository: 'owner/repo', development: sha(3), main: sha(2),
   integrations: [run(sha(3), 'failure'), run(sha(1), 'success')], candidates: [], publications: [],
@@ -43,4 +43,11 @@ test('candidate selection separates skipped jobs and preserves measured wall-clo
 test('a superseded success on a failed deployment is not current deployment evidence', () => {
   const data=input();data.deployments=[{sha:sha(3),statuses:[{state:'failure'},{state:'success'}]}];
   assert.equal(buildDeliveryStatus(data).latest_successful_pages_deployment,null);
+});
+
+test('a green manual integration from a feature branch cannot assert green development', () => {
+  const data=input(); data.integrations.unshift({...run(sha(3),'success'),head_branch:'feature/experiment',event:'workflow_dispatch'});
+  const report=buildDeliveryStatus(data);
+  assert.equal(report.current_integration.conclusion,'failure');
+  assert.equal(report.latest_green_integration.source_sha,sha(1));
 });
