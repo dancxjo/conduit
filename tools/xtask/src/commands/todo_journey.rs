@@ -123,6 +123,7 @@ pub fn run(args: TodoJourneyArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::
         || args.pinned_playwright.is_some()
         || args.first_item_text.is_some()
         || args.cross_mask_actions
+        || args.count_matrix
         || args.direct_speech
     {
         return Err("fresh Todo browser arguments require --fresh-body-source".into());

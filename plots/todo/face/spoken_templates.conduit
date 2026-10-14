@@ -1,0 +1,36 @@
+# Todo-owned exact count/name facts bound before one checked spoken expression.
+# English is explicit; these expressions supply no effect or speech authority.
+type TodoSpokenTemplateSlots = {
+    list_name: Text <= 64B not in [""]
+    remaining: U64 in 0..=20
+    completed: U64 in 0..=20
+    locale: Text <= 2B in ["en"]
+    items: Text <= 512B
+    actions: Text <= 512B
+    warnings: Text <= 2048B
+}
+type TodoSpokenTemplateOutput = {
+    accepted: Boolean
+    identity: Text <= 128B not in [""]
+    version: U16 in 1..=1
+    remaining: U64 in 0..=20
+    completed: U64 in 0..=20
+    a: Text <= 64B not in [""]
+    b: Text <= 128B
+    c: Text <= 128B
+    d: Text <= 512B
+    e: Text <= 512B
+    f: Text <= 2048B
+    g: Text <= 128B
+    h: Text <= 128B
+    j: Text <= 128B
+    k: Text <= 1B
+}
+plot spoken/todo-brief-template (
+ >> slots: TodoSpokenTemplateSlots
+ wording: TodoSpokenTemplateOutput >>
+) = {accepted: (.remaining + .completed <= 20), identity: "spoken/todo-brief@1", version: 1, remaining: .remaining, completed: .completed, a: .list_name, b: (.remaining < 10 ? (.remaining < 5 ? (.remaining < 2 ? (.remaining < 1 ? "0 things left." : "1 thing left.") : (.remaining < 3 ? "2 things left." : (.remaining < 4 ? "3 things left." : "4 things left."))) : (.remaining < 7 ? (.remaining < 6 ? "5 things left." : "6 things left.") : (.remaining < 8 ? "7 things left." : (.remaining < 9 ? "8 things left." : "9 things left.")))) : (.remaining < 15 ? (.remaining < 12 ? (.remaining < 11 ? "10 things left." : "11 things left.") : (.remaining < 13 ? "12 things left." : (.remaining < 14 ? "13 things left." : "14 things left."))) : (.remaining < 18 ? (.remaining < 16 ? "15 things left." : (.remaining < 17 ? "16 things left." : "17 things left.")) : (.remaining < 19 ? "18 things left." : (.remaining < 20 ? "19 things left." : "20 things left."))))), c: (.completed < 10 ? (.completed < 5 ? (.completed < 2 ? (.completed < 1 ? "0 completed." : "1 completed.") : (.completed < 3 ? "2 completed." : (.completed < 4 ? "3 completed." : "4 completed."))) : (.completed < 7 ? (.completed < 6 ? "5 completed." : "6 completed.") : (.completed < 8 ? "7 completed." : (.completed < 9 ? "8 completed." : "9 completed.")))) : (.completed < 15 ? (.completed < 12 ? (.completed < 11 ? "10 completed." : "11 completed.") : (.completed < 13 ? "12 completed." : (.completed < 14 ? "13 completed." : "14 completed."))) : (.completed < 18 ? (.completed < 16 ? "15 completed." : (.completed < 17 ? "16 completed." : "17 completed.")) : (.completed < 19 ? "18 completed." : (.completed < 20 ? "19 completed." : "20 completed."))))), d: .items, e: .actions, f: .warnings, g: "", h: "", j: "", k: "."}
+plot spoken/todo-expanded-template (
+ >> slots: TodoSpokenTemplateSlots
+ wording: TodoSpokenTemplateOutput >>
+) = {accepted: (.remaining + .completed <= 20), identity: "spoken/todo-expanded@1", version: 1, remaining: .remaining, completed: .completed, a: .list_name, b: (.remaining < 10 ? (.remaining < 5 ? (.remaining < 2 ? (.remaining < 1 ? "0 things left." : "1 thing left.") : (.remaining < 3 ? "2 things left." : (.remaining < 4 ? "3 things left." : "4 things left."))) : (.remaining < 7 ? (.remaining < 6 ? "5 things left." : "6 things left.") : (.remaining < 8 ? "7 things left." : (.remaining < 9 ? "8 things left." : "9 things left.")))) : (.remaining < 15 ? (.remaining < 12 ? (.remaining < 11 ? "10 things left." : "11 things left.") : (.remaining < 13 ? "12 things left." : (.remaining < 14 ? "13 things left." : "14 things left."))) : (.remaining < 18 ? (.remaining < 16 ? "15 things left." : (.remaining < 17 ? "16 things left." : "17 things left.")) : (.remaining < 19 ? "18 things left." : (.remaining < 20 ? "19 things left." : "20 things left."))))), c: (.completed < 10 ? (.completed < 5 ? (.completed < 2 ? (.completed < 1 ? "0 completed." : "1 completed.") : (.completed < 3 ? "2 completed." : (.completed < 4 ? "3 completed." : "4 completed."))) : (.completed < 7 ? (.completed < 6 ? "5 completed." : "6 completed.") : (.completed < 8 ? "7 completed." : (.completed < 9 ? "8 completed." : "9 completed.")))) : (.completed < 15 ? (.completed < 12 ? (.completed < 11 ? "10 completed." : "11 completed.") : (.completed < 13 ? "12 completed." : (.completed < 14 ? "13 completed." : "14 completed."))) : (.completed < 18 ? (.completed < 16 ? "15 completed." : (.completed < 17 ? "16 completed." : "17 completed.")) : (.completed < 19 ? "18 completed." : (.completed < 20 ? "19 completed." : "20 completed."))))), d: .items, e: .actions, f: .warnings, g: (.items == "" ? "" : "Items on this page:"), h: (.actions == "" ? "" : "Available controls:"), j: "Current list:", k: "."}
