@@ -132,3 +132,11 @@ clock, execution-condition and forecast facts remain controlled fixture evidence
 These timings measure the production Planner, including full inventory scans;
 they do not measure physical model service, actual machine load, or distributed
 execution. The same `--hosted-pipeline true` entrance enables these cases.
+
+The supported command runs the release worker's conformance tests before any
+measurement worker starts, retaining conformance command, exact source head,
+exit status and stdout/stderr. With hosted pipelines enabled, this includes all
+1/8/32-Gear pipelines, exact output/terminal custody and malformed/overflow input
+refusal. Expression tests cover both U64 and Scalar 1/3/8/32-operator shapes,
+branches, boundary inputs and malformed frames. Conformance timings are discarded;
+a failed preflight retains its evidence and starts no measurements.
