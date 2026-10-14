@@ -17,7 +17,7 @@ pub struct GlobalPlacementComparison<'a, 'selection> {
     inputs: CostPlanningInputs<'a, 'selection>,
     budget: GlobalPlacementBudget,
     objective: GlobalPlacementObjective,
-    includes_transfer: bool,
+    transfer: Option<GlobalTransferInputs<'a>>,
     baseline: Result<CostPlannedRealizations<'a>, CostPlanningError<'a>>,
     baseline_score: Option<Result<GlobalPlacementScore, GlobalBaselineMetricRefusal>>,
     global: Result<GlobalPlacementResult, GlobalPlacementRefusal>,
@@ -36,7 +36,10 @@ impl<'a, 'selection> GlobalPlacementComparison<'a, 'selection> {
         self.objective
     }
     pub fn includes_transfer(&self) -> bool {
-        self.includes_transfer
+        self.transfer.is_some()
+    }
+    pub fn transfer_inputs(&self) -> Option<GlobalTransferInputs<'a>> {
+        self.transfer
     }
     pub fn baseline(&self) -> &Result<CostPlannedRealizations<'a>, CostPlanningError<'a>> {
         &self.baseline
@@ -71,7 +74,7 @@ pub fn compare_global_placement<'a, 'selection>(
         inputs,
         budget,
         objective,
-        includes_transfer: transfer.is_some(),
+        transfer,
         baseline,
         baseline_score,
         global,

@@ -48,17 +48,17 @@ fn plan(
     }
     writeln!(
         out,
-        "{label} plan={} source={} checked={} expanded={} fragments={} lines={:?}",
+        "{label} plan={} source={} checked={} expanded={} fragments={}",
         plan.plan_id.as_str(),
         plan.source_document_id.as_str(),
         plan.checked_plot_id.as_str(),
         plan.expanded_plot_id.as_str(),
-        plan.fragments.len(),
-        plan.fragments
-            .iter()
-            .map(|f| &f.connections)
-            .collect::<alloc::vec::Vec<_>>()
-    )
+        plan.fragments.len()
+    )?;
+    for fragment in &plan.fragments {
+        writeln!(out,"{label} fragment host={} boot={} generation={} selected_bindings={:?} admitted_connections={:?} shared_pools={:?}",fragment.host_id.as_str(),fragment.boot_id.as_str(),fragment.offer_generation.0,fragment.placements,fragment.connections,fragment.shared_pools)?;
+    }
+    Ok(())
 }
 fn render(c: &GlobalPlacementComparison<'_, '_>, out: &mut impl Write) -> fmt::Result {
     let inputs = c.inputs();
@@ -68,6 +68,22 @@ fn render(c: &GlobalPlacementComparison<'_, '_>, out: &mut impl Write) -> fmt::R
     )?;
     writeln!(out,"same immutable admitted inputs; objective={:?} incremental_transfer_model={} maximum_states={}",c.objective(),c.includes_transfer(),c.budget().maximum_states)?;
     writeln!(out,"hard facts: hosts={} operations={} current_resource_observations={} advertisements={} bases={} authority_grants={} protected_resource_grants={} line_offers={} line_candidates={}",inputs.hosts.len(),inputs.operations.len(),inputs.observations.len(),inputs.advertisements.len(),inputs.bases.len(),inputs.options.authority_grants.len(),inputs.options.protected_resource_grants.len(),inputs.options.line_offers.len(),inputs.options.line_candidates.len())?;
+    for observation in inputs.observations {
+        writeln!(
+            out,
+            "original resource fact={:?} observation_window={:?}",
+            observation.observation(),
+            observation.window()
+        )?;
+    }
+    if let Some(transfer) = c.transfer_inputs() {
+        if transfer.forecasts.len() > conduit_planner::MAXIMUM_REALIZATION_DECISION_RECORDS {
+            return Err(fmt::Error);
+        }
+        for forecast in transfer.forecasts {
+            writeln!(out,"submitted incremental transfer sign={} source_host={} source_boot={} sink_host={} sink_boot={} extent={:?} window={:?} calibration={:?} route={:?} duration={:?}; historical evidence, not revalidated by UI",forecast.sign().as_str(),forecast.source().host_id.as_str(),forecast.source().boot_id.as_str(),forecast.sink().host_id.as_str(),forecast.sink().boot_id.as_str(),forecast.extent(),forecast.submitted_window(),forecast.submitted_calibration(),forecast.connection(),forecast.submitted_duration())?;
+        }
+    }
     match c.baseline() {
         Ok(baseline) => {
             plan("greedy", &baseline.plan, c, out)?;

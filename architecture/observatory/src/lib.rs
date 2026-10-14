@@ -59,4 +59,9 @@ mod global_placement_explanation;
 pub use global_placement_explanation::render_global_placement_comparison;
 
 #[cfg(test)]
+mod global_placement_budget_tests;
+#[cfg(test)]
 mod global_placement_explanation_tests;
+
+#[cfg(test)]
+mod global_placement_transfer_tests;

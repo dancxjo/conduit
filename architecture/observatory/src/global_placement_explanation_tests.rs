@@ -9,6 +9,21 @@ fn prepare_comparison(
     states: u32,
     inspect: impl FnOnce(&GlobalPlacementComparison<'_, '_>),
 ) {
+    prepare_objective(
+        missing,
+        stale,
+        states,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        inspect,
+    );
+}
+fn prepare_objective(
+    missing: bool,
+    stale: bool,
+    states: u32,
+    objective: GlobalPlacementObjective,
+    inspect: impl FnOnce(&GlobalPlacementComparison<'_, '_>),
+) {
     let plot = conduit_plot::parse_with_startup(
         "plot costs {\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false)\n}\n",
         &conduit_signal::signal_startup_catalog(),
@@ -131,7 +146,7 @@ fn prepare_comparison(
         GlobalPlacementBudget {
             maximum_states: states,
         },
-        GlobalPlacementObjective::AggregateFulfillmentTime,
+        objective,
         None,
         &mut work,
         &mut ExactNumericWork::new(100_000_000),
@@ -184,4 +199,24 @@ fn search_exhaustion_before_assignment_keeps_no_feasible_plan_explicit() {
         assert!(report.contains("no feasible executable Plan claimed"));
         assert!(!report.contains("optimal for the finite admitted cost model"));
     });
+}
+
+#[test]
+fn critical_path_comparison_uses_same_exact_seconds_and_marks_model_scope() {
+    prepare_objective(
+        false,
+        false,
+        32,
+        GlobalPlacementObjective::CriticalPathFulfillmentTime,
+        |comparison| {
+            let global = comparison.global().as_ref().unwrap();
+            let baseline = comparison.baseline_score().unwrap().as_ref().unwrap();
+            assert_eq!(baseline, &global.score);
+            assert!(global.score.critical_path_upper_seconds.is_some());
+            let report = render_global_placement_comparison(comparison).unwrap();
+            assert!(report.contains("CriticalPathFulfillmentTime"));
+            assert!(report.contains("incremental_transfer_model=false"));
+            assert!(report.contains("critical_path_upper_seconds=1/1000"));
+        },
+    );
 }
