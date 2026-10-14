@@ -1,6 +1,6 @@
 # Exact physical values specimen
 
-Run `cargo xtask plots run --deterministic --plot physical-values`. The reviewed
+Run `cargo xtask check plots run --deterministic --plot physical-values`. The reviewed
 Source declares `smoot` with exact metre scale 1.7018, sends the typed conversion
 receipt through a runtime Cord, and compares it against separately authored
 `1.7018m`. The installed std math Back returns true through the result Fore.
