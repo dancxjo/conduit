@@ -78,3 +78,25 @@ type AudioDecibelRatioRaw = {
     numerator: U64
     denominator: U64
 }
+
+# Positive finite controls exclude silence and infinite logarithmic values.
+type AudioPositiveRelativeAmplitude = {
+    numerator: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioPositivePowerRatio = {
+    numerator: U64 in 1..=18446744073709551615
+    denominator: U64 in 1..=18446744073709551615
+}
+type AudioPositiveLevelRatio =
+    amplitude AudioPositiveRelativeAmplitude
+    | power AudioPositivePowerRatio
+type AudioPositiveReferencedLevelRatio = {
+    basis: AudioDecibelBasis
+    ratio: AudioPositiveLevelRatio
+    where .ratio is amplitude ? .basis.convention is amplitude_twenty_log10 : .basis.convention is power_ten_log10
+}
+type AudioFiniteDecibelLevel = {
+    basis: AudioDecibelBasis
+    value: AudioDecibelFraction
+}
