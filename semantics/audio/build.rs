@@ -53,6 +53,7 @@ fn main() {
         ("audio/trajectory-order-u32", "TRAJECTORY_ORDER_U32"),
         ("audio/trajectory-step-covers", "TRAJECTORY_STEP_COVERS"),
         ("audio/trajectory-step-select", "TRAJECTORY_STEP_SELECT"),
+        ("audio/control-priority", "CONTROL_PRIORITY"),
         ("audio/sample-fraction", "SAMPLE_FRACTION"),
         ("audio/sample-at-rate", "SAMPLE_AT_RATE"),
         ("audio/frame-grid-fidelity", "FRAME_GRID_FIDELITY"),
