@@ -47,6 +47,7 @@ mod input_semantic_backs;
 mod instrument_map_back;
 mod ipa_constructor_back;
 mod numerical_back;
+mod value_fore_outputs;
 pub(crate) use numerical_back::{offers as numerical_offers, owns_offer as owns_numerical_offer};
 pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
@@ -471,6 +472,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .count()
             .saturating_mul(usize::from(external_input_items)),
     );
+    let mut prepared_value_fore_outputs =
+        value_fore_outputs::PreparedValueForeOutputs::prepare(&lowered.fore_ports);
     fore_inputs.start(&mut scheduler)?;
     if lowered
         .fore_ports
@@ -799,22 +802,28 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 .remote_egress_offer(planned.endpoint, planned.cord)
                 .map_err(|error| format!("offer external Fore output: {error:?}"))?
             {
-                let bytes = scheduler
+                let borrowed = scheduler
                     .host_value(offer.value)
-                    .map_err(|error| format!("read external Fore output: {error:?}"))?
-                    .to_vec();
-                let delivery = crate::ExternalForeDelivery {
-                    front_port_id: planned.front_port_id.clone(),
-                    track: planned.track,
-                    value_kind: planned.value_kind.clone(),
-                    sequence: offer.sequence,
-                    bytes,
-                };
+                    .map_err(|error| format!("read external Fore output: {error:?}"))?;
+                let (delivery, adapter_delivery) =
+                    if planned.temporal == conduit_core::PortTemporal::Value {
+                        prepared_value_fore_outputs.take(planned, offer.sequence, borrowed)?
+                    } else {
+                        let delivery = crate::ExternalForeDelivery {
+                            front_port_id: planned.front_port_id.clone(),
+                            track: planned.track,
+                            value_kind: planned.value_kind.clone(),
+                            sequence: offer.sequence,
+                            bytes: borrowed.to_vec(),
+                        };
+                        let adapter = delivery.clone();
+                        (delivery, adapter)
+                    };
                 external_fore
                     .as_mut()
                     .expect("output adapter checked above")
                     .output
-                    .deliver(delivery.clone())?;
+                    .deliver(adapter_delivery)?;
                 scheduler
                     .remote_egress_accept(planned.endpoint, planned.cord, offer.sequence)
                     .map_err(|error| format!("accept external Fore output: {error:?}"))?;
