@@ -10,7 +10,9 @@
     "bytes": 33554432,
     "sha256": "b0ba79f5c1a4d688ad7eade3cae0bbc7aba45b7bc7d872403de3b2907f2509b4",
     "opensbi_sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf",
-    "opensbi_bytes": 275928
+    "opensbi_bytes": 275928,
+    "initial_vars_sha256": "ea8094e953b1215444bd001ee1cf22818f1f7f8abcb158e62180cbaa6c1f70af",
+    "initial_vars_bytes": 33554432
   },
   "command": [
     "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/riscv/usr/bin/qemu-system-riscv64",
@@ -297,5 +299,6 @@
     "guest IRQ delivery",
     "physical compatibility",
     "USB3/MSI/isochronous"
-  ]
+  ],
+  "qemu_binary_sha256": "89a99b20357ac92b2c6a533fe79d6fab6b507784858299f7109651f2d524d274"
 }
