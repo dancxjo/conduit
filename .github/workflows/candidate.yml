@@ -40,6 +40,7 @@ jobs:
       - name: Retain finite release measurements from the merge preview
         env:
           CARGO_BUILD_JOBS: 4
+          CARGO_PROFILE_DEV_DEBUG: 0
           CARGO_PROFILE_RELEASE_DEBUG: 0
           CARGO_INCREMENTAL: 0
         run: >-
