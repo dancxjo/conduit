@@ -356,7 +356,7 @@ fn ordinary_installed_scheduler_accepts_multiple_actual_input_requests() {
     let output = String::from_utf8(output).unwrap();
     let states: Vec<_> = output
         .lines()
-        .filter_map(|line| line.strip_prefix("bool value="))
+        .filter_map(|line| line.strip_prefix("Button state: bool value="))
         .collect();
     assert_eq!(states, ["true", "false", "true", "false"]);
     assert!(matches!(

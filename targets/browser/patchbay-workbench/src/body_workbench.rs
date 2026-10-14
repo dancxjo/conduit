@@ -7,14 +7,13 @@ use conduit_body_make::{
     ReadableBodyHistory, ReadableBodyHistoryError,
 };
 use conduit_core::{BootId, HostId, ImplementationId, PlanId, SignId};
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceBasis, FaceDisclosure, FaceDisclosureLevel,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
+};
 use conduit_patchbay_workbench::{
     prepare_renderer_execution, PlotCandidate, RendererAdapterIdentity, RendererAdapterKind,
-};
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
 };
 use patchbay_application::PatchbayNavigationProjection;
 
@@ -63,9 +62,9 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
     let attachment =
         BodyEvidenceAttachment::open_serialized(encoded_evidence, model_entrance(&entrance))
             .map_err(BodyWorkbenchError::Entrance)?;
-    let presentation = workbench_presentation(evidence_revision, &attachment, reviewed_plots)?;
+    let face = workbench_face(evidence_revision, &attachment, reviewed_plots)?;
     let execution = prepare_renderer_execution(
-        presentation,
+        face,
         RendererAdapterKind::HtmlDomSvg,
         RendererAdapterIdentity {
             host_id: HostId::from("patchbay-html/body-workbench"),
@@ -77,7 +76,7 @@ pub(crate) fn body_workbench_snapshot_with_reviewed(
     .map_err(|error| BodyWorkbenchError::Projection(error.to_string()))?;
     let mut snapshot =
         RendererSnapshot::from_execution(execution).map_err(BodyWorkbenchError::Snapshot)?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.presentation)
+    let navigation = PatchbayNavigationProjection::for_embodied(&snapshot.face)
         .map_err(BodyWorkbenchError::Projection)?;
     snapshot
         .attach_navigation(navigation)
@@ -137,7 +136,7 @@ fn attach_body_workbench_with_reviewed(
         current: serde_json::to_value(current).map_err(BodyWorkbenchError::Encode)?,
         history: serde_json::to_value(history).map_err(BodyWorkbenchError::Encode)?,
     };
-    validate_body_workbench(&workbench, &snapshot.presentation)?;
+    validate_body_workbench(&workbench, &snapshot.face)?;
     snapshot
         .attach_body_workbench(workbench)
         .map_err(BodyWorkbenchError::Snapshot)?;
@@ -146,7 +145,7 @@ fn attach_body_workbench_with_reviewed(
 
 pub(crate) fn validate_body_workbench(
     workbench: &BrowserBodyWorkbench,
-    presentation: &Presentation,
+    face: &Face,
 ) -> Result<(), BodyWorkbenchError> {
     if workbench.schema != BODY_WORKBENCH_SCHEMA || workbench.evidence_revision == 0 {
         return Err(BodyWorkbenchError::IdentityMismatch);
@@ -165,7 +164,7 @@ pub(crate) fn validate_body_workbench(
         attachment.evidence().body.workload_revision,
     )
     .map_err(BodyWorkbenchError::Projection)?;
-    let presented_add_actions = presentation
+    let presented_add_actions = face
         .actions
         .iter()
         .filter(|action| action.intent == "conduit.intent/add-plot@1")
@@ -175,18 +174,18 @@ pub(crate) fn validate_body_workbench(
         && inventory
             .subjects
             .iter()
-            .all(|subject| presentation.subjects.contains(subject));
+            .all(|subject| face.subjects.contains(subject));
     let body_id = attachment.evidence().body_id.as_str();
-    let body_matches = presentation
+    let body_matches = face
         .basis
         .body_id
         .as_ref()
         .is_some_and(|identity| identity.as_str() == body_id);
-    let basis_plot = presentation
+    let basis_plot = face
         .basis
         .source_document_id
         .as_ref()
-        .zip(presentation.basis.checked_plot_id.as_ref());
+        .zip(face.basis.checked_plot_id.as_ref());
     let plot_matches = basis_plot.is_none_or(|(source, checked)| {
         attachment
             .evidence()
@@ -232,29 +231,29 @@ pub(crate) fn model_entrance(entrance: &BrowserBodyWorkbenchEntrance) -> BodyEvi
     }
 }
 
-fn workbench_presentation(
+fn workbench_face(
     revision: u64,
     attachment: &BodyEvidenceAttachment,
     reviewed_plots: &[BrowserReviewedPlot],
-) -> Result<Presentation, BodyWorkbenchError> {
+) -> Result<Face, BodyWorkbenchError> {
     let evidence = attachment.evidence();
     let body_identity = format!("body/{}", evidence.body_id.as_str());
     let workset = evidence
         .body
         .effective_workset()
         .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))?;
-    let mut subjects = vec![PresentationSubject {
+    let mut subjects = vec![FaceSubject {
         identity: body_identity.clone(),
-        role: PresentationRole::Body,
+        role: FaceRole::Body,
         name: evidence.friendly_name.clone(),
     }];
     let mut relationships = Vec::new();
     let mut properties = vec![
         identity_property(&body_identity, "body-id", evidence.body_id.as_str()),
-        PresentationProperty {
+        FaceProperty {
             subject: body_identity.clone(),
             name: "workload-revision".into(),
-            value: PresentationPropertyValue::Count(evidence.body.workload_revision),
+            value: FacePropertyValue::Count(evidence.body.workload_revision),
         },
     ];
     let mut plot_identities = Vec::with_capacity(workset.len());
@@ -265,30 +264,28 @@ fn workbench_presentation(
     };
     let mut actions = lifecycle_action
         .into_iter()
-        .map(
-            |(action_name, action_label, action_intent)| PresentationAction {
-                identity: format!("action/{action_name}/{body_identity}"),
-                intent: action_intent.into(),
-                target: body_identity.clone(),
-                name: action_label.into(),
-                arguments: vec![],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
-            },
-        )
+        .map(|(action_name, action_label, action_intent)| FaceAction {
+            identity: format!("action/{action_name}/{body_identity}"),
+            intent: action_intent.into(),
+            target: body_identity.clone(),
+            name: action_label.into(),
+            arguments: vec![],
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
+        })
         .collect::<Vec<_>>();
     for plot in workset.plots() {
         let plot_identity = format!("plot/{}", plot.checked_plot_id.as_str());
         let label = plot.checked_plot_id.as_str().to_owned();
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: plot_identity.clone(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: label.clone(),
         });
-        relationships.push(PresentationRelationship {
+        relationships.push(FaceRelationship {
             source: body_identity.clone(),
             target: plot_identity.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
         properties.push(identity_property(
             &plot_identity,
@@ -300,7 +297,7 @@ fn workbench_presentation(
             "checked-plot-id",
             plot.checked_plot_id.as_str(),
         ));
-        actions.push(PresentationAction {
+        actions.push(FaceAction {
             identity: format!(
                 "action/remove-plot/{}/{}",
                 plot.checked_plot_id.as_str(),
@@ -310,18 +307,18 @@ fn workbench_presentation(
             target: plot_identity.clone(),
             name: "Remove from Body".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability: match &evidence.body.state {
-                conduit_body::BodyState::Lulled => PresentationActionAvailability::Available,
+                conduit_body::BodyState::Lulled => FaceActionAvailability::Available,
                 conduit_body::BodyState::Awake { .. } => {
-                    PresentationActionAvailability::Unavailable {
+                    FaceActionAvailability::Unavailable {
                         reason_code: "body-awake".into(),
                         explanation: "Lull the body before changing its active plot workload."
                             .into(),
                     }
                 }
                 conduit_body::BodyState::Fulfilled { .. } => {
-                    PresentationActionAvailability::Unavailable {
+                    FaceActionAvailability::Unavailable {
                         reason_code: "body-fulfilled".into(),
                         explanation:
                             "A fulfilled Body retains its biography but cannot change its plot workload."
@@ -343,7 +340,7 @@ fn workbench_presentation(
     properties.extend(reviewed.properties);
     actions.extend(reviewed.actions);
     plot_identities.extend(reviewed.disclosures.iter().map(|item| item.subject.clone()));
-    let mut text = vec![PresentationText {
+    let mut text = vec![FaceText {
         subject: body_identity.clone(),
         text: format!(
             "{} is a durable body running {} current plot(s) at workload revision {}.",
@@ -354,27 +351,27 @@ fn workbench_presentation(
     }];
     for part in &evidence.membership.parts {
         let part_identity = format!("part/{}", part.part_id.as_str());
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: part_identity.clone(),
-            role: PresentationRole::Part,
+            role: FaceRole::Part,
             name: format!("Body Part {}", part.part_id.as_str()),
         });
-        relationships.push(PresentationRelationship {
+        relationships.push(FaceRelationship {
             source: body_identity.clone(),
             target: part_identity.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
         if let Some(current) = &part.current {
             let host_identity = format!("host/{}", current.host_id.as_str());
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: host_identity.clone(),
-                role: PresentationRole::Host,
+                role: FaceRole::Host,
                 name: format!("Current host {}", current.host_id.as_str()),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: part_identity.clone(),
                 target: host_identity.clone(),
-                kind: PresentationRelationshipKind::Realizes,
+                kind: FaceRelationshipKind::Realizes,
             });
             properties.push(identity_property(
                 &host_identity,
@@ -385,29 +382,29 @@ fn workbench_presentation(
     }
     for record in &evidence.records {
         let sign_identity = format!("sign/{}", record.sign_id.as_str());
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: sign_identity.clone(),
-            role: PresentationRole::Sign,
+            role: FaceRole::Sign,
             name: format!("Body biography evidence sequence {}", record.sequence),
         });
-        relationships.push(PresentationRelationship {
+        relationships.push(FaceRelationship {
             source: body_identity.clone(),
             target: sign_identity.clone(),
-            kind: PresentationRelationshipKind::Observes,
+            kind: FaceRelationshipKind::Observes,
         });
-        properties.push(PresentationProperty {
+        properties.push(FaceProperty {
             subject: sign_identity.clone(),
             name: "evidence-sequence".into(),
-            value: PresentationPropertyValue::Count(record.sequence),
+            value: FacePropertyValue::Count(record.sequence),
         });
-        text.push(PresentationText {
+        text.push(FaceText {
             subject: sign_identity,
             text: format!("{:?}", record.kind),
         });
     }
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(evidence.body_id.clone()),
             wake_id: match &evidence.body.state {
                 conduit_body::BodyState::Awake { wake_id } => Some(wake_id.clone()),
@@ -430,29 +427,25 @@ fn workbench_presentation(
         properties,
         text,
         actions,
-        vec![PresentationDisclosure {
+        vec![FaceDisclosure {
             subject: body_identity,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         }]
         .into_iter()
-        .chain(
-            plot_identities
-                .into_iter()
-                .map(|subject| PresentationDisclosure {
-                    subject,
-                    level: PresentationDisclosureLevel::Context,
-                }),
-        )
+        .chain(plot_identities.into_iter().map(|subject| FaceDisclosure {
+            subject,
+            level: FaceDisclosureLevel::Context,
+        }))
         .collect(),
     )
     .map_err(|error| BodyWorkbenchError::Projection(format!("{error:?}")))
 }
 
-fn identity_property(subject: &str, name: &str, identity: &str) -> PresentationProperty {
-    PresentationProperty {
+fn identity_property(subject: &str, name: &str, identity: &str) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
-        value: PresentationPropertyValue::Identity(identity.into()),
+        value: FacePropertyValue::Identity(identity.into()),
     }
 }
 

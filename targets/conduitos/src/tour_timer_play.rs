@@ -61,7 +61,7 @@ where
                         .arm(interest)
                         .map_err(|_| MachineRunError::TimerBaseFailure)?,
                 );
-            } else if prepared.kernel.is_presentation(&request) {
+            } else if prepared.kernel.is_face(&request) {
                 present_count(
                     &mut prepared.kernel,
                     request,
@@ -102,7 +102,7 @@ where
                 kernel_signs: prepared.kernel.sign_count(),
                 timer_irq_wakes: timer.wake_count(),
                 idle_entries: idle.idle_count(),
-                serial_presentations: serial.presentation_count(),
+                serial_faces: serial.face_count(),
                 clock_monotonic: clock.now() >= started,
                 pending_host_calls: 1,
                 overlap_witness: false,
@@ -170,6 +170,6 @@ fn present_count<S: SerialBase>(
     counts[*count_len] = Some(count);
     *count_len += 1;
     kernel
-        .complete_presentation(request)
+        .complete_face(request)
         .map_err(|_| MachineRunError::KernelFailure)
 }

@@ -1,8 +1,6 @@
 //! The selected resident graph projected into the existing finite canvas slot.
 use super::*;
-use conduit_presentation::application_canvas::{
-    ApplicationCanvas, CanvasCord, CanvasNode, CanvasPort,
-};
+use conduit_face::application_canvas::{ApplicationCanvas, CanvasCord, CanvasNode, CanvasPort};
 
 pub(super) const SELECT_SUBJECT: &str = "patchbay.subject.select";
 impl PatchbayApplicationPort {

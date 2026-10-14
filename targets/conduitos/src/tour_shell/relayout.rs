@@ -1,6 +1,6 @@
 //! Presenter-owned relayout after compositor raster invalidation.
 
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 
 use crate::{
     display::PixelTarget,
@@ -64,29 +64,28 @@ impl TourShellPresenter {
             self.compositor.validate_pointer_route(&stale_pointer),
             Err(NativeCompositorError::StaleSurfaceBinding)
         );
-        let presentation = self
+        let face = self
             .surfaces
             .iter()
             .find(|state| state.slot == Slot::Inspector)
-            .and_then(|state| state.presentation.clone())
+            .and_then(|state| state.face.clone())
             .ok_or(TourShellError::Identity)?;
-        let front = presentation
+        let front = face
             .subjects
             .iter()
             .find(|subject| subject.identity.ends_with("/inspection"))
             .ok_or(TourShellError::Identity)?
             .identity
             .clone();
-        let revised = Presentation::new(
-            presentation
-                .revision
+        let revised = Face::new(
+            face.revision
                 .checked_add(1)
                 .ok_or(TourShellError::Identity)?,
-            presentation.basis,
-            presentation.subjects,
-            presentation.relationships,
-            presentation.properties,
-            presentation.text,
+            face.basis,
+            face.subjects,
+            face.relationships,
+            face.properties,
+            face.text,
         )
         .map_err(|_| TourShellError::Identity)?;
         let scroll_offset = {

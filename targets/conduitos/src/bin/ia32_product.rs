@@ -147,8 +147,8 @@ extern "C" fn conduitos_ia32_product_rust_entry(
         5,
         false,
     );
-    let presentation = front_door
-        .presentation()
+    let face = front_door
+        .face()
         .unwrap_or_else(|error| refuse(error.as_str()));
     let mut presenter = LinearPresenter::prepare_with_realization(
         host_id,
@@ -162,10 +162,10 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     )
     .unwrap_or_else(|_| refuse("linear-presenter-plan-refused"));
     let receipt = presenter
-        .present(&presentation)
+        .present(&face)
         .unwrap_or_else(|_| refuse("linear-presenter-manifestation-refused"));
-    for line in &receipt.presentation.lines {
-        arch::present(b"CONDUIT_LINEAR_PRESENTATION ");
+    for line in &receipt.face.lines {
+        arch::present(b"CONDUIT_LINEAR_FACE ");
         arch::present(line.as_bytes());
         arch::present(b"\n");
     }
@@ -243,8 +243,8 @@ extern "C" fn conduitos_ia32_product_rust_entry(
     arch::present(identity::hex(&identities.host).as_bytes());
     arch::present(b"\",\"boot_id\":\"");
     arch::present(identity::hex(&identities.boot).as_bytes());
-    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"presentation_id\":\"");
-    arch::present(receipt.presentation.presentation_id.as_str().as_bytes());
+    arch::present(b"\",\"offer_generation\":1,\"body_id\":null,\"face_id\":\"");
+    arch::present(receipt.face.face_id.as_str().as_bytes());
     arch::present(b"\",\"manifestation_id\":\"");
     arch::present(receipt.manifestation_id.as_str().as_bytes());
     arch::present(b"\",\"presenter_implementation_id\":\"");

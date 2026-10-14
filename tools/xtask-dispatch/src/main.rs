@@ -29,7 +29,11 @@ mod proof {
 #[path = "../../xtask/src/process/tool_command.rs"]
 mod tool_command;
 
+#[path = "../../xtask/src/process/browser_release.rs"]
+mod browser_release;
+
 mod process {
+    pub use crate::browser_release::BROWSER_RELEASE_ENVIRONMENT;
     use crate::proof::ProofClass;
     pub use crate::tool_command::command_for;
 
@@ -42,6 +46,7 @@ mod process {
         pub cwd: Option<&'static str>,
         pub tool_or_target: Option<&'static str>,
         pub proof_class: Option<ProofClass>,
+        pub environment: &'static [(&'static str, &'static str)],
         pub expected_artifacts: &'static [&'static str],
     }
 
@@ -61,6 +66,7 @@ mod process {
                 tool_or_target: None,
                 proof_class: None,
                 expected_artifacts: &[],
+                environment: &[],
             }
         }
 
@@ -84,7 +90,24 @@ mod process {
                 tool_or_target,
                 proof_class,
                 expected_artifacts,
+                environment: &[],
             }
+        }
+        pub const fn with_environment(
+            mut self,
+            environment: &'static [(&'static str, &'static str)],
+        ) -> Self {
+            self.environment = environment;
+            self
+        }
+    }
+
+    impl std::fmt::Display for Step {
+        fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+            for (name, value) in self.environment {
+                write!(f, "{name}={value} ")?;
+            }
+            write!(f, "{} {}", self.program, self.args.join(" "))
         }
     }
 }

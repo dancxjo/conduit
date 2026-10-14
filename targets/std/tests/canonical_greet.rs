@@ -112,10 +112,10 @@ fn omitted_argument_uses_the_checked_front_default_without_mutating_the_plot() {
 }
 
 #[test]
-fn join_output_bound_and_selected_realization_identity_fail_before_presentation() {
+fn join_output_bound_and_selected_realization_identity_fail_before_face() {
     let oversized_prefix = "x".repeat(conduit_text::MAX_TEXT_BYTES as usize);
     let source = format!(
-        "plot bad {{\n    join: text/join(\"{oversized_prefix}\")\n    \"y\" >> join >> presentation/text\n}}\n"
+        "plot bad {{\n    join: text/join(\"{oversized_prefix}\")\n    \"y\" >> join >> face/text(\"Message\")\n}}\n"
     );
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();

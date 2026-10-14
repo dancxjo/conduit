@@ -1,14 +1,14 @@
 use super::*;
 
 #[test]
-fn malformed_and_oversized_presentation_info_fail_before_rendering() {
+fn malformed_and_oversized_face_info_fail_before_rendering() {
     assert!(matches!(
-        decode_presentation(b"{"),
-        Err(CrossHostRendererError::Presentation(_))
+        decode_face(b"{"),
+        Err(CrossHostRendererError::Face(_))
     ));
     assert!(matches!(
-        decode_presentation(&vec![0; MAX_RENDERER_VALUE_BYTES as usize + 1]),
-        Err(CrossHostRendererError::Presentation(_))
+        decode_face(&vec![0; MAX_RENDERER_VALUE_BYTES as usize + 1]),
+        Err(CrossHostRendererError::Face(_))
     ));
 }
 
@@ -20,8 +20,8 @@ fn absent_planned_line_fails_without_a_manifestation() {
         target_subject: "patchbay-html/document-0".into(),
     };
     let exact = cross_host_renderer_plan(
-        HostId::from("patchbay-presentation/host"),
-        BootId::from("patchbay-presentation/boot"),
+        HostId::from("patchbay-face/host"),
+        BootId::from("patchbay-face/boot"),
         identity.clone(),
     )
     .unwrap();

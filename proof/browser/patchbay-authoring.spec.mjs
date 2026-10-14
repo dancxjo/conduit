@@ -19,10 +19,10 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       prefix: text/join("First: ")
       upper: text/upper
       label: text/join("Result: ")
-      display: presentation/text(maximum-values = 4)
+      display: face/text(label = "Message", maximum-values = 4)
       scalar: scalar/literal(value = 500000)
       map: math/map-quantity
-      quantity: presentation/quantity
+      quantity: face/quantity("Measured quantity")
       wrapped: structured-info/wrap-quantity
       literal >> prefix >> upper >> label >> display
       scalar.value >> map.in
@@ -35,10 +35,10 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
       const initial = await current(page);
       const basis = initial.authoring.checked_plot_id;
-      const semanticGears = initial.presentation.subjects.filter(subject => subject.role === "Gear")
-        .map(subject => initial.presentation.properties.find(property => property.subject === subject.identity
+      const semanticGears = initial.face.subjects.filter(subject => subject.role === "Gear")
+        .map(subject => initial.face.properties.find(property => property.subject === subject.identity
           && property.name === "semantic-id").value.Identity).sort();
-      expect(initial.presentation.basis.plan_id).toBeNull();
+      expect(initial.face.basis.plan_id).toBeNull();
       const mapping = initial.authoring.palette.find(entry => entry.kind_id === "math/map-quantity");
       expect(mapping.authorable).toBe(true);
       expect(mapping.kind_contract_revision).toBeTruthy();
@@ -56,13 +56,13 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       expect(new Set(distinctBases).size).toBe(4);
 
       const portIdentity = (snapshot, gear, direction) => {
-        const subject = snapshot.presentation.subjects.find(subject => subject.role === "Gear"
-          && snapshot.presentation.properties.some(property => property.subject === subject.identity
+        const subject = snapshot.face.subjects.find(subject => subject.role === "Gear"
+          && snapshot.face.properties.some(property => property.subject === subject.identity
             && property.name === "semantic-id" && property.value.Identity === `gear/authoring/${gear}`));
-        const ports = snapshot.presentation.relationships.filter(relation => relation.kind === "Contains" && relation.source === subject.identity);
-        const port = ports.find(relation => snapshot.presentation.properties.some(property =>
+        const ports = snapshot.face.relationships.filter(relation => relation.kind === "Contains" && relation.source === subject.identity);
+        const port = ports.find(relation => snapshot.face.properties.some(property =>
           property.subject === relation.target && property.name === "direction" && property.value.Text === direction));
-        return snapshot.presentation.properties.find(property => property.subject === port.target && property.name === "semantic-id").value.Identity;
+        return snapshot.face.properties.find(property => property.subject === port.target && property.name === "semantic-id").value.Identity;
       };
       const queries = await page.evaluate(async ({ sourcePort, sinkPort }) => {
         const snapshot = await (await fetch("/api/snapshot")).json();
@@ -97,7 +97,7 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       expect(first.basis.checked_plot_id).toBe(basis);
       expect(first.layouts.find(layout => layout.name === "Teaching").notes).toHaveLength(1);
 
-      // Import is an explicit presentation operation; every Gear gets a radically different position.
+      // Import is an explicit face operation; every Gear gets a radically different position.
       const second = structuredClone(first);
       const alternate = structuredClone(second.layouts.find(layout => layout.name === "Teaching"));
       alternate.name = "Wide";
@@ -126,13 +126,13 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
       await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
       await clickInteraction(page, page.getByRole("button", { name: "Plan current plot" }));
       const planned = await current(page);
-      expect(planned.presentation.basis.plan_id).toBeTruthy();
+      expect(planned.face.basis.plan_id).toBeTruthy();
       await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
       const live = await current(page);
-      expect(live.presentation.basis.active_play_id).toBeTruthy();
-      expect(live.presentation.subjects.some(subject => subject.role === "Sign")).toBe(true);
-      const plan = live.presentation.basis.plan_id;
-      const play = live.presentation.basis.active_play_id;
+      expect(live.face.basis.active_play_id).toBeTruthy();
+      expect(live.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
+      const plan = live.face.basis.plan_id;
+      const play = live.face.basis.active_play_id;
       await clickNavigation(page, page.getByRole("button", { name: "Plot", exact: true }));
       await workspace.locator("summary").click();
       for (const layout of ["Teaching", "Wide"]) {
@@ -140,14 +140,14 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
         await page.getByRole("button", { name: "Use layout", exact: true }).click();
         await expect(page.getByRole("button", { name: "Use layout", exact: true })).toBeEnabled();
         const after = await current(page);
-        expect(after.presentation.basis.plan_id).toBe(plan);
-        expect(after.presentation.basis.active_play_id).toBe(play);
-        expect(after.presentation.basis.checked_plot_id).toBe(basis);
+        expect(after.face.basis.plan_id).toBe(plan);
+        expect(after.face.basis.active_play_id).toBe(play);
+        expect(after.face.basis.checked_plot_id).toBe(basis);
         const positions = annotated.layouts.find(saved => saved.name === layout).positions
           .filter(position => semanticGears.includes(position.subject))
           .sort((left, right) => left.subject.localeCompare(right.subject));
-        const gearSubjects = initial.presentation.subjects.filter(subject => subject.role === "Gear")
-          .map(subject => [subject.identity, initial.presentation.properties.find(property =>
+        const gearSubjects = initial.face.subjects.filter(subject => subject.role === "Gear")
+          .map(subject => [subject.identity, initial.face.properties.find(property =>
             property.subject === subject.identity && property.name === "semantic-id").value.Identity]);
         // The admitted application uses blob module identities. Importing the
         // raw flow asset would inspect a separate, unused module instance.
@@ -164,17 +164,17 @@ test("catalog queries and two durable layouts decorate the same live Plot", asyn
           const button = page.locator(`#aspect-controls button[data-aspect="${aspect}"]`);
           await expect(button).toBeVisible();
           const projected = await clickNavigation(page, button);
-          expect(projected.presentation.basis.plan_id).toBe(plan);
-          expect(projected.presentation.basis.active_play_id).toBe(play);
-          const gears = projected.presentation.subjects.filter(subject => subject.role === "Gear");
-          expect(gears.map(subject => projected.presentation.properties.find(property =>
+          expect(projected.face.basis.plan_id).toBe(plan);
+          expect(projected.face.basis.active_play_id).toBe(play);
+          const gears = projected.face.subjects.filter(subject => subject.role === "Gear");
+          expect(gears.map(subject => projected.face.properties.find(property =>
             property.subject === subject.identity && property.name === "semantic-id").value.Identity).sort())
             .toEqual(semanticGears);
           await expect(page.locator(".flow-frontplate.role-gear")).toHaveCount(9);
           await expect(page.locator(".flow-frontplate.role-gear").first())
             .toHaveAttribute("data-lens", aspect.toLowerCase());
           for (const gear of gears) {
-            const facts = projected.presentation.properties.filter(property => property.subject === gear.identity);
+            const facts = projected.face.properties.filter(property => property.subject === gear.identity);
             const clue = page.locator(".flow-frontplate.role-gear")
               .filter({ has: page.locator(`input[data-subject="${gear.identity}"]`) }).locator(".faceplate-clue");
             if (aspect === "Plan") {
@@ -267,18 +267,26 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     const literal = page.getByRole("button", { name: "Place Text literal Gear" });
     await clickEdit(page, literal);
     await clickEdit(page, literal);
-    await search.fill("text presentation");
-    await clickEdit(page, page.getByRole("button", { name: "Place Text presentation Gear" }));
+    await search.fill("text face");
+    const beforeNamedPlacement = await current(page);
+    await page.getByRole("button", { name: "Place Text face Gear" }).click();
+    await expect(page.getByRole("heading", { name: "Name the data for Text face" })).toBeVisible();
+    const construction = page.locator("#gear-construction");
+    await construction.getByRole("button", { name: "Place Gear", exact: true }).click();
+    await expect(construction.getByRole("status")).toContainText("Enter a data name");
+    expect((await current(page)).authoring.source_document_id).toBe(beforeNamedPlacement.authoring.source_document_id);
+    await construction.getByRole("textbox", { name: "Data name" }).fill("Greeting");
+    await clickEdit(page, construction.getByRole("button", { name: "Place Gear", exact: true }));
 
     let snapshot = await current(page);
-    const gears = snapshot.presentation.subjects.filter(subject => subject.role === "Gear");
+    const gears = snapshot.face.subjects.filter(subject => subject.role === "Gear");
     expect(gears.map(gear => gear.name)).toEqual(expect.arrayContaining([
       expect.stringContaining("making/literal"),
       expect.stringContaining("making/literal-2"),
       expect.stringContaining("making/text"),
     ]));
     expect(new Set(gears.map(gear => gear.name)).size).toBe(3);
-    expect(snapshot.presentation.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
+    expect(snapshot.face.subjects.filter(subject => subject.role === "Port")).toHaveLength(3);
 
     await selectRole(page, "Gear", "making/literal Gear");
     await page.getByRole("textbox", { name: "Configure value" }).fill("Browser-authored truth");
@@ -289,7 +297,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await page.locator('#structured-navigator input[type="radio"][data-role="Port"]').nth(2).click();
     await clickEdit(page, page.getByRole("button", { name: "Connect selected output here" }));
     snapshot = await current(page);
-    expect(snapshot.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
+    expect(snapshot.face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
 
     await selectRole(page, "Cord");
     await page.getByRole("button", { name: "Reroute one endpoint" }).click();
@@ -297,7 +305,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await clickEdit(page, page.getByRole("button", { name: "Reroute armed Cord here" }));
     await selectRole(page, "Cord");
     await clickEdit(page, page.getByRole("button", { name: "Remove Cord" }));
-    expect((await current(page)).presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(0);
+    expect((await current(page)).face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(0);
     await selectRole(page, "Gear", "making/literal-2 Gear");
     await clickEdit(page, page.getByRole("button", { name: "Remove Gear" }));
 
@@ -313,6 +321,7 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     }).toBe(true);
     const saved = await readFile(server.source, "utf8");
     expect(saved).toContain('literal: text/literal("Browser-authored truth")');
+    expect(saved).toContain('text: face/text("Greeting"');
     expect(saved).not.toContain("literal-2:");
     expect(saved).toContain("literal.text >> text.text");
 
@@ -324,19 +333,19 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await page.getByRole("button", { name: "Inspect", exact: true }).click();
     await selectRole(page, "Plot", "Empty Plot");
     await clickInteraction(page, page.getByRole("button", { name: "BIRTH", exact: true }));
-    await expect.poll(async () => Boolean((await current(page)).presentation.basis.body_id)).toBe(true);
+    await expect.poll(async () => Boolean((await current(page)).face.basis.body_id)).toBe(true);
     await selectRole(page, "Plot", "Current checked and expanded Plot");
     await clickInteraction(page, page.getByRole("button", { name: "WAKE", exact: true }));
-    await expect.poll(async () => Boolean((await current(page)).presentation.basis.wake_id)).toBe(true);
+    await expect.poll(async () => Boolean((await current(page)).face.basis.wake_id)).toBe(true);
     await page.locator("#structured-navigator").evaluate(element => { element.closest("details").open = true; });
     await clickInteraction(page, page.getByRole("button", { name: "Plan current plot" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Plan Succeeded");
     await clickInteraction(page, page.getByRole("button", { name: "Play current plan" }));
     await expect(page.locator("#front-door-feedback")).toContainText("Play Succeeded");
     snapshot = await current(page);
-    expect(snapshot.presentation.basis.plan_id).toBeTruthy();
-    expect(snapshot.presentation.basis.active_play_id).toBeTruthy();
-    expect(snapshot.presentation.subjects.some(subject => subject.role === "Sign")).toBe(true);
+    expect(snapshot.face.basis.plan_id).toBeTruthy();
+    expect(snapshot.face.basis.active_play_id).toBeTruthy();
+    expect(snapshot.face.subjects.some(subject => subject.role === "Sign")).toBe(true);
     await expect(page.locator("#sign")).not.toBeEmpty();
 
     server.child.kill("SIGTERM");
@@ -346,12 +355,12 @@ test("actual browser entrance authors, saves, plans, and plays one canonical Plo
     await page.goto(reopened.url);
     await page.getByRole("button", { name: "Open Plot Empty Plot" }).click();
     const restored = await current(page);
-    expect(restored.presentation.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual([
+    expect(restored.face.subjects.filter(subject => subject.role === "Gear").map(subject => subject.name).sort()).toEqual([
       "making/literal Gear, text/literal",
-      "making/text Gear, presentation/text",
+      "making/text Gear, face/text",
     ]);
-    expect(restored.presentation.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
-    expect(restored.presentation.properties.some(property => property.name.startsWith("authored-control-") && property.value.Text.includes("Browser-authored truth"))).toBe(true);
+    expect(restored.face.subjects.filter(subject => subject.role === "Cord")).toHaveLength(1);
+    expect(restored.face.properties.some(property => property.name.startsWith("authored-control-") && property.value.Text.includes("Browser-authored truth"))).toBe(true);
   } finally {
     server.child.kill("SIGTERM");
     await rm(server.directory, { recursive: true, force: true });

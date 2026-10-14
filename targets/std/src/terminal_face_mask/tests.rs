@@ -1,15 +1,15 @@
 //! Renderer/input conformance. Planned Show acknowledgement here is explicitly a
 //! fixture; the concrete hosted kernel bridge is tested by its integration owner.
 use super::*;
-use conduit_presentation::*;
+use conduit_face::*;
 #[path = "fixture.rs"]
 mod fixture;
 
-fn face(revision: u64) -> Presentation {
+fn face(revision: u64) -> Face {
     let producer = fixture::producer_plan();
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(serde_json::from_str("\"body/native-face-fixture\"").unwrap()),
             wake_id: None,
             source_document_id: Some(producer.source_document_id),
@@ -20,33 +20,33 @@ fn face(revision: u64) -> Presentation {
             sign_ids: vec![],
         },
         vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: "z-first".into(),
-                role: PresentationRole::Document,
+                role: FaceRole::Document,
                 name: "A readable encounter".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: "a-field".into(),
-                role: PresentationRole::TextEntry,
+                role: FaceRole::TextEntry,
                 name: "Friendly name".into(),
             },
         ],
-        vec![PresentationRelationship {
+        vec![FaceRelationship {
             source: "z-first".into(),
             target: "a-field".into(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         }],
-        vec![PresentationProperty {
+        vec![FaceProperty {
             subject: "z-first".into(),
             name: "producer".into(),
-            value: PresentationPropertyValue::Identity("opaque/sha256:producer".into()),
+            value: FacePropertyValue::Identity("opaque/sha256:producer".into()),
         }],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "a-field".into(),
             text: "Give this encounter a name.".into(),
         }],
         vec![
-            PresentationAction {
+            FaceAction {
                 identity: "edit".into(),
                 intent: "test/edit".into(),
                 target: "a-field".into(),
@@ -54,17 +54,17 @@ fn face(revision: u64) -> Presentation {
                 arguments: vec![
                     FaceActionArgument::text("value".into(), "Name".into(), 0, 64).unwrap(),
                 ],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
-            PresentationAction {
+            FaceAction {
                 identity: "finish".into(),
                 intent: "test/finish".into(),
                 target: "z-first".into(),
                 name: "Finish".into(),
                 arguments: vec![],
-                disclosure: PresentationDisclosureLevel::CurrentAction,
-                availability: PresentationActionAvailability::Available,
+                disclosure: FaceDisclosureLevel::CurrentAction,
+                availability: FaceActionAvailability::Available,
             },
         ],
         vec![],
@@ -73,7 +73,7 @@ fn face(revision: u64) -> Presentation {
 }
 
 fn bind(mask: &mut TerminalFaceMask) -> MaskShow {
-    let prepared = fixture::prepared(mask.presentation());
+    let prepared = fixture::prepared(mask.face());
     let mut output = Vec::new();
     let receipt = mask.render(&mut output, &prepared).unwrap();
     assert_eq!(receipt.bytes_written(), output.len());
@@ -115,7 +115,7 @@ fn full_document_preserves_words_relationships_and_inspection() {
         .iter()
         .map(|r| r.text.as_str())
         .collect::<String>();
-    assert!(exact.contains(mask.presentation().identity.as_str()));
+    assert!(exact.contains(mask.face().identity.as_str()));
     assert!(exact.contains("opaque/sha256:producer"));
     assert!(mask.show().is_none());
 }
@@ -126,56 +126,56 @@ fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
     let mut subjects = base.subjects;
     let mut properties = base.properties;
     let mut disclosures = Vec::new();
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "todo/list".into(),
-        role: PresentationRole::Collection,
+        role: FaceRole::Collection,
         name: "Groceries".into(),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: "todo/list".into(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "todo/status".into(),
-        role: PresentationRole::Status,
+        role: FaceRole::Status,
         name: "Progress".into(),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: "todo/status".into(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
     for index in 0..20 {
         let identity = format!("todo/item/{index}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: if index < 3 {
                 format!("Open item {index}")
             } else {
                 format!("Completed item {index}")
             },
         });
-        properties.push(PresentationProperty {
+        properties.push(FaceProperty {
             subject: identity.clone(),
             name: "complete".into(),
-            value: PresentationPropertyValue::Flag(index >= 3),
+            value: FacePropertyValue::Flag(index >= 3),
         });
-        properties.push(PresentationProperty {
+        properties.push(FaceProperty {
             subject: identity.clone(),
             name: "order".into(),
-            value: PresentationPropertyValue::Count(index as u64),
+            value: FacePropertyValue::Count(index as u64),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: identity,
             level: if index < 3 {
-                PresentationDisclosureLevel::Primary
+                FaceDisclosureLevel::Primary
             } else {
-                PresentationDisclosureLevel::SelectedDetail
+                FaceDisclosureLevel::SelectedDetail
             },
         });
     }
     let actions = vec![
-        PresentationAction {
+        FaceAction {
             identity: "todo/add".into(),
             intent: "todo/add".into(),
             target: "todo/list".into(),
@@ -183,52 +183,52 @@ fn todo_default_is_a_checklist_with_exact_actions_and_full_inspection() {
             arguments: vec![
                 FaceActionArgument::text("text".into(), "New item".into(), 1, 256).unwrap(),
             ],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         },
-        PresentationAction {
+        FaceAction {
             identity: "todo/complete/0".into(),
             intent: "todo/complete".into(),
             target: "todo/item/0".into(),
             name: "Complete item".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         },
-        PresentationAction {
+        FaceAction {
             identity: "todo/reopen/3".into(),
             intent: "todo/reopen".into(),
             target: "todo/item/3".into(),
             name: "Reopen item".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         },
-        PresentationAction {
+        FaceAction {
             identity: "todo/unavailable/0".into(),
             intent: "todo/remove".into(),
             target: "todo/item/0".into(),
             name: "Unavailable removal".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Unavailable {
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Unavailable {
                 reason_code: "not-now".into(),
                 explanation: "Not available now".into(),
             },
         },
     ];
-    let todo = Presentation::new_with_semantics(
+    let todo = Face::new_with_semantics(
         2,
         base.basis,
         subjects,
         base.relationships,
         properties,
         vec![
-            PresentationText {
+            FaceText {
                 subject: "todo/list".into(),
                 text: "Groceries".into(),
             },
-            PresentationText {
+            FaceText {
                 subject: "todo/status".into(),
                 text: "3 things left · 17 completed".into(),
             },
@@ -288,7 +288,7 @@ fn terminal_face_names_small_exact_text_choices_without_changing_the_contract() 
         }],
     )
     .unwrap();
-    let changed = Presentation::new_with_semantics(
+    let changed = Face::new_with_semantics(
         base.revision + 1,
         base.basis,
         base.subjects,
@@ -364,7 +364,7 @@ fn flush_failure_cannot_produce_receipt_or_leave_input_active() {
     }
     let mut mask = TerminalFaceMask::prepare(face(1), 60, 12).unwrap();
     let old = bind(&mut mask);
-    let prepared = fixture::prepared(mask.presentation());
+    let prepared = fixture::prepared(mask.face());
     assert!(matches!(
         mask.render(&mut FailFlush, &prepared),
         Err(TerminalError::Io(std::io::ErrorKind::BrokenPipe))
@@ -377,10 +377,10 @@ fn flush_failure_cannot_produce_receipt_or_leave_input_active() {
 #[test]
 fn only_latest_effect_receipt_and_available_exact_show_bind() {
     let mut mask = TerminalFaceMask::prepare(face(1), 60, 12).unwrap();
-    let prepared = fixture::prepared(mask.presentation());
+    let prepared = fixture::prepared(mask.face());
     let first = mask.render(&mut Vec::new(), &prepared).unwrap();
     let _second = mask.render(&mut Vec::new(), &prepared).unwrap();
-    let show = fixture::show(mask.presentation());
+    let show = fixture::show(mask.face());
     assert_eq!(mask.bind_show(first, show), Err(TerminalError::StaleShow));
     let receipt = mask.render(&mut Vec::new(), &prepared).unwrap();
     assert_eq!(
@@ -415,9 +415,7 @@ fn typed_edits_preserve_unicode_and_exact_action_correlation() {
     else {
         panic!("expected typed interaction")
     };
-    interaction
-        .validate_against(mask.presentation(), &show)
-        .unwrap();
+    interaction.validate_against(mask.face(), &show).unwrap();
     assert_eq!(interaction.arguments[0].value, "é".as_bytes());
     assert_eq!(interaction.action_id, "edit");
     assert_eq!(interaction.target, "a-field");
@@ -500,7 +498,7 @@ fn document_escapes_terminal_control_bytes_in_face_wording() {
     // Rebuild immutable identity through the canonical constructor.
     let mut subjects = face.subjects.clone();
     subjects[0].name = "hostile\u{1b}[2J".into();
-    let changed = Presentation::new_with_semantics(
+    let changed = Face::new_with_semantics(
         face.revision,
         face.basis.clone(),
         subjects,

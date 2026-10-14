@@ -12,7 +12,7 @@ use conduit_planner::{
 use core::fmt::Write;
 
 /// Preserve the exact Plan identity and every existing decision explanation.
-/// This verifies custody for presentation; it does not re-admit resources or
+/// This verifies custody for face; it does not re-admit resources or
 /// turn an estimated cost into a grant. Combined output is bounded to 512 KiB.
 pub fn render_cost_planned_realizations(
     planned: &CostPlannedRealizations<'_>,
@@ -97,7 +97,7 @@ pub fn render_cost_planned_realizations(
 }
 
 /// Earlier per-Gear decisions are attempts; a later refusal produced no Plan.
-/// Missing accounts refuse presentation rather than inventing cost evidence.
+/// Missing accounts refuse face rather than inventing cost evidence.
 pub fn render_cost_planning_refusal(
     error: &CostPlanningError<'_>,
 ) -> Result<String, CostExplanationRefusal> {

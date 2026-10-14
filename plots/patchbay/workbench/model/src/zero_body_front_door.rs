@@ -2,7 +2,7 @@
 
 use conduit_body::{Body, BodyMembership, MembershipProofId, Wake};
 use conduit_core::{BootId, CheckedPlotId, HostId, SignId, SourceDocumentId};
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 
 use crate::{LocalFrontDoor, PatchbayModel, PlotEditor};
 use std::sync::Arc;
@@ -237,7 +237,7 @@ pub enum OpenedFrontDoorSubject {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ZeroBodyFrontDoorProjection {
-    pub presentation: Presentation,
+    pub face: Face,
     pub navigation: patchbay_application::PatchbayNavigationProjection,
 }
 
@@ -346,7 +346,7 @@ impl ZeroBodyFrontDoor {
     }
 
     pub fn record_refusal(&mut self, code: &str) -> Result<SignId, String> {
-        if !matches!(code, "StalePresentation" | "StaleDiscovery" | "StalePlot") {
+        if !matches!(code, "StaleFace" | "StaleDiscovery" | "StalePlot") {
             return Err("unsupported front-door refusal code".into());
         }
         if self.refusals.len() == MAX_FRONT_DOOR_REFUSAL_SIGNS {
@@ -505,7 +505,7 @@ impl ZeroBodyFrontDoor {
         self.revision = self
             .revision
             .checked_add(1)
-            .ok_or("front-door presentation revision exhausted")?;
+            .ok_or("front-door face revision exhausted")?;
         Ok(())
     }
 }

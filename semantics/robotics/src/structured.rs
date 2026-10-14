@@ -10,7 +10,7 @@ use conduit_core::{
     MAXIMUM_STRUCTURED_CANONICAL_BYTES, QUANTITY_INFO_ID,
 };
 
-use conduit_presentation::{robotics_pose2_type, vector2_type};
+use conduit_face::{robotics_pose2_type, vector2_type};
 
 pub const ROBOTICS_SAMPLE_CONTEXT_TYPE: &str = "RoboticsSampleContext";
 pub const ROBOTICS_RANGE_TYPE: &str = "RoboticsRangeSample";

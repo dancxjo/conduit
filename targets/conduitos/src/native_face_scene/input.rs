@@ -1,8 +1,8 @@
 //! Mask-local replacement buffers. No current value is inferred from Face prose.
 use super::*;
 use alloc::{boxed::Box, string::String, vec};
+use conduit_face::{ManifestationLifecycle, UTF8_TEXT_VALUE_KIND};
 use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
-use conduit_presentation::{ManifestationLifecycle, UTF8_TEXT_VALUE_KIND};
 
 /// A navigation wish, resolved afresh after the producer accepts an interaction.
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -269,7 +269,7 @@ impl NativeFaceScene {
             .map(|(_, value)| value.as_ref().map_or(0, Vec::len))
             .sum::<usize>()
             + value.len();
-        if total > conduit_presentation::MAX_FACE_INTERACTION_BYTES {
+        if total > conduit_face::MAX_FACE_INTERACTION_BYTES {
             return Err(FaceSceneError::InputBound);
         }
         self.input.values[argument_index] = Some(value);

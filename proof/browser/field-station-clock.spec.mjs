@@ -21,7 +21,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   }));
   expect(first.recovered).toBe(false);
   expect(first.playState).toBe("playing");
-  await expect(page.locator('[data-presentation-kind="presentation/tick"]')).toHaveText("0", { timeout: 15_000 });
+  await expect(page.locator('[data-face-kind="face/tick"]')).toHaveText("Clock tick: 0", { timeout: 15_000 });
 
   await journey.capture(page, {
     id: "open", title: "Open the clock",
@@ -65,7 +65,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   });
   expect(running.patchbay.topology.gears.map(({ kind_id }) => kind_id)).toEqual([
     "time/every",
-    "presentation/tick",
+    "face/tick",
   ]);
   expect(running.patchbay.topology.cords).toHaveLength(1);
   expect(running.constraintConformance.patchbay.checked_plot_id)
@@ -97,8 +97,8 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     await expect(page.locator(`[data-identity="${selector}"]`)).toHaveText(identity);
   }
 
-  const tick = page.locator('[data-presentation-kind="presentation/tick"]');
-  await expect(tick).toHaveText("0", { timeout: 15_000 });
+  const tick = page.locator('[data-face-kind="face/tick"]');
+  await expect(tick).toHaveText("Clock tick: 0", { timeout: 15_000 });
   const manifestation = await tick.evaluate(element => ({ ...element.dataset }));
   await journey.capture(page, {
     id: "reload", title: "Reload the same Body",
@@ -112,9 +112,9 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     bootId: running.identities.bootId,
     bodyPlanId: running.identities.planId,
     activePlayId: running.identities.playId,
-    presentationKind: "presentation/tick",
+    faceKind: "face/tick",
   });
-  for (const identity of [manifestation.planId, manifestation.placementId, manifestation.presentationId]) {
+  for (const identity of [manifestation.planId, manifestation.placementId, manifestation.faceId]) {
     expect(typeof identity === "string" && identity.length > 0).toBe(true);
   }
   const observationSequence = Number(manifestation.observationSequence);
@@ -129,7 +129,7 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
   expect(lulled.receipts).toHaveLength(1);
   expect(lulled.receipts[0].active_play_id).toBe(running.identities.playId);
   expect(lulled.receipts[0].disposition).toBe("cancelled");
-  expect(lulled.receipts[0].presentation_id).toBe(manifestation.presentationId);
+  expect(lulled.receipts[0].face_id).toBe(manifestation.faceId);
   expect(lulled.receipts[0].timer_completions).toBeGreaterThanOrEqual(1);
   expect(lulled.receipts[0].manifestation_completions).toBeGreaterThanOrEqual(1);
   expect(lulled.receipts[0].timer_completions - lulled.receipts[0].manifestation_completions)
@@ -144,32 +144,32 @@ test("an external page recovers one Clock Body across a fresh Boot without resur
     active_play_id: running.identities.playId,
     retention_gap: null,
   });
-  const presentation = signs.placements.find(({ placement_id }) => placement_id === manifestation.placementId);
-  expect(presentation).toMatchObject({ plan_id: manifestation.planId });
+  const face = signs.placements.find(({ placement_id }) => placement_id === manifestation.placementId);
+  expect(face).toMatchObject({ plan_id: manifestation.planId });
   expect(signs.placements).toHaveLength(2);
-  const timer = signs.placements.find(({ node }) => node !== presentation.node);
+  const timer = signs.placements.find(({ node }) => node !== face.node);
   expect(timer).toMatchObject({
-    plan_id: presentation.plan_id,
-    fragment_id: presentation.fragment_id,
+    plan_id: face.plan_id,
+    fragment_id: face.fragment_id,
   });
-  const presentationRequest = signs.events.find(event => event.kind === "HostCallRequested"
-    && event.node === presentation.node && event.request === observationSequence);
-  const presentationCompletion = signs.events.find(event => event.kind === "HostCallCompleted"
-    && event.node === presentation.node && event.request === observationSequence);
-  expect(presentationRequest).toBeDefined();
-  expect(presentationCompletion?.sequence).toBeGreaterThan(presentationRequest.sequence);
+  const faceRequest = signs.events.find(event => event.kind === "HostCallRequested"
+    && event.node === face.node && event.request === observationSequence);
+  const faceCompletion = signs.events.find(event => event.kind === "HostCallCompleted"
+    && event.node === face.node && event.request === observationSequence);
+  expect(faceRequest).toBeDefined();
+  expect(faceCompletion?.sequence).toBeGreaterThan(faceRequest.sequence);
   expect(signs.events.filter(event => event.kind === "HostCallCompleted"
-    && event.node === presentation.node)).toHaveLength(lulled.receipts[0].manifestation_completions);
+    && event.node === face.node)).toHaveLength(lulled.receipts[0].manifestation_completions);
   const timerCompletions = signs.events.filter(event => event.kind === "HostCallCompleted"
     && event.node === timer.node);
   expect(timerCompletions).toHaveLength(lulled.receipts[0].timer_completions);
-  const timerCompletion = timerCompletions.findLast(event => event.sequence < presentationRequest.sequence);
+  const timerCompletion = timerCompletions.findLast(event => event.sequence < faceRequest.sequence);
   expect(timerCompletion).toBeDefined();
   const timerRequest = signs.events.find(event => event.kind === "HostCallRequested"
     && event.node === timerCompletion.node && event.request === timerCompletion.request);
   expect(timerRequest).toBeDefined();
   expect(timerCompletion.sequence).toBeGreaterThan(timerRequest.sequence);
-  expect(presentationRequest.sequence).toBeGreaterThan(timerCompletion.sequence);
+  expect(faceRequest.sequence).toBeGreaterThan(timerCompletion.sequence);
   const pendingTimer = signs.events.findLast(event => event.kind === "HostCallRequested"
     && event.node === timer.node
     && !signs.events.some(completion => completion.kind === "HostCallCompleted"

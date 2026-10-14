@@ -13,6 +13,7 @@ mod delay;
 mod deterministic_garden_source;
 mod distance_frequency;
 pub(crate) use conduit_browser_mask_offer as dom_mask;
+mod face;
 mod factory;
 mod final_normalized_pattern;
 mod flow_collect;
@@ -28,11 +29,11 @@ mod linguistics;
 mod little_seismograph_source;
 mod logic;
 mod math;
+mod measurement_face;
 pub(crate) mod measurement_hysteresis;
 pub(crate) mod measurement_limits;
 mod measurement_observation;
 pub(crate) mod measurement_plot;
-mod measurement_presentation;
 pub(crate) mod measurement_summary;
 pub(crate) mod measurement_window;
 mod membership_offer;
@@ -43,9 +44,8 @@ mod phase_synchronization;
 pub(crate) mod pitch_tone;
 mod pointer;
 pub(crate) mod pointer_selector;
-mod presentation;
+mod pulse_face;
 mod pulse_observation;
-mod pulse_presentation;
 pub(crate) mod pure_expression;
 mod quantity;
 pub(crate) mod quantity_conversion;
@@ -57,7 +57,7 @@ mod record_transcript;
 pub(crate) mod replay_control;
 pub(crate) mod replay_source;
 pub(crate) mod resource;
-mod rhythm_presentation;
+mod rhythm_face;
 mod rhythm_state;
 pub(crate) mod startup_chime;
 mod state_time;
@@ -86,9 +86,7 @@ pub(crate) use factory::{
     advertisement, backs, catalogs, factory, local_bases, selected_human_machinery,
     BrowserInstallation, BrowserManifestation,
 };
-pub(crate) use factory::{
-    advertisement_for_presentation, catalogs_for_presentation, execution_capability_ids,
-};
+pub(crate) use factory::{advertisement_for_face, catalogs_for_face, execution_capability_ids};
 pub(crate) use input::{BUTTON_EVENT_OPERATION, KEY_EVENT_OPERATION};
 pub(crate) use inventory::inventory;
 pub(crate) use limits::{
@@ -159,9 +157,9 @@ pub(crate) mod button_attempt;
 
 pub(crate) mod catalogs;
 
-pub(crate) mod normalized_presentation;
-pub(crate) use catalogs::PresentationProfile;
+pub(crate) mod normalized_face;
+pub(crate) use catalogs::FaceProfile;
 
 pub(crate) mod pattern_comparison;
 
-pub(crate) mod comparison_presentation;
+pub(crate) mod comparison_face;

@@ -1,11 +1,11 @@
-//! Admitted product actions forwarded by native presentation input.
+//! Admitted product actions forwarded by native face input.
 use super::ENTER;
 use crate::{
     front_door::FrontDoor,
     product_bindings::binding_for_usage,
     product_journey::{JourneyAction, JourneyStatus, ProductJourney},
 };
-use conduit_presentation::{ApplicationAction, ApplicationView};
+use conduit_face::{ApplicationAction, ApplicationView};
 use patchbay_application::{
     CHANGE_MASKS_ACTION_ID, EDIT_CURRENT_ACTION_ID, INSPECT_NEXT_ACTION_ID,
 };
@@ -171,7 +171,7 @@ pub(super) fn resident_application_action(
 mod tests {
     use super::*;
     use alloc::{string::ToString, vec};
-    use conduit_presentation::{ApplicationEventKind, ApplicationView};
+    use conduit_face::{ApplicationEventKind, ApplicationView};
     #[test]
     fn reserved_shell_keys_are_one_explicit_product_control_vocabulary() {
         assert_eq!(product_control(4), None);

@@ -5,7 +5,7 @@ use super::TerminalWardrobeCommand;
 use super::{wire, AttachReply, AttachRequest};
 use crate::durable_host_control::{body, CONTROL_OUTCOME_UNKNOWN, PROTOCOL};
 use conduit_core::{HostAdvertisement, PlanId};
-use conduit_presentation::{ManifestationLifecycle, MaskShow, Presentation};
+use conduit_face::{Face, ManifestationLifecycle, MaskShow};
 use conduit_std_host::hosted_terminal_mask_host::{
     receive_terminal_frame_and_ack, TerminalFrameReceipt,
 };
@@ -22,7 +22,7 @@ pub(crate) struct AttachedTerminalSession {
     // Keeping this socket open is the selected terminal provider's lifetime.
     _connection: UnixStream,
     pub show: MaskShow,
-    pub face: Presentation,
+    pub face: Face,
     pub route_plan_id: PlanId,
     pub advertisement: HostAdvertisement,
     pub effect: TerminalFrameReceipt,

@@ -3,4 +3,4 @@
 export {
   attachConduitSyntaxEditor as attachBrowserSyntaxEditor,
   projectConduitSyntax as projectBrowserSyntax,
-} from '../host/assets/application-syntax-presentation.mjs';
+} from '../host/assets/application-syntax-face.mjs';

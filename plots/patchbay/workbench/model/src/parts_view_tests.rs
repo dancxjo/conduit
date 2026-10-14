@@ -5,7 +5,7 @@ use conduit_body::{
 };
 use conduit_core::{bind_active_play, BootId, HostId, LinkBindingId, OfferGeneration, SignId};
 use conduit_std_host::{StdHost, StdHostConfig};
-use patchbay_application::{PartPresentationState, PartsAction, PartsView};
+use patchbay_application::{PartFaceState, PartsAction, PartsView};
 
 fn admit(
     membership: &mut BodyMembership,
@@ -118,14 +118,14 @@ fn parts_view_derives_here_attached_offline_candidates_and_plan_truth() {
     .unwrap();
 
     assert_eq!(view.parts.len(), 3);
-    assert_eq!(view.parts[0].state, PartPresentationState::Here);
+    assert_eq!(view.parts[0].state, PartFaceState::Here);
     assert!(view.parts[0].in_plan);
     assert!(view.parts[0].playing);
     assert!(!view.parts[0].details.planned_placements.is_empty());
     assert!(view.parts[0].details.expected_signs > 0);
-    assert_eq!(view.parts[1].state, PartPresentationState::Attached);
+    assert_eq!(view.parts[1].state, PartFaceState::Attached);
     assert!(!view.parts[1].in_plan);
-    assert_eq!(view.parts[2].state, PartPresentationState::Offline);
+    assert_eq!(view.parts[2].state, PartFaceState::Offline);
     assert!(!view.parts[2].available);
     assert!(view.parts[2].details.proof_reference.is_some());
     assert_eq!(view.wants_to_join.len(), 1);
@@ -314,7 +314,7 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
         .find(|row| row.details.part_id == browser)
         .unwrap();
     assert!(browser_row.available);
-    assert_eq!(browser_row.state, PartPresentationState::Attached);
+    assert_eq!(browser_row.state, PartFaceState::Attached);
     assert_eq!(browser_row.details.presence_sequence, Some(2));
     assert_eq!(
         browser_row.details.presence_sign_id,
@@ -427,7 +427,7 @@ fn canonical_presence_drives_shared_available_offline_projection_without_mutatin
         .find(|row| row.details.part_id == browser)
         .unwrap();
     assert!(!browser_row.available);
-    assert_eq!(browser_row.state, PartPresentationState::Offline);
+    assert_eq!(browser_row.state, PartFaceState::Offline);
     assert_eq!(presence.leases[0].state, HostPresenceState::Unavailable);
     assert_eq!(
         browser_row.details.host_id,

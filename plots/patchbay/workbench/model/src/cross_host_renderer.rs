@@ -1,4 +1,4 @@
-//! Exact two-Host plan for delivering one Patchbay Presentation to a renderer.
+//! Exact two-Host plan for delivering one Patchbay Face to a renderer.
 
 use conduit_core::{
     ArtifactId, BaseImplementationId, BootId, CapabilityId, CapabilityLimits, ExecutionProfileId,
@@ -6,17 +6,17 @@ use conduit_core::{
     KindIdentity, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
     PortDirection, PROTOCOL_VERSION,
 };
-use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
-use conduit_plot::{parse, KindProjection, ProfileCatalog};
-use conduit_presentation::{
+use conduit_face::{
     renderer_inputs, renderer_kind_projection, MAX_RENDERER_VALUE_BYTES, RENDERER_CONTRACT_REVISION,
 };
+use conduit_planner::{plan_with_line_offers, PlacementChoice, PlacementChoices};
+use conduit_plot::{parse, KindProjection, ProfileCatalog};
 use std::collections::BTreeMap;
 
 use crate::{renderer_preparation::renderer_host, RendererAdapterIdentity, RendererAdapterKind};
 
-pub const PRESENTATION_PROJECT_KIND: &str = "presentation/patchbay-project";
-pub const PRESENTATION_PROJECT_CAPABILITY: &str = "patchbay-project";
+pub const FACE_PROJECT_KIND: &str = "face/patchbay-project";
+pub const FACE_PROJECT_CAPABILITY: &str = "patchbay-project";
 pub const CROSS_HOST_SOURCE_GEAR: &str = "project";
 pub const CROSS_HOST_RENDERER_GEAR: &str = "renderer";
 pub const CROSS_HOST_MAXIMUM_FRAME_BYTES: u32 = MAX_RENDERER_VALUE_BYTES + 8_192;
@@ -43,7 +43,7 @@ pub fn cross_host_renderer_plan(
                 GearId::from(format!("cross-host-patchbay/{CROSS_HOST_SOURCE_GEAR}")),
                 PlacementChoice {
                     host_id: source_host_id.clone(),
-                    capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),
+                    capability_id: CapabilityId::from(FACE_PROJECT_CAPABILITY),
                 },
             ),
             (
@@ -90,7 +90,7 @@ fn renderer_plot() -> Result<conduit_plot::CheckedPlot, String> {
         .insert(renderer_kind_projection())
         .map_err(|error| error.to_string())?;
     parse(
-        "plot cross-host-patchbay {\n    project: presentation/patchbay-project\n    renderer: presentation/renderer\n    project.presentation >> renderer.presentation\n}\n",
+        "plot cross-host-patchbay {\n    project: face/patchbay-project\n    renderer: face/renderer(\"Body view\")\n    project.face >> renderer.face\n}\n",
         &catalog,
     )
     .map_err(|error| error.to_string())
@@ -100,7 +100,7 @@ fn project_kind_projection() -> KindProjection {
     let mut output = renderer_inputs().remove(0);
     output.direction = PortDirection::Output;
     KindProjection {
-        kind_id: PRESENTATION_PROJECT_KIND.into(),
+        kind_id: FACE_PROJECT_KIND.into(),
         kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
         inputs: Vec::new(),
         outputs: vec![output],
@@ -116,20 +116,20 @@ fn source_host(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
         host_id,
         boot_id,
         offer_generation: OfferGeneration(1),
-        profile: HostProfileId::from("presentation/source-host@1"),
+        profile: HostProfileId::from("face/source-host@1"),
         bases: vec![],
         resources: Vec::new(),
         capabilities: vec![conduit_core::capability_offer_from_parts! {
             semantic_contract: Default::default(),
             startup_parameters: Vec::new(),
             shorthand: None,
-            capability_id: CapabilityId::from(PRESENTATION_PROJECT_CAPABILITY),
-            kind_id: PRESENTATION_PROJECT_KIND.into(),
+            capability_id: CapabilityId::from(FACE_PROJECT_CAPABILITY),
+            kind_id: FACE_PROJECT_KIND.into(),
             kind_contract_revision: KindIdentity::from(RENDERER_CONTRACT_REVISION),
             implementation: ImplementationOffer {
-                execution_profile_id: ExecutionProfileId::from("presentation/project-hosted@1"),
-                implementation_id: ImplementationId::from("patchbay/project-presentation@1"),
-                artifact_id: ArtifactId::from("conduit-patchbay-workbench/project-presentation@1"),
+                execution_profile_id: ExecutionProfileId::from("face/project-hosted@1"),
+                implementation_id: ImplementationId::from("patchbay/project-face@1"),
+                artifact_id: ArtifactId::from("conduit-patchbay-workbench/project-face@1"),
             },
             inputs: Vec::new(),
             outputs: vec![output],

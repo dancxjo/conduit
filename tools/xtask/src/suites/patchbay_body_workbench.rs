@@ -33,7 +33,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.patchbay-body-workbench.workspace-renderer",
-        "Prove durable presentation-only layouts and canonical highlighting in Chromium",
+        "Prove durable face-only layouts and canonical highlighting in Chromium",
         "node",
         &["--test", "proof/browser/patchbay-workspace-render.test.mjs"],
         None,
@@ -50,7 +50,7 @@ pub const PROVE_PATCHBAY_BODY_WORKBENCH_STEPS: &[Step] = &[
         None,
         Some(ProofClass::ContractCompile),
         &["target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm"],
-    ),
+    ).with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::typed(
         "prove.patchbay-body-workbench.shared-model",
         "Prove bounded Body attachment, current frame, biography, and negative replacement contracts",

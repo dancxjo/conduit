@@ -1,6 +1,6 @@
 use super::*;
 
-fn control_points(bounds: conduit_presentation::LayoutRect) -> [(u32, u32, bool); 6] {
+fn control_points(bounds: conduit_face::LayoutRect) -> [(u32, u32, bool); 6] {
     let left = u32::try_from(bounds.x).unwrap();
     let top = u32::try_from(bounds.y).unwrap();
     let right = left + u32::from(bounds.width);
@@ -55,7 +55,7 @@ fn completed_run_is_not_an_active_native_control() {
     );
     assert!(!shell.run_hit(&route, &tour).unwrap());
     let scene = tour.scene(640, 480).unwrap();
-    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+    assert!(scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
     assert!(
         scene
             .commands()
@@ -104,13 +104,13 @@ fn run_button_uses_shared_layout_bounds_and_refuses_a_retired_route() {
             .iter()
             .any(|command| command.payload() == "Run Plan")
     );
-    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+    assert!(scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
 }
 
 #[test]
 fn compact_rows_are_visible_and_each_resolves_its_own_gear() {
     for height in [160, 266, 360] {
-        let bounds = conduit_presentation::LayoutRect {
+        let bounds = conduit_face::LayoutRect {
             x: 0,
             y: 0,
             width: 320,
@@ -139,28 +139,25 @@ fn compact_rows_are_visible_and_each_resolves_its_own_gear() {
 #[test]
 fn chooser_has_a_visible_bounded_outer_frame_and_semantic_close_action() {
     let (tour, _, _) = fixture();
-    let presentation = tour
+    let face = tour
         .controller()
         .state()
-        .transient_presentation(TourTransientKind::Chooser, "Choose a Patchbay Gear")
+        .transient_face(TourTransientKind::Chooser, "Choose a Patchbay Gear")
         .unwrap();
-    let bounds = conduit_presentation::LayoutRect {
+    let bounds = conduit_face::LayoutRect {
         x: 160,
         y: 160,
         width: 320,
         height: 160,
     };
-    let scene = transient_scene(bounds, &presentation, 0).unwrap();
+    let scene = transient_scene(bounds, &face, 0).unwrap();
     let frame = &scene.commands()[1];
-    assert_eq!(frame.kind, conduit_presentation::GraphicsCommandKind::Rect);
-    assert_eq!(
-        frame.style,
-        conduit_presentation::GraphicsShapeStyle::Stroke
-    );
-    assert_eq!(frame.paint, conduit_presentation::GraphicsPaintRole::Accent);
+    assert_eq!(frame.kind, conduit_face::GraphicsCommandKind::Rect);
+    assert_eq!(frame.style, conduit_face::GraphicsShapeStyle::Stroke);
+    assert_eq!(frame.paint, conduit_face::GraphicsPaintRole::Accent);
     assert_eq!(
         frame.bounds,
-        conduit_presentation::LayoutRect {
+        conduit_face::LayoutRect {
             x: 0,
             y: 0,
             width: 320,
@@ -168,9 +165,9 @@ fn chooser_has_a_visible_bounded_outer_frame_and_semantic_close_action() {
         }
     );
     assert_eq!(frame.clip, frame.bounds);
-    assert!(presentation.subjects.iter().any(|subject| {
+    assert!(face.subjects.iter().any(|subject| {
         subject.identity == conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID
-            && subject.role == conduit_presentation::PresentationRole::Action
+            && subject.role == conduit_face::FaceRole::Action
     }));
 }
 

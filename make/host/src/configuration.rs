@@ -95,7 +95,7 @@ pub enum ConfigurationDiagnostic {
     ConflictingResourceAssignment {
         resource: String,
     },
-    AmbiguousPresentationRealization {
+    AmbiguousFaceRealization {
         implementations: Vec<String>,
     },
     DuplicateResource {
@@ -344,20 +344,18 @@ pub fn check_host_configuration(
     };
     derived_presenters.sort_by(|left, right| left.0.cmp(&right.0));
     if derived_presenters.len() > 1 {
-        return Err(vec![
-            ConfigurationDiagnostic::AmbiguousPresentationRealization {
-                implementations: derived_presenters
-                    .into_iter()
-                    .map(|(implementation, _)| implementation)
-                    .collect(),
-            },
-        ]);
+        return Err(vec![ConfigurationDiagnostic::AmbiguousFaceRealization {
+            implementations: derived_presenters
+                .into_iter()
+                .map(|(implementation, _)| implementation)
+                .collect(),
+        }]);
     }
     let derived_presenter = derived_presenters.pop();
     let mut host_calls = descriptor.host_calls.clone();
     let mut facilities = Vec::new();
     if let Some((_, metadata)) = &derived_presenter {
-        collect_derived_presentation_requirements(
+        collect_derived_face_requirements(
             &metadata.prerequisites,
             catalog,
             &mut host_calls,
@@ -475,7 +473,7 @@ fn presenter_roots_are_selected(
     })
 }
 
-fn collect_derived_presentation_requirements(
+fn collect_derived_face_requirements(
     roots: &[crate::PrerequisiteNode],
     catalog: &MakeCatalog,
     host_calls: &mut Vec<String>,
@@ -492,7 +490,7 @@ fn collect_derived_presentation_requirements(
             _ => {}
         }
         if let Some(dependencies) = catalog.dependencies.get(node) {
-            collect_derived_presentation_requirements(
+            collect_derived_face_requirements(
                 dependencies,
                 catalog,
                 host_calls,

@@ -3,8 +3,8 @@ use super::super::*;
 
 pub(in crate::plot_runner) fn request() -> BodyStartRequest {
     request_from_sources(&[
-        "plot first {\n text: text/literal(\"first\")\n show: presentation/text\n text >> show\n}.\n",
-        "plot second {\n text: text/literal(\"second\")\n show: presentation/text\n text >> show\n}.\n",
+        "plot first {\n text: text/literal(\"first\")\n show: face/text(\"Message\")\n text >> show\n}.\n",
+        "plot second {\n text: text/literal(\"second\")\n show: face/text(\"Message\")\n text >> show\n}.\n",
     ])
 }
 

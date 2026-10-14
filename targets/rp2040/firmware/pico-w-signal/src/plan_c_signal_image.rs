@@ -23,8 +23,8 @@ pub fn execution_identity() -> SignalExecutionIdentity {
         boot_id: generated::BOOT_ID,
         active_play_id: generated::ACTIVE_PLAY_ID,
         terminal_sign_id: generated::TERMINAL_SIGN_ID,
-        presentation_ids: &generated::PRESENTATION_IDS,
-        presentation_sign_ids: &generated::PRESENTATION_SIGN_IDS,
+        face_ids: &generated::FACE_IDS,
+        face_sign_ids: &generated::FACE_SIGN_IDS,
     }
 }
 

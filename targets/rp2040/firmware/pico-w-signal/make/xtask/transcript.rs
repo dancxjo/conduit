@@ -70,7 +70,7 @@ pub fn verify_bluetooth_transcript(
             _ => {}
         }
     }
-    let expected_receipts = identity.generated_image.presentation_ids.len();
+    let expected_receipts = identity.generated_image.face_ids.len();
     if !controller_seen
         || !connected_seen
         || receipts != expected_receipts
@@ -198,19 +198,19 @@ pub fn verify_receipt(
     }
     verify_field(
         &record,
-        "presentation_id",
+        "face_id",
         identity
             .generated_image
-            .presentation_ids
+            .face_ids
             .get(sequence)
-            .ok_or("identity manifest has no presentation ID for receipt")?,
+            .ok_or("identity manifest has no face ID for receipt")?,
     )?;
     verify_field(
         &record,
         "sign_id",
         identity
             .generated_image
-            .presentation_sign_ids
+            .face_sign_ids
             .get(sequence)
             .ok_or("identity manifest has no sign ID for receipt")?,
     )

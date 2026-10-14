@@ -11,11 +11,11 @@ use std::{
 };
 
 use conduit_core::{kind_id, BaseImplementationId, ObservationKind, TerminalDisposition};
+use conduit_face::{Face, ManifestationLifecycle, MaskShow};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{ManifestationLifecycle, MaskShow, Presentation};
 use sha2::{Digest, Sha256};
 
 use crate::{
@@ -76,7 +76,7 @@ pub fn spoken_segment_plot(language: &conduit_language::LanguageRequest) -> Stri
 }
 
 pub fn execute_real_spoken_batch(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     discovery: EspeakDiscovery,
@@ -119,7 +119,7 @@ pub fn execute_real_spoken_batch(
 /// Execute one exact bounded batch on the already selected Owner Host.
 /// Artifact acknowledgement does not assert speaker playback.
 pub fn execute_spoken_batch_on_attached_artifact_host(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     language: &conduit_language::LanguageRequest,
@@ -296,7 +296,7 @@ pub fn execute_spoken_batch_on_attached_artifact_host(
 /// Pure preflight before provider discovery, planning, or artifact creation.
 /// The batch owns the exact finite committed sequence for one Fore Flow.
 pub fn validate_batch_for_installed_fore(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     wav_path: &Path,
@@ -312,7 +312,7 @@ pub fn validate_batch_for_installed_fore(
 }
 
 fn validate_spoken_source(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
 ) -> Result<(), SpokenStreamExecutionRefusal> {

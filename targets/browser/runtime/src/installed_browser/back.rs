@@ -81,8 +81,8 @@ impl BrowserBack {
         })
     }
 
-    pub(crate) fn presentation(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
-        Self::installed_step(PresentationBack {
+    pub(crate) fn face(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
+        Self::installed_step(FaceBack {
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -439,13 +439,13 @@ impl<const PORTS: usize> StepBack<PORTS> for UnaryBack {
     }
 }
 
-struct PresentationBack {
+struct FaceBack {
     maximum_input_bytes: u32,
     next_request: u32,
     pending: Option<RequestId>,
 }
 
-impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
+impl<const PORTS: usize> StepBack<PORTS> for FaceBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
@@ -457,7 +457,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
                         return identity_exhausted(3);
                     };
                     io.consume_host_completion()
-                        .expect("observed presentation completion");
+                        .expect("observed face completion");
                     self.pending = None;
                     self.next_request = next;
                     return StepOutcome::Progress;
@@ -477,15 +477,15 @@ impl<const PORTS: usize> StepBack<PORTS> for PresentationBack {
                 Err(_) => return fail(3),
             };
             let request = RequestId(self.next_request);
-            io.consume(PortId(0)).expect("present presentation input");
+            io.consume(PortId(0)).expect("present face input");
             io.request_host_call(request, HostCallId(0), input)
-                .expect("presentation Host Call");
+                .expect("face Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
-                .expect("observed presentation input closure");
+                .expect("observed face input closure");
             return StepOutcome::Complete;
         }
         StepOutcome::Await

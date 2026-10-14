@@ -1,8 +1,8 @@
 use super::{host, installed_std, BTreeMap, BaseImplementationId, PlanningOptions, RecordingTimer};
 use conduit_core::{ObservationKind, TerminalDisposition};
+use conduit_face::MAX_LAYOUT_FRAME_BYTES;
 use conduit_planner::{default_placements, plan_with_options};
 use conduit_plot::parse;
-use conduit_presentation::MAX_LAYOUT_FRAME_BYTES;
 
 const PLOT: &str = r#"plot patchbay_shell {
  viewport: layout/viewport(width = 960, height = 540, children = 3, child-width = 120, child-height = 80)

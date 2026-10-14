@@ -4,7 +4,7 @@ fn delivery(port: &str, sequence: u64) -> ExternalForeDelivery {
     ExternalForeDelivery {
         front_port_id: port_id(port),
         track: ConnectionTrack::Payload,
-        value_kind: conduit_presentation::SHOW_VALUE_KIND.into(),
+        value_kind: conduit_face::SHOW_VALUE_KIND.into(),
         sequence,
         bytes: vec![],
     }

@@ -70,8 +70,8 @@ plot little-seismograph-display {
     # Transactional display specimen: one bounded measurement series.
     source: measurement/deterministic-seismograph-inputs
     processing: little-seismograph-processing
-    plot: presentation/measurement-plot
-    threshold: presentation/measurement-threshold
+    plot: face/measurement-plot("Measurements")
+    threshold: face/measurement-threshold("Threshold state")
 
     source.profile >> processing.profile
     source.measurement >> processing.measurement

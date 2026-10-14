@@ -37,14 +37,14 @@ browser, native workbench, and ConduitOS routes.
 ```conduit
 plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
 
     "Hello, world." >> upper >> show
 }.
 ```
 
 The literal supplies text, `text/upper` makes it uppercase, and
-`presentation/text` presents it. The full stop after `}` makes structural drain
+`face/text` presents it. The full stop after `}` makes structural drain
 semantic completion. The source chooses no OS, window, socket, or device.
 
 Three small groups explain the model:

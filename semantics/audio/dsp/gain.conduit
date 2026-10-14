@@ -1,0 +1,15 @@
+# Signed 16-bit integer excitation with an explicit dimensionless Q8 gain.
+# Saturation is symmetric around zero; arithmetic is safe inside this profile.
+type GainControl = {
+    sample: I32
+    gain_q8: I32
+    cancelled: Boolean
+}
+type GainOutcome =
+    sample I32
+    | invalid_profile
+    | cancelled
+plot dsp/gain (
+    >> control: GainControl...|
+    result: GainOutcome...| >>
+) = (.cancelled ? GainOutcome.cancelled : .sample < -32768 || .sample > 32767 || .gain_q8 < 0 || .gain_q8 > 4096 ? GainOutcome.invalid_profile : GainOutcome.sample((.sample * .gain_q8 / 256) < -32767 ? -32767 : (.sample * .gain_q8 / 256) > 32767 ? 32767 : .sample * .gain_q8 / 256))

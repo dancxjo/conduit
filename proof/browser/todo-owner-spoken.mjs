@@ -65,13 +65,13 @@ export async function captureDirectTodoSpeech({ owner, state, output, bodyId, re
   const selected = owner(['body', 'face', '--state-dir', state, '--json']);
   const installation = JSON.parse(await readFile(path.join(state, 'installation.json')));
   assert.equal(installation.selected_speech.artifact_only, true);
-  assert.equal(selected.presentation.basis.body_id, bodyId);
+  assert.equal(selected.face.basis.body_id, bodyId);
   await writeFile(path.join(output, 'selected-face.json'), `${JSON.stringify(selected)}\n`);
   const opening = await terminal('opening', await invoke('start', ['start']));
   const openingObservedAt = Date.now();
   assert.equal(opening.outcome, 'available');
   assert.equal(opening.mask_artifact_scope, 'opening');
-  assert.equal(opening.source_face_id, selected.presentation.identity);
+  assert.equal(opening.source_face_id, selected.face.identity);
   assert.equal(opening.speaker_played, false);
   assert.equal(opening.artifact.active_play_id, opening.active_play_id);
   assert.equal(typeof opening.artifact.completion_sign_id, 'string');
@@ -89,12 +89,12 @@ export async function captureDirectTodoSpeech({ owner, state, output, bodyId, re
     assert.equal(remaining.output_mode, 'wav-artifact');
     assert.equal(remaining.source_show_id, opening.show_id);
     assert.equal(remaining.source_show_still_current, true);
-    assert.equal(remaining.face_id, selected.presentation.identity);
-    assert.equal(remaining.face_revision_decimal, selected.presentation_revision_decimal);
+    assert.equal(remaining.face_id, selected.face.identity);
+    assert.equal(remaining.face_revision_decimal, selected.face_revision_decimal);
     assert.equal(remaining.host_id, selected.advertisement.host_id);
     assert.equal(remaining.boot_id, selected.advertisement.boot_id);
-    const disclosures = new Map(selected.presentation.disclosures.map(item => [item.subject, item.level]));
-    const expected = selected.presentation.subjects.filter(item => item.role === 'Item'
+    const disclosures = new Map(selected.face.disclosures.map(item => [item.subject, item.level]));
+    const expected = selected.face.subjects.filter(item => item.role === 'Item'
       && (disclosures.get(item.identity) ?? 'Primary') === 'Primary').map(item => `${item.name}, item.`);
     assert.ok(remaining.batches.length > 0 && remaining.batches.length <= 64);
     assert.deepEqual(remaining.batches.flatMap(batch => batch.spoken_segments), expected);
@@ -117,11 +117,11 @@ export async function captureDirectTodoSpeech({ owner, state, output, bodyId, re
     }
   }
   const after = owner(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(after.presentation.basis.body_id, bodyId);
-  assert.deepEqual(after.presentation.properties.filter(item => item.subject.startsWith('todo/')),
-    selected.presentation.properties.filter(item => item.subject.startsWith('todo/')));
-  return { opening, remaining, selected_face_id: selected.presentation.identity,
-    selected_face_revision: selected.presentation_revision_decimal,
+  assert.equal(after.face.basis.body_id, bodyId);
+  assert.deepEqual(after.face.properties.filter(item => item.subject.startsWith('todo/')),
+    selected.face.properties.filter(item => item.subject.startsWith('todo/')));
+  return { opening, remaining, selected_face_id: selected.face.identity,
+    selected_face_revision: selected.face_revision_decimal,
     selected_host_id: selected.advertisement.host_id, selected_boot_id: selected.advertisement.boot_id,
     selected_provider_sha256: installation.selected_speech.provider_sha256,
     selected_voice: installation.selected_speech.voice,

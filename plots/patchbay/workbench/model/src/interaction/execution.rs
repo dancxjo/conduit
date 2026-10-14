@@ -1,6 +1,6 @@
 //! Exact one-Play execution for one admitted semantic Patchbay action.
 
-use super::presentation_validation::validate_presentation_invocation;
+use super::face_validation::validate_face_invocation;
 use super::*;
 use conduit_core::{bind_active_play, BaseImplementationId};
 use conduit_kernel::scheduler::{
@@ -126,7 +126,7 @@ impl PatchbayInteraction {
                         .map(|_| ())
                         .map_err(|error| match error {
                             crate::PatchbayGraphError::StaleGraphBasis => {
-                                PatchbayRefusal::StalePresentation
+                                PatchbayRefusal::StaleFace
                             }
                             _ => PatchbayRefusal::UnknownSubject,
                         })
@@ -134,19 +134,19 @@ impl PatchbayInteraction {
         })
     }
 
-    /// Executes selection against the exact portable Presentation consumed by a renderer.
+    /// Executes selection against the exact portable Face consumed by a renderer.
     /// Renderer-local hit/focus facts have already been reduced to `candidate`; no DOM or
     /// geometry identity crosses this boundary.
-    pub fn execute_presentation<F>(
+    pub fn execute_face<F>(
         &mut self,
-        presentation: &conduit_presentation::Presentation,
+        face: &conduit_face::Face,
         request: PatchbayInteractionRequest,
         invoke: F,
     ) -> Result<InteractionReceipt, InteractionError>
     where
         F: FnOnce(&PatchbayInteractionRequest) -> PatchbayInvocationOutcome,
     {
-        let invocation_refusal = validate_presentation_invocation(presentation, &request).err();
+        let invocation_refusal = validate_face_invocation(face, &request).err();
         self.execute_with_subject_resolver(
             request,
             move |request| {
@@ -154,12 +154,10 @@ impl PatchbayInteraction {
                     .map_or_else(|| invoke(request), PatchbayInvocationOutcome::Refused)
             },
             |candidate| {
-                if presentation.basis.expanded_plot_id.as_ref() != Some(&candidate.expanded_plot_id)
-                {
-                    return Err(PatchbayRefusal::StalePresentation);
+                if face.basis.expanded_plot_id.as_ref() != Some(&candidate.expanded_plot_id) {
+                    return Err(PatchbayRefusal::StaleFace);
                 }
-                presentation
-                    .subjects
+                face.subjects
                     .iter()
                     .any(|subject| subject.identity == candidate.subject_identity)
                     .then_some(())

@@ -1,7 +1,7 @@
 //! Original fixed 24×24 native drawings for the semantic icon vocabulary.
 //! Geometry is rasterized directly from bounded compile-time shape rules.
 use super::{DisplayError, DisplayReceipt, PixelTarget, put};
-use conduit_presentation::{GraphicsCommand, LayoutRect, PresentationIconKey as Icon};
+use conduit_face::{FaceIconKey as Icon, GraphicsCommand, LayoutRect};
 
 const EDGE: i32 = 24;
 
@@ -78,7 +78,7 @@ const fn ink(icon: Icon, x: i32, y: i32) -> bool {
                 || line(x, y, 5, 13, 5, 18)
                 || line(x, y, 5, 18, 8, 21)
         }
-        Presentation => {
+        Face => {
             frame(x, y, 3, 3, 21, 16) || line(x, y, 12, 16, 12, 21) || line(x, y, 7, 21, 17, 21)
         }
         Type => line(x, y, 4, 4, 20, 4) || line(x, y, 12, 4, 12, 20) || line(x, y, 8, 20, 16, 20),

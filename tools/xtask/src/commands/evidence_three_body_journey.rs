@@ -522,7 +522,7 @@ fn validate(
             || track.receipts.is_empty()
             || track.receipts.len() > MAXIMUM_STEPS
             || track.actions.len() != contract.actions.len()
-            || track.mask_actions.len() != conduit_presentation::MASK_JOURNEY_ACTIONS.len()
+            || track.mask_actions.len() != conduit_face::MASK_JOURNEY_ACTIONS.len()
         {
             return Err(format!("invalid Body track '{}'", track.track_id));
         }
@@ -682,9 +682,9 @@ fn validate(
 }
 
 fn validate_mask_journey(track: &BodyTrack) -> Result<(), String> {
-    use conduit_presentation::MaskJourneyAction;
+    use conduit_face::MaskJourneyAction;
 
-    for (expected, observed) in conduit_presentation::MASK_JOURNEY_ACTIONS
+    for (expected, observed) in conduit_face::MASK_JOURNEY_ACTIONS
         .iter()
         .zip(&track.mask_actions)
     {

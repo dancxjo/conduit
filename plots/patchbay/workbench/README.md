@@ -100,7 +100,7 @@ schema and checking laws; identical graphical controls are not required.
 - The heterogeneous capstone baseline lives with its planner proof and is
   compiled only with that proof's tests.
 - Planned renderer execution and Manifestation lifecycle now belong to
-  universal Presentation truth. The legacy model retains only temporary
+  universal Face truth. The legacy model retains only temporary
   adapter-offer preparation while native and HTML shells are retired.
 - Retained capstone evidence is historical or proof-owned; it is not a product
   entrance and makes no physical claim unless its owning proof records one.

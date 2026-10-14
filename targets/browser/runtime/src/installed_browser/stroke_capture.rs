@@ -32,7 +32,7 @@ pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
 };
 
 pub(crate) struct PreparedStrokeCapture {
-    capture: Option<conduit_presentation::BoundedStrokeCapture>,
+    capture: Option<conduit_face::BoundedStrokeCapture>,
 }
 
 impl PreparedStrokeCapture {
@@ -43,7 +43,7 @@ impl PreparedStrokeCapture {
         validate_placement(placement, &offer())?;
         Ok(Some(Self {
             capture: Some(
-                conduit_presentation::BoundedStrokeCapture::new(4, 4)
+                conduit_face::BoundedStrokeCapture::new(4, 4)
                     .map_err(|error| format!("prepare bounded stroke capture: {error:?}"))?,
             ),
         }))
@@ -83,7 +83,7 @@ impl PreparedStrokeCapture {
 }
 
 fn offer() -> CapabilityOffer {
-    let contract = conduit_presentation::capture_bounded_stroke_semantic_contract();
+    let contract = conduit_face::capture_bounded_stroke_semantic_contract();
     let target_kind = contract.kind_id.clone();
     BackOfferBuilder::new(
         contract,
@@ -91,7 +91,7 @@ fn offer() -> CapabilityOffer {
             capability_id: CapabilityId::from(IMPLEMENTATION),
             execution_profile_id: ExecutionProfileId::from(IMPLEMENTATION),
             implementation_id: ImplementationId::from(IMPLEMENTATION),
-            artifact_id: ArtifactId::from("conduit-presentation/bounded-stroke-capture@1"),
+            artifact_id: ArtifactId::from("conduit-face/bounded-stroke-capture@1"),
             host_calls: vec![
                 HostCallRequirement {
                     contract_id: OPERATIONS[0].into(),
@@ -224,8 +224,8 @@ impl<const PORTS: usize> StepBack<PORTS> for StrokeCaptureBack {
     }
 }
 
-fn capture_failure(error: conduit_presentation::StrokeCaptureRefusal) -> Failure {
-    use conduit_presentation::StrokeCaptureRefusal::*;
+fn capture_failure(error: conduit_face::StrokeCaptureRefusal) -> Failure {
+    use conduit_face::StrokeCaptureRefusal::*;
     match error {
         InvalidCapacity => failure(30),
         MalformedPoint => failure(31),
@@ -257,7 +257,7 @@ mod tests {
     #[test]
     fn browser_stroke_capture_preserves_semantics_and_narrows_capacity() {
         let offer = offer();
-        let semantic = conduit_presentation::capture_bounded_stroke_semantic_contract();
+        let semantic = conduit_face::capture_bounded_stroke_semantic_contract();
         assert_eq!(offer.startup_parameters, semantic.startup_parameters);
         assert_eq!(offer.kind_id, semantic.kind_id);
         assert_eq!(
@@ -302,7 +302,7 @@ mod tests {
     }
 
     fn point(frame: &str, x: i64) -> Vec<u8> {
-        conduit_presentation::point2_value(
+        conduit_face::point2_value(
             frame,
             Quantity::new(x, Unit::Millimeter),
             Quantity::new(0, Unit::Millimeter),
@@ -328,10 +328,7 @@ mod tests {
             .unwrap()
             .unwrap();
         let path = StructuredInfoValue::from_canonical_bytes(&output).unwrap();
-        assert_eq!(
-            path.value_type(),
-            &conduit_presentation::path2_type(4).unwrap()
-        );
+        assert_eq!(path.value_type(), &conduit_face::path2_type(4).unwrap());
     }
 
     #[test]

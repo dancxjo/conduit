@@ -4,12 +4,12 @@ use conduit_core::{CapabilityOffer, PortTemporal};
 use std::cell::RefCell;
 type InstalledCatalogs = (conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog);
 thread_local! {
-    // Exactly four immutable installed presentation profiles. Document-local
+    // Exactly four immutable installed face profiles. Document-local
     // declarations/selectors mutate only independent copies returned below.
-    static INSTALLED_CATALOGS: RefCell<Vec<(PresentationProfile, InstalledCatalogs)>> = const { RefCell::new(Vec::new()) };
+    static INSTALLED_CATALOGS: RefCell<Vec<(FaceProfile, InstalledCatalogs)>> = const { RefCell::new(Vec::new()) };
 }
 #[derive(Clone, Copy, PartialEq, Eq)]
-pub(crate) enum PresentationProfile {
+pub(crate) enum FaceProfile {
     Annotation,
     Quantity,
     NormalizedDurations,
@@ -18,29 +18,25 @@ pub(crate) enum PresentationProfile {
 
 pub(crate) fn catalogs(
 ) -> Result<(conduit_plot::StartupCatalog, conduit_plot::ProfileCatalog), String> {
-    catalogs_for_presentation(PresentationProfile::Annotation)
+    catalogs_for_face(FaceProfile::Annotation)
 }
 
-pub(crate) fn catalogs_for_presentation(
-    presentation: PresentationProfile,
-) -> Result<InstalledCatalogs, String> {
+pub(crate) fn catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, String> {
     if let Some(catalogs) = INSTALLED_CATALOGS.with(|cache| {
         cache
             .borrow()
             .iter()
-            .find(|(profile, _)| *profile == presentation)
+            .find(|(profile, _)| *profile == face)
             .map(|(_, catalogs)| catalogs.clone())
     }) {
         return Ok(catalogs);
     }
-    let catalogs = build_catalogs_for_presentation(presentation)?;
-    INSTALLED_CATALOGS.with(|cache| cache.borrow_mut().push((presentation, catalogs.clone())));
+    let catalogs = build_catalogs_for_face(face)?;
+    INSTALLED_CATALOGS.with(|cache| cache.borrow_mut().push((face, catalogs.clone())));
     Ok(catalogs)
 }
 
-fn build_catalogs_for_presentation(
-    presentation: PresentationProfile,
-) -> Result<InstalledCatalogs, String> {
+fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, String> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
@@ -70,22 +66,20 @@ fn build_catalogs_for_presentation(
     )?;
     conduit_semantic_catalog::install_resource_snapshot_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_signal_garden_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)?;
-    match presentation {
-        PresentationProfile::Annotation => {
-            linguistics::install_catalogs(&mut startup, &mut profile)?
-        }
-        PresentationProfile::Quantity => {
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)?;
+    match face {
+        FaceProfile::Annotation => linguistics::install_catalogs(&mut startup, &mut profile)?,
+        FaceProfile::Quantity => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
             quantity_output::install_catalogs(&mut startup, &mut profile)?;
         }
-        PresentationProfile::PatternComparison => {
+        FaceProfile::PatternComparison => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
-            super::comparison_presentation::install_catalogs(&mut startup, &mut profile)?;
+            super::comparison_face::install_catalogs(&mut startup, &mut profile)?;
         }
-        PresentationProfile::NormalizedDurations => {
+        FaceProfile::NormalizedDurations => {
             conduit_language::install_linguistics_catalogs(&mut startup, &mut profile)?;
-            super::normalized_presentation::install_catalogs(&mut startup, &mut profile)?;
+            super::normalized_face::install_catalogs(&mut startup, &mut profile)?;
         }
     }
     conduit_semantic_catalog::install_value_primitive_catalogs(&mut startup, &mut profile)?;
@@ -98,7 +92,7 @@ fn build_catalogs_for_presentation(
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_generalized_input_catalogs(&mut startup, &mut profile)?;
     super::pointer_selector::install_types(&mut startup, &mut profile)?;
-    conduit_presentation::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_bounded_stroke_capture_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profile)?;
     // Reviewed Plots are checked before realization eligibility is known. Keep
     // the canonical retained-State contract available to the checker even
@@ -116,22 +110,19 @@ fn build_catalogs_for_presentation(
     )?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profile)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_rhythm_face_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_text_state_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_button_indicator_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_application_catalogs(&mut startup, &mut profile)?;
     super::tutorial_presenter::install_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profile,
-    )?;
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_browser_chat_catalogs(&mut startup, &mut profile)?;
     conduit_chat::install_body_chat_catalog(&mut startup, &mut profile)?;
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile)?;
@@ -153,11 +144,11 @@ fn build_catalogs_for_presentation(
         conduit_core::kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
     )?;
     startup.insert(conduit_plot::KindSignature {
-        kind: conduit_semantic_catalog::BOOL_PRESENTATION_KIND.into(),
-        startup_parameters: Vec::new(),
+        kind: conduit_semantic_catalog::BOOL_FACE_KIND.into(),
+        startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
     })?;
-    conduit_semantic_catalog::install_bool_presentation_catalog(&mut profile)?;
-    if presentation == PresentationProfile::Quantity {
+    conduit_semantic_catalog::install_bool_face_catalog(&mut profile)?;
+    if face == FaceProfile::Quantity {
         startup.insert_value_kind_alias(
             "Scalar",
             conduit_core::kind_id(conduit_core::SCALAR_INFO_ID),

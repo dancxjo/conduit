@@ -2,7 +2,7 @@
 //! Serialization does not grant current binding, input or other Mask authority.
 use conduit_body::BodyPlayIdentity;
 use conduit_core::{PlanId, PlotIdentity, PreparationHostIdentity};
-use conduit_presentation::{ActionInputBindingProposalInfo, MaskShow, Presentation};
+use conduit_face::{ActionInputBindingProposalInfo, Face, MaskShow};
 
 /// Created only by the installed private owner after exact current scope,
 /// source-policy correlation and successful terminal write/flush. This is
@@ -10,7 +10,7 @@ use conduit_presentation::{ActionInputBindingProposalInfo, MaskShow, Presentatio
 #[derive(Debug, serde::Serialize)]
 pub struct ParsecInputInstructionObservation {
     pub(crate) proof_class: &'static str,
-    pub(crate) face: Presentation,
+    pub(crate) face: Face,
     pub(crate) show: MaskShow,
     pub(crate) body_play: BodyPlayIdentity,
     pub(crate) host: PreparationHostIdentity,
@@ -26,7 +26,7 @@ impl ParsecInputInstructionObservation {
     pub fn effect(&self) -> &super::ParsecInstructionEffectObservation {
         &self.effect
     }
-    pub fn face(&self) -> &Presentation {
+    pub fn face(&self) -> &Face {
         &self.face
     }
     pub fn show(&self) -> &MaskShow {

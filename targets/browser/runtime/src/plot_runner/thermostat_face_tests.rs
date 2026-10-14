@@ -1,7 +1,7 @@
 //! Kernel state, ordinary Mask Show and typed action agreement.
 use super::super::*;
 use crate::workspace_mask::{BrowserMaskAcknowledgement, BrowserMaskInteraction};
-use conduit_presentation::MaskShow;
+use conduit_face::MaskShow;
 
 fn acknowledge(session: &mut TourSession, snapshot: &serde_json::Value) {
     let show: MaskShow = serde_json::from_value(snapshot["mask_show"].clone()).unwrap();
@@ -11,25 +11,24 @@ fn acknowledge(session: &mut TourSession, snapshot: &serde_json::Value) {
         mask_plan_id: show.planned_mask.plan.plan_id.clone(),
         active_play_id: show.show.active_play_id.clone(),
         placement_id: show.show.placement_id.clone(),
-        presentation_id: show.presentation_id.as_str().into(),
-        presentation_revision: show.presentation_revision,
+        face_id: show.face_id.as_str().into(),
+        face_revision: show.face_revision,
     };
     let mut stale = ack.clone();
-    stale.presentation_revision = stale.presentation_revision.saturating_add(1);
+    stale.face_revision = stale.face_revision.saturating_add(1);
     assert!(session.acknowledge_thermostat_show(stale).is_err());
     session.acknowledge_thermostat_show(ack.clone()).unwrap();
     session.acknowledge_thermostat_show(ack).unwrap();
 }
 fn interaction(snapshot: &serde_json::Value, action: &str) -> BrowserMaskInteraction {
     let show: MaskShow = serde_json::from_value(snapshot["mask_show"].clone()).unwrap();
-    let presentation: conduit_presentation::Presentation =
-        serde_json::from_value(snapshot["presentation"].clone()).unwrap();
+    let face: conduit_face::Face = serde_json::from_value(snapshot["face"].clone()).unwrap();
     BrowserMaskInteraction {
         show_id: show.show_id.as_str().into(),
-        presentation_id: show.presentation_id.as_str().into(),
-        presentation_revision: show.presentation_revision,
+        face_id: show.face_id.as_str().into(),
+        face_revision: show.face_revision,
         action_id: action.into(),
-        target: presentation
+        target: face
             .actions
             .iter()
             .find(|entry| entry.identity == action)
@@ -50,7 +49,7 @@ fn thermostat_actions_require_ack_and_commit_current_scan_output() {
     next_request.play_sequence = request.play_sequence + 1;
     let (mut session, _) = body_start::prepare(request).unwrap();
     let initial = session.thermostat_snapshot().unwrap();
-    assert_eq!(initial["presentation"]["revision"], 0);
+    assert_eq!(initial["face"]["revision"], 0);
     assert!(session
         .interact_thermostat(interaction(&initial, "thermostat.raise"))
         .is_err());
@@ -60,7 +59,7 @@ fn thermostat_actions_require_ack_and_commit_current_scan_output() {
     assert!(session.interact_thermostat(forged).is_err());
     let stale = interaction(&initial, "thermostat.raise");
     let changed = session.interact_thermostat(stale.clone()).unwrap();
-    assert_eq!(changed["face"]["presentation"]["revision"], 1);
+    assert_eq!(changed["face"]["face"]["revision"], 1);
     assert!(session.interact_thermostat(stale).is_err());
     assert_eq!(session.scheduler.thermostat_state().unwrap().target, 215);
     assert_eq!(session.scheduler.thermostat_state().unwrap().measured, None);
@@ -73,7 +72,7 @@ fn thermostat_actions_require_ack_and_commit_current_scan_output() {
         .interact_thermostat(interaction(&heat["face"], "thermostat.mode.heat"))
         .unwrap();
     assert_eq!(session.scheduler.thermostat_state().unwrap().revision, 2);
-    assert_eq!(repeated["face"]["presentation"]["revision"], 3);
+    assert_eq!(repeated["face"]["face"]["revision"], 3);
     assert_ne!(
         repeated["face"]["mask_show"]["show_id"],
         heat["face"]["mask_show"]["show_id"]
@@ -93,7 +92,7 @@ fn thermostat_actions_require_ack_and_commit_current_scan_output() {
         changed["face"]["effect"]["mask_play"]["active_play_id"],
         initial["effect"]["mask_play"]["active_play_id"]
     );
-    assert_eq!(next_face["presentation"]["revision"], 0);
+    assert_eq!(next_face["face"]["revision"], 0);
     assert_eq!(
         next_session.scheduler.thermostat_state().unwrap().target,
         210
@@ -131,7 +130,7 @@ fn resident_thermostat_actions_survive_another_startup_foreground() {
         next["face"]["active_play_id"],
         started.play.active_play_id.as_str()
     );
-    assert_eq!(next["face"]["presentation"]["revision"], 1);
+    assert_eq!(next["face"]["face"]["revision"], 1);
     assert_eq!(session.scheduler.thermostat_state().unwrap().target, 215);
     session.cancel().unwrap();
 }

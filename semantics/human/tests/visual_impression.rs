@@ -121,13 +121,13 @@ fn context_and_truncation_are_bounded_and_exact() {
 }
 
 #[test]
-fn impression_contains_no_acquisition_presentation_or_action_authority() {
+fn impression_contains_no_acquisition_face_or_action_authority() {
     let source = include_str!("../src/visual_impression.rs");
     for forbidden in [
         "MediaAcquisition",
         "AuthorityGrantId",
         "HostCallId",
-        "PresentationAction",
+        "FaceAction",
         "BodyLifecycleEvent",
     ] {
         assert!(!source.contains(forbidden));

@@ -1,5 +1,5 @@
 //! One acknowledged batch through either explicit speaker or artifact equipment.
-use super::super::{AttachedEquipment, MaskShow, Presentation, RunControl, SpeechFailure, StdHost};
+use super::super::{AttachedEquipment, Face, MaskShow, RunControl, SpeechFailure, StdHost};
 use conduit_std_host::{
     spoken_face_mask::{SpokenBatch, SpokenBatchDelivery},
     spoken_face_stream_execution::{
@@ -12,7 +12,7 @@ use serde_json::{json, Value};
 
 pub(in crate::durable_host_control) fn play_batch(
     host: &mut StdHost,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     batch: &SpokenBatch,
     equipment: Option<&AttachedEquipment>,

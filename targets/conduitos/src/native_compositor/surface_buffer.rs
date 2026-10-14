@@ -3,7 +3,7 @@ use alloc::{vec, vec::Vec};
 use crate::display::{DisplayError, DisplayFormat, PixelTarget, RetainedPixelTarget};
 
 use super::{MAX_COMPOSITOR_PIXELS, MAX_COMPOSITOR_SURFACES, NativeCompositorError};
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 pub(super) fn surface_pixels(bounds: LayoutRect) -> Result<usize, NativeCompositorError> {
     if bounds.width == 0 || bounds.height == 0 {

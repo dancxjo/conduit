@@ -6,7 +6,7 @@ use super::factory::{
 use super::BrowserBack;
 use conduit_core::{
     kind_id, HostCallContractId, HostCallRequirement, InfoBool, PlannedGear, BOOL_ENCODED_LEN,
-    PRESENTATION_RESOURCE_CLASS,
+    FACE_RESOURCE_CLASS,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -15,7 +15,7 @@ use conduit_kernel::{
 
 const ARTIFACT: &str = "conduit-browser-runtime/button-indicator@1";
 const MAPPER_IMPLEMENTATION: &str = "browser/kernel-button-indicator-state@1";
-const INDICATOR_IMPLEMENTATION: &str = "browser/presentation-indicator-state@1";
+const INDICATOR_IMPLEMENTATION: &str = "browser/face-indicator-state@1";
 const INDICATOR_OPERATION: &str = "conduit.host/browser-present-indicator-state@1";
 
 pub(super) static MAPPER: BrowserInstallation = BrowserInstallation {
@@ -50,8 +50,8 @@ fn mapper_offer() -> conduit_core::CapabilityOffer {
 
 fn indicator_offer() -> conduit_core::CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::indicator_state_presentation_contract(),
-        conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_REVISION,
+        conduit_semantic_catalog::indicator_state_face_contract(),
+        conduit_semantic_catalog::INDICATOR_STATE_FACE_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
             capability: INDICATOR_IMPLEMENTATION,
             execution_profile: INDICATOR_IMPLEMENTATION,
@@ -60,17 +60,12 @@ fn indicator_offer() -> conduit_core::CapabilityOffer {
         },
         vec![HostCallRequirement {
             contract_id: HostCallContractId::from(INDICATOR_OPERATION),
-            target_kind: Some(kind_id(
-                conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND,
-            )),
+            target_kind: Some(kind_id(conduit_semantic_catalog::INDICATOR_STATE_FACE_KIND)),
             maximum_in_flight: 1,
             maximum_input_bytes: BOOL_ENCODED_LEN as u32,
             maximum_output_bytes: 0,
         }],
-        vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
+        vec![conduit_core::resource_requirement(FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
 }
@@ -91,15 +86,16 @@ fn prepare_indicator(
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
     validate_placement(placement, &indicator_offer())?;
-    Ok(BrowserBack::presentation(BOOL_ENCODED_LEN as u32, 8))
+    Ok(BrowserBack::face(BOOL_ENCODED_LEN as u32, 8))
 }
 
-fn perform_indicator(_placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+fn perform_indicator(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     InfoBool::decode(input).map_err(debug)?;
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
-            kind_id: conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND,
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::INDICATOR_STATE_FACE_KIND,
             canonical_value: input.to_vec(),
         }),
     })

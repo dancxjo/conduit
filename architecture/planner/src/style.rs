@@ -12,11 +12,11 @@ use conduit_core::{
 use conduit_plot::CheckedGear;
 
 pub const DOS_SHELL_STYLE_ID: &str = "conduit.style/dos-shell@1";
-pub const PRESENTATION_TEXT_LAYOUT: &str = "presentation/text-layout";
-pub const PRESENTATION_DENSITY: &str = "presentation/density";
-pub const PRESENTATION_FRAMING: &str = "presentation/framing";
-pub const PRESENTATION_PALETTE_CLASS: &str = "presentation/palette-class";
-pub const PRESENTATION_KEYBOARD_VISIBLE: &str = "presentation/keyboard-visible";
+pub const FACE_TEXT_LAYOUT: &str = "face/text-layout";
+pub const FACE_DENSITY: &str = "face/density";
+pub const FACE_FRAMING: &str = "face/framing";
+pub const FACE_PALETTE_CLASS: &str = "face/palette-class";
+pub const FACE_KEYBOARD_VISIBLE: &str = "face/keyboard-visible";
 
 #[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord)]
 pub struct StyleId(String);
@@ -37,7 +37,7 @@ impl From<&str> for StyleId {
     }
 }
 
-/// A named finite bundle of soft presentation preferences. It lowers into the
+/// A named finite bundle of soft face preferences. It lowers into the
 /// ordinary C2/C3 policy path and carries no renderer-owned style object.
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct NamedStyle {
@@ -70,7 +70,7 @@ pub struct StyleSelection {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct PresentationStyleFacts {
+pub struct FaceStyleFacts {
     pub text_layout: Option<String>,
     pub density: Option<String>,
     pub framing: Option<String>,
@@ -84,23 +84,14 @@ pub fn dos_shell_style() -> NamedStyle {
         revision: 1,
         preferences: vec![
             prefer(
-                PRESENTATION_TEXT_LAYOUT,
+                FACE_TEXT_LAYOUT,
                 PlannerFactValue::Category("fixed-cell".into()),
             ),
+            prefer(FACE_DENSITY, PlannerFactValue::Category("compact".into())),
+            prefer(FACE_FRAMING, PlannerFactValue::Category("hard-line".into())),
+            prefer(FACE_KEYBOARD_VISIBLE, PlannerFactValue::Boolean(true)),
             prefer(
-                PRESENTATION_DENSITY,
-                PlannerFactValue::Category("compact".into()),
-            ),
-            prefer(
-                PRESENTATION_FRAMING,
-                PlannerFactValue::Category("hard-line".into()),
-            ),
-            prefer(
-                PRESENTATION_KEYBOARD_VISIBLE,
-                PlannerFactValue::Boolean(true),
-            ),
-            prefer(
-                PRESENTATION_PALETTE_CLASS,
+                FACE_PALETTE_CLASS,
                 PlannerFactValue::Category("phosphor-cyan-amber".into()),
             ),
         ],
@@ -109,31 +100,29 @@ pub fn dos_shell_style() -> NamedStyle {
 
 /// Builds stable facts an implementation can truthfully advertise. Missing
 /// dimensions remain unknown; they are never filled from STYLE defaults.
-pub fn presentation_style_characteristics(
-    facts: &PresentationStyleFacts,
-) -> Vec<RealizationCharacteristic> {
+pub fn face_style_characteristics(facts: &FaceStyleFacts) -> Vec<RealizationCharacteristic> {
     let mut result = Vec::new();
     if let Some(value) = &facts.text_layout {
         result.push(category(
-            PRESENTATION_TEXT_LAYOUT,
+            FACE_TEXT_LAYOUT,
             "Text layout",
-            "Stable presentation text layout class; not a font family",
+            "Stable face text layout class; not a font family",
             &["fixed-cell", "flow", "spoken-linear"],
             value,
         ));
     }
     if let Some(value) = &facts.density {
         result.push(category(
-            PRESENTATION_DENSITY,
+            FACE_DENSITY,
             "Density",
-            "Stable presentation information density class",
+            "Stable face information density class",
             &["compact", "comfortable", "expanded"],
             value,
         ));
     }
     if let Some(value) = &facts.framing {
         result.push(category(
-            PRESENTATION_FRAMING,
+            FACE_FRAMING,
             "Framing",
             "Stable structural framing class; not toolkit borders",
             &["hard-line", "minimal", "spoken-boundary"],
@@ -142,7 +131,7 @@ pub fn presentation_style_characteristics(
     }
     if let Some(value) = &facts.palette_class {
         result.push(category(
-            PRESENTATION_PALETTE_CLASS,
+            FACE_PALETTE_CLASS,
             "Palette class",
             "Stable abstract palette class; never raw RGB or CSS",
             &["monochrome", "phosphor-cyan-amber", "system-adaptive"],
@@ -151,7 +140,7 @@ pub fn presentation_style_characteristics(
     }
     if let Some(value) = facts.keyboard_visible {
         result.push(stable_realization_boolean(
-            PRESENTATION_KEYBOARD_VISIBLE,
+            FACE_KEYBOARD_VISIBLE,
             "Keyboard visibility",
             "Whether keyboard interaction remains visibly discoverable",
             value,
@@ -222,7 +211,7 @@ impl NamedStyle {
                 PlannerFactRef::RealizationCharacteristic(id) if reviewed_style_fact(id)
             )
         }) {
-            return invalid("STYLE may reference only the reviewed presentation characteristics");
+            return invalid("STYLE may reference only the reviewed face characteristics");
         }
         Ok(PolicyLayer {
             source: PolicySourceRevision {
@@ -297,11 +286,7 @@ fn prefer(id: &str, value: PlannerFactValue) -> PlannerPreference {
 pub(crate) fn reviewed_style_fact(id: &CharacteristicId) -> bool {
     matches!(
         id.as_str(),
-        PRESENTATION_TEXT_LAYOUT
-            | PRESENTATION_DENSITY
-            | PRESENTATION_FRAMING
-            | PRESENTATION_PALETTE_CLASS
-            | PRESENTATION_KEYBOARD_VISIBLE
+        FACE_TEXT_LAYOUT | FACE_DENSITY | FACE_FRAMING | FACE_PALETTE_CLASS | FACE_KEYBOARD_VISIBLE
     )
 }
 

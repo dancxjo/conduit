@@ -381,8 +381,8 @@ fn complete_browser_evidence(root: &Path) -> String {
                 device_scale_factor: Some("1".into()),
                 locale: Some("en-US".into()),
                 timezone: Some("UTC".into()),
-                presentation_id: Some("presentation".into()),
-                presentation_revision: Some("1".into()),
+                face_id: Some("presentation".into()),
+                face_revision: Some("1".into()),
                 plan_id: Some("plan".into()),
                 active_play_id: Some("play".into()),
                 manifestation_id: Some("manifestation".into()),
@@ -452,7 +452,7 @@ fn complete_conduitos_evidence(root: &Path, commit: &str) {
 
 fn complete_two_fronts_evidence(root: &Path) {
     let png = b"\x89PNG\r\n\x1a\n\0\0\0\rIHDR\0\0\0\x01\0\0\0\x01";
-    let presentation = "presentation/two-fronts";
+    let face = "presentation/two-fronts";
     let files = [
         (
             "two-fronts.native-frame",
@@ -502,8 +502,8 @@ fn complete_two_fronts_evidence(root: &Path) {
                 required: true,
                 provenance: EvidenceProvenance {
                     scenario_id: "one-plot-two-fronts.front-door@1".into(),
-                    presentation_id: Some(presentation.into()),
-                    presentation_revision: Some("1".into()),
+                    face_id: Some(face.into()),
+                    face_revision: Some("1".into()),
                     plan_id: Some(
                         if native {
                             "native-plan"

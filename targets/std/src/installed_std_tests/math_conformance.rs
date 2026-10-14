@@ -191,16 +191,11 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
         )
         .unwrap();
     let value_type = conduit_semantic_catalog::wrapped_quantity_type();
-    let contract =
-        conduit_semantic_catalog::structured_presentation_contract("Quantity", &value_type);
     catalog
-        .insert(conduit_plot::KindProjection {
-            kind_id: contract.kind_id,
-            kind_contract_revision: contract.kind_contract_revision,
-            inputs: contract.inputs,
-            outputs: contract.outputs,
-            configuration: Default::default(),
-        })
+        .insert_kind(conduit_semantic_catalog::structured_face_semantic_contract(
+            "Quantity",
+            &value_type,
+        ))
         .unwrap();
     let syntax = conduit_plot::parse_syntax_document(source);
     let mut startup = catalog.startup_catalog().unwrap();
@@ -246,7 +241,7 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
     let mut advertisement = host("quantity-output-host").advertisement().clone();
     advertisement
         .capabilities
-        .push(conduit_std_offers::structured_presentation_std_offer(
+        .push(conduit_std_offers::structured_face_std_offer(
             "Quantity",
             &value_type,
         ));
@@ -300,18 +295,18 @@ fn run_presented_quantity(source: &str, entry: &str) -> (conduit_core::Plan, cra
 }
 
 #[test]
-fn canonical_quantity_presentation_completes_through_the_installed_back() {
-    let source = r#"plot quantity_presentation {
+fn canonical_quantity_face_completes_through_the_installed_back() {
+    let source = r#"plot quantity_face {
  source: scalar/literal(value = -1)
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
  wrap: structured-info/wrap-quantity
- show: presentation/quantity
+ show: face/quantity("Battery charge")
  source.value >> map.in
  map.out >> wrap.in
  wrap.out >> show.input
 }
 "#;
-    let (plan, report) = run_presented_quantity(source, "quantity_presentation");
+    let (plan, report) = run_presented_quantity(source, "quantity_face");
     assert_quantity_presented(
         &plan,
         &report,
@@ -320,26 +315,35 @@ fn canonical_quantity_presentation_completes_through_the_installed_back() {
     let show = plan.fragments[0]
         .placements
         .iter()
-        .find(|placement| placement.kind_id.as_str() == "presentation/quantity")
+        .find(|placement| placement.kind_id.as_str() == "face/quantity")
         .unwrap();
     assert_eq!(
         show.inputs,
-        conduit_semantic_catalog::quantity_presentation_semantic_contract().inputs
+        conduit_semantic_catalog::quantity_face_semantic_contract().inputs
     );
     assert_eq!(
         show.implementation_id.as_str(),
-        conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+        conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
     );
+    let observed = report
+        .observations
+        .iter()
+        .find(|sign| matches!(&sign.kind, ObservationKind::ValuePresented { .. }))
+        .unwrap();
+    let ObservationKind::ValuePresented { label, .. } = &observed.kind else {
+        unreachable!()
+    };
+    assert_eq!(label, "Battery charge");
     assert_eq!(report.kernel.unwrap().post_play_start_allocations, 0);
     for changed_revision in [false, true] {
         let mut fragment = plan.fragments[0].clone();
         let show = fragment
             .placements
             .iter_mut()
-            .find(|placement| placement.kind_id.as_str() == "presentation/quantity")
+            .find(|placement| placement.kind_id.as_str() == "face/quantity")
             .unwrap();
         if changed_revision {
-            show.kind_contract_revision = "presentation/quantity@uninstalled".into();
+            show.kind_contract_revision = "face/quantity@uninstalled".into();
         } else {
             show.inputs[0].value_kind = conduit_core::kind_id(conduit_core::BOOL_INFO_ID);
         }
@@ -359,7 +363,7 @@ fn quantity_mapping_completes_one_admitted_kernel_request() {
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = -2, source-maximum = 0, target-maximum = 100, unit = %)
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> map.in
  map.out >> wrap.in
  wrap.out >> show.input
@@ -395,7 +399,7 @@ fn assert_quantity_presented(
         .iter()
         .find(|sign| matches!(sign.kind, ObservationKind::ValuePresented { .. }))
         .unwrap();
-    let ObservationKind::ValuePresented { value } = &presented.kind else {
+    let ObservationKind::ValuePresented { value, .. } = &presented.kind else {
         unreachable!()
     };
     let expected =
@@ -418,7 +422,7 @@ fn assert_quantity_presented(
     ));
     let kernel = report.kernel.as_ref().unwrap();
     let identity = kernel.identity.sign_identity(&presented.sign_id).unwrap();
-    assert_eq!(identity.presentation_id, presented.presentation_id);
+    assert_eq!(identity.face_id, presented.face_id);
     assert!(kernel
         .identity
         .request(identity.node.unwrap(), identity.request.unwrap())
@@ -435,7 +439,7 @@ fn assert_quantity_presented(
 }
 
 #[test]
-fn quantity_refusals_do_not_make_a_connected_presentation() {
+fn quantity_refusals_do_not_make_a_connected_face() {
     for (minimum, maximum, expected) in [(0, 1_000_000, "out-of-range"), (-1_000_000, 0, "inexact")]
     {
         let source = format!(
@@ -443,7 +447,7 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
  source: conduit-test/scalar-literal
  map: math/map-quantity(source-minimum = {minimum}, source-maximum = {maximum}, target-maximum = 100, unit = %, range-policy = "refuse", quantization = "exact")
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> map.in
  map.out >> wrap.in
  wrap.out >> show.input
@@ -480,7 +484,7 @@ fn quantity_refusals_do_not_make_a_connected_presentation() {
             Some(&kernel.active_play_id)
         );
         assert_eq!(kernel.post_play_start_allocations, 0);
-        assert!(kernel.presentation_ids.is_empty());
+        assert!(kernel.face_ids.is_empty());
     }
 }
 
@@ -508,7 +512,7 @@ plot quantity_composition {{
  input: math/scale(gain = -500000000000)
  map: {name}
  wrap: structured-info/wrap-quantity
- show: presentation/structured-info
+ show: face/structured-info("Observation")
  source.value >> input.in
  input.out >> map.control
  map.{output} >> wrap.in

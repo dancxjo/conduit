@@ -1,9 +1,7 @@
 //! Inspection of the Tour's fixed specimen from its portable kind contracts.
 use alloc::{format, vec::Vec};
-use conduit_presentation::{PresentationRole, PresentationSubject, PresentationText};
-use conduit_semantic_catalog::{
-    text_literal_contract, text_presentation_contract, text_upper_contract,
-};
+use conduit_face::{FaceRole, FaceSubject, FaceText};
+use conduit_semantic_catalog::{text_face_contract, text_literal_contract, text_upper_contract};
 
 use crate::TourWorkspaceState;
 
@@ -13,7 +11,7 @@ pub fn canonical_gear_contract(
     match gear {
         "meet-one-gear/words" => Some(text_literal_contract()),
         "meet-one-gear/change" => Some(text_upper_contract()),
-        "meet-one-gear/result" => Some(text_presentation_contract()),
+        "meet-one-gear/result" => Some(text_face_contract()),
         _ => None,
     }
 }
@@ -21,18 +19,18 @@ pub fn canonical_gear_contract(
 pub(crate) fn fields(
     state: &TourWorkspaceState,
     gear: &str,
-    subjects: &mut Vec<PresentationSubject>,
-) -> Vec<PresentationText> {
+    subjects: &mut Vec<FaceSubject>,
+) -> Vec<FaceText> {
     let contract = canonical_gear_contract(gear).expect("inspection validates the specimen Gear");
     let mut text = Vec::new();
     let mut field = |key: &str, label: &str, value: alloc::string::String| {
         let identity = format!("{gear}/inspection/{key}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Info,
+            role: FaceRole::Info,
             name: label.into(),
         });
-        text.push(PresentationText {
+        text.push(FaceText {
             subject: identity,
             text: value,
         });
@@ -87,26 +85,24 @@ mod tests {
     #[test]
     fn every_specimen_gear_uses_its_own_contract_and_never_invents_port_values() {
         let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
-        for (gear, kind) in CANONICAL_PATCHBAY_GEARS.into_iter().zip([
-            "text/literal",
-            "text/upper",
-            "presentation/text",
-        ]) {
+        for (gear, kind) in
+            CANONICAL_PATCHBAY_GEARS
+                .into_iter()
+                .zip(["text/literal", "text/upper", "face/text"])
+        {
             state.selected_patchbay_subject = Some(gear.into());
-            let presentation = state.inspector_presentation().unwrap().unwrap();
-            assert_eq!(presentation.text[0].text, kind);
+            let face = state.inspector_face().unwrap().unwrap();
+            assert_eq!(face.text[0].text, kind);
             assert!(
-                presentation
-                    .text
+                face.text
                     .iter()
                     .any(|field| field.text == "Per-Port observations unavailable")
             );
         }
         state.result = Some("observed result".into());
-        let presentation = state.inspector_presentation().unwrap().unwrap();
+        let face = state.inspector_face().unwrap().unwrap();
         assert!(
-            presentation
-                .text
+            face.text
                 .iter()
                 .any(|field| field.text.contains("Tour result: observed result"))
         );

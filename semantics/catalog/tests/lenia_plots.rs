@@ -1,5 +1,5 @@
 use conduit_alife::{
-    install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_PRESENTATION_KIND,
+    install_lenia_catalogs, LENIA_STEP_KIND, SCALAR_FIELD2_INFO_ID, SCALAR_FIELD_FACE_KIND,
 };
 use conduit_core::{
     resource_requirement, wait_host_call_requirement, BaseImplementationId, BootId,
@@ -11,7 +11,7 @@ use conduit_plot::{
     ProfileCatalog, StartupCatalog,
 };
 use conduit_semantic_catalog::{
-    install_tick_presentation_catalog, realization_offer, RealizationOfferIdentity,
+    install_tick_face_catalog, realization_offer, RealizationOfferIdentity,
 };
 use std::collections::BTreeMap;
 
@@ -23,7 +23,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     let mut profile = ProfileCatalog::new();
     install_lenia_catalogs(&mut startup, &mut profile).unwrap();
     conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
-    install_tick_presentation_catalog(&mut startup, &mut profile).unwrap();
+    install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(SOURCE);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked = check_syntax_document(&syntax, &startup).unwrap();
@@ -60,19 +60,16 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
             Vec::new(),
         ),
         realization_offer(
-            conduit_semantic_catalog::scalar_field_presentation_contract(),
-            conduit_alife::SCALAR_FIELD_PRESENTATION_REVISION,
+            conduit_semantic_catalog::scalar_field_face_contract(),
+            conduit_alife::SCALAR_FIELD_FACE_REVISION,
             RealizationOfferIdentity {
-                capability: "lenia-proof-presentation",
-                execution_profile: "proof/lenia-presentation@1",
-                implementation: "proof/lenia-presentation@1",
-                artifact: "proof/lenia-presentation@1",
+                capability: "lenia-proof-face",
+                execution_profile: "proof/lenia-face@1",
+                implementation: "proof/lenia-face@1",
+                artifact: "proof/lenia-face@1",
             },
             Vec::new(),
-            vec![resource_requirement(
-                conduit_core::PRESENTATION_RESOURCE_CLASS,
-                1,
-            )],
+            vec![resource_requirement(conduit_core::FACE_RESOURCE_CLASS, 1)],
             Vec::new(),
         ),
     ];
@@ -97,11 +94,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
         profile: HostProfileId::from("std/lenia-proof@1"),
         bases: vec![],
         resources: vec![
-            conduit_core::resource_offer(
-                "presentation/lenia-proof",
-                conduit_core::PRESENTATION_RESOURCE_CLASS,
-                1,
-            ),
+            conduit_core::resource_offer("face/lenia-proof", conduit_core::FACE_RESOURCE_CLASS, 1),
             conduit_core::resource_offer(
                 "timer/lenia-proof",
                 conduit_core::TIMER_RESOURCE_CLASS,
@@ -168,7 +161,7 @@ fn portable_demo_checks_expands_and_plans_on_one_truthful_host() {
     assert!(plan.fragments[0]
         .placements
         .iter()
-        .any(|placement| placement.kind_id.as_str() == SCALAR_FIELD_PRESENTATION_KIND));
+        .any(|placement| placement.kind_id.as_str() == SCALAR_FIELD_FACE_KIND));
     for connection in &plan.fragments[0].connections {
         let expected_bytes = if connection.value_kind.as_str() == SCALAR_FIELD2_INFO_ID {
             conduit_alife::LENIA_MAXIMUM_FIELD_BYTES

@@ -1,4 +1,4 @@
-//! Presentation-independent typed threshold and hysteresis decisions.
+//! Face-independent typed threshold and hysteresis decisions.
 
 use crate::{
     MeasurementSummary, MeasurementThresholdDecision, MeasurementThresholdPolicy,

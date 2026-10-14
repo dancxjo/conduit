@@ -1,4 +1,4 @@
-//! Presentation-independent Tour chapter and lifecycle state.
+//! Face-independent Tour chapter and lifecycle state.
 
 pub const TOUR_CHAPTER_COUNT: u8 = 7;
 pub const TOUR_RUN_ACTION: &str = "tour.run";

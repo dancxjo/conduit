@@ -1,0 +1,381 @@
+//! Fixed-capacity graphical leaf obligations below semantic face.
+
+use crate::{
+    FaceIconKey, GraphicsClipClass, GraphicsCommandKind, GraphicsCommandKindForm,
+    GraphicsPaintRole, GraphicsPaintRoleForm, GraphicsShapeStyle, GraphicsShapeStyleForm,
+    GraphicsTextRole, GraphicsTextRoleForm, LayoutRect, MAX_LAYOUT_EXTENT,
+};
+mod path;
+pub use path::{GraphicsPath, MAX_GRAPHICS_PATH_POINTS};
+
+pub const GRAPHICS_SCENE_KIND: &str = "face/graphics-scene@1";
+pub const MAX_GRAPHICS_COMMANDS: usize = 48;
+/// One bounded pane-sized UTF-8 payload. Commands remain fixed-capacity, but
+/// can retain a small complete source document instead of a single label.
+/// Orthogonal paths reuse this storage for at most eight binary coordinate pairs.
+pub const MAX_GRAPHICS_TEXT_BYTES: usize = 192;
+pub const MAX_GRAPHICS_SCENE_BYTES: usize =
+    2 + MAX_GRAPHICS_COMMANDS * (21 + MAX_GRAPHICS_TEXT_BYTES);
+// Version 2 carries one explicit graphical text-role byte per command. Old
+// scene encodings refuse rather than silently changing text layout on replay.
+const VERSION: u8 = 2;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum GraphicsError {
+    EmptyPayload,
+    PayloadTooLong,
+    TooManyCommands,
+    InvalidGeometry,
+    UnknownIcon,
+    MalformedEncoding,
+    NonCanonicalEncoding,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GraphicsCommand {
+    pub kind: GraphicsCommandKind,
+    pub bounds: LayoutRect,
+    pub clip: LayoutRect,
+    pub paint: GraphicsPaintRole,
+    pub style: GraphicsShapeStyle,
+    text_role: GraphicsTextRole,
+    payload_len: u8,
+    payload: [u8; MAX_GRAPHICS_TEXT_BYTES],
+}
+
+impl GraphicsCommand {
+    pub const fn text_role(&self) -> GraphicsTextRole {
+        self.text_role
+    }
+
+    pub fn path(
+        path: GraphicsPath,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+    ) -> Result<Self, GraphicsError> {
+        let (bytes, len) = path.encode();
+        Self::new(
+            GraphicsCommandKind::OrthogonalPath,
+            path.bounds()?,
+            clip,
+            paint,
+            GraphicsShapeStyle::Stroke,
+            &bytes[..len],
+        )
+    }
+
+    pub fn path_geometry(&self) -> Option<GraphicsPath> {
+        (self.kind == GraphicsCommandKind::OrthogonalPath)
+            .then(|| GraphicsPath::decode(&self.payload[..usize::from(self.payload_len)]).ok())
+            .flatten()
+    }
+
+    pub fn rect(
+        bounds: LayoutRect,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+        style: GraphicsShapeStyle,
+    ) -> Result<Self, GraphicsError> {
+        Self::new(GraphicsCommandKind::Rect, bounds, clip, paint, style, &[])
+    }
+
+    pub fn text(
+        bounds: LayoutRect,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+        text: &str,
+    ) -> Result<Self, GraphicsError> {
+        Self::new(
+            GraphicsCommandKind::Text,
+            bounds,
+            clip,
+            paint,
+            GraphicsShapeStyle::Fill,
+            text.as_bytes(),
+        )
+    }
+
+    pub fn icon(
+        bounds: LayoutRect,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+        icon: FaceIconKey,
+    ) -> Result<Self, GraphicsError> {
+        Self::new(
+            GraphicsCommandKind::Icon,
+            bounds,
+            clip,
+            paint,
+            GraphicsShapeStyle::Fill,
+            icon.as_str().as_bytes(),
+        )
+    }
+
+    fn new(
+        kind: GraphicsCommandKind,
+        bounds: LayoutRect,
+        clip: LayoutRect,
+        paint: GraphicsPaintRole,
+        style: GraphicsShapeStyle,
+        payload: &[u8],
+    ) -> Result<Self, GraphicsError> {
+        validate_rect(bounds)?;
+        validate_rect(clip)?;
+        if kind != GraphicsCommandKind::Rect && payload.is_empty() {
+            return Err(GraphicsError::EmptyPayload);
+        }
+        if payload.len() > MAX_GRAPHICS_TEXT_BYTES {
+            return Err(GraphicsError::PayloadTooLong);
+        }
+        if kind == GraphicsCommandKind::Icon {
+            let token = core::str::from_utf8(payload).map_err(|_| GraphicsError::UnknownIcon)?;
+            if FaceIconKey::from_token(token).is_none() {
+                return Err(GraphicsError::UnknownIcon);
+            }
+        } else if kind == GraphicsCommandKind::Text {
+            core::str::from_utf8(payload).map_err(|_| GraphicsError::MalformedEncoding)?;
+        } else if kind == GraphicsCommandKind::OrthogonalPath {
+            if GraphicsPath::decode(payload)?.bounds()? != bounds
+                || style != GraphicsShapeStyle::Stroke
+            {
+                return Err(GraphicsError::NonCanonicalEncoding);
+            }
+        } else if !payload.is_empty() {
+            return Err(GraphicsError::NonCanonicalEncoding);
+        }
+        if matches!(kind, GraphicsCommandKind::Text | GraphicsCommandKind::Icon)
+            && style != GraphicsShapeStyle::Fill
+        {
+            return Err(GraphicsError::NonCanonicalEncoding);
+        }
+        let mut stored = [0; MAX_GRAPHICS_TEXT_BYTES];
+        stored[..payload.len()].copy_from_slice(payload);
+        Ok(Self {
+            kind,
+            bounds,
+            clip,
+            paint,
+            style,
+            text_role: GraphicsTextRole::Body,
+            payload_len: payload.len() as u8,
+            payload: stored,
+        })
+    }
+
+    /// Textual content only; use `path_geometry` for an orthogonal path.
+    pub fn payload(&self) -> &str {
+        if self.kind == GraphicsCommandKind::OrthogonalPath {
+            return "";
+        }
+        core::str::from_utf8(&self.payload[..usize::from(self.payload_len)])
+            .expect("validated graphics payload")
+    }
+
+    /// Typography purpose belongs to the resolved graphical leaf, not the
+    /// portable Face identity; no font family or size is prescribed.
+    pub fn with_text_role(mut self, role: GraphicsTextRole) -> Result<Self, GraphicsError> {
+        if self.kind != GraphicsCommandKind::Text {
+            return Err(GraphicsError::NonCanonicalEncoding);
+        }
+        self.text_role = role;
+        Ok(self)
+    }
+
+    pub fn clip_class(&self) -> GraphicsClipClass {
+        let Some(intersection) = intersection(self.bounds, self.clip) else {
+            return GraphicsClipClass::FullyClipped;
+        };
+        if intersection == self.bounds {
+            GraphicsClipClass::FullyVisible
+        } else {
+            GraphicsClipClass::PartiallyClipped
+        }
+    }
+}
+
+const EMPTY_COMMAND: GraphicsCommand = GraphicsCommand {
+    kind: GraphicsCommandKind::Rect,
+    bounds: LayoutRect {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+    },
+    clip: LayoutRect {
+        x: 0,
+        y: 0,
+        width: 1,
+        height: 1,
+    },
+    paint: GraphicsPaintRole::Background,
+    style: GraphicsShapeStyle::Fill,
+    text_role: GraphicsTextRole::Body,
+    payload_len: 0,
+    payload: [0; MAX_GRAPHICS_TEXT_BYTES],
+};
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub struct GraphicsScene {
+    count: u8,
+    commands: [GraphicsCommand; MAX_GRAPHICS_COMMANDS],
+}
+
+impl GraphicsScene {
+    pub const fn empty() -> Self {
+        Self {
+            count: 0,
+            commands: [EMPTY_COMMAND; MAX_GRAPHICS_COMMANDS],
+        }
+    }
+
+    pub fn push(&mut self, command: GraphicsCommand) -> Result<(), GraphicsError> {
+        let index = usize::from(self.count);
+        if index == MAX_GRAPHICS_COMMANDS {
+            return Err(GraphicsError::TooManyCommands);
+        }
+        self.commands[index] = command;
+        self.count += 1;
+        Ok(())
+    }
+
+    pub fn commands(&self) -> &[GraphicsCommand] {
+        &self.commands[..usize::from(self.count)]
+    }
+
+    pub fn encode(self) -> [u8; MAX_GRAPHICS_SCENE_BYTES] {
+        let mut output = [0; MAX_GRAPHICS_SCENE_BYTES];
+        output[0] = VERSION;
+        output[1] = self.count;
+        let mut offset = 2;
+        for command in self.commands() {
+            output[offset] = GraphicsCommandKindForm::encode(command.kind)[0];
+            output[offset + 1] = GraphicsPaintRoleForm::encode(command.paint)[0];
+            output[offset + 2] = GraphicsShapeStyleForm::encode(command.style)[0];
+            write_rect(&mut output[offset + 3..offset + 11], command.bounds);
+            write_rect(&mut output[offset + 11..offset + 19], command.clip);
+            output[offset + 19] = command.payload_len;
+            output[offset + 20] = GraphicsTextRoleForm::encode(command.text_role)[0];
+            let len = usize::from(command.payload_len);
+            output[offset + 21..offset + 21 + len].copy_from_slice(&command.payload[..len]);
+            offset += 21 + len;
+        }
+        output
+    }
+
+    pub fn encoded_len(self) -> usize {
+        2 + self
+            .commands()
+            .iter()
+            .map(|command| 21 + usize::from(command.payload_len))
+            .sum::<usize>()
+    }
+
+    pub fn decode(input: &[u8]) -> Result<Self, GraphicsError> {
+        if input.len() < 2 || input[0] != VERSION {
+            return Err(GraphicsError::MalformedEncoding);
+        }
+        let count = usize::from(input[1]);
+        if count > MAX_GRAPHICS_COMMANDS {
+            return Err(GraphicsError::TooManyCommands);
+        }
+        let mut scene = Self::empty();
+        let mut offset = 2;
+        for _ in 0..count {
+            if input.len().saturating_sub(offset) < 21 {
+                return Err(GraphicsError::MalformedEncoding);
+            }
+            let kind = decode_kind(input[offset])?;
+            let paint = decode_paint(input[offset + 1])?;
+            let style = decode_style(input[offset + 2])?;
+            let bounds = read_rect(&input[offset + 3..offset + 11]);
+            let clip = read_rect(&input[offset + 11..offset + 19]);
+            let len = usize::from(input[offset + 19]);
+            let text_role = GraphicsTextRoleForm::decode(&[input[offset + 20]])
+                .map_err(|_| GraphicsError::MalformedEncoding)?;
+            if kind != GraphicsCommandKind::Text && text_role != GraphicsTextRole::Body {
+                return Err(GraphicsError::NonCanonicalEncoding);
+            }
+            if len > MAX_GRAPHICS_TEXT_BYTES || input.len().saturating_sub(offset + 21) < len {
+                return Err(GraphicsError::PayloadTooLong);
+            }
+            let mut command = GraphicsCommand::new(
+                kind,
+                bounds,
+                clip,
+                paint,
+                style,
+                &input[offset + 21..offset + 21 + len],
+            )?;
+            command.text_role = text_role;
+            scene.push(command)?;
+            offset += 21 + len;
+        }
+        if offset != input.len() {
+            return Err(GraphicsError::NonCanonicalEncoding);
+        }
+        Ok(scene)
+    }
+}
+
+fn validate_rect(rect: LayoutRect) -> Result<(), GraphicsError> {
+    if rect.width == 0
+        || rect.height == 0
+        || rect.width > MAX_LAYOUT_EXTENT
+        || rect.height > MAX_LAYOUT_EXTENT
+    {
+        return Err(GraphicsError::InvalidGeometry);
+    }
+    let right = i32::from(rect.x) + i32::from(rect.width);
+    let bottom = i32::from(rect.y) + i32::from(rect.height);
+    if right > i32::from(i16::MAX) || bottom > i32::from(i16::MAX) {
+        return Err(GraphicsError::InvalidGeometry);
+    }
+    Ok(())
+}
+
+fn intersection(a: LayoutRect, b: LayoutRect) -> Option<LayoutRect> {
+    let x = a.x.max(b.x);
+    let y = a.y.max(b.y);
+    let right = (i32::from(a.x) + i32::from(a.width)).min(i32::from(b.x) + i32::from(b.width));
+    let bottom = (i32::from(a.y) + i32::from(a.height)).min(i32::from(b.y) + i32::from(b.height));
+    if right <= i32::from(x) || bottom <= i32::from(y) {
+        return None;
+    }
+    Some(LayoutRect {
+        x,
+        y,
+        width: (right - i32::from(x)) as u16,
+        height: (bottom - i32::from(y)) as u16,
+    })
+}
+
+fn write_rect(output: &mut [u8], rect: LayoutRect) {
+    output[0..2].copy_from_slice(&rect.x.to_le_bytes());
+    output[2..4].copy_from_slice(&rect.y.to_le_bytes());
+    output[4..6].copy_from_slice(&rect.width.to_le_bytes());
+    output[6..8].copy_from_slice(&rect.height.to_le_bytes());
+}
+
+fn read_rect(input: &[u8]) -> LayoutRect {
+    LayoutRect {
+        x: i16::from_le_bytes([input[0], input[1]]),
+        y: i16::from_le_bytes([input[2], input[3]]),
+        width: u16::from_le_bytes([input[4], input[5]]),
+        height: u16::from_le_bytes([input[6], input[7]]),
+    }
+}
+
+fn decode_kind(value: u8) -> Result<GraphicsCommandKind, GraphicsError> {
+    GraphicsCommandKindForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+}
+
+fn decode_paint(value: u8) -> Result<GraphicsPaintRole, GraphicsError> {
+    GraphicsPaintRoleForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+}
+
+fn decode_style(value: u8) -> Result<GraphicsShapeStyle, GraphicsError> {
+    GraphicsShapeStyleForm::decode(&[value]).map_err(|_| GraphicsError::MalformedEncoding)
+}
+
+#[cfg(test)]
+mod tests;

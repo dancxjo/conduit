@@ -1,4 +1,4 @@
-//! Only the old Flow presentation is migrated; authored Plot source is never an input to mutation.
+//! Only the old Flow face is migrated; authored Plot source is never an input to mutation.
 use alloc::{collections::BTreeSet, string::String, vec, vec::Vec};
 use serde::Deserialize;
 
@@ -6,7 +6,7 @@ use crate::workspace::*;
 
 #[derive(Debug, Deserialize)]
 #[serde(deny_unknown_fields, rename_all = "camelCase")]
-pub struct LegacyFlowPresentation {
+pub struct LegacyFlowFace {
     pub schema: String,
     pub workspace_identity: String,
     pub nodes: Vec<LegacyFlowNode>,
@@ -29,7 +29,7 @@ pub struct LegacyFlowPoint {
     pub y: f64,
 }
 
-impl LegacyFlowPresentation {
+impl LegacyFlowFace {
     /// Mapping must come from the exact current projection's `semantic-id` properties.
     /// Missing mappings refuse migration, rather than treating a renderer ID as semantic.
     pub fn migrate(
@@ -38,7 +38,7 @@ impl LegacyFlowPresentation {
         basis: WorkspaceBasis,
         semantic_ids: &[(String, String)],
     ) -> Result<PatchbayWorkspace, WorkspaceError> {
-        if self.schema != "conduit.patchbay.flow-presentation/v1" {
+        if self.schema != "conduit.patchbay.flow-face/v1" {
             return Err(WorkspaceError::UnsupportedSchema);
         }
         if self.workspace_identity != expected_workspace_identity {

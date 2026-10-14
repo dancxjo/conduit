@@ -332,7 +332,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TestObserverBack {
                 });
             }
             io.consume_host_completion()
-                .expect("observed tick fixture presentation");
+                .expect("observed tick fixture face");
             self.pending = None;
             self.next = self.next.saturating_add(1);
             return StepOutcome::Progress;

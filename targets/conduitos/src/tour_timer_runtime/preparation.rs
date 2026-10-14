@@ -21,7 +21,7 @@ pub(crate) struct PreparedTimerGraph {
     pub bindings: [Option<(NodeId, HostCallBinding)>; NODES],
     pub timer: NodeId,
     pub count: NodeId,
-    pub presentation: NodeId,
+    pub face: NodeId,
     pub period: u64,
     pub start: u64,
     pub sign_bytes: u32,

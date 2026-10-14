@@ -24,7 +24,7 @@ pub fn native_mask_host_advertisement(
 
 const MAXIMUM_EFFECT_BASES: u16 = 5;
 const INPUT_CONTROLLER_FAMILY: &str = "conduitos.base/input-controller@1";
-pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_presentation::SHOW_RESOURCE_CLASS;
+pub const FRAMEBUFFER_RESOURCE_CLASS: &str = conduit_face::SHOW_RESOURCE_CLASS;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum EffectFamily {

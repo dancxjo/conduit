@@ -80,7 +80,7 @@ pub(crate) fn value_queue_bound(kind: &conduit_core::KindId) -> Option<u32> {
     if pointer.outputs[0].value_kind == *kind {
         return Some(super::NORMALIZED_POINTER_VALUE_BYTES as u32);
     }
-    let stroke = conduit_presentation::capture_bounded_stroke_kind_projection();
+    let stroke = conduit_face::capture_bounded_stroke_kind_projection();
     (stroke.outputs[0].value_kind == *kind)
         .then_some(super::stroke_capture::MAXIMUM_PATH_BYTES as u32)
 }

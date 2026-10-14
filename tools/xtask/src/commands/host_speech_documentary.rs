@@ -1,5 +1,5 @@
 //! Retain the actual ordinary spoken Mask output for one current Presenter result.
-use conduit_presentation::{GeneratedManifestationCandidate, Presentation};
+use conduit_face::{Face, GeneratedManifestationCandidate};
 use conduit_std_host::{hosted_speech_synthesis::EspeakDiscovery, spoken_mask_journey};
 use serde_json::{json, Value};
 use sha2::{Digest, Sha256};
@@ -8,7 +8,7 @@ use std::path::Path;
 pub(super) fn produce(
     output: &Path,
     step_id: &str,
-    face: &Presentation,
+    face: &Face,
     manifestation: &GeneratedManifestationCandidate,
     discovery: &EspeakDiscovery,
 ) -> Result<Vec<Value>, Box<dyn std::error::Error>> {

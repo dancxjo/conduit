@@ -5,11 +5,11 @@ const SOURCE: &str =
 
 #[test]
 fn glyph_aliases_execute_as_equal_checked_constants_through_browser_kernel() {
-    let projection = compact_patchbay::project_with_presentation(
+    let projection = compact_patchbay::project_with_face(
         SOURCE,
         1,
         false,
-        crate::installed_browser::PresentationProfile::Annotation,
+        crate::installed_browser::FaceProfile::Annotation,
     )
     .unwrap();
     assert!(projection.diagnostics.is_empty());
@@ -19,7 +19,7 @@ fn glyph_aliases_execute_as_equal_checked_constants_through_browser_kernel() {
         panic!("planned Boolean manifestation")
     };
     assert_eq!(effect.text.as_deref(), Some("true"));
-    assert_eq!(effect.presentation_kind, "presentation/bool-value");
+    assert_eq!(effect.face_kind, "face/bool-value");
     assert_eq!(
         projection.checked_plot_id,
         session.fragments[0].checked_plot_id.as_str()
@@ -67,11 +67,11 @@ fn malformed_unimported_and_missing_basis_literals_refuse_before_browser_play() 
             .replace("r⟦^[A-Z]+$⟧i", "r/t͡ʃ/"),
     ] {
         assert!(TourSession::prepare("browser/glyph", "boot/glyph", &source, 1).is_err());
-        assert!(compact_patchbay::project_with_presentation(
+        assert!(compact_patchbay::project_with_face(
             &source,
             1,
             false,
-            crate::installed_browser::PresentationProfile::Annotation,
+            crate::installed_browser::FaceProfile::Annotation,
         )
         .is_err());
     }

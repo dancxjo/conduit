@@ -93,7 +93,7 @@ fn contains(rect: TourRect, x: u16, y: u16) -> bool {
 #[cfg(test)]
 mod tests {
     use alloc::vec::Vec;
-    use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+    use conduit_face::{ApplicationEvent, ApplicationEventKind};
 
     use super::*;
     use crate::OPEN_PATCHBAY_ACTION_ID;
@@ -157,7 +157,7 @@ mod tests {
             controller.state().selected_patchbay_subject.as_deref(),
             Some("meet-one-gear/change")
         );
-        let view = controller.state().presentation().unwrap().lower().unwrap();
+        let view = controller.state().face().unwrap().lower().unwrap();
         assert!(view.nodes.iter().any(|node| {
             node.key == "patchbay" && node.text.contains("selected meet-one-gear/change")
         }));

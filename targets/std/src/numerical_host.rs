@@ -38,7 +38,7 @@ impl StdHost {
             .retain(|offer| !installed_std::owns_numerical_offer(offer));
         advertisement
             .capabilities
-            .push(conduit_std_offers::numerical_presentation_std_offer());
+            .push(conduit_std_offers::numerical_face_std_offer());
         for gear in gears {
             let [entry] = gear.configuration.as_slice() else {
                 return Err("numeric source requires one exact request".into());

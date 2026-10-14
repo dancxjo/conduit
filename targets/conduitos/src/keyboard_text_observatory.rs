@@ -190,7 +190,7 @@ fn observation(
     Observation {
         sign_id: SignId::from(identity.sign_id.as_str()),
         active_play_id,
-        presentation_id: None,
+        face_id: None,
         host_id: prepared.advertisement.host_id.clone(),
         boot_id: prepared.advertisement.boot_id.clone(),
         plan_id,

@@ -145,9 +145,7 @@ pub(super) fn admit_with_expression(
         }
         let mut remaining = item.text.as_str();
         while !remaining.is_empty() {
-            let mut end = remaining
-                .len()
-                .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+            let mut end = remaining.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
             while !remaining.is_char_boundary(end) {
                 end -= 1;
             }

@@ -6,7 +6,7 @@ edition = "2021"
 [dependencies]
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-presentation = { path = "../presentation", default-features = false, features = ["plot-catalog"] }
+conduit-face = { path = "../face", default-features = false, features = ["plot-catalog"] }
 conduit-time = { path = "../time" }
 sha2 = { version = "0.10", default-features = false }
 

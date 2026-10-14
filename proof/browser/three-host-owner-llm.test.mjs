@@ -3,8 +3,8 @@ import test from 'node:test';
 import { assertModelLossFaceBoundary } from './three-host-owner-llm.mjs';
 
 const face = (identity, revision) => ({
-  presentation: { identity, basis: { body_id: 'body/one' } },
-  presentation_revision_decimal: revision,
+  face: { identity, basis: { body_id: 'body/one' } },
+  face_revision_decimal: revision,
 });
 const checkpoint = {
   body_id: 'body/one', route_id: 'route/model', route_available: false,

@@ -1,9 +1,9 @@
 //! Finite observation playback shared by live-following and replay projection.
 
 use crate::{
-    debugger_presentation::{event_name, value_presentation},
-    DebuggerExecutionIdentity, DebuggerGapPresentation, DebuggerValuePresentation,
-    DebuggerWatchHistoryEntry, DebuggerWatchSet, MAX_DEBUGGER_SUMMARY_BYTES,
+    debugger_face::{event_name, value_face},
+    DebuggerExecutionIdentity, DebuggerGapFace, DebuggerValueFace, DebuggerWatchHistoryEntry,
+    DebuggerWatchSet, MAX_DEBUGGER_SUMMARY_BYTES,
 };
 use alloc::{borrow::ToOwned, string::String, vec, vec::Vec};
 use conduit_kernel::debug_observation::{
@@ -40,7 +40,7 @@ pub struct DebuggerTimelineEvent {
     pub subject: String,
     pub related_subject: Option<String>,
     pub event: String,
-    pub value: Option<DebuggerValuePresentation>,
+    pub value: Option<DebuggerValueFace>,
     pub fault_code: Option<u16>,
     #[serde(default)]
     pub causal_parent_sequence: Option<u64>,
@@ -80,7 +80,7 @@ pub struct DebuggerTimelineSubjectState {
     pub subject: String,
     pub event: String,
     pub sequence: u64,
-    pub value: Option<DebuggerValuePresentation>,
+    pub value: Option<DebuggerValueFace>,
     pub fault_code: Option<u16>,
 }
 
@@ -116,7 +116,7 @@ pub struct DebuggerTimeline {
     pub events: Vec<DebuggerTimelineEvent>,
     pub retained_bytes: usize,
     pub evicted_events: u64,
-    pub gap: Option<DebuggerGapPresentation>,
+    pub gap: Option<DebuggerGapFace>,
     #[serde(default)]
     pub trace: Option<DebuggerCausalTrace>,
     #[serde(skip)]
@@ -198,7 +198,7 @@ impl DebuggerTimeline {
             subject,
             related_subject,
             event: event_name(record.kind).to_owned(),
-            value: value_presentation(record),
+            value: value_face(record),
             fault_code: record.fault_code,
             causal_parent_sequence: record.causal_parent_sequence,
             invocation_sequence: record.invocation_sequence,
@@ -281,7 +281,7 @@ impl DebuggerTimeline {
     }
 
     pub fn note_gap(&mut self, gap: DebugObservationGap) {
-        self.gap = Some(DebuggerGapPresentation {
+        self.gap = Some(DebuggerGapFace {
             dropped_records: gap.dropped_records,
             first_retained_sequence: gap.first_retained_sequence,
         });

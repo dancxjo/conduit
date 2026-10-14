@@ -119,7 +119,7 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
   let bodySocket = null;
   let bodyState = bodyUrl ? "connecting" : "not-configured";
   let closed = false;
-  let currentPresentation = null;
+  let currentFace = null;
   let currentShow = null;
   let interactionSequence = 0;
   let chain = Promise.resolve();
@@ -136,39 +136,39 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
     api.conduit_browser_webchat_effect_len(),
   );
 
-  const contained = (presentation, source) => presentation.relationships
+  const contained = (face, source) => face.relationships
     .filter((relationship) => relationship.kind === "Contains" && relationship.source === source)
     .map((relationship) => relationship.target);
-  const subjectById = (presentation, identity) => presentation.subjects.find((subject) => subject.identity === identity);
-  const textById = (presentation, identity) => presentation.text.find((entry) => entry.subject === identity)?.text ?? "";
+  const subjectById = (face, identity) => face.subjects.find((subject) => subject.identity === identity);
+  const textById = (face, identity) => face.text.find((entry) => entry.subject === identity)?.text ?? "";
 
-  function renderPresentation(presentation) {
-    const documentSubject = presentation.subjects.find((subject) => subject.role === "Document");
-    if (!documentSubject) throw new Error("CND-CHAT-015 Presentation has no document subject");
+  function renderFace(face) {
+    const documentSubject = face.subjects.find((subject) => subject.role === "Document");
+    if (!documentSubject) throw new Error("CND-CHAT-015 Face has no document subject");
     const fragment = document.createDocumentFragment();
     const heading = document.createElement("h1");
     heading.textContent = documentSubject.label;
     fragment.append(heading);
     const renderSubject = (identity) => {
-      const subject = subjectById(presentation, identity);
+      const subject = subjectById(face, identity);
       if (!subject) return null;
       if (subject.role === "Collection") {
         const list = document.createElement("ol");
         list.setAttribute("aria-label", subject.name);
-        for (const child of contained(presentation, identity)) {
+        for (const child of contained(face, identity)) {
           const rendered = renderSubject(child);
           if (rendered) list.append(rendered);
         }
         return list;
       }
       if (subject.role === "Item") {
-        const item = document.createElement("li"); item.textContent = textById(presentation, identity); return item;
+        const item = document.createElement("li"); item.textContent = textById(face, identity); return item;
       }
       if (subject.role === "Status") {
-        const status = document.createElement("p"); status.setAttribute("role", "status"); status.textContent = textById(presentation, identity).toLowerCase(); return status;
+        const status = document.createElement("p"); status.setAttribute("role", "status"); status.textContent = textById(face, identity).toLowerCase(); return status;
       }
       if (subject.role === "TextEntry") {
-        const action = presentation.actions.find((candidate) => candidate.target === identity && candidate.arguments.length === 1);
+        const action = face.actions.find((candidate) => candidate.target === identity && candidate.arguments.length === 1);
         const argument = action?.arguments[0];
         if (!action || !argument) return null;
         const label = document.createElement("label"); label.textContent = argument.value_name;
@@ -188,7 +188,7 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
       }
       return null;
     };
-    for (const child of contained(presentation, documentSubject.identity)) {
+    for (const child of contained(face, documentSubject.identity)) {
       const rendered = renderSubject(child); if (rendered) fragment.append(rendered);
     }
     root.replaceChildren(fragment);
@@ -234,9 +234,9 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
         continue;
       }
       if (effect === EFFECT_PRESENT) {
-        currentPresentation = JSON.parse(decoder.decode(effectBytes()));
-        renderPresentation(currentPresentation);
-        requireStatus(api.conduit_browser_webchat_complete_effect(), "presentation completion");
+        currentFace = JSON.parse(decoder.decode(effectBytes()));
+        renderFace(currentFace);
+        requireStatus(api.conduit_browser_webchat_complete_effect(), "face completion");
         currentShow = JSON.parse(decoder.decode(readBytes(
           api, api.conduit_browser_webchat_interaction_ptr(), api.conduit_browser_webchat_interaction_len(),
         )));
@@ -253,8 +253,8 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
 
   async function submitInteraction(input, action, argument) {
     const frame = encoder.encode(JSON.stringify({
-      presentation_id: currentPresentation.identity,
-      presentation_revision: currentPresentation.revision,
+      face_id: currentFace.identity,
+      face_revision: currentFace.revision,
       show_id: currentShow.show_id,
       action_id: action.identity,
       target: action.target,
@@ -385,7 +385,7 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
   }
   return Object.freeze({
     submit: (text) => enqueue(async () => {
-      const action = currentPresentation.actions.find((candidate) => candidate.arguments.length === 1);
+      const action = currentFace.actions.find((candidate) => candidate.arguments.length === 1);
       const argument = action.arguments[0];
       const input = root.querySelector(`[data-input-id="${argument.name}"]`);
       input.value = text;
@@ -393,11 +393,11 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
     }),
     disconnect: () => enqueue(disconnect),
     refusal: (overrides = {}) => {
-      const action = currentPresentation.actions.find((candidate) => candidate.arguments.length === 1);
+      const action = currentFace.actions.find((candidate) => candidate.arguments.length === 1);
       const argument = action.arguments[0];
       const frame = encoder.encode(JSON.stringify({
-        presentation_id: currentPresentation.identity,
-        presentation_revision: currentPresentation.revision,
+        face_id: currentFace.identity,
+        face_revision: currentFace.revision,
         show_id: currentShow.show_id,
         action_id: action.identity,
         target: action.target,
@@ -425,8 +425,8 @@ export async function createWebchatRuntime({ wasmBytes, url, plot = "chat/browse
     proof: () => Object.freeze({
       identity,
       history: Object.freeze([...root.querySelectorAll("li")].map((item) => item.textContent)),
-      presentationId: currentPresentation?.identity,
-      presentationRevision: currentPresentation?.revision,
+      faceId: currentFace?.identity,
+      faceRevision: currentFace?.revision,
       manifestationId: currentShow?.manifestation_id,
       showId: currentShow?.show_id,
       interactionEvidence: api.conduit_browser_webchat_evidence_len() === 0 ? null : JSON.parse(decoder.decode(readBytes(

@@ -445,7 +445,10 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     }
                     BrowserHostEffect::Manifestation(manifestation) => {
                         object.insert("effect_kind".into(), "manifestation".into());
-                        object.insert("presentation_kind".into(), manifestation.kind_id.into());
+                        object.insert("face_kind".into(), manifestation.kind_id.into());
+                        if let Some(label) = &manifestation.data_label {
+                            object.insert("data_label".into(), label.clone().into());
+                        }
                         object.insert(
                             "canonical_value".into(),
                             manifestation.canonical_value.clone().into(),

@@ -12,7 +12,7 @@ pub(super) fn fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionB
 
 pub(super) fn finite_fixture() -> (Plan, HostAdvertisement, HostAdvertisement, SessionBinding) {
     fixture_for(
-        "plot remote_once {\n message: text/literal(\"hello\")\n show: presentation/text\n message >> show\n}.\n",
+        "plot remote_once {\n message: text/literal(\"hello\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
         "remote_once",
         "text/literal",
     )
@@ -207,15 +207,15 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
             RemoteIngressOutcome::Accepted { .. }
         ));
         source.accepted(RemoteEndpointId(0), sequence).unwrap();
-        let DriveStatus::Effect(presentation) = sink.drive().unwrap() else {
+        let DriveStatus::Effect(face) = sink.drive().unwrap() else {
             panic!("expected indicator request")
         };
-        let engine::BrowserHostEffect::Manifestation(value) = &presentation.effect else {
+        let engine::BrowserHostEffect::Manifestation(value) = &face.effect else {
             panic!("expected indicator manifestation")
         };
         assert_eq!(
             value.kind_id,
-            conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND
+            conduit_semantic_catalog::INDICATOR_STATE_FACE_KIND
         );
         assert_eq!(
             InfoBool::decode(&value.canonical_value).unwrap(),
@@ -225,7 +225,7 @@ fn exact_web_rtc_fragments_execute_button_transitions_through_kernel() {
                 InfoBool::FALSE
             }
         );
-        sink.complete_effect(&presentation, None).unwrap();
+        sink.complete_effect(&face, None).unwrap();
         source.delivered(RemoteEndpointId(0), sequence).unwrap();
         assert!(matches!(sink.drive().unwrap(), DriveStatus::Quiescent));
     }

@@ -1,14 +1,14 @@
 //! Provider-side grammar guidance for the finite wording proposal.
 //! Exact Face grounding is still checked by `GenerativePresenterRequest`.
 
-use conduit_presentation::GenerativePresenterInput;
+use conduit_face::GenerativePresenterInput;
 use serde_json::{json, Value};
 
 pub(in crate::hosted_local_model) fn wording_format(
     input: &GenerativePresenterInput,
     available_actions: &[String],
 ) -> Result<Value, String> {
-    let outline = crate::spoken_face_mask::select_spoken_outline(&input.presentation)
+    let outline = crate::spoken_face_mask::select_spoken_outline(&input.face)
         .map_err(|error| format!("select finite speech grammar: {error:?}"))?;
     let available_actions = available_actions
         .iter()
@@ -22,7 +22,7 @@ pub(in crate::hosted_local_model) fn wording_format(
     };
     let mut clauses = Vec::new();
     for (index, text) in input
-        .presentation
+        .face
         .text
         .iter()
         .enumerate()
@@ -34,7 +34,7 @@ pub(in crate::hosted_local_model) fn wording_format(
             &[("subject", &text.subject), ("value", &text.text)],
         ));
     }
-    for (index, action) in input.presentation.actions.iter().enumerate() {
+    for (index, action) in input.face.actions.iter().enumerate() {
         if action.availability.is_available() && available_actions.contains(&action.identity) {
             clauses.push(clause(
                 "action",
@@ -52,13 +52,13 @@ pub(in crate::hosted_local_model) fn wording_format(
             "proposal": {
                 "type": "object",
                 "properties": {
-                    "source_presentation_identity": {
+                    "source_face_identity": {
                         "type": "string",
-                        "const": input.source_presentation_identity,
+                        "const": input.source_face_identity,
                     },
-                    "source_presentation_revision": {
+                    "source_face_revision": {
                         "type": "integer",
-                        "const": input.source_presentation_revision,
+                        "const": input.source_face_revision,
                     },
                     "clauses": {
                         "type": "array",
@@ -70,8 +70,8 @@ pub(in crate::hosted_local_model) fn wording_format(
                     },
                 },
                 "required": [
-                    "source_presentation_identity",
-                    "source_presentation_revision",
+                    "source_face_identity",
+                    "source_face_revision",
                     "clauses",
                 ],
                 "additionalProperties": false,
@@ -112,16 +112,16 @@ mod tests {
     #[test]
     fn schema_binds_source_identity_and_only_selected_tagged_claims() {
         let input = super::super::proof_request().unwrap().semantic_data;
-        let outline = crate::spoken_face_mask::select_spoken_outline(&input.presentation).unwrap();
+        let outline = crate::spoken_face_mask::select_spoken_outline(&input.face).unwrap();
         let format = wording_format(&input, &["body.inspect".into()]).unwrap();
         let proposal = &format["properties"]["proposal"]["properties"];
         assert_eq!(
-            proposal["source_presentation_identity"]["const"],
-            input.source_presentation_identity
+            proposal["source_face_identity"]["const"],
+            input.source_face_identity
         );
         assert_eq!(
-            proposal["source_presentation_revision"]["const"],
-            input.source_presentation_revision
+            proposal["source_face_revision"]["const"],
+            input.source_face_revision
         );
         assert_eq!(proposal["clauses"]["maxItems"], 1);
         let variants = proposal["clauses"]["items"]["oneOf"].as_array().unwrap();
@@ -143,7 +143,7 @@ mod tests {
                 assert!(outline.text_indices.contains(&(index as u32)));
                 assert_eq!(
                     variant["properties"]["value"]["const"],
-                    input.presentation.text[index].text
+                    input.face.text[index].text
                 );
             }
         }
@@ -156,7 +156,7 @@ mod tests {
             outline.text_indices.len()
         );
         let mut invalid = input;
-        invalid.presentation.revision += 1;
+        invalid.face.revision += 1;
         assert!(wording_format(&invalid, &[]).is_err());
     }
 }

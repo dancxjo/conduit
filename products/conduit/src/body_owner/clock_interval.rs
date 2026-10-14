@@ -4,10 +4,9 @@
 use super::{debug, state, Owner};
 use conduit_body::{BodyState, ResidentPlot};
 use conduit_core::{kind_id, CheckedValueContract, ValueConstraint};
-use conduit_presentation::{
-    FaceActionArgument, FaceInteraction, MaskShow, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationText, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    Face, FaceAction, FaceActionArgument, FaceActionAvailability, FaceDisclosureLevel,
+    FaceInteraction, FaceProperty, FacePropertyValue, FaceText, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 use std::path::Path;
 
@@ -33,7 +32,7 @@ pub(crate) enum ClockAction {
 
 fn source_for(interval_ms: u64) -> String {
     format!(
-        "plot clock-demo {{\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every({interval_ms}ms)\n    clock >> presentation/tick\n}}\n"
+        "plot clock-demo {{\n    # Standing clock: bounded instantaneous pressure, alive until Stop.\n    clock: time/every({interval_ms}ms)\n    clock >> face/tick(\"Clock tick\")\n}}\n"
     )
 }
 
@@ -63,7 +62,7 @@ pub(super) fn recognized_interval(resident: &ResidentPlot) -> Option<u64> {
         })
 }
 
-pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Presentation, String> {
+pub(super) fn with_clock_action(owner: &Owner, face: Face) -> Result<Face, String> {
     let Some(interval_ms) = owner.clock_interval_ms else {
         return Ok(face);
     };
@@ -77,7 +76,7 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         .iter_mut()
         .find(|disclosure| disclosure.subject == target)
         .ok_or("clock Plot has no Face disclosure")?
-        .level = PresentationDisclosureLevel::Primary;
+        .level = FaceDisclosureLevel::Primary;
     let lulled = owner.session.evidence().body.state == BodyState::Lulled
         && owner.session.realization().is_none()
         && !owner.host.is_playing();
@@ -110,13 +109,13 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         .ok_or("ticker Plot has no Face subject")?
         .name = "Interval ticker".into();
     let mut properties = face.properties.clone();
-    properties.push(PresentationProperty {
+    properties.push(FaceProperty {
         subject: target.clone(),
         name: "interval-ms".into(),
-        value: PresentationPropertyValue::Count(interval_ms),
+        value: FacePropertyValue::Count(interval_ms),
     });
     let mut text = face.text.clone();
-    text.push(PresentationText {
+    text.push(FaceText {
         subject: target.clone(),
         text: if owner.current_play_id().is_some() && owner.host.is_playing() {
             "The ticker is running."
@@ -127,33 +126,33 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         }
         .into(),
     });
-    text.push(PresentationText {
+    text.push(FaceText {
         subject: target.clone(),
         text: format!("The ticker emits a pulse every {interval_ms} milliseconds."),
     });
     let mut actions = face.actions.clone();
     for action in &mut actions {
         if action.intent == BODY_WAKE_ACTION && terminal_attached {
-            action.availability = PresentationActionAvailability::Unavailable {
+            action.availability = FaceActionAvailability::Unavailable {
                 reason_code: "terminal-mask-attached".into(),
                 explanation: "Detach the terminal Mask before waking this ticker Body.".into(),
             };
         } else if action.intent == BODY_LULL_ACTION && owner.current_play_id().is_none() {
-            action.availability = PresentationActionAvailability::Unavailable {
+            action.availability = FaceActionAvailability::Unavailable {
                 reason_code: "clock-not-playing".into(),
                 explanation: "The ticker Play has not started yet.".into(),
             };
         } else if !matches!(action.intent.as_str(), BODY_WAKE_ACTION | BODY_LULL_ACTION)
             && action.availability.is_available()
         {
-            action.availability = PresentationActionAvailability::Unavailable {
+            action.availability = FaceActionAvailability::Unavailable {
                 reason_code: "owner-action-return-not-admitted".into(),
                 explanation: "This owner return route does not yet accept this semantic action."
                     .into(),
             };
         }
     }
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/change-clock-interval/{}",
             owner.session.evidence().body.workload_revision
@@ -162,17 +161,17 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         target: target.clone(),
         name: "Change ticker pace".into(),
         arguments: vec![argument],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if lulled {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-play-must-lull".into(),
                 explanation: "Lull the current ticker Play before changing its checked interval. The next start will require a replacement Plan.".into(),
             }
         },
     });
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/start-clock/{}",
             owner.session.evidence().body.workload_revision
@@ -181,23 +180,23 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         target: target.clone(),
         name: "Start the ticker".into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if lulled && !terminal_attached {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else if terminal_attached {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "terminal-mask-attached".into(),
                 explanation: "Detach the terminal Mask before starting a new ticker Play.".into(),
             }
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-already-started".into(),
                 explanation: "The ticker needs to finish or be lulled before it starts again."
                     .into(),
             }
         },
     });
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: format!(
             "body/action/lull-clock/{}",
             owner.current_play_id().map_or("none", |play| play.as_str())
@@ -206,17 +205,17 @@ pub(super) fn with_clock_action(owner: &Owner, face: Presentation) -> Result<Pre
         target,
         name: "Stop the ticker".into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if owner.current_play_id().is_some() {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "clock-not-playing".into(),
                 explanation: "Start the ticker before stopping it.".into(),
             }
         },
     });
-    let revised = Presentation::new_with_semantics_and_temporal(
+    let revised = Face::new_with_semantics_and_temporal(
         face.revision,
         face.basis,
         subjects,

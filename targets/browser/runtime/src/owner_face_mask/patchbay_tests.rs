@@ -4,8 +4,8 @@ use super::*;
 
 #[test]
 fn browser_mask_preserves_complete_source_derived_patchbay_face() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     face.validate().unwrap();
@@ -45,13 +45,13 @@ fn browser_mask_preserves_complete_source_derived_patchbay_face() {
     })
     .unwrap();
     assert_eq!(mask.view().show_state, "available");
-    assert_eq!(mask.presentation, face);
+    assert_eq!(mask.face, face);
 }
 
 #[test]
 fn browser_patchbay_returns_only_supplied_available_actions() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     for action in &face.actions {
@@ -123,6 +123,6 @@ fn browser_patchbay_returns_only_supplied_available_actions() {
                 action.identity
             );
         }
-        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.face, face);
     }
 }

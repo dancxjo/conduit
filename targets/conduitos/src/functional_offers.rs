@@ -37,8 +37,8 @@ pub const TEXT_JOIN_HOST_CALL: &str = "conduit.host/text-join@1";
 pub const TEXT_JOIN_HOST_CALL_TARGET: &str = "text/prefix-concat-utf8";
 pub const TEXT_MORSE_HOST_CALL: &str = "conduit.host/text-to-morse@1";
 pub const TEXT_MORSE_HOST_CALL_TARGET: &str = "text/morse-pattern";
-pub const INDICATOR_PRESENTATION_HOST_CALL: &str = "conduit.host/present-indicator@1";
-pub const INDICATOR_PRESENTATION_HOST_CALL_TARGET: &str = "presentation/serial-indicator";
+pub const INDICATOR_FACE_HOST_CALL: &str = "conduit.host/present-indicator@1";
+pub const INDICATOR_FACE_HOST_CALL_TARGET: &str = "face/serial-indicator";
 pub const JSON_ENCODE_HOST_CALL: &str = "conduit.host/json-encode@1";
 pub const JSON_DECODE_HOST_CALL: &str = "conduit.host/json-decode@1";
 
@@ -254,27 +254,24 @@ pub fn text_morse_offer() -> CapabilityOffer {
     .build()
 }
 
-pub fn indicator_presentation_offer() -> CapabilityOffer {
+pub fn indicator_face_offer() -> CapabilityOffer {
     conduit_semantic_catalog::realization_offer(
-        conduit_semantic_catalog::indicator_presentation_contract(),
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION,
+        conduit_semantic_catalog::indicator_face_contract(),
+        conduit_semantic_catalog::INDICATOR_FACE_CONTRACT_REVISION,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: "conduitos-presentation-indicator-v1",
+            capability: "conduitos-face-indicator-v1",
             execution_profile: TEXT_PROFILE,
-            implementation: crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION,
+            implementation: crate::offer::INDICATOR_FACE_IMPLEMENTATION,
             artifact: TEXT_ARTIFACT,
         },
         vec![HostCallRequirement {
-            contract_id: HostCallContractId::from(INDICATOR_PRESENTATION_HOST_CALL),
-            target_kind: Some(kind_id(INDICATOR_PRESENTATION_HOST_CALL_TARGET)),
+            contract_id: HostCallContractId::from(INDICATOR_FACE_HOST_CALL),
+            target_kind: Some(kind_id(INDICATOR_FACE_HOST_CALL_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32,
             maximum_output_bytes: 0,
         }],
-        vec![resource_requirement(
-            conduit_core::PRESENTATION_RESOURCE_CLASS,
-            1,
-        )],
+        vec![resource_requirement(conduit_core::FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
 }

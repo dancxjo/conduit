@@ -1,7 +1,7 @@
 //! Native hit geometry for semantic shell controls.
 use super::{INSPECTOR_SURFACE, Slot, TourShellError, TourShellPresenter};
 use crate::{display::PixelTarget, native_compositor::RoutedPointer, tour_product::TourProduct};
-use conduit_presentation::{LayoutRect, PresentationRole};
+use conduit_face::{FaceRole, LayoutRect};
 use conduit_tour_model::INSPECTOR_CLOSE_ACTION_ID;
 
 pub(super) fn inspector_close_bounds(width: u16) -> LayoutRect {
@@ -62,14 +62,11 @@ impl TourShellPresenter {
             .iter()
             .find(|state| state.slot == Slot::Workspace)
             .ok_or(TourShellError::Identity)?;
-        let presentation = state
-            .presentation
-            .as_ref()
-            .ok_or(TourShellError::Identity)?;
-        if !presentation
+        let face = state.face.as_ref().ok_or(TourShellError::Identity)?;
+        if !face
             .subjects
             .iter()
-            .any(|subject| subject.identity == action && subject.role == PresentationRole::Action)
+            .any(|subject| subject.identity == action && subject.role == FaceRole::Action)
         {
             return Ok(false);
         }
@@ -101,13 +98,9 @@ impl TourShellPresenter {
             .iter()
             .find(|state| state.slot == Slot::Inspector)
             .ok_or(TourShellError::Identity)?;
-        let presentation = state
-            .presentation
-            .as_ref()
-            .ok_or(TourShellError::Identity)?;
-        if !presentation.subjects.iter().any(|subject| {
-            subject.identity == INSPECTOR_CLOSE_ACTION_ID
-                && subject.role == PresentationRole::Action
+        let face = state.face.as_ref().ok_or(TourShellError::Identity)?;
+        if !face.subjects.iter().any(|subject| {
+            subject.identity == INSPECTOR_CLOSE_ACTION_ID && subject.role == FaceRole::Action
         }) {
             return Ok(false);
         }

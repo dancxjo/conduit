@@ -65,12 +65,9 @@ fn exact_boot_offer_is_finite_and_bases_do_not_imply_authority() {
     let indicator = &offer.capabilities[6];
     assert_eq!(
         indicator.kind,
-        conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+        conduit_semantic_catalog::INDICATOR_FACE_KIND
     );
-    assert_eq!(
-        indicator.implementation,
-        INDICATOR_PRESENTATION_IMPLEMENTATION
-    );
+    assert_eq!(indicator.implementation, INDICATOR_FACE_IMPLEMENTATION);
     assert_eq!(indicator.required_base, BaseKind::Serial);
     assert_eq!(
         indicator.input.map(|port| port.value_kind),

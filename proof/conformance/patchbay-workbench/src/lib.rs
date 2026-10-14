@@ -5,7 +5,7 @@
 
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, HostAdvertisement, HostId, HostProfileId,
-    OfferGeneration, Plan, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    OfferGeneration, Plan, FACE_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot, expand_canonical_plot_with_backs,
@@ -15,9 +15,9 @@ use conduit_plot::{
 #[cfg(test)]
 mod tests;
 
-pub use conduit_semantic_catalog::PATCHBAY_PRESENTATION_KIND;
+pub use conduit_semantic_catalog::PATCHBAY_FACE_KIND;
 
-const USER_SOURCE: &str = "plot patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: presentation/patchbay\n subject >> canvas.subject\n}\n";
+const USER_SOURCE: &str = "plot patchbay-capstone {\n subject: text/literal(\"Gear demo with typed Ports and one Cord\")\n canvas: face/patchbay(\"Plot graph\")\n subject >> canvas.subject\n}\n";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayMaskPlans {
@@ -58,14 +58,11 @@ pub fn patchbay_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profile,
-    )?;
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_graphics_face_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)?;
     Ok((startup, profile))
 }
 
@@ -133,7 +130,7 @@ fn backs(
     profile: &ProfileCatalog,
 ) -> Result<CanonicalBackCatalog, String> {
     let mut backs = CanonicalBackCatalog::new();
-    conduit_semantic_catalog::install_patchbay_presentation_backs(startup, profile, &mut backs)?;
+    conduit_semantic_catalog::install_patchbay_face_backs(startup, profile, &mut backs)?;
     Ok(backs)
 }
 
@@ -144,7 +141,7 @@ fn direct_host() -> HostAdvertisement {
         "patchbay/browser-direct@1",
         vec![
             text_literal_fixture_offer("patchbay/browser-text-literal@1"),
-            conduit_std_offers::patchbay_presentation_offers()[0].clone(),
+            conduit_std_offers::patchbay_face_offers()[0].clone(),
         ],
     )
 }
@@ -156,19 +153,19 @@ fn recursive_host() -> HostAdvertisement {
         "patchbay/constrained-recursive@1",
         vec![
             text_literal_fixture_offer("patchbay/constrained-text-literal@1"),
-            conduit_std_offers::text_presentation_offer(),
+            conduit_std_offers::text_face_offer(),
             conduit_std_offers::layout_viewport_offer(),
             conduit_std_offers::layout_inset_offer(),
             conduit_std_offers::layout_column_offer(),
             conduit_std_offers::layout_align_offer(),
             conduit_std_offers::layout_stack_offer(),
-            conduit_std_offers::presentation_icon_offer(),
-            conduit_std_offers::presentation_frame_offer(),
-            conduit_std_offers::presentation_badge_offer(),
+            conduit_std_offers::face_icon_offer(),
+            conduit_std_offers::face_frame_offer(),
+            conduit_std_offers::face_badge_offer(),
             conduit_std_offers::graphics_rect_offer(),
             conduit_std_offers::graphics_text_offer(),
             conduit_std_offers::graphics_icon_offer(),
-            conduit_std_offers::graphics_presentation_offer(),
+            conduit_std_offers::graphics_face_offer(),
         ],
     )
 }
@@ -188,7 +185,7 @@ fn host(
         bases: vec![],
         resources: vec![resource_offer(
             &format!("{host}/display"),
-            PRESENTATION_RESOURCE_CLASS,
+            FACE_RESOURCE_CLASS,
             32,
         )],
         capabilities,

@@ -27,12 +27,12 @@ export function configurationValue(value, raw) {
   throw new Error("This value requires a structured configuration editor");
 }
 
-export function renderConfigurationFields(root, fields, apply) {
+export function renderConfigurationFields(root, fields, apply, options = {}) {
   for (const field of fields) {
     const group = document.createElement("div");
     group.dataset.applicationComponent = "plot-field";
     const label = document.createElement("label");
-    label.textContent = `Configure ${field.key}`;
+    label.textContent = options.label ?? (field.rule?.DataLabel ? "Data name" : `Configure ${field.key}`);
     const choices = field.rule?.TextOneOf?.values ?? (field.value.Bool !== undefined ? ["false", "true"] : null);
     const input = document.createElement(choices ? "select" : "input");
     input.setAttribute("aria-label", label.textContent);
@@ -47,20 +47,24 @@ export function renderConfigurationFields(root, fields, apply) {
       input.type = "text";
       if (field.value.U64 !== undefined || field.value.I64 !== undefined) input.inputMode = "numeric";
     }
+    if (field.rule?.DataLabel) {
+      input.required = true;
+      input.maxLength = field.rule.DataLabel.maximum;
+    }
     input.value = configurationText(field.value);
     label.append(input);
     const help = document.createElement("small");
-    help.textContent = `Canonical rule: ${JSON.stringify(field.rule)}`;
+    help.textContent = options.help ?? (field.rule?.DataLabel ? "Use a meaningful data name without control characters." : `Canonical rule: ${JSON.stringify(field.rule)}`);
     const output = document.createElement("output");
     output.setAttribute("role", "status");
     const button = document.createElement("button");
     button.type = "button";
-    button.textContent = "Apply";
+    button.textContent = options.buttonText ?? "Apply";
     button.onclick = async () => {
       button.disabled = true;
       try {
         await apply(field.key, configurationValue(field.value, input.value));
-        output.textContent = "Checked configuration applied";
+        output.textContent = options.successText ?? "Checked configuration applied";
       } catch (error) {
         output.textContent = error.message;
       } finally {

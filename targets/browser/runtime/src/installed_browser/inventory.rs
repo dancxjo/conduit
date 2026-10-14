@@ -86,13 +86,13 @@ fn family(kind: &str) -> &'static str {
         conduit_semantic_catalog::KEYBOARD_KIND => "interaction",
         conduit_semantic_catalog::LAYOUT_VIEWPORT_KIND => "layout",
         conduit_semantic_catalog::STATE_COUNT_KIND => "state",
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND
-        | conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
-        | conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
-        | conduit_semantic_catalog::SCALAR_VALUE_PRESENTATION_KIND
-        | conduit_semantic_catalog::BOOL_VALUE_PRESENTATION_KIND
-        | conduit_semantic_catalog::COUNT_PRESENTATION_KIND
-        | conduit_semantic_catalog::BOOL_PRESENTATION_KIND => "presentation",
+        conduit_semantic_catalog::TEXT_FACE_KIND
+        | conduit_semantic_catalog::INDICATOR_FACE_KIND
+        | conduit_semantic_catalog::STRUCTURED_FACE_KIND
+        | conduit_semantic_catalog::SCALAR_VALUE_FACE_KIND
+        | conduit_semantic_catalog::BOOL_VALUE_FACE_KIND
+        | conduit_semantic_catalog::COUNT_FACE_KIND
+        | conduit_semantic_catalog::BOOL_FACE_KIND => "face",
         _ => "other-installed",
     }
 }
@@ -122,13 +122,13 @@ mod tests {
         for implementation in [
             "browser/kernel-time-every@1",
             "browser/kernel-state-count@1",
-            "browser/presentation-count@1",
+            "browser/face-count@1",
             "browser/kernel-logic-select-scalar@1",
             "browser/kernel-layout-viewport@1",
             "browser/kernel-time-delay-bool@1",
             "browser/kernel-time-debounce-bool@1",
             "browser/window-keyboard@1",
-            "browser/presentation-bool@1",
+            "browser/face-bool@1",
         ] {
             assert!(installed.contains(implementation));
         }

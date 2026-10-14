@@ -1,7 +1,7 @@
 # A human conversation with one body. Provider and Presenter choices remain Plan truth.
 plot body-chat (
     >> interaction: FaceInteraction...|
-    face: Presentation...| >>
+    face: Face...| >>
 ) {
     ui: chat/state(title = "Body Chat", history-label = "Conversation", input-label = "Message", submit-label = "Send", status-label = "Body", maximum-history-items = 16, maximum-message-bytes = 256)
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
@@ -14,7 +14,7 @@ plot body-chat (
 
     available.value >> availability.source
     availability.value >> ui.live
-    ui.presentation >> face
+    ui.face >> face
     interaction >> submit.interaction
     submit.message >> prompt.message
     context.context >> prompt.context

@@ -13,7 +13,7 @@ fn scope() -> BaseCapabilityScope {
         capability_id: CapabilityId::from("framebuffer/source"),
         implementation_id: ImplementationId::from("renderer/native@1"),
         operation_contract_id: HostCallContractId::from("conduit.host/present@1"),
-        subject_kind: KindId::from("presentation/renderer"),
+        subject_kind: KindId::from("face/renderer"),
         resource_pool_id: ResourcePoolId::from("framebuffer/surface"),
         resource_generation_id: ResourceGenerationId("framebuffer/generation/1".into()),
         envelope_id: CapabilityEnvelopeId::from("framebuffer/present/bounded"),

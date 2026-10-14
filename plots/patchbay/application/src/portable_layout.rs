@@ -4,9 +4,7 @@
 //! the materially different eager evaluator a presenter can use after decoding
 //! the same finite Info contract.
 
-use conduit_presentation::{
-    LayoutAlignment, LayoutError, LayoutFrame, LayoutRect, MAX_LAYOUT_CHILDREN,
-};
+use conduit_face::{LayoutAlignment, LayoutError, LayoutFrame, LayoutRect, MAX_LAYOUT_CHILDREN};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum DirectLayoutOperation {
@@ -189,7 +187,7 @@ fn clip(child: LayoutRect, viewport: LayoutRect) -> Result<LayoutRect, LayoutErr
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::{LayoutAxis, MAX_LAYOUT_CHILDREN};
+    use conduit_face::{LayoutAxis, MAX_LAYOUT_CHILDREN};
     #[test]
     fn direct_presenter_matches_normalized_reference_vectors() {
         let cases = [

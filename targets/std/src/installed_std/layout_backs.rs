@@ -1,10 +1,10 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::PlannedGear;
+use conduit_face::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
     BoundedValueRef, HostCallDisposition, HostCallId, PortId, RequestId, ValueRef, ValueStorage,
 };
-use conduit_presentation::{LayoutFrame, MAX_LAYOUT_FRAME_BYTES};
 
 macro_rules! factory {
     ($name:ident, $implementation:ident) => {

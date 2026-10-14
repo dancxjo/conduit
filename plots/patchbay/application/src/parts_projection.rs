@@ -15,7 +15,7 @@ pub const MAX_PARTS_VIEW_ROWS: usize = conduit_body::MAX_BODY_PARTS;
 pub const MAX_WANTS_TO_JOIN_ROWS: usize = conduit_body::MAX_CANDIDATES;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
-pub enum PartPresentationState {
+pub enum PartFaceState {
     Here,
     Attached,
     Offline,
@@ -60,7 +60,7 @@ pub struct PartCapability {
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct PartRow {
     pub label: String,
-    pub state: PartPresentationState,
+    pub state: PartFaceState,
     pub available: bool,
     pub in_plan: bool,
     pub playing: bool,
@@ -241,13 +241,13 @@ impl PartsView {
             let in_plan = planned_fragment.is_some();
             let playing = in_plan && play.is_some();
             let state = if &part.part_id == here {
-                PartPresentationState::Here
+                PartFaceState::Here
             } else if available {
-                PartPresentationState::Attached
+                PartFaceState::Attached
             } else {
-                PartPresentationState::Offline
+                PartFaceState::Offline
             };
-            let label = if state == PartPresentationState::Here {
+            let label = if state == PartFaceState::Here {
                 "This computer".into()
             } else {
                 host_id

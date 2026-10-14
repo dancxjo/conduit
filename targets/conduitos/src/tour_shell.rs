@@ -10,7 +10,7 @@ mod lifecycle;
 mod relayout;
 mod scene;
 mod scroll;
-mod surface_presentation;
+mod surface_face;
 #[cfg(test)]
 mod tests;
 mod transient;
@@ -22,12 +22,12 @@ use conduit_core::{
     HostBaseId, HostCallContractId, HostCallRequirement, HostId, ImplementationId, OfferGeneration,
     PROTOCOL_VERSION, PlacementId, Plan, kind_id, resource_offer, resource_requirement,
 };
-use conduit_planner::{default_placements, plan};
-use conduit_plot::{ProfileCatalog, parse};
-use conduit_presentation::{
-    LayoutRect, MAX_RENDERER_VALUE_BYTES, ManifestationId, Presentation, PresentationBasis,
+use conduit_face::{
+    Face, FaceBasis, LayoutRect, MAX_RENDERER_VALUE_BYTES, ManifestationId,
     RendererRealizationOffer, renderer_kind_projection, renderer_offer,
 };
+use conduit_planner::{default_placements, plan};
+use conduit_plot::{ProfileCatalog, parse};
 use conduit_tour_model::{TOUR_WORKSPACE_SUBJECT, TourTransientKind};
 
 use crate::{
@@ -48,13 +48,13 @@ pub const INSPECTOR_SURFACE: &str = "conduitos/shell/inspector";
 pub const STATUS_SURFACE: &str = "conduitos/shell/status";
 pub const TRANSIENT_SURFACE: &str = "conduitos/shell/transient";
 
-const SURFACE_CLASS: &str = "presentation/surface";
+const SURFACE_CLASS: &str = "face/surface";
 const RENDERER_FORM: &str = concat!(
     "plot shell {\n",
-    "    workspace: presentation/renderer\n",
-    "    inspector: presentation/renderer\n",
-    "    status: presentation/renderer\n",
-    "    transient: presentation/renderer\n",
+    "    workspace: face/renderer(\"Tour workspace\")\n",
+    "    inspector: face/renderer(\"Gear inspection\")\n",
+    "    status: face/renderer(\"Body status\")\n",
+    "    transient: face/renderer(\"Tour dialog\")\n",
     "}\n"
 );
 
@@ -101,11 +101,11 @@ struct SurfaceState {
     manifestation_id: Option<ManifestationId>,
     scroll: ScrollState,
     bounds: Option<LayoutRect>,
-    presentation: Option<Presentation>,
+    face: Option<Face>,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
-pub struct ShellPresentationReceipt {
+pub struct ShellFaceReceipt {
     pub workspace: CompositionReceipt,
     pub inspector: Option<CompositionReceipt>,
     pub status: CompositionReceipt,
@@ -115,7 +115,7 @@ pub struct ShellPresentationReceipt {
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ShellTransientReceipt {
     pub kind: TourTransientKind,
-    pub parent_presentation_id: conduit_presentation::PresentationContentId,
+    pub parent_face_id: conduit_face::FaceContentId,
     pub parent_manifestation_id: ManifestationId,
     pub transient: CompositionReceipt,
     pub frame: FrameReceipt,
@@ -169,9 +169,9 @@ pub struct TourShellPresenter {
     surfaces: Vec<SurfaceState>,
     play_sequence: u64,
     lifecycle_revision: u64,
-    lifecycle_basis: PresentationBasis,
+    lifecycle_basis: FaceBasis,
     lifecycle_status: Option<lifecycle::StatusSnapshot>,
-    lesson_scene: Option<conduit_presentation::GraphicsScene>,
+    lesson_scene: Option<conduit_face::GraphicsScene>,
 }
 
 impl TourShellPresenter {
@@ -213,7 +213,7 @@ impl TourShellPresenter {
                 artifact_id: ArtifactId::from(image_id),
                 host_call: HostCallRequirement {
                     contract_id: HostCallContractId::from("conduit.host/present@1"),
-                    target_kind: Some(kind_id("presentation/base/native-compositor@1")),
+                    target_kind: Some(kind_id("face/base/native-compositor@1")),
                     maximum_in_flight: 4,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                     maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
@@ -248,7 +248,7 @@ impl TourShellPresenter {
                 manifestation_id: None,
                 scroll: ScrollState::empty(),
                 bounds: None,
-                presentation: None,
+                face: None,
             });
         }
         let admission = CompositorAdmission::new(
@@ -283,7 +283,7 @@ impl TourShellPresenter {
         &mut self,
         tour: &TourProduct,
         display: &mut impl PixelTarget,
-    ) -> Result<ShellPresentationReceipt, TourShellError> {
+    ) -> Result<ShellFaceReceipt, TourShellError> {
         let format = display
             .format()
             .validate()
@@ -293,8 +293,8 @@ impl TourShellPresenter {
         let height = u16::try_from(format.height).map_err(|_| TourShellError::Identity)?;
         let layout = ShellLayout::new(width, height)?;
         let state = tour.controller().state();
-        let workspace_presentation = state
-            .workspace_presentation()
+        let workspace_face = state
+            .workspace_face()
             .map_err(|_| TourShellError::Identity)?;
         let workspace_scene = tour
             .scene(width, height)
@@ -302,34 +302,32 @@ impl TourShellPresenter {
         let workspace_scene = self.prepare_lesson_scene(workspace_scene)?;
         let workspace = self.present_surface(
             Slot::Workspace,
-            &workspace_presentation,
+            &workspace_face,
             TOUR_WORKSPACE_SUBJECT,
             layout.workspace,
             0,
             &workspace_scene,
         )?;
-        let status_presentation = state
-            .status_presentation_with_basis(
+        let status_face = state
+            .status_face_with_basis(
                 self.lifecycle_revision
                     .checked_add(u64::from(state.revision))
                     .ok_or(TourShellError::Identity)?,
                 self.lifecycle_basis.clone(),
             )
             .map_err(|_| TourShellError::Identity)?;
-        let status_presentation =
-            lifecycle::with_status(status_presentation, self.lifecycle_status.as_ref())?;
-        let status_presentation =
-            lifecycle::with_presenter_host(status_presentation, &self.host_id)?;
+        let status_face = lifecycle::with_status(status_face, self.lifecycle_status.as_ref())?;
+        let status_face = lifecycle::with_presenter_host(status_face, &self.host_id)?;
         let status = self.present_surface(
             Slot::Status,
-            &status_presentation,
+            &status_face,
             "tour/status",
             layout.status,
             1,
-            &status_scene(layout.status, &status_presentation)?,
+            &status_scene(layout.status, &status_face)?,
         )?;
-        let inspector = if let Some(presentation) = tour
-            .inspector_presentation()
+        let inspector = if let Some(face) = tour
+            .inspector_face()
             .map_err(|_| TourShellError::Identity)?
         {
             let scroll_offset = self
@@ -337,7 +335,7 @@ impl TourShellPresenter {
                 .iter()
                 .find(|state| state.slot == Slot::Inspector)
                 .map_or(0, |state| state.scroll.offset());
-            let front = presentation
+            let front = face
                 .subjects
                 .iter()
                 .find(|subject| subject.identity.ends_with("/inspection"))
@@ -346,11 +344,11 @@ impl TourShellPresenter {
                 .clone();
             Some(self.present_surface(
                 Slot::Inspector,
-                &presentation,
+                &face,
                 &front,
                 layout.inspector,
                 2,
-                &inspector_scene(layout.inspector, &presentation, scroll_offset)?,
+                &inspector_scene(layout.inspector, &face, scroll_offset)?,
             )?)
         } else {
             self.dismiss(Slot::Inspector)?;
@@ -365,7 +363,7 @@ impl TourShellPresenter {
                 .focus_surface(WORKSPACE_SURFACE)
                 .map_err(TourShellError::Compositor)?;
         }
-        Ok(ShellPresentationReceipt {
+        Ok(ShellFaceReceipt {
             workspace,
             inspector,
             status,
@@ -436,7 +434,7 @@ impl TourShellPresenter {
             state.front_subject = None;
             state.manifestation_id = None;
             state.bounds = None;
-            state.presentation = None;
+            state.face = None;
             state.scroll = ScrollState::empty();
         }
         Ok(())

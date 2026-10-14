@@ -1,17 +1,17 @@
 //! Browser sink kernel and session logic for the distributed toggle demo.
 //!
-//! `ToggleDistributedSink` prepares and drives the `presentation/show` fragment
+//! `ToggleDistributedSink` prepares and drives the `face/show` fragment
 //! receiving canonical Boolean values over the WebSocket cord from the std source.
 
 use super::super::{
-    map_scheduler_error, write_common_frame, write_typed_presentation_completion_frame,
-    write_typed_presentation_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY,
-    MAXIMUM_RECEIPTS, PORTS,
+    map_scheduler_error, write_common_frame, write_typed_face_completion_frame,
+    write_typed_face_frame, FrameWriter, PreparedProjection, FRAME_CAPACITY, MAXIMUM_RECEIPTS,
+    PORTS,
 };
 use super::back::{CapacitySeal, ToggleShowBack};
 use super::plan::exact_toggle_plan;
 use conduit_core::{
-    bind_active_play, bind_presentation, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
+    bind_active_play, bind_face, bind_sign, InfoBool, PlanFragment, BOOL_ENCODED_LEN,
 };
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus,
@@ -24,7 +24,7 @@ use conduit_kernel::{
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
 };
-use conduit_signal::TOGGLE_PRESENTATION_KIND;
+use conduit_signal::TOGGLE_FACE_KIND;
 use conduit_signal_conformance::{
     distributed_toggle_browser_sink_advertisement, DISTRIBUTED_MAXIMUM_FRAME_BYTES,
 };
@@ -34,9 +34,8 @@ use conduit_wire::{
 };
 
 use super::{
-    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_KERNEL, ERROR_PREPARE, ERROR_PRESENTATION,
-    ERROR_SESSION, ERROR_SIGN, OUTPUT_NONE, OUTPUT_PRESENT, OUTPUT_SESSION, STATUS_COMPLETE,
-    STATUS_RUNNING,
+    ERROR_CANCELLED, ERROR_CAPACITY, ERROR_FACE, ERROR_KERNEL, ERROR_PREPARE, ERROR_SESSION,
+    ERROR_SIGN, OUTPUT_NONE, OUTPUT_PRESENT, OUTPUT_SESSION, STATUS_COMPLETE, STATUS_RUNNING,
 };
 
 pub(super) const ROUTE_SLOTS: usize = 1;
@@ -72,7 +71,7 @@ pub(super) struct ToggleDistributedSink {
     expected_completion_len: usize,
     current: Option<(HostCallRequest, usize)>,
     pending_delivery: Option<u64>,
-    delivery_after_presentation: Option<u64>,
+    delivery_after_face: Option<u64>,
     pending_pressure: Option<u64>,
     pending_failure_terminal: Option<SessionTerminalDisposition>,
     hold_for_pressure: bool,
@@ -100,7 +99,7 @@ impl ToggleDistributedSink {
             || lowered.remote_endpoints.len() != 1
             || lowered.remote_endpoints[0].direction != RemoteCordDirection::Ingress
             || lowered.host_calls.len() != 1
-            || fragment.placements[0].kind_id.as_str() != TOGGLE_PRESENTATION_KIND
+            || fragment.placements[0].kind_id.as_str() != TOGGLE_FACE_KIND
         {
             return Err(ERROR_PREPARE);
         }
@@ -187,7 +186,7 @@ impl ToggleDistributedSink {
             // Canonical toggle emits its configured initial value, then flips for every Tick.
             let signal = conduit_signal::Signal::new(index % 2 == 0, index as u64)
                 .expect("toggle Signal fields are valid");
-            let presentation = bind_presentation(
+            let face = bind_face(
                 &active_play.active_play_id,
                 &placement.placement_id,
                 index as u64,
@@ -199,20 +198,15 @@ impl ToggleDistributedSink {
                 index as u64,
             );
             identity
-                .bind_presentation(&lowered.identity, show_node, request, &presentation)
+                .bind_face(&lowered.identity, show_node, request, &face)
                 .map_err(|_| ERROR_PREPARE)?;
             identity
-                .bind_sign(
-                    &sign,
-                    Some(show_node),
-                    Some(request),
-                    Some(&presentation.presentation_id),
-                )
+                .bind_sign(&sign, Some(show_node), Some(request), Some(&face.face_id))
                 .map_err(|_| ERROR_PREPARE)?;
             projections.push(PreparedProjection {
                 node: show_node,
                 signal,
-                presentation,
+                face,
                 sign,
             });
         }
@@ -248,7 +242,7 @@ impl ToggleDistributedSink {
             expected_completion_len: 0,
             current: None,
             pending_delivery: None,
-            delivery_after_presentation: None,
+            delivery_after_face: None,
             pending_pressure: None,
             pending_failure_terminal: None,
             hold_for_pressure: false,
@@ -407,7 +401,7 @@ impl ToggleDistributedSink {
             if sequence == PRESSURE_HOLD_SEQUENCE && self.hold_for_pressure {
                 return self.encode_session(SessionMessage::Delivered { sequence });
             }
-            self.delivery_after_presentation = Some(sequence);
+            self.delivery_after_face = Some(sequence);
             return self.drive_scheduler();
         }
         if self.hold_for_pressure {
@@ -421,7 +415,7 @@ impl ToggleDistributedSink {
         self.clear_output();
         loop {
             if let Some(request) = self.scheduler.next_host_request() {
-                return self.prepare_presentation(request);
+                return self.prepare_face(request);
             }
             match self.scheduler.step() {
                 Ok(SchedulerStatus::Progress { .. }) => {}
@@ -464,29 +458,24 @@ impl ToggleDistributedSink {
         }
     }
 
-    pub(super) fn prepare_presentation(&mut self, request: HostCallRequest) -> Result<(), i32> {
-        let projection = self
-            .projections
-            .get(self.receipts)
-            .ok_or(ERROR_PRESENTATION)?;
+    pub(super) fn prepare_face(&mut self, request: HostCallRequest) -> Result<(), i32> {
+        let projection = self.projections.get(self.receipts).ok_or(ERROR_FACE)?;
         let request_identity = self
             .identity
             .request(request.node, request.request)
-            .ok_or(ERROR_PRESENTATION)?;
+            .ok_or(ERROR_FACE)?;
         let placement = &self.fragment.placements[0];
         let input = self
             .scheduler
             .host_value(request.input.value)
             .map_err(|_| ERROR_KERNEL)?;
-        let level = InfoBool::decode(input)
-            .map_err(|_| ERROR_PRESENTATION)?
-            .get();
+        let level = InfoBool::decode(input).map_err(|_| ERROR_FACE)?.get();
         if projection.node != request.node
             || *projection.signal.sequence() != self.receipts as u64
             || *projection.signal.level() != level
             || request_identity.call != request.call
         {
-            return Err(ERROR_PRESENTATION);
+            return Err(ERROR_FACE);
         }
         let active_play_id = self.binding.sink_active_play_id.clone();
         let mut output = FrameWriter::new(&mut self.output);
@@ -499,10 +488,10 @@ impl ToggleDistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
-        write_typed_presentation_frame(
+        write_typed_face_frame(
             &mut output,
             projection,
-            conduit_signal::TOGGLE_PRESENTATION_KIND,
+            conduit_signal::TOGGLE_FACE_KIND,
             conduit_core::BOOL_INFO_ID,
             input,
         )?;
@@ -517,7 +506,7 @@ impl ToggleDistributedSink {
             &request_identity.contract_id,
             &placement.placement_id,
         )?;
-        write_typed_presentation_completion_frame(
+        write_typed_face_completion_frame(
             &mut expected,
             projection,
             conduit_core::BOOL_INFO_ID,
@@ -529,18 +518,18 @@ impl ToggleDistributedSink {
         Ok(())
     }
 
-    pub(super) fn complete_presentation(&mut self, completion: &[u8]) -> Result<(), i32> {
-        let (request, projection) = self.current.take().ok_or(ERROR_PRESENTATION)?;
+    pub(super) fn complete_face(&mut self, completion: &[u8]) -> Result<(), i32> {
+        let (request, projection) = self.current.take().ok_or(ERROR_FACE)?;
         if completion.len() != self.expected_completion_len + 1
             || completion[..self.expected_completion_len]
                 != self.expected_completion[..self.expected_completion_len]
         {
-            return self.fail_session(31, ERROR_PRESENTATION);
+            return self.fail_session(31, ERROR_FACE);
         }
         let success = match completion[self.expected_completion_len] {
             0 => false,
             1 => true,
-            _ => return self.fail_session(33, ERROR_PRESENTATION),
+            _ => return self.fail_session(33, ERROR_FACE),
         };
         if !success || projection != self.receipts {
             self.scheduler
@@ -557,7 +546,7 @@ impl ToggleDistributedSink {
                     },
                 )
                 .map_err(|_| ERROR_KERNEL)?;
-            return self.fail_session(32, ERROR_PRESENTATION);
+            return self.fail_session(32, ERROR_FACE);
         }
         self.scheduler
             .complete_host_call(
@@ -573,7 +562,7 @@ impl ToggleDistributedSink {
         self.receipts += 1;
         self.expected_completion_len = 0;
         self.clear_output();
-        if let Some(sequence) = self.delivery_after_presentation.take() {
+        if let Some(sequence) = self.delivery_after_face.take() {
             return self.encode_session(SessionMessage::Delivered { sequence });
         }
         if let Some(sequence) = self.pending_pressure.take() {

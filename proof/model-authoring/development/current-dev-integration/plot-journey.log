@@ -23,7 +23,7 @@
    Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/finance)
    Compiling conduit-bluetooth v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/protocols/bluetooth)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/face)
    Compiling conduit-midi v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/protocols/midi)
    Compiling conduit-synth v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/implementations/synth)
    Compiling conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/plots/little-seismograph/fixture)

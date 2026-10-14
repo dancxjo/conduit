@@ -7,7 +7,7 @@ use conduit_core::{BootId, CapabilityId, HostId, OfferGeneration};
 use conduit_std_host::{StdHost, StdHostConfig};
 use std::path::PathBuf;
 
-const SOURCE: &str = "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.";
+const SOURCE: &str = "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.";
 // Ed25519 public key for the deterministic test secret [7; 32].
 const BROWSER_KEY: [u8; 32] = [
     0xea, 0x4a, 0x6c, 0x63, 0xe2, 0x9c, 0x52, 0x0a, 0xbe, 0xf5, 0x50, 0x7b, 0x13, 0x2e, 0xc5, 0xf9,

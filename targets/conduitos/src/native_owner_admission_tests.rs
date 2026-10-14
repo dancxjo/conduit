@@ -6,8 +6,8 @@ use conduit_body::{
 };
 use conduit_body::{RendezvousAuthentication, RendezvousCandidate};
 use conduit_core::{OfferGeneration, PROTOCOL_VERSION, SignId};
-use conduit_presentation::{
-    Face, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
+use conduit_face::{
+    BodyFace, FaceContext, FaceFocus, OWNER_FACE_RESPONSE_SCHEMA, OwnerFaceSnapshotResponse,
 };
 use sha2::{Digest, Sha256};
 
@@ -127,7 +127,7 @@ fn exact_owner_receipt_correlates_with_the_single_sent_request() {
     assert_eq!(line.sent, serde_json::to_vec(&request).unwrap());
 }
 
-fn owner_face(source: &str) -> conduit_presentation::Presentation {
+fn owner_face(source: &str) -> conduit_face::Face {
     let body = Body::born(
         source.into(),
         "checked/native-route".into(),
@@ -135,7 +135,7 @@ fn owner_face(source: &str) -> conduit_presentation::Presentation {
         SignId::from("sign/native-route-born"),
     )
     .unwrap();
-    Face::project(
+    BodyFace::project(
         &body,
         None,
         7,
@@ -144,7 +144,7 @@ fn owner_face(source: &str) -> conduit_presentation::Presentation {
         vec![],
     )
     .unwrap()
-    .presentation
+    .face
 }
 
 #[test]
@@ -158,7 +158,7 @@ fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
     let mut line = ScriptedLine {
         response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            presentation: Box::new(face.clone()),
+            face: Box::new(face.clone()),
             interactions_admitted: false,
             route: None,
         })
@@ -166,7 +166,7 @@ fn exact_owner_face_follows_receipt_on_the_authenticated_line() {
         sent: Vec::new(),
     };
     let (accepted, grant) = exchange_face(&mut line, &receipt).unwrap();
-    assert_eq!(accepted.presentation(), &face);
+    assert_eq!(accepted.face(), &face);
     assert!(grant.is_none());
     let wrapper: serde_json::Value = serde_json::from_slice(&line.sent).unwrap();
     assert_eq!(
@@ -192,7 +192,7 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
     let mut line = ScriptedLine {
         response: serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
             schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-            presentation: Box::new(owner_face("source/other-route")),
+            face: Box::new(owner_face("source/other-route")),
             interactions_admitted: false,
             route: None,
         })
@@ -207,7 +207,7 @@ fn foreign_body_or_unproven_interaction_route_cannot_become_shared_face() {
     ));
     line.response = serde_json::to_vec(&OwnerFaceSnapshotResponse::Snapshot {
         schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-        presentation: Box::new(owner_face("source/native-route")),
+        face: Box::new(owner_face("source/native-route")),
         interactions_admitted: true,
         route: None,
     })

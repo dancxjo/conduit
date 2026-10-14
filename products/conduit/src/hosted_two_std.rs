@@ -196,7 +196,7 @@ fn placements(plot: &conduit_plot::ExpandedCanonicalPlot) -> Result<PlacementCho
     for gear in &plot.gears {
         let (host, capability) = match gear.kind_id.as_str() {
             conduit_text::TEXT_LITERAL_KIND => (SOURCE_HOST, "text-literal-v1"),
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND => (SINK_HOST, "presentation-text-v1"),
+            conduit_semantic_catalog::TEXT_FACE_KIND => (SINK_HOST, "face-text-v1"),
             kind => return Err(format!("two-Host Tour does not implement kind '{kind}'")),
         };
         by_gear.insert(

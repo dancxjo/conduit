@@ -11,9 +11,9 @@ pub use generated::{LibraryAvailability, LibraryAvailabilityNeedsCapability, Lib
 
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_body::{BodyLifecycleSession, MAX_BODY_PLOTS, ResidentPlot};
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, FieldKind, FormField, PresentationMechanism,
-    SemanticAction, SemanticApplicationView, SemanticPresentationNode, StatusKind,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, FaceMechanism, FieldKind, FormField, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, StatusKind,
 };
 
 pub const LIBRARY_SEARCH_BYTES: usize = 128;
@@ -62,9 +62,9 @@ impl PlotLibrary {
         Ok(Self { entries })
     }
 
-    /// `revision` is presentation freshness, distinct from Body workload revision.
+    /// `revision` is face freshness, distinct from Body workload revision.
     /// Installed state is always projected from this body, never retained here.
-    pub fn presentation(
+    pub fn face(
         &self,
         body: &BodyLifecycleSession,
         revision: u32,
@@ -99,7 +99,7 @@ impl PlotLibrary {
             };
             let mut actions = vec![node(
                 &format!("use-{index}"),
-                PresentationMechanism::Action(action(
+                FaceMechanism::Action(action(
                     &format!("library.use.{index}"),
                     "Use",
                     ApplicationEventKind::Activate,
@@ -111,7 +111,7 @@ impl PlotLibrary {
             if installed {
                 actions.push(node(
                     &format!("remove-{index}"),
-                    PresentationMechanism::Action(action(
+                    FaceMechanism::Action(action(
                         &format!("library.remove.{index}"),
                         "Remove",
                         ApplicationEventKind::Activate,
@@ -123,7 +123,7 @@ impl PlotLibrary {
             }
             let mut details = vec![node(
                 &format!("installed-{index}"),
-                PresentationMechanism::Status {
+                FaceMechanism::Status {
                     kind: StatusKind::Ordinary,
                     title: if installed {
                         "In your body"
@@ -145,7 +145,7 @@ impl PlotLibrary {
             if let Some(fallback) = &entry.graceful_fallback {
                 details.push(node(
                     &format!("fallback-{index}"),
-                    PresentationMechanism::Status {
+                    FaceMechanism::Status {
                         kind: StatusKind::Ordinary,
                         title: format!("Text fallback: {}", fallback.title),
                         detail: match &fallback.availability {
@@ -163,14 +163,14 @@ impl PlotLibrary {
             }
             details.push(node(
                 &format!("actions-{index}"),
-                PresentationMechanism::ActionGroup {
+                FaceMechanism::ActionGroup {
                     label: format!("{} actions", entry.title),
                 },
                 actions,
             ));
             cards.push(node(
                 &format!("library-plot-{index}"),
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: entry.title.clone(),
                 },
                 details,
@@ -181,11 +181,11 @@ impl PlotLibrary {
             revision,
             root: node(
                 "plot-library",
-                PresentationMechanism::Shell,
+                FaceMechanism::Shell,
                 vec![
                     node(
                         "library-search",
-                        PresentationMechanism::FormField(FormField {
+                        FaceMechanism::FormField(FormField {
                             label: "Find a plot".into(),
                             help: "Search the reviewed catalog. Use a plot here, or remove one from your body.".into(),
                             error: None,
@@ -202,10 +202,10 @@ impl PlotLibrary {
                         }),
                         vec![],
                     ),
-                    node("library-plots", PresentationMechanism::Grid, cards),
+                    node("library-plots", FaceMechanism::Grid, cards),
                     node(
                         "library-count",
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: StatusKind::Ordinary,
                             title: if matches == 0 {
                                 "No Plots match your search.".into()
@@ -221,17 +221,13 @@ impl PlotLibrary {
                 ],
             ),
         };
-        view.lower().map_err(|_| LibraryRefusal::Presentation)?;
+        view.lower().map_err(|_| LibraryRefusal::Face)?;
         Ok(view)
     }
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,

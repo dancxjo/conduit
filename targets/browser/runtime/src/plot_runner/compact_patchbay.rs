@@ -5,8 +5,7 @@
 //! Host offer, placement, implementation, Plan, Play, or mutable editor state.
 
 use crate::installed_browser::{
-    backs, catalogs_for_presentation, PresentationProfile, MAXIMUM_BROWSER_PLOT_CORDS,
-    MAXIMUM_BROWSER_PLOT_GEARS,
+    backs, catalogs_for_face, FaceProfile, MAXIMUM_BROWSER_PLOT_CORDS, MAXIMUM_BROWSER_PLOT_GEARS,
 };
 use conduit_core::{CheckedFront, CheckedValueContract, FrontValueLocation, PortDirection};
 use conduit_plot::ExpandedCanonicalPlot;
@@ -86,7 +85,7 @@ pub(super) fn project(
         source,
         sequence,
         recursive,
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
         "conduit.tour/compact-patchbay@1",
     )
 }
@@ -102,22 +101,22 @@ pub(super) fn project_plot(
         source,
         sequence,
         false,
-        PresentationProfile::Annotation,
+        FaceProfile::Annotation,
         "conduit.patchbay/checked-plot-projection@1",
     )
 }
 
-pub(super) fn project_with_presentation(
+pub(super) fn project_with_face(
     source: &str,
     sequence: u64,
     recursive: bool,
-    presentation: PresentationProfile,
+    face: FaceProfile,
 ) -> Result<CompactPatchbayProjection, String> {
     project_with_schema(
         source,
         sequence,
         recursive,
-        presentation,
+        face,
         "conduit.tour/compact-patchbay@1",
     )
 }
@@ -126,11 +125,11 @@ fn project_with_schema(
     source: &str,
     sequence: u64,
     recursive: bool,
-    presentation: PresentationProfile,
+    face: FaceProfile,
     schema: &'static str,
 ) -> Result<CompactPatchbayProjection, String> {
     let interaction = crate::source_interaction::admit_source(source.as_bytes(), sequence)?;
-    let (startup, mut catalog) = catalogs_for_presentation(presentation)?;
+    let (startup, mut catalog) = catalogs_for_face(face)?;
     let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
     if let Some(diagnostic) = syntax.diagnostics.first() {
         return Err(format!(

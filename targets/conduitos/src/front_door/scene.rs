@@ -1,6 +1,6 @@
 use alloc::{format, string::String};
 
-use conduit_presentation::{
+use conduit_face::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
     LayoutRect,
 };
@@ -19,9 +19,7 @@ impl FrontDoor {
         if self.home.is_some() {
             return self.home_scene(display);
         }
-        self.presentation()?
-            .validate()
-            .map_err(|_| Error::Presentation)?;
+        self.face()?.validate().map_err(|_| Error::Face)?;
         let format = display.format().validate().map_err(Error::Display)?;
         let screen = LayoutRect {
             x: 0,
@@ -42,7 +40,7 @@ impl FrontDoor {
             )
             .map_err(|_| Error::Scene)?;
         text(&mut scene, 18, 18, "CONDUIT / PATCHBAY / WORLD")?;
-        let presentation = self.presentation()?;
+        let face = self.face()?;
         if let Some(line) = &self.connectivity
             && !self.exact_details_open
         {
@@ -91,7 +89,7 @@ impl FrontDoor {
                 150,
                 "PROVENANCE: CHECKED DATA EMBEDDED IN THIS IMAGE",
             )?;
-            if let Some(action) = presentation
+            if let Some(action) = face
                 .actions
                 .iter()
                 .find(|action| action.intent == "conduit.intent/birth@1")
@@ -194,14 +192,12 @@ impl FrontDoor {
     }
 }
 
-fn local_action_label(action: &conduit_presentation::PresentationAction) -> String {
+fn local_action_label(action: &conduit_face::FaceAction) -> String {
     let binding = binding_for_intent(action.intent.as_str()).map_or("ENTER", |value| value.label);
     let availability = match &action.availability {
-        conduit_presentation::PresentationActionAvailability::Available => String::new(),
-        conduit_presentation::PresentationActionAvailability::Unavailable {
-            explanation, ..
-        }
-        | conduit_presentation::PresentationActionAvailability::Refused { explanation, .. } => {
+        conduit_face::FaceActionAvailability::Available => String::new(),
+        conduit_face::FaceActionAvailability::Unavailable { explanation, .. }
+        | conduit_face::FaceActionAvailability::Refused { explanation, .. } => {
             format!(" / UNAVAILABLE: {explanation}")
         }
     };
@@ -261,9 +257,7 @@ fn styled_text(
 }
 
 fn exact_text(scene: &mut GraphicsScene, x: i16, y: i16, value: &str) -> Result<(), Error> {
-    let split = value
-        .len()
-        .min(conduit_presentation::MAX_GRAPHICS_TEXT_BYTES);
+    let split = value.len().min(conduit_face::MAX_GRAPHICS_TEXT_BYTES);
     styled_text(
         scene,
         x,

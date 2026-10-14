@@ -2,7 +2,7 @@
 use super::*;
 use crate::body_execution::{BodyParsecShowObserver, BodyParsecTerminalRoute};
 use crate::hosted_keyboard::{HostedKeyboardAdapter, HostedKeyboardPoll};
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use std::sync::{
     atomic::{AtomicUsize, Ordering},
     Arc,
@@ -77,9 +77,9 @@ fn combined_body_admits_start_shoot_and_remapped_enter_from_completed_input() {
         }
     }
     #[derive(Default)]
-    struct Shows(Vec<(Presentation, MaskShow)>, Vec<serde_json::Value>);
+    struct Shows(Vec<(Face, MaskShow)>, Vec<serde_json::Value>);
     impl BodyParsecShowObserver for Shows {
-        fn showed(&mut self, face: &Presentation, show: &MaskShow) -> Result<(), String> {
+        fn showed(&mut self, face: &Face, show: &MaskShow) -> Result<(), String> {
             show.validate(face)
                 .map_err(|error| format!("Show: {error:?}"))?;
             self.0.push((face.clone(), show.clone()));

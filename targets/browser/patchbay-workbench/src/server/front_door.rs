@@ -45,8 +45,8 @@ impl PatchbayHtmlServer {
                 .lock()
                 .map_err(|_| ServerError::Interaction("front-door session lock failed".into()))?;
             let projection = session.project().map_err(ServerError::Interaction)?;
-            if projection.presentation.revision == self.snapshot.presentation.revision
-                && projection.presentation.identity == self.snapshot.presentation.identity
+            if projection.face.revision == self.snapshot.face.revision
+                && projection.face.identity == self.snapshot.face.identity
             {
                 return Ok(());
             }
@@ -60,7 +60,7 @@ impl PatchbayHtmlServer {
             )))?;
             let mut entrance = prior_entrance;
             entrance
-                .update(&snapshot.presentation)
+                .update(&snapshot.face)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
             snapshot.entrance = entrance;
             snapshot.interaction = prior_interaction;
@@ -78,8 +78,8 @@ impl PatchbayHtmlServer {
             .lock()
             .map_err(|_| ServerError::Interaction("front-door session lock failed".into()))?;
         let projection = session.project().map_err(ServerError::Interaction)?;
-        if projection.presentation.revision == self.snapshot.presentation.revision
-            && projection.presentation.identity == self.snapshot.presentation.identity
+        if projection.face.revision == self.snapshot.face.revision
+            && projection.face.identity == self.snapshot.face.identity
         {
             return Ok(());
         }
@@ -90,15 +90,15 @@ impl PatchbayHtmlServer {
             "patchbay-html/front-door/revision-{}/available",
             snapshot.revision
         )))?;
-        let mut entrance = if prior_entrance.body_id == snapshot.presentation.basis.body_id {
+        let mut entrance = if prior_entrance.body_id == snapshot.face.basis.body_id {
             prior_entrance
         } else {
-            patchbay_application::PatchbayEntranceState::enter(&snapshot.presentation)
+            patchbay_application::PatchbayEntranceState::enter(&snapshot.face)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?
         };
-        if entrance.presentation_id != snapshot.presentation.identity.as_str() {
+        if entrance.face_id != snapshot.face.identity.as_str() {
             entrance
-                .update(&snapshot.presentation)
+                .update(&snapshot.face)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         }
         snapshot.entrance = entrance;

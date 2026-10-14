@@ -25,7 +25,7 @@ pub fn verify_receipt(
         .ok_or("R1 Pico fragment has no Show placement")?;
     let planned_play =
         conduit_core::bind_active_play(&plan.plan_id, &fragment.host_id, &fragment.boot_id, 0);
-    let presentation = conduit_core::bind_presentation(
+    let face = conduit_core::bind_face(
         &planned_play.active_play_id,
         &placement.placement_id,
         sequence,
@@ -38,7 +38,7 @@ pub fn verify_receipt(
     );
     for (field, expected) in [
         ("schema", "conduit-pico-w-signal/receipt@1"),
-        ("presentation_id", presentation.presentation_id.as_str()),
+        ("face_id", face.face_id.as_str()),
         ("sign_id", sign.sign_id.as_str()),
     ] {
         if record[field].as_str() != Some(expected) {
@@ -149,7 +149,7 @@ fn pico_fragment(plan: &conduit_core::Plan) -> PicoResult<&conduit_core::PlanFra
 
 #[cfg(test)]
 mod tests {
-    use conduit_core::{bind_active_play, bind_presentation, bind_sign, BootId};
+    use conduit_core::{bind_active_play, bind_face, bind_sign, BootId};
 
     use super::super::firmware::{FirmwareIdentity, GeneratedImageIdentity};
     use super::*;
@@ -202,8 +202,8 @@ mod tests {
                 boot_id: network_fragment.boot_id.as_str().into(),
                 active_play_id: "network-play".into(),
                 boot_sign_id: "network-boot-sign".into(),
-                presentation_ids: vec![],
-                presentation_sign_ids: vec![],
+                face_ids: vec![],
+                face_sign_ids: vec![],
                 terminal_sign_id: "network-terminal-sign".into(),
                 offer_generation: 1,
                 nodes: 2,
@@ -241,8 +241,7 @@ mod tests {
             &BootId::from(runtime.boot_id.as_str()),
             0,
         );
-        let presentation =
-            bind_presentation(&planned_play.active_play_id, &placement.placement_id, 0);
+        let face = bind_face(&planned_play.active_play_id, &placement.placement_id, 0);
         let sign = bind_sign(
             &fragment.host_id,
             &fragment.boot_id,
@@ -271,7 +270,7 @@ mod tests {
             "runtime_active_play_id": runtime_play.active_play_id.as_str(),
             "sequence": 0,
             "level": false,
-            "presentation_id": presentation.presentation_id.as_str(),
+            "face_id": face.face_id.as_str(),
             "sign_id": sign.sign_id.as_str(),
         });
         verify_receipt(&record.to_string(), &plan, 0, false, &firmware, &runtime).unwrap();

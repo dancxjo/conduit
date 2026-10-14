@@ -5,14 +5,7 @@ use conduit_core::{
     ArtifactId, BaseImplementationId, BaseInstanceId, KindId, SignId, StructuredInfoValue,
     TemporalInstant, TemporalScale,
 };
-use conduit_human::{
-    ImageRegion, MotionObservation, ObjectObservation, TrackObservation, VisibleTextObservation,
-    VisualEvidenceClass, VisualExperience, VisualExperienceLimits, VisualExperienceObservation,
-    VisualExperienceRelation, VisualExperienceRelationKind, VisualImpression,
-    VisualImpressionDisposition, VisualObservationProvenance,
-};
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
+use conduit_face::{
     VisionMotionObservation, VisionMotionsFour, VisionObjectObservation, VisionObjectObservations,
     VisionObservationEvidenceClass, VisionObservationProvenance, VisionOptionalPixelRegion,
     VisionPixelRegion, VisionTextsEight, VisionTrackObservation, VisionTracksFour,
@@ -21,6 +14,13 @@ use conduit_presentation::{
     VisualImpression as NativeVisualImpression,
     VisualImpressionDisposition as NativeImpressionDisposition,
 };
+use conduit_human::{
+    ImageRegion, MotionObservation, ObjectObservation, TrackObservation, VisibleTextObservation,
+    VisualEvidenceClass, VisualExperience, VisualExperienceLimits, VisualExperienceObservation,
+    VisualExperienceRelation, VisualExperienceRelationKind, VisualImpression,
+    VisualImpressionDisposition, VisualObservationProvenance,
+};
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::VisualValueRefusal;
 
@@ -331,7 +331,7 @@ fn bounded_u16(value: u64) -> Result<u16, VisualValueRefusal> {
 }
 
 fn object_from_payload(
-    value: &conduit_presentation::VisualExperienceObservationObject,
+    value: &conduit_face::VisualExperienceObservationObject,
 ) -> Result<ObjectObservation, VisualValueRefusal> {
     Ok(ObjectObservation {
         source_image: value.source_image().clone(),
@@ -342,7 +342,7 @@ fn object_from_payload(
     })
 }
 fn motion_from_payload(
-    value: &conduit_presentation::VisualExperienceObservationMotion,
+    value: &conduit_face::VisualExperienceObservationMotion,
 ) -> Result<MotionObservation, VisualValueRefusal> {
     Ok(MotionObservation {
         source_image: value.source_image().clone(),
@@ -352,7 +352,7 @@ fn motion_from_payload(
     })
 }
 fn visible_text_from_payload(
-    value: &conduit_presentation::VisualExperienceObservationVisibleText,
+    value: &conduit_face::VisualExperienceObservationVisibleText,
 ) -> Result<VisibleTextObservation, VisualValueRefusal> {
     Ok(VisibleTextObservation {
         source_image: value.source_image().clone(),
@@ -363,7 +363,7 @@ fn visible_text_from_payload(
     })
 }
 fn track_from_payload(
-    value: &conduit_presentation::VisualExperienceObservationTrack,
+    value: &conduit_face::VisualExperienceObservationTrack,
 ) -> Result<TrackObservation, VisualValueRefusal> {
     Ok(TrackObservation {
         source_image: value.source_image().clone(),
@@ -381,7 +381,7 @@ fn track_from_payload(
     })
 }
 fn impression_from_payload(
-    value: &conduit_presentation::VisualExperienceObservationImpression,
+    value: &conduit_face::VisualExperienceObservationImpression,
 ) -> Result<VisualImpression, VisualValueRefusal> {
     Ok(VisualImpression {
         source_image: value.source_image().clone(),

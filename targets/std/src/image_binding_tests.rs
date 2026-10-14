@@ -93,8 +93,7 @@ fn rebuild_keeps_the_old_plan_bound_to_the_old_boot() {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "clock-demo", &profile).unwrap();
     let old_plan = old_host.plan_expanded_local(&expanded).unwrap();

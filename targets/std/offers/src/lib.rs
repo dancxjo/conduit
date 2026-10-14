@@ -24,10 +24,10 @@ mod pattern_comparison;
 pub use pattern_comparison::*;
 mod template_storage;
 pub use template_storage::*;
-mod presentation_structure;
-pub use presentation_structure::*;
-mod presentation_sinks;
-pub use presentation_sinks::*;
+mod face_structure;
+pub use face_structure::*;
+mod face_sinks;
+pub use face_sinks::*;
 mod text;
 pub use text::*;
 mod morse_composition;
@@ -265,18 +265,18 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         time_delay_offer(),
         time_throttle_offer(),
         time_deadline_offer(),
-        tick_presentation_offer(),
-        bool_presentation_offer(),
+        tick_face_offer(),
+        bool_face_offer(),
         text_literal_offer(),
         text_upper_offer(),
         text_join_offer(),
-        text_presentation_offer(),
+        text_face_offer(),
         key_event_tee_offer(),
         keymap_offer(),
         chords_offer(),
         state_count_offer(),
         state_toggle_offer(),
-        count_presentation_offer(),
+        count_face_offer(),
         state_latest_scalar_offer(),
         flow_tee_scalar_offer(),
         flow_first_scalar_offer(),
@@ -297,14 +297,14 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         layout_column_offer(),
         layout_stack_offer(),
         layout_align_offer(),
-        presentation_icon_offer(),
-        presentation_frame_offer(),
-        presentation_badge_offer(),
+        face_icon_offer(),
+        face_frame_offer(),
+        face_badge_offer(),
         graphics_rect_offer(),
         graphics_text_offer(),
         graphics_icon_offer(),
-        graphics_presentation_offer(),
-        bitmap_presentation_offer(),
+        graphics_face_offer(),
+        bitmap_face_offer(),
         robotics_observe_bump_offer(),
         robotics_observe_imu_offer(),
         robotics_observe_range_offer(),
@@ -328,9 +328,9 @@ mod tests {
     fn production_realization_families_retain_one_exact_semantic_contract() {
         use conduit_core::{
             resource_requirement, ArtifactId, CapabilityId, CapabilityLimits, ExecutionProfileId,
-            HostCallRequirement, ImplementationId, PRESENTATION_RESOURCE_CLASS,
+            HostCallRequirement, ImplementationId, FACE_RESOURCE_CLASS,
         };
-        use conduit_presentation::{renderer_offer, RendererRealizationOffer};
+        use conduit_face::{renderer_offer, RendererRealizationOffer};
 
         let renderer = |name: &str| {
             renderer_offer(RendererRealizationOffer {
@@ -344,14 +344,14 @@ mod tests {
                     ),
                     target_kind: None,
                     maximum_in_flight: 1,
-                    maximum_input_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
-                    maximum_output_bytes: conduit_core::MAX_PRESENTATION_COMPLETION_BYTES,
+                    maximum_input_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
+                    maximum_output_bytes: conduit_core::MAX_FACE_COMPLETION_BYTES,
                 },
-                resource_requirement: resource_requirement(PRESENTATION_RESOURCE_CLASS, 1),
+                resource_requirement: resource_requirement(FACE_RESOURCE_CLASS, 1),
                 limits: CapabilityLimits {
                     max_active_instances: 1,
                     max_queue_items: 1,
-                    max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+                    max_queue_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
                 },
             })
         };
@@ -474,12 +474,12 @@ mod tests {
             include_str!("../../../../semantics/catalog/src/timing.rs"),
             include_str!("../../../../semantics/catalog/src/audio_render_demand.rs"),
             include_str!("../../../../semantics/catalog/src/layout.rs"),
-            include_str!("../../../../semantics/catalog/src/presentation_composition.rs"),
+            include_str!("../../../../semantics/catalog/src/face_composition.rs"),
             include_str!("../../../../semantics/catalog/src/graphics.rs"),
-            include_str!("../../../../semantics/catalog/src/tick_presentation.rs"),
-            include_str!("../../../../semantics/catalog/src/presentation_bool.rs"),
-            include_str!("../../../../semantics/catalog/src/text_presentation.rs"),
-            include_str!("../../../../semantics/catalog/src/graphics_presentation.rs"),
+            include_str!("../../../../semantics/catalog/src/tick_face.rs"),
+            include_str!("../../../../semantics/catalog/src/face_bool.rs"),
+            include_str!("../../../../semantics/catalog/src/text_face.rs"),
+            include_str!("../../../../semantics/catalog/src/graphics_face.rs"),
             include_str!("../../../../semantics/catalog/src/text_transform.rs"),
             include_str!("../../../../semantics/catalog/src/state_count.rs"),
             include_str!("../../../../semantics/catalog/src/state_toggle.rs"),
@@ -502,7 +502,7 @@ mod tests {
             include_str!("../../../../semantics/catalog/src/education_catalog.rs"),
             include_str!("../../../../semantics/catalog/src/vision_catalog.rs"),
             include_str!("../../../../semantics/catalog/src/robotics_structured_catalog.rs"),
-            include_str!("../../../../semantics/catalog/src/patchbay_presentation.rs"),
+            include_str!("../../../../semantics/catalog/src/patchbay_face.rs"),
         ] {
             for forbidden in [
                 "std/kernel-",
@@ -520,9 +520,9 @@ mod tests {
                 "pub fn json_encode_std_offer",
                 "pub fn json_decode_std_offer",
                 "pub fn copy_file_offer",
-                "pub fn copy_result_presentation_offer",
+                "pub fn copy_result_face_offer",
                 "pub fn structured_literal_std_offer",
-                "pub fn structured_presentation_std_offer",
+                "pub fn structured_face_std_offer",
                 "pub fn structured_selector_std_offer",
                 "pub fn hosted_keyboard_offer",
                 "pub fn generalized_input_std_offers",
@@ -540,19 +540,19 @@ mod tests {
                 "pub fn layout_column_offer",
                 "pub fn layout_stack_offer",
                 "pub fn layout_align_offer",
-                "pub fn presentation_icon_offer",
-                "pub fn presentation_frame_offer",
-                "pub fn presentation_badge_offer",
+                "pub fn face_icon_offer",
+                "pub fn face_frame_offer",
+                "pub fn face_badge_offer",
                 "pub fn graphics_rect_offer",
                 "pub fn graphics_text_offer",
                 "pub fn graphics_icon_offer",
-                "pub fn tick_presentation_offer",
-                "pub fn bool_presentation_std_offer",
-                "pub fn bool_presentation_browser_offer",
-                "pub fn text_presentation_offer",
-                "pub fn count_presentation_offer",
-                "pub fn graphics_presentation_offer",
-                "pub fn bitmap_presentation_offer",
+                "pub fn tick_face_offer",
+                "pub fn bool_face_std_offer",
+                "pub fn bool_face_browser_offer",
+                "pub fn text_face_offer",
+                "pub fn count_face_offer",
+                "pub fn graphics_face_offer",
+                "pub fn bitmap_face_offer",
                 "pub fn text_literal_offer",
                 "pub fn text_upper_offer",
                 "pub fn text_join_offer",
@@ -564,7 +564,7 @@ mod tests {
                 "pub fn alife_offers",
                 "pub fn orbium_seed_offer",
                 "pub fn lenia_step_offer",
-                "pub fn scalar_field_presentation_offer",
+                "pub fn scalar_field_face_offer",
                 "pub fn music_play_midi_offer",
                 "pub fn music_synth_reference_offer",
                 "pub fn audio_play_alsa_hw_offer",
@@ -586,7 +586,7 @@ mod tests {
                 "pub fn vision_std_offers",
                 "pub fn robotics_structured_deterministic_offers",
                 "pub fn robotics_physical_motion_offer",
-                "pub fn patchbay_presentation_offers",
+                "pub fn patchbay_face_offers",
                 "std/education-assessment-hosted@1",
                 "std/vision-metadata-hosted@1",
                 "std/robotics-structured-deterministic@1",
@@ -600,7 +600,7 @@ mod tests {
         }
         assert!(
             !include_str!("../../../../semantics/catalog/src/state_count.rs")
-                .contains("pub fn count_presentation_offer")
+                .contains("pub fn count_face_offer")
         );
     }
 }

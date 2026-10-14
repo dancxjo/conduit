@@ -4,7 +4,7 @@ use conduit_browser_patchbay_workbench::{
     body_workbench_fixture_snapshot, text_lab_split_snapshot, BrowserBodyWorkbenchEntrance,
     RendererSnapshot, MAX_SNAPSHOT_BYTES,
 };
-use conduit_presentation::PresentationRole;
+use conduit_face::FaceRole;
 use serde_json::{json, Value};
 
 const LEDGER_SCHEMA: &str = "conduit.patchbay/body-workbench-proof-ledger@1";
@@ -194,7 +194,7 @@ fn follow_entry(snapshot: &RendererSnapshot) -> Result<Value, Box<dyn std::error
         .ok_or("planned Follow navigation is absent")?;
     let exact = |name: &str| {
         snapshot
-            .presentation
+            .face
             .properties
             .iter()
             .filter(|property| property.name == name)
@@ -203,7 +203,7 @@ fn follow_entry(snapshot: &RendererSnapshot) -> Result<Value, Box<dyn std::error
     };
     let subjects = |role| {
         snapshot
-            .presentation
+            .face
             .subjects
             .iter()
             .filter(|subject| subject.role == role)
@@ -211,23 +211,23 @@ fn follow_entry(snapshot: &RendererSnapshot) -> Result<Value, Box<dyn std::error
             .collect::<Vec<_>>()
     };
     let mut plan_ids = exact("plan-id");
-    if let Some(plan_id) = &snapshot.presentation.basis.plan_id {
-        plan_ids.push(json!({"subject": "presentation-basis", "value": plan_id}));
+    if let Some(plan_id) = &snapshot.face.basis.plan_id {
+        plan_ids.push(json!({"subject": "face-basis", "value": plan_id}));
     }
     plan_ids.extend(
-        subjects(PresentationRole::Plan)
+        subjects(FaceRole::Plan)
             .into_iter()
             .map(|identity| json!({"subject": identity, "value": identity})),
     );
     let mut cord_ids = exact("cord-id");
     cord_ids.extend(
-        subjects(PresentationRole::Cord)
+        subjects(FaceRole::Cord)
             .into_iter()
             .map(|identity| json!({"subject": identity, "value": identity})),
     );
     let mut line_ids = exact("line-id");
     line_ids.extend(
-        subjects(PresentationRole::Line)
+        subjects(FaceRole::Line)
             .into_iter()
             .map(|identity| json!({"subject": identity, "value": identity})),
     );
@@ -241,14 +241,14 @@ fn follow_entry(snapshot: &RendererSnapshot) -> Result<Value, Box<dyn std::error
         .into());
     }
     Ok(json!({
-        "presentation_identity": snapshot.presentation.identity,
-        "basis": snapshot.presentation.basis,
+        "face_identity": snapshot.face.identity,
+        "basis": snapshot.face.basis,
         "navigation_identity": navigation.navigation.identity,
         "follows": navigation.navigation.follows,
         "plan_ids": plan_ids,
         "cord_ids": cord_ids,
         "line_ids": line_ids,
-        "plot_properties_contain_realization_ids": snapshot.presentation.properties.iter().any(|property| {
+        "plot_properties_contain_realization_ids": snapshot.face.properties.iter().any(|property| {
             property.subject.starts_with("plot/") && matches!(property.name.as_str(), "plan-id" | "cord-id" | "line-id")
         }),
     }))

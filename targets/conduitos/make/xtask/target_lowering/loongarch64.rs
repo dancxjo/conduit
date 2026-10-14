@@ -33,14 +33,14 @@ pub(crate) fn lower_loongarch64_virt(
     {
         return Err(ConduitosError::refusal(
             "loongarch64-product-closure-mismatch",
-            "LoongArch64 product requires exactly its admitted UART presentation closure",
+            "LoongArch64 product requires exactly its admitted UART face closure",
         ));
     }
     let portable = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_PRESENTATION
+        | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_PRESENTATION;
+        | conduitos::make::IMPL_TEXT_FACE;
     Ok(TargetBuildInputs {
         cargo_features: vec!["loongarch64-product"],
         implementations: portable | conduitos::make::IMPL_LINEAR_PRESENTER,
@@ -50,8 +50,8 @@ pub(crate) fn lower_loongarch64_virt(
         drivers: conduitos::make::DRIVER_LOONGARCH64_UART,
         presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
         proof_instrumentation: 0,
-        presentation_surface_slots: 0,
-        presentation_surface_bytes: 0,
+        face_surface_slots: 0,
+        face_surface_bytes: 0,
     })
 }
 

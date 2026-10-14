@@ -7,25 +7,24 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
+use conduit_face::{
+    Face, FaceRole, LinearFace, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle,
+    RendererRealizationOffer, render_linear_face, renderer_kind_projection, renderer_offer,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_plot::{ProfileCatalog, parse};
-use conduit_presentation::{
-    LinearPresentation, MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle,
-    Presentation, PresentationRole, RendererRealizationOffer, render_linear_presentation,
-    renderer_kind_projection, renderer_offer,
-};
 
 pub const IMPLEMENTATION: &str = "presenter/linear-serial@1";
 pub const CAPABILITY: &str = "conduitos/presenter/linear-serial@1";
 pub const BASE_ID: &str = "conduitos/base/pl011-serial/0";
-const RESOURCE_CLASS: &str = "presentation/linear-slot";
-const RESOURCE_ID: &str = "conduitos/presentation/linear/0";
-const PLOT: &str = "plot front {\n    renderer: presentation/renderer\n}\n";
+const RESOURCE_CLASS: &str = "face/linear-slot";
+const RESOURCE_ID: &str = "conduitos/face/linear/0";
+const PLOT: &str = "plot front {\n    renderer: face/renderer(\"Body view\")\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct LinearReceipt {
-    pub presentation: LinearPresentation,
-    pub manifestation_id: conduit_presentation::ManifestationId,
+    pub face: LinearFace,
+    pub manifestation_id: conduit_face::ManifestationId,
     pub presenter_implementation_id: ImplementationId,
     pub plan_id: conduit_core::PlanId,
 }
@@ -101,7 +100,7 @@ impl LinearPresenter {
                 artifact_id: ArtifactId::from(image_id),
                 host_call: HostCallRequirement {
                     contract_id: HostCallContractId::from("conduit.host/present@1"),
-                    target_kind: Some(kind_id("presentation/base/linear-serial@1")),
+                    target_kind: Some(kind_id("face/base/linear-serial@1")),
                     maximum_in_flight: 1,
                     maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                     maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
@@ -131,17 +130,14 @@ impl LinearPresenter {
         })
     }
 
-    pub fn present(
-        &mut self,
-        presentation: &Presentation,
-    ) -> Result<LinearReceipt, LinearPresenterError> {
-        if presentation.revision <= self.last_revision {
+    pub fn present(&mut self, face: &Face) -> Result<LinearReceipt, LinearPresenterError> {
+        if face.revision <= self.last_revision {
             return Err(LinearPresenterError::StaleRevision);
         }
-        let front = presentation
+        let front = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Host)
+            .find(|subject| subject.role == FaceRole::Host)
             .ok_or(LinearPresenterError::Identity)?
             .identity
             .clone();
@@ -149,10 +145,10 @@ impl LinearPresenter {
             &self.plan.plan_id,
             &self.host_id,
             &self.boot_id,
-            presentation.revision,
+            face.revision,
         );
         let manifestation = Manifestation::prepared(
-            presentation,
+            face,
             &self.plan,
             active,
             self.placement_id.clone(),
@@ -167,11 +163,10 @@ impl LinearPresenter {
             )
         })
         .map_err(|_| LinearPresenterError::Identity)?;
-        let linear =
-            render_linear_presentation(presentation).map_err(|_| LinearPresenterError::Render)?;
-        self.last_revision = presentation.revision;
+        let linear = render_linear_face(face).map_err(|_| LinearPresenterError::Render)?;
+        self.last_revision = face.revision;
         Ok(LinearReceipt {
-            presentation: linear,
+            face: linear,
             manifestation_id: manifestation.manifestation_id,
             presenter_implementation_id: self.implementation_id.clone(),
             plan_id: self.plan.plan_id.clone(),
@@ -185,7 +180,7 @@ mod tests {
     use crate::front_door::FrontDoor;
     use conduit_core::{CheckedPlotId, SourceDocumentId};
 
-    fn presentation() -> Presentation {
+    fn face() -> Face {
         FrontDoor::new(
             HostId::from("host"),
             BootId::from("boot"),
@@ -198,13 +193,13 @@ mod tests {
             5,
             false,
         )
-        .presentation()
+        .face()
         .unwrap()
     }
 
     #[test]
-    fn realizes_the_portable_zero_body_presentation_through_an_exact_plan() {
-        let value = presentation();
+    fn realizes_the_portable_zero_body_face_through_an_exact_plan() {
+        let value = face();
         let mut presenter = LinearPresenter::prepare(
             HostId::from("host"),
             BootId::from("boot"),
@@ -220,21 +215,21 @@ mod tests {
         );
         assert!(
             receipt
-                .presentation
+                .face
                 .lines
                 .iter()
                 .any(|line| line.contains("BODY NONE"))
         );
         assert!(
             receipt
-                .presentation
+                .face
                 .lines
                 .iter()
                 .any(|line| line.contains("intent=\"conduit.intent/open@1\""))
         );
         assert!(
             receipt
-                .presentation
+                .face
                 .lines
                 .iter()
                 .any(|line| line.contains("intent=\"conduit.intent/birth@1\"")

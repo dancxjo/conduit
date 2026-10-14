@@ -113,7 +113,7 @@ impl Owner {
             direct_spoken_route: None,
             direct_spoken_template: None,
             llm_spoken_route: None,
-            presentation_wardrobe: None,
+            face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,

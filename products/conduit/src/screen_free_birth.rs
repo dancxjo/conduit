@@ -12,9 +12,9 @@ use std::sync::Arc;
 
 #[cfg(test)]
 use conduit_birth_plot::{BirthActionOutcome, HostOwnedBirthFaceBasis};
+use conduit_face::Face;
 #[cfg(test)]
 use conduit_patchbay_workbench::{PatchbayModel, ZeroBodyFrontDoor};
-use conduit_presentation::Presentation;
 use conduit_std_host::spoken_face_mask::SpokenFaceSession;
 #[cfg(test)]
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenBatchDelivery};
@@ -182,13 +182,7 @@ fn present(
     basis: &HostOwnedBirthFaceBasis,
     execution: &mut HostedTerminalMaskExecution,
     output: &mut impl Write,
-) -> Result<
-    (
-        conduit_presentation::Presentation,
-        conduit_presentation::MaskShow,
-    ),
-    String,
-> {
+) -> Result<(conduit_face::Face, conduit_face::MaskShow), String> {
     let face = draft.host_owned_face(basis).map_err(debug_error)?;
     let mut mask = TerminalFaceMask::prepare(face.clone(), 80, 24).map_err(debug_error)?;
     mask.present(execution, output).map_err(debug_error)?;
@@ -203,8 +197,8 @@ fn present(
 #[cfg(test)]
 fn read(
     reader: &mut SpokenFaceSession,
-    face: &conduit_presentation::Presentation,
-    show: &conduit_presentation::MaskShow,
+    face: &conduit_face::Face,
+    show: &conduit_face::MaskShow,
     command: ReaderCommand,
     sequence: u64,
     speech: Option<&mut BirthSpeechOutput>,
@@ -218,8 +212,8 @@ fn read(
 
 fn emit_readout(
     reader: &mut SpokenFaceSession,
-    face: &Presentation,
-    show: &conduit_presentation::MaskShow,
+    face: &Face,
+    show: &conduit_face::MaskShow,
     speech: Option<&mut BirthSpeechOutput>,
     output: &mut impl Write,
 ) -> Result<(), String> {

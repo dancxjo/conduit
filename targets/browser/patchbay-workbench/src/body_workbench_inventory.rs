@@ -3,19 +3,18 @@
 use crate::BrowserReviewedPlot;
 use conduit_body::{BodyState, BodyWorkset, ResidentPlot, MAX_BODY_PLOTS};
 use conduit_core::{CheckedPlotId, SourceDocumentId};
-use conduit_patchbay_workbench::{PlotCandidate, MAX_FRONT_DOOR_PLOTS};
-use conduit_presentation::{
-    PresentationAction, PresentationActionAvailability, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue, PresentationRole,
-    PresentationSubject,
+use conduit_face::{
+    FaceAction, FaceActionAvailability, FaceDisclosure, FaceDisclosureLevel, FaceProperty,
+    FacePropertyValue, FaceRole, FaceSubject,
 };
+use conduit_patchbay_workbench::{PlotCandidate, MAX_FRONT_DOOR_PLOTS};
 use std::collections::BTreeSet;
 
 pub(crate) struct ReviewedInventoryProjection {
-    pub subjects: Vec<PresentationSubject>,
-    pub properties: Vec<PresentationProperty>,
-    pub actions: Vec<PresentationAction>,
-    pub disclosures: Vec<PresentationDisclosure>,
+    pub subjects: Vec<FaceSubject>,
+    pub properties: Vec<FaceProperty>,
+    pub actions: Vec<FaceAction>,
+    pub disclosures: Vec<FaceDisclosure>,
 }
 
 pub(crate) fn from_candidates(
@@ -83,21 +82,21 @@ pub(crate) fn project(
             continue;
         }
         let identity = format!("plot/{}", plot.checked_plot_id);
-        projection.subjects.push(PresentationSubject {
+        projection.subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: plot.label.clone(),
         });
         projection.properties.extend([
             identity_property(&identity, "source-document-id", &plot.source_document_id),
             identity_property(&identity, "checked-plot-id", &plot.checked_plot_id),
-            PresentationProperty {
+            FaceProperty {
                 subject: identity.clone(),
                 name: "workload-membership".into(),
-                value: PresentationPropertyValue::Text("available".into()),
+                value: FacePropertyValue::Text("available".into()),
             },
         ]);
-        projection.actions.push(PresentationAction {
+        projection.actions.push(FaceAction {
             identity: format!(
                 "action/add-plot/{}/{}",
                 plot.checked_plot_id, workload_revision
@@ -106,20 +105,20 @@ pub(crate) fn project(
             target: identity.clone(),
             name: "Add to Body".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability: match state {
-                BodyState::Awake { .. } => PresentationActionAvailability::Unavailable {
+                BodyState::Awake { .. } => FaceActionAvailability::Unavailable {
                     reason_code: "body-awake".into(),
                     explanation: "Lull the body before changing its active plot workload.".into(),
                 },
                 BodyState::Lulled if workset.len() >= MAX_BODY_PLOTS => {
-                    PresentationActionAvailability::Unavailable {
+                    FaceActionAvailability::Unavailable {
                         reason_code: "workload-capacity".into(),
                         explanation: "The body active plot workload is at capacity.".into(),
                     }
                 }
-                BodyState::Lulled => PresentationActionAvailability::Available,
-                BodyState::Fulfilled { .. } => PresentationActionAvailability::Unavailable {
+                BodyState::Lulled => FaceActionAvailability::Available,
+                BodyState::Fulfilled { .. } => FaceActionAvailability::Unavailable {
                     reason_code: "body-fulfilled".into(),
                     explanation:
                         "A fulfilled Body cannot admit another plot; birth a new body instead."
@@ -127,19 +126,19 @@ pub(crate) fn project(
                 },
             },
         });
-        projection.disclosures.push(PresentationDisclosure {
+        projection.disclosures.push(FaceDisclosure {
             subject: identity,
-            level: PresentationDisclosureLevel::Context,
+            level: FaceDisclosureLevel::Context,
         });
     }
     Ok(projection)
 }
 
-fn identity_property(subject: &str, name: &str, identity: &str) -> PresentationProperty {
-    PresentationProperty {
+fn identity_property(subject: &str, name: &str, identity: &str) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
-        value: PresentationPropertyValue::Identity(identity.into()),
+        value: FacePropertyValue::Identity(identity.into()),
     }
 }
 
@@ -176,7 +175,7 @@ mod tests {
         assert_eq!(projected.actions[0].intent, "conduit.intent/add-plot@1");
         assert!(matches!(
             projected.actions[0].availability,
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         ));
 
         assert!(validate(&[hello.clone(), hello]).is_err());

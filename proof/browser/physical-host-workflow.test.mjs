@@ -8,7 +8,7 @@ import {
 import { createPhysicalHostRunner } from "../../targets/browser/workspace/creche-physical.mjs";
 
 // Deterministic contract proof through the live catalog, workflow, and physical
-// presentation helpers. These test-only document, presentation, and current-Body
+// face helpers. These test-only document, face, and current-Body
 // ABI fixtures prove neither DOM/browser acceptance nor Body/kernel execution.
 // Run through cargo xtask check browser; no retired product shell is launched.
 
@@ -100,7 +100,7 @@ function runnerFixture(contribution, callbacks = {}) {
     const runner = createPhysicalHostRunner({
       host: { runtime },
       targetCatalog: createPhysicalHostTargetCatalog({ generation: 1, contributions: [contribution] }),
-      presentationFor(scope) {
+      faceFor(scope) {
         assert.equal(scope, section);
         return {
           present(slot, view, handlers) { views.set(slot, { view, handlers }); },

@@ -16,7 +16,7 @@ The selected plots enter the same bounded workset used throughout the body lifec
 plot morse-network {
     message: text/literal("SOS")
     morse: text/morse(120)
-    light: presentation/indicator
+    light: face/indicator("Light signal")
 
     message >> morse >> light
 }

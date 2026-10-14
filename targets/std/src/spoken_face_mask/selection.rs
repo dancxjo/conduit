@@ -1,8 +1,7 @@
 //! Deterministic speech selection from one canonical Face; never application state.
 use super::*;
-use conduit_presentation::{
-    GeneratedWordingClause, GeneratedWordingProposal, GeneratedWordingRefusal,
-    PresentationDisclosureLevel,
+use conduit_face::{
+    FaceDisclosureLevel, GeneratedWordingClause, GeneratedWordingProposal, GeneratedWordingRefusal,
 };
 
 /// Inspectable selection identity and references; the canonical Face retains all detail.
@@ -20,7 +19,7 @@ impl SpokenOutline {
     /// Exact quotation/value checking remains owned by the existing semantic validator.
     pub fn render_model_wording(
         &self,
-        face: &Presentation,
+        face: &Face,
         proposal: &GeneratedWordingProposal,
     ) -> Result<String, GeneratedWordingRefusal> {
         if self.face_id != face.identity.as_str() || self.face_revision != face.revision {
@@ -60,7 +59,7 @@ pub struct SpokenItemPage {
     pub more: bool,
 }
 impl SpokenItemCursor {
-    pub fn new(face: &Presentation) -> Result<Self, SpokenFaceRefusal> {
+    pub fn new(face: &Face) -> Result<Self, SpokenFaceRefusal> {
         FaceReadingCursor::new(face).map_err(reading_refusal)?;
         Ok(Self {
             face_id: face.identity.as_str().into(),
@@ -69,7 +68,7 @@ impl SpokenItemCursor {
         })
     }
     /// Three items per explicit request. A rejected page never advances the cursor.
-    pub fn next_page(&mut self, face: &Presentation) -> Result<SpokenItemPage, SpokenFaceRefusal> {
+    pub fn next_page(&mut self, face: &Face) -> Result<SpokenItemPage, SpokenFaceRefusal> {
         if self.face_id != face.identity.as_str() || self.revision != face.revision {
             return Err(SpokenFaceRefusal::StaleFace);
         }
@@ -78,12 +77,12 @@ impl SpokenItemCursor {
             .subjects
             .iter()
             .filter(|subject| {
-                subject.role == PresentationRole::Item
+                subject.role == FaceRole::Item
                     && face
                         .disclosures
                         .iter()
                         .find(|item| item.subject == subject.identity)
-                        .is_none_or(|item| item.level == PresentationDisclosureLevel::Primary)
+                        .is_none_or(|item| item.level == FaceDisclosureLevel::Primary)
             })
             .skip(self.offset)
             .take(4)
@@ -107,7 +106,7 @@ impl SpokenItemCursor {
 
 /// Select a bounded first utterance from Face wording and explicitly primary
 /// subjects. This is a Mask reading policy, not a replacement for Face truth.
-pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, SpokenFaceRefusal> {
+pub fn select_spoken_outline(face: &Face) -> Result<SpokenOutline, SpokenFaceRefusal> {
     FaceReadingCursor::new(face).map_err(reading_refusal)?;
     let mut text_indices = Vec::new();
     let mut action_ids = Vec::new();
@@ -117,12 +116,8 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
             .find(|disclosure| disclosure.subject == identity)
             .map(|disclosure| disclosure.level)
     };
-    let primary = |identity: &str| {
-        matches!(
-            level(identity),
-            None | Some(PresentationDisclosureLevel::Primary)
-        )
-    };
+    let primary =
+        |identity: &str| matches!(level(identity), None | Some(FaceDisclosureLevel::Primary));
     let subject_role = |identity: &str| {
         face.subjects
             .iter()
@@ -130,19 +125,15 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
             .map(|subject| &subject.role)
     };
     let has_application_wording = face.text.iter().any(|wording| {
-        (primary(&wording.subject)
-            || level(&wording.subject) == Some(PresentationDisclosureLevel::Context))
-            && !matches!(subject_role(&wording.subject), Some(PresentationRole::Body))
+        (primary(&wording.subject) || level(&wording.subject) == Some(FaceDisclosureLevel::Context))
+            && !matches!(subject_role(&wording.subject), Some(FaceRole::Body))
     });
     let mut result = Vec::new();
     let title = face.subjects.iter().find(|subject| {
         matches!(
             level(&subject.identity),
-            Some(PresentationDisclosureLevel::Context | PresentationDisclosureLevel::Primary)
-        ) && matches!(
-            subject.role,
-            PresentationRole::Collection | PresentationRole::Document
-        )
+            Some(FaceDisclosureLevel::Context | FaceDisclosureLevel::Primary)
+        ) && matches!(subject.role, FaceRole::Collection | FaceRole::Document)
     });
     if let Some(subject) = title {
         result.push(format!("{}.", subject.name));
@@ -151,9 +142,9 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
     // Face Context is the encounter's orientation, so it precedes the result
     // even if it was serialized after primary wording in the Face.
     for expected in [
-        Some(PresentationDisclosureLevel::Context),
+        Some(FaceDisclosureLevel::Context),
         None,
-        Some(PresentationDisclosureLevel::Primary),
+        Some(FaceDisclosureLevel::Primary),
     ] {
         for (index, wording) in face.text.iter().enumerate().filter(|(_, wording)| {
             level(&wording.subject) == expected
@@ -161,7 +152,7 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
                     wording.subject == subject.identity && wording.text == subject.name
                 })
                 && !(has_application_wording
-                    && matches!(subject_role(&wording.subject), Some(PresentationRole::Body)))
+                    && matches!(subject_role(&wording.subject), Some(FaceRole::Body)))
         }) {
             if result.len() >= 4 {
                 omitted = true;
@@ -174,7 +165,7 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
     let primary_items = face
         .subjects
         .iter()
-        .filter(|subject| primary(&subject.identity) && subject.role == PresentationRole::Item)
+        .filter(|subject| primary(&subject.identity) && subject.role == FaceRole::Item)
         .collect::<Vec<_>>();
     for subject in primary_items.iter().take(3) {
         result.push(format!("{}.", subject.name));
@@ -184,11 +175,7 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
     }
     if result.is_empty() {
         if let Some(subject) = face.subjects.iter().find(|subject| {
-            primary(&subject.identity)
-                && matches!(
-                    subject.role,
-                    PresentationRole::Body | PresentationRole::Region
-                )
+            primary(&subject.identity) && matches!(subject.role, FaceRole::Body | FaceRole::Region)
         }) {
             result.push(format!("{}.", subject.name));
         }
@@ -207,26 +194,25 @@ pub fn select_spoken_outline(face: &Presentation) -> Result<SpokenOutline, Spoke
         // Body or Plot navigation prompt from the same Face.
         let mut offered = face.actions.iter().filter(|action| {
             action.availability.is_available()
-                && action.disclosure == PresentationDisclosureLevel::CurrentAction
+                && action.disclosure == FaceDisclosureLevel::CurrentAction
                 && (!has_application_wording
                     || matches!(
                         subject_role(&action.target),
                         Some(
-                            PresentationRole::Collection
-                                | PresentationRole::Item
-                                | PresentationRole::Document
-                                | PresentationRole::TextEntry
+                            FaceRole::Collection
+                                | FaceRole::Item
+                                | FaceRole::Document
+                                | FaceRole::TextEntry
                         )
                     ))
                 && matches!(
                     level(&action.target),
-                    None | Some(PresentationDisclosureLevel::Primary)
-                        | Some(PresentationDisclosureLevel::Context)
+                    None | Some(FaceDisclosureLevel::Primary) | Some(FaceDisclosureLevel::Context)
                 )
         });
         if let Some(action) = offered
             .clone()
-            .find(|action| level(&action.target) == Some(PresentationDisclosureLevel::Context))
+            .find(|action| level(&action.target) == Some(FaceDisclosureLevel::Context))
             .or_else(|| offered.next())
         {
             result.push(format!("You can {}.", action.name));

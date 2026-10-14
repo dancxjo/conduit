@@ -6,10 +6,10 @@ use crate::installed_std::{
 };
 use crate::terminal_face_mask::{TerminalInput, TerminalInputOutcome};
 use crate::{BodyLiveForeAdmission, BodyLiveForeQueue};
+use conduit_face::ParsecMapCommand;
 use conduit_human::{
     InputButtonPhase, InputButtonTransition, KeyEvent, KeyModifiers, KeyTransition,
 };
-use conduit_presentation::ParsecMapCommand;
 
 impl ParsecTerminalOwner {
     pub(in crate::installed_std::body_kernel) fn body_plan(&self) -> &BodyPlan {
@@ -128,7 +128,7 @@ impl ParsecTerminalOwner {
             || binding.input_plan_id() != self.plan.plots[0].plan.plan_id.as_str()
             || *binding.mapping_revision() != *state.mapping_revision()
             || binding.offered_action().action_identity() != &action.identity
-            || *binding.offered_action().source_presentation_revision() != face.revision
+            || *binding.offered_action().source_face_revision() != face.revision
         {
             return Err(
                 "Parsec source policy differs from exact current Face/Show/input context".into(),
@@ -153,8 +153,8 @@ impl ParsecTerminalOwner {
             .map_err(|e| format!("Parsec checked Mask return: {e:?}"))?;
         if returned.show_id != show.show_id
             || returned.mask_plot != show.mask_plot
-            || returned.presentation_id != face.identity
-            || returned.presentation_revision != face.revision
+            || returned.face_id != face.identity
+            || returned.face_revision != face.revision
             || returned.interaction.face_id != face.identity.as_str()
             || returned.interaction.face_revision != face.revision
             || returned.interaction.show_id != show.show_id.as_str()

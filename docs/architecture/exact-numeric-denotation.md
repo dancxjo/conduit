@@ -379,11 +379,13 @@ retains its exact execution evidence.
 ## Ordinary std product installation (development)
 
 The default product source catalog and repository Plot-checking catalog install
-`math/realize` and `presentation/numerical-result`. The local `conduit run` and
+`math/realize` and `face/numerical-result`. The local `conduit run` and
 library execution entrances initialize numerical offers from the checked,
 expanded source before invoking the ordinary planner. The presenter uses the
-existing admitted structured-presentation Host Call and typed presentation Signs.
-`plots/numerics/main.conduit` is the retained runnable specimen.
+existing admitted structured Face Host Call and typed Face Signs.
+Each `face/numerical-result` constructor requires its data label.
+`plots/numerics/main.conduit` names the two receipts "Exact numerical result"
+and "Approximate numerical result" and is the retained runnable specimen.
 
 Std initialization replaces only its own previous numerical source batch, with
 at most 32 requested instances. Offers carry deterministic source-certificate
@@ -398,7 +400,7 @@ and check the exact capability, implementation, profile, artifact, limits and
 certificate before allocating the immutable receipt Back. That Back uses the
 portable transactional execution implementation; its retained byte capacity
 participates in the std capacity account. Product tests exercise the ordinary
-source-to-Plan-to-Play path and compare typed presentation receipts with the
+source-to-Plan-to-Play path and compare typed Face receipts with the
 selected certificates. These are hosted product proofs, not stable-main or
 hardware acceptance and not proofs of an IEEE arithmetic algorithm.
 

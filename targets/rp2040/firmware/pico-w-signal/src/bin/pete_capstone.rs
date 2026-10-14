@@ -39,8 +39,8 @@ mod create_motion;
 mod create_play;
 #[path = "pete_capstone/create_power.rs"]
 mod create_power;
-#[path = "pete_capstone/create_presentation.rs"]
-mod create_presentation;
+#[path = "pete_capstone/create_face.rs"]
+mod create_face;
 #[path = "pete_capstone/imu_control.rs"]
 mod imu_control;
 #[path = "pete_capstone/pico_heartbeat.rs"]
@@ -120,12 +120,12 @@ const CAPSTONE_READY_WAIT_STEPS: usize = 200;
 const BRINGUP_STAGE_IMU: u8 = 2;
 const BRINGUP_STAGE_CREATE_FULL: u8 = 3;
 const BRINGUP_STAGE_LIGHTS: u8 = 4;
-const BRINGUP_STAGE_PRESENTATION: u8 = 5;
+const BRINGUP_STAGE_FACE: u8 = 5;
 const BRINGUP_STAGE_MOTION: u8 = 6;
-// This attended image admits only the bounded Create 1 music/light presentation
+// This attended image admits only the bounded Create 1 music/light face
 // and the lower no-motion diagnostic stages. Motion remains a distinct higher
 // build stage and cannot be requested from this artifact.
-const BRINGUP_STAGE: u8 = BRINGUP_STAGE_PRESENTATION;
+const BRINGUP_STAGE: u8 = BRINGUP_STAGE_FACE;
 
 fn usb_device(
     driver: usb::Driver<'static, USB>,
@@ -296,10 +296,10 @@ async fn serve_conduit_services(class: &mut InertCdc) -> ! {
             continue;
         }
 
-        if BRINGUP_STAGE >= BRINGUP_STAGE_PRESENTATION
-            && create_presentation::request_matches(request)
+        if BRINGUP_STAGE >= BRINGUP_STAGE_FACE
+            && create_face::request_matches(request)
         {
-            create_presentation::serve(class).await;
+            create_face::serve(class).await;
             continue;
         }
 

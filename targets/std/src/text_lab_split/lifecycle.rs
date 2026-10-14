@@ -29,7 +29,7 @@ impl NativeTextLabFragment {
         }
     }
 
-    pub fn drive_presentation(&mut self, expected_bytes: usize) -> Result<(), String> {
+    pub fn drive_face(&mut self, expected_bytes: usize) -> Result<(), String> {
         while self.presented.len() < expected_bytes {
             if !self.complete_host_request()? {
                 match self
@@ -38,9 +38,9 @@ impl NativeTextLabFragment {
                     .map_err(|error| format!("{error:?}"))?
                 {
                     SchedulerStatus::Progress { .. } => {}
-                    SchedulerStatus::Idle => return Err("native presentation became idle".into()),
+                    SchedulerStatus::Idle => return Err("native face became idle".into()),
                     SchedulerStatus::Drained => {
-                        return Err("native presentation completed too early".into())
+                        return Err("native face completed too early".into())
                     }
                     SchedulerStatus::Cancelled => return Err("native Text Lab cancelled".into()),
                 }

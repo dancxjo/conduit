@@ -1,4 +1,4 @@
-//! Current shared view evidence emitted only after successful native presentation.
+//! Current shared view evidence emitted only after successful native face.
 use crate::{
     arch, front_door::FrontDoor, native_compositor::CompositionReceipt,
     product_journey::ProductJourney,
@@ -36,7 +36,7 @@ pub(super) fn emit(
         "selected_action": door.selected_application_action().map(|action| action.id.as_str()),
         "nodes": view.nodes.iter().map(|node| serde_json::json!({"key": node.key, "text": node.text, "value": node.value})).collect::<Vec<_>>(),
         "actions": view.actions.iter().map(|action| action.id.as_str()).collect::<Vec<_>>(),
-        "presentation_id": receipt.presentation_id.as_str(),
+        "face_id": receipt.face_id.as_str(),
         "manifestation_id": receipt.manifestation_id.as_str(),
     });
     let bytes = serde_json::to_vec(&record).map_err(|_| "workspace-view-evidence-encoding")?;

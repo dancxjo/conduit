@@ -3,8 +3,8 @@
 use super::*;
 use alloc::vec;
 use conduit_birth_plot::{BirthDraft, BirthPlotChoice};
+use conduit_face::{BodyFace, FaceContext, FaceFocus, ManifestationLifecycle};
 use conduit_human::{KeyModifiers, KeyTransition};
-use conduit_presentation::{Face, FaceContext, FaceFocus, ManifestationLifecycle};
 
 #[test]
 fn compositor_refusal_keeps_its_specific_machine_reason() {
@@ -82,10 +82,10 @@ fn birth_face_crosses_producer_mask_scanout_and_exact_interaction_fore() {
     };
     let composition = service.present(face.clone(), 1, 1, &mut display).unwrap();
     let publication = service.publication().unwrap();
-    assert_eq!(publication.presentation_id, face.identity.as_str());
+    assert_eq!(publication.face_id, face.identity.as_str());
     assert!(publication.kernel_signs > 0);
     assert!(display.writes > 0);
-    assert_eq!(composition.presentation_id, face.identity);
+    assert_eq!(composition.face_id, face.identity);
     let show = service.show().unwrap().clone();
     assert_eq!(show.show.lifecycle, ManifestationLifecycle::Available);
     assert!(service.route_keyboard().unwrap());
@@ -156,7 +156,7 @@ fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
         "sign/owner-born".into(),
     )
     .unwrap();
-    let face = Face::project(
+    let face = BodyFace::project(
         &body,
         None,
         7,
@@ -165,11 +165,11 @@ fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
         vec![],
     )
     .unwrap()
-    .presentation;
+    .face;
     assert!(
         face.subjects
             .iter()
-            .all(|subject| subject.role != conduit_presentation::PresentationRole::Host)
+            .all(|subject| subject.role != conduit_face::FaceRole::Host)
     );
     let wake_action = face
         .actions
@@ -183,8 +183,8 @@ fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
     let composition = service
         .present_read_only(face.clone(), 1, 1, &mut display)
         .unwrap();
-    assert_eq!(composition.presentation_id, face.identity);
-    assert_eq!(service.scene().unwrap().presentation(), &face);
+    assert_eq!(composition.face_id, face.identity);
+    assert_eq!(service.scene().unwrap().face(), &face);
     assert!(service.show().is_some());
     assert!(service.route_keyboard().unwrap());
     let enter = KeyEvent::new(40, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
@@ -232,44 +232,44 @@ fn owner_body_face_keeps_exact_identity_and_has_read_only_mask_navigation() {
 /// not substitute for installed owner route/Show acknowledgement proof.
 #[test]
 fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls() {
-    use conduit_presentation::*;
-    let mut subjects = vec![PresentationSubject {
+    use conduit_face::*;
+    let mut subjects = vec![FaceSubject {
         identity: "list".into(),
-        role: PresentationRole::Collection,
+        role: FaceRole::Collection,
         name: "All required things".into(),
     }];
     let mut actions = vec![];
     for number in 0..21 {
         let identity = alloc::format!("item/{number}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: alloc::format!("Required thing {number}"),
         });
-        actions.push(PresentationAction {
+        actions.push(FaceAction {
             identity: alloc::format!("action/{number}"),
             intent: "test/inspect@1".into(),
             target: identity,
             name: alloc::format!("Inspect {number}"),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         });
     }
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "unknown".into(),
-        role: PresentationRole::Semantic(conduit_core::kind_id("biology/cell@1")),
+        role: FaceRole::Semantic(conduit_core::kind_id("biology/cell@1")),
         name: "Unmatched meaning remains readable".into(),
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         7,
         crate::native_face_scene::tests::face(7).basis,
         subjects,
         vec![],
-        vec![PresentationProperty {
+        vec![FaceProperty {
             subject: "list".into(),
             name: "required fact".into(),
-            value: PresentationPropertyValue::Text("Exact fact remains inspectable".into()),
+            value: FacePropertyValue::Text("Exact fact remains inspectable".into()),
         }],
         vec![],
         actions,
@@ -306,7 +306,7 @@ fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls(
         )
         .unwrap();
         assert!(fallback.unwrap().contains("SlotCapacity"));
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
         assert_eq!(scene.text_scale_percent(), 200);
         assert!(expression.platform_forced_colors);
         scene.show_details(true);
@@ -351,7 +351,7 @@ fn valid_face_beyond_checked_recipe_capacity_keeps_generic_reading_and_controls(
         } else {
             assert_eq!(scene.focus_next(true), None);
         }
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
     }
     assert!(
         NativeFaceMask::prepare_component_scene(

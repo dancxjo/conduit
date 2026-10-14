@@ -125,7 +125,7 @@ exactly even though converting 1 °F to a finite decimal °C coordinate is inexa
 plot convert-pitch-demo {
     operation: units/convert(source = 1kHz, to = Hz)
     exact: units/converted-equals(expected = 1000Hz)
-    show: presentation/text
+    show: face/text("Message")
     operation.receipt >> exact.receipt
     exact.result >> (. ? "Exactly 1000 Hz" : "Conversion did not yield exactly 1000 Hz") >> show.text
 }.
@@ -326,3 +326,28 @@ Bare spellings such as `tr` denote Units, while suffixed values such as `2rev`
 denote Angle Quantities. These units do not admit prefixes. An undeclared
 suffix is refused with `CND-FRM-055`; redeclaring a unit symbol is refused
 with `CND-FRM-058`.
+
+## Optional international full-turn vocabulary
+
+`architecture/core/definitions/optional/international-turns.conduit` provides `tour`, `toer`,
+`revolución`, `rivoluzione`, `revolução`, `Umdrehung`, `varv`, and `obrót`.
+Each checked declaration references `turn` with scale 1. Bare names denote
+Units; suffixed quantities such as `1revolución` equal one turn, and
+`0.25obrót` equals a quarter turn exactly.
+
+These names are optional. Include the declarations in authored Source, or
+check the declaration document with `checked_physical_catalog_for_document`
+and pass the returned immutable catalogue to the consumer's checker. The
+default catalogue does not acquire these names globally. This uses existing
+checked declarations and catalogue custody; it introduces no file-import syntax.
+
+Spellings are case-sensitive and preserve their UTF-8 bytes. There is no
+Unicode normalization, accent removal, transliteration, or locale-based lookup:
+`revolucion` and decomposed `revolución` remain undeclared and receive
+`CND-FRM-055`. An import cannot rebind `turn` or an already imported alias
+(`CND-FRM-058`). The canonical reference and existing checked values remain fixed.
+
+A checked catalogue import also rejects unsupported locale-import syntax
+(such as `import locale "fr_FR"`) with its original parser code, message,
+and source span. It never treats a malformed import as an empty overlay,
+including when the destination catalogue already contains checked Units.

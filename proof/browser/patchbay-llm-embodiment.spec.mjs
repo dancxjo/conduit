@@ -17,7 +17,7 @@ function startStage(stage) {
 }
 
 function subjects(snapshot,role) {
-  return snapshot.presentation.subjects.filter(subject=>subject.role===role);
+  return snapshot.face.subjects.filter(subject=>subject.role===role);
 }
 
 test("the same model gains expression and protected power only through exact plot Cords",async({page})=>{
@@ -40,14 +40,14 @@ test("the same model gains expression and protected power only through exact plo
     }
   }
 
-  const implementations=snapshots.map(snapshot=>snapshot.presentation.properties
+  const implementations=snapshots.map(snapshot=>snapshot.face.properties
     .find(property=>property.name==="implementation-id")?.value.Identity);
   expect(new Set(implementations).size).toBe(1);
   expect(implementations[0]).toBe("ollama/gpt-oss:20b/exact-digest");
   expect(snapshots.map(snapshot=>subjects(snapshot,"Plot").length)).toEqual([1,1,1]);
   expect(snapshots.map(snapshot=>subjects(snapshot,"Cord").length)).toEqual([2,3,4]);
   expect(snapshots.map(snapshot=>subjects(snapshot,"Sign").length)).toEqual([0,0,1]);
-  const decisions=snapshots.map(snapshot=>snapshot.presentation.properties
+  const decisions=snapshots.map(snapshot=>snapshot.face.properties
     .find(property=>property.name==="authority-state")?.value.Text);
   expect(decisions).toEqual(["REFUSED","REFUSED","ADMITTED"]);
 });

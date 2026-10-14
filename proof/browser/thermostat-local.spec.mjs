@@ -16,11 +16,11 @@ async function ready(page) {
 function samePlay(before, after) {
   for (const key of ['hostId', 'bootId', 'bodyId', 'planId', 'playId', 'selectedPlot']) expect(after[key], key).toBe(before[key]);
 }
-function selected(presentation, id) {
-  return presentation.properties.find(property => property.subject === id && property.name === 'selected')?.value.Flag;
+function selected(face, id) {
+  return face.properties.find(property => property.subject === id && property.name === 'selected')?.value.Flag;
 }
-function exactTarget(presentation, numerator, denominator = 1n) {
-  const quantity = presentation.properties.find(property => property.subject === 'thermostat/target' && property.name === 'value').value.TypedValue;
+function exactTarget(face, numerator, denominator = 1n) {
+  const quantity = face.properties.find(property => property.subject === 'thermostat/target' && property.name === 'value').value.TypedValue;
   const bytes = quantity.bytes;
   expect(bytes[0]).toBe(1); // canonical quantity encoding version
   expect(bytes[1]).toBe(1); // affine temperature point, not a delta
@@ -87,8 +87,8 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     expect(combine.host_id).toBe(playing.hostId);
     expect(combine.boot_id).toBe(playing.bootId);
     receipts.selectedBack = combine;
-    receipts.initialQuantity = exactTarget(receipts.initial.presentation, 21);
-    expect(selected(receipts.initial.presentation, 'thermostat.mode.off')).toBe(true);
+    receipts.initialQuantity = exactTarget(receipts.initial.face, 21);
+    expect(selected(receipts.initial.face, 'thermostat.mode.off')).toBe(true);
     const accessibility = await new AxeBuilder({ page })
       .include('.handbook-show conduit-owner-face').analyze();
     expect(accessibility.violations).toEqual([]);
@@ -110,7 +110,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
         const settled = await face(page);
         expect(settled.view.show_state).toBe('available');
         expect(settled.view.interactions_admitted).toBe(true);
-        expect(selected(settled.presentation, `thermostat.${group.toLowerCase()}.${choice.toLowerCase()}`)).toBe(true);
+        expect(selected(settled.face, `thermostat.${group.toLowerCase()}.${choice.toLowerCase()}`)).toBe(true);
         receipts[`${group}-${choice}`] = settled;
         samePlay(playing, await truth(page));
       }
@@ -121,11 +121,11 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     await expect(thermostat.getByRole('radio', { name: 'Eco', exact: true })).not.toBeChecked();
     receipts.raised = await face(page);
     samePlay(playing, await truth(page));
-    expect(receipts.raised.presentation.revision).toBeGreaterThan(receipts.eco.presentation.revision);
-    expect(selected(receipts.raised.presentation, 'thermostat.mode.heat')).toBe(true);
-    expect(selected(receipts.raised.presentation, 'thermostat.fan.on')).toBe(true);
-    const ecoQuantity = exactTarget(receipts.eco.presentation, 18);
-    receipts.raisedQuantity = exactTarget(receipts.raised.presentation, 37, 2n);
+    expect(receipts.raised.face.revision).toBeGreaterThan(receipts.eco.face.revision);
+    expect(selected(receipts.raised.face, 'thermostat.mode.heat')).toBe(true);
+    expect(selected(receipts.raised.face, 'thermostat.fan.on')).toBe(true);
+    const ecoQuantity = exactTarget(receipts.eco.face, 18);
+    receipts.raisedQuantity = exactTarget(receipts.raised.face, 37, 2n);
     expect(receipts.raisedQuantity.contract).toEqual(ecoQuantity.contract);
     expect(receipts.raisedQuantity.bytes.slice(0, -18)).toEqual(ecoQuantity.bytes.slice(0, -18));
 
@@ -134,7 +134,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
       wrongIdentity.view = { ...wrongIdentity.view, [field]: value };
       receipts[field] = await refuse(page, wrongIdentity);
       expect(receipts[field].accepted).toBe(false);
-      expect((await face(page)).presentation).toEqual(receipts.raised.presentation);
+      expect((await face(page)).face).toEqual(receipts.raised.face);
       samePlay(playing, await truth(page));
     }
 
@@ -144,44 +144,44 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     forged.actionId = 'thermostat.forged';
     receipts.forged = await refuse(page, forged);
     expect(receipts.forged.accepted).toBe(false);
-    expect((await face(page)).presentation).toEqual(receipts.raised.presentation);
+    expect((await face(page)).face).toEqual(receipts.raised.face);
     samePlay(playing, await truth(page));
 
     // Each click is one deliberate owner action, with a settled Face before the
     // next action. No retry or action-performing polling hides refusal behavior.
     for (let step = 0; step < 23; ++step) {
       await thermostat.getByRole('button', { name: 'Raise target by 0.5°C', exact: true }).click();
-      await expect.poll(async () => (await face(page)).presentation.revision).toBe(receipts.raised.presentation.revision + step + 1);
+      await expect.poll(async () => (await face(page)).face.revision).toBe(receipts.raised.face.revision + step + 1);
     }
     await expect(thermostat.getByRole('button', { name: 'Raise target by 0.5°C', exact: true })).toBeDisabled();
     receipts.maximum = await face(page);
-    exactTarget(receipts.maximum.presentation, 30);
+    exactTarget(receipts.maximum.face, 30);
     receipts.range = await refuse(page, requestFor(receipts.maximum, 'thermostat.raise', 10_002));
     expect(receipts.range.accepted).toBe(false);
-    expect((await face(page)).presentation).toEqual(receipts.maximum.presentation);
+    expect((await face(page)).face).toEqual(receipts.maximum.face);
     samePlay(playing, await truth(page));
     await page.screenshot({ path: testInfo.outputPath('02-thermostat-limit.png'), fullPage: true });
 
     // Exhaust the authored scan through acknowledged actions in this same Body.
     let bounded = receipts.maximum;
-    for (let revision = Number(bounded.presentation.revision) + 1; revision <= 256; ++revision) {
-      const mode = selected(bounded.presentation, 'thermostat.mode.heat') ? 'Cool' : 'Heat';
+    for (let revision = Number(bounded.face.revision) + 1; revision <= 256; ++revision) {
+      const mode = selected(bounded.face, 'thermostat.mode.heat') ? 'Cool' : 'Heat';
       await thermostat.getByRole('group', { name: 'Mode', exact: true })
         .getByRole('radio', { name: mode, exact: true }).click();
       await expect.poll(async () => {
         const current = await face(page);
-        return { revision: current.presentation.revision, show: current.view.show_state };
+        return { revision: current.face.revision, show: current.view.show_state };
       }).toEqual({ revision, show: 'available' });
       await expect(thermostat.getByRole('group', { name: 'Mode', exact: true })
         .getByRole('radio', { name: new RegExp(`^${mode}(?:$| )`) })).toBeChecked();
       bounded = await face(page);
     }
     receipts.exhausted = bounded;
-    exactTarget(bounded.presentation, 30);
+    exactTarget(bounded.face, 30);
     await expect(thermostat.getByRole('radio', { name: /^Heat(?:$| )/ })).toBeDisabled();
     receipts.bound = await refuse(page, requestFor(bounded, 'thermostat.mode.heat', 10_003));
     expect(receipts.bound.accepted).toBe(false);
-    expect((await face(page)).presentation).toEqual(bounded.presentation);
+    expect((await face(page)).face).toEqual(bounded.face);
     samePlay(playing, await truth(page));
 
     await page.getByRole('button', { name: 'Open in Patchbay', exact: true }).click();
@@ -212,7 +212,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     receipts.awake = await ready(page);
     expect(receipts.awake.bodyId).toBe(playing.bodyId);
     expect(receipts.awake.playId).not.toBe(playing.playId);
-    exactTarget((await face(page)).presentation, 21);
+    exactTarget((await face(page)).face, 21);
     await page.reload();
     receipts.recovered = await ready(page);
     expect(receipts.recovered.hostId).toBe(playing.hostId);
@@ -220,7 +220,7 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     expect(receipts.recovered.bootId).not.toBe(playing.bootId);
     expect(receipts.recovered.playId).not.toBe(receipts.awake.playId);
     expect(receipts.recovered.selectedPlot).toBe(playing.selectedPlot);
-    exactTarget((await face(page)).presentation, 21);
+    exactTarget((await face(page)).face, 21);
     session.assertClean();
     await session.context.close();
     session = await openStaticProfile(testInfo.outputPath('thermostat-independent-profile'), origin);

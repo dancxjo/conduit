@@ -51,8 +51,8 @@ const selectedSpeechArgs = speakerCard ? ['--speak', '--speaker-card', speakerCa
 // single generated artifact; retain a finite wall-clock deadline for them.
 const screenFreeSessionTimeout = speakerCard ? 30 * 60_000 : 30_000;
 const attestReading = (transcript, snapshot, part, label, allowStaleCancellation = false) => {
-  const face = snapshot.presentation;
-  const revision = snapshot.presentation_revision_decimal;
+  const face = snapshot.face;
+  const revision = snapshot.face_revision_decimal;
   const receipts = transcript.split('\n').flatMap(line => {
     const start = line.indexOf('{"');
     if (start < 0) return [];
@@ -212,7 +212,7 @@ try {
   const birthObservedAtUnixMs = Date.now();
   const bodyId = born.biography.body_id;
   assert.ok(bodyId && transcript.includes(bodyId));
-  assert.equal(bornFace.presentation.basis.body_id, bodyId);
+  assert.equal(bornFace.face.basis.body_id, bodyId);
   assert.equal(born.biography.membership.parts.length, 1);
   const ownerPart = born.biography.membership.parts[0].current;
   assert.ok(ownerPart?.host_id && ownerPart.boot_id);
@@ -259,8 +259,8 @@ try {
       { name: 'zero-body-orientation', output: response(0) },
       { name: 'birth-review', output: response(reviewIndex), includeLast: true },
       { name: 'explicit-birth-result', output: response(birthIndex),
-        face_id: bornFace.presentation.identity,
-        face_revision: bornFace.presentation_revision_decimal, includeLast: true },
+        face_id: bornFace.face.identity,
+        face_revision: bornFace.face_revision_decimal, includeLast: true },
     );
     audioSessions.push({ name: 'birth', transcript });
   }
@@ -339,11 +339,11 @@ try {
     const readAll = session.responses.findLast(item => item.command === 'read all');
     assert.ok(readAll, `${phase} lacks the operator's whole-Face request`);
     const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(after.presentation.basis.body_id, bodyId);
+    assert.equal(after.face.basis.body_id, bodyId);
     assert.equal(after.advertisement.host_id, ownerPart.host_id);
     assert.equal(after.advertisement.boot_id, ownerPart.boot_id);
-    assert.ok(BigInt(after.presentation_revision_decimal) >=
-      BigInt(current.presentation_revision_decimal));
+    assert.ok(BigInt(after.face_revision_decimal) >=
+      BigInt(current.face_revision_decimal));
     const finalReading = attestReading(readAll.output, after, ownerPart,
       `screen-free checkpoint ${phase}`, true).final;
     const input = `${session.commands.join('\n')}\n`;
@@ -358,8 +358,8 @@ try {
       body_id: bodyId, owner_host_id: ownerPart.host_id, owner_boot_id: ownerPart.boot_id,
       route_id: ready.route_id, route_available: ready.route_available,
       wardrobe_revision: wardrobeReading.wardrobe_revision,
-      face_id: after.presentation.identity,
-      face_revision: after.presentation_revision_decimal,
+      face_id: after.face.identity,
+      face_revision: after.face_revision_decimal,
       source_show_id: finalReading.source_show_id,
       speaker_playback_selected: Boolean(speakerCard),
       selected_playback_receipts: finalReading.selected_playback_receipts ?? 0,
@@ -382,8 +382,8 @@ try {
       bytes: resume.transcript.bytes } });
     if (speakerCard) {
       audioChapters.push({ name: `checkpoint-${phase}`, output: readAll.output,
-        face_id: after.presentation.identity,
-        face_revision: after.presentation_revision_decimal });
+        face_id: after.face.identity,
+        face_revision: after.face_revision_decimal });
       checkpointSessions.push({ name: `checkpoint-${phase}`,
         transcript: session.transcript });
     }
@@ -414,10 +414,10 @@ try {
   };
   audioSessions.push(...checkpointSessions);
   const beforeStart = ownerJson(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(beforeStart.presentation.basis.body_id, bodyId);
+  assert.equal(beforeStart.face.basis.body_id, bodyId);
   assert.equal(beforeStart.advertisement.host_id, ownerPart.host_id);
   assert.equal(beforeStart.advertisement.boot_id, ownerPart.boot_id);
-  const available = (face, intent) => face.presentation.actions.find(action =>
+  const available = (face, intent) => face.face.actions.find(action =>
     action.intent === intent && action.availability === 'Available');
   const clockAudioSessions = [];
   const exercise = async (name, before, action) => {
@@ -442,31 +442,31 @@ try {
     const enacted = [...transcript.matchAll(/Interaction: action=(\S+) face-revision=(\d+) show=(\S+)/g)];
     assert.equal(enacted.length, 1, `screen-free ${name} must submit one semantic action`);
     assert.equal(enacted[0][1], action.identity);
-    assert.equal(enacted[0][2], before.presentation_revision_decimal);
+    assert.equal(enacted[0][2], before.face_revision_decimal);
     assert.match(transcript, /Owner action result:/);
     const after = ownerJson(['body', 'face', '--state-dir', state, '--json']);
     const observedAtUnixMs = Date.now();
-    assert.equal(after.presentation.basis.body_id, bodyId);
-    assert.ok(BigInt(after.presentation_revision_decimal) >
-      BigInt(before.presentation_revision_decimal));
+    assert.equal(after.face.basis.body_id, bodyId);
+    assert.ok(BigInt(after.face_revision_decimal) >
+      BigInt(before.face_revision_decimal));
     const reading = attestReading(transcript, after, ownerPart,
       `screen-free clock ${name}`, true);
-    assert.equal(reading.first.face_revision, before.presentation_revision_decimal);
+    assert.equal(reading.first.face_revision, before.face_revision_decimal);
     assert.equal(enacted[0][3], reading.first.source_show_id);
     if (selected) {
       const lastReading = selected.responses.findLast(response => response.command === 'read all');
       const actionResponse = selected.responses.find(response => response.command === 'activate');
       audioChapters.push({ name: `clock-${name}`,
         output: (lastReading ?? actionResponse).output,
-        face_id: after.presentation.identity,
-        face_revision: after.presentation_revision_decimal });
+        face_id: after.face.identity,
+        face_revision: after.face_revision_decimal });
       clockAudioSessions.push({ name: `clock-${name}`, transcript });
     }
     return {
-      action_id: action.identity, source_face_id: before.presentation.identity,
-      source_face_revision: before.presentation_revision_decimal, source_show_id: enacted[0][3],
-      result_face_id: after.presentation.identity,
-      result_face_revision: after.presentation_revision_decimal,
+      action_id: action.identity, source_face_id: before.face.identity,
+      source_face_revision: before.face_revision_decimal, source_show_id: enacted[0][3],
+      result_face_id: after.face.identity,
+      result_face_revision: after.face_revision_decimal,
       observed_at_unix_ms: observedAtUnixMs,
       final_reading: reading.final,
       input: { path: `../${inputFile}`, bytes: Buffer.byteLength(actualInput),

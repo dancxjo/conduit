@@ -2,7 +2,7 @@
 
 use alloc::{format, string::String, vec::Vec};
 use conduit_core::PlanId;
-use conduit_presentation::{
+use conduit_face::{
     ApplicationAction, ApplicationComponent, ApplicationEventKind, ApplicationNodeState,
     ApplicationViewNode,
 };
@@ -33,7 +33,7 @@ pub struct PatchbayMaskStage {
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct PatchbayMaskTopology {
-    pub presentation_id: String,
+    pub face_id: String,
     pub body_plan_id: PlanId,
     pub active_play_id: String,
     pub mode: PatchbayMaskMode,
@@ -70,7 +70,7 @@ pub(crate) fn append_nodes(
         0,
         None,
     ));
-    definition(nodes, "face-identity", "Face", &topology.presentation_id);
+    definition(nodes, "face-identity", "Face", &topology.face_id);
     definition(
         nodes,
         "mask-body-plan",

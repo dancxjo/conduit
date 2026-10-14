@@ -44,7 +44,7 @@ pub fn std_pico_usb_source_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-kernel"),
         bases: vec![],
-        resources: signal_resource_offers("s4/std-pico-timer", "s4/std-unused-presentation", 1)
+        resources: signal_resource_offers("s4/std-pico-timer", "s4/std-unused-face", 1)
             .into_iter()
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
             .collect(),
@@ -85,13 +85,11 @@ pub fn std_pico_usb_sink_advertisement() -> HostAdvertisement {
         bases: vec![],
         resources: signal_resource_offers("s4/pico-unused-timer", "s4/pico-cyw43-led", 1)
             .into_iter()
-            .filter(|resource| {
-                resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
-            })
+            .filter(|resource| resource.class_id.as_str() == conduit_core::FACE_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![conduit_core::capability_offer_from_parts! {
-            startup_parameters: vec![],
+            startup_parameters: conduit_core::data_label_startup_front(),
             shorthand: None,
             capability_id: CapabilityId::from("pico-cyw43-show-1"),
             kind_id: crate::show_kind(),

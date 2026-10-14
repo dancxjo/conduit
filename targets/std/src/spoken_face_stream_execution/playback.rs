@@ -103,7 +103,7 @@ impl SpokenPlaybackExecution {
 /// observation is rechecked at the first PCM Host Call by the selected back.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_real_spoken_batch_to_selected_playback(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     discovery: EspeakDiscovery,
@@ -160,7 +160,7 @@ pub fn execute_real_spoken_batch_to_selected_playback(
 /// copied Host/Boot identifiers and does not mint a spoken Mask Show.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_spoken_batch_on_attached_host(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     language: &conduit_language::LanguageRequest,
@@ -201,7 +201,7 @@ pub fn execute_spoken_batch_on_attached_host(
 /// and exactly placed, then driven by one atomic fan-out in one Play.
 #[allow(clippy::too_many_arguments)]
 pub fn execute_spoken_batch_on_attached_host_with_capture(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     language: &conduit_language::LanguageRequest,
@@ -240,7 +240,7 @@ pub fn execute_spoken_batch_on_attached_host_with_capture(
 
 #[allow(clippy::too_many_arguments)]
 pub(super) fn run_selected_spoken_playback(
-    face: &Presentation,
+    face: &Face,
     source_show: &MaskShow,
     batch: &SpokenBatch,
     language: &conduit_language::LanguageRequest,

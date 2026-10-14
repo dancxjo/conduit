@@ -15,7 +15,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 prerequisites: vec![
                     PrerequisiteNode::HostCall("conduit.host/present@1".into()),
                     PrerequisiteNode::Facility("compositor/native@1".into()),
-                    PrerequisiteNode::Resource("presentation/surface".into()),
+                    PrerequisiteNode::Resource("face/surface".into()),
                     PrerequisiteNode::Base("display/scanout".into()),
                 ],
             },
@@ -23,7 +23,7 @@ fn package_catalog() -> PackageCatalogContribution {
         dependencies: BTreeMap::from([
             (
                 PrerequisiteNode::Facility("compositor/native@1".into()),
-                vec![PrerequisiteNode::Resource("presentation/surface".into())],
+                vec![PrerequisiteNode::Resource("face/surface".into())],
             ),
             (
                 PrerequisiteNode::Base("display/scanout".into()),

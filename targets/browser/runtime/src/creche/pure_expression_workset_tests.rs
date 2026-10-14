@@ -5,8 +5,8 @@ use super::initial_plots;
 fn reviewed_body_host_offers_exact_checked_pure_expressions_once() {
     let source = include_str!("../../../handbook/plots/compare-distance.conduit");
     let document = initial_plots::check_inventory(source).unwrap();
-    let (startup, profile) = crate::installed_browser::catalogs_for_presentation(
-        crate::installed_browser::PresentationProfile::Annotation,
+    let (startup, profile) = crate::installed_browser::catalogs_for_face(
+        crate::installed_browser::FaceProfile::Annotation,
     )
     .unwrap();
     let backs = crate::installed_browser::backs(&startup, &profile).unwrap();
@@ -97,13 +97,13 @@ fn preparation_reuses_catalogs_without_reusing_document_receipts() {
 
 #[test]
 fn preparation_retains_the_original_installed_back_receipts_across_profile_switches() {
-    use crate::installed_browser::PresentationProfile::{Annotation, Quantity};
+    use crate::installed_browser::FaceProfile::{Annotation, Quantity};
     let mut preparation = super::catalog_preparation::CatalogPreparation::default();
-    for presentation in [Annotation, Quantity, Annotation] {
+    for face in [Annotation, Quantity, Annotation] {
         let (cold_startup, cold_profile) =
-            crate::installed_browser::catalogs_for_presentation(presentation).unwrap();
+            crate::installed_browser::catalogs_for_face(face).unwrap();
         let cold_backs = crate::installed_browser::backs(&cold_startup, &cold_profile).unwrap();
-        let (startup, profile, backs) = preparation.get_with_backs(presentation).unwrap();
+        let (startup, profile, backs) = preparation.get_with_backs(face).unwrap();
         assert_eq!(startup, &cold_startup);
         assert_eq!(profile, &cold_profile);
         // Whole equality retains the original checked Source, Plot identity,
@@ -172,8 +172,8 @@ fn browser_repeated_expression_capacity_stays_at_its_admitted_profile() {
             " >> (. + 1)".repeat(count)
         );
         let document = initial_plots::check_inventory(&source).unwrap();
-        let (_, profile) = crate::installed_browser::catalogs_for_presentation(
-            crate::installed_browser::PresentationProfile::Annotation,
+        let (_, profile) = crate::installed_browser::catalogs_for_face(
+            crate::installed_browser::FaceProfile::Annotation,
         )
         .unwrap();
         let expanded = conduit_plot::expand_canonical_plot_for_authoring(

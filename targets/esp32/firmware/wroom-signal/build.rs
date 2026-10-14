@@ -1,14 +1,14 @@
 use std::{env, fmt::Write, fs, path::PathBuf};
 
-use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
+use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds};
 use conduit_host_esp32_make::{
     esp32_descriptor_binding, hw463_esp_wroom_32_sample, validate_esp32_descriptor,
 };
-use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_signal_conformance::{
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_WROOM_PHYSICAL_HOST_ID,
-    exact_std_esp32_bluetooth_plan,
+    exact_std_esp32_bluetooth_plan, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    ESP32_WROOM_PHYSICAL_HOST_ID,
 };
 
 fn main() {
@@ -67,7 +67,7 @@ fn image_bounds(distributed: bool) -> EmbeddedImageBounds {
         maximum_host_calls: if distributed { 0 } else { 2 },
         maximum_resources: if distributed { 0 } else { 2 },
         maximum_sign_expectations: 8,
-        maximum_configuration_entries: 0,
+        maximum_configuration_entries: if distributed { 0 } else { 1 },
         maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: if distributed { 2 } else { 1 },
         maximum_cord_value_slots: if distributed {

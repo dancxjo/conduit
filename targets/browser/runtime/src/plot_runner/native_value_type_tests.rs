@@ -11,7 +11,7 @@ fn computed_native_shapes_execute_through_browser_plan_and_kernel() {
         panic!("planned Boolean effect")
     };
     assert_eq!(effect.text.as_deref(), Some("true"));
-    assert_eq!(effect.presentation_kind, "presentation/bool-value");
+    assert_eq!(effect.face_kind, "face/bool-value");
     assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
     let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
         panic!("completed receipt")

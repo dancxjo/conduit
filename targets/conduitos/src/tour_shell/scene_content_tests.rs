@@ -4,7 +4,7 @@ use conduit_tour_model::{TourWorkspacePhase, TourWorkspaceState};
 #[test]
 fn status_cells_preserve_missing_evidence_as_distinct_values() {
     let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::LessonReady);
-    let presentation = state.status_presentation().unwrap();
+    let face = state.status_face().unwrap();
     let scene = status_scene(
         LayoutRect {
             x: 0,
@@ -12,7 +12,7 @@ fn status_cells_preserve_missing_evidence_as_distinct_values() {
             width: 1280,
             height: 64,
         },
-        &presentation,
+        &face,
     )
     .unwrap();
     for expected in [
@@ -36,14 +36,14 @@ fn status_cells_preserve_missing_evidence_as_distinct_values() {
 fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
     let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
     state.selected_patchbay_subject = Some("meet-one-gear/change".into());
-    let presentation = state.inspector_presentation().unwrap().unwrap();
+    let face = state.inspector_face().unwrap().unwrap();
     let bounds = LayoutRect {
         x: 0,
         y: 0,
         width: 420,
         height: 320,
     };
-    let top = inspector_scene(bounds, &presentation, 0).unwrap();
+    let top = inspector_scene(bounds, &face, 0).unwrap();
     let close = top
         .commands()
         .iter()
@@ -77,8 +77,8 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
         width: 180,
         ..bounds
     };
-    let wide_extent = super::super::fields::project(bounds, &presentation, 0, None).unwrap();
-    let narrow_extent = super::super::fields::project(narrow, &presentation, 0, None).unwrap();
+    let wide_extent = super::super::fields::project(bounds, &face, 0, None).unwrap();
+    let narrow_extent = super::super::fields::project(narrow, &face, 0, None).unwrap();
     assert!(narrow_extent > wide_extent);
     assert!(
         top.commands()
@@ -90,9 +90,8 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
             .iter()
             .any(|command| command.payload().starts_with("Documentation"))
     );
-    let extent = super::super::fields::project(bounds, &presentation, 0, None).unwrap();
-    let bottom =
-        inspector_scene(bounds, &presentation, extent.saturating_sub(bounds.height)).unwrap();
+    let extent = super::super::fields::project(bounds, &face, 0, None).unwrap();
+    let bottom = inspector_scene(bounds, &face, extent.saturating_sub(bounds.height)).unwrap();
     assert!(
         bottom
             .commands()
@@ -110,8 +109,8 @@ fn inspection_renders_catalog_fields_and_scrolls_to_documentation() {
 #[test]
 fn transient_chooser_uses_the_shared_icon_button_language() {
     let state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
-    let presentation = state
-        .transient_presentation(
+    let face = state
+        .transient_face(
             conduit_tour_model::TourTransientKind::Chooser,
             "Choose a Patchbay Gear",
         )
@@ -122,7 +121,7 @@ fn transient_chooser_uses_the_shared_icon_button_language() {
         width: 420,
         height: 320,
     };
-    let scene = transient_scene(bounds, &presentation, 0).unwrap();
+    let scene = transient_scene(bounds, &face, 0).unwrap();
     let rounded = scene
         .commands()
         .iter()
@@ -136,7 +135,7 @@ fn transient_chooser_uses_the_shared_icon_button_language() {
         scene
             .commands()
             .iter()
-            .filter(|command| command.kind == conduit_presentation::GraphicsCommandKind::Icon)
+            .filter(|command| command.kind == conduit_face::GraphicsCommandKind::Icon)
             .count(),
         conduit_tour_model::CANONICAL_PATCHBAY_GEARS.len() + 1
     );
@@ -169,8 +168,8 @@ fn non_chooser_transients_render_meaningful_content_without_placeholder_rows() {
             "Action refused",
         ),
     ] {
-        let presentation = state.transient_presentation(kind, detail).unwrap();
-        let scene = transient_scene(bounds, &presentation, 0).unwrap();
+        let face = state.transient_face(kind, detail).unwrap();
+        let scene = transient_scene(bounds, &face, 0).unwrap();
         for label in [title, detail, "Close"] {
             assert!(
                 scene
@@ -181,18 +180,18 @@ fn non_chooser_transients_render_meaningful_content_without_placeholder_rows() {
             );
         }
         assert!(scene.commands().iter().all(|command| {
-            command.paint != conduit_presentation::GraphicsPaintRole::Status
+            command.paint != conduit_face::GraphicsPaintRole::Status
                 || command.style != GraphicsShapeStyle::Fill
         }));
         assert!(scene.commands().iter().all(|command| {
-            command.paint != conduit_presentation::GraphicsPaintRole::Background
+            command.paint != conduit_face::GraphicsPaintRole::Background
                 || command.style != GraphicsShapeStyle::Fill
                 || command.bounds == bounds
         }));
-        assert!(transient_scene(bounds, &presentation, 1).is_err());
+        assert!(transient_scene(bounds, &face, 1).is_err());
     }
     let mut missing_close = state
-        .transient_presentation(
+        .transient_face(
             conduit_tour_model::TourTransientKind::Confirmation,
             "Play completed",
         )
@@ -202,7 +201,7 @@ fn non_chooser_transients_render_meaningful_content_without_placeholder_rows() {
         .retain(|subject| subject.identity != conduit_tour_model::TRANSIENT_CLOSE_ACTION_ID);
     assert!(transient_scene(bounds, &missing_close, 0).is_err());
     let mut blank_detail = state
-        .transient_presentation(
+        .transient_face(
             conduit_tour_model::TourTransientKind::Refusal,
             "Action refused",
         )
@@ -215,14 +214,14 @@ fn non_chooser_transients_render_meaningful_content_without_placeholder_rows() {
 fn inspection_rejects_oversized_fields_even_when_scrolled_out_of_view() {
     let mut state = TourWorkspaceState::canonical(1, TourWorkspacePhase::PatchbayOpen);
     state.selected_patchbay_subject = Some("meet-one-gear/change".into());
-    let mut presentation = state.inspector_presentation().unwrap().unwrap();
-    presentation.text[0].text = "x".repeat(193);
+    let mut face = state.inspector_face().unwrap().unwrap();
+    face.text[0].text = "x".repeat(193);
     let bounds = LayoutRect {
         x: 0,
         y: 0,
         width: 180,
         height: 240,
     };
-    assert!(inspector_scene(bounds, &presentation, 500).is_err());
-    assert!(super::super::fields::project(bounds, &presentation, 0, None).is_err());
+    assert!(inspector_scene(bounds, &face, 500).is_err());
+    assert!(super::super::fields::project(bounds, &face, 0, None).is_err());
 }

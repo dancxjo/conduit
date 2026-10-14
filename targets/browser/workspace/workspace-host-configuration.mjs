@@ -5,7 +5,7 @@ const REVIEW_SCHEMA = "conduit.host/browser-capability-configuration-review@1";
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBrowserConfigurationOutfitter({ host, presentationFor, onChange }) {
+export function createBrowserConfigurationOutfitter({ host, faceFor, onChange }) {
   const catalog = call(host.runtime, "conduit_browser_host_capability_intent_catalog");
   requireCatalog(catalog);
   const selected = new Set(catalog.defaults);
@@ -40,7 +40,7 @@ export function createBrowserConfigurationOutfitter({ host, presentationFor, onC
       const resolve = document.createElement("button"); resolve.type = "button"; resolve.textContent = "Resolve reviewed Bases";
       resolve.addEventListener("click", () => {
         const review = reviewIntent(host.runtime, catalog.generation, [...selected]);
-        exact = createExactOutfitter({ host, presentationFor, restoredSelection: review.configuration_selection, onChange });
+        exact = createExactOutfitter({ host, faceFor, restoredSelection: review.configuration_selection, onChange });
         onChange();
       });
       root.append(target, fieldset, resolve);

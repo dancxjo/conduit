@@ -133,6 +133,22 @@ pub fn checked_physical_catalog_for_document(
     document: &crate::SyntaxDocument,
     base: &StartupCatalog,
 ) -> Result<StartupCatalog, crate::SyntaxCheckDiagnostic> {
+    // A source without recognized declarations still has to be valid: do not
+    // silently treat unsupported import syntax as an empty catalogue overlay.
+    if let Some(diagnostic) = document.diagnostics.first() {
+        // Installed catalogs use an empty document to request builtin admission.
+        // Preserve that entrance, while retaining every actual source error.
+        let empty_catalog_request = diagnostic.code == "CND-FRM-002"
+            && diagnostic.message == "incomplete plot"
+            && document.round_trip().trim().is_empty();
+        if !empty_catalog_request {
+            return Err(crate::SyntaxCheckDiagnostic {
+                code: diagnostic.code,
+                span: diagnostic.span,
+                message: diagnostic.message.clone(),
+            });
+        }
+    }
     super::context::install(document, base)
 }
 

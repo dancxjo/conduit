@@ -70,7 +70,7 @@ Plan or a running Play.
 const clock = host.plot(`
 plot clock {
   every: time/every(1s)
-  tick: presentation/tick
+  tick: face/tick("Clock tick")
   every >> tick
 }
 `);

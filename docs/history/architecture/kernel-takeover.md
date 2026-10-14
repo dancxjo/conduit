@@ -42,7 +42,7 @@ invalid in the general model.
 
 ## Accepted std takeover
 
-The unchanged two-node `flow/pulse -> presentation/show` local plan and its
+The unchanged two-node `flow/pulse -> face/show` local plan and its
 three-sink local fan-out now:
 
 - installs the lowered node, cord, route, and Host Call rows into one
@@ -53,7 +53,7 @@ three-sink local fan-out now:
   not collide or permit stale completion;
 - completes waits through the std timer adapter and presentations through the
   stdout adapter;
-- binds a distinct active play and exact presentation/sign identities; and
+- binds a distinct active play and exact face/sign identities; and
 - proves with an allocator probe that successful sealed play start performs
   zero heap allocations and cannot re-enter graph, kind, base, or registry
   lookup.
