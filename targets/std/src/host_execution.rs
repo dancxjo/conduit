@@ -397,3 +397,6 @@ impl StdHost {
         Ok(run)
     }
 }
+
+#[cfg(test)]
+mod scalar_tape_control_tests;
