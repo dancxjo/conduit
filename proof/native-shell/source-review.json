@@ -41,8 +41,23 @@
       "path": "targets/conduitos/src/front_door/graph_projection.rs",
       "git_blob": "185286a8c98a352d06a0791cd4f04bf9c5867be4",
       "sha256": "9bb16fe89812d0a3b090e77b35dd92f1a02f598376a4b83a4f56fa5fa028515b"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/joining.rs",
+      "git_blob": "0a0186e82434e6121f982e6449728991f7bf8170",
+      "sha256": "d14509b9873c3df7039806c1ed3c8765736f80f53181218cdda19d1a931e6328"
+    },
+    {
+      "path": "targets/conduitos/src/product_front_door/face_arrival.rs",
+      "git_blob": "6e37262a6f16818abdf424d185ee77b6f91b323b",
+      "sha256": "fa452df4becef3e5d92da60129b69f03161ede415e6fcb4548290e19c3bb4327"
+    },
+    {
+      "path": "semantics/home/src/lib.rs",
+      "git_blob": "9f6a5a57431c8ce74983e223e6fc86f937a2ba10",
+      "sha256": "7a2e35a659c9a9eb1d10d8f0ae275d2dc730c492d2d82a1c5752d5cbb02cb2ca"
     }
   ],
-  "runtime_fixture_status": "not yet implemented",
-  "acceptance": "incomplete"
+  "runtime_fixture_status": "five named states captured; 39 front-door tests passed",
+  "acceptance": "local audit proof passed; exact-head Candidate admission pending publication"
 }

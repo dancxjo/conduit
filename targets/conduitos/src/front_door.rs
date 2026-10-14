@@ -288,3 +288,6 @@ impl FrontDoor {
 
 #[cfg(test)]
 mod tests;
+
+#[cfg(test)]
+mod shell_audit_tests;
