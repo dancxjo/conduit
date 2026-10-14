@@ -331,3 +331,28 @@ job, source and publication identities, and report actual lag while pending.
 Resume held feature admission only after that restoration is green. Never
 substitute an older green status, bypass protection or claim stable acceptance
 from Candidate alone.
+
+## Observe delivery by exact source
+
+Run `cargo xtask ci pipeline status dancxjo/conduit` with authenticated `gh`
+access. The read-only JSON report extends the existing product-truth identity
+separation using Actions observations and the publisher's existing
+`conduit.pipeline-release/v1` manifest. It shows admitted `dev`, the integration
+for that exact source, the latest observed green integration, accepted `main`,
+the latest published release's tested source and accepted main, and the latest
+successful Pages deployment's source. Differences are explicit; a green
+integration alone never asserts promotion or deployment. Candidate
+`head_sha` is labeled as the PR head, separately from its tested merge preview.
+The latter remains `null` until checkout/receipt evidence is observed; a green
+PR-head run must not be presented as proof of an inferred preview identity.
+
+Failed and pending integration/publication, the latest Pages attempt, and active
+queues remain visible. A missing observation is `null`, not success. The report
+is bounded to the latest 100 runs per workflow, five candidate job selections,
+20 releases and 20 Pages deployments; it is an observation, not release state.
+API failure refuses the report instead of inventing evidence. Save the JSON
+before changing delivery policy to retain the wall-clock timing baseline and
+exact run URLs. Durations use Actions `run_started_at` through `updated_at`,
+include setup, exclude the pre-start queue, and are not billed runner cost. No
+delivery SLO thresholds are introduced. Publication still verifies and reuses
+the tested artifacts through its existing owner.
