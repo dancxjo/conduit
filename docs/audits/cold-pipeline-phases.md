@@ -49,6 +49,7 @@ Parent #5395 retains its allocation/copy/evidence decomposition and broader
 reproducible reporting gates.
 
 ## Packed-kernel refresh
+
 The same two release tests passed after refreshing onto dev
 `7d60164e59d06f4bd35bb08883e17e3ad9eca6e6`, at clean measurement Source
 `b1de3b6ef1ca651576144db2390c7ae776d95c08`. This local source includes the
@@ -57,6 +58,7 @@ or the refresh has already merged. All 24 rows retained exact output/provider,
 Plan/Play, fixed-capacity and cold/warm Sign checks. The original capture above
 is preserved; the separate refresh receipt is
 `evidence/cold-pipeline-packed-phase-samples.json`.
+
 | Gears | Cold prep µs | Cold Play µs | Warm prep µs | Warm Play µs | Warm whole Host run µs |
 |---|---:|---:|---:|---:|---:|
 | 1 | 78.36 | 10.30 | 52.89 | 6.62 | 211.81 |
