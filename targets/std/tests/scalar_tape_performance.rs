@@ -1,4 +1,4 @@
-//! Ordinary Source/Plan/Play entrance for generic envelope and gain, no device.
+//! Scoped scalar reference/tape release timing through ordinary Source/Plan/Play.
 use conduit_core::{BaseImplementationId, ConfigurationValue, ConnectionTrack, PortDirection};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,

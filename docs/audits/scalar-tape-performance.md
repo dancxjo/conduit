@@ -18,3 +18,8 @@ The optimized Rust loop is approximately 0.43 ns/value throughput for this indep
 The tape declares 128 maximum instructions and 5120 bytes of fixed evaluation scratch on this native ABI, even for tiny expressions, plus prepared instruction/literal storage and output buffers. That cost matters for small Hosts. No tiny-device regression or suitability has been physically measured, and no installed no_std tape profile is offered. Browser currently advertises `browser/kernel-pure-expression@1` and prepares the reference evaluator; an API compiling for a target is not an installed tape realization. These unsupported eligibility boundaries remain explicit.
 
 The parent #5396 retains its semantic/resource/cross-target gates and #5541 its full differential/refusal suite. This report adds no JIT, general code generation, universal speedup, physical timing guarantee or automatic Back preference.
+
+Validation also passed all 116 existing installed-host regression tests with the
+no-op default timing observer; strict library/benchmark Clippy denied warnings.
+The archived samples retain their measured Source, independent of this report
+commit or later dependency refreshes.
