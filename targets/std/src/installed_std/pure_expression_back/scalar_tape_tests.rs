@@ -1,5 +1,5 @@
 //! Exact scalar tape eligibility and installed execution.
-use super::scalar_tape_fixture::{prepare, NoTimer, Outputs};
+use crate::host_execution::scalar_tape_fixture::{prepare, NoTimer, Outputs};
 use crate::ExternalForeInput;
 use conduit_core::ConfigurationValue;
 use conduit_core::ConnectionTrack;

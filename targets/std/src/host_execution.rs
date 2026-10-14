@@ -400,3 +400,7 @@ impl StdHost {
 
 #[cfg(test)]
 mod scalar_tape_control_tests;
+
+#[cfg(test)]
+#[path = "installed_std/pure_expression_back/scalar_tape_fixture.rs"]
+pub(crate) mod scalar_tape_fixture;

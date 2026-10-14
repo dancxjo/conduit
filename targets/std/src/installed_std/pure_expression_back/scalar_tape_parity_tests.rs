@@ -1,5 +1,5 @@
 //! Baseline/tape differential conformance through the actual installed host.
-use super::scalar_tape_fixture::{prepare, NoTimer, Outputs};
+use crate::host_execution::scalar_tape_fixture::{prepare, NoTimer, Outputs};
 use crate::ExternalForeInput;
 use conduit_core::ConnectionTrack;
 

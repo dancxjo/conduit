@@ -7,14 +7,14 @@ use conduit_plot::{
 };
 use std::{collections::BTreeMap, time::Duration};
 
-pub(super) struct NoTimer;
+pub(crate) struct NoTimer;
 impl TimerAdapter for NoTimer {
     fn wait(&mut self, _: Duration) {
         panic!("scalar expression has no timer/device effect");
     }
 }
 #[derive(Default)]
-pub(super) struct Outputs(pub(super) Vec<Vec<u8>>);
+pub(crate) struct Outputs(pub(crate) Vec<Vec<u8>>);
 impl ExternalForeOutputAdapter for Outputs {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.track == ConnectionTrack::Payload {
@@ -23,7 +23,7 @@ impl ExternalForeOutputAdapter for Outputs {
         Ok(())
     }
 }
-pub(super) fn prepare(
+pub(crate) fn prepare(
     source: &str,
     name: &str,
     tape: bool,

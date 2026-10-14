@@ -1,7 +1,6 @@
 //! Value Fore cancellation and adapter pressure through the ordinary host owner.
 use super::*;
-#[path = "../installed_std/pure_expression_back/scalar_tape_fixture.rs"]
-mod fixture;
+use super::scalar_tape_fixture as fixture;
 
 #[test]
 fn baseline_and_tape_cancel_before_input_with_identical_terminal_and_sign_kinds() {

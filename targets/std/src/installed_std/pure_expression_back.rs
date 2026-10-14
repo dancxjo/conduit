@@ -223,6 +223,3 @@ mod scalar_tape_tests;
 #[path = "pure_expression_back/scalar_tape_parity_tests.rs"]
 mod scalar_tape_parity_tests;
 
-#[cfg(test)]
-#[path = "pure_expression_back/scalar_tape_fixture.rs"]
-mod scalar_tape_fixture;
