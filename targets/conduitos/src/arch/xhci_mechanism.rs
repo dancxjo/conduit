@@ -574,7 +574,8 @@ pub(crate) fn with_synthetic_stop_controller(
     // synthetic registers and serializes the sole global controller DMA.
     let mut controller: XhciReady = unsafe { core::mem::zeroed() };
     controller.operational = registers.as_mut_ptr() as usize;
-    controller.runtime_interrupter = controller.operational;
+    // MFINDEX precedes interrupter zero by 0x20; keep both in owned fixture memory.
+    controller.runtime_interrupter = controller.operational + 0x20;
     controller.doorbell = controller.operational + 128;
     controller.dma_physical = 0x1000;
     controller.command_cycle = 1;

@@ -1,7 +1,12 @@
 //! Dependency-light hosted model proof, shared by the ordinary xtask dispatcher.
 use serde_json::json;
 use sha2::{Digest, Sha256};
-use std::{error::Error, fs, path::PathBuf, process::Command};
+use std::{
+    error::Error,
+    fs,
+    path::{Path, PathBuf},
+    process::Command,
+};
 
 pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let mut output = PathBuf::from("work/model-authoring");
@@ -80,17 +85,20 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     let source_before = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
     // Proof output is evidence, not a concurrent source change. Keep every
     // other tracked and untracked path in the before/after custody check.
-    let output_exclusion = format!(":(exclude,literal){}", fs::canonicalize(&output)?.display());
-    let status_before = Command::new("git")
-        .args(["status", "--porcelain", "--", ".", &output_exclusion])
+    let root = Command::new("git")
+        .args(["rev-parse", "--show-toplevel"])
         .output()?;
+    if !root.status.success() {
+        return Err("cannot identify repository for model proof source custody".into());
+    }
+    let root = fs::canonicalize(String::from_utf8(root.stdout)?.trim())?;
+    let output_exclusion = proof_output_exclusion(&root, &fs::canonicalize(&output)?);
+    let status_before = proof_source_status(&root, output_exclusion.as_deref())?;
     let result = command.output()?;
     fs::write(output.join("stdout.log"), &result.stdout)?;
     fs::write(output.join("stderr.log"), &result.stderr)?;
     let source = Command::new("git").args(["rev-parse", "HEAD"]).output()?;
-    let status = Command::new("git")
-        .args(["status", "--porcelain", "--", ".", &output_exclusion])
-        .output()?;
+    let status = proof_source_status(&root, output_exclusion.as_deref())?;
     let source_unchanged = source_before.status.success()
         && source.status.success()
         && status_before.status.success()
@@ -129,6 +137,27 @@ pub fn run(arguments: &[String]) -> Result<(), Box<dyn Error>> {
     }
     println!("hosted model proof retained at {}", output.display());
     Ok(())
+}
+
+fn proof_output_exclusion(root: &Path, output: &Path) -> Option<String> {
+    output
+        .strip_prefix(root)
+        .ok()
+        .map(|relative| format!(":(top,exclude,literal){}", relative.display()))
+}
+
+fn proof_source_status(
+    root: &Path,
+    exclusion: Option<&str>,
+) -> std::io::Result<std::process::Output> {
+    let mut command = Command::new("git");
+    command
+        .current_dir(root)
+        .args(["status", "--porcelain", "--", "."]);
+    if let Some(exclusion) = exclusion {
+        command.arg(exclusion);
+    }
+    command.output()
 }
 
 fn documented_arguments(source: &str) -> Result<Vec<String>, Box<dyn Error>> {
@@ -201,6 +230,24 @@ fn cuda_device_evidence() -> Result<serde_json::Value, Box<dyn Error>> {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn proof_output_excludes_only_evidence_inside_the_repository() {
+        use std::path::Path;
+        let root = Path::new("/workspace/repository");
+        assert_eq!(
+            super::proof_output_exclusion(root, &root.join("work/evidence")),
+            Some(":(top,exclude,literal)work/evidence".into())
+        );
+        assert_eq!(
+            super::proof_output_exclusion(root, Path::new("/workspace/evidence")),
+            None
+        );
+        assert_eq!(
+            super::proof_output_exclusion(root, Path::new("/workspace/repository-other/evidence")),
+            None
+        );
+    }
+
     #[test]
     fn model_authoring_documented_commands() {
         let source = std::fs::read_to_string(

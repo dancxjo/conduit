@@ -119,9 +119,9 @@ jobs:
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}
-          # Installed Owner control deadlines also run in optimized candidate admission.
-          # Keep assertions/overflow checks while using the same product-test profile.
-          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ matrix.shard == 'products' && 1 || 0 }}
+          # Installed Owner deadlines and portable ConduitOS Source tests use the
+          # optimized candidate profile; assertions and overflow checks stay enabled.
+          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'products' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
           CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
       - name: Retain acquisition measurements
