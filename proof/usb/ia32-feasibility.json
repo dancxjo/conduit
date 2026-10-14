@@ -1,0 +1,83 @@
+{
+  "schema": "conduit.proof/ia32-usb-feasibility@1",
+  "issue": 5578,
+  "qemu_version": "10.2.1 (Debian 1:10.2.1+ds-1ubuntu3.2)",
+  "source_baseline": "0cd1048fb333c8ad2a91860a3d5b1366cc816780",
+  "command": [
+    "qemu-system-i386",
+    "-machine",
+    "pc-i440fx-10.2",
+    "-cpu",
+    "qemu32",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-serial",
+    "none",
+    "-net",
+    "none",
+    "-S",
+    "-device",
+    "qemu-xhci,id=usb-controller,msi=off,msix=off,p2=1,p3=0",
+    "-device",
+    "usb-mouse,bus=usb-controller.0",
+    "-qmp",
+    "stdio",
+    "-bios",
+    "/usr/share/seabios/bios-256k.bin"
+  ],
+  "procedure": [
+    "QMP greeting",
+    "qmp_capabilities",
+    "cont",
+    "wait two seconds",
+    "stop",
+    "query-pci",
+    "quit"
+  ],
+  "proof_class": "emulator-firmware-pci-assignment",
+  "controller": {
+    "irq_pin": 1,
+    "bus": 0,
+    "qdev_id": "usb-controller",
+    "irq": 11,
+    "slot": 3,
+    "class_info": {
+      "class": 3075,
+      "desc": "USB controller"
+    },
+    "id": {
+      "device": 13,
+      "subsystem-vendor": 6900,
+      "vendor": 6966,
+      "subsystem": 4352
+    },
+    "function": 0,
+    "regions": [
+      {
+        "prefetch": false,
+        "mem_type_64": true,
+        "bar": 0,
+        "size": 16384,
+        "address": 4273930240,
+        "type": "memory"
+      }
+    ]
+  },
+  "native_provider": "unsupported",
+  "not_observed": [
+    "ConduitOS image boot",
+    "USB control/bulk transfer",
+    "DMA transaction",
+    "guest interrupt delivery",
+    "physical hardware"
+  ],
+  "firmware": {
+    "path": "/usr/share/seabios/bios-256k.bin",
+    "sha256": "e26615f9ad430328f49ca105e570b2dc4490a08a34ea73d27cae8b809a30ee06",
+    "bytes": 262144
+  }
+}
