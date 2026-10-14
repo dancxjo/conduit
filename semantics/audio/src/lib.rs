@@ -54,6 +54,9 @@ pub use sampled_signal_mapping::*;
 pub use sound_info::*;
 pub use tone_terminal::*;
 
+mod exact_controls;
+pub use exact_controls::*;
+
 mod acoustic_quantities;
 pub use acoustic_quantities::*;
 
