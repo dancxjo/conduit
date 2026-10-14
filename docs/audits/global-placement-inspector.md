@@ -1,0 +1,13 @@
+# Read-only bounded global placement comparison
+
+Issue #5736 consumes existing greedy and bounded global planners. A private planner-minted comparison captures one immutable checked Plot, the identical admitted hosts, contexts, demands, forecasts, resource observations, authority/Base/Line inputs, optional transfer model and explicit state budget. Existing planners run at comparison creation. Rendering borrows the completed receipt and never calls planning, changes resources or selects an executable Plan.
+
+Both plans use the same objective metrics: exact known upper fulfillment seconds and unknown operand counts; an explicitly selected critical-path model adds exact dependency/edge timing. Greedy selection remains the existing reference algorithm; the planner owner scores its result under the same model as global selection. Missing metrics are not replaced with zero. Duplicate/unscoped transfer accounting refuses comparison.
+
+The inspector shows source/checked/expanded/Plan identities, selected provider/resource bindings, exact connections and Line bindings, original resource facts and observation windows, cost producer accounts, and submitted incremental transfer sign/provider/route/extent/calibration/window evidence. Submitted evidence remains historical, never a UI revalidation or grant. Output remains bounded by the existing 512 KiB explanation limit.
+
+Exhaustive search over fully known costs is labeled optimal only for its finite admitted estimate model. Exhaustive search with unknown terms keeps the objective unavailable. State/numeric exhaustion retains best-known feasible status with optimality unproven. Failure before a feasible assignment claims no executable global Plan. Greedy refusal preserves its existing reasons rather than inventing a baseline.
+
+Nine focused tests cover identical metrics and exact Plan identity, missing/stale operations, before-assignment and feasible best-known state exhaustion, exact critical-path seconds, admitted local/remote transfer routes, missing/expired edge costs, and unscoped/double-counted transfer refusal. Rendering leaves Plans and resource facts unchanged. Genuine existing Signal profile constructors and the exact triple-Signal Plan/Line fixture are reused; cost values are supplied modeled forecasts, not physical observations. All 52 Observatory tests, nine existing planner global/transfer tests and strict all-target Clippy pass.
+
+This does not close the broader optimizer or Observatory parents, add scheduler dispatch, implement printer protocols, infer physical parallelism, or claim observed response time.

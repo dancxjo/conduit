@@ -32,6 +32,7 @@ conduit-robotics = { path = "../../semantics/robotics" }
 conduit-chat = { path = "../../semantics/chat", features = ["plot-catalog"] }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-plot = { path = "../../architecture/plot" }
+conduit-todo-face = { path = "../../plots/todo/face" }
 conduit-todo-plot = { path = "../../plots/todo/model", features = ["kernel-step"] }
 conduit-thermostat-plot = { path = "../../plots/thermostat/model" }
 conduit-host-make = { path = "../../make/host" }

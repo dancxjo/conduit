@@ -137,3 +137,54 @@ fn malformed_todo_truth_is_refused_before_face_projection() {
         Err(TodoFaceError::InvalidState)
     );
 }
+
+#[test]
+fn source_count_facts_cover_the_whole_generation_independent_of_item_disclosure() {
+    for (remaining, total) in [(0, 0), (1, 1), (3, 3), (3, 20), (20, 20), (0, 20)] {
+        let state = TodoState {
+            title: "Courses & groceries".into(),
+            revision: 42,
+            next_id: total as u32 + 1,
+            items: (0..total)
+                .map(|index| TodoItem {
+                    id: format!("task-{}", index + 1),
+                    text: if index == 0 {
+                        "Crème brûlée — 茶 🍵?".into()
+                    } else {
+                        format!("Task {}", index + 1)
+                    },
+                    complete: index >= remaining,
+                })
+                .collect(),
+        };
+        let original = state.clone();
+        for admitted in [false, true] {
+            let fragment = todo_fragment(&state, basis(), admitted).unwrap();
+            let count = |name: &str| {
+                let facts: Vec<_> = fragment
+                    .properties
+                    .iter()
+                    .filter(|p| p.subject == "todo/list" && p.name == name)
+                    .collect();
+                assert_eq!(facts.len(), 1);
+                let FacePropertyValue::Count(value) = facts[0].value else {
+                    panic!("source count must be typed")
+                };
+                value
+            };
+            assert_eq!(count("remaining-count"), remaining as u64);
+            assert_eq!(count("completed-count"), (total - remaining) as u64);
+            assert_eq!(count("todo-revision"), 42);
+            assert_eq!(
+                fragment
+                    .subjects
+                    .iter()
+                    .filter(|s| s.role == FaceRole::Item)
+                    .count(),
+                total
+            );
+            assert!(fragment.actions.iter().any(|a| a.identity == "todo.add"));
+            assert_eq!(state, original);
+        }
+    }
+}

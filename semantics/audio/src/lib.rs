@@ -97,3 +97,19 @@ pub use generated::{
 };
 mod decibel_projection_report;
 pub use decibel_projection_report::*;
+
+pub use generated::{
+    AudioFiniteDecibelLevel, AudioPositiveLevelRatio, AudioPositivePowerRatio,
+    AudioPositiveReferencedLevelRatio, AudioPositiveRelativeAmplitude,
+};
+mod positive_levels;
+pub use positive_levels::*;
+
+pub use generated::{
+    AudioControlConflictPolicy, AudioControlGapPolicy, AudioControlPriorityDecision,
+    AudioControlPriorityInput, AudioControlTrajectorySet, AudioScopedControlTrajectory,
+};
+mod control_trajectories;
+pub use control_trajectories::*;
+
+pub use generated::AudioControlDomainMatch;

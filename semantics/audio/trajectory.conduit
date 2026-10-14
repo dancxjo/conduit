@@ -65,3 +65,9 @@ plot audio/trajectory-step-select (
     >> value: AudioTrajectoryU32Step
     result: AudioTrajectoryRatio >>
 ) = (.input.query.numerator_seconds * .input.end.denominator == .input.end.numerator_seconds * .input.query.denominator ? .input.right : .input.left)
+
+# Priority has one checked Source law, independent of collection input order.
+plot audio/control-priority (
+    >> value: AudioControlPriorityInput
+    result: AudioControlPriorityDecision >>
+) = ({candidate_wins: .candidate > .incumbent, equal_priority: .candidate == .incumbent})

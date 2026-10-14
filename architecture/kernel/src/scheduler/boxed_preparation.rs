@@ -85,7 +85,7 @@ where
             signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
-            ready: core::array::from_fn(|node| node < active_nodes),
+            ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
             cursor: 0,
             host_request_cursor: 0,
@@ -93,6 +93,8 @@ where
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
+            #[cfg(test)]
+            scan_counts: core::cell::Cell::new(scan_characterization::ScanCounts::default()),
         }))
     }
 }

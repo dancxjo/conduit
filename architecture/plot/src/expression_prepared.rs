@@ -10,6 +10,7 @@ use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 mod byte_observation;
 mod equality;
 mod evaluate;
+mod scalar_tape;
 use evaluate::evaluate_node;
 mod inspection;
 mod shared_input;
@@ -68,6 +69,10 @@ struct ProgramView<'a> {
 }
 
 enum PreparedRoot {
+    ScalarTape {
+        tape: scalar_tape::ScalarTape,
+        nominal_type: Option<Vec<u8>>,
+    },
     Primitive {
         node: PreparedNode,
         nominal_type: Option<Vec<u8>>,
@@ -284,6 +289,17 @@ impl PreparedPortableExpressionEvaluator {
         match &mut self.root {
             PreparedRoot::Primitive { node, nominal_type } => {
                 let value = evaluate_node(node, primitive_bytes, primitive_input)?;
+                if let Some(value_type) = nominal_type {
+                    nominal::append_output(&mut self.output, value_type, &value)?;
+                } else {
+                    if value.length > self.output.capacity() {
+                        return Err(Refusal::InvalidProgram);
+                    }
+                    self.output.extend_from_slice(value.as_slice());
+                }
+            }
+            PreparedRoot::ScalarTape { tape, nominal_type } => {
+                let value = tape.evaluate(primitive_bytes, primitive_input)?;
                 if let Some(value_type) = nominal_type {
                     nominal::append_output(&mut self.output, value_type, &value)?;
                 } else {

@@ -6,6 +6,15 @@
 
 extern crate alloc;
 
+mod spoken_template;
+pub use spoken_template::{
+    PreparedTodoSpokenTemplate, TodoSpokenLook, TodoSpokenWording, TodoTemplateRefusal,
+    TODO_SPOKEN_TEMPLATE_SOURCE,
+};
+
+mod facts;
+pub use facts::{TodoFaceFacts, TodoFactRefusal};
+
 mod interaction;
 pub use interaction::{todo_command_from_contributed_interaction, todo_command_from_interaction};
 
@@ -65,11 +74,24 @@ pub fn todo_fragment(
             kind: FaceRelationshipKind::Contains,
         }],
         composition: Vec::new(),
-        properties: vec![FaceProperty {
-            subject: list.clone(),
-            name: "todo-revision".into(),
-            value: FacePropertyValue::Count(u64::from(state.revision)),
-        }],
+        properties: vec![
+            FaceProperty {
+                subject: list.clone(),
+                name: "todo-revision".into(),
+                value: FacePropertyValue::Count(u64::from(state.revision)),
+            },
+            // Global source facts remain available even when a Mask pages Items.
+            FaceProperty {
+                subject: list.clone(),
+                name: "remaining-count".into(),
+                value: FacePropertyValue::Count(open as u64),
+            },
+            FaceProperty {
+                subject: list.clone(),
+                name: "completed-count".into(),
+                value: FacePropertyValue::Count(completed as u64),
+            },
+        ],
         text: vec![FaceText {
             subject: status.clone(),
             text: count,

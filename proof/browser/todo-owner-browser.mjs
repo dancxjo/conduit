@@ -2,6 +2,7 @@
 // The owner and Handbook package are supplied by the caller; this driver never
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
+import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -16,7 +17,7 @@ import { assertLookReplacement } from './look-replacement-evidence.mjs';
 
 const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg,
   itemText = 'Pick up prescription', scenario = 'first-add'] = process.argv.slice(2);
-assert.ok(['first-add', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
+assert.ok(['first-add', 'count-matrix', 'cross-mask', 'cross-mask-speech', 'cross-mask-speech-resume', 'look-replacement', 'retained-dom-completion'].includes(scenario), 'unknown Todo capture scenario');
 const retainedDom = scenario === 'retained-dom-completion';
 const resumeExisting = scenario === 'cross-mask-speech-resume' || retainedDom;
 const captureSpeech = scenario.startsWith('cross-mask-speech');
@@ -353,7 +354,31 @@ try {
     resumedItems = retained;
     await writeFile(path.join(output, 'resumed-owner-face.json'), `${JSON.stringify(retained, null, 2)}\n`);
   }
-  const texts = resumeExisting ? [] : scenario.startsWith('cross-mask') ? specimenNames : [itemText];
+  const matrix = [];
+  const recordMatrix = async (ownerFace, expected) => {
+    const properties = ownerFace.face.properties.filter(property => property.subject === 'todo/list');
+    const count = name => properties.find(property => property.name === name)?.value?.Count;
+    assert.equal(count('remaining-count'), expected);
+    assert.equal(count('completed-count'), 0);
+    assert.equal(ownerFace.face.subjects.filter(subject => subject.role === 'Item').length, expected);
+    const filename = `owner-count-${expected}.json`;
+    const raw = spawnSync(binary, ['body', 'face', '--state-dir', state, '--json'],
+      { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000 });
+    assert.equal(raw.status, 0, raw.stderr);
+    const exact = JSON.parse(raw.stdout);
+    assert.equal(exact.face.identity, ownerFace.face.identity);
+    assert.equal(exact.face_revision_decimal, ownerFace.face_revision_decimal);
+    // Preserve native canonical integer bytes; JSON.stringify rounds u64 revisions.
+    await writeFile(path.join(output, filename), raw.stdout);
+    matrix.push({ remaining: expected, completed: 0, face_id: ownerFace.face.identity,
+      revision: ownerFace.face_revision_decimal, file: filename });
+    await writeFile(path.join(output, 'count-matrix.json'), `${JSON.stringify({
+      ...sourceRecord, body_id: bodyId, proof_class: 'live native owner with actual browser Adds', observations: matrix,
+    }, null, 2)}\n`);
+  };
+  if (scenario === 'count-matrix') await recordMatrix(startedFace, 0);
+  const texts = scenario === 'count-matrix' ? [itemText, ...Array.from({ length: 19 }, (_, i) => `Task ${i + 2}`)]
+    : resumeExisting ? [] : scenario.startsWith('cross-mask') ? specimenNames : [itemText];
   assert.equal(new Set(texts).size, texts.length, 'scenario item names must be distinct');
   const adds = [];
   let after = retainedDom
@@ -375,6 +400,7 @@ try {
     assert.equal(after.body_id, bodyId);
     assert.notEqual(after.show_id, prior.show_id);
     const ownerAfterAdd = face();
+    if (scenario === 'count-matrix' && [1, 3, 20].includes(adds.length + 1)) await recordMatrix(ownerAfterAdd, adds.length + 1);
     assert.equal(ownerAfterAdd.face.identity, after.face_id);
     const mutation = await observedTodoMutation(state, output, `add-${adds.length + 1}`,
       bodyId, exactPrior, ownerAfterAdd, 'todo.add');
@@ -515,6 +541,9 @@ try {
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
+  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+    page, face, output, sourceRecord, bodyId, identity,
+  });
 } catch (error) {
   // Preserve the actual failed UI and owner state without retrying its action.
   const diagnostics = [writeFile(path.join(output, 'failure.json'), `${JSON.stringify({

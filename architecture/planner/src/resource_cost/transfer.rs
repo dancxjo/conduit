@@ -142,6 +142,15 @@ impl<'a> CostTransferForecast<'a> {
         self.window.validate_at(source.now).map_err(R::Evidence)?;
         Ok(self.duration)
     }
+    pub fn submitted_window(&self) -> &CostObservationWindow {
+        &self.window
+    }
+    pub fn submitted_duration(&self) -> CostDurationRange {
+        self.duration
+    }
+    pub fn submitted_calibration(&self) -> CostCalibrationRevision<'a> {
+        self.calibration
+    }
     pub fn connection(&self) -> &'a PlannedConnection {
         self.connection
     }

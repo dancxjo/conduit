@@ -308,6 +308,9 @@ test("the ordinary face binds and admits one compiler-free reviewed browser Host
 });
 
 test("a second distinct browser Host explicitly joins through one canonical Body invitation", async ({ page, context, browser }) => {
+  // Several isolated contexts, signed admission and restored membership exceed
+  // the default single-page budget on CI; keep the same finite budget as above.
+  test.setTimeout(120_000);
   await page.addInitScript(() => Object.defineProperty(navigator, "share", {
     configurable: true,
     value: async value => { globalThis.__sharedInvitation = value; },

@@ -2546,6 +2546,7 @@ dependencies = [
  "conduit-text",
  "conduit-thermostat-plot",
  "conduit-time",
+ "conduit-todo-face",
  "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",
@@ -2688,7 +2689,9 @@ dependencies = [
  "conduit-face",
  "conduit-planner",
  "conduit-plot",
+ "conduit-std-offers",
  "conduit-todo-plot",
+ "serde_json",
 ]
 
 [[package]]

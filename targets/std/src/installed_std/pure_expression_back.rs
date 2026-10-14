@@ -8,6 +8,11 @@ pub(super) static FACTORY: BackFactory = BackFactory {
     budget,
     prepare,
 };
+pub(super) static SCALAR_TAPE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION,
+    budget,
+    prepare,
+};
 pub(super) static FILTER_FACTORY: BackFactory = BackFactory {
     implementation_id: conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION,
     budget,
@@ -36,6 +41,7 @@ pub(super) fn prepare_hosts(
             if matches!(
                 placement.implementation_id.as_str(),
                 conduit_std_offers::PURE_EXPRESSION_STD_IMPLEMENTATION
+                    | conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
                     | conduit_std_offers::PURE_FILTER_STD_IMPLEMENTATION
             ) {
                 PureExpressionHost::from_placement(placement).map(Some)
@@ -69,8 +75,14 @@ impl PureExpressionHost {
             None
         };
         Ok(Self {
-            evaluator: conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
-                .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
+            evaluator: if placement.implementation_id.as_str()
+                == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+            {
+                conduit_plot::PreparedPortableExpressionEvaluator::new_scalar_tape(&program)
+            } else {
+                conduit_plot::PreparedPortableExpressionEvaluator::new(&program)
+            }
+            .map_err(|error| format!("prepare pure expression evaluator: {error:?}"))?,
             filter_output,
         })
     }
@@ -133,13 +145,19 @@ fn validate_placement(
         .first()
         .map(|port| port.temporal)
         .ok_or("pure expression input is absent")?;
-    let offer =
-        if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
-            conduit_std_offers::pure_filter_std_offer(program, temporal)
-        } else {
-            conduit_std_offers::pure_expression_std_offer(program, temporal)
-        }
-        .map_err(|error| format!("pure expression offer refusal: {error:?}"))?;
+    let offer = if placement.implementation_id.as_str()
+        == conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+    {
+        conduit_std_offers::pure_scalar_tape_std_offer(program, temporal)?
+    } else {
+        let result =
+            if placement.kind_contract_revision.as_str() == conduit_plot::PURE_FILTER_REVISION {
+                conduit_std_offers::pure_filter_std_offer(program, temporal)
+            } else {
+                conduit_std_offers::pure_expression_std_offer(program, temporal)
+            };
+        result.map_err(|error| format!("pure expression offer refusal: {error:?}"))?
+    };
     if placement.kind_id != offer.kind_id
         || placement.kind_contract_revision != offer.kind_contract_revision
         || placement.execution_profile_id != offer.implementation.execution_profile_id
@@ -196,3 +214,11 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
     }
 }
+
+#[cfg(test)]
+#[path = "pure_expression_back/scalar_tape_tests.rs"]
+mod scalar_tape_tests;
+
+#[cfg(test)]
+#[path = "pure_expression_back/scalar_tape_parity_tests.rs"]
+mod scalar_tape_parity_tests;
