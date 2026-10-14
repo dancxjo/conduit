@@ -39,7 +39,7 @@ try {
   switch (command) {
     case 'status':
       if (args.length !== 1) throw new Error('usage: status <owner/repository>');
-      console.log(JSON.stringify(readDeliveryStatus(args[0]), null, 2));
+      console.log(JSON.stringify(await readDeliveryStatus(args[0]), null, 2));
       break;
     case 'setup-ci':
       if (args.length) throw new Error('setup-ci accepts no arguments');

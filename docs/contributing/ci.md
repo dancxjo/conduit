@@ -356,3 +356,11 @@ exact run URLs. Durations use Actions `run_started_at` through `updated_at`,
 include setup, exclude the pre-start queue, and are not billed runner cost. No
 delivery SLO thresholds are introduced. Publication still verifies and reuses
 the tested artifacts through its existing owner.
+
+The status observer orders release manifests by their explicit publication date.
+GitHub's release-list order is not release recency. Publication runs and Pages
+deployment records expose workflow-head identities, which can differ from the
+built source. `live_pages_publication` reads the existing publisher-owned
+`site-publication.json` from the configured Pages URL; only that observed
+manifest supplies the current deployed build source. Unobserved deployment
+record source stays null, and failed observations refuse the report.
