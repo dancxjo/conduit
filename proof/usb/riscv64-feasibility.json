@@ -1,0 +1,301 @@
+{
+  "issue": 5579,
+  "qemu_version": "10.2.1",
+  "qemu_package": "1:10.2.1+ds-1ubuntu3.2",
+  "firmware_package": "2025.11-3ubuntu7.3",
+  "opensbi_package": "1.8.1-1",
+  "machine": "virt",
+  "firmware": {
+    "name": "RISCV_VIRT_CODE.fd",
+    "bytes": 33554432,
+    "sha256": "b0ba79f5c1a4d688ad7eade3cae0bbc7aba45b7bc7d872403de3b2907f2509b4",
+    "opensbi_sha256": "b296d711ecb879489689109c0fd7e0698b5b9550725b4e50fac456bbd3ecbcdf",
+    "opensbi_bytes": 275928
+  },
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/riscv/usr/bin/qemu-system-riscv64",
+    "-machine",
+    "virt",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/probes/riscv64-opensbi-serial.log",
+    "-net",
+    "none",
+    "-S",
+    "-device",
+    "qemu-xhci,id=usb-controller,msi=off,msix=off,p2=1,p3=0",
+    "-device",
+    "usb-mouse,bus=usb-controller.0",
+    "-qmp",
+    "stdio",
+    "-drive",
+    "if=pflash,format=raw,unit=0,readonly=on,file=/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/efi-riscv64/usr/share/qemu-efi-riscv64/RISCV_VIRT_CODE.fd",
+    "-drive",
+    "if=pflash,format=raw,unit=1,file=/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/probes/riscv64-vars.fd",
+    "-bios",
+    "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/opensbi/usr/lib/riscv64-linux-gnu/opensbi/generic/fw_dynamic.bin"
+  ],
+  "execution_seconds": 8,
+  "pci_reply": {
+    "return": [
+      {
+        "bus": 0,
+        "devices": [
+          {
+            "irq_pin": 0,
+            "bus": 0,
+            "qdev_id": "",
+            "slot": 0,
+            "class_info": {
+              "class": 1536,
+              "desc": "Host bridge"
+            },
+            "id": {
+              "device": 8,
+              "subsystem-vendor": 6900,
+              "vendor": 6966,
+              "subsystem": 4352
+            },
+            "function": 0,
+            "regions": []
+          },
+          {
+            "irq_pin": 1,
+            "bus": 0,
+            "qdev_id": "usb-controller",
+            "irq": 255,
+            "slot": 1,
+            "class_info": {
+              "class": 3075,
+              "desc": "USB controller"
+            },
+            "id": {
+              "device": 13,
+              "subsystem-vendor": 6900,
+              "vendor": 6966,
+              "subsystem": 4352
+            },
+            "function": 0,
+            "regions": [
+              {
+                "prefetch": false,
+                "mem_type_64": true,
+                "bar": 0,
+                "size": 16384,
+                "address": 17179869184,
+                "type": "memory"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "device_tree": {
+    "pci": {
+      "interrupt-map-mask": [
+        6144,
+        0,
+        0,
+        7
+      ],
+      "interrupt-map": [
+        0,
+        0,
+        0,
+        1,
+        3,
+        32,
+        0,
+        0,
+        0,
+        2,
+        3,
+        33,
+        0,
+        0,
+        0,
+        3,
+        3,
+        34,
+        0,
+        0,
+        0,
+        4,
+        3,
+        35,
+        2048,
+        0,
+        0,
+        1,
+        3,
+        33,
+        2048,
+        0,
+        0,
+        2,
+        3,
+        34,
+        2048,
+        0,
+        0,
+        3,
+        3,
+        35,
+        2048,
+        0,
+        0,
+        4,
+        3,
+        32,
+        4096,
+        0,
+        0,
+        1,
+        3,
+        34,
+        4096,
+        0,
+        0,
+        2,
+        3,
+        35,
+        4096,
+        0,
+        0,
+        3,
+        3,
+        32,
+        4096,
+        0,
+        0,
+        4,
+        3,
+        33,
+        6144,
+        0,
+        0,
+        1,
+        3,
+        35,
+        6144,
+        0,
+        0,
+        2,
+        3,
+        32,
+        6144,
+        0,
+        0,
+        3,
+        3,
+        33,
+        6144,
+        0,
+        0,
+        4,
+        3,
+        34
+      ],
+      "ranges": [
+        16777216,
+        0,
+        0,
+        0,
+        50331648,
+        0,
+        65536,
+        33554432,
+        0,
+        1073741824,
+        0,
+        1073741824,
+        0,
+        1073741824,
+        50331648,
+        4,
+        0,
+        4,
+        0,
+        4,
+        0
+      ],
+      "reg": [
+        0,
+        805306368,
+        0,
+        268435456
+      ],
+      "dma-coherent": [],
+      "bus-range": [
+        0,
+        255
+      ],
+      "linux,pci-domain": [
+        0
+      ],
+      "device_type": [
+        1885563136
+      ],
+      "compatible": "7063692d686f73742d6563616d2d67656e6572696300",
+      "#size-cells": [
+        2
+      ],
+      "#interrupt-cells": [
+        1
+      ],
+      "#address-cells": [
+        3
+      ]
+    },
+    "plic": {
+      "phandle": [
+        3
+      ],
+      "riscv,ndev": [
+        95
+      ],
+      "reg": [
+        0,
+        201326592,
+        0,
+        6291456
+      ],
+      "interrupts-extended": [
+        2,
+        11,
+        2,
+        9
+      ],
+      "interrupt-controller": [],
+      "compatible": "7369666976652c706c69632d312e302e300072697363762c706c69633000",
+      "#address-cells": [
+        0
+      ],
+      "#interrupt-cells": [
+        1
+      ]
+    },
+    "sha256": "5ae21246a6132df49f05c2bd558c0cbc76cc1fd7af178641279399470c791135"
+  },
+  "intx_route": {
+    "slot": 1,
+    "pin": 1,
+    "parent_phandle": 3,
+    "plic_source": 33
+  },
+  "failed_profile": "-bios none with S-mode EDK2 pflash alone produced no boot output or assigned BAR; explicit OpenSBI handoff required for this observed combination",
+  "disposition": "Firmware PCI resource assignment supported; ConduitOS native USB provider unsupported until Root initialization, DMA possession, IRQ delivery and actual control/bulk completion proof",
+  "not_proved": [
+    "ConduitOS USB transfer",
+    "guest DMA completion",
+    "guest IRQ delivery",
+    "physical compatibility",
+    "USB3/MSI/isochronous"
+  ]
+}
