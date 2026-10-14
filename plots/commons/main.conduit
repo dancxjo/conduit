@@ -1,0 +1,34 @@
+# Commons owns these semantic identities. No global Room type or geometry.
+type CommonsPlaceId = Text <= 32B in ["commons/hub", "commons/workshop", "commons/creche"]
+type CommonsPlace = {
+    identity: CommonsPlaceId
+    name: Text <= 32B not in [""]
+    role: Text <= 32B in ["commons/place"]
+}
+type CommonsRelation = {
+    source: CommonsPlaceId
+    target: CommonsPlaceId
+    meaning: Text <= 32B in ["commons/contains-place", "commons/reaches-place"]
+    where .source != .target
+}
+type CommonsPlaces = {
+    hub: CommonsPlace
+    workshop: CommonsPlace
+    creche: CommonsPlace
+    containment: collection CommonsRelation = 2
+    reachability: collection CommonsRelation = 2
+    where .hub.identity == "commons/hub"
+    where .workshop.identity == "commons/workshop"
+    where .creche.identity == "commons/creche"
+    where .containment.0.source == .hub.identity && .containment.0.target == .workshop.identity
+    where .containment.1.source == .hub.identity && .containment.1.target == .creche.identity
+    where .containment.0.meaning == "commons/contains-place" && .containment.1.meaning == "commons/contains-place"
+    where .reachability.0.source == .hub.identity && .reachability.0.target == .workshop.identity
+    where .reachability.1.source == .hub.identity && .reachability.1.target == .creche.identity
+    where .reachability.0.meaning == "commons/reaches-place" && .reachability.1.meaning == "commons/reaches-place"
+}
+# These routes describe this finite authored domain, not authority or live Lines.
+plot commons (
+    >> observe: Boolean
+    places: CommonsPlaces >>
+) = ({ hub: {identity: "commons/hub", name: "Hub", role: "commons/place"}, workshop: {identity: "commons/workshop", name: "Workshop", role: "commons/place"}, creche: {identity: "commons/creche", name: "Crèche", role: "commons/place"}, containment: [ {source: "commons/hub", target: "commons/workshop", meaning: "commons/contains-place"}, {source: "commons/hub", target: "commons/creche", meaning: "commons/contains-place"} ], reachability: [ {source: "commons/hub", target: "commons/workshop", meaning: "commons/reaches-place"}, {source: "commons/hub", target: "commons/creche", meaning: "commons/reaches-place"} ] })
