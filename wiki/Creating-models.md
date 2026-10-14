@@ -16,6 +16,55 @@ Conduit owns meaning, identity, planning, bounds, and evidence. A selected back
 owns numerical realization. Burn supplies tensors, autodiff, optimizer internals,
 and device kernels inside that Rust back.
 
+## Run the tiny CPU model first
+
+The repository's synthetic regression fixture learns `y = 2x + 1`; it uses
+no downloaded corpus, credentials, or GPU. Its source and generated weights
+use the repository MIT license (see `LICENSE`). Fixture dataset/build identities are explicitly
+synthetic, not evidence about an external dataset or speech quality.
+
+From a repository checkout with its supported Rust toolchain, choose a fresh
+output directory for each run:
+
+```sh
+cargo xtask prove model-authoring --output work/tiny-model-library
+cargo xtask prove model-authoring --plot-journey --output work/tiny-model-plot
+```
+
+The first command runs the public Burn adapter contracts. The second checks
+`plots/model-authoring/main.conduit`, expands its `model/work` Kind, plans
+against the prepared std Host offer, and runs actual installed Kernel HostCalls.
+The external Fore carries bounded `ModelWorkRequestBytes` and
+`ModelWorkReplyBytes` envelopes, each at most 1,048,576 bytes; the decoder
+checks the enclosed typed requests before model work.
+
+The regression model's `x` and `y` Fores contain F32 tensors with Batch ×
+Feature axes: 1–8 rows and exactly one feature, at most 32 bytes per tensor.
+The small training batch is `x = [-1, 0, 1, 2]`, `y = [-1, 1, 3, 5]`.
+Its recipe uses CPU Flex, AdamW, learning rate 0.05, weight decay 0,
+gradient clipping 10, seed 42, and 80 bounded steps. The definition and
+host preparation remain Rust code through the public authoring seam; the
+Plot receives admitted requests rather than inventing a model declaration syntax.
+
+Inspect `manifest.json`, `stdout.log`, and `stderr.log` in the output directory.
+Success requires `passed: true` and `source_unchanged: true`. The Plot test
+reports measured loss, checks loss reduction, exact inference after reload,
+fresh-runtime resume from step 80 to 81, and the requested/completed HostCall
+records. The hosted library producer also retains immutable resume and
+inference artifacts under `artifacts/`. Existing output directories refuse
+rather than overwrite evidence.
+
+Wrong tensor geometry refuses as `InvalidTensor` before numerical work;
+resource estimates outside admitted bounds refuse as `ResourceBound` or
+`InvalidDescriptor`, depending on the admission boundary. Correct the shape
+or explicitly prepare a new bounded model profile; increasing a caller's
+request does not increase admitted resources. Refusal preserves committed
+model and optimizer state. CPU `products` CI exercises the adapter contract
+suite; `hosts-std` enables `burn-model` and exercises the ordinary Plot journey.
+These are deterministic CPU proofs. Voice training, external corpus licensing,
+held-out speech quality, CUDA equivalence, and physical-host acceptance each
+need their own evidence.
+
 ## Choose an on-ramp
 
 A host can realize meaning at different levels. A whole-model Rust/Burn back
@@ -238,6 +287,46 @@ and compatibility; stale recipes, corruption, and unsupported schemas refuse.
 The tiny proof stops, creates a fresh runtime, resumes the recorded cursor,
 advances work, exports, reloads, and compares inference within declared tolerance.
 
+### Inspect the tiny model's durable restart
+
+The tiny CPU command above performs the save/stop/resume/export/reload sequence
+through the public adapter and durable store. Open
+`work/tiny-model-library/artifacts/journey.json`: its versioned
+`conduit.fixture/model-authoring-journey@1` record reports the durable resume
+step (40), final committed step (80), before/after loss, checkpoint identities,
+and `exact_same_device_reload`. The fixture's measured loss decreases from
+9.0 to about 0.004; a run must meet its actual test bound rather than copy this
+number into a success claim.
+
+The immutable objects live separately under `artifacts/resume/` and
+`artifacts/inference/`. Keep each whole store together: the content-derived
+JSON descriptor names its weight/model/optimizer blobs. `latest.json` locates
+a durable resume identity; the pathname does not grant model authority.
+The inference export contains weights and a versioned descriptor, with no
+optimizer or training-session authority. Its fixture extent is 928 bytes.
+
+Follow the executable `retained_journey.rs` example: `checkpoint` returns the
+exact identity, the original adapter is dropped, a fresh adapter calls
+`resume` with that identity and the same data/config/recipe, and training
+continues from the next step. After `export_inference`,
+`InferenceBurnAdapter::load` receives the model definition, admitted runtime,
+store, and exact checkpoint identity; it needs no training dataset or optimizer.
+The ordinary Plot command additionally tests the same operations as admitted
+`model/work` HostCalls and checks their Kernel request/completion Sign records.
+These records are execution evidence, not a claim of cryptographic signing.
+
+A different corpus payload or shuffle recipe, model configuration,
+checkpoint schema, or training recipe receives
+`IncompatibleCheckpoint` and leaves committed state unchanged. Restore the
+matching definition and admitted context; the loader does not silently train
+a replacement. Corrupted descriptor/blob bytes and incompatible optimizer parameter IDs/shapes
+receive `CorruptCheckpoint`;
+recover the known immutable store instead of editing its content-derived names.
+The CPU library command runs these refusal tests along with the restart proof.
+A fresh output directory replays the demonstration without overwriting a prior
+store. The synthetic regression and its restart teach public lifecycle APIs;
+#5207's trained voice and held-out speech acceptance remain separate.
+
 ## Offer and use the capability
 
 Ordinary artifact/admission machinery loads the checkpoint and offers a bounded
@@ -283,7 +372,7 @@ separate CUDA training/inference comparisons. It does not establish a voice.
 | Optimizer state belongs to these parameters | `foreign_optimizer_parameter_ids_refuse_even_with_valid_content_digests` | hosted library tested |
 | Safe reload preserves inference | `checkpoint_reload_preserves_inference` | hosted library tested |
 | Durable objects precede cursor | `checkpoint_failure_retains_durable_cursor` | hosted library tested |
-| Fresh runtime resumes next step | `fresh_runtime_resumes_recorded_step_cursor` | hosted library tested; corpus cursor proposed |
+| Fresh runtime resumes next step | `fresh_runtime_resumes_recorded_step_cursor` | hosted library tested; finite corpus cursor has a separate fresh-Host Plot proof |
 | Snapshot staging is exclusive | `BurnAdapter::checkpoint` / `export_inference` compile-fail examples | hosted library tested |
 | Explicit CUDA learns and resumes | `admitted_cuda_training_and_resume` | local RTX 3060 tested; fixture tolerance `1e-3` |
 | Natural targets match reference | `natural_speech_reference_feature_differential` | proposed |
@@ -293,9 +382,10 @@ separate CUDA training/inference comparisons. It does not establish a voice.
 | Docs commands stay executable | `model_authoring_documented_commands` | hosted command extracted and executed |
 
 The [hosted contract](https://github.com/dancxjo/conduit/blob/dev/targets/std/model-authoring.md) records current v1 limits,
-including the explicit resume-device refusal and missing corpus cursor/held-out
-split/best-checkpoint integration. Its inference off-ramp now reaches the existing
-std-host model-compute interface; ordinary plot selection remains proposed.
+including the explicit resume-device refusal, finite attached-corpus resume,
+and the remaining held-out speech/best-checkpoint integration. Its inference off-ramp now reaches the existing
+std-host model-compute interface. The generic regression Plot exercises ordinary
+planning and installed Kernel HostCalls; voice selection remains proposed.
 
 Cheap CPU proof belongs in CI. Corpus training, CUDA, complete FARGAN synthesis,
 and attended listening retain separate proof classes. FARGAN readiness and
