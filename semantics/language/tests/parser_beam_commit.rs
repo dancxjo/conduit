@@ -234,3 +234,69 @@ fn actual_commit_then_text_revision_rebases_and_revises_only_uncommitted_edges()
     .is_err());
     assert_eq!(lexical.tape().source(), &old);
 }
+
+#[test]
+fn partial_prefix_keeps_legal_alternatives_then_rank_prunes_deterministically() {
+    use conduit_language::lexical::prepare_lexical_tape;
+    let partial = fixture::revision("answer record ", None, 7);
+    let lexical = prepare_lexical_tape(&partial, &fixture::profile(), None).unwrap();
+    assert_eq!(partial.finality(), &LanguageTextFinality::Partial);
+    assert!(lexical
+        .tape()
+        .tokens()
+        .iter()
+        .all(|t| t.candidates().len() == 2));
+    let original = query(1, 1, false, false);
+    let mut packets = Vec::new();
+    for tied in [false, true] {
+        let first = original.beam().candidate0();
+        let second = original.beam().candidate1();
+        let a = LanguageParserHypothesis::new(
+            true,
+            *first.identity(),
+            if tied { 800 } else { *first.score() },
+            first.state().clone(),
+        )
+        .unwrap();
+        let b = second.clone();
+        let inactive =
+            LanguageParserHypothesis::new(false, 3, 999999, first.state().clone()).unwrap();
+        let beam = LanguageParserAdmittedBeam::new(
+            original.beam().basis().clone(),
+            a,
+            b,
+            inactive,
+            original.beam().candidate3().clone(),
+        )
+        .unwrap();
+        packets.push(
+            LanguageParserAdmittedAgreementQuery::new(beam, 0)
+                .unwrap()
+                .encode()
+                .unwrap(),
+        );
+    }
+    for (bytes, expected) in play("fixture-parser-rank-and-prune", packets)
+        .into_iter()
+        .zip([2, 1])
+    {
+        let beam = LanguageParserBeam::decode(&bytes).unwrap();
+        assert_eq!(*beam.candidate0().identity(), expected);
+        assert!(*beam.candidate0().active());
+        assert!(
+            !*beam.candidate1().active()
+                && !*beam.candidate2().active()
+                && !*beam.candidate3().active()
+        );
+        for candidate in [
+            beam.candidate0(),
+            beam.candidate1(),
+            beam.candidate2(),
+            beam.candidate3(),
+        ] {
+            fixture::native_state(candidate.state());
+            assert_eq!(*candidate.state().committed(), 0);
+        }
+    }
+    assert_eq!(lexical.tape().source(), &partial);
+}

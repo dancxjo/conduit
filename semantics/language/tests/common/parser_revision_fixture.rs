@@ -114,6 +114,7 @@ pub fn source() -> String {
         include_str!("../../parser_available.conduit"),
         PARSER_REVISION_REBASE_SOURCE,
         PARSER_BEAM_COMMIT_SOURCE,
+        RANK_AND_PRUNE,
     ]
     .join("\n")
 }
@@ -135,3 +136,18 @@ pub fn native_state(raw: &LanguageParserNumericState) -> LanguageParserState {
     )
     .unwrap()
 }
+
+/// Authored composition of the existing five-comparator network and pruning law.
+pub const RANK_AND_PRUNE: &str = r#"
+plot fixture-parser-beam-view (
+ input: LanguageParserAgreementQuery...| >> output: LanguageParserBeam...|
+) = .beam
+plot fixture-parser-prune-request (
+ input: LanguageParserBeam...| >> output: LanguageParserPruneRequest...|
+) = { beam: ., maximum_survivors: 1 }
+plot fixture-parser-rank-and-prune (
+ input: LanguageParserAdmittedAgreementQuery...| >> output: LanguageParserBeam...|
+) {
+ input >> language-parser-admitted-agreement-query() >> fixture-parser-beam-view() >> language-parser-rank-0-1() >> language-parser-rank-2-3() >> language-parser-rank-0-2() >> language-parser-rank-1-3() >> language-parser-rank-1-2() >> fixture-parser-prune-request() >> language-parser-retain() >> output
+}
+"#;
