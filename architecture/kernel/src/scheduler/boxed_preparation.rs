@@ -85,7 +85,7 @@ where
             signs,
             cords: [CordState::EMPTY; CORDS],
             queue_slots: [None; QUEUE_SLOTS],
-            ready: core::array::from_fn(|node| node < active_nodes),
+            ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
             cursor: 0,
             host_request_cursor: 0,
