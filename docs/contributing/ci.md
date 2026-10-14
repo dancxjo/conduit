@@ -302,3 +302,29 @@ lane's prerequisites. Missing tools or unavailable physical devices are not
 successful proof. Artifact retention is fourteen days; expired input requires a
 fresh integration, not fabricated receipts. Behavioral tests cover refusal and
 identity invariants rather than fixing YAML job names or ordering strings.
+
+## Repair an admitted red development source
+
+Capture the failing integration SHA, owner job and retained stderr/stdout first.
+A green Candidate or another owner's successful job cannot stand in for full
+integration. Compare current dev with accepted main, including the accumulated
+batch; an existing release retains its ownership through repair.
+
+Hold unrelated owned feature auto-merges while investigating. Keep their
+branches, review discussion and proof; park a PR if needed to keep the active
+handoff small. Reproduce the actual owner failure and send the smallest repair
+or revert through an ordinary dev PR. Preserve mandatory gates and negative
+cases rather than treating failure as an optional status.
+
+For example, hosted retention failed after the Face migration when the correct
+hello payload acquired the display label `Greeting:`. The repair validates the
+exact emitted Face bytes independently of decoration; host, completed Plan,
+runtime report and unchanged-executable checks remain required. Tests reject a
+friendly caption with wrong bytes, missing completion or a foreign host.
+
+After merge, require exhaustive integration of the repaired exact source and
+verified publication of those same artifacts and accepted tree. Retain run,
+job, source and publication identities, and report actual lag while pending.
+Resume held feature admission only after that restoration is green. Never
+substitute an older green status, bypass protection or claim stable acceptance
+from Candidate alone.
