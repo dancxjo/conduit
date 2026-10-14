@@ -112,3 +112,23 @@ fn unsupported_locale_import_is_not_silently_discarded() {
         assert_eq!(refusal.message, diagnostic.message);
     }
 }
+
+#[test]
+fn empty_installed_catalog_entrance_retains_builtin_units_and_checked_overlays() {
+    let base = StartupCatalog::new();
+    let populated =
+        checked_physical_catalog_for_document(&parse_syntax_document(SOURCE), &base).unwrap();
+    for catalog in [base, populated] {
+        for source in ["", "  \n\t"] {
+            let admitted =
+                checked_physical_catalog_for_document(&parse_syntax_document(source), &catalog)
+                    .unwrap();
+            let checked = check_syntax_document(
+                &parse_syntax_document("plot sample {\n angle = 1turn\n quarter = 90°\n}\n"),
+                &admitted,
+            )
+            .unwrap();
+            assert_eq!(checked.plots[0].local_values.len(), 2);
+        }
+    }
+}
