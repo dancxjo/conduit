@@ -77,6 +77,19 @@ pub(super) fn binary(
         span,
         "binary operands must have one exact type",
     )?;
+    if left_type
+        .value_kind()
+        .is_some_and(|kind| kind.as_str() == conduit_core::MATHEMATICAL_VALUE_ID)
+        && matches!(
+            operator,
+            BinaryOperator::Add
+                | BinaryOperator::Subtract
+                | BinaryOperator::Multiply
+                | BinaryOperator::Divide
+        )
+    {
+        return Ok(left_type);
+    }
     match operator {
         BinaryOperator::Equal | BinaryOperator::NotEqual => Ok(boolean()),
         BinaryOperator::Less
