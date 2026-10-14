@@ -241,3 +241,31 @@ fn an_essential_warning_is_preserved_or_refused_when_oversized() {
         Err(TodoTemplateRefusal::Bound)
     ));
 }
+
+#[test]
+#[ignore = "requires retained actual owner Face through CONDUIT_TODO_TEMPLATE_FACE"]
+fn actual_owner_face_binds_checked_todo_wording() {
+    let path = std::env::var("CONDUIT_TODO_TEMPLATE_FACE").unwrap();
+    let value: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let face: conduit_face::Face = serde_json::from_value(value["face"].clone()).unwrap();
+    let facts = TodoFaceFacts::prepare(&face).unwrap();
+    let ids: Vec<_> = face
+        .subjects
+        .iter()
+        .filter(|s| s.identity.starts_with("todo/item/"))
+        .take(3)
+        .map(|s| s.identity.as_str())
+        .collect();
+    for name in [
+        "spoken/todo-brief-template",
+        "spoken/todo-expanded-template",
+    ] {
+        let wording = producer(name).evaluate(&face, &facts, &ids, "en").unwrap();
+        assert_eq!(wording.source_face(), face.identity.as_str());
+        assert_eq!(wording.revision(), face.revision);
+        assert_eq!(wording.remaining(), facts.remaining());
+        assert_eq!(wording.completed(), facts.completed());
+        assert!(wording.wording().contains("Crème brûlée — 茶 🍵?"));
+        println!("{name}: {}", wording.wording());
+    }
+}

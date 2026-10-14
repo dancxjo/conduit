@@ -2690,6 +2690,7 @@ dependencies = [
  "conduit-plot",
  "conduit-std-offers",
  "conduit-todo-plot",
+ "serde_json",
 ]
 
 [[package]]

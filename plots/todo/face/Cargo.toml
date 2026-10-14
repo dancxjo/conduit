@@ -10,6 +10,7 @@ conduit-todo-plot = { path = "../model" }
 conduit-face = { path = "../../../semantics/face", default-features = false }
 
 [dev-dependencies]
+serde_json = "1"
 conduit-std-offers = { path = "../../../targets/std/offers" }
 conduit-body = { path = "../../../architecture/body" }
 conduit-core = { path = "../../../architecture/core" }
