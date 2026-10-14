@@ -10,3 +10,6 @@ The proof is one browser action and its checked reverse correspondence. It does 
 
 
 The committed public producer also passed at clean Source `0d88e163fab18dcb70f7d134a205d230a9e77817` with exactly matching sealed native release, runtime and Handbook package. The normal `cargo xtask prove todo-journey` fresh first-add entrance retained one Add and both trusted SDK refusals on the same Body, acknowledged Show, browser Host and Boot. The test compared the entire owner Face after each refused attempt. Its successful result remains explicitly a partial fresh Todo capture; full journey publication remains incomplete. The later documentation commit does not relabel the captured Source.
+
+
+Delivery review also found Integration run `38577612941` at Source `178c616bd6c815232b7391460fe012e253fa551b` failed the distinct-browser membership proof on its default 20-second test budget. Its retained trace shows invitation inspection, share handling, explicit join, exact two-member agreement and current Host offers all succeeded, then the deadline interrupted the final restored-page control. Give this multi-context proof the neighboring membership proof's finite 120-second budget. Its semantic assertions and global timeouts remain unchanged; this is a test budget, not a product timing guarantee. Focused packaged-browser verification of the changed test is pending.
