@@ -398,13 +398,11 @@ pub(super) fn frame(mask: &TerminalFaceMask) -> String {
         });
     frame.push_str(&clipped(&status, mask.columns));
     frame.push_str("\r\n");
-    frame.push_str(&clipped(
-        if mask.interaction_admitted {
-            "Tab focus · ↑↓ read · PgUp/PgDn · F2 inspect · Enter apply · Esc cancel"
-        } else {
-            "Read only · ↑↓ read · PgUp/PgDn · F2 inspect · Esc close"
-        },
-        mask.columns,
-    ));
+    let (first, second) = super::footer::help(mask.interaction_admitted, mask.columns);
+    frame.push_str(first);
+    if let Some(second) = second {
+        frame.push_str("\r\n");
+        frame.push_str(second);
+    }
     frame
 }
