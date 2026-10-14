@@ -55,7 +55,7 @@ enum PlotsCommand {
         #[arg(long, conflicts_with = "deterministic")]
         browser: bool,
         /// Execute one reviewed Plot instead of the full deterministic inventory.
-        #[arg(long, requires = "deterministic")]
+        #[arg(long, requires = "deterministic", conflicts_with = "browser")]
         plot: Option<String>,
     },
     /// Emit the current bounded conformance report without running gated proofs.
