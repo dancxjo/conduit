@@ -1,0 +1,13 @@
+# Bounded fixed scalar tape
+
+Issue #5540 adds an explicitly selected std scalar specialization with Value Fore contracts within the existing checked pure-expression Kind, ordinary Back offer, Plan and kernel Host Call mechanism. The new profile/implementation/artifact identities are distinct from the reference evaluator. Text, records, mathematical-value/quantity/floating profiles, Flow contracts and oversized tapes refuse preparation; the existing interpreter remains independently available. No candidate switches execution form halfway through Play.
+
+The pre-Play lowering owns a maximum 128-instruction linear tape and a fixed 128-slot stack scratch bound, exposed together with the existing output capacity. It drops the evaluator's AST execution form. Runtime steps use prebound operand slots and the existing checked fixed-integer/boolean arithmetic routines. Conditional jumps are forward-only and retain lazy selected-branch semantics. This removes recursive AST traversal, not every primitive decode; it is neither generated machine code nor a second scheduler.
+
+Input/nominal capsule validation and output framing remain the existing evaluator's responsibility. Canonical Source/program provenance remains in the offered contract and Plan. Overflow, invalid input and unsupported profile outcomes remain explicit. Mandatory lowering/storage allocation occurs before Play.
+
+The actual std kernel test selects the specialized implementation/artifact for the checked 1/3/8/32 corpus and compares delivered bytes with the ordinary reference. It retains exact Plan/Play identity and Host Call request/completion signs, unchanged value-store capacities, and zero allocations after Play start. The allocation probe found six legacy Value Fore delivery clones; a responsibility-specific helper now prepares both owned adapter/report buffers and metadata from Plan-sealed byte limits before Play. Each Value output consumes one prepared slot; repetition and oversize refuse. Flow delivery retains its original path and is not offered by this tape profile.
+
+Portable tests cover exact byte/refusal parity, zero warm allocations/reallocations, multiplication/Boolean cases, lazy conditional branches, record/text refusal, a 127-instruction accepted shape and named instruction-bound refusal of a larger valid reference program. Direct delivery tests classify their preparation separately from allocation-free successful delivery.
+
+This is scoped native component and ordinary std Plan/Play evidence. No speedup, arbitrary code generation, JIT, browser/no_std installed tape availability or tiny-Host suitability is claimed. #5541/#5542 and the parent retain their independent resource/evidence/performance/cross-target acceptance.

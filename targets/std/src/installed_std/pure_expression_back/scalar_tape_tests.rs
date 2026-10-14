@@ -1,0 +1,185 @@
+//! Ordinary Source/Plan/Play entrance for generic envelope and gain, no device.
+use crate::{
+    ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, StdHost, TimerAdapter,
+};
+use conduit_core::{BaseImplementationId, ConfigurationValue, ConnectionTrack, PortDirection};
+use conduit_plot::{
+    check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+    PortableExpressionProgram, ProfileCatalog, StartupCatalog,
+};
+use std::{collections::BTreeMap, time::Duration};
+
+struct NoTimer;
+impl TimerAdapter for NoTimer {
+    fn wait(&mut self, _: Duration) {
+        panic!("envelope/gain has no timer/device effect");
+    }
+}
+#[derive(Default)]
+struct Outputs(Vec<Vec<u8>>);
+impl ExternalForeOutputAdapter for Outputs {
+    fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
+        if value.track == ConnectionTrack::Payload {
+            self.0.push(value.bytes);
+        }
+        Ok(())
+    }
+}
+fn prepare(source: &str, name: &str) -> (StdHost, conduit_core::Plan, PortableExpressionProgram) {
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, name, &ProfileCatalog::new()).unwrap();
+    let ConfigurationValue::Text(encoded) = &authored.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let mut advertisement = StdHost::new().advertisement().clone();
+    let offer = conduit_std_offers::pure_scalar_tape_std_offer(
+        &program,
+        authored.expanded.gears[0].inputs[0].temporal,
+    )
+    .unwrap();
+    assert!(authored.expanded.gears[0].accepts_realization(&offer));
+    advertisement.capabilities.push(offer);
+    advertisement
+        .capabilities
+        .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+    let host = StdHost::from_advertisement(advertisement).unwrap();
+    let hosts = [host.advertisement().clone()];
+    let placements =
+        conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
+    let boundaries = [
+        (PortDirection::Input, "value"),
+        (PortDirection::Output, "result"),
+    ]
+    .into_iter()
+    .map(|(direction, port)| {
+        (
+            conduit_planner::ForeBoundaryKey {
+                direction,
+                front_port_id: port.into(),
+                track: ConnectionTrack::Payload,
+            },
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 4096,
+            },
+        )
+    })
+    .collect();
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &authored,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 4096,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundaries,
+    )
+    .unwrap();
+    (host, plan, program)
+}
+
+#[test]
+fn actual_std_plan_and_kernel_play_select_the_scalar_tape_back() {
+    let source =
+        include_str!("../../../../../architecture/plot/tests/fixtures/expression_baseline.conduit");
+    for operations in [1u64, 3, 8, 32] {
+        let (mut host, plan, program) = prepare(source, &format!("baseline-{operations}"));
+        assert_eq!(
+            plan.source_document_id,
+            parse_syntax_document(source).source_document_id()
+        );
+        let placement = &plan.fragments[0].placements[0];
+        assert_eq!(
+            placement.implementation_id.as_str(),
+            conduit_std_offers::PURE_SCALAR_TAPE_STD_IMPLEMENTATION
+        );
+        assert_eq!(
+            placement.artifact_id.as_str(),
+            conduit_std_offers::PURE_SCALAR_TAPE_STD_ARTIFACT
+        );
+        assert!(conduit_core::verify_plan(&plan));
+        let input = 7u64.to_le_bytes();
+        let expected = program.evaluate(&input).unwrap();
+        let mut output = Outputs(Vec::with_capacity(1));
+        let report = host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[ExternalForeInput {
+                    front_port_id: "value".into(),
+                    track: ConnectionTrack::Payload,
+                    bytes: input.to_vec(),
+                }],
+                &mut output,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .unwrap();
+        assert_eq!(output.0, [expected]);
+        let kernel = report.kernel.as_ref().expect("actual kernel Play");
+        assert_eq!(kernel.post_play_start_allocations, 0);
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert!(kernel
+            .kernel_sign
+            .iter()
+            .any(|e| e.kind == conduit_kernel::KernelEventKind::HostCallRequested));
+        assert!(kernel
+            .kernel_sign
+            .iter()
+            .any(|e| e.kind == conduit_kernel::KernelEventKind::HostCallCompleted));
+
+        println!(
+            "operations={operations} plan={} report={report:?}",
+            plan.plan_id.as_str()
+        );
+    }
+}
+
+#[test]
+fn tape_offer_refuses_unsupported_temporal_and_semantic_profiles() {
+    let source =
+        include_str!("../../../../../architecture/plot/tests/fixtures/expression_baseline.conduit");
+    let (_, _, program) = prepare(source, "baseline-1");
+    assert!(conduit_std_offers::pure_scalar_tape_std_offer(
+        &program,
+        conduit_core::PortTemporal::Flow { closes: true }
+    )
+    .is_err());
+    let checked = check_syntax_document(
+        &parse_syntax_document(
+            "plot text (\n >> value: Text <= 8B\n result: Text <= 8B >>\n) = (.)\n",
+        ),
+        &StartupCatalog::new(),
+    )
+    .unwrap();
+    let authored =
+        expand_canonical_plot_for_authoring(&checked, "text", &ProfileCatalog::new()).unwrap();
+    let ConfigurationValue::Text(encoded) = &authored.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    assert!(conduit_std_offers::pure_scalar_tape_std_offer(
+        &program,
+        conduit_core::PortTemporal::Value
+    )
+    .is_err());
+    assert!(conduit_std_offers::pure_expression_std_offer(
+        &program,
+        conduit_core::PortTemporal::Value
+    )
+    .is_ok());
+}
