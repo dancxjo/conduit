@@ -72,7 +72,7 @@ where
             cord.offered_remote_sequence = None;
             cord.remote_accepted = false;
         }
-        self.ready.fill(false);
+        self.ready.clear();
         self.cancelled = true;
         self.signs
             .record(NodeId(0), None, None, KernelEventKind::RunCancelled)?;
