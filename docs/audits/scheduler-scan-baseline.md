@@ -1,0 +1,60 @@
+# FixedScheduler scan baseline
+
+For #5560, observe existing kernel traversals with test-only counters. Product
+builds contain no counter field or increment. Selection order, eligibility,
+pressure, routing and pending-call predicates remain unchanged.
+
+The fixture uses fixed capacity 32 with active prefixes of 1, 8 and 32 nodes,
+one real remote ingress Cord per active node, one queued byte per ready node,
+one input Port and one empty pending-request slot. Loaded cases admit input to
+every node; sparse cases admit only the last node after real startup Await steps.
+Ingress wakes nodes through the normal kernel path; no readiness flag is edited.
+A second input to the full single-item queue returns Full, never silent delivery.
+Measured Back steps consume exact bytes transactionally and release all storage.
+Loaded round-robin order is asserted. A one-node sparse case is the same workload
+as its loaded control, and is retained explicitly.
+
+Counters retain readiness nodes visited, readiness/context pending slots,
+input Ports, Cord traversal entries and queue peeks. Sign count/bytes come from
+the actual fixed Sign log. Independent expectations assert three full readiness
+passes per active graph, two selected steps per admitted packet, one context
+pending-slot check and input-Port check per selected step. Storage is empty at
+the final Idle boundary. Full kernel conformance preserves existing fairness,
+pressure, cancellation, terminal and remote lifecycle behavior.
+
+The manual optimized test runs eight independently prepared trials per specimen,
+with separate preparation and measured Step-to-Idle windows. Elapsed durations use `std::time::Instant` and include instrumentation,
+Back checks, Signs and the bounded fixture loop; they are not
+unmodified product Step timings, thread CPU-time measurements or provider
+service latency. Raw traversal counters record mechanical CPU work separately. Startup and ingress
+are outside the Step window. Empty pending-table checks are measured; occupied
+Host Calls are not inferred. There is no scheduler algorithm change, allocator,
+SMP/preemption or synthetic Plan-cost claim, and no automatic timing threshold.
+
+The broader #5537 requirements for allocation/copy attribution, independent clean
+process repetitions and browser/WASM results remain separate. This baseline is
+an actual native fixed-kernel byte fixture, not authored Source/Plan/Play or a
+physical product performance run. Seventy nonmanual kernel tests and strict
+Clippy pass. The optimized manual run passes and retains 48 rows at Source revision
+`356c88d45734a30afed6993aa98ec12f83c22a35`. Both loaded and sparse cases visit
+3/24/96 readiness nodes for active prefixes 1/8/32. Their admitted work differs:
+loaded cases consume 1/8/32 inputs, while sparse cases consume one. These raw
+counts are mechanical cost evidence, not a provider throughput forecast.
+
+
+A fresh current-dev integration run retained 48 rows at clean Source
+`e5990c27111f78e35f7706fbf1cab8dbca55a456`, integrating dev `4c8b7a3b882f1986d277d6ae60d63801aeed2287`.
+All 70 nonmanual kernel tests and strict Clippy passed again. The earlier 48-row
+evidence keeps its original Source identity; neither run is relabeled as a later
+documentation commit.
+
+After the release-profile repair, another clean run at `865816d45f9107a6f3cc9b43e0d775442df0ac6a`
+integrating dev `15612d55b1567959a5df2b9ef4dc9ed67286e69d` retained all 48 rows under the
+accepted default symbol-stripping profile. The prior Source-specific raw records
+remain separately retained.
+
+Workspace admission also enables the pre-existing allocation-backed constructor.
+Initialize its test-only counter field as well as the fixed constructor; no
+product field or allocation behavior changes. The alloc/step-test-support feature
+combination passes all 77 nonmanual kernel tests and strict all-target Clippy.
+The retained fixed-constructor raw runs keep their original Source identities.

@@ -93,6 +93,8 @@ where
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
+            #[cfg(test)]
+            scan_counts: core::cell::Cell::new(scan_characterization::ScanCounts::default()),
         }))
     }
 }
