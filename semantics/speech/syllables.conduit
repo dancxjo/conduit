@@ -1,0 +1,58 @@
+# Shared target syllable grouping over admitted target phone occurrences.
+# The compact profile permits at most32 phones per syllable; it never infers a
+# grouping, stress, nucleus, timing or phoneme/phone correspondence from spelling.
+type SpeechSyllableId = Text <= 64B not in [""]
+type SpeechPlannedSyllableIntent = {
+    identity: SpeechSyllableId
+    basis: SpeechTokenSequenceBasis
+    phones: sequence LanguageSpeechTokenRef in 1..=32
+    phone_positions: sequence SpeechSyllablePosition in 1..=32
+    stress: StressSpecification
+    span: SpeechSegmentSpan?
+    nucleus_index: U64 in 0..=31?
+    provenance: SpeechEvidenceProvenance
+    where sequence/length(.phones) == sequence/length(.phone_positions)
+    where .nucleus_index is some ? .nucleus_index.some < sequence/length(.phones) : true
+    where .nucleus_index is some ? (.nucleus_index.some < sequence/length(.phone_positions) ? sequence/at(.phone_positions,.nucleus_index.some) is nucleus : false) : true
+}
+# A complete owner checks each member against the original phone sequence using
+# SpeechSequenceReferenceMatch and retains every resulting Native receipt.
+type SpeechSyllableMemberMatch = {
+    syllable: SpeechPlannedSyllableIntent
+    index: U64 in 0..=31
+    occurrence: LanguageSpeechTokenRef
+    where .index < sequence/length(.syllable.phones)
+    where .index < sequence/length(.syllable.phones) ? .occurrence == sequence/at(.syllable.phones,.index) : false
+    where .occurrence.utterance_id == .syllable.basis.utterance_id
+    where .occurrence.sequence_id == .syllable.basis.sequence_id
+    where .occurrence.revision_id == .syllable.basis.revision_id
+    where .occurrence.inventory_id == .syllable.basis.inventory_id
+    where .occurrence.language == .syllable.basis.language
+}
+# Strict order rejects duplicated or reversed occurrences without imposing
+# contiguity or preventing explicitly shared occurrences between syllables.
+type SpeechSyllableMemberOrder = {
+    earlier: LanguageSpeechTokenRef
+    later: LanguageSpeechTokenRef
+    where .earlier.utterance_id == .later.utterance_id
+    where .earlier.sequence_id == .later.sequence_id
+    where .earlier.revision_id == .later.revision_id
+    where .earlier.inventory_id == .later.inventory_id
+    where .earlier.language == .later.language
+    where .earlier.ordinal < .later.ordinal
+}
+# The grouping extends the existing intent carrier through a typed component;
+# the prepared owner retains the full original intent and phone sequence.
+type SpeechSyllableIntentBasis = {
+    intent: SpeechUtteranceIntent
+    syllable: SpeechPlannedSyllableIntent
+    where .syllable.basis.utterance_id == .intent.utterance_id
+    where .syllable.basis.revision_id == .intent.revision_id
+    where .syllable.basis.inventory_id == .intent.inventory_id
+    where .syllable.basis.language == .intent.language
+}
+type SpeechSyllableSequenceBasis = {
+    phones: SpeechPhoneSequence
+    syllable: SpeechPlannedSyllableIntent
+    where .syllable.basis == .phones.basis
+}
