@@ -117,3 +117,21 @@ pub fn source() -> String {
     ]
     .join("\n")
 }
+
+/// Admit the exact Source-produced numeric state without changing its fields.
+pub fn native_state(raw: &LanguageParserNumericState) -> LanguageParserState {
+    LanguageParserState::new(
+        raw.basis().clone(),
+        *raw.committed(),
+        *raw.depth(),
+        *raw.heads(),
+        raw.relation0().clone(),
+        raw.relation1().clone(),
+        raw.relation2().clone(),
+        raw.relation3().clone(),
+        *raw.stack(),
+        *raw.token_count(),
+        *raw.unread(),
+    )
+    .unwrap()
+}
