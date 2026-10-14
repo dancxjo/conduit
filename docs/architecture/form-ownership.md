@@ -38,7 +38,7 @@ Form migration or a more precise external-boundary justification.
 | Data | `data_reference.rs`, `measurement_profile_wire.rs`, `measurement_threshold_wire.rs`, `measurement_wire.rs`, `tensor_codec.rs` |
 | Human | `image_text_codec.rs`, `input_chord.rs`, `key_event.rs`, `human_interaction/canonical.rs` |
 | Network | `network_info.rs`, `record_delivery.rs`, `record_transcript.rs`, `typed_record.rs` |
-| Presentation | `bitmap.rs`, `graphics.rs` and nested graphics command codecs |
+| Face | `bitmap.rs`, `graphics.rs` and nested graphics command codecs |
 | Time | `historical_timeline_codec.rs`, `replay_codec.rs`, `retention_gap_codec.rs` |
 
 The migration order is driven by the completed #4382 audit and reviewed #4375

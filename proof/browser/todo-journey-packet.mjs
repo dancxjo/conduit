@@ -59,7 +59,7 @@ export function finalizeTodoJourney(captureRoot) {
     add: ['Add three things', 'Remember three errands.', 'Add items in the browser checklist.',
       browser.adds.map(item => item.text).join(' · '), 'Each accepted action commits the same list.', 'Join the list in a terminal.'],
     join: ['Meet the same list', 'Use the list from another Mask.', 'Wear and prefer the terminal Mask.',
-      'The terminal shows the three browser-added items.', 'Changing the presentation preserves the list.', 'Complete the first errand.'],
+      'The terminal shows the three browser-added items.', 'Changing the face preserves the list.', 'Complete the first errand.'],
     complete: ['Finish one errand', 'Mark an item done.', `Complete ${browser.item_text} in the terminal.`,
       'The checkpoint commits the completed item.', 'A terminal action changes the Body seen by the browser.', 'Refresh the browser to inspect the result.'],
     inspect: ['See what remains', 'Check the updated list.', 'Refresh the browser after the terminal completion.',
@@ -124,7 +124,7 @@ export function finalizeTodoJourney(captureRoot) {
   const lastAdd = browser.adds.at(-1);
   const mutation = value => ({ interaction_id: value.interaction_id, action_id: value.action_id,
     queue_sequence: value.queue_sequence, child_sign_id: value.write_terminal_sign.sign_id, outcome: 'produced' });
-  chapter('add', { face_id: lastAdd.after.face_id, face_revision: lastAdd.owner.presentation_revision_decimal,
+  chapter('add', { face_id: lastAdd.after.face_id, face_revision: lastAdd.owner.face_revision_decimal,
     show_id: lastAdd.after.show_id, observed_at_unix_ms: lastAdd.mutation.observed_at_unix_ms },
   { ...mutation(lastAdd.mutation), mask_kind: 'chromium' },
   [{ source: 'chromium', file: `browser/${lastAdd.screenshot}`, alt: 'Three items added to the browser checklist' }]);

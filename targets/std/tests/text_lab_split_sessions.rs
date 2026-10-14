@@ -86,7 +86,7 @@ fn exact_two_line_sessions_carry_both_production_kernel_fragments_to_terminal() 
     let base = "ws://127.0.0.1:1/conduit";
     let exact = exact_text_lab_split_plan(
         base,
-        &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+        &conduit_browser_runtime::face_nucleus::browser_text_upper_offer(),
     )
     .unwrap();
     let forward = binding(
@@ -171,9 +171,7 @@ fn exact_two_line_sessions_carry_both_production_kernel_fragments_to_terminal() 
             },
         );
         browser.deliver_upper(upper.sequence).unwrap();
-        native
-            .drive_presentation((upper.sequence + 1) as usize)
-            .unwrap();
+        native.drive_face((upper.sequence + 1) as usize).unwrap();
     }
     assert_eq!(native.presented(), "HELLO");
 

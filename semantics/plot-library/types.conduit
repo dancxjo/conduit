@@ -9,4 +9,4 @@ type LibraryAvailability =
 type LibraryRefusal =
     invalid_inventory
     | search_bound
-    | presentation
+    | face

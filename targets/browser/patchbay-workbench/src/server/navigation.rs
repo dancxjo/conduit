@@ -1,22 +1,20 @@
-//! Stale-fenced portable navigation over the current exact Presentation.
+//! Stale-fenced portable navigation over the current exact Face.
 
 use super::{PatchbayHtmlServer, ServerError};
-use conduit_presentation::{
-    NavigationOperation, PresentationAspect, PresentationDepth, PresentationPlace,
-};
+use conduit_face::{FaceAspect, FaceDepth, FacePlace, NavigationOperation};
 use serde::Deserialize;
 
 pub(super) fn navigation_state(
     snapshot: &crate::RendererSnapshot,
-) -> Result<Option<conduit_presentation::NavigationState>, ServerError> {
+) -> Result<Option<conduit_face::NavigationState>, ServerError> {
     snapshot
         .navigation
         .as_ref()
         .map(|navigation| {
-            conduit_presentation::NavigationState::new(
+            conduit_face::NavigationState::new(
                 &navigation.navigation,
                 navigation.cursor.clone(),
-                conduit_presentation::MAX_NAVIGATION_HISTORY,
+                conduit_face::MAX_NAVIGATION_HISTORY,
             )
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))
         })
@@ -26,8 +24,8 @@ pub(super) fn navigation_state(
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct NavigationInput {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     navigation_id: String,
     operation: NavigationInputOperation,
 }
@@ -36,20 +34,20 @@ struct NavigationInput {
 #[serde(tag = "kind", rename_all = "kebab-case", deny_unknown_fields)]
 enum NavigationInputOperation {
     Enter {
-        place: PresentationPlace,
+        place: FacePlace,
     },
     Show {
-        aspect: PresentationAspect,
+        aspect: FaceAspect,
     },
     Focus {
         subject: String,
-        depth: Option<PresentationDepth>,
+        depth: Option<FaceDepth>,
     },
     Follow {
         relationship: String,
     },
     Disclose {
-        depth: PresentationDepth,
+        depth: FaceDepth,
     },
     Back,
 }
@@ -97,9 +95,9 @@ impl PatchbayHtmlServer {
         if state.cursor().place != destination.0 {
             state
                 .navigate(
-                    &self.snapshot.presentation,
+                    &self.snapshot.face,
                     &navigation.navigation,
-                    self.snapshot.presentation.revision,
+                    self.snapshot.face.revision,
                     NavigationOperation::Enter(destination.0),
                 )
                 .map_err(|error| ServerError::Interaction(format!("debugger place: {error:?}")))?;
@@ -107,22 +105,19 @@ impl PatchbayHtmlServer {
         if state.cursor().aspect != destination.1 {
             state
                 .navigate(
-                    &self.snapshot.presentation,
+                    &self.snapshot.face,
                     &navigation.navigation,
-                    self.snapshot.presentation.revision,
+                    self.snapshot.face.revision,
                     NavigationOperation::Show(destination.1),
                 )
                 .map_err(|error| ServerError::Interaction(format!("debugger aspect: {error:?}")))?;
         }
         let cursor = state
             .navigate(
-                &self.snapshot.presentation,
+                &self.snapshot.face,
                 &navigation.navigation,
-                self.snapshot.presentation.revision,
-                NavigationOperation::FocusAndDisclose(
-                    subject.to_owned(),
-                    PresentationDepth::Detail,
-                ),
+                self.snapshot.face.revision,
+                NavigationOperation::FocusAndDisclose(subject.to_owned(), FaceDepth::Detail),
             )
             .map_err(|error| ServerError::Interaction(format!("debugger focus: {error:?}")))?;
         navigation.cursor = cursor.clone();
@@ -138,10 +133,10 @@ impl PatchbayHtmlServer {
         let Some(navigation) = self.snapshot.navigation.as_mut() else {
             return self.finish_navigation("Refused(NavigationUnavailable)");
         };
-        if input.presentation_id != self.snapshot.presentation.identity.as_str()
-            || input.presentation_revision != self.snapshot.presentation.revision
+        if input.face_id != self.snapshot.face.identity.as_str()
+            || input.face_revision != self.snapshot.face.revision
         {
-            return self.finish_navigation("Refused(StalePresentation)");
+            return self.finish_navigation("Refused(StaleFace)");
         }
         if input.navigation_id != navigation.navigation.identity.as_str() {
             return self.finish_navigation("Refused(StaleNavigation)");
@@ -150,9 +145,9 @@ impl PatchbayHtmlServer {
             return self.finish_navigation("Refused(NavigationUnavailable)");
         };
         match state.navigate(
-            &self.snapshot.presentation,
+            &self.snapshot.face,
             &navigation.navigation,
-            input.presentation_revision,
+            input.face_revision,
             input.operation.into(),
         ) {
             Ok(cursor) => {
@@ -203,23 +198,23 @@ mod tests {
             PatchbayHtmlServer::bind_front_door_with_plots_ephemeral(vec![plot]).unwrap();
         let plot = server
             .snapshot
-            .presentation
+            .face
             .subjects
             .iter()
-            .find(|subject| subject.role == conduit_presentation::PresentationRole::Plot)
+            .find(|subject| subject.role == conduit_face::FaceRole::Plot)
             .unwrap()
             .identity
             .clone();
         let action = server
             .snapshot
-            .presentation
+            .face
             .actions
             .iter()
             .find(|action| action.target == plot && action.intent == "conduit.intent/open@1")
             .unwrap();
         let request = serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity.as_str(),
-            "presentation_revision": server.snapshot.presentation.revision,
+            "face_id": server.snapshot.face.identity.as_str(),
+            "face_revision": server.snapshot.face.revision,
             "kind": "invoke",
             "subject": null,
             "action_id": action.identity,
@@ -233,8 +228,8 @@ mod tests {
     fn request(server: &PatchbayHtmlServer, operation: serde_json::Value) -> Vec<u8> {
         let navigation = server.snapshot.navigation.as_ref().unwrap();
         serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity.as_str(),
-            "presentation_revision": server.snapshot.presentation.revision,
+            "face_id": server.snapshot.face.identity.as_str(),
+            "face_revision": server.snapshot.face.revision,
             "navigation_id": navigation.navigation.identity.as_str(),
             "operation": operation,
         }))
@@ -244,11 +239,11 @@ mod tests {
     #[test]
     fn navigation_changes_only_the_portable_cursor_and_back_is_bounded() {
         let mut server = server();
-        let before = server.snapshot.presentation.clone();
+        let before = server.snapshot.face.clone();
         let renderer = server.snapshot.renderer.clone();
         assert_eq!(
             server.snapshot.navigation.as_ref().unwrap().cursor.place,
-            PresentationPlace::Program
+            FacePlace::Program
         );
 
         let enter = request(
@@ -259,9 +254,9 @@ mod tests {
             serde_json::from_slice(&server.apply_navigation(&enter).unwrap()).unwrap();
         assert_eq!(
             entered.navigation.as_ref().unwrap().cursor.place,
-            PresentationPlace::Entrance
+            FacePlace::Entrance
         );
-        assert_eq!(entered.presentation, before);
+        assert_eq!(entered.face, before);
         assert_eq!(entered.renderer, renderer);
 
         let back = request(&server, serde_json::json!({"kind":"back"}));
@@ -269,9 +264,9 @@ mod tests {
             serde_json::from_slice(&server.apply_navigation(&back).unwrap()).unwrap();
         assert_eq!(
             backed.navigation.as_ref().unwrap().cursor.place,
-            PresentationPlace::Program
+            FacePlace::Program
         );
-        assert_eq!(backed.presentation, before);
+        assert_eq!(backed.face, before);
 
         let exhausted = request(&server, serde_json::json!({"kind":"back"}));
         let exhausted: crate::RendererSnapshot =
@@ -280,7 +275,7 @@ mod tests {
             exhausted.interaction.last_disposition.as_deref(),
             Some("Refused(HistoryExhausted)")
         );
-        assert_eq!(exhausted.presentation, before);
+        assert_eq!(exhausted.face, before);
     }
 
     #[test]
@@ -288,8 +283,8 @@ mod tests {
         let mut server = server();
         let before = server.snapshot.navigation.as_ref().unwrap().cursor.clone();
         let stale = serde_json::to_vec(&serde_json::json!({
-            "presentation_id": server.snapshot.presentation.identity.as_str(),
-            "presentation_revision": server.snapshot.presentation.revision,
+            "face_id": server.snapshot.face.identity.as_str(),
+            "face_revision": server.snapshot.face.revision,
             "navigation_id": "stale/navigation",
             "operation": {"kind":"enter", "place":"Entrance"},
         }))

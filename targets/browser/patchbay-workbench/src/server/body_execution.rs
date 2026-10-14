@@ -116,16 +116,15 @@ impl PatchbayHtmlServer {
         snapshot.body_planning = Some(planning.snapshot());
         if let (Some(control), Some(play)) = (&mut self.mask_control, started_play.as_ref()) {
             control
-                .refresh_presentation(snapshot.presentation.clone())
+                .refresh_face(snapshot.face.clone())
                 .map_err(|error| ServerError::Interaction(format!("Mask refresh: {error:?}")))?;
             let topology = control
                 .project_current(&planning, play)
                 .map_err(|error| ServerError::Interaction(format!("Mask projection: {error:?}")))?;
             snapshot.mask_topology = Some(
-                patchbay_application::project_mask_topology(control.presentation(), &topology)
-                    .map_err(|error| {
-                        ServerError::Interaction(format!("Mask projection: {error:?}"))
-                    })?,
+                patchbay_application::project_mask_topology(control.face(), &topology).map_err(
+                    |error| ServerError::Interaction(format!("Mask projection: {error:?}")),
+                )?,
             );
         }
         snapshot.interaction.revision = snapshot

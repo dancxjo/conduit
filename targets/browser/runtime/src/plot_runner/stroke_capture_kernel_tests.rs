@@ -39,7 +39,7 @@ fn fragment() -> PlanFragment {
     let capture = browser
         .capabilities
         .iter()
-        .find(|offer| offer.kind_id.as_str() == conduit_presentation::CAPTURE_BOUNDED_STROKE_KIND)
+        .find(|offer| offer.kind_id.as_str() == conduit_face::CAPTURE_BOUNDED_STROKE_KIND)
         .unwrap();
     let mut source_offer = capture.clone();
     source_offer.kind_id = "fixture/point-flow".into();
@@ -158,7 +158,7 @@ fn fragment() -> PlanFragment {
 }
 
 fn point(x: i64) -> Vec<u8> {
-    conduit_presentation::point2_value(
+    conduit_face::point2_value(
         "controller/normalized",
         Quantity::new(x, Unit::Millimeter),
         Quantity::new(0, Unit::Millimeter),
@@ -200,11 +200,8 @@ fn planned_browser_capture_retains_four_ordered_points_without_new_allocations()
     );
     let path =
         conduit_core::StructuredInfoValue::from_canonical_bytes(&output.canonical_value).unwrap();
-    assert_eq!(
-        path.value_type(),
-        &conduit_presentation::path2_type(4).unwrap()
-    );
-    let expected = conduit_presentation::path2_value(
+    assert_eq!(path.value_type(), &conduit_face::path2_type(4).unwrap());
+    let expected = conduit_face::path2_value(
         [3, 5, 8, 13]
             .into_iter()
             .map(|x| conduit_core::StructuredInfoValue::from_canonical_bytes(&point(x)).unwrap())

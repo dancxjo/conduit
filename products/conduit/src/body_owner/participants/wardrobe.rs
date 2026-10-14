@@ -1,7 +1,7 @@
 //! Browser presence transport for explicit owner wardrobe inspection and Apply.
 use super::{transport::Socket, Out, PROTOCOL};
 use conduit_core::{LinkBindingId, PlanId};
-use conduit_presentation::{MaskWardrobeAction, OwnerFaceSnapshotRequest};
+use conduit_face::{MaskWardrobeAction, OwnerFaceSnapshotRequest};
 use std::path::Path;
 
 #[allow(clippy::too_many_arguments)]

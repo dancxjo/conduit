@@ -55,10 +55,14 @@ pub fn encode_assigned_plan(
         let mut value = Vec::new();
         u16_to(&mut value, entry.node);
         identity_to(&mut value, &entry.key);
-        match entry.value {
+        match &entry.value {
+            GeneratedConfigurationValue::Text(item) => {
+                value.push(3);
+                value.extend_from_slice(item.as_bytes());
+            }
             GeneratedConfigurationValue::Bool(item) => {
                 value.push(0);
-                value.extend_from_slice(&[u8::from(item), 0, 0, 0, 0, 0, 0, 0]);
+                value.extend_from_slice(&[u8::from(*item), 0, 0, 0, 0, 0, 0, 0]);
             }
             GeneratedConfigurationValue::I64(item) => {
                 value.push(1);

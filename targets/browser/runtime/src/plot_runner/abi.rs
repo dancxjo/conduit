@@ -230,7 +230,7 @@ pub extern "C" fn conduit_tour_start(
         source_length,
         play_sequence,
         false,
-        crate::installed_browser::PresentationProfile::Annotation,
+        crate::installed_browser::FaceProfile::Annotation,
     )
 }
 
@@ -248,11 +248,11 @@ pub extern "C" fn conduit_tour_start_recursive(
         source_length,
         play_sequence,
         true,
-        crate::installed_browser::PresentationProfile::Annotation,
+        crate::installed_browser::FaceProfile::Annotation,
     )
 }
 
-/// Select the exact Quantity-leaf presentation profile, without changing authored meaning.
+/// Select the exact Quantity-leaf face profile, without changing authored meaning.
 #[no_mangle]
 pub extern "C" fn conduit_tour_start_quantity(
     host_length: usize,
@@ -266,7 +266,7 @@ pub extern "C" fn conduit_tour_start_quantity(
         source_length,
         play_sequence,
         false,
-        crate::installed_browser::PresentationProfile::Quantity,
+        crate::installed_browser::FaceProfile::Quantity,
     )
 }
 
@@ -276,7 +276,7 @@ fn start(
     source_length: usize,
     play_sequence: u64,
     recursive: bool,
-    presentation: crate::installed_browser::PresentationProfile,
+    face: crate::installed_browser::FaceProfile,
 ) -> i32 {
     clear_output();
     let source_interaction = SOURCE_INTERACTION.with(|slot| slot.borrow_mut().take());
@@ -318,21 +318,20 @@ fn start(
                 .map_err(|_| ERROR_OUTPUT)?;
                 return Err(ERROR_INTERACTION);
             }
-            let prepared =
-                if presentation != crate::installed_browser::PresentationProfile::Annotation {
-                    TourSession::prepare_with_profile(
-                        host,
-                        boot,
-                        source,
-                        play_sequence,
-                        super::MorseRealization::Direct,
-                        presentation,
-                    )
-                } else if recursive {
-                    TourSession::prepare_recursive(host, boot, source, play_sequence)
-                } else {
-                    TourSession::prepare(host, boot, source, play_sequence)
-                };
+            let prepared = if face != crate::installed_browser::FaceProfile::Annotation {
+                TourSession::prepare_with_profile(
+                    host,
+                    boot,
+                    source,
+                    play_sequence,
+                    super::MorseRealization::Direct,
+                    face,
+                )
+            } else if recursive {
+                TourSession::prepare_recursive(host, boot, source, play_sequence)
+            } else {
+                TourSession::prepare(host, boot, source, play_sequence)
+            };
             let (mut session, mut effect) = match prepared {
                 Ok(prepared) => prepared,
                 Err(message) => {

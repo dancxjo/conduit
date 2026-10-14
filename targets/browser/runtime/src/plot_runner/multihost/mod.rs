@@ -69,7 +69,7 @@ pub(super) fn run_resident(source: &str) -> Result<ResidentProof, String> {
     }
     let delivered = match receiver.complete_manifestation()? {
         Output::Line { frame, .. } => frame,
-        _ => return Err("resident Tour sink Host did not acknowledge presentation".into()),
+        _ => return Err("resident Tour sink Host did not acknowledge face".into()),
     };
     let close = match sender.ingest(*delivered)? {
         Output::Line { frame, .. } => frame,

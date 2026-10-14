@@ -14,8 +14,8 @@ use crate::{
 };
 use conduit_birth_plot::{BirthActionOutcome, BirthFaceBasis};
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
+use conduit_face::{Face, FaceInteraction, MaskShow, RemoteOwnerMaskRouteSeal};
 use conduit_human::KeyEvent;
-use conduit_presentation::{FaceInteraction, MaskShow, Presentation, RemoteOwnerMaskRouteSeal};
 
 pub(super) struct FaceArrival {
     mask: NativeFaceMask,
@@ -23,7 +23,7 @@ pub(super) struct FaceArrival {
     next_observation: u64,
     next_play: u64,
     next_interaction: u64,
-    owner_face: Option<Presentation>,
+    owner_face: Option<Face>,
     preparation: NativeMaskPreparation,
 }
 
@@ -36,11 +36,11 @@ struct NativeMaskPreparation {
     provider: NativeSurfaceProvider,
     minimum_text_scale_percent: u16,
     forced_colors: bool,
-    owner_host: Option<conduit_presentation::RemoteMaskHostBasis>,
+    owner_host: Option<conduit_face::RemoteMaskHostBasis>,
     route_plan_id: Option<conduit_core::PlanId>,
     selected: Option<(
-        conduit_presentation::ComponentMaskLook,
-        conduit_presentation::TodoComponentRecipe,
+        conduit_face::ComponentMaskLook,
+        conduit_face::TodoComponentRecipe,
     )>,
 }
 
@@ -107,8 +107,8 @@ impl FaceArrival {
         identities: BootIdentities,
         prior: &crate::native_guest_face::NativeGuestFace,
         route: &mut NativeOwnerReturnRoute,
-        look: conduit_presentation::ComponentMaskLook,
-        recipe: conduit_presentation::TodoComponentRecipe,
+        look: conduit_face::ComponentMaskLook,
+        recipe: conduit_face::TodoComponentRecipe,
         display: &mut impl PixelTarget,
     ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
         let old_show = self.mask.show().cloned().ok_or("owner-face-show-absent")?;
@@ -148,11 +148,7 @@ impl FaceArrival {
         self.preparation.owner_host = fresh.route().map(|route| route.owner_host.clone());
         self.preparation.route_plan_id = fresh.route().map(|route| route.route_plan_id.clone());
         // Keep owner Face identity/revision and independent Mask publication counters.
-        self.present_owner_face(
-            fresh.presentation().clone(),
-            fresh.interactions_admitted(),
-            display,
-        )?;
+        self.present_owner_face(fresh.face().clone(), fresh.interactions_admitted(), display)?;
         Ok(())
     }
 
@@ -170,8 +166,8 @@ impl FaceArrival {
                 100
             };
         let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_presentation::ComponentMaskLook::Compact,
-            conduit_presentation::TodoComponentRecipe::Flat,
+            conduit_face::ComponentMaskLook::Compact,
+            conduit_face::TodoComponentRecipe::Flat,
         ));
         self.select_owner_component(identities, prior, route, look, recipe, display)
     }
@@ -185,8 +181,8 @@ impl FaceArrival {
     ) -> Result<crate::native_guest_face::NativeGuestFace, &'static str> {
         self.preparation.forced_colors = !self.preparation.forced_colors;
         let (look, recipe) = self.preparation.selected.unwrap_or((
-            conduit_presentation::ComponentMaskLook::Compact,
-            conduit_presentation::TodoComponentRecipe::Flat,
+            conduit_face::ComponentMaskLook::Compact,
+            conduit_face::TodoComponentRecipe::Flat,
         ));
         self.select_owner_component(identities, prior, route, look, recipe, display)
     }
@@ -225,7 +221,7 @@ impl FaceArrival {
 
     pub(super) fn present_owner_face(
         &mut self,
-        face: Presentation,
+        face: Face,
         interactions_admitted: bool,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
@@ -307,8 +303,8 @@ impl FaceArrival {
         ) {
             let evidence = serde_json::to_vec(&serde_json::json!({
                 "schema":"conduit.conduitos/component-realization@1",
-                "presentation":face,
-                "presentation_revision_decimal":alloc::format!("{}",face.revision),
+                "face":face,
+                "face_revision_decimal":alloc::format!("{}",face.revision),
                 "owner_host":self.preparation.owner_host,
                 "route_plan_id":self.preparation.route_plan_id,
                 "configuration":configuration,
@@ -343,7 +339,7 @@ impl FaceArrival {
     /// A refreshed owner Face gets a new Show before any return interaction.
     pub(super) fn activate_refreshed_owner_route(
         &mut self,
-        face: Presentation,
+        face: Face,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         self.retire_owner_surface()?;
@@ -426,7 +422,7 @@ impl FaceArrival {
 
     fn present(
         &mut self,
-        face: conduit_presentation::Presentation,
+        face: conduit_face::Face,
         display: &mut impl PixelTarget,
     ) -> Result<CompositionReceipt, &'static str> {
         let observation = self.next_observation;
@@ -504,7 +500,7 @@ impl FaceArrival {
 mod tests {
     use super::*;
     use alloc::vec;
-    use conduit_presentation::{Face, FaceContext, FaceFocus};
+    use conduit_face::{BodyFace, FaceContext, FaceFocus};
 
     struct Display;
 
@@ -552,7 +548,7 @@ mod tests {
         )
         .unwrap();
         let face_at = |revision| {
-            Face::project(
+            BodyFace::project(
                 &body,
                 None,
                 revision,
@@ -561,7 +557,7 @@ mod tests {
                 vec![],
             )
             .unwrap()
-            .presentation
+            .face
         };
         let local = face_at(9);
         let owner = face_at(7);
@@ -584,9 +580,9 @@ mod tests {
                 &mut display,
             )
             .unwrap();
-        assert_eq!(receipt.presentation_id, owner.identity);
+        assert_eq!(receipt.face_id, owner.identity);
         assert_ne!(arrival.mask.show().unwrap().show_id, local_show);
-        assert_eq!(arrival.mask.scene().unwrap().presentation(), &owner);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &owner);
 
         arrival.retire_arrival_surface().unwrap();
         assert_eq!(
@@ -623,7 +619,7 @@ mod tests {
             "sign/owner-born".into(),
         )
         .unwrap();
-        let face = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             7,
@@ -632,7 +628,7 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let mut display = Display;
         arrival
             .mask
@@ -647,9 +643,9 @@ mod tests {
             .mask
             .present_read_only(face.clone(), 2, 2, &mut display)
             .unwrap();
-        assert_eq!(read_only.presentation_id, face.identity);
+        assert_eq!(read_only.face_id, face.identity);
         assert_ne!(arrival.mask.show().unwrap().show_id, active_show);
-        assert_eq!(arrival.mask.scene().unwrap().presentation(), &face);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
         assert_eq!(
             arrival
                 .mask
@@ -679,7 +675,7 @@ mod tests {
             "sign/owner-born".into(),
         )
         .unwrap();
-        let face = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             7,
@@ -688,7 +684,7 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let mut display = Display;
         arrival
             .mask
@@ -704,8 +700,8 @@ mod tests {
             .mask
             .present(face.clone(), 2, 2, &mut display)
             .unwrap();
-        assert_eq!(activated.presentation_id, face.identity);
+        assert_eq!(activated.face_id, face.identity);
         assert_ne!(arrival.mask.show().unwrap().show_id, standby_show);
-        assert_eq!(arrival.mask.scene().unwrap().presentation(), &face);
+        assert_eq!(arrival.mask.scene().unwrap().face(), &face);
     }
 }

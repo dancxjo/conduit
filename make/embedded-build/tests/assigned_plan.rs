@@ -34,8 +34,8 @@ fn local_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&first),
         [
-            44, 170, 129, 61, 22, 160, 231, 4, 252, 150, 98, 199, 183, 178, 20, 128, 62, 230, 122,
-            53, 214, 252, 177, 43, 125, 76, 142, 80, 235, 96, 108, 194,
+            12, 157, 148, 175, 9, 233, 240, 92, 190, 121, 207, 71, 75, 232, 185, 163, 165, 57, 71,
+            42, 254, 45, 212, 180, 153, 254, 146, 25, 77, 26, 223, 50
         ],
         "local assigned-plan golden changed"
     );
@@ -59,8 +59,8 @@ fn one_remote_assigned_plan_has_a_deterministic_golden_round_trip() {
     assert_eq!(
         assigned_plan_payload_digest(&bytes),
         [
-            88, 0, 40, 252, 114, 70, 49, 123, 200, 69, 196, 202, 93, 4, 66, 118, 253, 8, 246, 133,
-            11, 154, 219, 137, 49, 95, 60, 211, 133, 33, 150, 27,
+            74, 124, 180, 118, 83, 231, 177, 54, 66, 115, 193, 66, 76, 10, 23, 34, 253, 232, 153,
+            230, 52, 20, 14, 212, 136, 154, 19, 40, 170, 9, 148, 237
         ],
         "remote assigned-plan golden changed"
     );
@@ -275,7 +275,7 @@ fn assert_excludes_global_truth(bytes: &[u8], plan: &GeneratedEmbeddedPlan) {
         "checked/",
         "expanded/",
         "ExecutionPlan",
-        "Presentation",
+        "Face",
         "Body",
     ] {
         assert!(!bytes
@@ -307,4 +307,41 @@ fn remove_first_record(bytes: &[u8], wanted: u8) -> Vec<u8> {
         cursor = end;
     }
     panic!("wanted assigned-plan record was absent")
+}
+
+#[test]
+fn bounded_face_label_survives_the_assigned_image_exactly() {
+    use conduit_embedded_build::{GeneratedConfigurationEntry, GeneratedConfigurationValue};
+    let mut generated = local_signal_plan();
+    generated.configuration.push(GeneratedConfigurationEntry {
+        node: 0,
+        key: "label".into(),
+        value: GeneratedConfigurationValue::Text("Room temperature °C".into()),
+    });
+    let bytes = encode_assigned_plan(&generated, AssignedPlanMaxima::TINY_HOST).unwrap();
+    assert!(bytes
+        .windows("Room temperature °C".len())
+        .any(|part| part == "Room temperature °C".as_bytes()));
+    let operations = operation_requirements(&generated);
+    let resources = resource_requirements(&generated);
+    decode_assigned_plan(
+        &bytes,
+        AssignedPlanMaxima::TINY_HOST,
+        requirements(&generated, &operations, &resources, &[]),
+    )
+    .unwrap();
+    for invalid in ["x".repeat(129), " ".into(), "Room\ntemperature".into()] {
+        generated.configuration.last_mut().unwrap().value =
+            GeneratedConfigurationValue::Text(invalid);
+        let bytes = encode_assigned_plan(&generated, AssignedPlanMaxima::TINY_HOST).unwrap();
+        assert!(decode_assigned_plan(
+            &bytes,
+            AssignedPlanMaxima::TINY_HOST,
+            requirements(&generated, &operations, &resources, &[])
+        )
+        .is_err());
+    }
+    assert!(generated
+        .render_no_alloc_firmware_module()
+        .contains("Text(&'static str)"));
 }

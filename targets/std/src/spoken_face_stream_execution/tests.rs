@@ -7,14 +7,14 @@ use crate::spoken_face_mask::{
     ReaderCommand, SpokenBatchDelivery, SpokenFaceRefusal, SpokenFaceSession, SpokenTurnOutcome,
 };
 use conduit_core::{BootId, HostId, OfferGeneration};
-use conduit_presentation::{PresentationRole, PresentationSubject};
+use conduit_face::{FaceRole, FaceSubject};
 
-// Both spoken contracts share the one established presentation fixture source.
+// Both spoken contracts share the one established face fixture source.
 #[allow(clippy::duplicate_mod)]
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
-fn source(subjects: usize) -> (Presentation, MaskShow) {
+fn source(subjects: usize) -> (Face, MaskShow) {
     let plot = common::checked_renderer_plot();
     let plan = common::plan_for(
         &plot,
@@ -22,24 +22,24 @@ fn source(subjects: usize) -> (Presentation, MaskShow) {
             "linux-host",
             "linux-boot",
             "renderer-wayland",
-            "presentation/renderer-wayland@1",
+            "face/renderer-wayland@1",
             "patchbay-native/wayland@1",
-            "presentation/base/wayland-surface@1",
+            "face/base/wayland-surface@1",
             common::WAYLAND_RESOURCE,
         ),
     );
-    let base = common::presentation(&plot, &plan);
+    let base = common::face(&plot, &plan);
     let mut basis = base.basis;
     basis.body_id = None;
     basis.wake_id = None;
     let subjects = (0..subjects)
-        .map(|index| PresentationSubject {
+        .map(|index| FaceSubject {
             identity: if index == 0 {
                 "patchbay/plot".into()
             } else {
                 format!("item/{index}")
             },
-            role: PresentationRole::Region,
+            role: FaceRole::Region,
             name: if index == 0 {
                 "Welcome".into()
             } else {
@@ -47,22 +47,13 @@ fn source(subjects: usize) -> (Presentation, MaskShow) {
             },
         })
         .collect();
-    let face = Presentation::new_with_semantics(
-        1,
-        basis,
-        subjects,
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-        vec![],
-    )
-    .unwrap();
+    let face = Face::new_with_semantics(1, basis, subjects, vec![], vec![], vec![], vec![], vec![])
+        .unwrap();
     let show = common::available_mask_show(&face);
     (face, show)
 }
 
-fn batch(face: &Presentation, show: &MaskShow) -> (SpokenFaceSession, SpokenBatch) {
+fn batch(face: &Face, show: &MaskShow) -> (SpokenFaceSession, SpokenBatch) {
     let mut reader = SpokenFaceSession::new(face.clone(), show.clone()).unwrap();
     reader
         .command(face, show, ReaderCommand::ReadAll, 1)

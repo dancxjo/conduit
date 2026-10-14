@@ -8,6 +8,7 @@ use wire::*;
 
 use crate::{RendererSnapshot, SnapshotError};
 use conduit_core::{bind_active_play, BootId, HostId, PlanFragment, SignId};
+use conduit_face::{Face, RendererExecution, MAX_RENDERER_VALUE_BYTES};
 use conduit_kernel::scheduler::{
     FixedScheduler, HostCallRequest, RemoteIngressOutcome, SchedulerStatus, StepBack,
     StepInputBytes, StepIo, StepOutcome,
@@ -19,13 +20,12 @@ use conduit_kernel::{
 };
 use conduit_patchbay_workbench::{
     cross_host_renderer_plan, RendererAdapterIdentity, CROSS_HOST_MAXIMUM_FRAME_BYTES,
-    PRESENTATION_PROJECT_KIND,
+    FACE_PROJECT_KIND,
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredPlanFragment, RemoteCordDirection,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_presentation::{Presentation, RendererExecution, MAX_RENDERER_VALUE_BYTES};
 use conduit_std_host::websocket::{NativeWebSocketLine, NativeWebSocketListener};
 use conduit_wire::{
     decode_session_frame, encode_session_frame_into, SessionBinding, SessionMachine,
@@ -49,7 +49,7 @@ pub enum CrossHostRendererError {
     Kernel(String),
     Session(String),
     Line(String),
-    Presentation(String),
+    Face(String),
     Snapshot(SnapshotError),
     Worker,
 }
@@ -115,7 +115,7 @@ impl StepBack<PORTS> for RenderBack {
                             request,
                             HostCallId(0),
                             BoundedValueRef::new(value, MAX_RENDERER_VALUE_BYTES)
-                                .expect("planned Presentation value uses its admitted byte bound"),
+                                .expect("planned Face value uses its admitted byte bound"),
                         )
                         .is_err()
                 {
@@ -157,25 +157,24 @@ struct Source {
 }
 
 pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHostRendererError> {
-    let (presentation, parts) =
-        conduit_patchbay_workbench::portable_demonstration_with_parts_and_adapter(
-            &patchbay_hosted::HostedPatchbayAdapter,
-        )
-        .map_err(CrossHostRendererError::Presentation)?;
+    let (face, parts) = conduit_patchbay_workbench::portable_demonstration_with_parts_and_adapter(
+        &patchbay_hosted::HostedPatchbayAdapter,
+    )
+    .map_err(CrossHostRendererError::Face)?;
     let renderer_identity = RendererAdapterIdentity {
         host_id: HostId::from("patchbay-html/host"),
         boot_id: BootId::from("patchbay-html/boot"),
         target_subject: "patchbay-html/document-0".into(),
     };
     let exact = cross_host_renderer_plan(
-        HostId::from("patchbay-presentation/host"),
-        BootId::from("patchbay-presentation/boot"),
+        HostId::from("patchbay-face/host"),
+        BootId::from("patchbay-face/boot"),
         renderer_identity.clone(),
     )
     .map_err(CrossHostRendererError::Plan)?;
     let source_fragment = fragment_for(&exact.plan, &exact.source_advertisement.host_id)?.clone();
     let sink_fragment = fragment_for(&exact.plan, &exact.renderer_advertisement.host_id)?.clone();
-    let source = Source::prepare(presentation, &source_fragment, &sink_fragment)?;
+    let source = Source::prepare(face, &source_fragment, &sink_fragment)?;
     let sink = Sink::prepare(exact.plan, &sink_fragment, &source_fragment)?;
     let listener = NativeWebSocketListener::bind_loopback(CROSS_HOST_MAXIMUM_FRAME_BYTES)
         .map_err(|error| CrossHostRendererError::Line(format!("{error:?}")))?;
@@ -189,8 +188,8 @@ pub fn cross_host_demonstration_snapshot() -> Result<RendererSnapshot, CrossHost
     let mut snapshot = result?;
     snapshot.attach_parts(parts)?;
     let navigation =
-        patchbay_application::PatchbayNavigationProjection::for_embodied(&snapshot.presentation)
-            .map_err(CrossHostRendererError::Presentation)?;
+        patchbay_application::PatchbayNavigationProjection::for_embodied(&snapshot.face)
+            .map_err(CrossHostRendererError::Face)?;
     snapshot.attach_navigation(navigation)?;
     Ok(snapshot)
 }
@@ -256,38 +255,37 @@ fn sign_log() -> Result<HostedSignLog, CrossHostRendererError> {
         .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))
 }
 
-fn decode_presentation(bytes: &[u8]) -> Result<Presentation, CrossHostRendererError> {
+fn decode_face(bytes: &[u8]) -> Result<Face, CrossHostRendererError> {
     if bytes.len() > MAX_RENDERER_VALUE_BYTES as usize {
-        return Err(CrossHostRendererError::Presentation(
-            "Presentation Info exceeds its planned byte bound".into(),
+        return Err(CrossHostRendererError::Face(
+            "Face Info exceeds its planned byte bound".into(),
         ));
     }
-    let presentation: Presentation = serde_json::from_slice(bytes)
-        .map_err(|error| CrossHostRendererError::Presentation(error.to_string()))?;
-    presentation
-        .validate()
-        .map_err(|error| CrossHostRendererError::Presentation(error.to_string()))?;
-    Ok(presentation)
+    let face: Face = serde_json::from_slice(bytes)
+        .map_err(|error| CrossHostRendererError::Face(error.to_string()))?;
+    face.validate()
+        .map_err(|error| CrossHostRendererError::Face(error.to_string()))?;
+    Ok(face)
 }
 
 impl Source {
     fn prepare(
-        presentation: Presentation,
+        face: Face,
         fragment: &PlanFragment,
         _sink: &PlanFragment,
     ) -> Result<Self, CrossHostRendererError> {
-        if fragment.placements[0].kind_id.as_str() != PRESENTATION_PROJECT_KIND {
+        if fragment.placements[0].kind_id.as_str() != FACE_PROJECT_KIND {
             return Err(CrossHostRendererError::Plan(
-                "source placement is not the Presentation projector".into(),
+                "source placement is not the Face projector".into(),
             ));
         }
         let (lowered, binding, endpoint, cord) =
             lowered_remote(fragment, RemoteCordDirection::Egress)?;
-        let encoded = serde_json::to_vec(&presentation)
-            .map_err(|error| CrossHostRendererError::Presentation(error.to_string()))?;
+        let encoded = serde_json::to_vec(&face)
+            .map_err(|error| CrossHostRendererError::Face(error.to_string()))?;
         if encoded.len() > MAX_RENDERER_VALUE_BYTES as usize {
-            return Err(CrossHostRendererError::Presentation(
-                "encoded Presentation exceeds planned Info bound".into(),
+            return Err(CrossHostRendererError::Face(
+                "encoded Face exceeds planned Info bound".into(),
             ));
         }
         let mut values =
@@ -389,7 +387,7 @@ impl Source {
             .scheduler
             .remote_egress_offer(self.endpoint, self.cord)
             .map_err(|error| CrossHostRendererError::Kernel(format!("{error:?}")))?
-            .ok_or_else(|| CrossHostRendererError::Kernel("source omitted Presentation".into()))?;
+            .ok_or_else(|| CrossHostRendererError::Kernel("source omitted Face".into()))?;
         let payload = self
             .scheduler
             .host_value(offer.value)

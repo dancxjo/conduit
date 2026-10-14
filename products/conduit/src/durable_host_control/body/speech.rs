@@ -2,7 +2,7 @@
 use super::{DurableHostRuntime, HostSource};
 use crate::durable_host::selected_speech::AttachedEquipment;
 use conduit_core::LinkBindingId;
-use conduit_presentation::{MaskShow, OwnerFaceSnapshotRequest, Presentation};
+use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest};
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost};
 use serde_json::{json, Value};
 use std::{sync::mpsc, thread::JoinHandle};
@@ -76,7 +76,7 @@ enum SpeechSource {
         request: Box<OwnerFaceSnapshotRequest>,
     },
     Direct {
-        seal: Box<conduit_presentation::LocalOwnerMaskRouteSeal>,
+        seal: Box<conduit_face::LocalOwnerMaskRouteSeal>,
     },
 }
 impl SpeechSource {

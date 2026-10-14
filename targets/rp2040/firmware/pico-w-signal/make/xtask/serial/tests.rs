@@ -15,10 +15,10 @@ fn expected_identity() -> GeneratedImageIdentity {
         boot_id: "boot".into(),
         active_play_id: "play".into(),
         boot_sign_id: "boot-sign".into(),
-        presentation_ids: (0..EXPECTED_RECEIPTS)
-            .map(|sequence| format!("presentation-{sequence}"))
+        face_ids: (0..EXPECTED_RECEIPTS)
+            .map(|sequence| format!("face-{sequence}"))
             .collect(),
-        presentation_sign_ids: (0..EXPECTED_RECEIPTS)
+        face_sign_ids: (0..EXPECTED_RECEIPTS)
             .map(|sequence| format!("sign-{sequence}"))
             .collect(),
         terminal_sign_id: "terminal-sign".into(),
@@ -86,7 +86,7 @@ fn receipt(sequence: usize) -> String {
             "\"runtime_active_play_id\":\"{}\",",
             "\"sequence\":{},",
             "\"level\":{},",
-            "\"presentation_id\":\"presentation-{}\",",
+            "\"face_id\":\"face-{}\",",
             "\"sign_id\":\"sign-{}\"}}\n"
         ),
         runtime_play(),

@@ -9,10 +9,10 @@ use conduit_core::{
     BootId, HostId, OfferGeneration, SignId, TemporalInstant, TemporalRelation, TemporalScale,
     UNIX_UTC_CLOCK_BASIS,
 };
-use conduit_presentation::{
-    project_model_temporal_context, ModelTemporalContextFact, Presentation, PresentationBasis,
-    PresentationError, PresentationProperty, PresentationPropertyValue, PresentationRole,
-    PresentationSubject, PresentationTemporalFact, PresentationTemporalRole, TemporalReference,
+use conduit_face::{
+    project_model_temporal_context, Face, FaceBasis, FaceError, FaceProperty, FacePropertyValue,
+    FaceRole, FaceSubject, FaceTemporalFact, FaceTemporalRole, ModelTemporalContextFact,
+    TemporalReference,
 };
 use serde::{Deserialize, Serialize};
 
@@ -55,7 +55,7 @@ pub enum PeteCreateModelContextRefusal {
     InvalidTemporalTruth,
     UnsupportedModelClock,
     InvalidModelRequest,
-    InvalidPresentation(PresentationError),
+    InvalidFace(FaceError),
     ContextTooLarge,
 }
 
@@ -77,18 +77,18 @@ pub fn project_pete_create_model_context(
     }
 
     let observation = observation_identity(snapshot, channel);
-    let fact = PresentationTemporalFact::new(
+    let fact = FaceTemporalFact::new(
         observation.subject.clone(),
-        PresentationTemporalRole::Observation,
+        FaceTemporalRole::Observation,
         Some(sign_id.clone()),
         source,
         &reference,
     )
     .map_err(|_| PeteCreateModelContextRefusal::InvalidTemporalTruth)?;
     let freshness = freshness(fact.relation, snapshot.maximum_age_ticks)?;
-    let presentation = Presentation::new_with_semantics_and_temporal(
+    let face = Face::new_with_semantics_and_temporal(
         u64::from(snapshot.observation_generation),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: None,
@@ -98,9 +98,9 @@ pub fn project_pete_create_model_context(
             active_play_id: None,
             sign_ids: vec![sign_id.clone()],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: observation.subject.clone(),
-            role: PresentationRole::Info,
+            role: FaceRole::Info,
             name: format!("Pete Create {} observation", channel_name(channel)),
         }],
         vec![],
@@ -111,9 +111,9 @@ pub fn project_pete_create_model_context(
         vec![reference],
         vec![fact],
     )
-    .map_err(PeteCreateModelContextRefusal::InvalidPresentation)?;
-    let mut projected = project_model_temporal_context(&presentation)
-        .map_err(PeteCreateModelContextRefusal::InvalidPresentation)?;
+    .map_err(PeteCreateModelContextRefusal::InvalidFace)?;
+    let mut projected = project_model_temporal_context(&face)
+        .map_err(PeteCreateModelContextRefusal::InvalidFace)?;
     let observed = projected
         .pop()
         .ok_or(PeteCreateModelContextRefusal::InvalidObservation)?;
@@ -219,40 +219,40 @@ fn observation_identity(
 fn observation_properties(
     observation: &PeteCreateObservationIdentity,
     maximum_age_ticks: u32,
-) -> Vec<PresentationProperty> {
+) -> Vec<FaceProperty> {
     let subject = &observation.subject;
     [
         (
             "robot-identity",
-            PresentationPropertyValue::Identity(observation.robot_identity.clone()),
+            FacePropertyValue::Identity(observation.robot_identity.clone()),
         ),
         (
             "host-id",
-            PresentationPropertyValue::Identity(observation.host_id.as_str().into()),
+            FacePropertyValue::Identity(observation.host_id.as_str().into()),
         ),
         (
             "boot-id",
-            PresentationPropertyValue::Identity(observation.boot_id.as_str().into()),
+            FacePropertyValue::Identity(observation.boot_id.as_str().into()),
         ),
         (
             "offer-generation",
-            PresentationPropertyValue::Count(observation.offer_generation.0),
+            FacePropertyValue::Count(observation.offer_generation.0),
         ),
         (
             "observation-generation",
-            PresentationPropertyValue::Count(u64::from(observation.observation_generation)),
+            FacePropertyValue::Count(u64::from(observation.observation_generation)),
         ),
         (
             "channel",
-            PresentationPropertyValue::Text(observation.channel.clone()),
+            FacePropertyValue::Text(observation.channel.clone()),
         ),
         (
             "maximum-age-ticks",
-            PresentationPropertyValue::Count(u64::from(maximum_age_ticks)),
+            FacePropertyValue::Count(u64::from(maximum_age_ticks)),
         ),
     ]
     .into_iter()
-    .map(|(name, value)| PresentationProperty {
+    .map(|(name, value)| FaceProperty {
         subject: subject.clone(),
         name: name.into(),
         value,

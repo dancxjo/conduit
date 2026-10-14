@@ -2,17 +2,17 @@
 //! No scanout, installed-owner acknowledgement, or human observation is claimed.
 use super::*;
 use alloc::string::String;
-use conduit_presentation::MAX_GRAPHICS_COMMANDS;
+use conduit_face::MAX_GRAPHICS_COMMANDS;
 
 #[test]
 fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
     ))
     .unwrap();
     face.validate().unwrap();
     let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
     assert!(
         !scene.has_diagram(),
         "open roles must not invent a Gear/Port/Cord graph"
@@ -30,7 +30,7 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
         for command in frame.scene.commands() {
             assert_eq!(
                 command.clip_class(),
-                conduit_presentation::GraphicsClipClass::FullyVisible
+                conduit_face::GraphicsClipClass::FullyVisible
             );
             primary.push_str(command.payload());
         }
@@ -45,12 +45,9 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
         let frame = scene.frame().unwrap();
         assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
         assert!(
-            frame
-                .scene
-                .commands()
-                .iter()
-                .all(|command| command.clip_class()
-                    == conduit_presentation::GraphicsClipClass::FullyVisible)
+            frame.scene.commands().iter().all(
+                |command| command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
+            )
         );
         scene.turn_page(true);
     }
@@ -83,13 +80,13 @@ fn native_generic_mask_preserves_open_domain_meaning_and_typed_controls() {
         ),
         Err(FaceSceneError::UnknownControl)
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
 fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/finite-place-face.json"
     ))
     .unwrap();
     let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
@@ -101,7 +98,7 @@ fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() 
         for command in frame.scene.commands() {
             assert_eq!(
                 command.clip_class(),
-                conduit_presentation::GraphicsClipClass::FullyVisible
+                conduit_face::GraphicsClipClass::FullyVisible
             );
             visible.push_str(command.payload());
         }
@@ -135,17 +132,17 @@ fn native_generic_mask_preserves_finite_places_without_inventing_connectivity() 
             assert_eq!(resolved, Err(FaceSceneError::UnavailableAction));
         }
     }
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
 fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face() {
-    let lulled: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"
+    let lulled: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/lulled-body-face.json"
     ))
     .unwrap();
-    let awake: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"
+    let awake: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/awake-body-face.json"
     ))
     .unwrap();
     assert_eq!(lulled.basis.body_id, awake.basis.body_id);
@@ -162,7 +159,7 @@ fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face()
                         .commands()
                         .iter()
                         .all(|command| command.clip_class()
-                            == conduit_presentation::GraphicsClipClass::FullyVisible)
+                            == conduit_face::GraphicsClipClass::FullyVisible)
                 );
                 scene.turn_page(true);
             }
@@ -184,23 +181,23 @@ fn native_generic_mask_keeps_lifecycle_basis_and_refuses_the_other_states_face()
             scene.resolve(&face.identity, other.revision, control),
             Err(FaceSceneError::StaleFace)
         );
-        assert_eq!(scene.presentation(), face);
-        assert!(scene.presentation().basis.plan_id.is_none());
-        assert!(scene.presentation().basis.active_play_id.is_none());
+        assert_eq!(scene.face(), face);
+        assert!(scene.face().basis.plan_id.is_none());
+        assert!(scene.face().basis.active_play_id.is_none());
     }
 }
 
 #[test]
 fn native_prebirth_layout_preserves_choices_without_inventing_a_body() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/prebirth-face.json"
     ))
     .unwrap();
     let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
-    assert!(scene.presentation().basis.body_id.is_none());
-    assert!(scene.presentation().basis.wake_id.is_none());
-    assert!(scene.presentation().basis.plan_id.is_none());
-    assert!(scene.presentation().basis.active_play_id.is_none());
+    assert!(scene.face().basis.body_id.is_none());
+    assert!(scene.face().basis.wake_id.is_none());
+    assert!(scene.face().basis.plan_id.is_none());
+    assert!(scene.face().basis.active_play_id.is_none());
     let mut text = String::new();
     for details in [false, true] {
         scene.show_details(details);
@@ -210,7 +207,7 @@ fn native_prebirth_layout_preserves_choices_without_inventing_a_body() {
             for command in frame.scene.commands() {
                 assert_eq!(
                     command.clip_class(),
-                    conduit_presentation::GraphicsClipClass::FullyVisible
+                    conduit_face::GraphicsClipClass::FullyVisible
                 );
                 text.push_str(command.payload());
             }
@@ -236,18 +233,18 @@ fn native_prebirth_layout_preserves_choices_without_inventing_a_body() {
         ),
         Err(FaceSceneError::UnavailableAction)
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
 fn native_mask_preserves_complete_source_derived_patchbay_face() {
-    let face: Presentation = serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+    let face: Face = serde_json::from_str(include_str!(
+        "../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     face.validate().unwrap();
     let mut scene = NativeFaceScene::prepare(face.clone(), 640, 480).unwrap();
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
     assert!(
         scene.has_diagram(),
         "checked Gear/Port/Cord graph must be recognized"
@@ -270,14 +267,9 @@ fn native_mask_preserves_complete_source_derived_patchbay_face() {
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
             assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-            assert!(
-                frame
-                    .scene
-                    .commands()
-                    .iter()
-                    .all(|command| command.clip_class()
-                        == conduit_presentation::GraphicsClipClass::FullyVisible)
-            );
+            assert!(frame.scene.commands().iter().all(
+                |command| command.clip_class() == conduit_face::GraphicsClipClass::FullyVisible
+            ));
             scene.turn_page(true);
         }
     }
@@ -300,5 +292,5 @@ fn native_mask_preserves_complete_source_derived_patchbay_face() {
     scene.show_diagram(true);
     let frame = scene.frame().unwrap();
     assert!(frame.scene.commands().len() <= MAX_GRAPHICS_COMMANDS);
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }

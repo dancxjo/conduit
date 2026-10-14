@@ -12,7 +12,7 @@ mod body_chat_prompt_back;
 mod body_conversation_context_back;
 pub(crate) mod body_kernel;
 mod body_scan_back;
-mod bool_presentation;
+mod bool_face;
 mod calendar_proposal_back;
 mod calendar_proposal_codec;
 pub(super) mod calendar_proposal_encoding;
@@ -92,14 +92,14 @@ mod combine_latest_back;
 mod current_sample_back;
 mod data_text_back;
 mod data_text_host;
+mod face_composition;
+mod face_construction_host;
 mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
 mod model_work_back;
 mod model_work_host;
-mod presentation_composition;
-mod presentation_construction_host;
 mod pulse_observation_back;
 #[cfg(test)]
 mod pulse_observation_sink;
@@ -123,13 +123,13 @@ pub(super) mod rhythm_compare_host;
 mod robotics_backs;
 mod robotics_effect;
 mod sequence_normalization_back;
-mod simple_presentation_host;
+mod simple_face_host;
 mod speech_recognition_adapter_back;
 mod speech_synthesis_back;
 mod speech_synthesis_host;
 mod spoken_mask_backs;
 mod state_select_back;
-mod structured_presentation_host;
+mod structured_face_host;
 mod structured_selector_back;
 mod structured_values_back;
 mod synth_back;
@@ -173,7 +173,7 @@ mod text_backs_tests;
 mod text_state_back;
 mod thermostat_combine_back;
 mod tick_backs;
-mod tick_presentation;
+mod tick_face;
 mod time_sample_back;
 mod time_window_back;
 mod timed_button_attempt_back;
@@ -481,20 +481,20 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         return Err("sealed external Fore output has no acknowledging adapter".into());
     }
 
-    let presentation_capacity = fragment
+    let face_capacity = fragment
         .placements
         .iter()
         .filter(|placement| {
             placement.implementation_id.as_str()
-                == conduit_std_offers::STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                == conduit_std_offers::STRUCTURED_FACE_STD_IMPLEMENTATION
         })
         .count();
     let mut execution_identity = KernelExecutionIdentityMap::new(
         &lowered.identity,
         &active_play,
         request_capacity,
-        presentation_capacity,
-        presentation_capacity.saturating_add(2),
+        face_capacity,
+        face_capacity.saturating_add(2),
     )
     .map_err(|error| format!("prepare std execution identity: {error:?}"))?;
     let mut requests = Vec::<HostCallRequest>::with_capacity(request_capacity);
@@ -510,9 +510,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_std_offers::button::NEXT_TRANSITION_HOST_CALL,
     );
     let mut deadlines = deadline_host::InstalledDeadlineHost::<PENDING_REQUESTS>::new();
-    let graphics_presentation_target_kind = kind_id("presentation/graphics-scene");
-    let structured_presentation_target_kind =
-        kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET);
+    let graphics_face_target_kind = kind_id("face/graphics-scene");
+    let structured_face_target_kind = kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET);
     let upper_contract_id =
         conduit_core::HostCallContractId::from(conduit_std_offers::TEXT_UPPER_HOST_CALL_CONTRACT);
     let upper_target_kind = kind_id(conduit_std_offers::TEXT_UPPER_HOST_CALL_TARGET);
@@ -533,8 +532,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         conduit_core::HostCallContractId::from(conduit_std_offers::CHORDS_HOST_CALL);
     let chords_target_kind = kind_id(conduit_std_offers::CHORDS_HOST_TARGET);
     let mut math_host = math_host::MathHost::prepare(fragment)?;
-    let presentation_construction =
-        presentation_construction_host::PresentationConstructionHost::prepare();
+    let face_construction = face_construction_host::FaceConstructionHost::prepare();
     let mut text_output_buffer = Vec::with_capacity(
         (contract::MAX_TEXT_BYTES as usize).max(conduit_text::MAXIMUM_MORSE_PATTERN_BYTES),
     );
@@ -608,11 +606,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut navigation_hosts = navigation_backs::prepare_hosts(fragment);
     let mut typed_record_hosts = typed_record_back::prepare_hosts(fragment);
     let mut record_delivery_hosts = record_delivery_back::prepare_hosts(fragment)?;
-    let mut structured_presentation_host =
-        structured_presentation_host::StructuredPresentationHost::prepare(
-            fragment,
-            &lowered.identity,
-        )?;
+    let mut structured_face_host =
+        structured_face_host::StructuredFaceHost::prepare(fragment, &lowered.identity)?;
     let mut rhythm_compare_hosts = fragment
         .placements
         .iter()
@@ -2155,7 +2150,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                 continue;
             } else if matches!(
                 contract.as_str(),
-                conduit_std_offers::PRESENTATION_REQUEST_OPERATION
+                conduit_std_offers::FACE_REQUEST_OPERATION
                     | conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION
                     | conduit_std_offers::BUILD_VALIDATION_ENVELOPE_OPERATION
                     | conduit_std_offers::ASSESS_GENERATED_ENVELOPE_OPERATION
@@ -2194,8 +2189,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                         "spoken Mask semantic Host Call has no exact prepared session".to_string()
                     })?;
                     match contract.as_str() {
-                        conduit_std_offers::PRESENTATION_REQUEST_OPERATION => {
-                            session.adapt_presentation(input).map(Some)
+                        conduit_std_offers::FACE_REQUEST_OPERATION => {
+                            session.adapt_face(input).map(Some)
                         }
                         conduit_std_offers::REGISTER_VALIDATION_REQUEST_OPERATION => {
                             session.register_validation_request(input).map(|()| None)
@@ -3257,10 +3252,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             } else if math_host.matches(contract, lowered_operation.target_kind.as_ref()) {
                 math_host.complete(fragment, request, &mut scheduler, &mut requests)?;
                 continue;
-            } else if presentation_construction
-                .matches(contract, lowered_operation.target_kind.as_ref())
-            {
-                presentation_construction.complete(
+            } else if face_construction.matches(contract, lowered_operation.target_kind.as_ref()) {
+                face_construction.complete(
                     fragment,
                     request,
                     contract,
@@ -3276,27 +3269,38 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, outcome)
                     .map_err(|error| format!("complete indicator operation: {error:?}"))?;
                 continue;
-            } else if lowered_operation.target_kind.as_ref()
-                == Some(&graphics_presentation_target_kind)
-            {
-                let scene =
-                    conduit_presentation::GraphicsScene::decode(input).map_err(|error| {
-                        format!("graphics presentation input is invalid: {error:?}")
-                    })?;
+            } else if lowered_operation.target_kind.as_ref() == Some(&graphics_face_target_kind) {
+                let scene = conduit_face::GraphicsScene::decode(input)
+                    .map_err(|error| format!("graphics face input is invalid: {error:?}"))?;
                 writeln!(
                     _output,
                     "graphics scene commands={}",
                     scene.commands().len()
                 )
                 .map_err(|error| error.to_string())?;
-            } else if lowered_operation.target_kind.as_ref()
-                == Some(&structured_presentation_target_kind)
-            {
-                structured_presentation_host.capture(request, input)?;
-            } else if !simple_presentation_host::present(
+            } else if lowered_operation.target_kind.as_ref() == Some(&structured_face_target_kind) {
+                structured_face_host.capture(request, input)?;
+            } else if !simple_face_host::present_named(
                 lowered_operation.target_kind.as_ref(),
                 input,
                 _output,
+                fragment
+                    .placements
+                    .iter()
+                    .find(|placement| {
+                        lowered.identity.node_for_placement(&placement.placement_id)
+                            == Some(request.node)
+                    })
+                    .filter(|placement| {
+                        placement
+                            .configuration
+                            .iter()
+                            .any(|entry| entry.key == "label")
+                    })
+                    .map(|placement| {
+                        conduit_semantic_catalog::face_data_label(&placement.configuration)
+                    })
+                    .transpose()?,
             )? {
                 #[cfg(test)]
                 {
@@ -3585,9 +3589,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .map_err(|error| format!("bind std request identity: {error:?}"))?;
     }
     if !matches!(terminal_disposition, TerminalDisposition::Completed) {
-        structured_presentation_host.retain_realized_effects();
+        structured_face_host.retain_realized_effects();
     }
-    let (mut observations, presentation_ids) = structured_presentation_host.project(
+    let (mut observations, face_ids) = structured_face_host.project(
         advertisement,
         fragment,
         &active_play,
@@ -3619,7 +3623,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     observations.push(Observation {
         sign_id: terminal_sign.sign_id,
         active_play_id: Some(active_play.active_play_id.clone()),
-        presentation_id: None,
+        face_id: None,
         host_id: advertisement.host_id.clone(),
         boot_id: advertisement.boot_id.clone(),
         plan_id: Some(fragment.plan_id.clone()),
@@ -3687,7 +3691,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,
             value_allocation_capacity_after: value_allocation_after,
-            presentation_ids,
+            face_ids,
             playback,
             wav_artifacts,
             midi_input,

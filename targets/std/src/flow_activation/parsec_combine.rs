@@ -7,9 +7,9 @@ use conduit_core::{
     KindSemanticLaw, KindTerminalBehavior, PlannedGear, PlannedScanActivation, PortDescriptor,
     PortDirection, PortTemporal,
 };
+use conduit_face::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use conduit_kernel::{scheduler::StepBack, HostedValueStore};
 use conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
-use conduit_presentation::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use std::sync::Arc;
 
 pub const KIND: &str = "parsec/map-combine";

@@ -23,7 +23,7 @@ export async function consumeWorkspaceHandoff({ host, applicationId }) {
   const outcome = await calls.moveLocation({
     contract: browserHostCallLimits.contract, kind: 'location', callId: 'workspace/gallery-handoff',
     hostId: host.hostId, bootId: host.bootId, applicationId, applicationGeneration: 1,
-    authorityGeneration: 1, presentationRevision: 1, mode: 'replace', path,
+    authorityGeneration: 1, faceRevision: 1, mode: 'replace', path,
   });
   if (outcome.disposition !== 'completed' || outcome.path !== path) throw new Error(`Gallery handoff location refused (${outcome.disposition})`);
 }

@@ -43,10 +43,10 @@ enum Effect {
     Keymap,
     Upper,
     Edit,
-    Presentation,
+    Face,
     ApplicationEvent,
     Application,
-    ApplicationPresentation,
+    ApplicationFace,
 }
 #[derive(Clone, Copy)]
 struct Binding {
@@ -85,13 +85,13 @@ impl PlayRefusal {
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
-pub struct NativePresentation {
+pub struct NativeFace {
     bytes: [u8; 256],
     len: u16,
 }
-impl NativePresentation {
+impl NativeFace {
     pub fn text(&self) -> &str {
-        core::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("validated presentation")
+        core::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("validated face")
     }
     fn new(bytes: &[u8]) -> Result<Self, PlayRefusal> {
         if bytes.len() > 256 || core::str::from_utf8(bytes).is_err() {
@@ -122,8 +122,8 @@ pub struct NativeWorksetPlay {
     editors: [Option<BoundedTextState>; PLOTS],
     pending: [Option<HostCallRequest>; PLOTS],
     held: [Option<u8>; 256],
-    presentations: [Option<NativePresentation>; PLOTS],
-    application_views: [Option<conduit_presentation::ApplicationView>; PLOTS],
+    faces: [Option<NativeFace>; PLOTS],
+    application_views: [Option<conduit_face::ApplicationView>; PLOTS],
     applications: [Option<NativeApplication>; PLOTS],
     application_requests: [Option<super::NativeApplicationRequest>; PLOTS],
     input_owners: [Option<AdmittedPlotInput>; PLOTS],
@@ -200,10 +200,10 @@ impl NativeWorksetPlay {
     pub fn sign_retention_gap(&self) -> Option<conduit_kernel::SignRetentionGap> {
         conduit_kernel::SignQuery::retention_gap(self.scheduler.signs())
     }
-    pub fn take_presentation(&mut self, plot: usize) -> Option<NativePresentation> {
-        self.presentations.get_mut(plot)?.take()
+    pub fn take_face(&mut self, plot: usize) -> Option<NativeFace> {
+        self.faces.get_mut(plot)?.take()
     }
-    pub fn application_view(&self, plot: usize) -> Option<&conduit_presentation::ApplicationView> {
+    pub fn application_view(&self, plot: usize) -> Option<&conduit_face::ApplicationView> {
         self.application_views.get(plot)?.as_ref()
     }
     pub fn patchbay_graph(&self, plot: usize) -> Option<&patchbay_graph::PatchbayGraph> {
@@ -227,10 +227,7 @@ impl NativeWorksetPlay {
         self.pending[patchbay] = None;
         self.drive()
     }
-    pub fn take_application_view(
-        &mut self,
-        plot: usize,
-    ) -> Option<conduit_presentation::ApplicationView> {
+    pub fn take_application_view(&mut self, plot: usize) -> Option<conduit_face::ApplicationView> {
         self.application_views.get_mut(plot)?.take()
     }
     pub fn take_application_request(
@@ -293,7 +290,7 @@ impl NativeWorksetPlay {
         let owner = self.input_owners[foreground]
             .as_ref()
             .ok_or(PlayRefusal::InputOwnership)?;
-        if owner.value_kind.as_str() != conduit_presentation::APPLICATION_EVENT_INFO_ID {
+        if owner.value_kind.as_str() != conduit_face::APPLICATION_EVENT_INFO_ID {
             return Err(PlayRefusal::InputOwnership);
         }
         let request = self.pending[foreground].ok_or(PlayRefusal::InputPressure)?;
@@ -329,7 +326,7 @@ impl NativeWorksetPlay {
             return Err(PlayRefusal::InputOwnership);
         }
         let request = self.pending[owner].ok_or(PlayRefusal::InputPressure)?;
-        if self.presentations[owner].is_some() {
+        if self.faces[owner].is_some() {
             return Err(PlayRefusal::InputPressure);
         }
         self.output(request, Some(&event.encode()))?;

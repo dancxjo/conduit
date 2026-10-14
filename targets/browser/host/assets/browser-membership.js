@@ -5,8 +5,8 @@ const INPUT_CAPACITY = 4096;
 const MEDIA_PLAN_TIMEOUT_MILLIS = 10_000;
 
 const MAXIMUM_WEB_RTC_GRANTS = 16;
-const OWNER_FACE_REQUEST_SCHEMA = "conduit.presentation/owner-face-request@1";
-const OWNER_FACE_RESPONSE_SCHEMA = "conduit.presentation/owner-face-response@1";
+const OWNER_FACE_REQUEST_SCHEMA = "conduit.face/owner-face-request@1";
+const OWNER_FACE_RESPONSE_SCHEMA = "conduit.face/owner-face-response@1";
 const MAX_OWNER_FACE_RESPONSE_BYTES = 60 * 1024;
 const MAX_OWNER_WARDROBE_REPORT_BYTES = 64 * 1024;
 const MAX_OWNER_WARDROBE_RESPONSE_BYTES = MAX_OWNER_WARDROBE_REPORT_BYTES + 1024;

@@ -12,11 +12,11 @@ pub(super) fn install_catalogs(startup: &mut StartupCatalog, profile: &mut Profi
     conduit_semantic_catalog::install_pattern_comparison_catalogs(startup, profile).unwrap();
     startup
         .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-            startup_parameters: Vec::new(),
+            kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
+            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
         })
         .unwrap();
-    let presenter = conduit_semantic_catalog::structured_presentation_contract(
+    let presenter = conduit_semantic_catalog::structured_face_contract(
         conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
@@ -26,7 +26,7 @@ pub(super) fn install_catalogs(startup: &mut StartupCatalog, profile: &mut Profi
             kind_contract_revision: presenter.kind_contract_revision,
             inputs: presenter.inputs,
             outputs: presenter.outputs,
-            configuration: Default::default(),
+            configuration: conduit_core::data_label_configuration(),
         })
         .unwrap();
 }

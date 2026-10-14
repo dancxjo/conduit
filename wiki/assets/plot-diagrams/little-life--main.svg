@@ -36,7 +36,7 @@
 <text class="port-name" text-anchor="end" x="1479" y="444">field</text>
 </g>
 <g><rect class="gear" x="1830" y="380" width="280" height="120" rx="10"/><path class="header" d="M1830,390 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>little-life/evolving — kind presentation/scalar-field</title>
+<title>little-life/evolving — kind face/scalar-field</title>
 <use href="#gear-mark" x="1842" y="391" width="28" height="28"/><text class="label" x="1880" y="402">evolving</text><text class="kind" x="1880" y="423">little-life/evolving</text>
 <g><title>field: alife/scalar-field2@1</title><circle class="port input-port" cx="1830" cy="460" r="5"/></g>
 <text class="port-name" text-anchor="start" x="1841" y="464">field</text>

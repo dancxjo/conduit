@@ -18,7 +18,7 @@ pub(crate) use preparation::{PreparedTimerGraph, PreparedTimerRoute};
 
 pub(crate) const NODES: usize = 3;
 pub(crate) const CORDS: usize = 2;
-// Every selected timer/count/presentation Back has exactly one port ordinal.
+// Every selected timer/count/face Back has exactly one port ordinal.
 pub(crate) const PORTS: usize = 1;
 pub(crate) const HOST_BINDINGS: usize = NODES * NODES;
 pub(crate) const VALUES: usize = 6;
@@ -53,7 +53,7 @@ pub(crate) enum TimerBack {
         initial_emitted: bool,
         bumped: bool,
     },
-    Presentation {
+    Face {
         pending: Option<RequestId>,
         next_request: u32,
     },
@@ -103,15 +103,15 @@ impl StepBack<PORTS> for TimerBack {
                 }
                 StepOutcome::Await
             }
-            Self::Presentation {
+            Self::Face {
                 pending,
                 next_request,
-            } => step_presentation(pending, next_request, io),
+            } => step_face(pending, next_request, io),
         }
     }
 
     fn cancel(&mut self) {
-        if let Self::Presentation { pending, .. } = self {
+        if let Self::Face { pending, .. } = self {
             *pending = None;
         }
     }
@@ -159,7 +159,7 @@ fn step_every(
     StepOutcome::Progress
 }
 
-fn step_presentation(
+fn step_face(
     pending: &mut Option<RequestId>,
     next_request: &mut u32,
     io: &mut StepIo<PORTS>,
@@ -208,7 +208,7 @@ const fn invalid(detail: u16) -> StepOutcome {
 pub struct TourTimerKernel {
     scheduler: Scheduler,
     timer: NodeId,
-    presentation: NodeId,
+    face: NodeId,
 }
 
 impl TourTimerKernel {
@@ -221,11 +221,11 @@ impl TourTimerKernel {
         mut progress: impl FnMut(u32),
     ) -> Result<Self, SchedulerError> {
         progress(0x301);
-        let indices = [graph.timer.0, graph.count.0, graph.presentation.0];
+        let indices = [graph.timer.0, graph.count.0, graph.face.0];
         if indices.iter().any(|index| usize::from(*index) >= NODES)
             || graph.timer == graph.count
-            || graph.timer == graph.presentation
-            || graph.count == graph.presentation
+            || graph.timer == graph.face
+            || graph.count == graph.face
         {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -260,7 +260,7 @@ impl TourTimerKernel {
                     bumped: false,
                 }
             } else {
-                TimerBack::Presentation {
+                TimerBack::Face {
                     pending: None,
                     next_request: 1,
                 }
@@ -295,7 +295,7 @@ impl TourTimerKernel {
         Ok(Self {
             scheduler,
             timer: graph.timer,
-            presentation: graph.presentation,
+            face: graph.face,
         })
     }
 
@@ -331,14 +331,11 @@ impl TourTimerKernel {
         request.node == self.timer
     }
 
-    pub fn is_presentation(&self, request: &HostCallRequest) -> bool {
-        request.node == self.presentation
+    pub fn is_face(&self, request: &HostCallRequest) -> bool {
+        request.node == self.face
     }
 
-    pub fn complete_presentation(
-        &mut self,
-        request: HostCallRequest,
-    ) -> Result<(), SchedulerError> {
+    pub fn complete_face(&mut self, request: HostCallRequest) -> Result<(), SchedulerError> {
         self.complete(request)
     }
 

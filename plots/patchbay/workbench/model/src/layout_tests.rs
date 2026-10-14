@@ -38,7 +38,7 @@ fn movement_grouping_and_round_trip_never_change_graph_identity() {
 }
 
 #[test]
-fn cord_waypoint_round_trip_is_bounded_presentation_only() {
+fn cord_waypoint_round_trip_is_bounded_face_only() {
     let editor = PlotEditor::from_source(
         PathBuf::from("route.conduit"),
         "plot route {\n    literal: text/literal(\"hello\")\n    upper: text/upper\n    literal.text >> upper.source\n}\n".into(),

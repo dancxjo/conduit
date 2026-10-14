@@ -1,11 +1,11 @@
 //! Finite storage comes from the exact lowered Plan, allocated before execution.
 use super::*;
+use conduit_face::{FACE_INTERACTION_KIND, FACE_TEE_KIND, RENDERER_KIND};
 use conduit_kernel::scheduler::FixedScheduler;
 use conduit_kernel::scheduler::*;
 use conduit_kernel::*;
 use conduit_kernel::{FixedHostCallBindings, FixedRoutes, HostedSignLog, HostedValueStore};
 use conduit_plan_lowering::lowering::LoweredPlanFragment;
-use conduit_presentation::{FACE_INTERACTION_KIND, PRESENTATION_TEE_KIND, RENDERER_KIND};
 type Profile<const N: usize, const C: usize, const R: usize, const H: usize> =
     FixedScheduler<backs::MaskBack, HostedValueStore, HostedSignLog, N, C, PORTS, C, R, C, H, N>;
 pub(super) enum Scheduler {
@@ -43,6 +43,14 @@ fn prepare_profile<const N: usize, const C: usize, const R: usize, const H: usiz
     fragment: &conduit_core::PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> Result<Profile<N, C, R, H>, TerminalError> {
+    for placement in &fragment.placements {
+        if matches!(
+            placement.kind_id.as_str(),
+            FACE_TEE_KIND | RENDERER_KIND | FACE_INTERACTION_KIND
+        ) {
+            conduit_core::face_data_label(&placement.configuration).map_err(error)?;
+        }
+    }
     let read_only = fragment.placements.iter().any(|placement| {
         placement.implementation_id.as_str() == planning::READ_ONLY_INTERACTION_IMPLEMENTATION
     });
@@ -70,7 +78,7 @@ fn prepare_profile<const N: usize, const C: usize, const R: usize, const H: usiz
         }
         let maximum = match call.contract_id.as_str() {
             PRESENT_CALL => MAX_TERMINAL_VALUE_BYTES,
-            INTERACTION_CALL => conduit_presentation::MAX_FACE_INTERACTION_BYTES as u32,
+            INTERACTION_CALL => conduit_face::MAX_FACE_INTERACTION_BYTES as u32,
             crate::flow_activation::parsec_instruction_source_offer::CONTRACT => {
                 crate::flow_activation::parsec_instruction_source_offer::MAXIMUM_INSTRUCTION_BYTES
             }
@@ -92,7 +100,7 @@ fn prepare_profile<const N: usize, const C: usize, const R: usize, const H: usiz
         .placements
         .iter()
         .map(|p| match p.kind_id.as_str() {
-            PRESENTATION_TEE_KIND => Ok(backs::MaskBack::Tee),
+            FACE_TEE_KIND => Ok(backs::MaskBack::Tee),
             RENDERER_KIND => Ok(backs::MaskBack::Renderer {
                 pending: false,
                 emitted: false,
@@ -270,7 +278,7 @@ impl Scheduler {
                 .complete_on_scheduler(
                     request,
                     qualified,
-                    conduit_presentation::ParsecInputInstructionLook::Linear,
+                    conduit_face::ParsecInputInstructionLook::Linear,
                     host,
                     s.as_mut(),
                 )

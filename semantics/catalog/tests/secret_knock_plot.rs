@@ -27,21 +27,21 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_plots() {
         .unwrap();
     startup
         .insert(KindSignature {
-            kind: conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND.into(),
-            startup_parameters: Vec::new(),
+            kind: conduit_semantic_catalog::STRUCTURED_FACE_KIND.into(),
+            startup_parameters: conduit_semantic_catalog::data_label_startup_signature(),
         })
         .unwrap();
-    let presentation = conduit_semantic_catalog::structured_presentation_contract(
+    let face = conduit_semantic_catalog::structured_face_contract(
         conduit_semantic_catalog::PATTERN_COMPARISON_TYPE,
         &conduit_semantic_catalog::pattern_comparison_type(),
     );
     profile
         .insert(KindProjection {
-            kind_id: presentation.kind_id,
-            kind_contract_revision: presentation.kind_contract_revision,
-            inputs: presentation.inputs,
-            outputs: presentation.outputs,
-            configuration: Default::default(),
+            kind_id: face.kind_id,
+            kind_contract_revision: face.kind_contract_revision,
+            inputs: face.inputs,
+            outputs: face.outputs,
+            configuration: conduit_semantic_catalog::data_label_configuration(),
         })
         .unwrap();
 
@@ -110,7 +110,7 @@ fn canonical_secret_knock_is_a_host_free_composition_of_reusable_plots() {
         conduit_semantic_catalog::TEMPLATE_STORAGE_KIND,
         conduit_semantic_catalog::FINAL_NORMALIZED_PATTERN_KIND,
         conduit_semantic_catalog::COMPARE_PATTERN_KIND,
-        conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND,
+        conduit_semantic_catalog::STRUCTURED_FACE_KIND,
     ] {
         assert!(expanded
             .expanded

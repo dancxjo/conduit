@@ -124,6 +124,19 @@ jobs:
           CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'products' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
           CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
+      - name: Replay public CPU model tutorial commands
+        if: matrix.shard == 'hosts-std'
+        run: |
+          cargo xtask prove model-authoring --documented-command --output "$RUNNER_TEMP/model-authoring-ci/docs"
+          cargo xtask prove model-authoring --plot-journey --output "$RUNNER_TEMP/model-authoring-ci/plot"
+      - name: Retain CPU model tutorial receipts
+        if: ${{ always() && matrix.shard == 'hosts-std' }}
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          name: model-authoring-cpu
+          path: ${{ runner.temp }}/model-authoring-ci
+          if-no-files-found: error
+          retention-days: 14
       - name: Retain acquisition measurements
         if: always()
         uses: actions/upload-artifact@v7.0.1

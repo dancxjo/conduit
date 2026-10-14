@@ -70,18 +70,12 @@ impl StandardKindContract {
 /// size is not implied by a primitive core Info Kind.
 fn portable_value_maximum_bytes(kind: &str) -> Option<u64> {
     match kind {
-        conduit_presentation::PRESENTATION_COMPOSITION_KIND => {
-            Some(conduit_presentation::MAX_PRESENTATION_COMPOSITION_BYTES as u64)
+        conduit_face::FACE_COMPOSITION_KIND => {
+            Some(conduit_face::MAX_FACE_COMPOSITION_BYTES as u64)
         }
-        conduit_presentation::LAYOUT_FRAME_KIND => {
-            Some(conduit_presentation::MAX_LAYOUT_FRAME_BYTES as u64)
-        }
-        conduit_presentation::GRAPHICS_SCENE_KIND => {
-            Some(conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u64)
-        }
-        conduit_presentation::BITMAP_PRESENTATION_KIND => {
-            Some(conduit_presentation::MAX_GRAY8_BITMAP_BYTES as u64)
-        }
+        conduit_face::LAYOUT_FRAME_KIND => Some(conduit_face::MAX_LAYOUT_FRAME_BYTES as u64),
+        conduit_face::GRAPHICS_SCENE_KIND => Some(conduit_face::MAX_GRAPHICS_SCENE_BYTES as u64),
+        conduit_face::BITMAP_FACE_KIND => Some(conduit_face::MAX_GRAY8_BITMAP_BYTES as u64),
         _ => None,
     }
 }

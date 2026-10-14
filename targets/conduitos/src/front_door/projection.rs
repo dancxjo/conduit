@@ -2,31 +2,31 @@
 use super::*;
 
 impl FrontDoor {
-    pub fn presentation(&self) -> Result<Presentation, Error> {
+    pub fn face(&self) -> Result<Face, Error> {
         if let Some(joining) = &self.joining {
-            return joining.presentation(self, None);
+            return joining.face(self, None);
         }
         if let Some(arrival) = &self.arrival {
-            return arrival.presentation(self);
+            return arrival.face(self);
         }
         let host = format!("host/{}/{}", self.host_id.as_str(), self.boot_id.as_str());
         let plot = self.plot_subject.clone();
         let mut subjects = vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: host.clone(),
-                role: PresentationRole::Host,
+                role: FaceRole::Host,
                 name: "This host".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: plot.clone(),
-                role: PresentationRole::Plot,
+                role: FaceRole::Plot,
                 name: "ConduitOS entrance Plot".into(),
             },
         ];
-        let mut relationships = vec![PresentationRelationship {
+        let mut relationships = vec![FaceRelationship {
             source: host.clone(),
             target: plot.clone(),
-            kind: PresentationRelationshipKind::Observes,
+            kind: FaceRelationshipKind::Observes,
         }];
         let mut properties = vec![
             property(
@@ -36,7 +36,7 @@ impl FrontDoor {
                     .as_ref()
                     .and_then(|journey| journey.body_id.as_ref())
                     .map_or_else(
-                        || PresentationPropertyValue::Text("none".into()),
+                        || FacePropertyValue::Text("none".into()),
                         |body| identity(body.as_str()),
                     ),
             ),
@@ -45,12 +45,12 @@ impl FrontDoor {
             property(
                 &host,
                 "offer-generation",
-                PresentationPropertyValue::Count(self.offer_generation.0),
+                FacePropertyValue::Count(self.offer_generation.0),
             ),
             property(
                 &host,
                 "offer-count",
-                PresentationPropertyValue::Count(self.offer_count),
+                FacePropertyValue::Count(self.offer_count),
             ),
             property(
                 &plot,
@@ -62,11 +62,7 @@ impl FrontDoor {
                 "checked-plot-id",
                 identity(self.checked_plot_id.as_str()),
             ),
-            property(
-                &plot,
-                "opened",
-                PresentationPropertyValue::Flag(self.plot_open),
-            ),
+            property(&plot, "opened", FacePropertyValue::Flag(self.plot_open)),
         ];
         if self.exact_details_open {
             properties.extend([
@@ -78,18 +74,18 @@ impl FrontDoor {
         if let Some(journey) = &self.journey {
             if let Some(body_id) = &journey.body_id {
                 let body = format!("body/{}", body_id.as_str());
-                subjects.push(PresentationSubject {
+                subjects.push(FaceSubject {
                     identity: body.clone(),
-                    role: PresentationRole::Body,
+                    role: FaceRole::Body,
                     name: journey
                         .friendly_name
                         .clone()
                         .unwrap_or_else(|| "Current body".into()),
                 });
-                relationships.push(PresentationRelationship {
+                relationships.push(FaceRelationship {
                     source: host.clone(),
                     target: body.clone(),
-                    kind: PresentationRelationshipKind::Contains,
+                    kind: FaceRelationshipKind::Contains,
                 });
                 properties.push(property(&body, "body-id", identity(body_id.as_str())));
                 if let Some(born_sign_id) = &journey.born_sign_id {
@@ -134,25 +130,25 @@ impl FrontDoor {
                 properties.push(property(
                     &host,
                     "semantic-result-empty",
-                    PresentationPropertyValue::Flag(result.is_empty()),
+                    FacePropertyValue::Flag(result.is_empty()),
                 ));
                 if !result.is_empty() {
                     properties.push(property(
                         &host,
                         "semantic-result",
-                        PresentationPropertyValue::Text(result.clone()),
+                        FacePropertyValue::Text(result.clone()),
                     ));
                 }
             }
             properties.push(property(
                 &host,
                 "input-events",
-                PresentationPropertyValue::Count(u64::from(journey.input_count)),
+                FacePropertyValue::Count(u64::from(journey.input_count)),
             ));
             properties.push(property(
                 &host,
                 "result-omitted-bytes",
-                PresentationPropertyValue::Count(journey.result_omitted_bytes),
+                FacePropertyValue::Count(journey.result_omitted_bytes),
             ));
             if let Some(gap) = journey.kernel_sign_gap {
                 for (name, value) in [
@@ -163,26 +159,26 @@ impl FrontDoor {
                     properties.push(property(
                         &host,
                         name,
-                        PresentationPropertyValue::Count(u64::from(value)),
+                        FacePropertyValue::Count(u64::from(value)),
                     ));
                 }
             }
         }
         if let Some(line) = &self.connectivity {
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: line.line_id.clone(),
-                role: PresentationRole::Line,
+                role: FaceRole::Line,
                 name: "USB-backed Conduit Line".into(),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: host.clone(),
                 target: line.line_id.clone(),
-                kind: PresentationRelationshipKind::Connects,
+                kind: FaceRelationshipKind::Connects,
             });
             properties.push(property(
                 &line.line_id,
                 "status",
-                PresentationPropertyValue::Text(line.status.label().into()),
+                FacePropertyValue::Text(line.status.label().into()),
             ));
             properties.push(property(
                 &line.line_id,
@@ -193,7 +189,7 @@ impl FrontDoor {
                 properties.push(property(
                     &line.line_id,
                     "received-value",
-                    PresentationPropertyValue::Text(value.clone()),
+                    FacePropertyValue::Text(value.clone()),
                 ));
             }
         }
@@ -201,34 +197,34 @@ impl FrontDoor {
             properties.push(property(
                 &host,
                 refusal.key(),
-                PresentationPropertyValue::Text(refusal.reason().into()),
+                FacePropertyValue::Text(refusal.reason().into()),
             ));
         }
         let home_identity = "conduitos/shell/home";
         if let Some(view) = self.home_view() {
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: home_identity.into(),
-                role: PresentationRole::Region,
+                role: FaceRole::Region,
                 name: "ConduitOS Home".into(),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: home_identity.into(),
                 target: host.clone(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             });
             properties.push(property(
                 home_identity,
                 "view",
-                PresentationPropertyValue::Text(view.as_str().into()),
+                FacePropertyValue::Text(view.as_str().into()),
             ));
             properties.push(property(
                 home_identity,
                 "selected-launcher-index",
-                PresentationPropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
+                FacePropertyValue::Count(self.home_selection().unwrap_or(0) as u64),
             ));
         }
         let basis = self.journey.as_ref().map_or_else(
-            || PresentationBasis {
+            || FaceBasis {
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
@@ -240,7 +236,7 @@ impl FrontDoor {
             },
             |journey| {
                 if journey.body_id.is_some() && journey.wake_id.is_some() {
-                    PresentationBasis {
+                    FaceBasis {
                         body_id: journey.body_id.clone(),
                         wake_id: journey.wake_id.clone(),
                         source_document_id: journey.source_document_id.clone(),
@@ -256,7 +252,7 @@ impl FrontDoor {
                             .collect(),
                     }
                 } else {
-                    PresentationBasis {
+                    FaceBasis {
                         // Rest retires execution, not the Body whose actions
                         // this Face offers. Keep its authoritative identity.
                         body_id: journey.body_id.clone(),
@@ -276,33 +272,33 @@ impl FrontDoor {
             |journey| lifecycle_summary(journey).into(),
         );
         let mut texts = vec![
-            PresentationText {
+            FaceText {
                 subject: host.clone(),
                 text: host_text,
             },
-            PresentationText {
+            FaceText {
                 subject: plot.clone(),
                 text: "IMAGE-embedded checked plot; OPEN permits inspection only".into(),
             },
         ];
         let mut disclosures = vec![
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: plot.clone(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             },
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: host.clone(),
-                level: PresentationDisclosureLevel::Context,
+                level: FaceDisclosureLevel::Context,
             },
         ];
         if self.home_view().is_some() {
-            texts.push(PresentationText {
+            texts.push(FaceText {
                 subject: home_identity.into(),
                 text: "Persistent launcher and finite Conduit command bar".into(),
             });
-            disclosures.push(PresentationDisclosure {
+            disclosures.push(FaceDisclosure {
                 subject: home_identity.into(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             });
         }
         if let (Some(graph), Some(body)) = (
@@ -323,7 +319,7 @@ impl FrontDoor {
                 },
             );
         }
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             self.revision,
             basis,
             subjects,
@@ -333,16 +329,16 @@ impl FrontDoor {
             self.semantic_actions(&plot),
             disclosures,
         )
-        .map_err(|_| Error::Presentation)
+        .map_err(|_| Error::Face)
     }
 }
 
-fn identity(value: &str) -> PresentationPropertyValue {
-    PresentationPropertyValue::Identity(value.into())
+fn identity(value: &str) -> FacePropertyValue {
+    FacePropertyValue::Identity(value.into())
 }
 
-fn property(subject: &str, name: &str, value: PresentationPropertyValue) -> PresentationProperty {
-    PresentationProperty {
+fn property(subject: &str, name: &str, value: FacePropertyValue) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
         value,

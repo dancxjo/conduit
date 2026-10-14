@@ -26,7 +26,7 @@ pub(super) fn run(
     manifest: &mut EvidenceManifest,
     speech: EspeakDiscovery,
 ) -> Result<(), Box<dyn std::error::Error>> {
-    let face = &context.face.presentation;
+    let face = &context.face.face;
     let body_id = face
         .basis
         .body_id

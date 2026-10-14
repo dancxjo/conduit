@@ -1,0 +1,358 @@
+{
+  "identity": "ca4c508249a986b036205a44c47f783082383cc276494ff972d547464c93d4ac",
+  "revision": 30,
+  "basis": {
+    "body_id": "9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+    "wake_id": "0a2254d10496c9ca24c26186bb64eb6c1e520da9f0579800070f0c28fd5ac185",
+    "source_document_id": null,
+    "checked_plot_id": null,
+    "expanded_plot_id": null,
+    "plan_id": null,
+    "active_play_id": null,
+    "sign_ids": [
+      "sign/born",
+      "sign/planned",
+      "sign/playing",
+      "sign/woke"
+    ]
+  },
+  "interaction_context": {
+    "identity": "face/context/tutorial/checked/tutorial/focus/contribution/tutorial/node/concept/mitochondrion",
+    "basis": [
+      {
+        "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+        "relationship": "Contains",
+        "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context"
+      }
+    ]
+  },
+  "subjects": [
+    {
+      "identity": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "role": "Body",
+      "name": "Current body"
+    },
+    {
+      "identity": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "role": "Region",
+      "name": "Current tutorial context"
+    },
+    {
+      "identity": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "role": "Plan",
+      "name": "Current wake Plan 0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c"
+    },
+    {
+      "identity": "play/ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b",
+      "role": "Play",
+      "name": "Active play ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b"
+    },
+    {
+      "identity": "plot/checked/tutorial",
+      "role": "Plot",
+      "name": "Resident Plot checked/tutorial"
+    },
+    {
+      "identity": "contribution/tutorial/0",
+      "role": "Plot",
+      "name": "Face contribution provenance"
+    },
+    {
+      "identity": "lesson/cell",
+      "role": {
+        "Semantic": "education/lesson"
+      },
+      "name": "The cell"
+    },
+    {
+      "identity": "concept/mitochondrion",
+      "role": {
+        "Semantic": "biology/cell/organelle"
+      },
+      "name": "Mitochondrion"
+    }
+  ],
+  "relationships": [
+    {
+      "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "kind": "Contains"
+    },
+    {
+      "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "target": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "kind": "Contains"
+    },
+    {
+      "source": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "target": "play/ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b",
+      "kind": "Realizes"
+    },
+    {
+      "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "target": "plot/checked/tutorial",
+      "kind": "Contains"
+    },
+    {
+      "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "target": "contribution/tutorial/0",
+      "kind": "Contains"
+    },
+    {
+      "source": "contribution/tutorial/0",
+      "target": "lesson/cell",
+      "kind": "Describes"
+    },
+    {
+      "source": "contribution/tutorial/0",
+      "target": "concept/mitochondrion",
+      "kind": "Describes"
+    },
+    {
+      "source": "lesson/cell",
+      "target": "concept/mitochondrion",
+      "kind": {
+        "Semantic": "biology/cell/contains-organelle"
+      }
+    }
+  ],
+  "composition": [
+    {
+      "identity": "composition/emphasize-mitochondrion",
+      "source": "concept/mitochondrion",
+      "target": "lesson/cell",
+      "kind": "Emphasize"
+    }
+  ],
+  "properties": [
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "body-id",
+      "value": {
+        "Identity": "9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2"
+      }
+    },
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "lifecycle-state",
+      "value": {
+        "Text": "awake"
+      }
+    },
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "workload-revision",
+      "value": {
+        "Count": 0
+      }
+    },
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "name": "operator-context",
+      "value": {
+        "Text": "tutorial"
+      }
+    },
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "name": "operator-focus",
+      "value": {
+        "Text": "contribution/tutorial/node/concept/mitochondrion"
+      }
+    },
+    {
+      "subject": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "name": "plan-id",
+      "value": {
+        "Identity": "0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c"
+      }
+    },
+    {
+      "subject": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "name": "wake-plan-state",
+      "value": {
+        "Text": "Playing"
+      }
+    },
+    {
+      "subject": "play/ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b"
+      }
+    },
+    {
+      "subject": "plot/checked/tutorial",
+      "name": "source-document-id",
+      "value": {
+        "Identity": "source/tutorial"
+      }
+    },
+    {
+      "subject": "plot/checked/tutorial",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/tutorial"
+      }
+    },
+    {
+      "subject": "plot/checked/tutorial",
+      "name": "workload-membership",
+      "value": {
+        "Text": "resident"
+      }
+    },
+    {
+      "subject": "contribution/tutorial/0",
+      "name": "checked-plot-id",
+      "value": {
+        "Identity": "checked/tutorial"
+      }
+    },
+    {
+      "subject": "contribution/tutorial/0",
+      "name": "plan-id",
+      "value": {
+        "Identity": "0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c"
+      }
+    },
+    {
+      "subject": "contribution/tutorial/0",
+      "name": "active-play-id",
+      "value": {
+        "Identity": "ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b"
+      }
+    },
+    {
+      "subject": "contribution/tutorial/0",
+      "name": "action/0",
+      "value": {
+        "Identity": "lesson/answer"
+      }
+    },
+    {
+      "subject": "contribution/tutorial/0",
+      "name": "composition/0",
+      "value": {
+        "Identity": "composition/emphasize-mitochondrion"
+      }
+    }
+  ],
+  "text": [
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "text": "Body 9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2 is awake with one resident plot."
+    }
+  ],
+  "actions": [
+    {
+      "identity": "body/action/lull/0",
+      "intent": "conduit.intent/lull@1",
+      "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "Lull",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "body/action/open-overview/0",
+      "intent": "conduit.intent/open-body-overview@1",
+      "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "Open Body overview",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "body/action/open-library/0",
+      "intent": "conduit.intent/open-plot-library@1",
+      "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "name": "Open Plots library",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    },
+    {
+      "identity": "body/action/open-plot/checked/tutorial/0",
+      "intent": "conduit.intent/open-resident-plot@1",
+      "target": "plot/checked/tutorial",
+      "name": "Open resident Plot",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "plot-not-playing",
+          "explanation": "The resident Plot is not currently presenting."
+        }
+      }
+    },
+    {
+      "identity": "body/action/open-inspection/checked/tutorial/0",
+      "intent": "conduit.intent/open-inspection@1",
+      "target": "plot/checked/tutorial",
+      "name": "Open inspection",
+      "arguments": [],
+      "disclosure": "CurrentAction",
+      "availability": {
+        "Unavailable": {
+          "reason_code": "inspection-not-playing",
+          "explanation": "No admitted inspection contribution is currently playing."
+        }
+      }
+    },
+    {
+      "identity": "lesson/answer",
+      "intent": "education/answer@1",
+      "target": "concept/mitochondrion",
+      "name": "Answer",
+      "arguments": [
+        {
+          "name": "lesson/answer-text",
+          "value_name": "Answer",
+          "contract": {
+            "value_kind": "value/text",
+            "maximum_bytes": 128,
+            "constraints": [
+              {
+                "ByteLength": {
+                  "minimum": 1,
+                  "maximum": 128
+                }
+              }
+            ]
+          }
+        }
+      ],
+      "disclosure": "CurrentAction",
+      "availability": "Available"
+    }
+  ],
+  "disclosures": [
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "level": "Primary"
+    },
+    {
+      "subject": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context",
+      "level": "Context"
+    },
+    {
+      "subject": "plan/0c1fafc71446a6ad29769e70cad153b495eab6bd2ae82a13d4e4d66e66c3548c",
+      "level": "ExactProvenance"
+    },
+    {
+      "subject": "play/ecd4f8a0998058af844baa6e42d10bbabaa3c714faca4a9b58f99ea67b83515b",
+      "level": "ExactProvenance"
+    },
+    {
+      "subject": "plot/checked/tutorial",
+      "level": "Context"
+    },
+    {
+      "subject": "concept/mitochondrion",
+      "level": "Primary"
+    }
+  ],
+  "temporal_references": [],
+  "temporal_facts": []
+}

@@ -7,11 +7,10 @@
 use alloc::string::{String, ToString};
 use conduit_birth_plot::BirthFaceBasis;
 use conduit_core::{BootId, HostBaseId, HostId, OfferGeneration};
-use conduit_human::{KeyEvent, KeyTransition};
-use conduit_presentation::{
-    FaceInteraction, MaskInteractionCorrelation, MaskShow, Presentation, PresentationRole,
-    RemoteOwnerMaskRouteSeal,
+use conduit_face::{
+    Face, FaceInteraction, FaceRole, MaskInteractionCorrelation, MaskShow, RemoteOwnerMaskRouteSeal,
 };
+use conduit_human::{KeyEvent, KeyTransition};
 
 use crate::{
     display::PixelTarget,
@@ -45,7 +44,7 @@ impl NativeFaceMaskError {
                 FaceSnapshotRefusal::Catalog => "native-face-mask-producer-catalog",
                 FaceSnapshotRefusal::Plan => "native-face-mask-producer-plan",
                 FaceSnapshotRefusal::Shape => "native-face-mask-producer-shape",
-                FaceSnapshotRefusal::Presentation => "native-face-mask-producer-presentation",
+                FaceSnapshotRefusal::Face => "native-face-mask-producer-face",
                 FaceSnapshotRefusal::ProducerBasis => "native-face-mask-producer-basis",
                 FaceSnapshotRefusal::Capacity => "native-face-mask-producer-capacity",
                 FaceSnapshotRefusal::Kernel => "native-face-mask-producer-kernel",
@@ -90,9 +89,9 @@ pub struct NativeFaceMask {
     publication: Option<FaceSnapshotReceipt>,
     surface_admitted: bool,
     interaction_admitted: bool,
-    component_configuration: Option<conduit_presentation::ConfiguredMaskConfiguration>,
-    visual_expression: Option<conduit_presentation::AdmittedVisualExpression>,
-    visual_constraints: conduit_presentation::VisualUserConstraints,
+    component_configuration: Option<conduit_face::ConfiguredMaskConfiguration>,
+    visual_expression: Option<conduit_face::AdmittedVisualExpression>,
+    visual_constraints: conduit_face::VisualUserConstraints,
     component_fallback: Option<String>,
 }
 
@@ -150,15 +149,15 @@ impl NativeFaceMask {
                 .map_err(|_| NativeFaceMaskError::Plan)?;
             let mut selected = None;
             for look in [
-                conduit_presentation::ComponentMaskLook::Compact,
-                conduit_presentation::ComponentMaskLook::Spacious,
+                conduit_face::ComponentMaskLook::Compact,
+                conduit_face::ComponentMaskLook::Spacious,
             ] {
                 for recipe in [
-                    conduit_presentation::TodoComponentRecipe::Flat,
-                    conduit_presentation::TodoComponentRecipe::Grouped,
+                    conduit_face::TodoComponentRecipe::Flat,
+                    conduit_face::TodoComponentRecipe::Grouped,
                 ] {
                     if route.planned_mask.mask.plot_name
-                        == conduit_presentation::todo_component_mask_root(look, recipe)
+                        == conduit_face::todo_component_mask_root(look, recipe)
                     {
                         selected = Some((look, recipe));
                     }
@@ -221,7 +220,7 @@ impl NativeFaceMask {
             interaction_admitted: true,
             component_configuration,
             visual_expression: None,
-            visual_constraints: conduit_presentation::VisualUserConstraints {
+            visual_constraints: conduit_face::VisualUserConstraints {
                 forced_colors: false,
                 reduced_motion: true,
                 minimum_text_scale_percent: 100,
@@ -242,7 +241,7 @@ impl NativeFaceMask {
         if !(100..=200).contains(&minimum_text_scale_percent) {
             return Err(NativeFaceMaskError::Face);
         }
-        self.visual_constraints = conduit_presentation::VisualUserConstraints {
+        self.visual_constraints = conduit_face::VisualUserConstraints {
             forced_colors,
             reduced_motion,
             minimum_text_scale_percent,
@@ -250,12 +249,10 @@ impl NativeFaceMask {
         };
         Ok(())
     }
-    pub fn component_configuration(
-        &self,
-    ) -> Option<&conduit_presentation::ConfiguredMaskConfiguration> {
+    pub fn component_configuration(&self) -> Option<&conduit_face::ConfiguredMaskConfiguration> {
         self.component_configuration.as_ref()
     }
-    pub fn visual_expression(&self) -> Option<&conduit_presentation::AdmittedVisualExpression> {
+    pub fn visual_expression(&self) -> Option<&conduit_face::AdmittedVisualExpression> {
         self.visual_expression.as_ref()
     }
     pub fn component_fallback(&self) -> Option<&str> {
@@ -347,7 +344,7 @@ impl NativeFaceMask {
     /// frame. A failed scanout leaves no new Show and cancels the pending Play.
     pub fn present(
         &mut self,
-        face: Presentation,
+        face: Face,
         observation_sequence: u64,
         play_sequence: u64,
         display: &mut impl PixelTarget,
@@ -360,7 +357,7 @@ impl NativeFaceMask {
     /// identity, actions, or source wording.
     pub fn present_read_only(
         &mut self,
-        face: Presentation,
+        face: Face,
         observation_sequence: u64,
         play_sequence: u64,
         display: &mut impl PixelTarget,
@@ -371,16 +368,16 @@ impl NativeFaceMask {
     // Private shared preparation boundary: callers retain exact source/Plan custody.
     // Tests use actual checked Host configuration, not a fabricated config record.
     fn prepare_component_scene(
-        configuration: &conduit_presentation::ConfiguredMaskConfiguration,
-        face: &Presentation,
+        configuration: &conduit_face::ConfiguredMaskConfiguration,
+        face: &Face,
         width: u16,
         height: u16,
         interaction_admitted: bool,
-        constraints: conduit_presentation::VisualUserConstraints,
+        constraints: conduit_face::VisualUserConstraints,
     ) -> Result<
         (
             NativeFaceScene,
-            conduit_presentation::AdmittedVisualExpression,
+            conduit_face::AdmittedVisualExpression,
             Option<String>,
         ),
         NativeFaceMaskError,
@@ -389,15 +386,15 @@ impl NativeFaceMask {
         let requested = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.expression.canonical_value(),
         )
-        .map_err(|_| conduit_presentation::VisualExpressionRefusal::Encoding)
-        .and_then(conduit_presentation::visual_expression_from_info);
-        let expression = conduit_presentation::admit_visual_expression(requested, constraints)
+        .map_err(|_| conduit_face::VisualExpressionRefusal::Encoding)
+        .and_then(conduit_face::visual_expression_from_info);
+        let expression = conduit_face::admit_visual_expression(requested, constraints)
             .map_err(|_| NativeFaceMaskError::Face)?;
         let recipe = conduit_core::StructuredInfoValue::from_canonical_bytes(
             configuration.recipe.canonical_value(),
         )
         .map_err(|_| NativeFaceMaskError::Plan)?;
-        let scene = match conduit_presentation::prepare_component_recipe(recipe, face) {
+        let scene = match conduit_face::prepare_component_recipe(recipe, face) {
             Ok(prepared) => {
                 fallback = None;
                 NativeFaceScene::prepare_configured(
@@ -426,7 +423,7 @@ impl NativeFaceMask {
 
     fn present_with_input(
         &mut self,
-        face: Presentation,
+        face: Face,
         observation_sequence: u64,
         play_sequence: u64,
         display: &mut impl PixelTarget,
@@ -459,11 +456,11 @@ impl NativeFaceMask {
         let front_subject = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Host)
+            .find(|subject| subject.role == FaceRole::Host)
             .or_else(|| {
                 face.subjects
                     .iter()
-                    .find(|subject| subject.role == PresentationRole::Body)
+                    .find(|subject| subject.role == FaceRole::Body)
             })
             .ok_or(NativeFaceMaskError::Face)?
             .identity
@@ -481,7 +478,7 @@ impl NativeFaceMask {
             .map_err(NativeFaceMaskError::Producer)?;
         let pending = PreparedNativeMaskPlay::prepare(
             &self.mask.planned_mask,
-            &published.presentation,
+            &published.face,
             play_sequence,
             &front_subject,
             &self.surface_id,
@@ -489,7 +486,7 @@ impl NativeFaceMask {
         )
         .map_err(NativeFaceMaskError::Mask)?;
         let request = pending.renderer_request();
-        let bounds = conduit_presentation::LayoutRect {
+        let bounds = conduit_face::LayoutRect {
             x: 0,
             y: 0,
             width,
@@ -507,7 +504,7 @@ impl NativeFaceMask {
         }
         let composition = if let Some(expression) = &self.visual_expression {
             self.compositor.update_pending_configured_mask_surface(
-                request.presentation(),
+                request.face(),
                 request.prepared_show(),
                 request.display_base_id(),
                 &frame.scene,
@@ -515,7 +512,7 @@ impl NativeFaceMask {
             )
         } else {
             self.compositor.update_pending_mask_surface(
-                request.presentation(),
+                request.face(),
                 request.prepared_show(),
                 request.display_base_id(),
                 &frame.scene,
@@ -528,7 +525,7 @@ impl NativeFaceMask {
             .map_err(NativeFaceMaskError::Compositor)?;
         let acknowledgement = self
             .compositor
-            .scanout_acknowledgement(&composition, published.presentation.revision)
+            .scanout_acknowledgement(&composition, published.face.revision)
             .ok_or(NativeFaceMaskError::Face)?;
         let session = pending
             .complete_render(&acknowledgement)
@@ -645,12 +642,7 @@ impl NativeFaceMask {
         let frame = scene.frame().map_err(NativeFaceMaskError::Scene)?;
         let receipt = self
             .compositor
-            .repaint_mask_surface(
-                scene.presentation(),
-                &show,
-                &self.display_base_id,
-                &frame.scene,
-            )
+            .repaint_mask_surface(scene.face(), &show, &self.display_base_id, &frame.scene)
             .map_err(NativeFaceMaskError::Compositor)?
             .clone();
         if let Err(error) = self.compositor.compose_frame(display) {
@@ -659,7 +651,7 @@ impl NativeFaceMask {
         }
         if self
             .compositor
-            .scanout_acknowledgement(&receipt, show.presentation_revision)
+            .scanout_acknowledgement(&receipt, show.face_revision)
             .is_none()
         {
             self.session.take();

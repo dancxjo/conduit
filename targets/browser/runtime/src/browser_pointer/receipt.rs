@@ -6,7 +6,7 @@ pub struct BrowserPointerReceipt {
     pub play_id: String,
     pub sign_id: String,
     pub source_placement_id: String,
-    pub presentation_placement_id: String,
+    pub face_placement_id: String,
     pub schema: String,
     pub value_kind: String,
     pub canonical_bytes: usize,

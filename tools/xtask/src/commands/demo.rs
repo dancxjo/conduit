@@ -65,7 +65,8 @@ pub fn run_patchbay(
                     "--release",
                     "--no-default-features",
                 ],
-            ),
+            )
+            .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
             &root,
             opts,
         )?;

@@ -284,7 +284,7 @@ fn run_resident_stage(
 }
 
 pub(super) enum PreparedApplication {
-    Tutorial(conduit_presentation::ApplicationView),
+    Tutorial(conduit_face::ApplicationView),
     Tour(Box<TourApplicationPort>),
     #[cfg(feature = "creche-surface")]
     Patchbay(patchbay_application::PatchbayApplicationPort),
@@ -310,8 +310,8 @@ impl PreparedApplication {
                 let evidence = body_evidence
                     .ok_or("resident Tutorial requires exact body biography evidence")?;
                 let revision = u32::try_from(evidence.last_sequence())
-                    .map_err(|_| "resident Tutorial presentation revision exhausted")?;
-                let view = conduit_tutorial_plot::presentation_from_evidence(
+                    .map_err(|_| "resident Tutorial face revision exhausted")?;
+                let view = conduit_tutorial_plot::face_from_evidence(
                     evidence,
                     revision,
                     conduit_tutorial_plot::TutorialPlayback::Playing,
@@ -366,7 +366,7 @@ impl PreparedApplication {
         match self {
             Self::Tutorial(view) => {
                 if !input.is_empty() {
-                    conduit_presentation::ApplicationEvent::decode(input, view)
+                    conduit_face::ApplicationEvent::decode(input, view)
                         .map_err(|error| format!("resident Tutorial event: {error:?}"))?;
                 }
                 view.encode()

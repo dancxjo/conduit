@@ -1,8 +1,8 @@
 use super::test_support::{fixture, invoke, key};
 use super::*;
 use conduit_body::WakeLifecycle;
+use conduit_face::FaceActionAvailability;
 use conduit_human::KeyTransition;
-use conduit_presentation::PresentationActionAvailability;
 
 fn front_door(journey: &ProductJourney) -> crate::front_door::FrontDoor {
     let plot = crate::keyboard_text_plan::checked_plot_identity().unwrap();
@@ -24,10 +24,10 @@ fn assert_current_action(front_door: &crate::front_door::FrontDoor, action: Jour
     let semantic = front_door
         .resolve_action(action, front_door.revision())
         .unwrap();
-    assert_eq!(semantic.intent, action.presentation_intent());
+    assert_eq!(semantic.intent, action.face_intent());
     assert!(matches!(
         semantic.availability,
-        PresentationActionAvailability::Available
+        FaceActionAvailability::Available
     ));
 }
 
@@ -62,7 +62,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(opened.body_id.is_none() && opened.plan_id.is_none());
     assert!(opened.checked_plot_id.is_some());
     front_door.observe_journey(opened.clone()).unwrap();
-    assert!(front_door.presentation().unwrap().basis.body_id.is_none());
+    assert!(front_door.face().unwrap().basis.body_id.is_none());
     assert_current_action(&front_door, JourneyAction::Birth);
 
     invoke(&mut journey, JourneyAction::Birth, &identities, &offer).unwrap();
@@ -75,17 +75,17 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(born.play_sign_id.is_none());
     assert!(born.wake_id.is_none() && born.plan_id.is_none());
     front_door.observe_journey(born.clone()).unwrap();
-    let born_presentation = front_door.presentation().unwrap();
-    assert_eq!(born_presentation.basis.body_id, born.body_id);
-    assert!(born_presentation.basis.wake_id.is_none());
-    assert!(born_presentation.basis.plan_id.is_none());
-    assert!(born_presentation.basis.active_play_id.is_none());
+    let born_face = front_door.face().unwrap();
+    assert_eq!(born_face.basis.body_id, born.body_id);
+    assert!(born_face.basis.wake_id.is_none());
+    assert!(born_face.basis.plan_id.is_none());
+    assert!(born_face.basis.active_play_id.is_none());
     assert_current_action(&front_door, JourneyAction::Wake);
     assert!(
-        born_presentation
+        born_face
             .subjects
             .iter()
-            .any(|subject| subject.role == conduit_presentation::PresentationRole::Body)
+            .any(|subject| subject.role == conduit_face::FaceRole::Body)
     );
     assert_eq!(
         invoke(&mut journey, JourneyAction::Birth, &identities, &offer),
@@ -98,10 +98,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(awake.wake_sign_id.is_some());
     assert!(awake.plan_sign_id.is_none() && awake.play_sign_id.is_none());
     front_door.observe_journey(awake.clone()).unwrap();
-    assert_eq!(
-        front_door.presentation().unwrap().basis.body_id,
-        awake.body_id
-    );
+    assert_eq!(front_door.face().unwrap().basis.body_id, awake.body_id);
     assert_current_action(&front_door, JourneyAction::Plan);
     assert_eq!(
         invoke(&mut journey, JourneyAction::Play, &identities, &offer),
@@ -113,9 +110,9 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     assert!(planned.wake_sign_id.is_some() && planned.plan_sign_id.is_none());
     assert!(planned.play_sign_id.is_none());
     front_door.observe_journey(planned.clone()).unwrap();
-    let planned_presentation = front_door.presentation().unwrap();
-    assert_eq!(planned_presentation.basis.plan_id, planned.plan_id);
-    assert!(planned_presentation.basis.active_play_id.is_none());
+    let planned_face = front_door.face().unwrap();
+    assert_eq!(planned_face.basis.plan_id, planned.plan_id);
+    assert!(planned_face.basis.active_play_id.is_none());
     assert_current_action(&front_door, JourneyAction::Play);
     invoke(&mut journey, JourneyAction::Play, &identities, &offer).unwrap();
     let playing = journey.projection();
@@ -131,7 +128,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     );
     front_door.observe_journey(playing.clone()).unwrap();
     assert_eq!(
-        front_door.presentation().unwrap().basis.active_play_id,
+        front_door.face().unwrap().basis.active_play_id,
         playing.active_play_id
     );
     assert_current_action(&front_door, JourneyAction::Stop);
@@ -148,7 +145,7 @@ fn exact_seed_birth_wake_plan_play_input_result_and_lull_are_distinct() {
     front_door.observe_journey(result.clone()).unwrap();
     assert!(
         front_door
-            .presentation()
+            .face()
             .unwrap()
             .properties
             .iter()
@@ -189,20 +186,20 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     let (identities, offer, mut journey) = fixture();
     let stale = JourneyRequest {
         request_id: "request/stale".into(),
-        presentation_id: "presentation/current".into(),
-        presentation_revision: 0,
+        face_id: "face/current".into(),
+        face_revision: 0,
         action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
         target_identity: "plot/stale-does-not-matter".into(),
     };
     assert_eq!(
         journey.apply(stale, &identities, &offer, "build", 1),
-        Err(JourneyError::StalePresentation)
+        Err(JourneyError::StaleFace)
     );
     let wrong = JourneyRequest {
         request_id: "request/wrong".into(),
-        presentation_id: "presentation/current".into(),
-        presentation_revision: 1,
+        face_id: "face/current".into(),
+        face_revision: 1,
         action_id: "action/open/current".into(),
         action: JourneyAction::OpenBack,
         target_identity: "seed/wrong".into(),
@@ -220,8 +217,8 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
     );
     let born_without_open = JourneyRequest {
         request_id: "request/born".into(),
-        presentation_id: "presentation/current".into(),
-        presentation_revision: 1,
+        face_id: "face/current".into(),
+        face_revision: 1,
         action_id: "action/birth/current".into(),
         action: JourneyAction::Birth,
         target_identity: seed,
@@ -234,8 +231,8 @@ fn stale_wrong_and_out_of_order_control_requests_refuse() {
 
     let wake_without_body = JourneyRequest {
         request_id: "request/wake".into(),
-        presentation_id: "presentation/current".into(),
-        presentation_revision: 1,
+        face_id: "face/current".into(),
+        face_revision: 1,
         action_id: "action/wake/current".into(),
         action: JourneyAction::Wake,
         target_identity: "body/absent".into(),
@@ -344,13 +341,10 @@ fn long_session_keeps_one_body_plan_play_and_discloses_bounded_history() {
         assert!(gap.entries > 0);
         let mut door = front_door(&journey);
         door.observe_journey(current).unwrap();
-        let presentation = door.presentation().unwrap();
-        assert!(presentation.properties.iter().any(|property| {
+        let face = door.face().unwrap();
+        assert!(face.properties.iter().any(|property| {
             property.name == "kernel-sign-gap-entries"
-                && property.value
-                    == conduit_presentation::PresentationPropertyValue::Count(u64::from(
-                        gap.entries,
-                    ))
+                && property.value == conduit_face::FacePropertyValue::Count(u64::from(gap.entries))
         }));
         if device_lost {
             journey.input_lost(JourneyLossKind::InputDevice).unwrap();

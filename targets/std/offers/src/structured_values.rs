@@ -8,15 +8,15 @@ pub use flow_pressure::*;
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, ImplementationId,
-    PRESENTATION_RESOURCE_CLASS,
+    FACE_RESOURCE_CLASS,
 };
 
 pub const STRUCTURED_LITERAL_STD_PROFILE: &str = "std/structured-literal-kernel@1";
-pub const STRUCTURED_PRESENTATION_STD_PROFILE: &str = "std/structured-presentation-kernel@1";
+pub const STRUCTURED_FACE_STD_PROFILE: &str = "std/structured-face-kernel@1";
 pub const STRUCTURED_LITERAL_STD_IMPLEMENTATION: &str = "std/kernel-structured-literal@1";
-pub const STRUCTURED_PRESENTATION_STD_IMPLEMENTATION: &str = "std/kernel-structured-presentation@1";
+pub const STRUCTURED_FACE_STD_IMPLEMENTATION: &str = "std/kernel-structured-face@1";
 pub const STRUCTURED_LITERAL_STD_ARTIFACT: &str = "conduit-core/structured-info@1";
-pub const STRUCTURED_PRESENTATION_STD_ARTIFACT: &str = "conduit-presentation/structured-info@1";
+pub const STRUCTURED_FACE_STD_ARTIFACT: &str = "conduit-face/structured-info@1";
 
 pub fn structured_literal_std_offer(
     type_name: &str,
@@ -32,23 +32,23 @@ pub fn structured_literal_std_offer(
     offer(contract, true, None)
 }
 
-pub fn structured_presentation_std_offer(
+pub fn structured_face_std_offer(
     type_name: &str,
     value_type: &conduit_core::StructuredInfoType,
 ) -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::structured_presentation_semantic_contract(type_name, value_type),
+        conduit_semantic_catalog::structured_face_semantic_contract(type_name, value_type),
         false,
         None,
     )
 }
 
-/// Inspect one typed numerical receipt through the shared presentation boundary.
-pub fn numerical_presentation_std_offer() -> CapabilityOffer {
+/// Inspect one typed numerical receipt through the shared Face boundary.
+pub fn numerical_face_std_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::numerical_presentation_semantic_contract(),
+        conduit_semantic_catalog::numerical_face_semantic_contract(),
         false,
-        Some(CapabilityId::from("std-numerical-result-presentation")),
+        Some(CapabilityId::from("std-numerical-result-face")),
     )
 }
 
@@ -62,12 +62,12 @@ pub fn scalar_literal_std_offer() -> CapabilityOffer {
     )
 }
 
-/// Realize the canonical Quantity leaf Fore through the structured presentation Host Call.
-pub fn quantity_presentation_std_offer() -> CapabilityOffer {
+/// Realize the canonical Quantity leaf Fore through the structured face Host Call.
+pub fn quantity_face_std_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::quantity_presentation_semantic_contract(),
+        conduit_semantic_catalog::quantity_face_semantic_contract(),
         false,
-        Some(CapabilityId::from("std-quantity-presentation")),
+        Some(CapabilityId::from("std-quantity-face")),
     )
 }
 
@@ -93,37 +93,37 @@ fn offer(
                     if source {
                         "structured-literal"
                     } else {
-                        "structured-presentation"
+                        "structured-face"
                     }
                 ))
             }),
             execution_profile_id: ExecutionProfileId::from(if source {
                 STRUCTURED_LITERAL_STD_PROFILE
             } else {
-                STRUCTURED_PRESENTATION_STD_PROFILE
+                STRUCTURED_FACE_STD_PROFILE
             }),
             implementation_id: ImplementationId::from(if source {
                 STRUCTURED_LITERAL_STD_IMPLEMENTATION
             } else {
-                STRUCTURED_PRESENTATION_STD_IMPLEMENTATION
+                STRUCTURED_FACE_STD_IMPLEMENTATION
             }),
             artifact_id: ArtifactId::from(if source {
                 STRUCTURED_LITERAL_STD_ARTIFACT
             } else {
-                STRUCTURED_PRESENTATION_STD_ARTIFACT
+                STRUCTURED_FACE_STD_ARTIFACT
             }),
             host_calls: if source {
                 Vec::new()
             } else {
                 vec![present_host_call_requirement(
-                    kind_id(conduit_semantic_catalog::STRUCTURED_PRESENTATION_TARGET),
+                    kind_id(conduit_semantic_catalog::STRUCTURED_FACE_TARGET),
                     conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
                 )]
             },
             resource_requirements: if source {
                 Vec::new()
             } else {
-                vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)]
+                vec![resource_requirement(FACE_RESOURCE_CLASS, 1)]
             },
             authority_requirements: Vec::new(),
         },
@@ -154,8 +154,8 @@ mod tests {
                 ),
             ),
             (
-                quantity_presentation_std_offer(),
-                conduit_semantic_catalog::quantity_presentation_semantic_contract(),
+                quantity_face_std_offer(),
+                conduit_semantic_catalog::quantity_face_semantic_contract(),
             ),
             (
                 structured_literal_std_offer("FileCopyResult", &value_type, &default_value),
@@ -167,8 +167,8 @@ mod tests {
                 .unwrap(),
             ),
             (
-                structured_presentation_std_offer("FileCopyResult", &value_type),
-                conduit_semantic_catalog::structured_presentation_semantic_contract(
+                structured_face_std_offer("FileCopyResult", &value_type),
+                conduit_semantic_catalog::structured_face_semantic_contract(
                     "FileCopyResult",
                     &value_type,
                 ),
@@ -186,9 +186,9 @@ mod tests {
     }
 
     #[test]
-    fn quantity_and_generic_presentation_have_distinct_capability_identities() {
-        let quantity = quantity_presentation_std_offer();
-        let generic = structured_presentation_std_offer(
+    fn quantity_and_generic_face_have_distinct_capability_identities() {
+        let quantity = quantity_face_std_offer();
+        let generic = structured_face_std_offer(
             "Quantity",
             &conduit_semantic_catalog::wrapped_quantity_type(),
         );

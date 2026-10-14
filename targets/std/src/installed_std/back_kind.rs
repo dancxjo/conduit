@@ -1,18 +1,19 @@
 //! Closed inventory of operations installed in the production std kernel profile.
 
-use super::alife_backs::{LeniaStepBack, OrbiumSeedBack, ScalarFieldPresentationBack};
+use super::alife_backs::{LeniaStepBack, OrbiumSeedBack, ScalarFieldFaceBack};
 use super::audio_play_back::AudioPlayBack;
 use super::audio_tone_back::AudioToneBack;
 use super::body_chat_prompt_back::BodyChatPromptBack;
 use super::body_conversation_context_back::BodyConversationContextBack;
-use super::bool_presentation::BoolPresentationBack;
+use super::bool_face::BoolFaceBack;
 use super::calendar_proposal_back::CalendarProposalBack;
 use super::calendar_provider_back::CalendarProviderBack;
 use super::combine_latest_back::CombineLatestBack;
-use super::count_backs::{CountPresentationBack, StateCountBack};
+use super::count_backs::{CountFaceBack, StateCountBack};
 use super::current_sample_back::CurrentSampleBack;
 use super::data_text_back::DataTextBack;
 use super::distance_frequency_back::DistanceFrequencyBack;
+use super::face_composition::{FaceCompositionBack, GraphicsFaceBack};
 use super::final_normalized_pattern_back::FinalNormalizedPatternBack;
 use super::flow_first_back::FlowFirstBack;
 use super::flow_gate_back::FlowGateScalarBack;
@@ -43,7 +44,6 @@ use super::navigation_backs::NavigationBack;
 use super::pacing_backs::{DelayBack, ThrottleBack};
 use super::pattern_comparison_back::PatternComparisonBack;
 use super::pcm_profile_conversion_back::PcmProfileConversionBack;
-use super::presentation_composition::{GraphicsPresentationBack, PresentationCompositionBack};
 use super::pure_expression_back::PureExpressionBack;
 use super::recognized_turn_commit_back::RecognizedTurnCommitBack;
 use super::record_delivery_back::RecordDeliveryStatusBack;
@@ -60,10 +60,10 @@ use super::speech_recognition_adapter_back::{
     SpeechResultToEventStreamBack, SpeechWindowToClipBack,
 };
 use super::speech_synthesis_back::SpeechSynthesisBack;
-use super::spoken_mask_backs::{PresentationTeeBack, SpokenArtifactBack};
+use super::spoken_mask_backs::{FaceTeeBack, SpokenArtifactBack};
 use super::state_select_back::StateSelectScalarBack;
 use super::structured_selector_back::StructuredSelectorBack;
-use super::structured_values_back::{StructuredLiteralBack, StructuredPresentationBack};
+use super::structured_values_back::{StructuredFaceBack, StructuredLiteralBack};
 use super::synth_back::MusicSynthBack;
 use super::template_storage_back::TemplateStorageBack;
 #[cfg(test)]
@@ -74,12 +74,12 @@ use super::test_local_model_io::{TestLocalModelSinkBack, TestLocalModelSourceBac
 use super::test_structured_selector::{
     SinkBack as TestStructuredSinkBack, SourceBack as TestStructuredSourceBack,
 };
-use super::text_backs::{TextLiteralBack, TextPresentationBack, TextTransformBack};
+use super::text_backs::{TextFaceBack, TextLiteralBack, TextTransformBack};
 use super::text_state_back::TextStateBack;
 #[cfg(test)]
 use super::tick_backs::TestObserverBack;
 use super::tick_backs::TickBack;
-use super::tick_presentation::TickPresentationBack;
+use super::tick_face::TickFaceBack;
 use super::time_sample_back::TimeSampleBack;
 use super::time_window_back::TimeWindowBack;
 use super::timed_button_attempt_back::TimedButtonAttemptBack;
@@ -129,19 +129,19 @@ pub(super) enum InstalledBack {
     Recurrence(RecurrenceBack),
     CalendarProposal(CalendarProposalBack),
     CalendarProvider(CalendarProviderBack),
-    TickPresentation(TickPresentationBack),
-    BoolPresentation(BoolPresentationBack),
+    TickFace(TickFaceBack),
+    BoolFace(BoolFaceBack),
     OrbiumSeed(OrbiumSeedBack),
     LeniaStep(LeniaStepBack),
-    ScalarFieldPresentation(ScalarFieldPresentationBack),
+    ScalarFieldFace(ScalarFieldFaceBack),
     TextLiteral(TextLiteralBack),
     TextUpper(TextTransformBack),
     TextJoin(TextTransformBack),
-    TextPresentation(TextPresentationBack),
+    TextFace(TextFaceBack),
     TextState(TextStateBack),
     StateCount(StateCountBack),
     StateToggle(StateToggleBack),
-    CountPresentation(CountPresentationBack),
+    CountFace(CountFaceBack),
     FlowBackpressure(FlowPressureBack),
     FlowCoalesceLatest(FlowPressureBack),
     StateLatestScalar(StateLatestScalarBack),
@@ -177,17 +177,17 @@ pub(super) enum InstalledBack {
     LogicSelectScalar(LogicSelectScalarBack),
     MathScalar(MathScalarBack),
     Layout(LayoutBack),
-    PresentationComposition(PresentationCompositionBack),
-    GraphicsPresentation(GraphicsPresentationBack),
+    FaceComposition(FaceCompositionBack),
+    GraphicsFace(GraphicsFaceBack),
     #[cfg(test)]
-    TestPresentationSink(super::presentation_composition::PresentationSinkBack),
+    TestFaceSink(super::face_composition::FaceSinkBack),
     #[cfg(test)]
     TestLayoutSink(super::layout_backs::LayoutSinkBack),
     RoboticsSource(RoboticsSourceBack),
     RoboticsDrive(RoboticsDriveBack),
     MusicSynth(MusicSynthBack),
     SpeechSynthesis(SpeechSynthesisBack),
-    SpokenPresentationRequest(crate::spoken_mask_runtime::PresentationToGenerativeRequestBack),
+    SpokenFaceRequest(crate::spoken_mask_runtime::FaceToGenerativeRequestBack),
     GeneratedValidationEnvelope(super::generated_validation_backs::GeneratedValidationBack),
     GeneratedSemanticValidator(super::generated_validation_backs::GeneratedValidatorBack),
     RetainGeneratedValidation(super::generated_validation_backs::GeneratedValidationBack),
@@ -196,7 +196,7 @@ pub(super) enum InstalledBack {
     SpokenArtifact(SpokenArtifactBack),
     SpokenArtifactShow(crate::spoken_mask_runtime::ArtifactAcknowledgedShowBack),
     SpokenNoInteraction(crate::spoken_mask_runtime::ClosingNoInteractionBack),
-    PresentationTee(PresentationTeeBack),
+    FaceTee(FaceTeeBack),
     AudioRenderDemand(AudioRenderDemandBack),
     AudioPlay(AudioPlayBack),
     AudioTone(AudioToneBack),
@@ -234,7 +234,7 @@ pub(super) enum InstalledBack {
     Numerical(conduit_semantic_catalog::NumericalRealizationBack),
     StructuredLiteral(StructuredLiteralBack),
     ConvertedEquals(Box<conduit_semantic_catalog::ConvertedEqualsBack>),
-    StructuredPresentation(StructuredPresentationBack),
+    StructuredFace(StructuredFaceBack),
     #[cfg(test)]
     TestTextSource(super::test_text_source::TestTextSourceBack),
     #[cfg(test)]

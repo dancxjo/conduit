@@ -7,7 +7,7 @@ use super::BrowserBack;
 use conduit_core::{
     kind_id, port_id, ArtifactId, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, FrontStartupParameter, HostCallContractId, HostCallRequirement,
-    ImplementationId, PlannedGear, PRESENTATION_RESOURCE_CLASS,
+    ImplementationId, PlannedGear, FACE_RESOURCE_CLASS,
 };
 use conduit_kernel::{HostedValueStore, ValueStorage};
 
@@ -15,7 +15,7 @@ const ARTIFACT: &str = "conduit-browser-runtime/installed-text@1";
 const LITERAL_IMPLEMENTATION: &str = "browser/kernel-text-literal@1";
 const UPPER_IMPLEMENTATION: &str = "browser/kernel-text-upper@1";
 const JOIN_IMPLEMENTATION: &str = "browser/kernel-text-join@1";
-const PRESENTATION_IMPLEMENTATION: &str = "browser/presentation-text@1";
+const FACE_IMPLEMENTATION: &str = "browser/face-text@1";
 const UPPER_OPERATION: &str = "conduit.host/browser-text-upper@1";
 const JOIN_OPERATION: &str = "conduit.host/browser-text-join@1";
 const PRESENT_OPERATION: &str = "conduit.host/browser-present-text@1";
@@ -41,11 +41,11 @@ pub(super) static JOIN: BrowserInstallation = BrowserInstallation {
     perform: Some(perform_join),
 };
 
-pub(super) static PRESENTATION: BrowserInstallation = BrowserInstallation {
-    implementation_id: PRESENTATION_IMPLEMENTATION,
-    offer: presentation_offer,
-    prepare: prepare_presentation,
-    perform: Some(perform_presentation),
+pub(super) static FACE: BrowserInstallation = BrowserInstallation {
+    implementation_id: FACE_IMPLEMENTATION,
+    offer: face_offer,
+    prepare: prepare_face,
+    perform: Some(perform_face),
 };
 
 fn literal_offer() -> CapabilityOffer {
@@ -106,40 +106,35 @@ fn join_offer() -> CapabilityOffer {
     offer
 }
 
-fn presentation_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::text_presentation_contract();
-    let semantic_contract = contract
+fn face_offer() -> CapabilityOffer {
+    let contract = conduit_semantic_catalog::text_face_contract();
+    let semantic = contract
         .clone()
-        .into_semantic_contract(conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION)
-        .semantic_contract();
+        .into_semantic_contract(conduit_semantic_catalog::TEXT_FACE_CONTRACT_REVISION);
     let mut offer = conduit_core::capability_offer_from_parts! {
-        semantic_contract,
-        startup_parameters: vec![FrontStartupParameter {
-            name: "maximum-values".into(),
-            value_type: conduit_core::kind_id("value/count"),
-            has_default: true,
-        }],
-        shorthand: None,
-        capability_id: CapabilityId::from("browser/text-presentation@1"),
+        semantic_contract: semantic.semantic_contract(),
+        startup_parameters: semantic.startup_parameters.clone(),
+        shorthand: semantic.shorthand.clone(),
+        capability_id: CapabilityId::from("browser/text-face@1"),
         kind_id: contract.kind_id,
         kind_contract_revision: conduit_core::KindIdentity::from(
-            conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION,
+            conduit_semantic_catalog::TEXT_FACE_CONTRACT_REVISION,
         ),
         implementation: conduit_core::ImplementationOffer {
-            execution_profile_id: ExecutionProfileId::from("browser/presentation-text@1"),
-            implementation_id: ImplementationId::from(PRESENTATION_IMPLEMENTATION),
+            execution_profile_id: ExecutionProfileId::from("browser/face-text@1"),
+            implementation_id: ImplementationId::from(FACE_IMPLEMENTATION),
             artifact_id: ArtifactId::from(ARTIFACT),
         },
         inputs: contract.inputs,
         outputs: contract.outputs,
         host_calls: vec![operation(
             PRESENT_OPERATION,
-            "presentation/browser-text",
+            "face/browser-text",
             conduit_text::MAX_TEXT_BYTES,
             0,
         )],
         resource_requirements: vec![conduit_core::resource_requirement(
-            PRESENTATION_RESOURCE_CLASS,
+            FACE_RESOURCE_CLASS,
             1,
         )],
         authority_requirements: Vec::new(),
@@ -225,12 +220,12 @@ fn prepare_unary(
     ))
 }
 
-fn prepare_presentation(
+fn prepare_face(
     placement: &PlannedGear,
     _values: &mut HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &presentation_offer())?;
-    Ok(BrowserBack::presentation(
+    validate_placement(placement, &face_offer())?;
+    Ok(BrowserBack::face(
         placement.host_calls[0].maximum_input_bytes,
         maximum_values(placement)?,
     ))
@@ -251,15 +246,13 @@ fn perform_join(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResu
     bounded_text_result(output.into_bytes())
 }
 
-fn perform_presentation(
-    _placement: &PlannedGear,
-    input: &[u8],
-) -> Result<BrowserHostResult, String> {
-    core::str::from_utf8(input).map_err(|_| "presentation/text input is not UTF-8")?;
+fn perform_face(placement: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
+    core::str::from_utf8(input).map_err(|_| "face/text input is not UTF-8")?;
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
-            kind_id: conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
+            data_label: super::factory::manifestation_label(placement)?,
+            kind_id: conduit_semantic_catalog::TEXT_FACE_KIND,
             canonical_value: input.to_vec(),
         }),
     })
@@ -300,7 +293,7 @@ fn maximum_values(placement: &PlannedGear) -> Result<u32, String> {
         .filter(|value| {
             *value > 0 && u64::from(*value) <= conduit_semantic_catalog::MAX_TEXT_VALUES
         })
-        .ok_or_else(|| "presentation/text maximum-values is invalid".into())
+        .ok_or_else(|| "face/text maximum-values is invalid".into())
 }
 
 fn debug_error(error: impl core::fmt::Debug) -> String {

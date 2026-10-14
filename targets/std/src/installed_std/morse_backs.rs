@@ -1,7 +1,7 @@
 //! Bounded std realization of the canonical text-to-Morse gallery path.
 
 use super::back::{BackBudget, BackFactory, InstalledBack};
-use super::text_backs::{TextPresentationBack, TextTransformBack};
+use super::text_backs::{TextFaceBack, TextTransformBack};
 use conduit_core::{ConfigurationValue, HostCallContractId, KindId, PlannedGear};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, ValueRef};
 
@@ -11,8 +11,8 @@ pub(super) static TEXT_MORSE_FACTORY: BackFactory = BackFactory {
     prepare: prepare_text_morse,
 };
 
-pub(super) static INDICATOR_PRESENTATION_FACTORY: BackFactory = BackFactory {
-    implementation_id: conduit_std_offers::INDICATOR_PRESENTATION_IMPLEMENTATION,
+pub(super) static INDICATOR_FACE_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::INDICATOR_FACE_IMPLEMENTATION,
     budget: indicator_budget,
     prepare: prepare_indicator,
 };
@@ -148,9 +148,7 @@ fn prepare_indicator(
     _values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     validate_indicator(placement)?;
-    Ok(InstalledBack::TextPresentation(
-        TextPresentationBack::bounded(4),
-    ))
+    Ok(InstalledBack::TextFace(TextFaceBack::bounded(4)))
 }
 
 fn validate_text_morse(placement: &PlannedGear) -> Result<(), String> {
@@ -159,10 +157,8 @@ fn validate_text_morse(placement: &PlannedGear) -> Result<(), String> {
 }
 
 fn validate_indicator(placement: &PlannedGear) -> Result<(), String> {
-    validate(
-        placement,
-        &conduit_std_offers::indicator_presentation_offer(),
-    )
+    conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    validate(placement, &conduit_std_offers::indicator_face_offer())
 }
 
 fn validate(placement: &PlannedGear, offer: &conduit_core::CapabilityOffer) -> Result<(), String> {

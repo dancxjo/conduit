@@ -89,7 +89,7 @@ impl StructuredInfoInspection {
         let value = match &observation.kind {
             ObservationKind::ValueProduced { value }
             | ObservationKind::ValueAccepted { value }
-            | ObservationKind::ValuePresented { value } => value,
+            | ObservationKind::ValuePresented { value, .. } => value,
             _ => return Err(StructuredInfoInspectionRefusal::NotValueSign),
         };
         let expected_profile = expected_type

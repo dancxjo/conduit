@@ -1,4 +1,4 @@
-//! Resident Home presentation meaning shared by ConduitOS realizations.
+//! Resident Home face meaning shared by ConduitOS realizations.
 
 #![no_std]
 
@@ -12,9 +12,9 @@ mod generated {
 pub use generated::HomeDestination;
 
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
-    SemanticApplicationView, SemanticPresentationNode, StatusKind,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, FaceMechanism, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, StatusKind,
 };
 
 pub const MAX_COMMAND_BYTES: usize = 96;
@@ -171,16 +171,16 @@ impl HomeModel {
         &self.output
     }
 
-    pub fn presentation(&self, revision: u32, installed_plots: &[&str]) -> SemanticApplicationView {
+    pub fn face(&self, revision: u32, installed_plots: &[&str]) -> SemanticApplicationView {
         let content = match self.view {
             HomeView::Launcher => node(
                 "launcher",
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: "Conduit Home".into(),
                 },
                 vec![node(
                     "applications",
-                    PresentationMechanism::Grid,
+                    FaceMechanism::Grid,
                     HomeDestination::ALL
                         .iter()
                         .enumerate()
@@ -196,12 +196,12 @@ impl HomeModel {
             ),
             HomeView::Plots => node(
                 "plots",
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: "Installed plots".into(),
                 },
                 vec![node(
                     "plot-list",
-                    PresentationMechanism::ActionGroup {
+                    FaceMechanism::ActionGroup {
                         label: "Installed plots".into(),
                     },
                     installed_plots
@@ -219,12 +219,12 @@ impl HomeModel {
             ),
             HomeView::Body => node(
                 "body",
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: "Body".into(),
                 },
                 vec![node(
                     "body-guidance",
-                    PresentationMechanism::Status {
+                    FaceMechanism::Status {
                         kind: StatusKind::Ordinary,
                         title: "Body status".into(),
                         detail: "Current lifecycle truth is supplied by the presenting Host."
@@ -235,13 +235,13 @@ impl HomeModel {
             ),
             HomeView::Prompt => node(
                 "prompt",
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: "Conduit Prompt".into(),
                 },
                 vec![
                     node(
                         "command",
-                        PresentationMechanism::CodeBlock {
+                        FaceMechanism::CodeBlock {
                             language: "conduit-command".into(),
                             code: self.command.clone(),
                         },
@@ -249,7 +249,7 @@ impl HomeModel {
                     ),
                     node(
                         "command-result",
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: StatusKind::Ordinary,
                             title: "Prompt result".into(),
                             detail: self.output.clone(),
@@ -261,7 +261,7 @@ impl HomeModel {
         };
         SemanticApplicationView {
             revision,
-            root: node("home", PresentationMechanism::Shell, vec![content]),
+            root: node("home", FaceMechanism::Shell, vec![content]),
         }
     }
 
@@ -436,10 +436,10 @@ fn resolve_plot(requested: &str, installed_plots: &[&str]) -> Option<usize> {
         .position(|title| title.eq_ignore_ascii_case(requested))
 }
 
-fn action_node(key: &str, identity: &str, label: &str) -> SemanticPresentationNode {
+fn action_node(key: &str, identity: &str, label: &str) -> SemanticFaceNode {
     node(
         key,
-        PresentationMechanism::Action(SemanticAction {
+        FaceMechanism::Action(SemanticAction {
             identity: identity.into(),
             event: ApplicationEventKind::Activate,
             label: label.into(),
@@ -449,12 +449,8 @@ fn action_node(key: &str, identity: &str, label: &str) -> SemanticPresentationNo
     )
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,

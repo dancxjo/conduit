@@ -95,7 +95,7 @@ A live plot:
 ```conduit
 plot clock-demo {
     clock: time/every(1s)
-    clock >> presentation/tick
+    clock >> face/tick("Clock tick")
 }
 ```
 

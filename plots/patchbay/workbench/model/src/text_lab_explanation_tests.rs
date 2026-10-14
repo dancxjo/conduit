@@ -3,14 +3,14 @@ use crate::{
     RendererAdapterKind,
 };
 use conduit_core::{BootId, HostId, SignId};
-use conduit_presentation::{PresentationDepth, PresentationPlace, PresentationRole};
+use conduit_face::{FaceDepth, FacePlace, FaceRole};
 use conduit_semantic_catalog::TextLabLineLossReceipt;
 use conduit_semantic_catalog::{
     exact_text_lab_line_loss_outcome, exact_text_lab_split_plan, TEXT_LAB_RETURN_LINE,
 };
 
 fn loss_receipt(base: &str) -> TextLabLineLossReceipt {
-    let browser_upper = conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer();
+    let browser_upper = conduit_browser_runtime::face_nucleus::browser_text_upper_offer();
     let exact = exact_text_lab_split_plan(base, &browser_upper).unwrap();
     let outcome =
         exact_text_lab_line_loss_outcome(base, &browser_upper, TEXT_LAB_RETURN_LINE).unwrap();
@@ -50,38 +50,23 @@ fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
     let explanation = text_lab_split_explanation("ws://127.0.0.1:1/conduit").unwrap();
     assert_eq!(
         explanation.ordinary_path,
-        "keyboard here -> uppercase there -> presentation here"
+        "keyboard here -> uppercase there -> face here"
     );
-    assert_eq!(
-        explanation.upper_program_cursor.place,
-        PresentationPlace::Program
-    );
-    assert_eq!(
-        explanation.browser_host_cursor.place,
-        PresentationPlace::Body
-    );
-    assert_eq!(
-        explanation.browser_host_cursor.depth,
-        PresentationDepth::Exact
-    );
-    assert_eq!(
-        explanation.return_line_cursor.place,
-        PresentationPlace::Body
-    );
-    assert_eq!(
-        explanation.return_line_cursor.depth,
-        PresentationDepth::Exact
-    );
+    assert_eq!(explanation.upper_program_cursor.place, FacePlace::Program);
+    assert_eq!(explanation.browser_host_cursor.place, FacePlace::Body);
+    assert_eq!(explanation.browser_host_cursor.depth, FaceDepth::Exact);
+    assert_eq!(explanation.return_line_cursor.place, FacePlace::Body);
+    assert_eq!(explanation.return_line_cursor.depth, FaceDepth::Exact);
     assert_eq!(
         explanation.returned_program_cursor.place,
-        PresentationPlace::Program
+        FacePlace::Program
     );
     assert_eq!(
-        explanation.presentation.basis.source_document_id,
+        explanation.face.basis.source_document_id,
         Some(
             conduit_semantic_catalog::exact_text_lab_split_plan(
                 "ws://127.0.0.1:1/conduit",
-                &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+                &conduit_browser_runtime::face_nucleus::browser_text_upper_offer(),
             )
             .unwrap()
             .plan
@@ -93,31 +78,26 @@ fn unchanged_text_lab_explains_split_program_and_body_without_mixing_domains() {
         .navigation
         .places
         .iter()
-        .find(|place| place.place == PresentationPlace::Program)
+        .find(|place| place.place == FacePlace::Program)
         .unwrap();
     assert!(program.aspects.iter().all(|aspect| {
         aspect.focusable_subjects.iter().all(|id| {
             explanation
-                .presentation
+                .face
                 .subjects
                 .iter()
                 .find(|subject| subject.identity == *id)
-                .is_none_or(|subject| {
-                    !matches!(
-                        subject.role,
-                        PresentationRole::Host | PresentationRole::Line
-                    )
-                })
+                .is_none_or(|subject| !matches!(subject.role, FaceRole::Host | FaceRole::Line))
         })
     }));
 }
 
 #[test]
-fn native_and_html_adapters_consume_the_same_text_lab_presentation_vocabulary() {
+fn native_and_html_adapters_consume_the_same_text_lab_face_vocabulary() {
     let explanation = text_lab_split_explanation("ws://127.0.0.1:1/conduit").unwrap();
     let render = |adapter, name: &str| {
         prepare_renderer_execution(
-            explanation.presentation.clone(),
+            explanation.face.clone(),
             adapter,
             RendererAdapterIdentity {
                 host_id: HostId::from(format!("patchbay/{name}")),
@@ -130,20 +110,14 @@ fn native_and_html_adapters_consume_the_same_text_lab_presentation_vocabulary() 
     };
     let native = render(RendererAdapterKind::NativeWayland, "native-text-lab");
     let html = render(RendererAdapterKind::HtmlDomSvg, "html-text-lab");
-    assert_eq!(native.presentation, html.presentation);
-    assert_eq!(
-        native.presentation.identity,
-        explanation.presentation.identity
-    );
-    assert_eq!(
-        native.presentation.actions,
-        explanation.presentation.actions
-    );
+    assert_eq!(native.face, html.face);
+    assert_eq!(native.face.identity, explanation.face.identity);
+    assert_eq!(native.face.actions, explanation.face.actions);
     assert!(native
-        .presentation
+        .face
         .text
         .iter()
-        .any(|line| { line.text == "keyboard here -> uppercase there -> presentation here" }));
+        .any(|line| { line.text == "keyboard here -> uppercase there -> face here" }));
 }
 
 #[test]
@@ -151,18 +125,18 @@ fn native_loss_receipt_rebuilds_signed_unavailable_truth_and_mutation_refuses() 
     let base = "ws://127.0.0.1:1/conduit";
     let receipt = loss_receipt(base);
     let explanation = crate::text_lab_split_loss_explanation(base, &receipt).unwrap();
-    assert_eq!(explanation.presentation.revision, 2);
+    assert_eq!(explanation.face.revision, 2);
     assert_eq!(
         explanation.ordinary_path,
         "browser Part unavailable -> unchanged Plot currently unrealizable"
     );
     assert!(explanation
-        .presentation
+        .face
         .basis
         .sign_ids
         .iter()
         .any(|sign| sign.as_str() == receipt.sign_id));
-    assert!(explanation.presentation.text.iter().any(|line| {
+    assert!(explanation.face.text.iter().any(|line| {
         line.text.contains("fresh-planning=unrealizable")
             && line.text.contains("old-plan=immutable")
     }));

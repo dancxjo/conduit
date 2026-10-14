@@ -20,7 +20,7 @@ function assertExactJSONNumbers(value, path = 'canonicalFace') {
 }
 
 /**
- * Each snapshot contains canonicalFace (the whole owner Presentation), owner
+ * Each snapshot contains canonicalFace (the whole owner Face), owner
  * {sourceDocumentId, bodyId, hostId, bootId, planId, playId}, component
  * {sourceDocumentId, checkedPlotId, foreId, recipe}, and realization
  * {expandedPlotId, planId, playId, showId, acknowledgedShowId, expression}.

@@ -2,7 +2,7 @@
 
 use crate::{FieldBitmapRefusal, LeniaFieldState, LENIA_Q16_ONE};
 use alloc::vec::Vec;
-use conduit_presentation::{BitmapRefusal, Gray8Bitmap};
+use conduit_face::{BitmapRefusal, Gray8Bitmap};
 
 pub fn lenia_field_to_gray8(field: &LeniaFieldState) -> Result<Gray8Bitmap, FieldBitmapRefusal> {
     field
@@ -29,7 +29,7 @@ mod tests {
     use crate::LeniaFieldId;
 
     #[test]
-    fn q16_field_maps_deterministically_without_presentation_facts() {
+    fn q16_field_maps_deterministically_without_face_facts() {
         let field = LeniaFieldState::from_cells(
             LeniaFieldId::from_bytes([7; 16]),
             3,
@@ -49,7 +49,7 @@ mod tests {
         assert_eq!((bitmap.width(), bitmap.height()), (32, 32));
         assert_eq!(&bitmap.pixels()[..4], &[0, 64, 128, 255]);
         assert_eq!(
-            conduit_presentation::Gray8Bitmap::decode(&bitmap.encode()),
+            conduit_face::Gray8Bitmap::decode(&bitmap.encode()),
             Ok(bitmap)
         );
     }

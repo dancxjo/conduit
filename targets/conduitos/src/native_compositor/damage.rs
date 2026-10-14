@@ -1,6 +1,6 @@
 use alloc::vec::Vec;
 
-use conduit_presentation::LayoutRect;
+use conduit_face::LayoutRect;
 
 use super::NativeCompositorError;
 

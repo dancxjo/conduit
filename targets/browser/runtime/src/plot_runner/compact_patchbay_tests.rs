@@ -3,7 +3,7 @@ use super::*;
 const MORSE: &str = r#"plot signal {
     message: text/literal("SOS")
     morse: text/morse
-    light: presentation/indicator
+    light: face/indicator("Light signal")
     message >> morse >> light
 }"#;
 
@@ -123,7 +123,7 @@ fn invalid_cord_projects_the_draft_and_topology_bounds_still_refuse() {
         .starts_with("parse checked-Plot Patchbay"));
     let wrong_type = r#"plot wrong {
     text: text/literal("x")
-    light: presentation/indicator
+    light: face/indicator("Light signal")
     text >> light
 }"#;
     let invalid = project(wrong_type, 2, false).unwrap();

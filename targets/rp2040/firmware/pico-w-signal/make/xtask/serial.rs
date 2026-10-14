@@ -80,7 +80,7 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
                 return Err("duplicate boot identity record received".into());
             }
             if receipts > 0 {
-                return Err("boot identity record arrived after presentation receipts".into());
+                return Err("boot identity record arrived after face receipts".into());
             }
             let runtime = verify_boot_identity(&record, identity)?;
             runtime_identity = Some(runtime);
@@ -108,7 +108,7 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
 
         if schema.starts_with("conduit-pico-w-signal/receipt") {
             if !boot_seen {
-                return Err("presentation receipt arrived before boot identity".into());
+                return Err("face receipt arrived before boot identity".into());
             }
             let sequence = record["sequence"]
                 .as_u64()
@@ -120,13 +120,13 @@ fn verify_receipts(reader: impl BufRead, identity: &FirmwareIdentity) -> PicoRes
                 )
                 .into());
             }
-            verify_presentation_identity(
+            verify_face_identity(
                 &record,
                 receipts,
                 identity,
                 runtime_identity
                     .as_ref()
-                    .ok_or("presentation receipt arrived before runtime boot identity")?,
+                    .ok_or("face receipt arrived before runtime boot identity")?,
             )?;
             receipts += 1;
             continue;
@@ -165,17 +165,17 @@ fn validate_expected_identity(identity: &FirmwareIdentity) -> PicoResult<()> {
         )
         .into());
     }
-    if expected.presentation_ids.len() != EXPECTED_RECEIPTS {
+    if expected.face_ids.len() != EXPECTED_RECEIPTS {
         return Err(format!(
-            "identity manifest contains {} presentation IDs; expected {EXPECTED_RECEIPTS}",
-            expected.presentation_ids.len()
+            "identity manifest contains {} face IDs; expected {EXPECTED_RECEIPTS}",
+            expected.face_ids.len()
         )
         .into());
     }
-    if expected.presentation_sign_ids.len() != EXPECTED_RECEIPTS {
+    if expected.face_sign_ids.len() != EXPECTED_RECEIPTS {
         return Err(format!(
-            "identity manifest contains {} presentation sign IDs; expected {EXPECTED_RECEIPTS}",
-            expected.presentation_sign_ids.len()
+            "identity manifest contains {} face sign IDs; expected {EXPECTED_RECEIPTS}",
+            expected.face_sign_ids.len()
         )
         .into());
     }
@@ -192,7 +192,7 @@ fn verify_boot_identity(
     read_runtime_identity(record, expected)
 }
 
-fn verify_presentation_identity(
+fn verify_face_identity(
     record: &serde_json::Value,
     sequence: usize,
     identity: &FirmwareIdentity,
@@ -211,12 +211,8 @@ fn verify_presentation_identity(
         )
         .into());
     }
-    verify_field(
-        record,
-        "presentation_id",
-        &expected.presentation_ids[sequence],
-    )?;
-    verify_field(record, "sign_id", &expected.presentation_sign_ids[sequence])
+    verify_field(record, "face_id", &expected.face_ids[sequence])?;
+    verify_field(record, "sign_id", &expected.face_sign_ids[sequence])
 }
 
 fn verify_terminal_identity(

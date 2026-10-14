@@ -94,7 +94,7 @@ impl SerialBase for Serial {
         Ok(())
     }
 
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.0
     }
 }

@@ -1,4 +1,4 @@
-# The reviewed English live voice conversation specimen. Audio acquisition, presentation,
+# The reviewed English live voice conversation specimen. Audio acquisition, face,
 # provider choice, devices, and placement remain realization truth.
 plot live-conversation (
     >> audio: PcmFrames...|

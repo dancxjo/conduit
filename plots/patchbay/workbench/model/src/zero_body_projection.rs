@@ -1,10 +1,9 @@
 //! Portable WORLD projection for the bounded zero-body entrance state.
 
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationDisclosure, PresentationDisclosureLevel, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceBasis, FaceDisclosure, FaceDisclosureLevel,
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText,
 };
 
 use crate::portable_projection::ContentBuilder;
@@ -14,47 +13,47 @@ impl ZeroBodyFrontDoor {
     pub fn project(&self) -> Result<ZeroBodyFrontDoorProjection, String> {
         let host = self.model.advertisement();
         let host_subject = format!("host/{}/{}", host.host_id.as_str(), host.boot_id.as_str());
-        let mut subjects = vec![PresentationSubject {
+        let mut subjects = vec![FaceSubject {
             identity: host_subject.clone(),
-            role: PresentationRole::Host,
+            role: FaceRole::Host,
             name: "This computer".into(),
         }];
         let mut relationships = Vec::new();
         let mut properties = vec![
             identity(&host_subject, "host-id", host.host_id.as_str()),
             identity(&host_subject, "boot-id", host.boot_id.as_str()),
-            PresentationProperty {
+            FaceProperty {
                 subject: host_subject.clone(),
                 name: "this-host".into(),
-                value: PresentationPropertyValue::Flag(true),
+                value: FacePropertyValue::Flag(true),
             },
-            PresentationProperty {
+            FaceProperty {
                 subject: host_subject.clone(),
                 name: "current-body".into(),
-                value: PresentationPropertyValue::Text("none".into()),
+                value: FacePropertyValue::Text("none".into()),
             },
-            PresentationProperty {
+            FaceProperty {
                 subject: host_subject.clone(),
                 name: "creche-primary".into(),
-                value: PresentationPropertyValue::Flag(true),
+                value: FacePropertyValue::Flag(true),
             },
         ];
-        let mut text = vec![PresentationText {
+        let mut text = vec![FaceText {
             subject: host_subject.clone(),
             text: "HOST body=none; OPEN is inert; only JOIN or BIRTH can embody this host".into(),
         }];
-        let mut actions = vec![PresentationAction {
+        let mut actions = vec![FaceAction {
             identity: format!("action/creche/{}", host.host_id.as_str()),
             intent: "conduit.intent/birth@1".into(),
             target: host_subject.clone(),
             name: "Name Body and choose Plots".into(),
             arguments: vec![],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         }];
-        let mut disclosures = vec![PresentationDisclosure {
+        let mut disclosures = vec![FaceDisclosure {
             subject: host_subject.clone(),
-            level: PresentationDisclosureLevel::Context,
+            level: FaceDisclosureLevel::Context,
         }];
         let selected_plot = match &self.opened {
             Some(OpenedFrontDoorSubject::Plot {
@@ -69,15 +68,15 @@ impl ZeroBodyFrontDoor {
                 host.boot_id.as_str(),
                 offer.capability_id.as_str()
             );
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Capability,
+                role: FaceRole::Capability,
                 name: format!("Available capability {}", offer.kind_id.as_str()),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: host_subject.clone(),
                 target: subject.clone(),
-                kind: PresentationRelationshipKind::Contains,
+                kind: FaceRelationshipKind::Contains,
             });
             properties.push(identity(
                 &subject,
@@ -87,31 +86,31 @@ impl ZeroBodyFrontDoor {
         }
         for candidate in &self.body_candidates {
             let subject = format!("body/{}", candidate.body.body_id.as_str());
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Body,
+                role: FaceRole::Body,
                 name: candidate.label.clone(),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: host_subject.clone(),
                 target: subject.clone(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             });
             properties.extend([
                 identity(&subject, "body-id", candidate.body.body_id.as_str()),
                 identity(&subject, "membership-proof", candidate.proof_id.as_str()),
-                PresentationProperty {
+                FaceProperty {
                     subject: subject.clone(),
                     name: "current".into(),
-                    value: PresentationPropertyValue::Flag(false),
+                    value: FacePropertyValue::Flag(false),
                 },
-                PresentationProperty {
+                FaceProperty {
                     subject: subject.clone(),
                     name: "freshness-sequence".into(),
-                    value: PresentationPropertyValue::Count(candidate.freshness_sequence),
+                    value: FacePropertyValue::Count(candidate.freshness_sequence),
                 },
             ]);
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject,
                 text: "BODY candidate; OPEN permits inspection and does not grant membership"
                     .into(),
@@ -123,15 +122,15 @@ impl ZeroBodyFrontDoor {
                 &self.opened,
                 Some(OpenedFrontDoorSubject::Plot { checked_plot_id, .. }) if checked_plot_id == &plot.checked_plot_id
             );
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Plot,
+                role: FaceRole::Plot,
                 name: plot.label.clone(),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: host_subject.clone(),
                 target: subject.clone(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             });
             properties.extend([
                 identity(&subject, "plot-id", plot.checked_plot_id.as_str()),
@@ -141,13 +140,13 @@ impl ZeroBodyFrontDoor {
                     plot.source_document_id.as_str(),
                 ),
                 identity(&subject, "checked-plot-id", plot.checked_plot_id.as_str()),
-                PresentationProperty {
+                FaceProperty {
                     subject: subject.clone(),
                     name: "freshness-sequence".into(),
-                    value: PresentationPropertyValue::Count(plot.freshness_sequence),
+                    value: FacePropertyValue::Count(plot.freshness_sequence),
                 },
             ]);
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject: subject.clone(),
                 text: format!(
                     "PLOT provenance={}; OPEN permits inspection and does not create a body",
@@ -155,26 +154,26 @@ impl ZeroBodyFrontDoor {
                 ),
             });
             actions.extend([
-                PresentationAction {
+                FaceAction {
                     identity: format!("action/open/{}", plot.checked_plot_id.as_str()),
                     intent: "conduit.intent/open@1".into(),
                     target: subject.clone(),
                     name: "Open".into(),
                     arguments: vec![],
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Available,
+                    disclosure: FaceDisclosureLevel::CurrentAction,
+                    availability: FaceActionAvailability::Available,
                 },
-                PresentationAction {
+                FaceAction {
                     identity: format!("action/birth/{}", plot.checked_plot_id.as_str()),
                     intent: "conduit.intent/birth@1".into(),
                     target: subject.clone(),
                     name: "Birth".into(),
                     arguments: vec![],
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
+                    disclosure: FaceDisclosureLevel::CurrentAction,
                     availability: if is_opened {
-                        PresentationActionAvailability::Available
+                        FaceActionAvailability::Available
                     } else {
-                        PresentationActionAvailability::Unavailable {
+                        FaceActionAvailability::Unavailable {
                             reason_code: "authority/not-admitted".into(),
                             explanation:
                                 "No admitted authority can create a body from this entrance."
@@ -183,12 +182,12 @@ impl ZeroBodyFrontDoor {
                     },
                 },
             ]);
-            disclosures.push(PresentationDisclosure {
+            disclosures.push(FaceDisclosure {
                 subject,
                 level: if selected_plot.is_none() || is_opened {
-                    PresentationDisclosureLevel::Primary
+                    FaceDisclosureLevel::Primary
                 } else {
-                    PresentationDisclosureLevel::ExactProvenance
+                    FaceDisclosureLevel::ExactProvenance
                 },
             });
         }
@@ -203,10 +202,10 @@ impl ZeroBodyFrontDoor {
                     format!("plot/{}", checked_plot_id.as_str())
                 }
             };
-            properties.push(PresentationProperty {
+            properties.push(FaceProperty {
                 subject: subject.clone(),
                 name: "opened".into(),
-                value: PresentationPropertyValue::Flag(true),
+                value: FacePropertyValue::Flag(true),
             });
             if let OpenedFrontDoorSubject::Plot {
                 checked_plot_id, ..
@@ -227,19 +226,19 @@ impl ZeroBodyFrontDoor {
                     ContentBuilder::from_parts(subjects, relationships, properties, text);
                 content.subject_with_identity(
                     &plot_subject,
-                    PresentationRole::Plot,
+                    FaceRole::Plot,
                     format!("Checked plot {} opened from Plot {}", open_plot, plot.label),
                 );
                 content.contains(&subject, &plot_subject);
                 content.property(
                     &plot_subject,
                     "source-document-id",
-                    PresentationPropertyValue::Identity(plot.source_document_id.as_str().into()),
+                    FacePropertyValue::Identity(plot.source_document_id.as_str().into()),
                 );
                 content.property(
                     &plot_subject,
                     "checked-plot-id",
-                    PresentationPropertyValue::Identity(plot.checked_plot_id.as_str().into()),
+                    FacePropertyValue::Identity(plot.checked_plot_id.as_str().into()),
                 );
                 content.line(
                     &plot_subject,
@@ -255,14 +254,14 @@ impl ZeroBodyFrontDoor {
                     None,
                     &mut content,
                 );
-                actions.push(PresentationAction {
+                actions.push(FaceAction {
                     identity: format!("action/save/{plot_subject}"),
                     intent: "conduit.intent/save@1".into(),
                     target: plot_subject,
                     name: "Save".into(),
                     arguments: vec![],
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Available,
+                    disclosure: FaceDisclosureLevel::CurrentAction,
+                    availability: FaceActionAvailability::Available,
                 });
                 subjects = content.subjects;
                 relationships = content.relationships;
@@ -272,23 +271,23 @@ impl ZeroBodyFrontDoor {
         }
         for refusal in &self.refusals {
             let subject = format!("sign/{}", refusal.sign_id.as_str());
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: subject.clone(),
-                role: PresentationRole::Sign,
+                role: FaceRole::Sign,
                 name: format!("Front-door refusal Sign {}", refusal.code),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: host_subject.clone(),
                 target: subject.clone(),
-                kind: PresentationRelationshipKind::Observes,
+                kind: FaceRelationshipKind::Observes,
             });
             properties.push(identity(&subject, "sign-id", refusal.sign_id.as_str()));
-            properties.push(PresentationProperty {
+            properties.push(FaceProperty {
                 subject: subject.clone(),
                 name: "refusal-code".into(),
-                value: PresentationPropertyValue::Text(refusal.code.clone()),
+                value: FacePropertyValue::Text(refusal.code.clone()),
             });
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject,
                 text: format!("REFUSED {}; no Body transition occurred", refusal.code),
             });
@@ -302,9 +301,9 @@ impl ZeroBodyFrontDoor {
             .collect::<Vec<_>>();
         sign_ids.sort();
         sign_ids.dedup();
-        let presentation = Presentation::new_with_semantics(
+        let face = Face::new_with_semantics(
             self.revision,
-            PresentationBasis {
+            FaceBasis {
                 body_id: None,
                 wake_id: None,
                 source_document_id: None,
@@ -324,20 +323,17 @@ impl ZeroBodyFrontDoor {
         .map_err(|error| error.to_string())?;
         let selected_plot = selected_plot.is_some();
         let navigation = patchbay_application::PatchbayNavigationProjection::for_zero_body(
-            &presentation,
+            &face,
             selected_plot,
         )?;
-        Ok(ZeroBodyFrontDoorProjection {
-            presentation,
-            navigation,
-        })
+        Ok(ZeroBodyFrontDoorProjection { face, navigation })
     }
 }
 
-fn identity(subject: &str, name: &str, value: &str) -> PresentationProperty {
-    PresentationProperty {
+fn identity(subject: &str, name: &str, value: &str) -> FaceProperty {
+    FaceProperty {
         subject: subject.into(),
         name: name.into(),
-        value: PresentationPropertyValue::Identity(value.into()),
+        value: FacePropertyValue::Identity(value.into()),
     }
 }

@@ -1,4 +1,4 @@
-use conduit_core::{bind_active_play, bind_presentation, bind_sign};
+use conduit_core::{bind_active_play, bind_face, bind_sign};
 use conduit_signal_conformance::triple;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
@@ -96,7 +96,7 @@ impl PicoSign {
         {
             return Err(format!("Pico receipt value mismatch: {line}"));
         }
-        let presentation = bind_presentation(
+        let face = bind_face(
             &conduit_core::ActivePlayId::from(self.image_active_play_id.as_str()),
             &self.placement_id,
             sequence,
@@ -109,11 +109,7 @@ impl PicoSign {
             )),
             sequence,
         );
-        field(
-            &record,
-            "presentation_id",
-            presentation.presentation_id.as_str(),
-        )?;
+        field(&record, "face_id", face.face_id.as_str())?;
         field(&record, "sign_id", sign.sign_id.as_str())
     }
 

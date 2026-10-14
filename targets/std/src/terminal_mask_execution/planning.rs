@@ -1,6 +1,7 @@
 //! The ordinary semantic Mask graph, specialized to attached hosted terminal I/O.
 use super::*;
 use conduit_core::*;
+use conduit_face::*;
 use conduit_planner::{
     default_expanded_placements, plan_expanded_authoring_with_options, ConnectionQueueLimits,
     ForeBoundaryKey, PlanningOptions,
@@ -9,7 +10,6 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     KindSignature, ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::*;
 use std::collections::BTreeMap;
 
 pub(super) fn plan(host: &HostAdvertisement) -> Result<PlannedMaskPlot, TerminalError> {
@@ -87,14 +87,18 @@ fn plan_on_host_source(
     let mut catalog = ProfileCatalog::new();
     install_mask_plot_value_aliases(&mut startup).map_err(error)?;
     for kind in [
-        presentation_tee_kind_projection(),
+        face_tee_kind_projection(),
         renderer_kind_projection(),
         face_interaction_kind_projection(),
     ] {
         startup
             .insert(KindSignature {
                 kind: kind.kind_id.as_str().into(),
-                startup_parameters: vec![],
+                startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                    name: "label".into(),
+                    value_type: "Text".into(),
+                    default: None,
+                }],
             })
             .map_err(debug_error)?;
         catalog.insert(kind).map_err(debug_error)?;
@@ -164,8 +168,7 @@ pub(crate) fn terminal_capabilities() -> Vec<CapabilityOffer> {
     attached_terminal_capabilities()
 }
 
-pub(crate) const READ_ONLY_INTERACTION_IMPLEMENTATION: &str =
-    "presentation/terminal-input-closed@1";
+pub(crate) const READ_ONLY_INTERACTION_IMPLEMENTATION: &str = "face/terminal-input-closed@1";
 
 pub(crate) fn attached_terminal_capabilities() -> Vec<CapabilityOffer> {
     let limits = CapabilityLimits {
@@ -174,11 +177,11 @@ pub(crate) fn attached_terminal_capabilities() -> Vec<CapabilityOffer> {
         max_queue_bytes: MAX_TERMINAL_VALUE_BYTES,
     };
     vec![
-        presentation_tee_offer(
+        face_tee_offer(
             "terminal/tee".into(),
             ImplementationOffer {
                 execution_profile_id: "std/terminal-mask@1".into(),
-                implementation_id: "conduit.presentation/tee-kernel@1".into(),
+                implementation_id: "conduit.face/tee-kernel@1".into(),
                 artifact_id: "std/terminal-mask@1".into(),
             },
             limits.clone(),
@@ -186,7 +189,7 @@ pub(crate) fn attached_terminal_capabilities() -> Vec<CapabilityOffer> {
         renderer_offer(RendererRealizationOffer {
             capability_id: "terminal/render".into(),
             execution_profile_id: "std/terminal-mask@1".into(),
-            implementation_id: "presentation/renderer-terminal@1".into(),
+            implementation_id: "face/renderer-terminal@1".into(),
             artifact_id: "std/terminal-mask@1".into(),
             host_call: HostCallRequirement {
                 contract_id: PRESENT_CALL.into(),
@@ -201,7 +204,7 @@ pub(crate) fn attached_terminal_capabilities() -> Vec<CapabilityOffer> {
         face_interaction_offer(FaceInteractionRealizationOffer {
             capability_id: "terminal/input".into(),
             execution_profile_id: "std/terminal-mask@1".into(),
-            implementation_id: "presentation/terminal-input@1".into(),
+            implementation_id: "face/terminal-input@1".into(),
             artifact_id: "std/terminal-mask@1".into(),
             host_call: HostCallRequirement {
                 contract_id: INTERACTION_CALL.into(),

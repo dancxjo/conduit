@@ -14,7 +14,7 @@ const HOST_MEMBERSHIP: &[u8] = include_bytes!("../assets/browser-host-membership
 const HOST_IDENTITY: &[u8] = include_bytes!("../assets/browser-host-identity.mjs");
 const RELAY_LINE: &[u8] = include_bytes!("../assets/browser-relay-line.mjs");
 const APPLICATION_GRAPH_CANVAS: &[u8] = include_bytes!("../assets/application-graph-canvas.mjs");
-const APPLICATION_PRESENTATION: &[u8] = include_bytes!("../assets/application-presentation.mjs");
+const APPLICATION_FACE: &[u8] = include_bytes!("../assets/application-face.mjs");
 const APPLICATION_THEME_MODULE: &[u8] = include_bytes!("../assets/application-theme.mjs");
 const BROWSER_HOST_CALLS: &[u8] = include_bytes!("../assets/browser-host-calls.mjs");
 const APPLICATION_THEME: &[u8] = include_bytes!("../assets/conduit.css");
@@ -173,11 +173,9 @@ impl BrowserHostServer {
             Some("GET /browser-relay-line.mjs HTTP/1.1") => {
                 ("200 OK", "text/javascript; charset=utf-8", RELAY_LINE)
             }
-            Some("GET /assets/application-presentation.mjs HTTP/1.1") => (
-                "200 OK",
-                "text/javascript; charset=utf-8",
-                APPLICATION_PRESENTATION,
-            ),
+            Some("GET /assets/application-face.mjs HTTP/1.1") => {
+                ("200 OK", "text/javascript; charset=utf-8", APPLICATION_FACE)
+            }
             Some("GET /assets/conduit.css HTTP/1.1") => {
                 ("200 OK", "text/css; charset=utf-8", APPLICATION_THEME)
             }

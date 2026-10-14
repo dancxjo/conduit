@@ -1,12 +1,12 @@
 //! Actual selected Plan genesis and source output; private acknowledgement mechanics.
 use super::*;
 use conduit_body::{Body, BodyPlotPlan, ResidentPlot};
+use conduit_face::{ParsecMapCommand, ParsecMapState};
 use conduit_plan_lowering::{
     fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
     lowering::FIXED_KERNEL_STORAGE_PROFILE,
 };
 use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{ParsecMapCommand, ParsecMapState};
 
 fn fixture() -> (
     crate::StdHost,

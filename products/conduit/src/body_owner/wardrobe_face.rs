@@ -1,12 +1,11 @@
 //! An owner-authored Face context for the current wardrobe report. Its content
-//! changes do not replace the immutable owner presentation Plan or fabricate
+//! changes do not replace the immutable owner face Plan or fabricate
 //! an application Face revision.
 
 use super::Owner;
-use conduit_presentation::{
-    MaskWardrobe, Presentation, PresentationInteractionContext, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
-    SealedMaskPlotRoute, SelectedMaskPlotRoute,
+use conduit_face::{
+    Face, FaceInteractionContext, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject,
+    FaceText, MaskWardrobe, SealedMaskPlotRoute, SelectedMaskPlotRoute,
 };
 use serde::Deserialize;
 use serde_json::Value;
@@ -21,7 +20,7 @@ struct RouteDescription {
 impl Owner {
     /// The service builds this from its own bounded wardrobe report, so the
     /// spoken Mask reads current owner truth instead of client-authored prose.
-    pub(crate) fn wardrobe_reading_face(&self, report: &Value) -> Result<Presentation, String> {
+    pub(crate) fn wardrobe_reading_face(&self, report: &Value) -> Result<Face, String> {
         let base = self.local_face_snapshot()?;
         if report["schema"] != "conduit.body/owner-mask-wardrobe@1"
             || report["face_id"] != base.identity.as_str()
@@ -44,15 +43,15 @@ impl Owner {
                 .map_err(|error| format!("owner wardrobe selection: {error}"))?;
         let owner_plan_id = report["owner_plan_id"]
             .as_str()
-            .ok_or("owner wardrobe omitted its presentation Plan")?;
+            .ok_or("owner wardrobe omitted its face Plan")?;
         let root = "owner/wardrobe";
-        let mut subjects = vec![PresentationSubject {
+        let mut subjects = vec![FaceSubject {
             identity: root.into(),
-            role: PresentationRole::Collection,
+            role: FaceRole::Collection,
             name: "Current Mask wardrobe".into(),
         }];
         let mut relationships = Vec::with_capacity(descriptions.len());
-        let mut text = vec![PresentationText {
+        let mut text = vec![FaceText {
             subject: root.into(),
             text: format!(
                 "Wardrobe revision {}. {} worn Masks and {} preferred Masks. {}. {}. {}.",
@@ -77,7 +76,7 @@ impl Owner {
             ),
         }];
         if report["fresh_show_required"] == true {
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject: root.into(),
                 text: "The selected route needs a fresh acknowledged Show.".into(),
             });
@@ -88,21 +87,21 @@ impl Owner {
                 .find(|route| route.route_id == description.route_id)
                 .ok_or("owner wardrobe name has no admitted route")?;
             let identity = format!("owner/wardrobe/route/{index}");
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: identity.clone(),
-                role: PresentationRole::Route,
+                role: FaceRole::Route,
                 name: format!("{} Mask", description.mask_name),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: root.into(),
                 target: identity.clone(),
-                kind: PresentationRelationshipKind::Contains,
+                kind: FaceRelationshipKind::Contains,
             });
             let rank = wardrobe
                 .preference
                 .iter()
                 .position(|plot| plot == &route.mask_plot);
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject: identity,
                 text: format!(
                     "{} on Host {}. {}. {}. {}.",
@@ -132,7 +131,7 @@ impl Owner {
                 ),
             });
         }
-        let face = Presentation::new(
+        let face = Face::new(
             wardrobe.revision,
             base.basis,
             subjects,
@@ -141,9 +140,9 @@ impl Owner {
             text,
         )
         .and_then(|face| {
-            face.with_interaction_context(PresentationInteractionContext {
+            face.with_interaction_context(FaceInteractionContext {
                 identity: format!(
-                    "presentation/context/owner-wardrobe/{}/{}",
+                    "face/context/owner-wardrobe/{}/{}",
                     owner_plan_id, wardrobe.revision
                 ),
                 basis: Vec::new(),

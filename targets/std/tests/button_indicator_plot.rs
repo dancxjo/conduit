@@ -127,7 +127,7 @@ fn run_plot(source: &str, transitions: usize) {
     let output = String::from_utf8(output).unwrap();
     let states = output
         .lines()
-        .filter_map(|line| line.strip_prefix("bool value="))
+        .filter_map(|line| line.strip_prefix("Button state: bool value="))
         .collect::<Vec<_>>();
     let expected = (0..transitions)
         .map(|sequence| if sequence % 2 == 0 { "true" } else { "false" })

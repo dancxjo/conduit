@@ -1,6 +1,6 @@
 //! Authenticate and bound the installed owner Face snapshot and exact executable.
 use conduit_core::HostAdvertisement;
-use conduit_presentation::Presentation;
+use conduit_face::Face;
 use serde::{Deserialize, Serialize};
 use sha2::{Digest, Sha256};
 use std::{
@@ -27,8 +27,8 @@ pub(super) struct InstalledRelease {
 #[serde(deny_unknown_fields)]
 pub(super) struct OwnerSnapshot {
     pub(super) schema: String,
-    pub(super) presentation: Presentation,
-    pub(super) presentation_revision_decimal: String,
+    pub(super) face: Face,
+    pub(super) face_revision_decimal: String,
     pub(super) advertisement: HostAdvertisement,
 }
 
@@ -66,14 +66,14 @@ pub(super) fn parse_snapshot(bytes: &[u8]) -> Result<OwnerSnapshot, String> {
     if snapshot.schema != SNAPSHOT_SCHEMA {
         return Err("unexpected owner Face snapshot schema".into());
     }
-    if snapshot.presentation_revision_decimal != snapshot.presentation.revision.to_string() {
-        return Err("owner Face decimal revision does not match the presentation".into());
+    if snapshot.face_revision_decimal != snapshot.face.revision.to_string() {
+        return Err("owner Face decimal revision does not match the face".into());
     }
     snapshot
-        .presentation
+        .face
         .validate()
         .map_err(|error| format!("invalid owner Face: {error:?}"))?;
-    if snapshot.presentation.basis.body_id.is_none() {
+    if snapshot.face.basis.body_id.is_none() {
         return Err("owner Face did not name a Body".into());
     }
     Ok(snapshot)

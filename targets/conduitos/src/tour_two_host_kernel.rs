@@ -12,7 +12,7 @@ use conduit_plan_lowering::lowering::{
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE, LoweredPlanFragment, RemoteCordDirection,
 };
 
-use crate::text_kernel_backs::{LiteralBack, LiteralState, PresentationBack};
+use crate::text_kernel_backs::{FaceBack, LiteralBack, LiteralState};
 
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const SIGN_CAPACITY: usize = 32;
@@ -31,7 +31,7 @@ type SourceScheduler = FixedScheduler<
     1,
 >;
 type SinkScheduler = FixedScheduler<
-    PresentationBack,
+    FaceBack,
     FixedValueStore<1, VALUE_BYTES>,
     FixedSignLog<SIGN_CAPACITY>,
     1,
@@ -153,8 +153,7 @@ impl SinkKernel {
     ) -> Result<Self, SchedulerError> {
         let endpoint = exact_endpoint(lowered, RemoteCordDirection::Ingress)?;
         if fragment.placements.len() != 1
-            || fragment.placements[0].kind_id.as_str()
-                != conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            || fragment.placements[0].kind_id.as_str() != conduit_semantic_catalog::TEXT_FACE_KIND
             || lowered.node_specs.len() != 1
             || lowered.cords.len() != 1
             || !lowered.routes.is_empty()
@@ -173,7 +172,7 @@ impl SinkKernel {
             [lowered.cords[0].spec],
             routes,
             bindings,
-            [PresentationBack {
+            [FaceBack {
                 pending: false,
                 complete: false,
             }],

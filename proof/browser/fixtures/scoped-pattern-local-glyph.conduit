@@ -3,6 +3,6 @@ plot glyph-pattern {
  first = r/^[A-Z]+$/i
  second = r⟦^[A-Z]+$⟧i
  seed: text/literal("checked pattern locals")
- show: presentation/bool-value
+ show: face/bool-value("Result")
  seed >> (first == second) >> show.value
 }.

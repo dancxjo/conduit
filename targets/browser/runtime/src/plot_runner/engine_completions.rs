@@ -74,7 +74,7 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
         }
         BrowserHostEffect::TutorialPresenterRequest => {
             let request =
-                serde_json::from_slice::<conduit_presentation::GenerativePresenterRequest>(output)
+                serde_json::from_slice::<conduit_face::GenerativePresenterRequest>(output)
                     .map_err(|error| format!("decode tutorial Presenter request: {error}"))?;
             request
                 .validate()

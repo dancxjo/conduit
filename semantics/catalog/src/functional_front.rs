@@ -52,7 +52,10 @@ pub fn startup_front(fields: &[KindConfigurationField]) -> Vec<FrontStartupParam
                 ) => conduit_core::kind_id(canonical_unit.dimension().info_id()),
                 _ => field.default_value.semantic_kind(),
             },
-            has_default: true,
+            has_default: !matches!(
+                field.rule,
+                conduit_core::KindConfigurationRule::DataLabel { .. }
+            ),
         })
         .collect()
 }

@@ -174,7 +174,7 @@ fn four_plots_reserve_exact_input_deliveries_from_one_initialized_keyboard() {
             );
             assert_eq!(
                 owner.value_kind.as_str(),
-                conduit_presentation::APPLICATION_EVENT_INFO_ID
+                conduit_face::APPLICATION_EVENT_INFO_ID
             );
             assert_eq!(
                 source.implementation_id.as_str(),

@@ -8,7 +8,7 @@ publish = false
 conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
-conduit-presentation = { path = "../presentation", default-features = false }
+conduit-face = { path = "../face", default-features = false }
 
 [build-dependencies]
 conduit-plot = { path = "../../architecture/plot" }

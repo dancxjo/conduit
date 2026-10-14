@@ -79,7 +79,7 @@ export async function retainOneBodyComplete(runPath, outputPath) {
   assert.equal(report.concurrent_part_count, 3);
   assert.equal(report.qemu_alive_through_browser_actions, true);
   assert.ok(report.birth?.confirmation_observed && report.screen_free_clock?.finish &&
-    report.presentation_host_recovery && report.owner_direct_speech &&
+    report.face_host_recovery && report.owner_direct_speech &&
     report.owner_llm_speech && report.owner_model_route_loss,
   'producer has not completed Birth, three-host recovery, direct/model speech, and screen-free finish');
   assert.equal(report.birth.source_commit, report.native_source_commit);

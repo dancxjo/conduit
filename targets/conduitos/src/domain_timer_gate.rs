@@ -91,7 +91,7 @@ impl TimerGate {
             timer_handle,
             count_handle,
             timer_node: graph.timer,
-            count_node: graph.presentation,
+            count_node: graph.face,
             period: graph.period,
             next_timer: 1,
             next_count: 1,

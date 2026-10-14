@@ -1,12 +1,12 @@
 use super::*;
-use crate::{BirthPlotChoice, BirthPresentation};
+use crate::{BirthPlotChoice, BirthWidgetFace};
 use alloc::{format, string::String, vec};
 use conduit_body::ResidentPlot;
 use conduit_core::{PlotIdentity, kind_id};
-use conduit_presentation::{
+use conduit_face::{
     ApplicationEventKind, FaceInteractionArgument, FaceReadingCommand, FaceReadingCursor,
-    FaceReadingRefusal, FaceUtteranceProvenance, ManifestationLifecycle,
-    PresentationRelationshipKind, PresentationRole, UTF8_TEXT_VALUE_KIND, plan_face_utterances,
+    FaceReadingRefusal, FaceRelationshipKind, FaceRole, FaceUtteranceProvenance,
+    ManifestationLifecycle, UTF8_TEXT_VALUE_KIND, plan_face_utterances,
 };
 #[path = "fixtures.rs"]
 mod fixtures;
@@ -174,7 +174,7 @@ fn one_draft_and_action_sequence_match_widget_adapter_through_planned_mask_fixtu
             "true",
         )
         .unwrap();
-    assert_eq!(face.presentation(), widget.presentation());
+    assert_eq!(face.widget_face(), widget.widget_face());
     assert_eq!(
         apply(&mut face, "creche.birth", None).unwrap(),
         widget
@@ -353,27 +353,27 @@ fn birth_face_groups_are_semantic_and_changed_draft_stales_old_focus() {
     let main = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/main")))
+        .find(|subject| subject.role == FaceRole::Semantic(kind_id("document/main")))
         .unwrap();
     let article = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/article")))
+        .find(|subject| subject.role == FaceRole::Semantic(kind_id("document/article")))
         .unwrap();
     let navigation = face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Semantic(kind_id("document/navigation")))
+        .find(|subject| subject.role == FaceRole::Semantic(kind_id("document/navigation")))
         .unwrap();
     assert!(face.relationships.iter().any(|relationship| {
         relationship.source == main.identity
             && relationship.target == article.identity
-            && relationship.kind == PresentationRelationshipKind::Contains
+            && relationship.kind == FaceRelationshipKind::Contains
     }));
     assert!(face.relationships.iter().any(|relationship| {
         relationship.source == main.identity
             && relationship.target == navigation.identity
-            && relationship.kind == PresentationRelationshipKind::Contains
+            && relationship.kind == FaceRelationshipKind::Contains
     }));
     assert_eq!(
         face.actions

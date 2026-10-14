@@ -28,7 +28,7 @@ fn canonical_little_life_completes_exactly_thirty_two_presented_generations() {
         String::from_utf8_lossy(&output.stderr)
     );
 
-    let transcript = String::from_utf8(output.stdout).expect("presentation is UTF-8");
+    let transcript = String::from_utf8(output.stdout).expect("face is UTF-8");
     let generations = transcript
         .lines()
         .filter_map(|line| {

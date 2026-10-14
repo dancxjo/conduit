@@ -2,7 +2,7 @@
 
 use crate::{
     install_input_semantic_catalogs, install_keyboard_catalogs, install_text_pipeline_catalogs,
-    KEYBOARD_KIND, KEYMAP_KIND, TEXT_PRESENTATION_KIND,
+    KEYBOARD_KIND, KEYMAP_KIND, TEXT_FACE_KIND,
 };
 use alloc::{
     collections::BTreeMap,
@@ -15,7 +15,7 @@ use conduit_core::{
     kind_id, present_host_call_requirement, process_owned_line_offer_with_limits, resource_offer,
     resource_requirement, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, LineOffer, LineScope, LineSecurity, LinkLimits, OfferGeneration, Plan,
-    INPUT_RESOURCE_CLASS, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION,
+    FACE_RESOURCE_CLASS, INPUT_RESOURCE_CLASS, PROTOCOL_VERSION,
 };
 use conduit_planner::{
     plan_expanded_canonical_with_options, PlacementChoice, PlacementChoices, PlanningOptions,
@@ -134,11 +134,7 @@ fn exact_text_lab_split_plan_with_loss(
         bases: vec![],
         resources: vec![
             resource_offer("text-lab/native-input", INPUT_RESOURCE_CLASS, 1),
-            resource_offer(
-                "text-lab/native-presentation",
-                PRESENTATION_RESOURCE_CLASS,
-                1,
-            ),
+            resource_offer("text-lab/native-face", FACE_RESOURCE_CLASS, 1),
         ],
         planner_capabilities: Vec::new(),
         capabilities: vec![
@@ -150,7 +146,7 @@ fn exact_text_lab_split_plan_with_loss(
                 "text-lab/native-upper@1",
                 "text-lab/native-fixture@1",
             ),
-            text_presentation_fixture_offer(),
+            text_face_fixture_offer(),
         ],
     };
     native
@@ -238,10 +234,10 @@ fn exact_text_lab_split_plan_with_loss(
             },
         ),
         (
-            conduit_core::GearId::from("text-lab/presentation"),
+            conduit_core::GearId::from("text-lab/face"),
             PlacementChoice {
                 host_id: native.host_id.clone(),
-                capability_id: capability(&native, TEXT_PRESENTATION_KIND)?,
+                capability_id: capability(&native, TEXT_FACE_KIND)?,
             },
         ),
     ]);
@@ -256,7 +252,7 @@ fn exact_text_lab_split_plan_with_loss(
         (
             (
                 conduit_core::GearId::from("text-lab/uppercase"),
-                conduit_core::GearId::from("text-lab/presentation"),
+                conduit_core::GearId::from("text-lab/face"),
             ),
             vec![return_line.line_id.clone()],
         ),
@@ -311,21 +307,21 @@ fn keyboard_fixture_offer() -> CapabilityOffer {
     )
 }
 
-fn text_presentation_fixture_offer() -> CapabilityOffer {
+fn text_face_fixture_offer() -> CapabilityOffer {
     crate::realization_offer(
-        crate::text_presentation_contract(),
-        crate::TEXT_PRESENTATION_CONTRACT_REVISION,
+        crate::text_face_contract(),
+        crate::TEXT_FACE_CONTRACT_REVISION,
         crate::RealizationOfferIdentity {
-            capability: "text-lab/native-text-presentation",
+            capability: "text-lab/native-text-face",
             execution_profile: "text-lab/native-fixture@1",
-            implementation: "text-lab/native-text-presentation@1",
+            implementation: "text-lab/native-text-face@1",
             artifact: "text-lab/native-fixture@1",
         },
         vec![present_host_call_requirement(
-            kind_id("presentation/text-lab-native"),
+            kind_id("face/text-lab-native"),
             conduit_text::MAX_TEXT_BYTES,
         )],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         Vec::new(),
     )
 }

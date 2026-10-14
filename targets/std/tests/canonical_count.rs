@@ -38,8 +38,7 @@ fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)
 }
@@ -81,7 +80,7 @@ fn canonical_program_reacts_to_open_flow_until_explicit_stop() {
     let output = String::from_utf8(output).unwrap();
     let counts = output
         .lines()
-        .filter_map(|line| line.strip_prefix("count value="))
+        .filter_map(|line| line.strip_prefix("Current count: count value="))
         .map(|value| value.parse::<u64>().unwrap())
         .collect::<Vec<_>>();
     assert!(counts.len() > 5, "counts={counts:?}");

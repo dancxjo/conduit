@@ -8,9 +8,9 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, PortDescriptor, PortDirection,
     PortTemporal,
 };
-use conduit_presentation::{
-    PresentationIconKey, GRAPHICS_SCENE_KIND, MAX_GRAPHICS_SCENE_BYTES, MAX_GRAPHICS_TEXT_BYTES,
-    MAX_LAYOUT_EXTENT, MAX_PRESENTATION_COMPOSITION_BYTES, PRESENTATION_COMPOSITION_KIND,
+use conduit_face::{
+    FaceIconKey, FACE_COMPOSITION_KIND, GRAPHICS_SCENE_KIND, MAX_FACE_COMPOSITION_BYTES,
+    MAX_GRAPHICS_SCENE_BYTES, MAX_GRAPHICS_TEXT_BYTES, MAX_LAYOUT_EXTENT,
 };
 
 pub const GRAPHICS_RECT_KIND: &str = "graphics/rect";
@@ -36,7 +36,7 @@ pub fn graphics_rect_contract() -> StandardKindContract {
     contract(
         GRAPHICS_RECT_KIND,
         "Graphics rectangle",
-        "Resolve one clipped fill or stroke rectangle from a semantic presentation composition.",
+        "Resolve one clipped fill or stroke rectangle from a semantic face composition.",
         [
             geometry_fields(),
             vec![
@@ -49,7 +49,7 @@ pub fn graphics_rect_contract() -> StandardKindContract {
             ],
         ]
         .concat(),
-        PRESENTATION_COMPOSITION_KIND,
+        FACE_COMPOSITION_KIND,
     )
 }
 pub fn graphics_text_contract() -> StandardKindContract {
@@ -88,7 +88,7 @@ pub fn graphics_icon_contract() -> StandardKindContract {
                 one_of(
                     GRAPHICS_ICON_KEY,
                     "conduit-generic-gear",
-                    &PresentationIconKey::ALL.map(PresentationIconKey::as_str),
+                    &FaceIconKey::ALL.map(FaceIconKey::as_str),
                 ),
             ],
         ]
@@ -127,8 +127,7 @@ fn contract(
         limits: CapabilityLimits {
             max_active_instances: 16,
             max_queue_items: 1,
-            max_queue_bytes: MAX_GRAPHICS_SCENE_BYTES.max(MAX_PRESENTATION_COMPOSITION_BYTES)
-                as u32,
+            max_queue_bytes: MAX_GRAPHICS_SCENE_BYTES.max(MAX_FACE_COMPOSITION_BYTES) as u32,
         },
         terminal_behavior:
             KindTerminalBehavior::EmitsOneDecisionOrCompletesWhenDecisionBecomesImpossible,
@@ -273,12 +272,12 @@ mod tests {
         assert!(contracts.iter().any(|value_contract| {
             value_contract.location == FrontValueLocation::Input(port_id(GRAPHICS_INPUT_PORT))
                 && value_contract.contract.maximum_bytes
-                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
+                    == conduit_face::MAX_GRAPHICS_SCENE_BYTES as u32
         }));
         assert!(contracts.iter().any(|value_contract| {
             value_contract.location == FrontValueLocation::Output(port_id(GRAPHICS_OUTPUT_PORT))
                 && value_contract.contract.maximum_bytes
-                    == conduit_presentation::MAX_GRAPHICS_SCENE_BYTES as u32
+                    == conduit_face::MAX_GRAPHICS_SCENE_BYTES as u32
         }));
     }
 }

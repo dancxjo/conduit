@@ -93,7 +93,7 @@ The checked examples intentionally expose different sets:
   plus the explicitly selected bounded USB session-control base;
 - minimal std composition: no production operation offers;
 - text-only std composition: the implemented `text/literal`, `text/upper`,
-  `text/join`, and `presentation/text` subset, not the entire `text/` namespace.
+  `text/join`, and `face/text` subset, not the entire `text/` namespace.
 
 resources and reachability remain separate from offers. Compiling or initializing
 a base does not authorize it, and selecting a family does not bypass resource,

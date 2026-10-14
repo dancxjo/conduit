@@ -4,10 +4,8 @@ use conduit_core::{
     bind_active_play, ActivePlayId, BootId, CapabilityId, CheckedPlotId, ExpandedPlotId,
     ImplementationId, PlacementId, PlanId, SignId, SourceDocumentId,
 };
+use conduit_face::{FaceBasis, FacePropertyValue, FaceRole, FaceSubject};
 use conduit_patchbay_workbench_conformance::patchbay_mask_plans;
-use conduit_presentation::{
-    PresentationBasis, PresentationPropertyValue, PresentationRole, PresentationSubject,
-};
 
 fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> MaskStage {
     MaskStage {
@@ -27,7 +25,7 @@ fn stage(id: &str, implementation: &str, input: &str, output: Option<&str>) -> M
 fn chain(id: &str, implementation: &str) -> MaskChain {
     MaskChain {
         chain_id: id.into(),
-        stages: vec![stage(id, implementation, "presentation/structured@1", None)],
+        stages: vec![stage(id, implementation, "face/structured@1", None)],
         manifestation_id: format!("manifestation/{id}"),
     }
 }
@@ -35,7 +33,7 @@ fn topology(chains: Vec<MaskChain>) -> MaskTopology {
     MaskTopology::new(
         body_id("self", 0),
         Some(SourceDocumentId::from("source/self")),
-        "presentation/patchbay".into(),
+        "face/patchbay".into(),
         PlanId::from("plan/a"),
         ActivePlayId::from("play/a"),
         chains,
@@ -56,7 +54,7 @@ fn request(current: &MaskTopology, change: MaskTopologyChange) -> MaskTopologyRe
     MaskTopologyRequest {
         body_id: current.body_id.clone(),
         source_document_id: current.source_document_id.clone(),
-        presentation_id: current.presentation_id.clone(),
+        face_id: current.face_id.clone(),
         basis_plan_id: current.plan_id.clone(),
         change,
     }
@@ -86,7 +84,7 @@ fn patchbay_adds_and_removes_its_own_masks_through_fresh_plan_and_play() {
         added.current.source_document_id,
         original.source_document_id
     );
-    assert_eq!(added.current.presentation_id, original.presentation_id);
+    assert_eq!(added.current.face_id, original.face_id);
     assert_ne!(added.current.plan_id, original.plan_id);
     assert_ne!(added.current.active_play_id, original.active_play_id);
     assert_eq!(added.current.chains.len(), 2);
@@ -134,10 +132,10 @@ fn two_stage_handoff_and_reorder_are_typed_and_finite() {
             stage(
                 "normalize",
                 "text-normalizer",
-                "presentation/structured@1",
-                Some("presentation/text@1"),
+                "face/structured@1",
+                Some("face/text@1"),
             ),
-            stage("speech", "test-speech", "presentation/text@1", None),
+            stage("speech", "test-speech", "face/text@1", None),
         ],
         manifestation_id: "manifestation/spoken".into(),
     };
@@ -209,11 +207,11 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
     assert_eq!(validate_chains(&[cycle]), Err(MaskTopologyRefusal::Cycle));
     let mut long = chain("long", "one");
     for index in 1..=MAX_MASK_STAGES_PER_CHAIN {
-        long.stages.last_mut().unwrap().output_kind = Some(format!("presentation/stage-{index}"));
+        long.stages.last_mut().unwrap().output_kind = Some(format!("face/stage-{index}"));
         long.stages.push(stage(
             &format!("stage-{index}"),
             "filter",
-            &format!("presentation/stage-{index}"),
+            &format!("face/stage-{index}"),
             None,
         ));
     }
@@ -227,8 +225,8 @@ fn cycle_overlength_lost_host_and_superseded_body_refuse_distinctly() {
         stage(
             "filter",
             "filter",
-            "presentation/structured@1",
-            Some("presentation/structured@1"),
+            "face/structured@1",
+            Some("face/structured@1"),
         ),
     );
     lost.stages[1].available = false;
@@ -251,9 +249,9 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         chain("graphical", "conduit.mask/native-graphical@1"),
         chain("speech", "conduit.mask/test-speech@1"),
     ]);
-    let base = conduit_presentation::Presentation::new_with_semantics(
+    let base = conduit_face::Face::new_with_semantics(
         7,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(current.body_id.clone()),
             wake_id: None,
             source_document_id: current.source_document_id.clone(),
@@ -263,9 +261,9 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
             active_play_id: Some(current.active_play_id.clone()),
             sign_ids: vec![],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "patchbay".into(),
-            role: PresentationRole::Document,
+            role: FaceRole::Document,
             name: "Patchbay".into(),
         }],
         vec![],
@@ -275,7 +273,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         vec![],
     )
     .unwrap();
-    current.presentation_id = base.identity.as_str().into();
+    current.face_id = base.identity.as_str().into();
     let portable = project_mask_topology(&base, &current).unwrap();
     portable.validate().unwrap();
     assert_eq!(portable.basis, base.basis);
@@ -292,7 +290,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
         assert!(portable.properties.iter().any(|property| {
             property.subject == graphical_stage.identity
                 && property.name == name
-                && property.value == PresentationPropertyValue::Text(value.into())
+                && property.value == FacePropertyValue::Text(value.into())
         }));
     }
     for operation in ["add", "remove", "replace", "reorder", "toggle-parallel"] {
@@ -301,9 +299,7 @@ fn browser_and_native_receive_one_portable_exact_topology_and_visible_controls()
             .iter()
             .any(|action| action.intent.contains(operation)));
     }
-    let native_lines = conduit_presentation::render_linear_presentation(&portable)
-        .unwrap()
-        .lines;
+    let native_lines = conduit_face::render_linear_face(&portable).unwrap().lines;
     assert!(native_lines
         .iter()
         .any(|line| line.contains("Mask topology")));
@@ -325,7 +321,7 @@ fn public_replanning_seam_requires_exact_verified_planner_output() {
             implementation_id: placement.implementation_id.clone(),
             host_id: placement.host_id.clone(),
             boot_id: placement.boot_id.clone(),
-            input_kind: "presentation/structured@1".into(),
+            input_kind: "face/structured@1".into(),
             output_kind: None,
             capacity_cost: 1,
             available: true,
@@ -337,7 +333,7 @@ fn public_replanning_seam_requires_exact_verified_planner_output() {
     let current = MaskTopology::new(
         body_id("planned", 2),
         Some(plans.direct.source_document_id.clone()),
-        "presentation/patchbay".into(),
+        "face/patchbay".into(),
         plans.direct.plan_id.clone(),
         current_play.active_play_id,
         vec![from_placement("direct", direct)],

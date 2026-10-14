@@ -2,9 +2,8 @@
 //! Gear/Port/Cord identities and endpoints come from the Face, never a fixture
 //! graph or a renderer-owned connection table. Full labels remain in Details.
 use super::*;
-use conduit_presentation::{
-    GraphicsPath, GraphicsPoint, PresentationPropertyValue, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject,
+use conduit_face::{
+    FacePropertyValue, FaceRelationshipKind, FaceRole, FaceSubject, GraphicsPath, GraphicsPoint,
 };
 
 const GAP: u16 = 16;
@@ -26,11 +25,11 @@ fn rows(height: u16, gears: usize, columns: usize) -> usize {
     available.min(gears.div_ceil(columns).max(1))
 }
 
-pub(super) fn pages(face: &Presentation, width: u16, height: u16) -> usize {
+pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
     let gears = face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Gear)
+        .filter(|subject| subject.role == FaceRole::Gear)
         .count();
     let columns = columns(width);
     gears
@@ -38,18 +37,18 @@ pub(super) fn pages(face: &Presentation, width: u16, height: u16) -> usize {
         .max(1)
 }
 
-pub(super) fn exists(face: &Presentation) -> bool {
+pub(super) fn exists(face: &Face) -> bool {
     face.subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Gear)
+        .any(|subject| subject.role == FaceRole::Gear)
 }
 
-pub(super) fn link_notice(face: &Presentation, screen: LayoutRect, page: usize) -> String {
+pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> String {
     let columns = columns(screen.width);
     let gear_count = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Gear)
+        .filter(|s| s.role == FaceRole::Gear)
         .count();
     let rows = rows(screen.height, gear_count, columns);
     let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
@@ -57,14 +56,14 @@ pub(super) fn link_notice(face: &Presentation, screen: LayoutRect, page: usize) 
     let gears = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Gear)
+        .filter(|s| s.role == FaceRole::Gear)
         .skip(page * columns * rows)
         .take(columns * rows)
         .collect::<Vec<_>>();
     let cords = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Cord)
+        .filter(|s| s.role == FaceRole::Cord)
         .collect::<Vec<_>>();
     let eligible = cords
         .iter()
@@ -79,9 +78,9 @@ pub(super) fn link_notice(face: &Presentation, screen: LayoutRect, page: usize) 
 }
 
 fn endpoints(
-    face: &Presentation,
-    gears: &[&PresentationSubject],
-    cord: &PresentationSubject,
+    face: &Face,
+    gears: &[&FaceSubject],
+    cord: &FaceSubject,
     height: u16,
 ) -> Option<((usize, usize), (usize, usize))> {
     let source = property_identity(face, &cord.identity, "source-port")?;
@@ -93,7 +92,7 @@ fn endpoints(
 
 pub(super) fn append(
     scene: &mut GraphicsScene,
-    face: &Presentation,
+    face: &Face,
     screen: LayoutRect,
     page: usize,
 ) -> Result<(), FaceSceneError> {
@@ -101,7 +100,7 @@ pub(super) fn append(
     let gear_count = face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Gear)
+        .filter(|subject| subject.role == FaceRole::Gear)
         .count();
     let rows = rows(screen.height, gear_count, columns);
     let capacity = columns * rows;
@@ -111,7 +110,7 @@ pub(super) fn append(
     let gears = face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Gear)
+        .filter(|subject| subject.role == FaceRole::Gear)
         .skip(page * capacity)
         .take(capacity)
         .collect::<Vec<_>>();
@@ -127,7 +126,7 @@ pub(super) fn append(
     for cord in face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Cord)
+        .filter(|subject| subject.role == FaceRole::Cord)
     {
         let Some(((source_index, source_row), (sink_index, sink_row))) =
             endpoints(face, &gears, cord, height)
@@ -262,14 +261,11 @@ fn visible_ports(height: u16) -> usize {
     usize::from(height.saturating_sub(78) / PORT_ROW).min(4)
 }
 
-fn ports<'a>(
-    face: &'a Presentation,
-    gear: &PresentationSubject,
-) -> impl Iterator<Item = &'a PresentationSubject> {
+fn ports<'a>(face: &'a Face, gear: &FaceSubject) -> impl Iterator<Item = &'a FaceSubject> {
     face.subjects.iter().filter(move |subject| {
-        subject.role == PresentationRole::Port
+        subject.role == FaceRole::Port
             && face.relationships.iter().any(|relation| {
-                relation.kind == PresentationRelationshipKind::Contains
+                relation.kind == FaceRelationshipKind::Contains
                     && relation.source == gear.identity
                     && relation.target == subject.identity
             })
@@ -277,8 +273,8 @@ fn ports<'a>(
 }
 
 fn port_location(
-    face: &Presentation,
-    gears: &[&PresentationSubject],
+    face: &Face,
+    gears: &[&FaceSubject],
     cord: &str,
     semantic_id: &str,
     direction: &str,
@@ -299,11 +295,11 @@ fn port_location(
     found
 }
 
-fn property_identity<'a>(face: &'a Presentation, subject: &str, name: &str) -> Option<&'a str> {
+fn property_identity<'a>(face: &'a Face, subject: &str, name: &str) -> Option<&'a str> {
     face.properties.iter().find_map(|property| {
         if property.subject == subject && property.name == name {
             match &property.value {
-                PresentationPropertyValue::Identity(value) => Some(value.as_str()),
+                FacePropertyValue::Identity(value) => Some(value.as_str()),
                 _ => None,
             }
         } else {
@@ -312,11 +308,11 @@ fn property_identity<'a>(face: &'a Presentation, subject: &str, name: &str) -> O
     })
 }
 
-fn property_text<'a>(face: &'a Presentation, subject: &str, name: &str) -> Option<&'a str> {
+fn property_text<'a>(face: &'a Face, subject: &str, name: &str) -> Option<&'a str> {
     face.properties.iter().find_map(|property| {
         if property.subject == subject && property.name == name {
             match &property.value {
-                PresentationPropertyValue::Text(value) => Some(value.as_str()),
+                FacePropertyValue::Text(value) => Some(value.as_str()),
                 _ => None,
             }
         } else {
@@ -357,14 +353,14 @@ mod tests {
 
     #[test]
     fn notice_counts_capped_links_and_missing_endpoints_without_changing_face() {
-        let mut face: Presentation = serde_json::from_str(include_str!(
-            "../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+        let mut face: Face = serde_json::from_str(include_str!(
+            "../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
         ))
         .unwrap();
         let cord = face
             .subjects
             .iter()
-            .find(|s| s.role == PresentationRole::Cord)
+            .find(|s| s.role == FaceRole::Cord)
             .unwrap()
             .clone();
         let properties = face
@@ -407,7 +403,7 @@ mod tests {
             "12/15 cords shown · 3 omitted · F2 all facts · F3 return"
         );
         assert_eq!(face, retained);
-        let checked = Presentation::new_with_semantics(
+        let checked = Face::new_with_semantics(
             face.revision,
             face.basis.clone(),
             face.subjects.clone(),
@@ -426,8 +422,7 @@ mod tests {
                 .scene
                 .commands()
                 .iter()
-                .filter(|command| command.kind
-                    == conduit_presentation::GraphicsCommandKind::OrthogonalPath)
+                .filter(|command| command.kind == conduit_face::GraphicsCommandKind::OrthogonalPath)
                 .count(),
             12
         );
@@ -443,13 +438,13 @@ mod tests {
             frame.hits.is_empty(),
             "drawing cords must not invent action mappings"
         );
-        assert_eq!(scene.presentation(), &checked);
+        assert_eq!(scene.face(), &checked);
         scene.show_details(true);
         let details: String = scene.details.iter().map(|row| row.text.as_str()).collect();
         for subject in checked
             .subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Cord)
+            .filter(|subject| subject.role == FaceRole::Cord)
         {
             assert!(details.contains(&subject.identity));
         }

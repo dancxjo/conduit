@@ -11,7 +11,7 @@ pub(super) use loongarch64::lower_loongarch64_virt;
 const NATIVE_PRESENTER: &str = "presenter/native-graphical@1";
 const NATIVE_COMPOSITOR: &str = "compositor/native@1";
 const PRESENT_OPERATION: &str = "conduit.host/present@1";
-const SURFACE_CLASS: &str = "presentation/surface";
+const SURFACE_CLASS: &str = "face/surface";
 const SCANOUT_BASE: &str = "display/scanout";
 const FRAMEBUFFER_DRIVER: &str = "display/linear-framebuffer@1";
 const LINEAR_SERIAL_PRESENTER: &str = "presenter/linear-serial@1";
@@ -38,8 +38,8 @@ pub(super) struct TargetBuildInputs {
     pub drivers: u16,
     pub presenters: u16,
     pub proof_instrumentation: u16,
-    pub presentation_surface_slots: u32,
-    pub presentation_surface_bytes: u64,
+    pub face_surface_slots: u32,
+    pub face_surface_bytes: u64,
 }
 
 pub(super) fn lower(manifest: &BuildManifest) -> Result<TargetBuildInputs, ConduitosError> {
@@ -53,17 +53,17 @@ pub(super) fn lower_x86_64_pc(
         .presenters
         .iter()
         .any(|item| item == NATIVE_PRESENTER);
-    let presentation_surfaces = manifest
+    let face_surfaces = manifest
         .resource_budgets
         .iter()
         .filter(|item| item.class == SURFACE_CLASS)
         .collect::<Vec<_>>();
-    if presentation_surfaces.len() > 1 {
+    if face_surfaces.len() > 1 {
         return Err(refusal(
             "profile-lowering-resource-ambiguous",
             format!(
                 "expected at most one {SURFACE_CLASS} budget, found {}",
-                presentation_surfaces.len()
+                face_surfaces.len()
             ),
         ));
     }
@@ -76,7 +76,7 @@ pub(super) fn lower_x86_64_pc(
             NATIVE_COMPOSITOR,
             manifest.facilities.contains(&NATIVE_COMPOSITOR.into()),
         ),
-        (SURFACE_CLASS, !presentation_surfaces.is_empty()),
+        (SURFACE_CLASS, !face_surfaces.is_empty()),
         (
             SCANOUT_BASE,
             manifest
@@ -110,10 +110,10 @@ pub(super) fn lower_x86_64_pc(
     // x86 product backbone. Optional inventory is derived only from the
     // resolved PROFILE closure above.
     let backbone = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_PRESENTATION
+        | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_PRESENTATION
+        | conduitos::make::IMPL_TEXT_FACE
         | conduitos::make::IMPL_KEYBOARD
         | conduitos::make::IMPL_I2C_TRANSACTION
         | conduitos::make::IMPL_MONOTONIC_DEADLINE
@@ -121,7 +121,7 @@ pub(super) fn lower_x86_64_pc(
         | conduitos::make::IMPL_POINTER
         | conduitos::make::IMPL_PC_SPEAKER
         | conduitos::make::IMPL_OPL2;
-    let (presentation_surface_slots, presentation_surface_bytes) = presentation_surfaces
+    let (face_surface_slots, face_surface_bytes) = face_surfaces
         .first()
         .map_or((0, 0), |item| (item.slots, item.bytes));
     let scripted_keyboard = manifest
@@ -214,7 +214,7 @@ pub(super) fn lower_x86_64_pc(
             0
         }) | http.facility,
         resources: (if native {
-            conduitos::make::RESOURCE_PRESENTATION_SURFACE
+            conduitos::make::RESOURCE_FACE_SURFACE
         } else {
             0
         }) | http.resource,
@@ -250,8 +250,8 @@ pub(super) fn lower_x86_64_pc(
         } else {
             0
         }),
-        presentation_surface_slots,
-        presentation_surface_bytes,
+        face_surface_slots,
+        face_surface_bytes,
     })
 }
 
@@ -303,10 +303,10 @@ pub(super) fn lower_aarch64_virt(
     }
 
     let portable_backbone = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_PRESENTATION
+        | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_PRESENTATION;
+        | conduitos::make::IMPL_TEXT_FACE;
     Ok(TargetBuildInputs {
         cargo_features: vec!["aarch64-product"],
         implementations: portable_backbone
@@ -318,8 +318,8 @@ pub(super) fn lower_aarch64_virt(
         drivers: conduitos::make::DRIVER_PL011_SERIAL,
         presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
         proof_instrumentation: 0,
-        presentation_surface_slots: 0,
-        presentation_surface_bytes: 0,
+        face_surface_slots: 0,
+        face_surface_bytes: 0,
     })
 }
 
@@ -372,10 +372,10 @@ pub(super) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
     }
 
     let portable_backbone = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_PRESENTATION
+        | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_PRESENTATION;
+        | conduitos::make::IMPL_TEXT_FACE;
     Ok(TargetBuildInputs {
         cargo_features: vec!["ia32-product"],
         implementations: portable_backbone | conduitos::make::IMPL_LINEAR_PRESENTER,
@@ -385,8 +385,8 @@ pub(super) fn lower_ia32_pc(manifest: &BuildManifest) -> Result<TargetBuildInput
         drivers: conduitos::make::DRIVER_IA32_DEBUGCON_SERIAL,
         presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
         proof_instrumentation: 0,
-        presentation_surface_slots: 0,
-        presentation_surface_bytes: 0,
+        face_surface_slots: 0,
+        face_surface_bytes: 0,
     })
 }
 
@@ -415,15 +415,14 @@ pub(super) fn lower_riscv64_virt(
     {
         return Err(refusal(
             "riscv64-product-closure-mismatch",
-            "RISC-V64 product requires exactly its admitted SBI console presentation closure"
-                .into(),
+            "RISC-V64 product requires exactly its admitted SBI console face closure".into(),
         ));
     }
     let portable = conduitos::make::IMPL_TIME_TICK
-        | conduitos::make::IMPL_TICK_PRESENTATION
+        | conduitos::make::IMPL_TICK_FACE
         | conduitos::make::IMPL_TEXT_LITERAL
         | conduitos::make::IMPL_TEXT_UPPER
-        | conduitos::make::IMPL_TEXT_PRESENTATION;
+        | conduitos::make::IMPL_TEXT_FACE;
     Ok(TargetBuildInputs {
         cargo_features: vec!["riscv64-product"],
         implementations: portable | conduitos::make::IMPL_LINEAR_PRESENTER,
@@ -433,8 +432,8 @@ pub(super) fn lower_riscv64_virt(
         drivers: conduitos::make::DRIVER_RISCV64_SBI_CONSOLE,
         presenters: conduitos::make::PRESENTER_LINEAR_SERIAL,
         proof_instrumentation: 0,
-        presentation_surface_slots: 0,
-        presentation_surface_bytes: 0,
+        face_surface_slots: 0,
+        face_surface_bytes: 0,
     })
 }
 

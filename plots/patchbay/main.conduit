@@ -3,7 +3,7 @@ plot patchbay (
 ) {
   events: input/application-event
   state: application/retained(application = application)
-  view: presentation/application-view
+  view: face/application-view("Application")
 
   events.event >> state.event
   state.view >> view.view

@@ -1,7 +1,7 @@
-//! Bounded UsbCdc remote session sink for Pico W signal presentation.
+//! Bounded UsbCdc remote session sink for Pico W signal face.
 //!
 //! Evaluates incoming SessionFrames, manages SessionMachine lifecycle,
-//! ingests Signal items, drives CYW43 LED presentation, emits receipts over
+//! ingests Signal items, drives CYW43 LED face, emits receipts over
 //! CDC 1 (sign interface), and returns session truth on CDC 0.
 
 use conduit_core::BaseImplementationId;

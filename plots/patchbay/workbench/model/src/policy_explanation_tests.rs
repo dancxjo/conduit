@@ -10,7 +10,7 @@ use conduit_planner::{
     StylePreferenceOutcome, MAX_POLICY_EXPLANATIONS,
 };
 
-use crate::PatchbayPresentation;
+use crate::PatchbayFace;
 
 fn source(id: &str, scope: PolicyScope) -> PolicySourceRevision {
     PolicySourceRevision {
@@ -124,12 +124,12 @@ fn explanation(
         match domain {
             PolicyChoiceDomain::Realization => "LLM",
             PolicyChoiceDomain::ComputeResource => "Compute",
-            PolicyChoiceDomain::PresentationStyle => "Presentation",
+            PolicyChoiceDomain::FaceStyle => "Face",
         },
         match domain {
             PolicyChoiceDomain::Realization => "Local model",
             PolicyChoiceDomain::ComputeResource => "Performance pool",
-            PolicyChoiceDomain::PresentationStyle => "Native presenter",
+            PolicyChoiceDomain::FaceStyle => "Native presenter",
         },
         "first preferred admissible match",
         selection.selection.signs.clone(),
@@ -137,21 +137,21 @@ fn explanation(
             CharacteristicId::from(DATA_EGRESS_CHARACTERISTIC),
         )],
         selection.basis.clone(),
-        (domain == PolicyChoiceDomain::PresentationStyle).then(|| {
+        (domain == PolicyChoiceDomain::FaceStyle).then(|| {
             (
                 conduit_planner::StyleId::from("conduit.style/dos-shell@1"),
                 vec![
                     StylePreferenceEvidence {
                         clause_index: 0,
                         fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                            conduit_planner::PRESENTATION_TEXT_LAYOUT,
+                            conduit_planner::FACE_TEXT_LAYOUT,
                         )),
                         outcome: StylePreferenceOutcome::Matched,
                     },
                     StylePreferenceEvidence {
                         clause_index: 1,
                         fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                            conduit_planner::PRESENTATION_PALETTE_CLASS,
+                            conduit_planner::FACE_PALETTE_CLASS,
                         )),
                         outcome: StylePreferenceOutcome::Unavailable,
                     },
@@ -168,7 +168,7 @@ fn one_progressive_grammar_summarizes_three_domains_and_discloses_exact_details(
     for domain in [
         PolicyChoiceDomain::Realization,
         PolicyChoiceDomain::ComputeResource,
-        PolicyChoiceDomain::PresentationStyle,
+        PolicyChoiceDomain::FaceStyle,
     ] {
         let explanation = explanation(domain, &selection, &plan, &plot.gears[0].gear_id);
         assert!(!explanation.summary.selected_label.is_empty());
@@ -191,7 +191,7 @@ fn one_progressive_grammar_summarizes_three_domains_and_discloses_exact_details(
             .iter()
             .map(PolicyChoiceExplanation::candidate_text)
             .all(|text| text.contains(':')));
-        if domain == PolicyChoiceDomain::PresentationStyle {
+        if domain == PolicyChoiceDomain::FaceStyle {
             assert_eq!(
                 explanation.summary.style_label.as_deref(),
                 Some("dos shell")
@@ -203,8 +203,8 @@ fn one_progressive_grammar_summarizes_three_domains_and_discloses_exact_details(
                     .map(PolicyChoiceExplanation::style_text)
                     .collect::<Vec<_>>(),
                 vec![
-                    "matched: REALIZATION presentation/text-layout",
-                    "unavailable: REALIZATION presentation/palette-class",
+                    "matched: REALIZATION face/text-layout",
+                    "unavailable: REALIZATION face/palette-class",
                 ],
                 "textual STYLE outcomes do not rely on color"
             );
@@ -217,7 +217,7 @@ fn policy_change_is_a_fresh_replan_request_and_never_mutates_the_active_plan() {
     let (plot, _, selection, plan) = fixture();
     let original = plan.clone();
     let explanation = explanation(
-        PolicyChoiceDomain::PresentationStyle,
+        PolicyChoiceDomain::FaceStyle,
         &selection,
         &plan,
         &plot.gears[0].gear_id,
@@ -256,7 +256,7 @@ fn renderer_projection_accepts_only_bounded_explanations_for_its_exact_plan() {
     )
     .unwrap();
     let document = editor.view();
-    let projected = PatchbayPresentation::new(1, document, None, None, None, vec![]).unwrap();
+    let projected = PatchbayFace::new(1, document, None, None, None, vec![]).unwrap();
     assert!(projected
         .clone()
         .with_policy_explanations(vec![explanation.clone()])

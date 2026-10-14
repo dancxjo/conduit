@@ -140,7 +140,7 @@ Variant cases are tested by typed identity, not tag text:
 
 The case must belong to the exact checked variant Type. Unknown, renamed, or
 foreign cases refuse during checking; payload contents are irrelevant to the
-test. `variant/tag(...)` remains reflection for presentation and logging, not
+test. `variant/tag(...)` remains reflection for face and logging, not
 the semantic discrimination surface.
 
 A native Type may bind checked portable Type parameters and concrete source may
@@ -380,10 +380,10 @@ report; it owns no second result store.
 
 ### Execution and Face
 
-The Body's Face speaks one bounded, immutable semantic graph. The current Rust
-type carrying that graph is named `Presentation`; that is migration-era type
-history, not a second architectural noun. Face is the universal human-facing
-grammar: exact basis and provenance, subjects,
+The Body's Face speaks one bounded, immutable semantic graph. The Rust `Face`
+carrier lives in `conduit-face`; `BodyFace` projects the Body's current truth
+into that carrier. Face is the universal human-facing grammar: exact basis
+and provenance, subjects,
 relationships, properties, typed content, wording, actions, inputs, semantic
 order, rhetorical composition, time, interaction context, and portable
 projection/navigation. It says
@@ -398,17 +398,17 @@ forge or overwrite that authoritative truth.
 A Mask is an ordinary planned plot that consumes one exact Face revision and
 produces one finite Show. Graphical, deterministic-linear, spoken, generative,
 tactile, and future masks all receive the same semantic grammar. A mask may
-project disclosure, navigation, wording, layout, or medium-specific presentation, but
+project disclosure, navigation, wording, layout, or medium-specific face, but
 it may not redefine the Face's facts or authority.
 
-The owner may seal a finite presentation route independently of a workload
+The owner may seal a finite face route independently of a workload
 Wake, so a lulled Body can expose its current Face and available actions.
 Its ordinary Mask Plan, Mask Play and acknowledged Show remain distinct from
 the Body workload Plan and Play; it never creates a placeholder Wake or a
 second workload scheduler. Exact current offers, resources, authority and any
 required Lines bind the route. Loss or stale basis revokes its Show; choosing
 an already-sealed alternative differs from replacement planning. See
-[owner presentation routes](architecture/owner-presentation-routes.md).
+[owner face routes](architecture/owner-face-routes.md).
 
 Projection chooses which truth matters now. Semantic composition says how
 those truths are meant to stand together: grouped, contrasted, juxtaposed,
@@ -420,7 +420,7 @@ contains no panes, slides, windows, coordinates, typography, CSS, or widgets.
 The DOM, stdout, LEDs, spoken sentences, dashboards, slides, panels, buttons,
 and workbench canvases are downstream realizations. They do not own semantic
 truth, lifecycle truth, plan identity, authority, or sign.
-`PresentationMechanism`, `SemanticApplicationView`, and `ApplicationView` are
+`FaceMechanism`, `SemanticApplicationView`, and `ApplicationView` are
 historical Rust names or downstream adapters, not the Face contract.
 
 A Face may summarize or arrange runtime facts. It may not manufacture

@@ -6,7 +6,7 @@ const SOURCE: &str = r#"plot authoring {
     join: text/join(prefix = " ")
     upper: text/upper
     delay: time/debounce(duration-ms = 25ms, policy = "trailing", maximum-values = 4)
-    display: presentation/text
+    display: face/text("Message")
     source >> join >> upper >> display
 }
 "#;
@@ -15,7 +15,7 @@ const SOURCE: &str = r#"plot authoring {
 fn default_editor_installs_the_live_authoring_fixture_contracts() {
     let editor = PlotEditor::from_source(
         "fixture.conduit".into(),
-        "plot fixture {\n literal: text/literal(\"truth\")\n join: text/join(\"prefix\")\n upper: text/upper\n display: presentation/text\n map: math/map-quantity\n scalar: math/clamp\n wrapped: structured-info/wrap-quantity\n quantity: presentation/quantity\n literal >> join >> upper >> display\n map >> wrapped >> quantity\n}\n".into(),
+        "plot fixture {\n literal: text/literal(\"truth\")\n join: text/join(\"prefix\")\n upper: text/upper\n display: face/text(\"Message\")\n map: math/map-quantity\n scalar: math/clamp\n wrapped: structured-info/wrap-quantity\n quantity: face/quantity(\"Measured quantity\")\n literal >> join >> upper >> display\n map >> wrapped >> quantity\n}\n".into(),
     )
     .unwrap();
     assert!(editor.view().checked.source_document_id.is_some());
@@ -32,7 +32,7 @@ fn default_editor_installs_the_live_authoring_fixture_contracts() {
         "text/literal",
         "text/join",
         "text/upper",
-        "presentation/text",
+        "face/text",
         "math/map-quantity",
         "math/clamp",
         "structured-info/wrap-quantity",
@@ -89,12 +89,11 @@ fn unchanged_revision_and_ports_do_not_hide_configuration_drift() {
 
 #[test]
 fn reroute_accepts_the_same_finite_to_standing_flow_contract_as_connect() {
-    let source = "plot main {\n clock: time/tick(count = 1, period-ms = 0)\n sink: presentation/tick\n alternate: presentation/tick\n clock.tick >> sink.tick\n}\n";
+    let source = "plot main {\n clock: time/tick(count = 1, period-ms = 0)\n sink: face/tick(\"Clock tick\")\n alternate: face/tick(\"Clock tick\")\n clock.tick >> sink.tick\n}\n";
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let mut editor = PlotEditor::from_source_with_catalogs(
         "reroute.conduit".into(),
         source.into(),

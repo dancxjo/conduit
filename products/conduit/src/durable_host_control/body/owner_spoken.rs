@@ -4,7 +4,7 @@ use super::{DurableHostRuntime, HostSource};
 use crate::durable_host::owner::{DirectSpokenStart, LlmSpokenStart};
 use crate::durable_host::selected_speech::AttachedEquipment;
 use conduit_core::{port_id, ConnectionTrack};
-use conduit_presentation::{
+use conduit_face::{
     ArtifactAcknowledgedSpokenShow, DirectArtifactAcknowledgedSpokenShow, MaskShow,
     SpokenMaskArtifactReceipt,
 };
@@ -21,7 +21,7 @@ struct ResultShow {
     generated_manifestation_identity: Option<String>,
     accepted_wording: Option<String>,
     direct_opening_wording: Option<String>,
-    generation_evidence: Option<conduit_presentation::SpokenGenerationEvidence>,
+    generation_evidence: Option<conduit_face::SpokenGenerationEvidence>,
     active_play_id: conduit_core::ActivePlayId,
     speaker_playback: Option<Value>,
     template_session:
@@ -49,7 +49,7 @@ enum Start {
 }
 
 impl Start {
-    fn seal(&self) -> &conduit_presentation::LocalOwnerMaskRouteSeal {
+    fn seal(&self) -> &conduit_face::LocalOwnerMaskRouteSeal {
         match self {
             Self::Direct(start) => &start.seal,
             Self::Llm(start) => &start.seal,
@@ -61,7 +61,7 @@ pub(in crate::durable_host_control) struct OwnerSpokenWorker {
     operation_id: String,
     control: RunControl,
     mode: Mode,
-    seal: conduit_presentation::LocalOwnerMaskRouteSeal,
+    seal: conduit_face::LocalOwnerMaskRouteSeal,
     thread: JoinHandle<Option<(StdHost, Result<ResultShow, String>)>>,
 }
 
@@ -460,7 +460,7 @@ impl DurableHostRuntime {
                         json!({"schema":"conduit.body/owner-spoken-terminal@1",
                         "operation_id":worker.operation_id, "mode":worker.mode.name(),
                         "outcome":"available", "route_plan_id":worker.seal.route_plan_id,
-                        "source_face_id":result.show.show.presentation_id,
+                        "source_face_id":result.show.show.face_id,
                         "active_play_id":result.active_play_id,
                         "show_id":result.show.show_id,
                         "stop_requested":worker.control.stop_requested(),

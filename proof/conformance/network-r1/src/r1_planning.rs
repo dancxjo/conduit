@@ -48,7 +48,7 @@ pub fn r1_signal_source_advertisement() -> HostAdvertisement {
         offer_generation: OfferGeneration(1),
         profile: HostProfileId::from("rust-std-r1-control"),
         bases: vec![],
-        resources: signal_resource_offers("r1/std-timer", "r1/std-unused-presentation", 1)
+        resources: signal_resource_offers("r1/std-timer", "r1/std-unused-face", 1)
             .into_iter()
             .filter(|resource| resource.class_id.as_str() == conduit_core::TIMER_RESOURCE_CLASS)
             .collect(),
@@ -89,14 +89,12 @@ pub fn r1_signal_pico_advertisement(boot_id: BootId) -> HostAdvertisement {
         bases: vec![],
         resources: signal_resource_offers("r1/pico-unused-timer", "r1/pico-cyw43-led", 1)
             .into_iter()
-            .filter(|resource| {
-                resource.class_id.as_str() == conduit_core::PRESENTATION_RESOURCE_CLASS
-            })
+            .filter(|resource| resource.class_id.as_str() == conduit_core::FACE_RESOURCE_CLASS)
             .collect(),
         planner_capabilities: vec![],
         capabilities: vec![conduit_core::capability_offer_from_parts! {
             semantic_contract: conduit_signal::show_semantic_contract().semantic_contract(),
-            startup_parameters: vec![],
+            startup_parameters: conduit_core::data_label_startup_front(),
             shorthand: None,
             capability_id: CapabilityId::from(R1_LED_CAPABILITY_ID),
             kind_id: conduit_signal::show_kind(),

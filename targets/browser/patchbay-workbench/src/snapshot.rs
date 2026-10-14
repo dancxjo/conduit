@@ -1,14 +1,13 @@
 use crate::transport_types::RendererSnapshot;
 use conduit_core::SignId;
-use conduit_presentation::{
+use conduit_face::{
     project_model_temporal_context, ManifestationFailure, ManifestationLifecycle, RendererExecution,
 };
 
-pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-presentation";
+pub const SNAPSHOT_SCHEMA: &str = "conduit.patchbay.portable-face";
 pub const MAX_NAVIGATION_SNAPSHOT_BYTES: usize = 512 * 1024;
-pub const MAX_SNAPSHOT_BYTES: usize = 2 * conduit_presentation::MAX_PRESENTATION_TOTAL_BYTES
-    + MAX_NAVIGATION_SNAPSHOT_BYTES
-    + 131_072;
+pub const MAX_SNAPSHOT_BYTES: usize =
+    2 * conduit_face::MAX_FACE_TOTAL_BYTES + MAX_NAVIGATION_SNAPSHOT_BYTES + 131_072;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum SnapshotError {
@@ -33,9 +32,7 @@ impl std::fmt::Display for SnapshotError {
                     "stale renderer revision {offered}; minimum is {minimum}"
                 )
             }
-            Self::InvalidIdentity => {
-                formatter.write_str("portable Presentation identity is invalid")
-            }
+            Self::InvalidIdentity => formatter.write_str("portable Face identity is invalid"),
         }
     }
 }
@@ -45,12 +42,12 @@ impl std::error::Error for SnapshotError {}
 impl RendererSnapshot {
     pub fn navigation_observation(
         &self,
-    ) -> Result<Option<conduit_presentation::NavigationObservation>, SnapshotError> {
+    ) -> Result<Option<conduit_face::NavigationObservation>, SnapshotError> {
         self.navigation
             .as_ref()
             .map(|navigation| {
-                conduit_presentation::observe_navigation(
-                    &self.presentation,
+                conduit_face::observe_navigation(
+                    &self.face,
                     &navigation.navigation,
                     &navigation.projection,
                     &navigation.cursor,
@@ -64,17 +61,17 @@ impl RendererSnapshot {
         execution
             .validate()
             .map_err(|_| SnapshotError::InvalidIdentity)?;
-        let entrance = patchbay_application::PatchbayEntranceState::enter(&execution.presentation)
+        let entrance = patchbay_application::PatchbayEntranceState::enter(&execution.face)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
-        let temporal_context = project_model_temporal_context(&execution.presentation)
+        let temporal_context = project_model_temporal_context(&execution.face)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         let value = Self {
             schema: SNAPSHOT_SCHEMA.into(),
-            revision: execution.presentation.revision,
+            revision: execution.face.revision,
             renderer: execution
                 .self_inspection()
                 .map_err(|_| SnapshotError::InvalidIdentity)?,
-            presentation: execution.presentation,
+            face: execution.face,
             temporal_context,
             navigation: None,
             entrance,
@@ -109,7 +106,7 @@ impl RendererSnapshot {
         &mut self,
         parts: patchbay_application::PartsView,
     ) -> Result<(), SnapshotError> {
-        if self.presentation.basis.body_id.as_ref() != Some(&parts.body_id) {
+        if self.face.basis.body_id.as_ref() != Some(&parts.body_id) {
             return Err(SnapshotError::InvalidIdentity);
         }
         self.parts = Some(parts);
@@ -122,15 +119,11 @@ impl RendererSnapshot {
     ) -> Result<(), SnapshotError> {
         navigation
             .navigation
-            .validate(&self.presentation)
+            .validate(&self.face)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         navigation
             .projection
-            .project(
-                &self.presentation,
-                &navigation.navigation,
-                &navigation.cursor,
-            )
+            .project(&self.face, &navigation.navigation, &navigation.cursor)
             .map_err(|_| SnapshotError::InvalidIdentity)?;
         self.navigation = Some(navigation);
         self.validate()
@@ -160,7 +153,7 @@ impl RendererSnapshot {
 
     pub fn attach_debugger(
         &mut self,
-        debugger: patchbay_application::DebuggerPresentation,
+        debugger: patchbay_application::DebuggerFace,
     ) -> Result<(), SnapshotError> {
         self.debugger = Some(debugger);
         self.validate()
@@ -241,7 +234,7 @@ impl RendererSnapshot {
 
     fn validate(&self) -> Result<(), SnapshotError> {
         let invalid_parts = self.parts.as_ref().is_some_and(|parts| {
-            self.presentation.basis.body_id.as_ref() != Some(&parts.body_id)
+            self.face.basis.body_id.as_ref() != Some(&parts.body_id)
                 || parts.parts.len() > patchbay_application::MAX_PARTS_VIEW_ROWS
                 || parts.wants_to_join.len() > patchbay_application::MAX_WANTS_TO_JOIN_ROWS
         });
@@ -251,10 +244,10 @@ impl RendererSnapshot {
                 || authoring.source_document_id.is_empty()
                 || authoring.expanded_plot_id.is_empty()
         });
-        let invalid_temporal_context = project_model_temporal_context(&self.presentation)
+        let invalid_temporal_context = project_model_temporal_context(&self.face)
             .map_or(true, |expected| expected != self.temporal_context);
         let invalid_workbench = self.body_workbench.as_ref().is_some_and(|workbench| {
-            crate::body_workbench::validate_body_workbench(workbench, &self.presentation).is_err()
+            crate::body_workbench::validate_body_workbench(workbench, &self.face).is_err()
         });
         let invalid_body_host_offer = self
             .body_host_offer_evidence
@@ -277,21 +270,21 @@ impl RendererSnapshot {
         });
         let invalid_mask_topology = self.mask_topology.as_ref().is_some_and(|topology| {
             topology.validate().is_err()
-                || topology.basis.body_id != self.presentation.basis.body_id
-                || topology.basis.source_document_id != self.presentation.basis.source_document_id
+                || topology.basis.body_id != self.face.basis.body_id
+                || topology.basis.source_document_id != self.face.basis.source_document_id
         });
         let invalid_debugger = self.debugger.as_ref().is_some_and(|debugger| {
-            debugger.schema != patchbay_application::DEBUGGER_PRESENTATION_SCHEMA
+            debugger.schema != patchbay_application::DEBUGGER_FACE_SCHEMA
                 || debugger.activities.len() > patchbay_application::MAX_DEBUGGER_SUBJECTS
                 || debugger.activities.iter().any(|activity| {
                     !self
-                        .presentation
+                        .face
                         .subjects
                         .iter()
                         .any(|subject| subject.identity == activity.subject)
                         || activity.line_subject.as_ref().is_some_and(|line| {
                             !self
-                                .presentation
+                                .face
                                 .subjects
                                 .iter()
                                 .any(|subject| &subject.identity == line)
@@ -323,18 +316,18 @@ impl RendererSnapshot {
                                 != Some(projection.observation_sequence)
                         })
                         || watch.execution != watches.execution
-                        || !self.presentation.subjects.iter().any(|subject| {
+                        || !self.face.subjects.iter().any(|subject| {
                             subject.identity == watch.subject
                                 && subject.role
                                     == match watch.role {
                                         patchbay_application::DebuggerWatchSubjectRole::Gear => {
-                                            conduit_presentation::PresentationRole::Gear
+                                            conduit_face::FaceRole::Gear
                                         }
                                         patchbay_application::DebuggerWatchSubjectRole::Port => {
-                                            conduit_presentation::PresentationRole::Port
+                                            conduit_face::FaceRole::Port
                                         }
                                         patchbay_application::DebuggerWatchSubjectRole::Cord => {
-                                            conduit_presentation::PresentationRole::Cord
+                                            conduit_face::FaceRole::Cord
                                         }
                                     }
                         })
@@ -367,7 +360,7 @@ impl RendererSnapshot {
                     })
                     || timeline.events.iter().any(|event| {
                         !self
-                            .presentation
+                            .face
                             .subjects
                             .iter()
                             .any(|subject| subject.identity == event.subject)
@@ -377,7 +370,7 @@ impl RendererSnapshot {
                             })
                             || event.related_subject.as_ref().is_some_and(|related| {
                                 !self
-                                    .presentation
+                                    .face
                                     .subjects
                                     .iter()
                                     .any(|subject| &subject.identity == related)
@@ -409,9 +402,9 @@ impl RendererSnapshot {
                     && self.debugger.as_ref().map(|debugger| &debugger.execution)
                         != Some(&control.execution))
                 || control.eligible_subjects.iter().any(|identity| {
-                    !self.presentation.subjects.iter().any(|subject| {
+                    !self.face.subjects.iter().any(|subject| {
                         &subject.identity == identity
-                            && subject.role == conduit_presentation::PresentationRole::Gear
+                            && subject.role == conduit_face::FaceRole::Gear
                     })
                 })
                 || control.reason.as_ref().is_some_and(|reason| {
@@ -433,12 +426,12 @@ impl RendererSnapshot {
         if self.schema != SNAPSHOT_SCHEMA {
             return Err(SnapshotError::UnsupportedSchema);
         }
-        if self.revision != self.presentation.revision
-            || self.presentation.validate().is_err()
-            || self.renderer.validate_against(&self.presentation).is_err()
-            || self.entrance.body_id != self.presentation.basis.body_id
-            || self.entrance.presentation_id != self.presentation.identity.as_str()
-            || self.entrance.presentation_revision != self.presentation.revision
+        if self.revision != self.face.revision
+            || self.face.validate().is_err()
+            || self.renderer.validate_against(&self.face).is_err()
+            || self.entrance.body_id != self.face.basis.body_id
+            || self.entrance.face_id != self.face.identity.as_str()
+            || self.entrance.face_revision != self.face.revision
             || invalid_parts
             || invalid_navigation
             || invalid_authoring

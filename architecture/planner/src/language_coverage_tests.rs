@@ -120,7 +120,7 @@ fn fixture(request: LanguageRequest) -> (CheckedPlot, HostAdvertisement) {
     profile
         .insert_kind(conduit_signal::show_semantic_contract())
         .unwrap();
-    let source=format!("plot signal-demo {{\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false, language-request = {request_source})\n show: presentation/show\n pulse >> show\n}}\n");
+    let source=format!("plot signal-demo {{\n pulse: flow/pulse(count = 2, period-ms = 0, initial = false, language-request = {request_source})\n show: face/show(\"Signal\")\n pulse >> show\n}}\n");
     let plot = conduit_plot::parse_with_startup(&source, &startup, &profile).unwrap();
     plot.validate_identities().unwrap();
     (plot, host)

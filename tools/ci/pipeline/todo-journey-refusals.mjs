@@ -2,7 +2,14 @@
 // This validates documentary relationships, not independent live execution.
 const insist = (value, message) => { if (!value) throw new Error(`Todo journey refusal: ${message}`); };
 const parse = output => JSON.parse(output.bytesValue.toString('utf8'));
-const todo = face => face.presentation.properties.filter(item => item.subject.startsWith('todo/'));
+// Retained packets keep the field spelling recorded by their exact source.
+const carrier = owner => {
+  insist(!(owner?.face && owner?.presentation), 'ambiguous retained Face');
+  const value = owner?.face ?? owner?.presentation;
+  insist(value && typeof value === 'object', 'missing retained Face');
+  return value;
+};
+const todo = owner => carrier(owner).properties.filter(item => item.subject.startsWith('todo/'));
 
 export function validateTodoRefusals(outputs, journey) {
   const kinds = {
@@ -25,8 +32,8 @@ export function validateTodoRefusals(outputs, journey) {
   const stale = cross?.stale;
   insist(stale && typeof stale.refusal === 'string' && stale.refusal.includes('refused:')
     && stale.action_id === cross.action_id && typeof stale.initiating_show_id === 'string'
-    && cross.owner_after.presentation.basis.body_id === journey.body_id
-    && stale.owner_after.presentation.basis.body_id === journey.body_id
+    && carrier(cross.owner_after).basis.body_id === journey.body_id
+    && carrier(stale.owner_after).basis.body_id === journey.body_id
     && JSON.stringify(todo(cross.owner_after)) === JSON.stringify(todo(stale.owner_after)),
   'stale action did not retain an unchanged same-Body list');
   const failed = parse(outputs.get('checkpoint-refusal')).last_execution;

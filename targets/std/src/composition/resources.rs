@@ -11,10 +11,10 @@ pub(super) fn offers(
     midi_input: Option<&crate::hosted_midi::HostedRawMidiSelection>,
     midi_output: Option<&crate::hosted_midi::MidiOutputSelection>,
 ) -> Vec<ResourceOffer> {
-    let mut resources = signal_resource_offers("std/timer", "std/presentation", 16);
+    let mut resources = signal_resource_offers("std/timer", "std/face", 16);
     resources.retain(|offer| match offer.pool_id.as_str() {
         "std/timer" => composition.signal || composition.time,
-        "std/presentation" => {
+        "std/face" => {
             composition.signal
                 || composition.time
                 || composition.text

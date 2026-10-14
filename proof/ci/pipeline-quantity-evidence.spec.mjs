@@ -31,7 +31,7 @@ function fixture(t) {
       return { kind, ...(corpus === 3 ? { left: '1smoot', right: 'm', snapshot_scale,
         source: `unit smoot : Distance = { reference: m, scale: ${snapshot_scale} } coefficient == ${index === 1 ? 2 : 17018} exponent == ${index === 1 ? 0 : -4}` } : {}), ...(comparator ? {left, right, expected, invocation,
         source: `exact: ${invocation}(expected = ${expected})`} : {}),
-        effect: { effect_kind: 'manifestation', presentation_kind: comparator ? 'presentation/text' : 'presentation/bool-value',
+        effect: { effect_kind: 'manifestation', face_kind: comparator ? 'face/text' : 'face/bool-value',
           text: comparator ? (index % 4 === 0 ? 'Exactly 1000 Hz' : 'Conversion did not yield exactly 1000 Hz') : 'true', active_play_id: `play/${index}`,
           expanded_gears: [{ kind_id: kind, implementation_id: comparator ? 'browser/converted-equals@1' : 'browser/exact-fixture@1' }] },
         receipt: { disposition: 'completed', active_play_id: `play/${index}` } };

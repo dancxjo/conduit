@@ -12,7 +12,7 @@ use conduit_body::{
     SpawnRendezvousDescriptor,
 };
 use conduit_core::HostAdvertisement;
-use conduit_presentation::{
+use conduit_face::{
     MAX_OWNER_FACE_RESPONSE_BYTES, OWNER_FACE_REQUEST_SCHEMA, OwnerFaceSnapshotRequest,
     OwnerFaceSnapshotResponse,
 };

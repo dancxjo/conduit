@@ -1,9 +1,9 @@
-use conduit_presentation::PresentationPropertyValue;
+use conduit_face::FacePropertyValue;
 
 #[test]
 fn portable_world_carries_the_canonical_state_explanation() {
-    let (presentation, parts) = crate::portable_demonstration_with_parts().unwrap();
-    let body = presentation
+    let (face, parts) = crate::portable_demonstration_with_parts().unwrap();
+    let body = face
         .basis
         .body_id
         .as_ref()
@@ -23,10 +23,10 @@ fn portable_world_carries_the_canonical_state_explanation() {
         ("in-plan-explanation", &parts.truth_explanation.in_plan),
         ("playing-explanation", &parts.truth_explanation.playing),
     ] {
-        assert!(presentation.properties.iter().any(|property| {
+        assert!(face.properties.iter().any(|property| {
             property.subject == body
                 && property.name == name
-                && property.value == PresentationPropertyValue::Text(expected.clone())
+                && property.value == FacePropertyValue::Text(expected.clone())
         }));
     }
 }

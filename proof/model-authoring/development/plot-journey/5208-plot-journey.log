@@ -32,7 +32,7 @@
    Compiling hashbrown v0.17.1
    Compiling cobs v0.3.0
    Compiling postcard v1.1.3
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/face)
    Compiling num-traits v0.2.19
    Compiling ed25519-dalek v2.2.0
    Compiling conduit-body v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/architecture/body)

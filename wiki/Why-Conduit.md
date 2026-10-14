@@ -119,7 +119,7 @@ A **fore** is a callable signature, roughly the role a function signature plays 
 
 ## Human meaning is not a widget tree
 
-Presentation uses another three-part separation:
+Face uses another three-part separation:
 
 - the **face** is the humanly relevant meaning and agency of the encounter;
 - a **mask** is one planned realization of that face for a user agent or medium;

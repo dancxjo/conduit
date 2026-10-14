@@ -119,7 +119,7 @@
 2026-10-08T23:25:27.5504080Z [command]/usr/bin/git -c protocol.version=2 fetch --no-tags --prune --no-recurse-submodules origin +refs/heads/*:refs/remotes/origin/* +refs/tags/*:refs/tags/*
 2026-10-08T23:25:37.3368940Z From https://github.com/dancxjo/conduit
 2026-10-08T23:25:37.3369689Z  * [new branch]          archive/branch-cleanup-20261006/4807-face-human-labels -> origin/archive/branch-cleanup-20261006/4807-face-human-labels
-2026-10-08T23:25:37.3370558Z  * [new branch]          archive/branch-cleanup-20261006/4922-presentation-seal -> origin/archive/branch-cleanup-20261006/4922-presentation-seal
+2026-10-08T23:25:37.3370558Z  * [new branch]          archive/branch-cleanup-20261006/4922-face-seal -> origin/archive/branch-cleanup-20261006/4922-face-seal
 2026-10-08T23:25:37.3371370Z  * [new branch]          archive/branch-cleanup-20261006/native-face-scene -> origin/archive/branch-cleanup-20261006/native-face-scene
 2026-10-08T23:25:37.3372202Z  * [new branch]          archive/cleanup-20261002/codex/3938-conduitese-routing -> origin/archive/cleanup-20261002/codex/3938-conduitese-routing
 2026-10-08T23:25:37.3373040Z  * [new branch]          archive/cleanup-20261002/codex/4001-body-evidence-journey -> origin/archive/cleanup-20261002/codex/4001-body-evidence-journey
@@ -196,8 +196,8 @@
 2026-10-08T23:25:37.3426810Z  * [new branch]          archive/cleanup-20261002/codex/4116-patchbay-retained-state -> origin/archive/cleanup-20261002/codex/4116-patchbay-retained-state
 2026-10-08T23:25:37.3427333Z  * [new branch]          archive/cleanup-20261002/codex/4130-delete-policy-theater -> origin/archive/cleanup-20261002/codex/4130-delete-policy-theater
 2026-10-08T23:25:37.3427814Z  * [new branch]          archive/cleanup-20261002/codex/4130-face-grounding -> origin/archive/cleanup-20261002/codex/4130-face-grounding
-2026-10-08T23:25:37.3428393Z  * [new branch]          archive/cleanup-20261002/codex/4134-presentation-core -> origin/archive/cleanup-20261002/codex/4134-presentation-core
-2026-10-08T23:25:37.3429028Z  * [new branch]          archive/cleanup-20261002/codex/4135-presentation-contributions -> origin/archive/cleanup-20261002/codex/4135-presentation-contributions
+2026-10-08T23:25:37.3428393Z  * [new branch]          archive/cleanup-20261002/codex/4134-face-core -> origin/archive/cleanup-20261002/codex/4134-face-core
+2026-10-08T23:25:37.3429028Z  * [new branch]          archive/cleanup-20261002/codex/4135-face-contributions -> origin/archive/cleanup-20261002/codex/4135-face-contributions
 2026-10-08T23:25:37.3429533Z  * [new branch]          archive/cleanup-20261002/codex/4136-patchbay-form -> origin/archive/cleanup-20261002/codex/4136-patchbay-form
 2026-10-08T23:25:37.3430054Z  * [new branch]          archive/cleanup-20261002/codex/4162-decouple-avr-browser-admission -> origin/archive/cleanup-20261002/codex/4162-decouple-avr-browser-admission
 2026-10-08T23:25:37.3430640Z  * [new branch]          archive/cleanup-20261002/codex/4164-delete-dead-product-proof-ci -> origin/archive/cleanup-20261002/codex/4164-delete-dead-product-proof-ci
@@ -476,7 +476,7 @@
 2026-10-08T23:25:37.3599216Z  * [new branch]          codex/5265-todo-continuity  -> origin/codex/5265-todo-continuity
 2026-10-08T23:25:37.3599503Z  * [new branch]          codex/5266-speech-selection -> origin/codex/5266-speech-selection
 2026-10-08T23:25:37.3599781Z  * [new branch]          codex/5267-todo-masks       -> origin/codex/5267-todo-masks
-2026-10-08T23:25:37.3600076Z  * [new branch]          codex/5269-ticker-presentation -> origin/codex/5269-ticker-presentation
+2026-10-08T23:25:37.3600076Z  * [new branch]          codex/5269-ticker-face -> origin/codex/5269-ticker-face
 2026-10-08T23:25:37.3600369Z  * [new branch]          codex/5300-fresh-boot       -> origin/codex/5300-fresh-boot
 2026-10-08T23:25:37.3600678Z  * [new branch]          codex/burn-durable-corpus-cursor -> origin/codex/burn-durable-corpus-cursor
 2026-10-08T23:25:37.3601051Z  * [new branch]          codex/integer-categorical-foundation -> origin/codex/integer-categorical-foundation
@@ -656,13 +656,13 @@
 2026-10-08T23:25:37.3681447Z  * [new tag]             recovery/20261006/retired-local/codex-4382-domain-variants-36288c75d9e8 -> recovery/20261006/retired-local/codex-4382-domain-variants-36288c75d9e8
 2026-10-08T23:25:37.3682055Z  * [new tag]             recovery/20261006/retired-local/codex-4382-finance-comparison-d9c3957e9dc5 -> recovery/20261006/retired-local/codex-4382-finance-comparison-d9c3957e9dc5
 2026-10-08T23:25:37.3682692Z  * [new tag]             recovery/20261006/retired-local/codex-4382-unit-variant-traits-aaff8e2da5fe -> recovery/20261006/retired-local/codex-4382-unit-variant-traits-aaff8e2da5fe
-2026-10-08T23:25:37.3683354Z  * [new tag]             recovery/20261006/retired-local/codex-b-3718-presentation-contracts-d2888b56f8c4 -> recovery/20261006/retired-local/codex-b-3718-presentation-contracts-d2888b56f8c4
+2026-10-08T23:25:37.3683354Z  * [new tag]             recovery/20261006/retired-local/codex-b-3718-face-contracts-d2888b56f8c4 -> recovery/20261006/retired-local/codex-b-3718-face-contracts-d2888b56f8c4
 2026-10-08T23:25:37.3684029Z  * [new tag]             recovery/20261006/retired-local/codex-ci-one-body-evidence-scope-9a14c1d1e828 -> recovery/20261006/retired-local/codex-ci-one-body-evidence-scope-9a14c1d1e828
 2026-10-08T23:25:37.3684641Z  * [new tag]             recovery/20261006/retired/codex-3529-flagship-journey-08df5b8b5f95 -> recovery/20261006/retired/codex-3529-flagship-journey-08df5b8b5f95
 2026-10-08T23:25:37.3685183Z  * [new tag]             recovery/20261006/retired/codex-3666-bounded-cbor-5f9d1f144ee8 -> recovery/20261006/retired/codex-3666-bounded-cbor-5f9d1f144ee8
 2026-10-08T23:25:37.3685733Z  * [new tag]             recovery/20261006/retired/codex-3686-emergency-machine-c770fade6735 -> recovery/20261006/retired/codex-3686-emergency-machine-c770fade6735
 2026-10-08T23:25:37.3686363Z  * [new tag]             recovery/20261006/retired/codex-3746-retire-standalone-creche-proof-3bfd17115e94 -> recovery/20261006/retired/codex-3746-retire-standalone-creche-proof-3bfd17115e94
-2026-10-08T23:25:37.3686996Z  * [new tag]             recovery/20261006/retired/codex-3864-presentation-step-1d28e91754ea -> recovery/20261006/retired/codex-3864-presentation-step-1d28e91754ea
+2026-10-08T23:25:37.3686996Z  * [new tag]             recovery/20261006/retired/codex-3864-face-step-1d28e91754ea -> recovery/20261006/retired/codex-3864-face-step-1d28e91754ea
 2026-10-08T23:25:37.3687528Z  * [new tag]             recovery/20261006/retired/codex-4115-4117-finish-2a90dea6327b -> recovery/20261006/retired/codex-4115-4117-finish-2a90dea6327b
 2026-10-08T23:25:37.3688065Z  * [new tag]             recovery/20261006/retired/codex-4115-native-mask-runtime-4a92e6c313f9 -> recovery/20261006/retired/codex-4115-native-mask-runtime-4a92e6c313f9
 2026-10-08T23:25:37.3688828Z  * [new tag]             recovery/20261006/retired/codex-4115-spoken-generative-f0aa487a16d3 -> recovery/20261006/retired/codex-4115-spoken-generative-f0aa487a16d3
@@ -692,9 +692,9 @@
 2026-10-08T23:25:37.3703703Z  * [new tag]             recovery/20261006/retired/codex-4375-native-web-family-bc9e6354256a -> recovery/20261006/retired/codex-4375-native-web-family-bc9e6354256a
 2026-10-08T23:25:37.3704268Z  * [new tag]             recovery/20261006/retired/codex-4375-native-wire-family-7a3e414e0c99 -> recovery/20261006/retired/codex-4375-native-wire-family-7a3e414e0c99
 2026-10-08T23:25:37.3704855Z  * [new tag]             recovery/20261006/retired/codex-4375-next-portable-family-2fe9fd68b2a3 -> recovery/20261006/retired/codex-4375-next-portable-family-2fe9fd68b2a3
-2026-10-08T23:25:37.3705540Z  * [new tag]             recovery/20261006/retired/codex-4375-presentation-vocabulary-1a44741acfa5 -> recovery/20261006/retired/codex-4375-presentation-vocabulary-1a44741acfa5
+2026-10-08T23:25:37.3705540Z  * [new tag]             recovery/20261006/retired/codex-4375-face-vocabulary-1a44741acfa5 -> recovery/20261006/retired/codex-4375-face-vocabulary-1a44741acfa5
 2026-10-08T23:25:37.3706147Z  * [new tag]             recovery/20261006/retired/codex-4375-signal-garden-family-84dbca2dcb0d -> recovery/20261006/retired/codex-4375-signal-garden-family-84dbca2dcb0d
-2026-10-08T23:25:37.3706747Z  * [new tag]             recovery/20261006/retired/codex-4376-presentation-consumers-1687e6263967 -> recovery/20261006/retired/codex-4376-presentation-consumers-1687e6263967
+2026-10-08T23:25:37.3706747Z  * [new tag]             recovery/20261006/retired/codex-4376-face-consumers-1687e6263967 -> recovery/20261006/retired/codex-4376-face-consumers-1687e6263967
 2026-10-08T23:25:37.3707366Z  * [new tag]             recovery/20261006/retired/codex-4378-flow-activation-targets-8cf5f11ceb1e -> recovery/20261006/retired/codex-4378-flow-activation-targets-8cf5f11ceb1e
 2026-10-08T23:25:37.3707963Z  * [new tag]             recovery/20261006/retired/codex-4378-flow-bounded-total-1be1c267b1ec -> recovery/20261006/retired/codex-4378-flow-bounded-total-1be1c267b1ec
 2026-10-08T23:25:37.3708722Z  * [new tag]             recovery/20261006/retired/codex-4378-flow-collect-back-ba3819275ea7 -> recovery/20261006/retired/codex-4378-flow-collect-back-ba3819275ea7
@@ -720,7 +720,7 @@
 2026-10-08T23:25:37.3720782Z  * [new tag]             recovery/20261006/retired/codex-4382-native-math-scalar-refusal-8f73a2cce593 -> recovery/20261006/retired/codex-4382-native-math-scalar-refusal-8f73a2cce593
 2026-10-08T23:25:37.3721417Z  * [new tag]             recovery/20261006/retired/codex-4382-native-musical-control-453647c0c581 -> recovery/20261006/retired/codex-4382-native-musical-control-453647c0c581
 2026-10-08T23:25:37.3722085Z  * [new tag]             recovery/20261006/retired/codex-4382-native-normalized-quantity-refusal-a5d839172932 -> recovery/20261006/retired/codex-4382-native-normalized-quantity-refusal-a5d839172932
-2026-10-08T23:25:37.3722795Z  * [new tag]             recovery/20261006/retired/codex-4382-native-presentation-vocabulary-a8526e83acb6 -> recovery/20261006/retired/codex-4382-native-presentation-vocabulary-a8526e83acb6
+2026-10-08T23:25:37.3722795Z  * [new tag]             recovery/20261006/retired/codex-4382-native-face-vocabulary-a8526e83acb6 -> recovery/20261006/retired/codex-4382-native-face-vocabulary-a8526e83acb6
 2026-10-08T23:25:37.3723510Z  * [new tag]             recovery/20261006/retired/codex-4382-native-quantity-mapping-vocabulary-7a2210e4eaa4 -> recovery/20261006/retired/codex-4382-native-quantity-mapping-vocabulary-7a2210e4eaa4
 2026-10-08T23:25:37.3724267Z  * [new tag]             recovery/20261006/retired/codex-4382-native-robotics-simulation-availability-b121f1334762 -> recovery/20261006/retired/codex-4382-native-robotics-simulation-availability-b121f1334762
 2026-10-08T23:25:37.3724975Z  * [new tag]             recovery/20261006/retired/codex-4382-native-scalar-comparison-a1b75daba372 -> recovery/20261006/retired/codex-4382-native-scalar-comparison-a1b75daba372
@@ -730,8 +730,8 @@
 2026-10-08T23:25:37.3727623Z  * [new tag]             recovery/20261006/retired/codex-4382-native-template-collection-refusal-69d609ef7c31 -> recovery/20261006/retired/codex-4382-native-template-collection-refusal-69d609ef7c31
 2026-10-08T23:25:37.3728516Z  * [new tag]             recovery/20261006/retired/codex-4382-native-workflow-timing-outcome-53d4ac61ae37 -> recovery/20261006/retired/codex-4382-native-workflow-timing-outcome-53d4ac61ae37
 2026-10-08T23:25:37.3729150Z  * [new tag]             recovery/20261006/retired/codex-4382-network-unit-types-ae00c4eaccc1 -> recovery/20261006/retired/codex-4382-network-unit-types-ae00c4eaccc1
-2026-10-08T23:25:37.3729796Z  * [new tag]             recovery/20261006/retired/codex-4382-presentation-graphics-native-dev-1fa03c3e413d -> recovery/20261006/retired/codex-4382-presentation-graphics-native-dev-1fa03c3e413d
-2026-10-08T23:25:37.3730510Z  * [new tag]             recovery/20261006/retired/codex-4382-presentation-graphics-vocabulary-c5c25199c8ba -> recovery/20261006/retired/codex-4382-presentation-graphics-vocabulary-c5c25199c8ba
+2026-10-08T23:25:37.3729796Z  * [new tag]             recovery/20261006/retired/codex-4382-face-graphics-native-dev-1fa03c3e413d -> recovery/20261006/retired/codex-4382-face-graphics-native-dev-1fa03c3e413d
+2026-10-08T23:25:37.3730510Z  * [new tag]             recovery/20261006/retired/codex-4382-face-graphics-vocabulary-c5c25199c8ba -> recovery/20261006/retired/codex-4382-face-graphics-vocabulary-c5c25199c8ba
 2026-10-08T23:25:37.3731147Z  * [new tag]             recovery/20261006/retired/codex-4382-robotics-variants-8201ea547a32 -> recovery/20261006/retired/codex-4382-robotics-variants-8201ea547a32
 2026-10-08T23:25:37.3731763Z  * [new tag]             recovery/20261006/retired/codex-4382-text-phase-5a401f149ba0 -> recovery/20261006/retired/codex-4382-text-phase-5a401f149ba0
 2026-10-08T23:25:37.3732299Z  * [new tag]             recovery/20261006/retired/codex-4382-web-http-variants-4d9a82f68fef -> recovery/20261006/retired/codex-4382-web-http-variants-4d9a82f68fef
@@ -798,7 +798,7 @@
 2026-10-08T23:25:37.3770237Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-input-offers-de667515a133 -> recovery/20261006/retired/codex-b-3718-browser-input-offers-de667515a133
 2026-10-08T23:25:37.3770851Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-linguistics-f1dfa3090023 -> recovery/20261006/retired/codex-b-3718-browser-linguistics-f1dfa3090023
 2026-10-08T23:25:37.3771482Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-measurement-plot-53f39c41b70a -> recovery/20261006/retired/codex-b-3718-browser-measurement-plot-53f39c41b70a
-2026-10-08T23:25:37.3772176Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-measurement-presentation-0454d9b7241f -> recovery/20261006/retired/codex-b-3718-browser-measurement-presentation-0454d9b7241f
+2026-10-08T23:25:37.3772176Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-measurement-face-0454d9b7241f -> recovery/20261006/retired/codex-b-3718-browser-measurement-face-0454d9b7241f
 2026-10-08T23:25:37.3772876Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-measurement-state-371ebffedf3f -> recovery/20261006/retired/codex-b-3718-browser-measurement-state-371ebffedf3f
 2026-10-08T23:25:37.3773553Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-measurement-summary-ad0ec9d41be4 -> recovery/20261006/retired/codex-b-3718-browser-measurement-summary-ad0ec9d41be4
 2026-10-08T23:25:37.3774177Z  * [new tag]             recovery/20261006/retired/codex-b-3718-browser-morse-1ed3fecefd65 -> recovery/20261006/retired/codex-b-3718-browser-morse-1ed3fecefd65
@@ -819,7 +819,7 @@
 2026-10-08T23:25:37.3783635Z  * [new tag]             recovery/20261006/retired/codex-b-3718-conduitos-functional-7c5e1edc19b3 -> recovery/20261006/retired/codex-b-3718-conduitos-functional-7c5e1edc19b3
 2026-10-08T23:25:37.3784222Z  * [new tag]             recovery/20261006/retired/codex-b-3718-conduitos-http-257dce4f27be -> recovery/20261006/retired/codex-b-3718-conduitos-http-257dce4f27be
 2026-10-08T23:25:37.3784856Z  * [new tag]             recovery/20261006/retired/codex-b-3718-conversation-commit-contracts-74aad34e2d74 -> recovery/20261006/retired/codex-b-3718-conversation-commit-contracts-74aad34e2d74
-2026-10-08T23:25:37.3785533Z  * [new tag]             recovery/20261006/retired/codex-b-3718-copy-result-presentation-84861c718fd2 -> recovery/20261006/retired/codex-b-3718-copy-result-presentation-84861c718fd2
+2026-10-08T23:25:37.3785533Z  * [new tag]             recovery/20261006/retired/codex-b-3718-copy-result-face-84861c718fd2 -> recovery/20261006/retired/codex-b-3718-copy-result-face-84861c718fd2
 2026-10-08T23:25:37.3786126Z  * [new tag]             recovery/20261006/retired/codex-b-3718-data-offers-989a5b17c447 -> recovery/20261006/retired/codex-b-3718-data-offers-989a5b17c447
 2026-10-08T23:25:37.3786721Z  * [new tag]             recovery/20261006/retired/codex-b-3718-domain-specimen-contracts-89d1396451bd -> recovery/20261006/retired/codex-b-3718-domain-specimen-contracts-89d1396451bd
 2026-10-08T23:25:37.3787359Z  * [new tag]             recovery/20261006/retired/codex-b-3718-flow-state-contracts-70d410c87b28 -> recovery/20261006/retired/codex-b-3718-flow-state-contracts-70d410c87b28
@@ -844,8 +844,8 @@
 2026-10-08T23:25:37.3799275Z  * [new tag]             recovery/20261006/retired/codex-b-3718-offer-drift-guard-b4594e1ec129 -> recovery/20261006/retired/codex-b-3718-offer-drift-guard-b4594e1ec129
 2026-10-08T23:25:37.3799910Z  * [new tag]             recovery/20261006/retired/codex-b-3718-pattern-comparison-contract-6b29a669e02c -> recovery/20261006/retired/codex-b-3718-pattern-comparison-contract-6b29a669e02c
 2026-10-08T23:25:37.3800528Z  * [new tag]             recovery/20261006/retired/codex-b-3718-pete-robotics-59e8d3cf5f9b -> recovery/20261006/retired/codex-b-3718-pete-robotics-59e8d3cf5f9b
-2026-10-08T23:25:37.3801127Z  * [new tag]             recovery/20261006/retired/codex-b-3718-presentation-identities-8764d94766e6 -> recovery/20261006/retired/codex-b-3718-presentation-identities-8764d94766e6
-2026-10-08T23:25:37.3801758Z  * [new tag]             recovery/20261006/retired/codex-b-3718-presentation-offers-6acbc51d2e36 -> recovery/20261006/retired/codex-b-3718-presentation-offers-6acbc51d2e36
+2026-10-08T23:25:37.3801127Z  * [new tag]             recovery/20261006/retired/codex-b-3718-face-identities-8764d94766e6 -> recovery/20261006/retired/codex-b-3718-face-identities-8764d94766e6
+2026-10-08T23:25:37.3801758Z  * [new tag]             recovery/20261006/retired/codex-b-3718-face-offers-6acbc51d2e36 -> recovery/20261006/retired/codex-b-3718-face-offers-6acbc51d2e36
 2026-10-08T23:25:37.3802398Z  * [new tag]             recovery/20261006/retired/codex-b-3718-pulse-observation-contract-4052550ceb4b -> recovery/20261006/retired/codex-b-3718-pulse-observation-contract-4052550ceb4b
 2026-10-08T23:25:37.3803030Z  * [new tag]             recovery/20261006/retired/codex-b-3718-quantity-contracts-d5e178c96d04 -> recovery/20261006/retired/codex-b-3718-quantity-contracts-d5e178c96d04
 2026-10-08T23:25:37.3803655Z  * [new tag]             recovery/20261006/retired/codex-b-3718-reaction-diffusion-offer-f0585bd1a5e5 -> recovery/20261006/retired/codex-b-3718-reaction-diffusion-offer-f0585bd1a5e5
@@ -1491,7 +1491,7 @@ target/*-unknown-*
 2026-10-08T23:25:45.6705765Z   - /home/runner/work/conduit/conduit/semantics/language/Cargo.toml
 2026-10-08T23:25:45.6706026Z   - /home/runner/work/conduit/conduit/semantics/net/Cargo.toml
 2026-10-08T23:25:45.6706362Z   - /home/runner/work/conduit/conduit/semantics/plot-library/Cargo.toml
-2026-10-08T23:25:45.6706700Z   - /home/runner/work/conduit/conduit/semantics/presentation/Cargo.toml
+2026-10-08T23:25:45.6706700Z   - /home/runner/work/conduit/conduit/semantics/face/Cargo.toml
 2026-10-08T23:25:45.6706962Z   - /home/runner/work/conduit/conduit/semantics/process/Cargo.toml
 2026-10-08T23:25:45.6707213Z   - /home/runner/work/conduit/conduit/semantics/purpose/Cargo.toml
 2026-10-08T23:25:45.6707466Z   - /home/runner/work/conduit/conduit/semantics/robotics/Cargo.toml
@@ -1629,7 +1629,7 @@ target/*-unknown-*
 2026-10-08T23:26:10.0942160Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
 2026-10-08T23:26:10.0942859Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
 2026-10-08T23:26:14.6480715Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
-2026-10-08T23:26:14.8760167Z [1m[92m   Compiling[0m conduit-presentation v0.1.0 (/home/runner/work/conduit/conduit/semantics/presentation)
+2026-10-08T23:26:14.8760167Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
 2026-10-08T23:26:16.0930205Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
 2026-10-08T23:26:16.3490746Z [1m[92m   Compiling[0m conduit-robotics v0.1.0 (/home/runner/work/conduit/conduit/semantics/robotics)
 2026-10-08T23:26:16.5880235Z [1m[92m   Compiling[0m conduit-process v0.1.0 (/home/runner/work/conduit/conduit/semantics/process)
@@ -2025,7 +2025,7 @@ target/*-unknown-*
 2026-10-08T23:27:37.4967073Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
 2026-10-08T23:27:40.6214663Z [1m[92m   Compiling[0m conduit-language v0.1.0 (/home/runner/work/conduit/conduit/semantics/language)
 2026-10-08T23:27:40.8107132Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
-2026-10-08T23:27:40.9740370Z [1m[92m   Compiling[0m conduit-presentation v0.1.0 (/home/runner/work/conduit/conduit/semantics/presentation)
+2026-10-08T23:27:40.9740370Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
 2026-10-08T23:27:41.0910372Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
 2026-10-08T23:27:44.3600652Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
 2026-10-08T23:27:45.0760001Z [1m[92m   Compiling[0m conduit-net v0.1.0 (/home/runner/work/conduit/conduit/semantics/net)
@@ -2216,7 +2216,7 @@ target/*-unknown-*
 2026-10-08T23:30:32.5160213Z [1m[92m   Compiling[0m conduit-net v0.1.0 (/home/runner/work/conduit/conduit/semantics/net)
 2026-10-08T23:30:32.6850648Z [1m[92m   Compiling[0m conduit-text v0.1.0 (/home/runner/work/conduit/conduit/semantics/text)
 2026-10-08T23:30:32.7510093Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
-2026-10-08T23:30:32.8740459Z [1m[92m   Compiling[0m conduit-presentation v0.1.0 (/home/runner/work/conduit/conduit/semantics/presentation)
+2026-10-08T23:30:32.8740459Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
 2026-10-08T23:30:34.1980100Z [1m[92m   Compiling[0m conduit-process v0.1.0 (/home/runner/work/conduit/conduit/semantics/process)
 2026-10-08T23:30:34.3929195Z [1m[92m   Compiling[0m conduit-robotics v0.1.0 (/home/runner/work/conduit/conduit/semantics/robotics)
 2026-10-08T23:30:34.6350615Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
@@ -2297,7 +2297,7 @@ target/*-unknown-*
 2026-10-08T23:31:01.3040433Z [1m[92m   Compiling[0m conduit-time v0.1.0 (/home/runner/work/conduit/conduit/semantics/time)
 2026-10-08T23:31:05.3530704Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
 2026-10-08T23:31:05.7420000Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
-2026-10-08T23:31:08.4270796Z [1m[92m   Compiling[0m conduit-presentation v0.1.0 (/home/runner/work/conduit/conduit/semantics/presentation)
+2026-10-08T23:31:08.4270796Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
 2026-10-08T23:31:08.9630465Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
 2026-10-08T23:31:14.6160599Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
 2026-10-08T23:31:19.3970291Z [1m[92m   Compiling[0m conduit-text v0.1.0 (/home/runner/work/conduit/conduit/semantics/text)
@@ -2551,7 +2551,7 @@ target/*-unknown-*
 2026-10-08T23:32:52.6110183Z [1m[92m   Compiling[0m conduit-human v0.1.0 (/home/runner/work/conduit/conduit/semantics/human)
 2026-10-08T23:32:52.9199122Z [1m[92m   Compiling[0m conduit-audio v0.1.0 (/home/runner/work/conduit/conduit/semantics/audio)
 2026-10-08T23:32:55.7551147Z [1m[92m   Compiling[0m conduit-language v0.1.0 (/home/runner/work/conduit/conduit/semantics/language)
-2026-10-08T23:32:56.6440020Z [1m[92m   Compiling[0m conduit-presentation v0.1.0 (/home/runner/work/conduit/conduit/semantics/presentation)
+2026-10-08T23:32:56.6440020Z [1m[92m   Compiling[0m conduit-face v0.1.0 (/home/runner/work/conduit/conduit/semantics/face)
 2026-10-08T23:32:57.1650471Z [1m[92m   Compiling[0m conduit-data v0.1.0 (/home/runner/work/conduit/conduit/semantics/data)
 2026-10-08T23:33:01.2730572Z [1m[92m   Compiling[0m conduit-web v0.1.0 (/home/runner/work/conduit/conduit/semantics/web)
 2026-10-08T23:33:04.0730361Z [1m[92m   Compiling[0m conduit-alife v0.1.0 (/home/runner/work/conduit/conduit/semantics/alife)
@@ -2857,8 +2857,8 @@ target/*-unknown-*
 2026-10-08T23:35:37.6370348Z   duration_ms: 14.702223
 2026-10-08T23:35:37.6370492Z   type: 'test'
 2026-10-08T23:35:37.6370687Z   ...
-2026-10-08T23:35:37.6371064Z # Subtest: location movement is bounded presentation state and remains correlated
-2026-10-08T23:35:37.6371616Z ok 32 - location movement is bounded presentation state and remains correlated
+2026-10-08T23:35:37.6371064Z # Subtest: location movement is bounded face state and remains correlated
+2026-10-08T23:35:37.6371616Z ok 32 - location movement is bounded face state and remains correlated
 2026-10-08T23:35:37.6371965Z   ---
 2026-10-08T23:35:37.6372158Z   duration_ms: 0.861844
 2026-10-08T23:35:37.6372364Z   type: 'test'
@@ -3271,8 +3271,8 @@ target/*-unknown-*
 2026-10-08T23:35:37.8521045Z   duration_ms: 0.45599
 2026-10-08T23:35:37.8521400Z   type: 'test'
 2026-10-08T23:35:37.8521728Z   ...
-2026-10-08T23:35:37.8522378Z # Subtest: bundled edits retain reviewed presentation profiles and Patchbay projects exact foreground source
-2026-10-08T23:35:37.8523290Z ok 101 - bundled edits retain reviewed presentation profiles and Patchbay projects exact foreground source
+2026-10-08T23:35:37.8522378Z # Subtest: bundled edits retain reviewed face profiles and Patchbay projects exact foreground source
+2026-10-08T23:35:37.8523290Z ok 101 - bundled edits retain reviewed face profiles and Patchbay projects exact foreground source
 2026-10-08T23:35:37.8523882Z   ---
 2026-10-08T23:35:37.8524266Z   duration_ms: 0.704416
 2026-10-08T23:35:37.8524623Z   type: 'test'
@@ -3388,7 +3388,7 @@ target/*-unknown-*
 2026-10-08T23:35:51.2835125Z [6/100] [chromium] › proof/browser/browser-device-base.spec.mjs:352:1 › permission, selection, API, and open failures remain distinct
 2026-10-08T23:35:52.2194234Z [7/100] [chromium] › proof/browser/browser-device-base.spec.mjs:380:1 › disconnect and page cancellation terminate without retry or replacement
 2026-10-08T23:35:52.9910436Z [8/100] [chromium] › proof/browser/browser-host-calls.spec.mjs:3:1 › artifact handoff requires activation and carries exact admitted bytes
-2026-10-08T23:35:53.1060295Z [9/100] [chromium] › proof/browser/browser-host-calls.spec.mjs:26:1 › history movement is presentation-scoped and exactly correlated
+2026-10-08T23:35:53.1060295Z [9/100] [chromium] › proof/browser/browser-host-calls.spec.mjs:26:1 › history movement is face-scoped and exactly correlated
 2026-10-08T23:35:53.2010780Z [10/100] [chromium] › proof/browser/browser-host-calls.spec.mjs:41:1 › profile-gated device choice returns bounded browser-visible resource truth only
 2026-10-08T23:35:53.3059065Z [11/100] [chromium] › proof/browser/browser-host-entrance.spec.mjs:40:1 › shows bounded startup suspense until the browser Host is ready
 2026-10-08T23:35:54.3280097Z [12/100] [chromium] › proof/browser/browser-host-entrance.spec.mjs:62:1 › independent entrances own distinct Hosts while reload retains Host and replaces Boot

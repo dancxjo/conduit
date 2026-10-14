@@ -177,26 +177,22 @@ fn localized_line_change_reuses_structure_and_matches_cold_planning() {
 }
 
 #[test]
-fn unrelated_presentation_change_and_new_host_preserve_existing_work() {
+fn unrelated_face_change_and_new_host_preserve_existing_work() {
     let mut candidates = vec![local(), remote()];
     let mut facts = base_facts();
-    facts.push(fact(
-        FactDomain::Semantic,
-        "presentation/viewport@sha256:99",
-        1,
-    ));
+    facts.push(fact(FactDomain::Semantic, "face/viewport@sha256:99", 1));
     let mut planner = IncrementalPlanner::new(4).unwrap();
     planner
         .plan(&candidates, &facts, &StabilityPolicy::disabled(), evaluate)
         .unwrap();
 
     facts.last_mut().unwrap().generation = 2;
-    let presentation_only = planner
+    let face_only = planner
         .plan(&candidates, &facts, &StabilityPolicy::disabled(), evaluate)
         .unwrap();
-    assert_eq!(presentation_only.metrics.reused_candidates, 2);
-    assert_eq!(presentation_only.metrics.invalidated_candidates, 0);
-    assert_eq!(presentation_only.metrics.evaluation_work_units, 0);
+    assert_eq!(face_only.metrics.reused_candidates, 2);
+    assert_eq!(face_only.metrics.invalidated_candidates, 0);
+    assert_eq!(face_only.metrics.evaluation_work_units, 0);
 
     facts.extend([
         fact(FactDomain::Host, "host/new@sha256:40", 1),

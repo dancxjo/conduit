@@ -10,7 +10,7 @@ use conduit_core::{
     kind_id, BootId, HostId, OfferGeneration, ResourceAccessMode, ResourceContentRequirement,
     ResourceRetention, ResourceSemanticIdentity, ResourceSharing, ResourceVersionIdentity,
 };
-use conduit_presentation::{PresentationPropertyValue, PresentationRole};
+use conduit_face::{FacePropertyValue, FaceRole};
 use patchbay_application::{EntranceAction, PatchbayEntranceState};
 
 const SOURCE: &str = include_str!("../../../../../plots/patchbay-front-door/main.conduit");
@@ -75,28 +75,28 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
         BootId::from("zero/boot"),
     )
     .unwrap();
-    let presentation = session.project().unwrap().presentation;
-    assert!(presentation.basis.body_id.is_none());
-    assert!(presentation.basis.checked_plot_id.is_none());
-    assert!(presentation.basis.wake_id.is_none());
-    assert!(presentation.basis.source_document_id.is_none());
-    assert!(presentation.basis.checked_plot_id.is_none());
-    assert!(!presentation.subjects.iter().any(|subject| matches!(
-        subject.role,
-        PresentationRole::Body | PresentationRole::Part
-    )));
-    let host = presentation
+    let face = session.project().unwrap().face;
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.checked_plot_id.is_none());
+    assert!(face.basis.wake_id.is_none());
+    assert!(face.basis.source_document_id.is_none());
+    assert!(face.basis.checked_plot_id.is_none());
+    assert!(!face
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Host)
+        .any(|subject| matches!(subject.role, FaceRole::Body | FaceRole::Part)));
+    let host = face
+        .subjects
+        .iter()
+        .find(|subject| subject.role == FaceRole::Host)
         .unwrap();
-    assert!(presentation.properties.iter().any(|property| {
+    assert!(face.properties.iter().any(|property| {
         property.subject == host.identity
             && property.name == "current-body"
-            && property.value == PresentationPropertyValue::Text("none".into())
+            && property.value == FacePropertyValue::Text("none".into())
     }));
-    let native = PatchbayEntranceState::enter(&presentation).unwrap();
-    let browser = PatchbayEntranceState::enter(&presentation).unwrap();
+    let native = PatchbayEntranceState::enter(&face).unwrap();
+    let browser = PatchbayEntranceState::enter(&face).unwrap();
     assert_eq!(
         native.selected_subject.as_deref(),
         Some(host.identity.as_str())
@@ -106,35 +106,35 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
         vec![EntranceAction::Inspect, EntranceAction::Birth]
     );
     assert!(native.body_id.is_none());
-    let report = compare_entrances(&presentation, &native, &browser).unwrap();
+    let report = compare_entrances(&face, &native, &browser).unwrap();
     assert!(report.equivalent);
-    let mut actions = presentation.actions.clone();
+    let mut actions = face.actions.clone();
     actions.sort_by(|left, right| left.identity.cmp(&right.identity));
-    let mut disclosures = presentation.disclosures.clone();
+    let mut disclosures = face.disclosures.clone();
     disclosures.sort_by(|left, right| left.subject.cmp(&right.subject));
     assert_eq!(report.semantic_actions, actions);
     assert_eq!(report.disclosures, disclosures);
-    assert!(presentation.actions.iter().any(|action| {
+    assert!(face.actions.iter().any(|action| {
         action.intent == "conduit.intent/open@1"
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Available
+                conduit_face::FaceActionAvailability::Available
             )
     }));
-    assert!(presentation.actions.iter().any(|action| {
+    assert!(face.actions.iter().any(|action| {
         action.intent == "conduit.intent/birth@1"
             && action.target == host.identity
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Available
+                conduit_face::FaceActionAvailability::Available
             )
     }));
-    assert!(presentation.actions.iter().any(|action| {
+    assert!(face.actions.iter().any(|action| {
         action.intent == "conduit.intent/birth@1"
             && action.target != host.identity
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Unavailable { .. }
+                conduit_face::FaceActionAvailability::Unavailable { .. }
             )
     }));
     for (adapter, name) in [
@@ -142,7 +142,7 @@ fn zero_body_world_is_valid_and_native_browser_semantics_match() {
         (RendererAdapterKind::HtmlDomSvg, "browser"),
     ] {
         prepare_renderer_execution(
-            presentation.clone(),
+            face.clone(),
             adapter,
             RendererAdapterIdentity {
                 host_id: HostId::from(format!("zero/{name}")),
@@ -163,28 +163,28 @@ fn opening_plot_is_inert_and_only_explicit_birth_embodies_host() {
         BootId::from("birth/boot"),
     )
     .unwrap();
-    let initial = session.project().unwrap().presentation;
+    let initial = session.project().unwrap().face;
     let plot = initial
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Plot)
+        .find(|subject| subject.role == FaceRole::Plot)
         .unwrap()
         .identity
         .clone();
     let plot_id = session.plots[0].checked_plot_id.clone();
     session.open_plot(&plot_id, initial.revision).unwrap();
-    let opened = session.project().unwrap().presentation;
+    let opened = session.project().unwrap().face;
     assert!(opened.basis.body_id.is_none());
     assert!(opened.properties.iter().any(|property| {
         property.subject == plot
             && property.name == "opened"
-            && property.value == PresentationPropertyValue::Flag(true)
+            && property.value == FacePropertyValue::Flag(true)
     }));
     for role in [
-        PresentationRole::Plot,
-        PresentationRole::Gear,
-        PresentationRole::Port,
-        PresentationRole::Cord,
+        FaceRole::Plot,
+        FaceRole::Gear,
+        FaceRole::Port,
+        FaceRole::Cord,
     ] {
         assert!(opened.subjects.iter().any(|subject| subject.role == role));
     }
@@ -193,7 +193,7 @@ fn opening_plot_is_inert_and_only_explicit_birth_embodies_host() {
             && action.intent == "conduit.intent/birth@1"
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Available
+                conduit_face::FaceActionAvailability::Available
             )
     }));
     assert!(opened.basis.source_document_id.is_none());
@@ -204,15 +204,15 @@ fn opening_plot_is_inert_and_only_explicit_birth_embodies_host() {
     assert!(session.clone().birth(initial.revision).is_err());
     let embodied = session.birth(opened.revision).unwrap();
     let projection = embodied.project().unwrap();
-    assert!(projection.presentation.basis.body_id.is_some());
-    assert!(projection.presentation.basis.wake_id.is_none());
-    assert!(projection.presentation.basis.plan_id.is_none());
-    assert!(projection.presentation.basis.active_play_id.is_none());
-    assert!(projection.presentation.actions.iter().any(|action| {
+    assert!(projection.face.basis.body_id.is_some());
+    assert!(projection.face.basis.wake_id.is_none());
+    assert!(projection.face.basis.plan_id.is_none());
+    assert!(projection.face.basis.active_play_id.is_none());
+    assert!(projection.face.actions.iter().any(|action| {
         action.intent == "conduit.intent/wake@1"
             && matches!(
                 action.availability,
-                conduit_presentation::PresentationActionAvailability::Available
+                conduit_face::FaceActionAvailability::Available
             )
     }));
     assert_eq!(projection.parts.parts.len(), 1);
@@ -312,7 +312,7 @@ fn creche_birth_uses_one_path_for_zero_one_and_many_reviewed_plots() {
         assert!(session
             .project()
             .unwrap()
-            .presentation
+            .face
             .properties
             .iter()
             .all(|property| property.name != "friendly-name"));
@@ -334,17 +334,17 @@ fn creche_birth_uses_one_path_for_zero_one_and_many_reviewed_plots() {
         assert_eq!(embodied.body().sign_ids, vec![evidence.sign_id.clone()]);
         let projection = embodied.project().unwrap();
         assert_eq!(
-            projection.presentation.basis.body_id.as_ref(),
+            projection.face.basis.body_id.as_ref(),
             Some(&embodied.body().body_id)
         );
-        assert!(projection.presentation.basis.wake_id.is_none());
+        assert!(projection.face.basis.wake_id.is_none());
         if selected == 0 {
-            assert!(projection.presentation.basis.checked_plot_id.is_none());
+            assert!(projection.face.basis.checked_plot_id.is_none());
             assert!(projection
-                .presentation
+                .face
                 .subjects
                 .iter()
-                .all(|subject| { subject.role != PresentationRole::Plot }));
+                .all(|subject| { subject.role != FaceRole::Plot }));
         }
     }
 }
@@ -386,11 +386,12 @@ fn discovered_body_open_is_inert_and_explicit_proof_backed_join_is_exact() {
     let candidate = living_body_candidate();
     let body_id = candidate.body.body_id.clone();
     session.observe_body_candidate(candidate).unwrap();
-    let observed = session.project().unwrap().presentation;
+    let observed = session.project().unwrap().face;
     let body_subject = format!("body/{}", body_id.as_str());
-    assert!(observed.subjects.iter().any(|subject| {
-        subject.identity == body_subject && subject.role == PresentationRole::Body
-    }));
+    assert!(observed
+        .subjects
+        .iter()
+        .any(|subject| { subject.identity == body_subject && subject.role == FaceRole::Body }));
     assert!(observed.basis.body_id.is_none());
     let mut entrance = PatchbayEntranceState::enter(&observed).unwrap();
     entrance.select(&observed, &body_subject).unwrap();
@@ -399,16 +400,13 @@ fn discovered_body_open_is_inert_and_explicit_proof_backed_join_is_exact() {
         vec![EntranceAction::Inspect, EntranceAction::Open]
     );
     session.open_body(&body_id, observed.revision).unwrap();
-    let opened = session.project().unwrap().presentation;
+    let opened = session.project().unwrap().face;
     assert!(opened.basis.body_id.is_none());
     assert!(session.clone().join_open_body(observed.revision).is_err());
     let joined = session.join_open_body(opened.revision).unwrap();
     assert_eq!(joined.body().body_id, body_id);
     let projection = joined.project().unwrap();
-    assert_eq!(
-        projection.presentation.basis.body_id.as_ref(),
-        Some(&body_id)
-    );
+    assert_eq!(projection.face.basis.body_id.as_ref(), Some(&body_id));
     assert_eq!(projection.parts.parts.len(), 2);
     assert!(projection
         .parts
@@ -471,6 +469,7 @@ fn opened_plot_edits_canonical_source_and_stale_edits_are_atomic() {
     let first = crate::PatchbayEdit::PlaceGear {
         basis: basis.clone(),
         kind_id: "text/literal".into(),
+        data_label: None,
     };
     assert_eq!(
         session.apply_opened_plot_edit(&first),
@@ -481,7 +480,7 @@ fn opened_plot_edits_canonical_source_and_stale_edits_are_atomic() {
     let unchanged = after_first.source.clone();
     assert_eq!(
         session.apply_opened_plot_edit(&first),
-        PatchbayInvocationOutcome::Refused(PatchbayRefusal::StalePresentation)
+        PatchbayInvocationOutcome::Refused(PatchbayRefusal::StaleFace)
     );
     assert_eq!(session.opened_plot_document().unwrap().source, unchanged);
 
@@ -504,6 +503,7 @@ fn opened_plot_edits_canonical_source_and_stale_edits_are_atomic() {
         )
         .unwrap(),
         kind_id: "text/literal".into(),
+        data_label: None,
     };
     assert_eq!(
         session.apply_opened_plot_edit(&second),

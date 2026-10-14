@@ -5,7 +5,7 @@
 
 use super::super::FRAME_CAPACITY;
 use super::sink::ToggleDistributedSink;
-use super::{ERROR_NOT_STARTED, ERROR_PRESENTATION, ERROR_SESSION, OUTPUT_NONE, STATUS_RUNNING};
+use super::{ERROR_FACE, ERROR_NOT_STARTED, ERROR_SESSION, OUTPUT_NONE, STATUS_RUNNING};
 use std::cell::RefCell;
 
 thread_local! {
@@ -118,11 +118,11 @@ pub extern "C" fn conduit_browser_toggle_distributed_clear_output() -> i32 {
 pub extern "C" fn conduit_browser_toggle_distributed_complete(length: u32) -> i32 {
     let length = length as usize;
     if length > FRAME_CAPACITY {
-        return ERROR_PRESENTATION;
+        return ERROR_FACE;
     }
     TOGGLE_INPUT.with(|input| {
         let input = input.borrow();
-        with_toggle_sink(|sink| sink.complete_presentation(&input[..length]))
+        with_toggle_sink(|sink| sink.complete_face(&input[..length]))
             .map(|_| conduit_browser_toggle_distributed_status())
             .unwrap_or_else(|code| code)
     })
@@ -187,7 +187,7 @@ mod tests {
     }
 
     #[test]
-    fn first_accepted_value_drives_presentation_before_delivery() {
+    fn first_accepted_value_drives_face_before_delivery() {
         let mut sink = ToggleDistributedSink::prepare(None).expect("toggle sink prepares");
         let binding = sink.binding.clone();
         ingest(&mut sink, binding.hello_frame());

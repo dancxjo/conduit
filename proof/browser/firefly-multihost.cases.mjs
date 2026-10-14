@@ -23,20 +23,20 @@ export function registerFireflyMultiHostTests(openStep) {
     const semanticPatchbay = runner.locator(".compact-patchbay");
     await expect(semanticPatchbay).toContainText("time/rhythm-state");
     await expect(semanticPatchbay).toContainText("time/phase-synchronize");
-    await expect(semanticPatchbay).toContainText("presentation/rhythm");
+    await expect(semanticPatchbay).toContainText("face/rhythm");
 
     const plan = runner.locator(".plan-view");
     await expect(plan).toContainText("time/rhythm-state");
     await expect(plan).toContainText("browser/kernel-rhythm-state-source@1");
     await expect(plan).toContainText("time/phase-synchronize");
     await expect(plan).toContainText("browser/kernel-phase-synchronize@1");
-    await expect(plan).toContainText("presentation/rhythm");
+    await expect(plan).toContainText("face/rhythm");
     await expect(plan).toContainText("tour/browser-memory-line");
     await expect(plan).toContainText("1 item / 4096 bytes");
 
     const run = runner.locator(".run-identities");
     await expect(run).toContainText("Active play");
-    await expect(run).toContainText("Presentation");
+    await expect(run).toContainText("Face");
     await expect(run).toContainText("Terminal source receipt");
     await expect(run).toContainText("Terminal sink receipt");
 

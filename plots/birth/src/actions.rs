@@ -1,7 +1,7 @@
 //! One Birth action boundary shared by browser and native Face consumers.
 
 use alloc::{format, string::String};
-use conduit_presentation::ApplicationEventKind;
+use conduit_face::ApplicationEventKind;
 
 use crate::{BirthDraft, BirthDraftRefusal, BirthSelection, names::MAX_FRIENDLY_NAME_BYTES};
 
@@ -32,7 +32,7 @@ impl BirthActions for BirthDraft {
         value: &str,
     ) -> Result<BirthActionOutcome, BirthDraftRefusal> {
         if revision != self.revision() {
-            return Err(BirthDraftRefusal::StalePresentation);
+            return Err(BirthDraftRefusal::StaleFace);
         }
         if action.len() > 64 || value.len() > 128 {
             return Err(BirthDraftRefusal::InvalidActionValue);

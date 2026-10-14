@@ -19,7 +19,7 @@
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/data)
    Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/human)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/audio)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/face)
    Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/web)
    Compiling conduit-net v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/net)
    Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-5183-numeric-foundation/semantics/text)

@@ -11,7 +11,7 @@ try {
   source.textContent = publication.sourceCommit.slice(0, 12);
   paragraph.append(source, '.');
   const recordings = document.createElement('p');
-  recordings.textContent = 'Field Station Clock was captured with this website build. Three Bodies is a retained October 1 recording with updated page presentation; its screens and model text have not been rerun or replaced with new speech.';
+  recordings.textContent = 'Field Station Clock was captured with this website build. Three Bodies is a retained October 1 recording with updated page face; its screens and model text have not been rerun or replaced with new speech.';
   root.replaceChildren(paragraph, recordings);
 } catch {
   root.textContent = 'Publication details are unavailable. The release inventory below remains the place to check published software.';

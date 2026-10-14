@@ -6,8 +6,8 @@ use conduit_body::{
 use conduit_core::{OfferGeneration, SignId};
 
 fn checked(source: &str) -> ResidentPlot {
-    let (catalog, _) = crate::installed_browser::catalogs_for_presentation(
-        crate::installed_browser::PresentationProfile::Annotation,
+    let (catalog, _) = crate::installed_browser::catalogs_for_face(
+        crate::installed_browser::FaceProfile::Annotation,
     )
     .unwrap();
     let syntax = conduit_plot::parse_syntax_document(source);
@@ -63,8 +63,8 @@ fn session(plot: &ResidentPlot) -> (BodyLifecycleSession, HostId, BootId) {
     (BodyLifecycleSession::open(evidence).unwrap(), host, boot)
 }
 
-const BEFORE: &str = "plot clock {\n ticks: time/every(1s)\n ticks >> presentation/tick\n}";
-const AFTER: &str = "plot clock {\n ticks: time/every(2s)\n ticks >> presentation/tick\n}";
+const BEFORE: &str = "plot clock {\n ticks: time/every(1s)\n ticks >> face/tick(\"Clock tick\")\n}";
+const AFTER: &str = "plot clock {\n ticks: time/every(2s)\n ticks >> face/tick(\"Clock tick\")\n}";
 
 #[test]
 fn replace_admits_new_identity_and_selects_it_without_mutating_original() {

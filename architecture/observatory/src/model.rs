@@ -4,11 +4,10 @@ use conduit_core::{
     ActivePlayId, AdmittedLine, ArtifactId, AuthorityBinding, AuthorityRequirement, BootId,
     CapabilityId, CapabilityLimits, CheckedPlotId, ConnectionId, ConnectionTerminalDisposition,
     DeviceAssociation, ExecutionProfileId, ExecutionRegionId, ExecutionScheduling, ExpandedPlotId,
-    FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
+    FaceId, FragmentId, HostAdvertisement, HostBaseId, HostBaseKindId, HostCallRequirement, HostId,
     HostProfileId, ImplementationId, KindId, KindIdentity, LineOffer, Observation, OfferGeneration,
-    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, PresentationId,
-    ResourceBinding, ResourceOffer, ResourceRequirement, SignId, SourceDocumentId,
-    TerminalDisposition,
+    PlacementId, Plan, PlanId, PlannerCapabilityOffer, PortDescriptor, ResourceBinding,
+    ResourceOffer, ResourceRequirement, SignId, SourceDocumentId, TerminalDisposition,
 };
 use serde::{Deserialize, Serialize};
 
@@ -340,7 +339,7 @@ pub struct ConnectionRow {
 pub struct SignRow {
     pub sign_id: SignId,
     pub active_play_id: Option<ActivePlayId>,
-    pub presentation_id: Option<PresentationId>,
+    pub face_id: Option<FaceId>,
     pub host_id: HostId,
     pub boot_id: BootId,
     pub plan_id: Option<PlanId>,

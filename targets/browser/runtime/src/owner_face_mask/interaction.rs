@@ -13,14 +13,14 @@ impl OwnerBrowserMask {
             return Err("owner interaction return is not admitted for this Show".into());
         }
         if proposed.show_id != self.show.show_id.as_str()
-            || proposed.face_id != self.presentation.identity.as_str()
-            || proposed.face_revision != self.presentation.revision.to_string()
+            || proposed.face_id != self.face.identity.as_str()
+            || proposed.face_revision != self.face.revision.to_string()
         {
             return Err("owner browser interaction has a stale Face or Show".into());
         }
         let action = self
-            .presentation
-            .resolve_action(self.presentation.revision, &proposed.action_id)
+            .face
+            .resolve_action(self.face.revision, &proposed.action_id)
             .map_err(|error| format!("owner browser action refused: {error:?}"))?;
         if action.target != proposed.target || action.arguments.len() != proposed.arguments.len() {
             return Err(
@@ -44,7 +44,7 @@ impl OwnerBrowserMask {
             })
             .collect::<Result<Vec<_>, &str>>()?;
         let interaction = FaceInteraction::new(
-            &self.presentation,
+            &self.face,
             &self.show,
             &proposed.action_id,
             &proposed.target,

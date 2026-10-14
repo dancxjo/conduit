@@ -9,8 +9,9 @@ fn ordinary_product_source_retains_exact_meaning_through_selected_std_receipts()
     let execution = conduit::execute_hosted_plot(SOURCE, &mut output).unwrap();
     assert!(conduit_core::verify_plan(&execution.plan));
     let mut receipts = vec![];
+    let mut named_receipts = vec![];
     for observation in &execution.observations {
-        if let ObservationKind::ValuePresented { value } = &observation.kind {
+        if let ObservationKind::ValuePresented { label, value } = &observation.kind {
             assert!(observation.plan_id.is_some());
             assert!(observation.active_play_id.is_some());
             let receipt = StructuredInfoValue::from_canonical_bytes(&value.encoded).unwrap();
@@ -33,10 +34,17 @@ fn ordinary_product_source_retains_exact_meaning_through_selected_std_receipts()
                 MathematicalValue::parse_literal("0.3", &mut ExactNumericWork::new(100_000_000))
                     .unwrap()
             );
+            named_receipts.push((label.as_str(), receipt.clone()));
             receipts.push(receipt);
         }
     }
     assert_eq!(receipts.len(), 2);
+    let mut labels: Vec<_> = named_receipts.iter().map(|(label, _)| *label).collect();
+    labels.sort_unstable();
+    assert_eq!(
+        labels,
+        ["Approximate numerical result", "Exact numerical result"]
+    );
     let gears = execution
         .plan
         .fragments
@@ -59,8 +67,15 @@ fn ordinary_product_source_retains_exact_meaning_through_selected_std_receipts()
                 }
             );
         }
-        assert!(receipts
-            .contains(&conduit_semantic_catalog::numerical_result_value(&certificate).unwrap()));
+        let expected_label = if gear.gear_id.as_str().ends_with("/exact") {
+            "Exact numerical result"
+        } else {
+            "Approximate numerical result"
+        };
+        assert!(named_receipts.contains(&(
+            expected_label,
+            conduit_semantic_catalog::numerical_result_value(&certificate).unwrap()
+        )));
         assert!(execution
             .advertisements
             .iter()
@@ -116,4 +131,16 @@ fn finite_specimen_runs_through_the_actual_cli_without_stdin_cancellation() {
     );
     std::fs::remove_file(report).unwrap();
     assert!(!stdout.contains("OperatorRequested"), "{stdout}");
+}
+
+#[test]
+fn missing_numerical_result_name_refuses_before_play() {
+    let source = SOURCE.replace(
+        "face/numerical-result(\"Exact numerical result\")",
+        "face/numerical-result",
+    );
+    assert_ne!(source, SOURCE);
+    let mut output = vec![];
+    assert!(conduit::execute_hosted_plot(&source, &mut output).is_err());
+    assert!(output.is_empty());
 }

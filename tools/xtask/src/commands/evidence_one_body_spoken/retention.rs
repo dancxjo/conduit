@@ -77,8 +77,8 @@ pub(super) fn declare(
         required: true,
         provenance: EvidenceProvenance {
             scenario_id: run_id.into(),
-            presentation_id: Some(face.presentation.identity.as_str().into()),
-            presentation_revision: Some(face.presentation.revision.to_string()),
+            face_id: Some(face.face.identity.as_str().into()),
+            face_revision: Some(face.face.revision.to_string()),
             proof_class: proof_class.map(str::to_owned),
             ..EvidenceProvenance::default()
         },

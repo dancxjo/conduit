@@ -34,7 +34,7 @@ fn product_service_prioritizes_portable_queue_before_service_phase() {
 }
 
 #[test]
-fn product_service_runs_presentation_only_from_idle_ingress_turn() {
+fn product_service_runs_face_only_from_idle_ingress_turn() {
     let mut ingress = KeyboardIngress::new();
     let mut service_seen = false;
     let control = service_product_ingress(&mut ingress, &mut |event| match event {

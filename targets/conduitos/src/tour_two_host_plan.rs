@@ -80,7 +80,7 @@ pub fn prepare(
         return Err(PreparationError::PlanRejected);
     }
     let source_fragment = fragment_for_kind(&plan, conduit_text::TEXT_LITERAL_KIND)?;
-    let sink_fragment = fragment_for_kind(&plan, conduit_semantic_catalog::TEXT_PRESENTATION_KIND)?;
+    let sink_fragment = fragment_for_kind(&plan, conduit_semantic_catalog::TEXT_FACE_KIND)?;
     if source_fragment.host_id == sink_fragment.host_id
         || source_fragment.boot_id == sink_fragment.boot_id
     {
@@ -131,9 +131,7 @@ fn placements(
     for gear in &plot.gears {
         let (host, capability) = match gear.kind_id.as_str() {
             conduit_text::TEXT_LITERAL_KIND => (&hosts[0], "conduitos/text-literal@1"),
-            conduit_semantic_catalog::TEXT_PRESENTATION_KIND => {
-                (&hosts[1], "conduitos/presentation-text@1")
-            }
+            conduit_semantic_catalog::TEXT_FACE_KIND => (&hosts[1], "conduitos/face-text@1"),
             _ => return Err(PreparationError::PlacementRejected),
         };
         by_gear.insert(
@@ -248,7 +246,7 @@ mod tests {
             Ok(())
         }
 
-        fn presentation_count(&self) -> u32 {
+        fn face_count(&self) -> u32 {
             self.0.len() as u32
         }
     }
@@ -294,7 +292,7 @@ mod tests {
         let evidence = crate::tour_two_host::run(&mut prepared, &mut serial).unwrap();
         assert_eq!(serial.0, [b"hello across one cord".to_vec()]);
         assert_eq!(evidence.run.logical_operations, 2);
-        assert_eq!(evidence.run.serial_presentations, 1);
+        assert_eq!(evidence.run.serial_faces, 1);
         let multi_host = evidence.multi_host.unwrap();
         assert_eq!(
             multi_host.source_fragment_id,

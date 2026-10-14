@@ -371,7 +371,7 @@ fn navigation_input_codecs_round_trip_exact_finite_values() {
 fn catalogs() -> (StartupCatalog, ProfileCatalog) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
-    conduit_presentation::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
+    conduit_face::install_geometry_catalogs(&mut startup, &mut profile).unwrap();
     install_robotics_structured_catalogs(&mut startup, &mut profile).unwrap();
     install_navigation_catalogs(&mut startup, &mut profile).unwrap();
     (startup, profile)

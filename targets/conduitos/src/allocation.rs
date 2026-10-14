@@ -1,7 +1,7 @@
 //! Fixed-capacity storage for Boot-scoped preparation.
 //!
 //! Dropping a prepared object returns its storage to this same admitted range.
-//! Successive graphical Presentations therefore reuse storage rather than
+//! Successive graphical Faces therefore reuse storage rather than
 //! consuming a new lifetime allocation on every refresh. Sealing still refuses
 //! all subsequent allocations; the kernel's allocation-free proof is unchanged.
 //! Interrupt handlers must not allocate or enter this preparation allocator.

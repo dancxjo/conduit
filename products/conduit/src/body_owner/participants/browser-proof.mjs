@@ -30,7 +30,7 @@ const installed = spawnSync(binary, ['host', 'service', 'install', path.join(bun
 assert.equal(installed.status, 0, installed.stderr);
 const installation = JSON.parse(await readFile(path.join(state, 'installation.json')));
 const source = path.join(output, 'hello.conduit');
-await writeFile(source, 'plot hello {\n show: presentation/text\n "Hello." >> show\n}.');
+await writeFile(source, 'plot hello {\n show: face/text("Message")\n "Hello." >> show\n}.');
 const owner = spawn(installation.product_executable, ['body', 'own', source, '--state-dir', state], { stdio: ['pipe', 'pipe', 'pipe'] });
 const records = [], errors = [], waiters = [];
 owner.stderr.on('data', chunk => errors.push(chunk.toString()));
@@ -119,8 +119,8 @@ try {
     const capability = participant.advertisement.capabilities.find(offer =>
       offer.capability_id === 'capability/browser-dom-mask');
     const resource = participant.advertisement.resources.find(offer =>
-      offer.pool_id === 'browser/presentation');
-    if (!capability || !resource) throw new Error('installed browser lacks the DOM Mask Back or presentation resource');
+      offer.pool_id === 'browser/face');
+    if (!capability || !resource) throw new Error('installed browser lacks the DOM Mask Back or face resource');
     participant.requestOfferEvidence({
       capabilityIds: [capability.capability_id], resourcePoolIds: [resource.pool_id],
     });

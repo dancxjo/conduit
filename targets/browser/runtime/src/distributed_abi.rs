@@ -200,11 +200,11 @@ pub extern "C" fn conduit_browser_distributed_clear_output() -> i32 {
 pub extern "C" fn conduit_browser_distributed_complete(length: u32) -> i32 {
     let length = length as usize;
     if length > FRAME_CAPACITY {
-        return ERROR_PRESENTATION;
+        return ERROR_FACE;
     }
     DISTRIBUTED_INPUT.with(|input| {
         let input = input.borrow();
-        with_sink(|sink| sink.complete_presentation(&input[..length]))
+        with_sink(|sink| sink.complete_face(&input[..length]))
             .map(|_| conduit_browser_distributed_status())
             .unwrap_or_else(|code| code)
     })

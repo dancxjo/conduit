@@ -136,12 +136,12 @@ export function applyWorkspace(document, scene) {
 export function decodeWorkspace(encoded, scene) {
   if (typeof encoded !== "string" || bytes(encoded) > WORKSPACE_BYTES) fail("BoundExceeded");
   const parsed = JSON.parse(encoded);
-  if (parsed.schema === "conduit.patchbay.flow-presentation/v1") return migrateFlowPresentation(parsed, scene);
+  if (parsed.schema === "conduit.patchbay.flow-face/v1") return migrateFlowFace(parsed, scene);
   return validateWorkspace(parsed);
 }
-export function migrateFlowPresentation(legacy, scene) {
+export function migrateFlowFace(legacy, scene) {
   fields(legacy, ["schema", "workspaceIdentity", "nodes", "viewport"]);
-  if (legacy.schema !== "conduit.patchbay.flow-presentation/v1") fail("UnsupportedSchema");
+  if (legacy.schema !== "conduit.patchbay.flow-face/v1") fail("UnsupportedSchema");
   if (legacy.workspaceIdentity !== scene.workspaceIdentity) fail("ChangedBasis");
   list(legacy.nodes, 512, (node) => node?.id); viewport(legacy.viewport);
   const mapping = new Map(scene.nodes.map((node) => [node.id, node.data?.workspaceSubject]));

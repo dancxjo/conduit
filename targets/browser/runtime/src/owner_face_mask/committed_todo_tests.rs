@@ -16,7 +16,7 @@ fn checked_browser_mask_consumes_actual_committed_todo_exchange() {
     assert_eq!(exchanges.len(), 2);
     let mut body = None;
     for (index, exchange) in exchanges.iter().enumerate() {
-        let face: Presentation = serde_json::from_value(exchange["face"].clone()).unwrap();
+        let face: Face = serde_json::from_value(exchange["face"].clone()).unwrap();
         face.validate().unwrap();
         let body_id = face.basis.body_id.clone().unwrap();
         if let Some(previous) = &body {
@@ -166,12 +166,12 @@ fn checked_browser_mask_consumes_actual_committed_todo_exchange() {
         assert_eq!(emitted.interaction.action_id, action.identity);
         assert_eq!(emitted.interaction.target, action.target);
         // The returned interaction is not submitted to the owner in this proof.
-        assert_eq!(mask.presentation, face);
+        assert_eq!(mask.face, face);
         check_retired_todo_shows(&face);
     }
 }
 
-fn check_retired_todo_shows(face: &Presentation) {
+fn check_retired_todo_shows(face: &Face) {
     let add = face
         .actions
         .iter()
@@ -234,7 +234,7 @@ fn check_retired_todo_shows(face: &Presentation) {
         mask.show = if lifecycle == ManifestationLifecycle::Failed {
             mask.show
                 .fail(
-                    conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                    conduit_face::ManifestationFailure::AdapterUnavailable,
                     SignId::from("sign/committed-todo-adapter-loss"),
                 )
                 .unwrap()
@@ -259,12 +259,12 @@ fn check_retired_todo_shows(face: &Presentation) {
             )
             .unwrap()
             .is_none());
-        assert_eq!(&mask.presentation, face);
+        assert_eq!(&mask.face, face);
     }
 }
 
 // Semantic reconstruction comparison, not renderer attestation or a domain reducer.
-fn matches_required_todo_meaning(face: &Presentation, view: &FaceView) -> bool {
+fn matches_required_todo_meaning(face: &Face, view: &FaceView) -> bool {
     if view.subjects.len() != face.subjects.len()
         || view.relationships.len() != face.relationships.len()
     {
@@ -281,7 +281,7 @@ fn matches_required_todo_meaning(face: &Presentation, view: &FaceView) -> bool {
         if rendered.name != source.name || rendered.role != format!("{:?}", source.role) {
             return false;
         }
-        if source.role == conduit_presentation::PresentationRole::Status {
+        if source.role == conduit_face::FaceRole::Status {
             let expected: Vec<_> = face
                 .text
                 .iter()

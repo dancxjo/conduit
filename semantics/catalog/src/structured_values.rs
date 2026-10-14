@@ -13,10 +13,10 @@ use conduit_core::{
 use conduit_core::{ConfigurationValue, StructuredInfoValue};
 
 pub const STRUCTURED_LITERAL_KIND: &str = "structured-info/literal";
-pub const STRUCTURED_PRESENTATION_KIND: &str = "presentation/structured-info";
+pub const STRUCTURED_FACE_KIND: &str = "face/structured-info";
 pub const STRUCTURED_LITERAL_REVISION: &str = "structured-info/literal@1";
-pub const STRUCTURED_PRESENTATION_REVISION: &str = "presentation/structured-info@1";
-pub const STRUCTURED_PRESENTATION_TARGET: &str = "presentation/structured-info";
+pub const STRUCTURED_FACE_REVISION: &str = "face/structured-info@1";
+pub const STRUCTURED_FACE_TARGET: &str = "face/structured-info";
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct StructuredValueContract {
@@ -33,11 +33,15 @@ impl From<StructuredValueContract> for Kind {
         Self {
             startup_parameters: contract.startup_parameters,
             shorthand: None,
-            kind_id: contract.kind_id,
+            kind_id: contract.kind_id.clone(),
             kind_contract_revision: contract.kind_contract_revision,
             inputs: contract.inputs,
             outputs: contract.outputs,
-            configuration: Default::default(),
+            configuration: if contract.kind_id.as_str() == STRUCTURED_FACE_KIND {
+                crate::data_label_configuration()
+            } else {
+                Vec::new()
+            },
             semantic_laws: Default::default(),
             limits: contract.limits,
         }
@@ -73,11 +77,8 @@ pub fn structured_literal_semantic_contract(
     Ok(kind)
 }
 
-pub fn structured_presentation_semantic_contract(
-    type_name: &str,
-    value_type: &StructuredInfoType,
-) -> Kind {
-    structured_presentation_contract(type_name, value_type).into()
+pub fn structured_face_semantic_contract(type_name: &str, value_type: &StructuredInfoType) -> Kind {
+    structured_face_contract(type_name, value_type).into()
 }
 
 pub fn structured_literal_contract(
@@ -87,7 +88,7 @@ pub fn structured_literal_contract(
     contract(type_name, value_type, true)
 }
 
-pub fn structured_presentation_contract(
+pub fn structured_face_contract(
     type_name: &str,
     value_type: &StructuredInfoType,
 ) -> StructuredValueContract {
@@ -122,17 +123,17 @@ fn contract(
                 has_default: false,
             }]
         } else {
-            Vec::new()
+            crate::startup_front(&crate::data_label_configuration())
         },
         kind_id: kind_id(if source {
             STRUCTURED_LITERAL_KIND
         } else {
-            STRUCTURED_PRESENTATION_KIND
+            STRUCTURED_FACE_KIND
         }),
         kind_contract_revision: KindIdentity::from(if source {
             STRUCTURED_LITERAL_REVISION
         } else {
-            STRUCTURED_PRESENTATION_REVISION
+            STRUCTURED_FACE_REVISION
         }),
         inputs: if source {
             Vec::new()
@@ -162,7 +163,7 @@ pub fn install_structured_value_catalogs(
         return Err("structured literal default has the wrong exact type".into());
     }
     let literal = structured_literal_semantic_contract(type_name, value_type, default_value)?;
-    let presenter = structured_presentation_semantic_contract(type_name, value_type);
+    let presenter = structured_face_semantic_contract(type_name, value_type);
     startup
         .insert_structured_type(type_name, value_type.clone())
         .map_err(|error| error.to_string())?;
@@ -178,8 +179,8 @@ pub fn install_structured_value_catalogs(
         .map_err(|error| error.to_string())?;
     startup
         .insert(KindSignature {
-            kind: STRUCTURED_PRESENTATION_KIND.into(),
-            startup_parameters: Vec::new(),
+            kind: STRUCTURED_FACE_KIND.into(),
+            startup_parameters: crate::data_label_startup_signature(),
         })
         .map_err(|error| error.to_string())?;
     profile

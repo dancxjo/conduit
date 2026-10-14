@@ -4,7 +4,7 @@ mod codec;
 mod edit;
 mod edit_plot;
 mod execution;
-mod presentation_validation;
+mod face_validation;
 
 pub use edit::{PatchbayEdit, PatchbayEditBasis};
 use edit_plot::{
@@ -57,8 +57,8 @@ impl PatchbayInteractionRequestId {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PatchbayInvocation {
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub action_id: String,
     pub action: PatchbayAction,
     pub target_identity: String,
@@ -83,7 +83,7 @@ pub enum PatchbayInteractionRequest {
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum PatchbayRefusal {
-    StalePresentation,
+    StaleFace,
     UnknownAction,
     ActionUnavailable,
     ActionRefused,
@@ -133,7 +133,7 @@ pub enum InteractionError {
     ValueTooLarge,
     MalformedValue,
     UnsupportedConfiguration,
-    Action(conduit_presentation::PresentationActionRefusal),
+    Action(conduit_face::FaceActionRefusal),
     Plot(String),
     Planning(String),
     Execution(String),
@@ -255,8 +255,8 @@ fn request_from_expanded(
         INVOKE_KIND => Ok(PatchbayInteractionRequest::Invoke {
             request_id,
             invocation: PatchbayInvocation {
-                presentation_id: text("presentation")?,
-                presentation_revision: text("revision")?
+                face_id: text("face")?,
+                face_revision: text("revision")?
                     .parse()
                     .map_err(|_| InteractionError::MalformedValue)?,
                 action_id: text("action-id")?,
@@ -295,7 +295,7 @@ fn interaction_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Interactio
             INVOKE_KIND,
             &[
                 "request",
-                "presentation",
+                "face",
                 "revision",
                 "action-id",
                 "action",
@@ -343,7 +343,7 @@ fn source_definition(kind: &str) -> KindProjection {
     } else {
         &[
             "request",
-            "presentation",
+            "face",
             "revision",
             "action-id",
             "action",
@@ -404,7 +404,7 @@ fn invoke_offer() -> CapabilityOffer {
         "patchbay/invoke@1",
         &[
             "request",
-            "presentation",
+            "face",
             "revision",
             "action-id",
             "action",

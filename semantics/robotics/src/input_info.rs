@@ -105,7 +105,7 @@ impl Hash for BeaconObservation {
 }
 
 /// A finite set of semantic button positions. The meaning assigned to each
-/// position belongs to the exact producing implementation/Presentation.
+/// position belongs to the exact producing implementation/Face.
 impl ButtonSetObservation {
     pub fn pressed(self) -> u32 {
         *self.bits()

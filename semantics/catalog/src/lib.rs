@@ -11,8 +11,7 @@ use alloc::vec;
 use alloc::vec::Vec;
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, wait_host_call_requirement,
-    HostCallRequirement, KindId, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
-    TIMER_RESOURCE_CLASS,
+    HostCallRequirement, KindId, ResourceRequirement, FACE_RESOURCE_CLASS, TIMER_RESOURCE_CLASS,
 };
 
 mod functional_front;
@@ -116,20 +115,20 @@ pub use palette_metadata::*;
 #[cfg(feature = "plot-catalog")]
 pub use palette_projection::*;
 pub use tick::*;
-mod tick_presentation;
-pub use tick_presentation::*;
-mod pulse_presentation;
-pub use pulse_presentation::*;
-mod rhythm_presentation;
-pub use rhythm_presentation::*;
-mod presentation_bool;
-pub use presentation_bool::*;
-mod presentation_indicator;
-pub use presentation_indicator::*;
-mod presentation_composition;
-pub use presentation_composition::*;
-mod presentation_execution;
-pub use presentation_execution::*;
+mod tick_face;
+pub use tick_face::*;
+mod pulse_face;
+pub use pulse_face::*;
+mod rhythm_face;
+pub use rhythm_face::*;
+mod face_bool;
+pub use face_bool::*;
+mod face_indicator;
+pub use face_indicator::*;
+mod face_composition;
+pub use face_composition::*;
+mod face_execution;
+pub use face_execution::*;
 mod browser_human_io;
 pub use browser_human_io::*;
 mod human_media_catalog;
@@ -142,8 +141,8 @@ mod body_coordination_plan;
 pub use body_coordination_plan::*;
 mod graphics;
 pub use graphics::*;
-mod graphics_presentation;
-pub use graphics_presentation::*;
+mod graphics_face;
+pub use graphics_face::*;
 mod time_every;
 pub use time_every::*;
 mod timing;
@@ -222,8 +221,8 @@ pub use schedule_realization::*;
 mod schedule_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use schedule_catalog::*;
-mod text_presentation;
-pub use text_presentation::*;
+mod text_face;
+pub use text_face::*;
 mod text_transform;
 pub use text_transform::*;
 mod value_primitives;
@@ -287,8 +286,8 @@ mod signal_garden_catalog;
 pub use signal_garden_catalog::*;
 mod layout;
 pub use layout::*;
-mod patchbay_presentation;
-pub use patchbay_presentation::*;
+mod patchbay_face;
+pub use patchbay_face::*;
 mod robotics;
 pub use robotics::*;
 mod robotics_hazard;
@@ -349,7 +348,7 @@ mod supported_nucleus;
 pub use supported_nucleus::*;
 
 pub const PULSE_KIND: &str = "flow/pulse";
-pub const SHOW_KIND: &str = "presentation/show";
+pub const SHOW_KIND: &str = "face/show";
 pub const TEE_KIND: &str = "flow/tee";
 pub const GATE_KIND: &str = "flow/gate";
 pub const FIRST_KIND: &str = "flow/first";
@@ -389,7 +388,7 @@ pub fn standard_host_call_requirements(
     match back_kind.as_str() {
         PULSE_KIND | TICK_KIND => vec![wait_host_call_requirement()],
         SHOW_KIND => vec![present_host_call_requirement(
-            kind_id("presentation/stdout"),
+            kind_id("face/stdout"),
             maximum_value_bytes,
         )],
         _ => Vec::new(),
@@ -399,7 +398,7 @@ pub fn standard_host_call_requirements(
 pub fn standard_resource_requirements(kind_id: &KindId) -> Vec<ResourceRequirement> {
     match kind_id.as_str() {
         PULSE_KIND | TICK_KIND => vec![resource_requirement(TIMER_RESOURCE_CLASS, 1)],
-        SHOW_KIND => vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        SHOW_KIND => vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
         _ => Vec::new(),
     }
 }
@@ -426,20 +425,20 @@ mod supported_nucleus_tests {
                     contract.kind_id.as_str(),
                     conduit_time::TIME_EVERY_KIND
                         | STATE_COUNT_KIND
-                        | COUNT_PRESENTATION_KIND
-                        | BOOL_PRESENTATION_KIND
-                        | GRAPHICS_PRESENTATION_KIND
-                        | PATCHBAY_PRESENTATION_KIND
-                        | TEXT_PRESENTATION_KIND
+                        | COUNT_FACE_KIND
+                        | BOOL_FACE_KIND
+                        | GRAPHICS_FACE_KIND
+                        | PATCHBAY_FACE_KIND
+                        | TEXT_FACE_KIND
                         | LAYOUT_VIEWPORT_KIND
                         | LAYOUT_INSET_KIND
                         | LAYOUT_ROW_KIND
                         | LAYOUT_COLUMN_KIND
                         | LAYOUT_STACK_KIND
                         | LAYOUT_ALIGN_KIND
-                        | PRESENTATION_ICON_KIND
-                        | PRESENTATION_FRAME_KIND
-                        | PRESENTATION_BADGE_KIND
+                        | FACE_ICON_KIND
+                        | FACE_FRAME_KIND
+                        | FACE_BADGE_KIND
                         | GRAPHICS_RECT_KIND
                         | GRAPHICS_TEXT_KIND
                         | GRAPHICS_ICON_KIND
@@ -510,3 +509,6 @@ pub use numerical_realization::*;
 mod numerical_realization_back;
 #[cfg(feature = "kernel-step")]
 pub use numerical_realization_back::NumericalRealizationBack;
+
+mod data_label;
+pub use data_label::*;

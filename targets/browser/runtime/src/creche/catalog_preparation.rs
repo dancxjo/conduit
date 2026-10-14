@@ -1,11 +1,11 @@
 //! One preparation-local installed catalog; no user Source receipts or Host truth cached.
-use crate::installed_browser::{catalogs_for_presentation, PresentationProfile};
+use crate::installed_browser::{catalogs_for_face, FaceProfile};
 use conduit_plot::{CanonicalBackCatalog, ProfileCatalog, StartupCatalog};
 
 #[derive(Default)]
 pub(super) struct CatalogPreparation {
     current: Option<(
-        PresentationProfile,
+        FaceProfile,
         StartupCatalog,
         ProfileCatalog,
         Option<CanonicalBackCatalog>,
@@ -14,18 +14,14 @@ pub(super) struct CatalogPreparation {
 impl CatalogPreparation {
     pub(super) fn get(
         &mut self,
-        presentation: PresentationProfile,
+        face: FaceProfile,
     ) -> Result<(&StartupCatalog, &ProfileCatalog), String> {
-        if self
-            .current
-            .as_ref()
-            .is_none_or(|entry| entry.0 != presentation)
-        {
+        if self.current.as_ref().is_none_or(|entry| entry.0 != face) {
             // Drop the previous profile before preparing a replacement. The
-            // retained bound is one pair even for mixed presentation bundles.
+            // retained bound is one pair even for mixed face bundles.
             self.current = None;
-            let (startup, profile) = catalogs_for_presentation(presentation)?;
-            self.current = Some((presentation, startup, profile, None));
+            let (startup, profile) = catalogs_for_face(face)?;
+            self.current = Some((face, startup, profile, None));
         }
         let (_, startup, profile, _) = self.current.as_ref().expect("prepared catalog");
         Ok((startup, profile))
@@ -33,9 +29,9 @@ impl CatalogPreparation {
 
     pub(super) fn get_with_backs(
         &mut self,
-        presentation: PresentationProfile,
+        face: FaceProfile,
     ) -> Result<(&StartupCatalog, &ProfileCatalog, &CanonicalBackCatalog), String> {
-        self.get(presentation)?;
+        self.get(face)?;
         let (_, startup, profile, backs) = self.current.as_mut().expect("prepared catalog");
         if backs.is_none() {
             *backs = Some(crate::installed_browser::backs(startup, profile)?);

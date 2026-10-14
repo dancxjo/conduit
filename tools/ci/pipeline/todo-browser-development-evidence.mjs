@@ -87,6 +87,11 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
   const continuousBrowserBytes = bytes('continuous-browser-receipt.json');
   const continuousBrowser = JSON.parse(continuousBrowserBytes);
   const continuousFace = JSON.parse(bytes('continuous-speech-owner-face.json'));
+  // Retained receipts keep their original carrier spelling and hashed bytes.
+  if (continuousFace.face !== undefined && continuousFace.presentation !== undefined) {
+    throw new Error('Continuous Todo speech Owner read has ambiguous Face carriers');
+  }
+  const continuousCarrier = continuousFace.face ?? continuousFace.presentation;
   const continuousStatus = JSON.parse(bytes('continuous-speech-owner-status.json'));
   const continuousRelease = JSON.parse(bytes('continuous-host-release.json'));
   const continuousBody = continuous.observation?.body_id;
@@ -130,10 +135,10 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     }
   }
   const continuousTranscript = bytes('continuous-screen-free.txt').toString('utf8');
-  if (continuousFace.presentation?.basis?.body_id !== continuousBody
+  if (continuousCarrier?.basis?.body_id !== continuousBody
       || continuousStatus.body_id !== continuousBody
       || continuousFace.advertisement?.boot_id !== continuousStatus.boot_id
-      || !continuousFace.presentation?.subjects?.some(subject => subject.name === 'Buy milk')) {
+      || !continuousCarrier?.subjects?.some(subject => subject.name === 'Buy milk')) {
     throw new Error('Continuous Todo speech Owner read did not reenter its browser Body');
   }
   for (const [name, wording] of [['summary', 'Groceries. 1 thing left · 0 completed Buy milk.'],
@@ -144,8 +149,8 @@ export function retainedTodoBrowserDevelopmentEvidence(root = TODO_BROWSER_DEVEL
     if (play.schema !== 'conduit.body/spoken-face-playback@1'
         || turn.schema !== 'conduit.body/spoken-face-turn@1'
         || play.outcome !== 'Completed' || turn.outcome !== 'Completed'
-        || play.face_id !== continuousFace.presentation.identity
-        || play.face_revision !== continuousFace.presentation.revision
+        || play.face_id !== continuousCarrier.identity
+        || play.face_revision !== continuousCarrier.revision
         || play.boot_id !== continuousStatus.boot_id
         || play.face_id !== turn.face_id || play.source_show_id !== turn.source_show_id
         || play.spoken_segments?.map(segment => segment.text).join('') !== wording

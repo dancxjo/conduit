@@ -19,7 +19,7 @@ export async function observedTodoMutation(state, output, label, bodyId, before,
     assert.equal(write.initiating_action.show_id, before.show_id);
     assert.equal(write.initiating_action.face_id, before.face_id);
   }
-  assert.equal(after.presentation.basis.body_id, bodyId);
+  assert.equal(after.face.basis.body_id, bodyId);
   assert.equal(write.terminal_sign.active_play_id, write.play.active_play_id);
   assert.equal(execution.read_terminal_sign.active_play_id, execution.read_play.active_play_id);
   assert.notEqual(write.play.active_play_id, execution.read_play.active_play_id);
@@ -30,8 +30,8 @@ export async function observedTodoMutation(state, output, label, bodyId, before,
     initiating_face_revision: before?.face_revision_decimal ?? before?.face_revision ?? null,
     initiating_show_id: write.initiating_action.show_id, interaction_id: write.interaction_id,
     queue_sequence: write.initiating_action.sequence,
-    resulting_face_id: after.presentation.identity,
-    resulting_face_revision: after.presentation_revision_decimal,
+    resulting_face_id: after.face.identity,
+    resulting_face_revision: after.face_revision_decimal,
     write_plan_id: write.plan_id, write_play: write.play, write_terminal_sign: write.terminal_sign,
     read_plan_id: execution.read_plan_id, read_play: execution.read_play,
     read_terminal_sign: execution.read_terminal_sign,

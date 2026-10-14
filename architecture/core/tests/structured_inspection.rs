@@ -18,7 +18,7 @@ fn sign(value: &StructuredInfoValue) -> Observation {
     Observation {
         sign_id: SignId::from("sign/structured"),
         active_play_id: None,
-        presentation_id: None,
+        face_id: None,
         host_id: HostId::from("host/local"),
         boot_id: BootId::from("boot/1"),
         plan_id: None,
