@@ -1,5 +1,8 @@
 //! Bounded conjunction of original rule conditions and their inspection receipts.
 //! Evidence is supplied explicitly; this does not establish occurrence adjacency.
+use crate::rule_syntax::{
+    compare_syntax_condition, SyntaxConditionComparison, SyntaxConditionRefusal, SyntaxObservation,
+};
 use crate::{
     generated,
     neighbor_match::NeighborObservation,
@@ -36,6 +39,7 @@ pub enum ConditionReceipt<'a> {
     Neighbor(NeighborConditionComparison<'a>),
     Feature(FeatureConditionComparison<'a>),
     Stress(StressConditionComparison<'a>),
+    Syntax(SyntaxConditionComparison<'a>),
     Style(StyleConditionComparison<'a>),
 }
 impl<'a> ConditionReceipt<'a> {
@@ -45,6 +49,7 @@ impl<'a> ConditionReceipt<'a> {
             Self::Feature(value) => value.condition(),
             Self::Stress(value) => value.condition(),
             Self::Style(value) => value.condition(),
+            Self::Syntax(value) => value.condition(),
         }
     }
     pub fn decision(&self) -> Result<SpeechContextDecision, ConditionRefusalReason> {
@@ -66,12 +71,14 @@ impl<'a> ConditionReceipt<'a> {
             Self::Feature(value) => *value.decision(),
             Self::Stress(value) => *value.decision(),
             Self::Style(value) => *value.decision(),
+            Self::Syntax(value) => *value.decision(),
         })
     }
 }
 #[derive(Debug)]
 pub enum ConditionRefusalReason {
     UnsupportedSyntax,
+    Syntax(SyntaxConditionRefusal),
     UnsupportedMatcher,
     Neighbor(NeighborConditionRefusal),
     Feature(FeatureConditionRefusal),
@@ -107,6 +114,13 @@ impl<'a> ConditionsComparison<'a> {
 pub fn compare_conditions<'a>(
     conditions: &'a BoundedSequence<SpeechRuleCondition, 8>,
     evidence: ConditionEvidence<'a>,
+) -> Result<ConditionsComparison<'a>, ConditionRefusal> {
+    compare_conditions_with_syntax(conditions, evidence, None)
+}
+pub fn compare_conditions_with_syntax<'a>(
+    conditions: &'a BoundedSequence<SpeechRuleCondition, 8>,
+    evidence: ConditionEvidence<'a>,
+    syntax: Option<SyntaxObservation<'a>>,
 ) -> Result<ConditionsComparison<'a>, ConditionRefusal> {
     use ConditionRefusalReason as R;
     use SpeechRuleCondition as C;
@@ -146,9 +160,13 @@ pub fn compare_conditions<'a>(
                     compare_not_careful_style(condition, evidence.careful_style)
                         .map_err(R::Style)?,
                 ),
-                C::CurrentWordHasSyntacticLink(_)
-                | C::PreviousWordHasSyntacticLink(_)
-                | C::NextWordHasSyntacticLink(_) => return Err(R::UnsupportedSyntax),
+                C::CurrentWordHasSyntacticLink(_) => ConditionReceipt::Syntax(
+                    compare_syntax_condition(condition, syntax.ok_or(R::UnsupportedSyntax)?)
+                        .map_err(R::Syntax)?,
+                ),
+                C::PreviousWordHasSyntacticLink(_) | C::NextWordHasSyntacticLink(_) => {
+                    return Err(R::UnsupportedSyntax)
+                }
             })
         };
         let receipt = compare().map_err(|reason| ConditionRefusal { index, reason })?;
