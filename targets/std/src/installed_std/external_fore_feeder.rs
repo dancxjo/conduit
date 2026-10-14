@@ -88,7 +88,7 @@ impl<'a> PreparedForeInputs<'a> {
     pub(super) fn input_items(&self) -> u16 {
         match self {
             Self::Single(_) => 1,
-            Self::Sequential(feeder) => feeder.inputs.len() as u16,
+            Self::Sequential(feeder) => feeder.input_items(),
             Self::Live(feeder) => feeder.queue.maximum_items(),
         }
     }
@@ -298,116 +298,7 @@ pub(super) fn remote_sign_items(
     })
 }
 
-pub(super) struct SequentialForeFeeder<'a> {
-    inputs: &'a [ExternalForeInput],
-    targets: Vec<(RemoteEndpointId, CordId)>,
-    next: usize,
-    closed: bool,
-}
-
-impl<'a> SequentialForeFeeder<'a> {
-    pub(super) fn prepare(
-        planned: &[&LoweredForePort],
-        inputs: &'a [ExternalForeInput],
-    ) -> Result<Self, String> {
-        if planned.is_empty() || inputs.is_empty() || inputs.len() > usize::from(MAX_SEQUENCE_ITEMS)
-        {
-            return Err("external Fore sequence requires one to 64 admitted input values".into());
-        }
-        let first = planned[0];
-        if first.direction != PortDirection::Input
-            || !matches!(first.temporal, PortTemporal::Flow { closes: true })
-            || planned.iter().any(|port| {
-                port.direction != PortDirection::Input
-                    || port.front_port_id != first.front_port_id
-                    || port.track != first.track
-                    || port.temporal != first.temporal
-            })
-        {
-            return Err("external Fore sequence requires one exact input Flow".into());
-        }
-        for input in inputs {
-            if input.front_port_id != first.front_port_id || input.track != first.track {
-                return Err("external Fore sequence does not match its sealed input Flow".into());
-            }
-            if planned
-                .iter()
-                .any(|port| port.validate_value(&input.bytes).is_err())
-            {
-                return Err("external Fore sequence violates its sealed value contract".into());
-            }
-        }
-        Ok(Self {
-            inputs,
-            targets: planned
-                .iter()
-                .map(|port| (port.endpoint, port.cord))
-                .collect(),
-            next: 0,
-            closed: false,
-        })
-    }
-
-    #[cfg(test)]
-    pub(super) fn is_pending(&self) -> bool {
-        !self.closed
-    }
-
-    pub(super) fn feed_next(&mut self, ingress: &mut impl ForeIngress) -> Result<(), String> {
-        if self.closed {
-            return Ok(());
-        }
-        let input = &self.inputs[self.next];
-        let sequence = u64::try_from(self.next)
-            .map_err(|_| "external Fore sequence index overflow".to_string())?;
-        match ingress.admit(&self.targets, sequence, &input.bytes)? {
-            RemoteIngressOutcome::Accepted { sequence: accepted } if accepted == sequence => {
-                self.next += 1;
-                if self.next == self.inputs.len() {
-                    for &(endpoint, cord) in &self.targets {
-                        ingress.close(endpoint, cord)?;
-                    }
-                    self.closed = true;
-                }
-            }
-            RemoteIngressOutcome::Full { sequence: refused } if refused == sequence => {}
-            other => {
-                return Err(format!(
-                    "external Fore sequence was not admitted: {other:?}"
-                ))
-            }
-        }
-        Ok(())
-    }
-}
-
-pub(super) trait ForeIngress {
-    fn admit(
-        &mut self,
-        targets: &[(RemoteEndpointId, CordId)],
-        sequence: u64,
-        bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, String>;
-    fn close(&mut self, endpoint: RemoteEndpointId, cord: CordId) -> Result<(), String>;
-}
-
-impl ForeIngress for InstalledScheduler {
-    fn admit(
-        &mut self,
-        targets: &[(RemoteEndpointId, CordId)],
-        sequence: u64,
-        bytes: &[u8],
-    ) -> Result<RemoteIngressOutcome, String> {
-        self.admit_remote_input_fanout(targets, sequence, bytes)
-            .map_err(|error| format!("admit external Fore sequence: {error:?}"))
-    }
-
-    fn close(&mut self, endpoint: RemoteEndpointId, cord: CordId) -> Result<(), String> {
-        self.close_remote_input(endpoint, cord)
-            .map_err(|error| format!("close external Fore sequence: {error:?}"))
-    }
-}
-
-#[cfg(test)]
-#[path = "external_fore_feeder_tests.rs"]
-mod tests;
+mod sequential;
+pub(super) use sequential::SequentialForeFeeder;
+mod ingress;
+pub(super) use ingress::ForeIngress;

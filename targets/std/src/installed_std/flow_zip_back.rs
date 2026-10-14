@@ -47,20 +47,30 @@ fn validate(
     String,
 > {
     let (left, right, paired) = exact_contracts(placement)?;
-    let expected = conduit_semantic_catalog::flow_zip_semantic_contract(left, right)
+    let schemas = conduit_semantic_catalog::flow_zip_prepared_schemas(&placement.configuration)
         .map_err(str::to_string)?;
+    let expected = match schemas {
+        Some((left_type, right_type)) => {
+            conduit_semantic_catalog::flow_zip_schema_semantic_contract(
+                left,
+                &left_type,
+                right,
+                &right_type,
+            )
+        }
+        None => conduit_semantic_catalog::flow_zip_semantic_contract(left, right),
+    }
+    .map_err(str::to_string)?;
     if left.maximum_bytes > conduit_std_offers::FLOW_ZIP_MAXIMUM_INPUT_BYTES
         || right.maximum_bytes > conduit_std_offers::FLOW_ZIP_MAXIMUM_INPUT_BYTES
-        || placement.kind_id.as_str() != conduit_semantic_catalog::FLOW_ZIP_KIND
-        || placement.kind_contract_revision.as_str()
-            != conduit_semantic_catalog::FLOW_ZIP_CONTRACT_REVISION
+        || placement.kind_id != expected.kind_id
+        || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.execution_profile_id.as_str() != conduit_std_offers::FLOW_ZIP_EXECUTION_PROFILE
         || placement.implementation_id.as_str() != conduit_std_offers::FLOW_ZIP_IMPLEMENTATION
         || placement.artifact_id.as_str() != conduit_std_offers::FLOW_ZIP_ARTIFACT
         || placement.inputs != expected.inputs
         || placement.outputs != expected.outputs
         || placement.semantic_contract != expected.semantic_contract()
-        || !placement.configuration.is_empty()
         || !placement.host_calls.is_empty()
     {
         return Err("planned flow/zip identity differs from its exact specialization".into());
@@ -88,8 +98,15 @@ fn prepare(
     _: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     let (left, right, _) = validate(placement)?;
-    let back = FlowZipBack::prepare(left, right)
-        .map_err(|error| format!("cannot prepare flow/zip pair encoder: {error:?}"))?;
+    let schemas = conduit_semantic_catalog::flow_zip_prepared_schemas(&placement.configuration)
+        .map_err(str::to_string)?;
+    let back = match schemas {
+        Some((left_type, right_type)) => {
+            FlowZipBack::prepare_typed_finite(left, left_type, right, right_type)
+        }
+        None => FlowZipBack::prepare(left, right),
+    }
+    .map_err(|error| format!("cannot prepare flow/zip pair encoder: {error:?}"))?;
     Ok(InstalledBack::FlowZip(back))
 }
 

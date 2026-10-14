@@ -245,6 +245,8 @@ mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;
 pub use flow_zip::*;
+mod flow_zip_schema;
+pub use flow_zip_schema::*;
 mod flow_singleton;
 pub use flow_singleton::*;
 mod flow_concat_finite;

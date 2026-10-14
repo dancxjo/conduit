@@ -201,7 +201,8 @@ impl StdHost {
         )
     }
 
-    /// Feed a finite sequence through one exact, Plan-sealed input Flow.
+    /// Feed at most 64 values through exact Plan-sealed closing input Flows.
+    /// Each Flow retains independent sequence custody; close follows drained payloads.
     /// Pressure is handled by the installed kernel loop before the next value
     /// is admitted; this does not create synthetic per-value Fore ports.
     #[allow(clippy::too_many_arguments)]
