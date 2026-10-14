@@ -107,3 +107,55 @@ fn authored_phase_retains_exact_scope_and_refuses_foreign_origins() {
     )
     .is_err());
 }
+
+#[test]
+fn checked_source_locals_retain_origin_and_reject_foreign_dimensions_before_transport() {
+    use conduit_plot::{
+        check_syntax_document, parse_syntax_document, CanonicalStartupValue, StartupCatalog,
+    };
+    for (literal, accepted) in [("440Hz", true), ("440m", false), ("-440Hz", false)] {
+        let source = format!("plot controls {{\n frequency = {literal}\n delay = 250ms\n}}\n");
+        let syntax = parse_syntax_document(&source);
+        let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+        assert_eq!(syntax.round_trip(), source);
+        assert_eq!(syntax.source_document_id(), checked.source_document_id);
+        let CanonicalStartupValue::Quantity(frequency) = &checked.plots[0]
+            .local_values
+            .iter()
+            .find(|(name, _)| name == "frequency")
+            .unwrap()
+            .1
+        else {
+            panic!("checked quantity")
+        };
+        assert_eq!(frequency.source(), literal);
+        let prepared = prepare_exact_audio_frequency(
+            frequency.value(),
+            frequency.source(),
+            &mut ExactNumericWork::new(1_000_000_000),
+        );
+        assert_eq!(prepared.is_ok(), accepted);
+        if let Ok(prepared) = prepared {
+            assert_eq!(prepared.receipt().original(), frequency.source());
+            assert_eq!(*prepared.value().numerator_hz(), 440);
+            assert_eq!(*prepared.value().denominator(), 1);
+        }
+        let CanonicalStartupValue::Quantity(delay) = &checked.plots[0]
+            .local_values
+            .iter()
+            .find(|(name, _)| name == "delay")
+            .unwrap()
+            .1
+        else {
+            panic!("checked time")
+        };
+        let delay = prepare_exact_audio_time(
+            delay.value(),
+            delay.source(),
+            &mut ExactNumericWork::new(1_000_000_000),
+        )
+        .unwrap();
+        assert_eq!(*delay.value().numerator_seconds(), 1);
+        assert_eq!(*delay.value().denominator(), 4);
+    }
+}
