@@ -8,7 +8,8 @@ extern crate alloc;
 
 mod spoken_template;
 pub use spoken_template::{
-    PreparedTodoSpokenTemplate, TodoSpokenWording, TodoTemplateRefusal, TODO_SPOKEN_TEMPLATE_SOURCE,
+    PreparedTodoSpokenTemplate, TodoSpokenLook, TodoSpokenWording, TodoTemplateRefusal,
+    TODO_SPOKEN_TEMPLATE_SOURCE,
 };
 
 mod facts;

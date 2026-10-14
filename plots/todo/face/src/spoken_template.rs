@@ -25,6 +25,26 @@ pub enum TodoTemplateRefusal {
     Bound,
     Evaluation,
 }
+/// Finite supported Look spoken facets; selection changes wording only.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum TodoSpokenLook {
+    Brief,
+    Expanded,
+}
+impl TodoSpokenLook {
+    pub fn entry(self) -> &'static str {
+        match self {
+            Self::Brief => "spoken/todo-brief-template",
+            Self::Expanded => "spoken/todo-expanded-template",
+        }
+    }
+    pub fn template_identity(self) -> &'static str {
+        match self {
+            Self::Brief => "spoken/todo-brief@1",
+            Self::Expanded => "spoken/todo-expanded@1",
+        }
+    }
+}
 pub struct PreparedTodoSpokenTemplate {
     program: PortableExpressionProgram,
     identity: String,

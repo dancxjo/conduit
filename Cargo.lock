@@ -2546,6 +2546,7 @@ dependencies = [
  "conduit-text",
  "conduit-thermostat-plot",
  "conduit-time",
+ "conduit-todo-face",
  "conduit-todo-plot",
  "conduit-tongues",
  "conduit-web",

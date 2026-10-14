@@ -250,6 +250,9 @@ impl crate::StdHost {
         advertisement
             .capabilities
             .extend(crate::flow_activation::required_spoken_template_offers()?);
+        advertisement
+            .capabilities
+            .extend(crate::flow_activation::required_todo_spoken_template_offers()?);
         if adapter.is_some() {
             let projection = conduit_std_offers::generated_stream_speech_offer();
             advertisement

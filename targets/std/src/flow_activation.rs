@@ -220,3 +220,8 @@ impl PlannedActivationChildPoolHost for StdActivationHost {
 
 #[cfg(test)]
 pub(crate) mod tests;
+
+mod todo_spoken_template_plan;
+pub use todo_spoken_template_plan::{
+    required_todo_spoken_template_offers, TodoSpokenTemplateSourcePlan,
+};
