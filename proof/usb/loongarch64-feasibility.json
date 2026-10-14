@@ -1,0 +1,308 @@
+{
+  "issue": 5580,
+  "qemu_version": "10.2.1",
+  "qemu_package": "1:10.2.1+ds-1ubuntu3.2",
+  "firmware_package": "2025.11-3ubuntu7.3",
+  "machine": "virt",
+  "firmware": {
+    "name": "QEMU_EFI.fd",
+    "bytes": 16777216,
+    "sha256": "0b0792e89cf65d7d52e78367181e300bc39d76cbb22cf64c69c8038a776f6a48",
+    "initial_vars_sha256": "adbfcb31d6470ef090220baeb53559e26323b6cfb5e7614f879e89608a3ed748",
+    "initial_vars_bytes": 16777216
+  },
+  "command": [
+    "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/misc/usr/bin/qemu-system-loongarch64",
+    "-machine",
+    "virt",
+    "-m",
+    "512M",
+    "-smp",
+    "1",
+    "-display",
+    "none",
+    "-serial",
+    "file:/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/probes/loongarch64-serial.log",
+    "-net",
+    "none",
+    "-S",
+    "-device",
+    "qemu-xhci,id=usb-controller,msi=off,msix=off,p2=1,p3=0",
+    "-device",
+    "usb-mouse,bus=usb-controller.0",
+    "-qmp",
+    "stdio",
+    "-drive",
+    "if=pflash,format=raw,unit=0,readonly=on,file=/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/efi-loongarch64/usr/share/qemu-efi-loongarch64/QEMU_EFI.fd",
+    "-drive",
+    "if=pflash,format=raw,unit=1,file=/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/probes/loongarch64-vars.fd"
+  ],
+  "execution_seconds": 8,
+  "pci_reply": {
+    "return": [
+      {
+        "bus": 0,
+        "devices": [
+          {
+            "irq_pin": 0,
+            "bus": 0,
+            "qdev_id": "",
+            "slot": 0,
+            "class_info": {
+              "class": 1536,
+              "desc": "Host bridge"
+            },
+            "id": {
+              "device": 8,
+              "subsystem-vendor": 6900,
+              "vendor": 6966,
+              "subsystem": 4352
+            },
+            "function": 0,
+            "regions": []
+          },
+          {
+            "irq_pin": 1,
+            "bus": 0,
+            "qdev_id": "usb-controller",
+            "irq": 255,
+            "slot": 1,
+            "class_info": {
+              "class": 3075,
+              "desc": "USB controller"
+            },
+            "id": {
+              "device": 13,
+              "subsystem-vendor": 6900,
+              "vendor": 6966,
+              "subsystem": 4352
+            },
+            "function": 0,
+            "regions": [
+              {
+                "prefetch": false,
+                "mem_type_64": true,
+                "bar": 0,
+                "size": 16384,
+                "address": 1073741824,
+                "type": "memory"
+              }
+            ]
+          }
+        ]
+      }
+    ]
+  },
+  "device_tree": {
+    "pci": {
+      "interrupt-map-mask": [
+        6144,
+        0,
+        0,
+        7
+      ],
+      "interrupt-map": [
+        0,
+        0,
+        0,
+        1,
+        32771,
+        16,
+        4,
+        0,
+        0,
+        0,
+        2,
+        32771,
+        17,
+        4,
+        0,
+        0,
+        0,
+        3,
+        32771,
+        18,
+        4,
+        0,
+        0,
+        0,
+        4,
+        32771,
+        19,
+        4,
+        2048,
+        0,
+        0,
+        1,
+        32771,
+        17,
+        4,
+        2048,
+        0,
+        0,
+        2,
+        32771,
+        18,
+        4,
+        2048,
+        0,
+        0,
+        3,
+        32771,
+        19,
+        4,
+        2048,
+        0,
+        0,
+        4,
+        32771,
+        16,
+        4,
+        4096,
+        0,
+        0,
+        1,
+        32771,
+        18,
+        4,
+        4096,
+        0,
+        0,
+        2,
+        32771,
+        19,
+        4,
+        4096,
+        0,
+        0,
+        3,
+        32771,
+        16,
+        4,
+        4096,
+        0,
+        0,
+        4,
+        32771,
+        17,
+        4,
+        6144,
+        0,
+        0,
+        1,
+        32771,
+        19,
+        4,
+        6144,
+        0,
+        0,
+        2,
+        32771,
+        16,
+        4,
+        6144,
+        0,
+        0,
+        3,
+        32771,
+        17,
+        4,
+        6144,
+        0,
+        0,
+        4,
+        32771,
+        18,
+        4
+      ],
+      "#interrupt-cells": [
+        1
+      ],
+      "msi-map": [
+        0,
+        32772,
+        0,
+        65536
+      ],
+      "ranges": [
+        16777216,
+        0,
+        16384,
+        0,
+        402669568,
+        0,
+        49152,
+        33554432,
+        0,
+        1073741824,
+        0,
+        1073741824,
+        0,
+        1073741824
+      ],
+      "reg": [
+        0,
+        536870912,
+        0,
+        134217728
+      ],
+      "dma-coherent": [],
+      "bus-range": [
+        0,
+        127
+      ],
+      "linux,pci-domain": [
+        0
+      ],
+      "#size-cells": [
+        2
+      ],
+      "#address-cells": [
+        3
+      ],
+      "device_type": [
+        1885563136
+      ],
+      "compatible": "7063692d686f73742d6563616d2d67656e6572696300"
+    },
+    "pic": {
+      "loongson,pic-base-vec": [
+        0
+      ],
+      "interrupt-parent": [
+        32770
+      ],
+      "#interrupt-cells": [
+        2
+      ],
+      "interrupt-controller": [],
+      "reg": [
+        0,
+        268435456,
+        0,
+        1024
+      ],
+      "compatible": "6c6f6f6e67736f6e2c7063682d7069632d312e3000",
+      "phandle": [
+        32771
+      ]
+    },
+    "sha256": "6054cd464337bded3d46a8b26b074c301cc8dd52a3fffa94fa5574f4b778ba25"
+  },
+  "intx_route": {
+    "slot": 1,
+    "pin": 1,
+    "parent_phandle": 32771,
+    "interrupt": 17,
+    "flags": 4
+  },
+  "disposition": "Firmware PCI resource assignment supported; ConduitOS native USB provider unsupported until Root initialization, DMA possession, IRQ delivery and actual control/bulk completion proof",
+  "not_proved": [
+    "ConduitOS USB transfer",
+    "guest DMA completion",
+    "guest IRQ delivery",
+    "physical compatibility",
+    "USB3/MSI/isochronous"
+  ],
+  "qemu_binary_sha256": "3711528ac11fe5a0a3ba660c8584332d2ebf975ab943771e4bb67a0696a40e16"
+}

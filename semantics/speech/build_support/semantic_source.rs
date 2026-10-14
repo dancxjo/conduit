@@ -20,6 +20,7 @@ pub fn source() -> String {
         include_str!("../translation.conduit"),
         include_str!("../timing.conduit"),
         include_str!("../intent.conduit"),
+        include_str!("../syllables.conduit"),
         include_str!("../inventory.conduit"),
         include_str!("../profile_phones.conduit"),
         include_str!("../voice_profile.conduit"),
@@ -30,6 +31,7 @@ pub fn source() -> String {
         include_str!("../ipa_syntax.conduit"),
         include_str!("../ipa_inventory.conduit"),
         include_str!("../ipa_constructors.conduit"),
+        include_str!("../syllable_structure.conduit"),
     ]
     .join("\n")
 }

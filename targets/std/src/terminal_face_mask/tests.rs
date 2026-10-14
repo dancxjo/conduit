@@ -513,3 +513,31 @@ fn document_escapes_terminal_control_bytes_in_face_wording() {
     assert!(mask.document.iter().all(|r| !r.text.contains('\u{1b}')));
     assert!(mask.document.iter().any(|r| r.text.contains("\\u{1b}")));
 }
+
+#[test]
+fn minimum_viewport_keeps_complete_keyboard_help_and_admitted_row_count() {
+    for (interactive, rows) in [(true, 8), (true, 24), (false, 8)] {
+        let mask = if interactive {
+            TerminalFaceMask::prepare(face(1), 40, rows).unwrap()
+        } else {
+            TerminalFaceMask::prepare_read_only(face(1), 40, rows).unwrap()
+        };
+        let frame = document::frame(&mask);
+        assert_eq!(frame.split("\r\n").count(), rows - 1);
+        for instruction in ["↑↓ read", "PgUp/PgDn", "F2 inspect"] {
+            assert!(frame.contains(instruction));
+        }
+        if interactive {
+            assert!(frame.contains("Tab focus"));
+            assert!(frame.contains("Enter apply"));
+            assert!(frame.contains("Esc cancel"));
+        } else {
+            assert!(frame.contains("Read only"));
+            assert!(frame.contains("Esc close"));
+            assert!(!frame.contains("Enter apply"));
+        }
+        let (first, second) = footer::help(interactive, 40);
+        assert!(first.chars().count() <= 40);
+        assert!(second.unwrap().chars().count() <= 40);
+    }
+}
