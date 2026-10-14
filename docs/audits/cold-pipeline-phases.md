@@ -47,3 +47,21 @@ cross-target result. The fixture depends on the optional timing markers from
 the ignored release capture passes and all 24 rows independently validate.
 Parent #5395 retains its allocation/copy/evidence decomposition and broader
 reproducible reporting gates.
+
+## Packed-kernel refresh
+The same two release tests passed after refreshing onto dev
+`7d60164e59d06f4bd35bb08883e17e3ad9eca6e6`, at clean measurement Source
+`b1de3b6ef1ca651576144db2390c7ae776d95c08`. This local source includes the
+phase-marker dependency from PR #5847; it is not a claim that this dependency
+or the refresh has already merged. All 24 rows retained exact output/provider,
+Plan/Play, fixed-capacity and cold/warm Sign checks. The original capture above
+is preserved; the separate refresh receipt is
+`evidence/cold-pipeline-packed-phase-samples.json`.
+| Gears | Cold prep µs | Cold Play µs | Warm prep µs | Warm Play µs | Warm whole Host run µs |
+|---|---:|---:|---:|---:|---:|
+| 1 | 78.36 | 10.30 | 52.89 | 6.62 | 211.81 |
+| 8 | 184.37 | 30.18 | 128.39 | 24.19 | 340.21 |
+| 32 | 609.87 | 121.96 | 443.92 | 115.97 | 891.82 |
+
+These remain uncontrolled native wall medians; raw thread-CPU samples and
+dispersion are separate. They do not establish a causal scheduler speedup.
