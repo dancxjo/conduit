@@ -34,9 +34,10 @@ unchanged while renderer-local viewport dimensions differ.
 
 The shipped `human_interaction::zero_argument_action_needs_no_counterfeit_empty_input`
 independently checks the zero-argument contract and rejects counterfeit material.
-The new paired test exercises its actual terminal return path. It does not certify
-all narrow-view accessibility: the retained 40-column footer is clipped, which
-remains a layout/accessibility concern rather than changed action meaning.
+The new paired test exercises its actual terminal return path. The minimum-width footer now splits keyboard help over two rows instead of
+clipping inspect/apply/cancel instructions; content pagination reserves those
+rows and keeps the admitted terminal extent. This does not certify all browser
+or graphical accessibility.
 
 ## Exact correlation
 
