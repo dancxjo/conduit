@@ -57,6 +57,11 @@ cargo xtask check plots run --deterministic
 cargo xtask check plots run --browser
 ```
 
+To execute one reviewed deterministic Plot, add `--plot physical-values`.
+The selected report contains only that Plot and its owned reusable entries;
+combined workloads run with the full inventory. Unknown slugs refuse. The
+selector cannot be combined with browser mode.
+
 Deterministic execution continues through individual plot failures. Browser
 execution builds the WASM runtime and runs reviewed browser-safe cases with
 pinned Chromium, one worker, and zero retries. It needs the repository's
