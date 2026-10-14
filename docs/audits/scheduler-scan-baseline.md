@@ -47,3 +47,8 @@ A fresh current-dev integration run retained 48 rows at clean Source
 All 70 nonmanual kernel tests and strict Clippy passed again. The earlier 48-row
 evidence keeps its original Source identity; neither run is relabeled as a later
 documentation commit.
+
+After the release-profile repair, another clean run at `865816d45f9107a6f3cc9b43e0d775442df0ac6a`
+integrating dev `15612d55b1567959a5df2b9ef4dc9ed67286e69d` retained all 48 rows under the
+accepted default symbol-stripping profile. The prior Source-specific raw records
+remain separately retained.
