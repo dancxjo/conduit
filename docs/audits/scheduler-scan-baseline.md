@@ -42,5 +42,8 @@ loaded cases consume 1/8/32 inputs, while sparse cases consume one. These raw
 counts are mechanical cost evidence, not a provider throughput forecast.
 
 
-A fresh current-dev integration run will retain its own clean Source revision and
-raw rows; the earlier 48-row evidence keeps its original Source identity.
+A fresh current-dev integration run retained 48 rows at clean Source
+`e5990c27111f78e35f7706fbf1cab8dbca55a456`, integrating dev `4c8b7a3b882f1986d277d6ae60d63801aeed2287`.
+All 70 nonmanual kernel tests and strict Clippy passed again. The earlier 48-row
+evidence keeps its original Source identity; neither run is relabeled as a later
+documentation commit.
