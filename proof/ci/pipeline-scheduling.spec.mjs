@@ -21,8 +21,10 @@ test('independent proof starts after preflight and preserves complete aggregatio
   assert.match(job(ci, 'complete'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);
 });
 
-test('draft and ready transitions require the same exact merge-preview admission', () => {
-  assert.match(candidate, /types: \[opened, synchronize, reopened, ready_for_review, converted_to_draft\]/);
+test('code-changing PR events run exact proof without restarting on visibility changes', () => {
+  const events = new Set(candidate.match(/types:\s*\[([^\]]+)\]/)[1].split(/\s*,\s*/));
+  for (const event of ['opened', 'synchronize', 'reopened']) assert.ok(events.has(event));
+  for (const event of ['ready_for_review', 'converted_to_draft']) assert.ok(!events.has(event));
   assert.match(job(candidate, 'proof'), /exhaustive: false/);
   assert.match(job(candidate, 'proof'), /sha: \$\{\{ github.sha \}\}/);
   assert.match(job(candidate, 'candidate'), /if: \$\{\{ always\(\) && !cancelled\(\) \}\}/);

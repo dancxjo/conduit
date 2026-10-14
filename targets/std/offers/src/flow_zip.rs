@@ -41,6 +41,42 @@ pub fn flow_zip_offer(
     .build())
 }
 
+/// Realize exact structured tuple pairing with both schemas fixed before Play.
+pub fn flow_zip_typed_offer(
+    left: &CheckedValueContract,
+    left_type: &conduit_core::StructuredInfoType,
+    right: &CheckedValueContract,
+    right_type: &conduit_core::StructuredInfoType,
+) -> Result<CapabilityOffer, &'static str> {
+    if left.maximum_bytes > FLOW_ZIP_MAXIMUM_INPUT_BYTES
+        || right.maximum_bytes > FLOW_ZIP_MAXIMUM_INPUT_BYTES
+    {
+        return Err("std flow/zip specialization exceeds its prepared input bounds");
+    }
+    let contract = conduit_semantic_catalog::flow_zip_schema_semantic_contract(
+        left, left_type, right, right_type,
+    )?;
+    let paired = contract.outputs[0].value_kind.clone();
+    Ok(BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: CapabilityId::from(format!(
+                "flow-zip-typed-{}-{}-{}",
+                paired.as_str(),
+                left.maximum_bytes,
+                right.maximum_bytes
+            )),
+            execution_profile_id: ExecutionProfileId::from(FLOW_ZIP_EXECUTION_PROFILE),
+            implementation_id: ImplementationId::from(FLOW_ZIP_IMPLEMENTATION),
+            artifact_id: ArtifactId::from(FLOW_ZIP_ARTIFACT),
+            host_calls: Vec::new(),
+            resource_requirements: Vec::new(),
+            authority_requirements: Vec::new(),
+        },
+    )
+    .build())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
