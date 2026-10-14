@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { buildDeliveryStatus } from '../../tools/ci/pipeline/delivery-status.mjs';
+import { buildDeliveryStatus, selectPublishedRelease } from '../../tools/ci/pipeline/delivery-status.mjs';
 const sha = n => String(n).repeat(40);
 const run = (head, conclusion, status = 'completed') => ({ id: Number(head[0]), head_branch: 'dev', head_sha: head, conclusion, status,
   html_url: 'https://example.test/run', run_started_at: '2026-10-13T00:00:00Z', updated_at: '2026-10-13T00:02:00Z' });
@@ -25,8 +25,10 @@ test('pending runs have no completed timing or conclusion and stay in queue', ()
 test('failed latest Pages attempt does not replace an observed successful deployment', () => {
   const data = input(); data.deployments = [{sha:sha(3),statuses:[{state:'failure'}]}, {sha:sha(1),statuses:[{state:'success',environment_url:'https://example.test/pages'}]}];
   const report = buildDeliveryStatus(data);
-  assert.equal(report.latest_pages_attempt.source_sha,sha(3));
-  assert.equal(report.latest_successful_pages_deployment.source_sha,sha(1));
+  assert.equal(report.latest_pages_attempt.workflow_head_sha,sha(3));
+  assert.equal(report.latest_pages_attempt.source_sha,null);
+  assert.equal(report.latest_successful_pages_deployment.workflow_head_sha,sha(1));
+  assert.equal(report.latest_successful_pages_deployment.source_sha,null);
 });
 test('unobserved successful integration and publication remain null; malformed identity refuses', () => {
   const data = input(); data.integrations=[]; data.release=null;
@@ -58,4 +60,28 @@ test('candidate head identity never substitutes for an unobserved tested merge p
   assert.equal(candidate.pull_request_head_sha,sha(3));
   assert.equal(candidate.tested_merge_preview_sha,null);
   assert.equal(Object.hasOwn(candidate,'source_sha'),false);
+});
+
+
+test('release publication date wins over API list order, drafts and missing manifests', () => {
+  const release = (id, date, extra={}) => ({id,published_at:date,assets:[{name:'manifest.json'}],...extra});
+  const newest=release(3,'2026-10-14T05:49:20Z');
+  assert.equal(selectPublishedRelease([release(1,'2026-10-14T00:49:30Z'),newest,release(2,'2026-10-14T04:04:02Z'),release(4,'2026-10-15T00:00:00Z',{draft:true}),release(5,'2026-10-15T01:00:00Z',{assets:[]})]),newest);
+});
+test('live publisher manifest separates deployed build source from workflow head', () => {
+  const data=input();data.deployments=[{sha:sha(3),statuses:[{state:'success',environment_url:'https://example.test/pages/'}]}];
+  data.pages={url:'https://example.test/pages/site-publication.json',manifest:{schema:'conduit.site-publication/v1',sourceCommit:sha(1)}};
+  data.publications=[run(sha(3),'success')];
+  const report=buildDeliveryStatus(data);
+  assert.equal(report.live_pages_publication.source_sha,sha(1));
+  assert.equal(report.latest_successful_pages_deployment.workflow_head_sha,sha(3));
+  assert.equal(report.latest_successful_pages_deployment.source_sha,null);
+  assert.equal(report.latest_publication_attempt.workflow_head_sha,sha(3));
+  assert.equal(Object.hasOwn(report.latest_publication_attempt,'source_sha'),false);
+  assert.equal(report.differences.dev_from_deployed_pages,true);
+  data.pages.manifest.schema='foreign';assert.throws(()=>buildDeliveryStatus(data),/unknown Pages/);
+});
+
+test('unverifiable release publication date refuses ordering', () => {
+  assert.throws(()=>selectPublishedRelease([{assets:[{name:'manifest.json'}],published_at:null}]),/publication date/);
 });
