@@ -55,13 +55,26 @@ pub struct Distribution {
     pub p95_ns: u64,
     pub p99_ns: u64,
     pub max_ns: u64,
+    pub mean_ns: f64,
+    /// Bessel-corrected dispersion; absent for a single observation.
+    pub sample_standard_deviation_ns: Option<f64>,
 }
 pub fn distribution(samples: &[u64]) -> Distribution {
     assert!(!samples.is_empty());
     let mut ordered = samples.to_vec();
     ordered.sort_unstable();
     let percentile = |percent: usize| ordered[(ordered.len() * percent).div_ceil(100) - 1];
+    // Welford avoids overflowing an integer sum and reduces cancellation.
+    let (mut mean, mut squared_deviations) = (0.0, 0.0);
+    for (index, &sample) in samples.iter().enumerate() {
+        let delta = sample as f64 - mean;
+        mean += delta / (index + 1) as f64;
+        squared_deviations += delta * (sample as f64 - mean);
+    }
     Distribution {
+        mean_ns: mean,
+        sample_standard_deviation_ns: (samples.len() > 1)
+            .then(|| (squared_deviations / (samples.len() - 1) as f64).sqrt()),
         count: samples.len(),
         min_ns: ordered[0],
         p50_ns: percentile(50),
@@ -78,4 +91,25 @@ pub fn timer_control(samples: u32) -> Vec<u64> {
             ns(start.elapsed())
         })
         .collect()
+}
+
+#[cfg(test)]
+mod tests {
+    use super::distribution;
+
+    #[test]
+    fn dispersion_is_sample_corrected_and_singletons_are_explicit() {
+        let varied = distribution(&[5, 1, 3]);
+        assert_eq!(varied.mean_ns, 3.0);
+        assert_eq!(varied.sample_standard_deviation_ns, Some(2.0));
+        assert_eq!((varied.min_ns, varied.p50_ns, varied.max_ns), (1, 3, 5));
+        assert_eq!(
+            distribution(&[7, 7, 7]).sample_standard_deviation_ns,
+            Some(0.0)
+        );
+        assert_eq!(distribution(&[7]).sample_standard_deviation_ns, None);
+        let large = distribution(&[u64::MAX, u64::MAX]);
+        assert!(large.mean_ns.is_finite());
+        assert_eq!(large.sample_standard_deviation_ns, Some(0.0));
+    }
 }
