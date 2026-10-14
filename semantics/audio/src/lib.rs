@@ -97,3 +97,10 @@ pub use generated::{
 };
 mod decibel_projection_report;
 pub use decibel_projection_report::*;
+
+pub use generated::{
+    AudioFiniteDecibelLevel, AudioPositiveLevelRatio, AudioPositivePowerRatio,
+    AudioPositiveReferencedLevelRatio, AudioPositiveRelativeAmplitude,
+};
+mod positive_levels;
+pub use positive_levels::*;
