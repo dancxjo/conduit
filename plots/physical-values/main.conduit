@@ -1,0 +1,11 @@
+# Reviewed specimen preparation for #5529; standing entrance still pending.
+# Conversion and physical comparison retain owned custom-unit definitions.
+unit smoot : Distance = { reference: m, scale: 1.7018 }
+plot physical-values (
+    result: Boolean >>
+) {
+    converted: units/convert(source = 1smoot, to = m)
+    equal: units/converted-equals(expected = 1.7018m)
+    converted.receipt >> equal.receipt
+    equal.result >> result
+}
