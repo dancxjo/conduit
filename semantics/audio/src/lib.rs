@@ -27,8 +27,9 @@ mod generated {
 
 pub use generated::{
     AudioAmplitudePowerEligible, AudioAmplitudePowerRelationship, AudioAmplitudePowerRequest,
-    AudioCycleDuration, AudioFrequencyHz, AudioPowerRatio, AudioRelativeAmplitude,
-    AudioRenderDemand, AudioResonator, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
+    AudioCycleDuration, AudioFrequencyControl, AudioFrequencyHz, AudioPhaseReference,
+    AudioPhaseReferenceMatch, AudioPowerRatio, AudioRelativeAmplitude, AudioRenderDemand,
+    AudioResonator, AudioTimeControl, AudioToneTerminal, AudioToneTerminalForm, BeatReference,
     CancellationDisposition, Gate, GateForm, IncompatibilityReason, InstrumentAnalogEvent,
     InstrumentButtonEvent, InstrumentControl, InstrumentMapping, InstrumentPitchMillihertz,
     ModulationDestination, ModulationDestinationForm, MusicalControl, MusicalControlEvent,
@@ -53,6 +54,9 @@ pub use pcm_clip::*;
 pub use sampled_signal_mapping::*;
 pub use sound_info::*;
 pub use tone_terminal::*;
+
+mod exact_controls;
+pub use exact_controls::*;
 
 mod acoustic_quantities;
 pub use acoustic_quantities::*;
