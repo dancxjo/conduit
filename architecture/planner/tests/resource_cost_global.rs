@@ -57,6 +57,29 @@ fn exercise_objective(
         &[HostAdvertisement],
     ),
 ) {
+    exercise_configured(
+        constrained_b,
+        states,
+        objective,
+        critical_tradeoff,
+        extra_gear,
+        |_| {},
+        inspect,
+    )
+}
+fn exercise_configured(
+    constrained_b: bool,
+    states: u32,
+    objective: GlobalPlacementObjective,
+    critical_tradeoff: bool,
+    extra_gear: bool,
+    configure: impl FnOnce(&mut [HostAdvertisement]),
+    inspect: impl FnOnce(
+        Result<GlobalPlacementResult, GlobalPlacementRefusal>,
+        Result<CostPlannedRealizations<'_>, CostPlanningError<'_>>,
+        &[HostAdvertisement],
+    ),
+) {
     let source = if extra_gear {
         "plot costs {\n first: flow/pulse(count = 2, period-ms = 0, initial = false)\n second: flow/pulse(count = 3, period-ms = 0, initial = false)\n third: flow/pulse(count = 4, period-ms = 0, initial = false)\n}\n"
     } else {
@@ -74,6 +97,7 @@ fn exercise_objective(
         host.capabilities[0].resource_requirements[0].units = 1;
     }
     hosts[1].capabilities[0].limits.max_queue_items = 1;
+    configure(&mut hosts);
     let windows: Vec<_> = hosts
         .iter()
         .map(|host| {
@@ -351,6 +375,37 @@ fn overcommitted_prefixes_finish_exhaustively_below_the_unpruned_state_count() {
                     capacity_pruned_prefixes: 6,
                 })
             ));
+        },
+    );
+}
+
+#[test]
+fn multiple_pools_of_one_class_defer_prefix_rejection_to_ordinary_plan() {
+    exercise_configured(
+        false,
+        64,
+        GlobalPlacementObjective::AggregateFulfillmentTime,
+        false,
+        false,
+        |hosts| {
+            for host in hosts {
+                let class = &host.capabilities[0].resource_requirements[0].class_id;
+                let mut alternate = host
+                    .resources
+                    .iter()
+                    .find(|pool| &pool.class_id == class)
+                    .unwrap()
+                    .clone();
+                alternate.pool_id = ResourcePoolId::from("alternate/pulse");
+                host.resources.push(alternate);
+            }
+        },
+        |global, _, _| {
+            let global = global.expect("ordinary Plan admits the fixture");
+            assert!(verify_plan(&global.plan));
+            assert_eq!(global.disposition, GlobalPlacementDisposition::Exhaustive);
+            assert_eq!(global.capacity_pruned_prefixes, 0);
+            assert!(global.complete_assignments > 0);
         },
     );
 }
