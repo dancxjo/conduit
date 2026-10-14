@@ -9,6 +9,8 @@ use conduit_core::{PrimitiveInfoKind, StructuredInfoTypeShape};
 
 mod byte_observation;
 mod equality;
+mod evaluate;
+use evaluate::evaluate_node;
 mod inspection;
 mod shared_input;
 use shared_input::SharedBytes;
@@ -80,6 +82,12 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    RationalBinary {
+        operator: BinaryOperator,
+        left: Box<PreparedNode>,
+        right: Box<PreparedNode>,
+        output: Vec<u8>,
+    },
     Equality(Box<equality::PreparedEquality>),
     Input,
     Literal(Vec<u8>),
@@ -326,6 +334,27 @@ fn prepare_node(
         },
         PortableExpressionOperation::Binary {
             operator,
+            left,
+            right,
+            ..
+        } if kind == PrimitiveInfoKind::MathematicalValue
+            && matches!(
+                operator,
+                BinaryOperator::Add
+                    | BinaryOperator::Subtract
+                    | BinaryOperator::Multiply
+                    | BinaryOperator::Divide
+            ) =>
+        {
+            PreparedOperation::RationalBinary {
+                operator: *operator,
+                left: Box::new(prepare_node(left, input_type, prepared_input)?),
+                right: Box::new(prepare_node(right, input_type, prepared_input)?),
+                output: vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES + 3],
+            }
+        }
+        PortableExpressionOperation::Binary {
+            operator,
             proven,
             left,
             right,
@@ -437,69 +466,4 @@ fn prepare_node(
         info_kind: leaf_info_kind(&node.value_type)?.into(),
         operation,
     })
-}
-
-fn evaluate_node<'a>(
-    node: &'a mut PreparedNode,
-    input: &'a [u8],
-    input_kind: Option<PrimitiveInfoKind>,
-) -> Result<PrimitiveValue<'a>, Refusal> {
-    let expected = node.kind;
-    let value = match &mut node.operation {
-        PreparedOperation::Equality(equality) => equality.evaluate(input)?,
-        PreparedOperation::Input => {
-            if Some(expected) != input_kind {
-                return Err(Refusal::InvalidProgram);
-            }
-            PrimitiveValue::borrowed(expected, input)?
-        }
-        PreparedOperation::Literal(encoded) => PrimitiveValue::borrowed(expected, encoded)?,
-        PreparedOperation::Unary { operator, operand } => {
-            let operand = evaluate_node(operand, input, input_kind)?;
-            evaluate_unary(*operator, expected, &operand)?
-        }
-        PreparedOperation::Binary {
-            operator,
-            proven,
-            left,
-            right,
-        } => {
-            let left = evaluate_node(left, input, input_kind)?;
-            let right = evaluate_node(right, input, input_kind)?;
-            evaluate_binary(*operator, *proven, expected, &left, &right)?
-        }
-        PreparedOperation::Conditional {
-            condition,
-            when_true,
-            when_false,
-        } => {
-            let condition = evaluate_node(condition, input, input_kind)?;
-            let selected = if decode_bool(&condition)? {
-                when_true
-            } else {
-                when_false
-            };
-            evaluate_node(selected, input, input_kind)?
-        }
-        PreparedOperation::TextMaterial(operand) => evaluate_node(operand, input, input_kind)?,
-        PreparedOperation::Widen(operand) => {
-            let operand = evaluate_node(operand, input, input_kind)?;
-            primitive::evaluate_widen(expected, &operand)?
-        }
-        PreparedOperation::Inspection(inspection) => inspection.evaluate(input)?,
-        PreparedOperation::Bytes(observation) => observation.evaluate(input, input_kind)?,
-        PreparedOperation::SequenceSelection(selection) => {
-            PrimitiveValue::borrowed(expected, selection.evaluate(input)?)?
-        }
-        PreparedOperation::Projection(projection) => {
-            PrimitiveValue::borrowed(expected, projection.evaluate(input)?)?
-        }
-    };
-    if value.kind == expected {
-        conduit_core::validate_primitive_info(&node.info_kind, value.as_slice())
-            .map_err(|_| Refusal::InvalidProgram)?;
-        Ok(value)
-    } else {
-        Err(Refusal::InvalidProgram)
-    }
 }
