@@ -1,6 +1,6 @@
-//! Finite, single-Flow external Fore input for an ordinary installed Play.
-//! Values stay in caller-owned preparation storage; only one is admitted per
-//! loop turn, using the exact same numeric cords and sequence on every branch.
+//! Bounded external Fore ingress for an ordinary installed Play.
+//! Finite sequences retain caller-owned inputs and one counter per sealed Flow;
+//! admission fans out over exact numeric targets before the next value or close.
 
 use std::collections::BTreeSet;
 

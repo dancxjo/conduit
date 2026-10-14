@@ -132,7 +132,8 @@ operation.text >> upper
             &mut RecordingTimer { waits: Vec::new() },
         )
         .unwrap_err();
-    assert!(refusal.contains("one exact input Flow"));
+    // Multi-Flow sequences still cannot reinterpret this Value port as a Flow.
+    assert!(refusal.contains("exact closing input Flows"));
 }
 
 #[test]
