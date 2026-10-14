@@ -1,0 +1,17 @@
+# Exact Q8 attack/sustain/release envelope over explicit sample coordinates.
+# Frame total is an admitted endpoint (zero). Restart supplies frame zero.
+type EnvelopeControl = {
+    frame: I32
+    total: I32
+    attack: I32
+    release: I32
+    cancelled: Boolean
+}
+type EnvelopeOutcome =
+    level_q8 I32
+    | invalid_profile
+    | cancelled
+plot dsp/envelope (
+    >> control: EnvelopeControl...|
+    result: EnvelopeOutcome...| >>
+) = (.cancelled ? EnvelopeOutcome.cancelled : .total < 1 || .total > 65536 ? EnvelopeOutcome.invalid_profile : .frame < 0 || .frame > .total || .attack < 0 || .release < 0 || .attack > .total || .release > .total ? EnvelopeOutcome.invalid_profile : .attack > .total - .release ? EnvelopeOutcome.invalid_profile : EnvelopeOutcome.level_q8(.frame == .total ? 0 : .attack > 0 && .frame < .attack ? .frame * 256 / .attack : .release > 0 && .frame > .total - .release ? (.total - .frame) * 256 / .release : 256))
