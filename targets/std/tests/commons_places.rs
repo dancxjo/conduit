@@ -183,6 +183,6 @@ fn commons_source_places_and_relations_execute_in_installed_plan_play() {
     );
     println!(
         "COMMONS_EXECUTION_EVIDENCE={}",
-        serde_json::json!({"source_document_id":plan.source_document_id.as_str(),"checked_plot_id":plan.checked_plot_id.as_str(),"expanded_plot_id":plan.expanded_plot_id.as_str(),"places": ["commons/hub","commons/workshop","commons/creche"],"graph_bytes":output.0[0]})
+        serde_json::json!({"host_id":host.advertisement().host_id.as_str(),"boot_id":host.advertisement().boot_id.as_str(),"source_document_id":plan.source_document_id.as_str(),"checked_plot_id":plan.checked_plot_id.as_str(),"expanded_plot_id":plan.expanded_plot_id.as_str(),"places": ["commons/hub","commons/workshop","commons/creche"],"graph_bytes":output.0[0]})
     );
 }
