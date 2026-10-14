@@ -33,6 +33,8 @@ fn main() {
     println!("cargo:rerun-if-changed=pitch_trajectory.conduit");
     println!("cargo:rerun-if-changed=pitch_projection.conduit");
     for path in [
+        "syllables.conduit",
+        "syllable_structure.conduit",
         "ipa.conduit",
         "ipa_syntax.conduit",
         "ipa_inventory.conduit",

@@ -1,0 +1,42 @@
+# Explicit linguistic grouping retains original text and universal IPA material.
+# Phone correspondence is supplied, never inferred from spelling or timing.
+type SpeechSyllableSource = {
+    syllable: SpeechPlannedSyllableIntent
+    word: LanguageTextSegmentRef
+    variety: LanguageVariety
+    ipa: SpeechPhoneticTranscription
+    ipa_phone_indices: sequence U64 in 1..=32
+    where .word.kind is word
+    where .word.language == .syllable.basis.language
+    where .variety.language == .syllable.basis.language
+    where sequence/length(.ipa_phone_indices) == sequence/length(.syllable.phones)
+    where .syllable.stress is known ? .syllable.nucleus_index is some : true
+}
+# Boundary position is the gap before a phone, including the final gap.
+# Multiple different boundaries may coincide; their supplied order is retained.
+type SpeechPositionedBoundary = {
+    basis: SpeechTokenSequenceBasis
+    position: U32 in 0..=256
+    kind: SpeechBoundaryKind
+    source: LanguageTextSegmentRef
+    where .source.language == .basis.language
+}
+type SpeechBoundaryPositionOrder = {
+    earlier: SpeechPositionedBoundary
+    later: SpeechPositionedBoundary
+    where .earlier.basis == .later.basis
+    where .earlier.source.text_id == .later.source.text_id
+    where .earlier.source.revision_id == .later.source.revision_id
+    where .earlier.position <= .later.position
+    where .earlier.source.range.start <= .later.source.range.start
+}
+# Every IPA index is checked against the full original transcription.
+type SpeechSyllableIpaMember = {
+    source: SpeechSyllableSource
+    index: U64 in 0..=31
+    occurrence: SpeechPhoneticOccurrence
+    where .index < sequence/length(.source.ipa_phone_indices)
+    where .index < sequence/length(.source.ipa_phone_indices) ? sequence/at(.source.ipa_phone_indices,.index) < sequence/length(.source.ipa.units) : false
+    where .index < sequence/length(.source.ipa_phone_indices) ? (sequence/at(.source.ipa_phone_indices,.index) < sequence/length(.source.ipa.units) ? .occurrence == sequence/at(.source.ipa.units,sequence/at(.source.ipa_phone_indices,.index)) : false) : false
+    where .occurrence.value is phone
+}

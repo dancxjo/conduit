@@ -76,6 +76,53 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         "Building release worker and retaining output in {}",
         output.display()
     );
+    let mut conformance_command = vec![
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "conduit-runtime-performance",
+    ];
+    if config.hosted_pipeline {
+        conformance_command.extend(["--features", "hosted-pipeline"]);
+    }
+    eprintln!("Validating release semantic/refusal/terminal conformance before measurements");
+    let conformance = Command::new("cargo")
+        .args(&conformance_command)
+        .current_dir(&root)
+        .env("CARGO_BUILD_JOBS", "2")
+        .env("CARGO_INCREMENTAL", "0")
+        .stdout(Stdio::from(
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output.join("conformance.stdout.log"))?,
+        ))
+        .stderr(Stdio::from(
+            fs::OpenOptions::new()
+                .write(true)
+                .create_new(true)
+                .open(output.join("conformance.stderr.log"))?,
+        ))
+        .status()?;
+    fs::write(
+        output.join("conformance.json"),
+        serde_json::to_vec_pretty(&serde_json::json!({
+            "git_sha":sha, "command":conformance_command,
+            "exit_code":conformance.code(), "success":conformance.success(),
+            "proof":"optimized worker conformance; timings discarded"
+        }))?,
+    )?;
+    if !conformance.success() {
+        return Err(
+            "runtime-performance conformance refused; no measurement worker started".into(),
+        );
+    }
+    if git(&root, &["rev-parse", "HEAD"])? != sha
+        || !git(&root, &["status", "--porcelain"])?.is_empty()
+    {
+        return Err("source changed during conformance; no measurement worker started".into());
+    }
     let mut worker_command = vec![
         "run",
         "--locked",
@@ -105,6 +152,7 @@ pub fn run(arguments: &[String], dry_run: bool) -> Result<(), Box<dyn std::error
         "schema":"conduit.runtime-performance-command@1", "git_sha":sha,
         "final_git_sha":final_sha, "source_custody_verified":custody,
         "worker_exit_code":status.code(), "worker_success":status.success(),
+        "conformance_success":true, "conformance_command":conformance_command,
         "command":recorded_command,
         "worker_arguments":worker_arguments, "config":config,
         "artifact_sha256":manifest(&output)?,

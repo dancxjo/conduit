@@ -260,3 +260,9 @@ mod ipa_phoneme_partition;
 pub mod ipa_phonemic;
 #[cfg(feature = "semantic-bindings")]
 pub mod ipa_phonetic;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod syllable_intent;
+
+#[cfg(feature = "semantic-bindings")]
+pub mod syllable_structure;
