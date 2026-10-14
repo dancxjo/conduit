@@ -122,3 +122,6 @@ resolver = "2"
 [profile.release.package.conduit-browser-runtime]
 opt-level = "z"
 strip = "symbols"
+
+[profile.release]
+strip = "symbols"
