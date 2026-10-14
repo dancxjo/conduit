@@ -25,6 +25,8 @@ mod derived_value;
 mod host_call_settlement;
 mod remote_fanout;
 mod retirement;
+#[cfg(test)]
+mod scan_characterization;
 use active_capacity::validate_active_capacity;
 use debug_control::DebugControlState;
 pub use derived_value::CanonicalValue;
@@ -939,6 +941,8 @@ pub struct FixedScheduler<
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
+    #[cfg(test)]
+    scan_counts: core::cell::Cell<scan_characterization::ScanCounts>,
 }
 
 impl<
@@ -1041,6 +1045,8 @@ where
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
+            #[cfg(test)]
+            scan_counts: core::cell::Cell::new(scan_characterization::ScanCounts::default()),
         })
     }
 
@@ -1214,6 +1220,12 @@ where
     fn bind_projected_recoveries(&mut self) -> Result<(), SchedulerError> {
         self.recovery_for_cord = [None; CORDS];
         for cord in 0..self.active_cords {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.cord_scans += 1;
+                self.scan_counts.set(counts);
+            }
             let spec = self.cord_specs[cord];
             if spec.track != AssignedConnectionTrack::AbnormalTerminal {
                 continue;
@@ -1885,11 +1897,23 @@ where
 
     fn next_ready(&mut self) -> Option<usize> {
         for offset in 0..self.active_nodes {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.next_ready_nodes += 1;
+                self.scan_counts.set(counts);
+            }
             let node = (self.cursor + offset) % self.active_nodes;
-            let waiting_for_host_completion =
-                self.pending_host_calls.iter().flatten().any(|pending| {
-                    usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                });
+            let pending = self.pending_host_calls.iter();
+            #[cfg(test)]
+            let pending = pending.inspect(|_| {
+                let mut counts = self.scan_counts.get();
+                counts.pending_slots += 1;
+                self.scan_counts.set(counts);
+            });
+            let waiting_for_host_completion = pending.flatten().any(|pending| {
+                usize::from(pending.request.node.0) == node && pending.completion.is_none()
+            });
             if self.ready[node]
                 && !self.completed[node]
                 && (!waiting_for_host_completion
@@ -1908,9 +1932,14 @@ where
         let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
         let node_id = NodeId(as_u16(node)?);
-        let host_completion = self
-            .pending_host_calls
-            .iter()
+        let pending = self.pending_host_calls.iter();
+        #[cfg(test)]
+        let pending = pending.inspect(|_| {
+            let mut counts = self.scan_counts.get();
+            counts.context_pending_slots += 1;
+            self.scan_counts.set(counts);
+        });
+        let host_completion = pending
             .flatten()
             .find(|pending| usize::from(pending.request.node.0) == node)
             .and_then(|pending| {
@@ -1924,6 +1953,12 @@ where
             .copied()
             .enumerate()
         {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.input_ports += 1;
+                self.scan_counts.set(counts);
+            }
             let Some(cord) = cord else {
                 continue;
             };
@@ -2238,6 +2273,12 @@ where
     fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
         let node = NodeId(as_u16(node)?);
         for cord in 0..self.active_cords {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.cord_scans += 1;
+                self.scan_counts.set(counts);
+            }
             if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
                 && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
             {
@@ -2254,6 +2295,12 @@ where
         let mut count = 0_usize;
         let mut first_source = None;
         for cord in 0..self.active_cords {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.cord_scans += 1;
+                self.scan_counts.set(counts);
+            }
             let spec = self.cord_specs[cord];
             if spec.track != AssignedConnectionTrack::Quiescence
                 || !self.cords[cord].quiescence_armed
@@ -2278,6 +2325,12 @@ where
             self.values.retain(value)?;
         }
         for cord in 0..self.active_cords {
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.cord_scans += 1;
+                self.scan_counts.set(counts);
+            }
             let spec = self.cord_specs[cord];
             if spec.track != AssignedConnectionTrack::Quiescence
                 || !self.cords[cord].quiescence_armed
@@ -3532,6 +3585,12 @@ where
     }
 
     fn peek(&self, cord: usize) -> Result<Option<ValueRef>, SchedulerError> {
+        #[cfg(test)]
+        {
+            let mut counts = self.scan_counts.get();
+            counts.queue_peeks += 1;
+            self.scan_counts.set(counts);
+        }
         let spec = *self
             .cord_specs
             .get(cord)
