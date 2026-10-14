@@ -98,3 +98,17 @@ pub use generated::{
 };
 mod parser_availability;
 pub use parser_availability::parser_availability_types;
+
+pub mod pronunciation_selection;
+pub use generated::{
+    LanguagePronunciationArcTarget, LanguagePronunciationCandidateQuery,
+    LanguagePronunciationCandidateResult, LanguagePronunciationPosResult,
+    LanguagePronunciationSelectionProfile, LanguagePronunciationSelectionRequest,
+    LanguagePronunciationSelectionRule,
+};
+
+pub mod lexical_consumer;
+pub use generated::{
+    LanguageLexicalConsumerBasis, LanguageLexicalConsumerFeatureMatch,
+    LanguageLexicalConsumerInventory, LanguageLexicalConsumerVarietyMatch,
+};
