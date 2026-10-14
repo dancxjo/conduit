@@ -193,6 +193,20 @@ export class BrowserHost {
 }
 
 /** Current participation of this SDK Host incarnation in one external Body. */
+// The WASM gate owns action admission. Prepared Shows hide it until acknowledgement.
+export function validateOwnerFaceAcknowledgement(view, shown) {
+  const sameIdentity = view && shown?.body_id === view.body_id &&
+    shown?.show_id === view.show_id && shown?.face_id === view.face_id &&
+    shown?.face_revision === view.face_revision;
+  const admissionTransition = typeof shown?.interactions_admitted === "boolean" &&
+    (view?.show_state === "prepared" ? view.interactions_admitted === false
+      : view?.show_state === "available" && shown.interactions_admitted === view.interactions_admitted);
+  if (!sameIdentity || shown?.show_state !== "available" || !admissionTransition) {
+    throw new Error("browser Mask acknowledged another owner Face Show");
+  }
+  return shown;
+}
+
 export class BrowserBodyParticipation {
   #state;
 
@@ -277,11 +291,7 @@ export class BrowserBodyParticipation {
       : this.#state.host.bridge.ownerFaceAcknowledge({
         show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       });
-    if (shown?.show_id !== view.show_id || shown?.face_id !== view.face_id ||
-        shown?.face_revision !== view.face_revision || shown?.show_state !== "available" ||
-        shown?.interactions_admitted !== view.interactions_admitted) {
-      throw new Error("browser Mask acknowledged another owner Face Show");
-    }
+    validateOwnerFaceAcknowledgement(view, shown);
     await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
     this.#state.lastOwnerShow = shown;
     return shown;

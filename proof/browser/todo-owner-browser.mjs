@@ -2,6 +2,7 @@
 // The owner and Handbook package are supplied by the caller; this driver never
 // creates a second Body or constructs Face state for the browser.
 import assert from 'node:assert/strict';
+import { captureArbitraryTodoRefusals } from './todo-owner-arbitrary-action.mjs';
 import { spawnSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
 import { existsSync } from 'node:fs';
@@ -515,6 +516,9 @@ try {
     screenshots: scenario.startsWith('cross-mask') ? ['browser-before.png', 'browser-stale.png', 'browser-after.png']
       : ['browser-before.png', 'browser-after.png'],
   }, null, 2)}\n`);
+  if (scenario === 'first-add') await captureArbitraryTodoRefusals({
+    page, face, output, sourceRecord, bodyId, identity,
+  });
 } catch (error) {
   // Preserve the actual failed UI and owner state without retrying its action.
   const diagnostics = [writeFile(path.join(output, 'failure.json'), `${JSON.stringify({
