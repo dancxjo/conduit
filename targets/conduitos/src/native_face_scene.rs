@@ -12,6 +12,8 @@ use conduit_face::{
 
 use crate::display::{SPACE_SM, SPACE_XL, typography::TextLayout};
 
+#[path = "native_face_scene/connected_layout.rs"]
+mod connected_layout;
 #[path = "native_face_scene/diagram.rs"]
 mod diagram;
 #[path = "native_face_scene/document.rs"]

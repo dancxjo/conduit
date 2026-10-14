@@ -53,13 +53,8 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
     let rows = rows(screen.height, gear_count, columns);
     let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
         / rows as u16;
-    let gears = face
-        .subjects
-        .iter()
-        .filter(|s| s.role == FaceRole::Gear)
-        .skip(page * columns * rows)
-        .take(columns * rows)
-        .collect::<Vec<_>>();
+    let ordering = super::connected_layout::order(face);
+    let gears = visible_gears(face, &ordering, page * columns * rows, columns * rows);
     let cords = face
         .subjects
         .iter()
@@ -71,7 +66,8 @@ pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> Strin
         .count();
     let shown = eligible.min(MAX_VISIBLE_LINKS);
     alloc::format!(
-        "{shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
+        "{} · {shown}/{} cords shown · {} omitted · F2 all facts · F3 return",
+        ordering.label(),
         cords.len(),
         cords.len() - shown
     )
@@ -107,13 +103,8 @@ pub(super) fn append(
     let width = (screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16;
     let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
         / rows as u16;
-    let gears = face
-        .subjects
-        .iter()
-        .filter(|subject| subject.role == FaceRole::Gear)
-        .skip(page * capacity)
-        .take(capacity)
-        .collect::<Vec<_>>();
+    let ordering = super::connected_layout::order(face);
+    let gears = visible_gears(face, &ordering, page * capacity, capacity);
     let card = |index: usize| LayoutRect {
         x: (SPACE_XL + index.rem_euclid(columns) as u16 * (width + GAP)) as i16,
         y: (layout::HEADER + 8 + index.div_euclid(columns) as u16 * (height + GAP)) as i16,
@@ -281,8 +272,12 @@ fn port_location(
     height: u16,
 ) -> Option<(usize, usize)> {
     let resolved = super::ports::resolve(face, cord, semantic_id, direction)?;
+    let owner = super::connected_layout::unique_owner(face, &resolved.identity)?;
     let mut found = None;
     for (column, gear) in gears.iter().enumerate() {
+        if gear.identity != face.subjects[owner].identity {
+            continue;
+        }
         for (row, port) in ports(face, gear).take(visible_ports(height)).enumerate() {
             if port.identity == resolved.identity {
                 if found.is_some() {
@@ -347,6 +342,29 @@ fn readable(value: &str) -> alloc::string::String {
     })
 }
 
+fn visible_gears<'a>(
+    face: &'a Face,
+    ordering: &super::connected_layout::Order,
+    skip: usize,
+    capacity: usize,
+) -> Vec<&'a FaceSubject> {
+    if ordering.fallback {
+        face.subjects
+            .iter()
+            .filter(|s| s.role == FaceRole::Gear)
+            .skip(skip)
+            .take(capacity)
+            .collect()
+    } else {
+        ordering.subjects[..ordering.count]
+            .iter()
+            .skip(skip)
+            .take(capacity)
+            .map(|&index| &face.subjects[index])
+            .collect()
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -398,9 +416,9 @@ mod tests {
             height: 720,
         };
         let retained = face.clone();
-        assert_eq!(
-            link_notice(&face, screen, 0),
-            "12/15 cords shown · 3 omitted · F2 all facts · F3 return"
+        assert!(
+            link_notice(&face, screen, 0)
+                .ends_with("12/15 cords shown · 3 omitted · F2 all facts · F3 return")
         );
         assert_eq!(face, retained);
         let checked = Face::new_with_semantics(
@@ -426,14 +444,11 @@ mod tests {
                 .count(),
             12
         );
-        assert!(
-            frame
-                .scene
-                .commands()
-                .iter()
-                .any(|command| command.payload()
-                    == "12/15 cords shown · 3 omitted · F2 all facts · F3 return")
-        );
+        assert!(frame.scene.commands().iter().any(|command| {
+            command
+                .payload()
+                .ends_with("12/15 cords shown · 3 omitted · F2 all facts · F3 return")
+        }));
         assert!(
             frame.hits.is_empty(),
             "drawing cords must not invent action mappings"
@@ -449,7 +464,7 @@ mod tests {
             assert!(details.contains(&subject.identity));
         }
         // A one-column page cannot draw a link to a Gear on another page.
-        assert_eq!(
+        assert!(
             link_notice(
                 &face,
                 LayoutRect {
@@ -458,14 +473,14 @@ mod tests {
                     ..screen
                 },
                 0
-            ),
-            "0/15 cords shown · 15 omitted · F2 all facts · F3 return"
+            )
+            .ends_with("0/15 cords shown · 15 omitted · F2 all facts · F3 return")
         );
         // Missing semantic endpoint facts never become geometry-invented links.
         face.properties.retain(|p| p.name != "sink-port");
-        assert_eq!(
-            link_notice(&face, screen, 0),
-            "0/15 cords shown · 15 omitted · F2 all facts · F3 return"
+        assert!(
+            link_notice(&face, screen, 0)
+                .ends_with("0/15 cords shown · 15 omitted · F2 all facts · F3 return")
         );
     }
 }
