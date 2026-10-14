@@ -320,6 +320,6 @@ is bounded to the latest 100 runs per workflow, five candidate job selections,
 20 releases and 20 Pages deployments; it is an observation, not release state.
 API failure refuses the report instead of inventing evidence. Save the JSON
 before changing delivery policy to retain the wall-clock timing baseline and
-exact run URLs. Durations include setup/queue effects and are not billed runner
-cost; no delivery SLO thresholds are introduced. Publication still verifies and
+exact run URLs. Durations use Actions `run_started_at` through `updated_at`, include setup,
+exclude the pre-start queue, and are not billed runner cost; no delivery SLO thresholds are introduced. Publication still verifies and
 reuses the tested artifacts through its existing owner.

@@ -36,7 +36,7 @@ export function buildDeliveryStatus({ repository, development, main, integration
       dev_from_deployed_pages: deployed ? development !== deployed.sha : null },
     queue: { integrations: integrations.filter(r => r.status !== 'completed').map(runSummary),
       publications: publications.filter(r => r.status !== 'completed').map(runSummary) },
-    timing_baseline: { scope: 'bounded Actions sample; wall-clock duration includes queue/setup and is not billed runner cost',
+    timing_baseline: { scope: 'bounded Actions sample; duration from Actions run_started_at to updated_at; includes setup, excludes pre-start queue, and is not billed runner cost',
       candidates: candidates.map(runSummary), integrations: integrations.map(runSummary), publications: publications.map(runSummary) },
     observation_limit: 'Most recent 100 runs per workflow and 20 Pages deployments; absent evidence remains null.' };
 }
