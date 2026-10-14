@@ -32,3 +32,34 @@ pub(crate) fn equal(
         C::Unknown => Err(R::UnprovedMathematicalComparison),
     }
 }
+
+/// Rational arithmetic spends bounded limb work and writes into admitted storage.
+pub(crate) fn arithmetic(
+    operator: crate::BinaryOperator,
+    left: &[u8],
+    right: &[u8],
+    output: &mut [u8],
+) -> Result<usize, crate::PortableExpressionEvaluationRefusal> {
+    use crate::{BinaryOperator as O, PortableExpressionEvaluationRefusal as R};
+    use conduit_core::{ExactNumericWork, MathematicalValue, MathematicalValueView};
+    let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let mut rational = |bytes| {
+        MathematicalValueView::decode(bytes, &mut work)
+            .and_then(|view| view.as_rational(&mut work))
+            .map_err(|_| R::Arithmetic)?
+            .ok_or(R::Arithmetic)
+    };
+    let left = rational(left)?;
+    let right = rational(right)?;
+    let result = match operator {
+        O::Add => left.checked_add(right, &mut work),
+        O::Subtract => left.checked_subtract(right, &mut work),
+        O::Multiply => left.checked_multiply(right, &mut work),
+        O::Divide => left.checked_divide(right, &mut work),
+        _ => return Err(R::InvalidProgram),
+    }
+    .map_err(|_| R::Arithmetic)?;
+    MathematicalValue::rational(result)
+        .encode(output)
+        .map_err(|_| R::Arithmetic)
+}

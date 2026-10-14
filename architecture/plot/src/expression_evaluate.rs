@@ -261,6 +261,16 @@ fn binary(
         })
         .encode()
         .to_vec()
+    } else if leaf_kind(&left.value_type)? == conduit_core::MATHEMATICAL_VALUE_ID {
+        let mut output = vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES + 3];
+        let length = crate::mathematical_value::arithmetic(
+            operator,
+            &primitive_bytes(&left)?,
+            &primitive_bytes(&right)?,
+            &mut output,
+        )?;
+        output.truncate(length);
+        output
     } else if leaf_kind(&left.value_type)? == conduit_core::F32_INFO_ID {
         crate::expression_f32::arithmetic(
             operator,

@@ -1,0 +1,17 @@
+# Balanced fixed U64 arithmetic within the existing program-depth budget.
+plot baseline-1 (
+ >> value: U64
+ result: U64 >>
+) = ((. + .))
+plot baseline-3 (
+ >> value: U64
+ result: U64 >>
+) = (((. + .) + (. + .)))
+plot baseline-8 (
+ >> value: U64
+ result: U64 >>
+) = ((((. + .) + (. + .)) + ((. + .) + (. + (. + .)))))
+plot baseline-32 (
+ >> value: U64
+ result: U64 >>
+) = ((((((. + .) + (. + .)) + ((. + .) + (. + .))) + (((. + .) + (. + .)) + ((. + .) + (. + .)))) + ((((. + .) + (. + .)) + ((. + .) + (. + .))) + (((. + .) + (. + .)) + ((. + .) + (. + (. + .)))))))

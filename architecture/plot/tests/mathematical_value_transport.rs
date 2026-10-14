@@ -45,6 +45,7 @@ fn symbolic_roots_and_pi_cross_typed_prepared_ports_without_allocating() {
     let [pack, relay, unpack] = programs();
     for value in [
         root,
+        Value::parse_literal(&format!("1{}1", "0".repeat(999)), &mut work).unwrap(),
         pi,
         Value::rational(Q::ratio(1, 3, &mut work).unwrap()),
     ] {
@@ -172,5 +173,115 @@ fn ordinary_equality_refuses_unknown_in_both_evaluators() {
             conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison;
         assert_eq!(program.evaluate(&input), Err(expected.clone()));
         assert_eq!(prepared.evaluate(&input), Err(expected));
+    }
+}
+
+#[test]
+fn checked_source_preserves_large_integers_and_exact_thirds() {
+    let huge = format!("1{}1", "0".repeat(999));
+    let power = format!("1{}", "0".repeat(1000));
+    let mut work = Work::new(MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let third = Value::rational(Q::ratio(1, 3, &mut work).unwrap());
+    for (expression, input, expected) in [
+        (". - .".to_owned(), third.clone(), Value::rational(Q::ZERO)),
+        (". * 3".to_owned(), third.clone(), Value::rational(Q::ONE)),
+        (". / .".to_owned(), third.clone(), Value::rational(Q::ONE)),
+        (
+            format!("{power} + 1"),
+            Value::rational(Q::ZERO),
+            Value::parse_literal(&huge, &mut work).unwrap(),
+        ),
+        (
+            "1 / 3 + 1 / 3 + 1 / 3".to_owned(),
+            Value::rational(Q::ZERO),
+            Value::rational(Q::ONE),
+        ),
+        (
+            huge.clone(),
+            Value::rational(Q::ZERO),
+            Value::parse_literal(&huge, &mut work).unwrap(),
+        ),
+        (
+            ". + . + .".to_owned(),
+            third.clone(),
+            Value::rational(Q::ONE),
+        ),
+        (".".to_owned(), third.clone(), third),
+    ] {
+        let source = format!("plot exact (\n >> input: MathematicalValue\n output: MathematicalValue >>\n) = ({expression})\n");
+        let syntax = parse_syntax_document(&source);
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+        let expanded =
+            expand_canonical_plot_for_authoring(&checked, "exact", &ProfileCatalog::new()).unwrap();
+        let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+        else {
+            panic!()
+        };
+        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        let mut input_bytes = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+        let length = input.encode(&mut input_bytes).unwrap();
+        input_bytes.truncate(length);
+        let bytes = program.evaluate(&input_bytes).unwrap();
+        let value =
+            Value::decode(&bytes, &mut Work::new(MATHEMATICAL_VALUE_VALIDATION_WORK)).unwrap();
+        assert_eq!(value, expected);
+        if expression.contains(&power) {
+            use conduit_core::{NumericalAlgorithm, PreparedNumericalRealization};
+            assert!(PreparedNumericalRealization::prepare(
+                &value,
+                NumericalAlgorithm::OutwardI64,
+                Q::ZERO,
+                &mut work
+            )
+            .is_err());
+            assert!(PreparedNumericalRealization::prepare(
+                &value,
+                NumericalAlgorithm::ExactRational,
+                Q::ZERO,
+                &mut work
+            )
+            .is_ok());
+        }
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        let (same, allocations) = allocation_probe::observe(|| {
+            (0..100).all(|_| prepared.evaluate(&input_bytes).unwrap() == bytes)
+        });
+        assert!(same);
+        assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    }
+}
+
+#[test]
+fn exact_arithmetic_refuses_zero_division_extent_overflow_and_symbolic_operands() {
+    use conduit_plot::PortableExpressionEvaluationRefusal as R;
+    for (expression, literal) in [
+        (". / 0", "1".to_owned()),
+        (". * .", format!("1{}", "0".repeat(1000))),
+        (". + .", "π".to_owned()),
+    ] {
+        let source = format!("plot refuse (\n >> input: MathematicalValue\n output: MathematicalValue >>\n) = ({expression})\n");
+        let syntax = parse_syntax_document(&source);
+        let checked = check_syntax_document(&syntax, &StartupCatalog::new()).unwrap();
+        let expanded =
+            expand_canonical_plot_for_authoring(&checked, "refuse", &ProfileCatalog::new())
+                .unwrap();
+        let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+        else {
+            panic!()
+        };
+        let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        let value =
+            Value::parse_literal(&literal, &mut Work::new(MATHEMATICAL_VALUE_VALIDATION_WORK))
+                .unwrap();
+        let mut bytes = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+        let length = value.encode(&mut bytes).unwrap();
+        bytes.truncate(length);
+        assert_eq!(program.evaluate(&bytes), Err(R::Arithmetic));
+        let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+        let (refused, allocations) =
+            allocation_probe::observe(|| prepared.evaluate(&bytes) == Err(R::Arithmetic));
+        assert!(refused);
+        assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
     }
 }
