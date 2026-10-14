@@ -306,7 +306,9 @@ pub(super) fn run(
             .arg(output.join("browser"))
             .arg(&playwright)
             .arg(item_text)
-            .arg(if args.direct_speech {
+            .arg(if args.count_matrix {
+                "count-matrix"
+            } else if args.direct_speech {
                 "cross-mask-speech"
             } else if args.cross_mask_actions {
                 "cross-mask"

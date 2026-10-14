@@ -130,7 +130,7 @@ mod tests {
             .iter_mut()
             .find(|x| x.capability_id == offers[0].capability_id)
             .unwrap()
-            .artifact_id = "forged/todo-wording".into();
+            .implementation.artifact_id = "forged/todo-wording".into();
         assert!(
             TodoSpokenTemplateSourcePlan::prepare(&stale, "spoken/todo-brief-template").is_err()
         );
@@ -167,6 +167,32 @@ mod tests {
             assert_eq!(words.remaining(), 1);
             assert_eq!(words.completed(), 0);
             assert!(words.wording().contains("Crème brûlée — 茶 🍵?"));
+        }
+        for look in [
+            conduit_todo_face::TodoSpokenLook::Brief,
+            conduit_todo_face::TodoSpokenLook::Expanded,
+        ] {
+            let reading = crate::todo_spoken_reading::PreparedTodoSpokenReading::prepare(
+                &host,
+                &face,
+                look,
+                &["todo/item/task-1"],
+                "en",
+            )
+            .unwrap();
+            let joined: String = (0..reading.frames_count())
+                .map(|i| reading.framed_wording(i).unwrap())
+                .collect();
+            assert_eq!(joined, reading.wording().wording());
+            assert_eq!(reading.source_face(), &face);
+            assert!(reading.framed_wording(reading.frames_count()).is_err());
+            let mut stale = face.clone();
+            stale.revision += 1;
+            assert!(reading.validate_current(&host, &stale).is_err());
+            let mut changed = host.advertisement().clone();
+            changed.boot_id = "proof/foreign-boot".into();
+            let changed = StdHost::from_advertisement(changed).unwrap();
+            assert!(reading.validate_current(&changed, &face).is_err());
         }
     }
 }
