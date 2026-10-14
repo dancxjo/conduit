@@ -105,3 +105,44 @@ fn checked_fixed_multiplication_and_boolean_negation_match_reference() {
         assert_eq!(tape.evaluate(&input).unwrap(), p.evaluate(&input).unwrap());
     }
 }
+
+fn balanced_sum(leaves: usize) -> String {
+    if leaves == 1 {
+        ".".into()
+    } else {
+        let left = leaves / 2;
+        format!("({} + {})", balanced_sum(left), balanced_sum(leaves - left))
+    }
+}
+#[test]
+fn prepared_instruction_bound_refuses_valid_program_without_runtime_fallback() {
+    let within = format!(
+        "plot within (\n >> value: U64\n result: U64 >>\n) = ({})\n",
+        balanced_sum(64)
+    );
+    let p = program(&within, "within");
+    let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+    assert_eq!(tape.scalar_tape_limits().unwrap().0, 127);
+    assert_eq!(
+        tape.evaluate(&1u64.to_le_bytes()).unwrap(),
+        64u64.to_le_bytes()
+    );
+    let outside = format!(
+        "plot outside (\n >> value: U64\n result: U64 >>\n) = ({})\n",
+        balanced_sum(65)
+    );
+    let p = program(&outside, "outside");
+    assert!(PreparedPortableExpressionEvaluator::new(&p).is_ok());
+    assert!(
+        matches!(PreparedPortableExpressionEvaluator::new_scalar_tape(&p),Err(PortableExpressionEvaluationRefusal::UnsupportedType(ref reason)) if reason=="scalar-tape/instruction-bound@1")
+    );
+}
+#[test]
+fn checked_record_profile_stays_with_declared_reference_evaluator() {
+    let p=program("type Pair = {\n left: U64\n right: U64\n}\nplot pair (\n >> value: Pair\n result: Pair >>\n) = (.)\n","pair");
+    assert!(PreparedPortableExpressionEvaluator::new(&p).is_ok());
+    assert!(matches!(
+        PreparedPortableExpressionEvaluator::new_scalar_tape(&p),
+        Err(PortableExpressionEvaluationRefusal::UnsupportedType(_))
+    ));
+}

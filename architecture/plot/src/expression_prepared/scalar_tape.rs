@@ -46,7 +46,9 @@ impl ScalarTape {
     }
     fn push(&mut self, kind: PrimitiveInfoKind, operation: Operation) -> Result<usize, Refusal> {
         if self.instructions.len() == MAXIMUM_INSTRUCTIONS {
-            return Err(Refusal::InvalidProgram);
+            return Err(Refusal::UnsupportedType(
+                "scalar-tape/instruction-bound@1".into(),
+            ));
         }
         let slot = self.instructions.len();
         self.instructions.push(Instruction {
