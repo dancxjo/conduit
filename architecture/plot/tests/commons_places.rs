@@ -18,7 +18,7 @@ fn commons_places_source_checks_and_emits_its_exact_bounded_graph() {
     let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
     let mut evaluator = PreparedPortableExpressionEvaluator::new(&program).unwrap();
     let bytes = evaluator.evaluate(&InfoBool::TRUE.encode()).unwrap();
-    let graph = StructuredInfoValue::from_canonical_bytes(&bytes).unwrap();
+    let graph = StructuredInfoValue::from_canonical_bytes(bytes).unwrap();
     let owner = checked
         .native_types
         .iter()
