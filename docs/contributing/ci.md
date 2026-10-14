@@ -302,3 +302,24 @@ lane's prerequisites. Missing tools or unavailable physical devices are not
 successful proof. Artifact retention is fourteen days; expired input requires a
 fresh integration, not fabricated receipts. Behavioral tests cover refusal and
 identity invariants rather than fixing YAML job names or ordering strings.
+
+### Observe delivery by exact source
+
+Run `cargo xtask ci pipeline status dancxjo/conduit` with authenticated `gh`
+access. The read-only JSON report extends the existing product-truth identity
+separation using Actions observations and the publisher's existing
+`conduit.pipeline-release/v1` manifest. It shows admitted `dev`, the integration
+for that exact source, the latest observed green integration, accepted `main`,
+the latest published release's tested source and accepted main, and the latest
+successful Pages deployment's source. Differences are explicit; a green
+integration alone never asserts promotion or deployment.
+
+Failed and pending integration/publication, the latest Pages attempt, and active
+queues remain visible. A missing observation is `null`, not success. The report
+is bounded to the latest 100 runs per workflow, five candidate job selections,
+20 releases and 20 Pages deployments; it is an observation, not release state.
+API failure refuses the report instead of inventing evidence. Save the JSON
+before changing delivery policy to retain the wall-clock timing baseline and
+exact run URLs. Durations include setup/queue effects and are not billed runner
+cost; no delivery SLO thresholds are introduced. Publication still verifies and
+reuses the tested artifacts through its existing owner.
