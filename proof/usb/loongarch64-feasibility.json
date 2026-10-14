@@ -7,7 +7,9 @@
   "firmware": {
     "name": "QEMU_EFI.fd",
     "bytes": 16777216,
-    "sha256": "0b0792e89cf65d7d52e78367181e300bc39d76cbb22cf64c69c8038a776f6a48"
+    "sha256": "0b0792e89cf65d7d52e78367181e300bc39d76cbb22cf64c69c8038a776f6a48",
+    "initial_vars_sha256": "adbfcb31d6470ef090220baeb53559e26323b6cfb5e7614f879e89608a3ed748",
+    "initial_vars_bytes": 16777216
   },
   "command": [
     "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-feasibility-tools/misc/usr/bin/qemu-system-loongarch64",
@@ -301,5 +303,6 @@
     "guest IRQ delivery",
     "physical compatibility",
     "USB3/MSI/isochronous"
-  ]
+  ],
+  "qemu_binary_sha256": "3711528ac11fe5a0a3ba660c8584332d2ebf975ab943771e4bb67a0696a40e16"
 }
