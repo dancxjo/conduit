@@ -52,3 +52,9 @@ After the release-profile repair, another clean run at `865816d45f9107a6f3cc9b43
 integrating dev `15612d55b1567959a5df2b9ef4dc9ed67286e69d` retained all 48 rows under the
 accepted default symbol-stripping profile. The prior Source-specific raw records
 remain separately retained.
+
+Workspace admission also enables the pre-existing allocation-backed constructor.
+Initialize its test-only counter field as well as the fixed constructor; no
+product field or allocation behavior changes. The alloc/step-test-support feature
+combination passes all 77 nonmanual kernel tests and strict all-target Clippy.
+The retained fixed-constructor raw runs keep their original Source identities.
