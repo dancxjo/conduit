@@ -152,8 +152,8 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     // combine Kind. Retained source uses the same catalog after owner restart.
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
     conduit_thermostat_plot::install_catalogs(&mut startup, &mut profiles)?;
-    conduit_presentation::install_mask_plot_value_aliases(&mut startup)?;
-    conduit_presentation::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
+    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_speech::kernel::install(&mut startup, &mut profiles)?;
     conduit_speech::authoring::install(&mut startup)?;
@@ -161,13 +161,13 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_speech::ipa_constructors::install_notation(&mut startup, &profiles)?;
     conduit_plot::quantity_conversion::install(&mut startup, &mut profiles)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_time_every_catalog(&mut startup, &mut profiles)?;
     conduit_time::install_rhythm_catalog(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_pulse_presentation_catalog(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_rhythm_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_pulse_face_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_rhythm_face_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_count_pipeline_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_flow_state_catalogs(&mut startup, &mut profiles)?;
@@ -175,13 +175,10 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_semantic_catalog::install_logic_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_layout_catalogs(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_presentation_composition_catalogs(
-        &mut startup,
-        &mut profiles,
-    )?;
+    conduit_semantic_catalog::install_face_composition_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_graphics_catalogs(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_graphics_presentation_catalog(&mut startup, &mut profiles)?;
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_graphics_face_catalog(&mut startup, &mut profiles)?;
+    conduit_face::install_bitmap_face_catalog(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profiles)?;
     conduit_web::install_http_catalogs(&mut startup, &mut profiles)?;
@@ -189,7 +186,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_semantic_catalog::install_recurrence_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_schedule_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_calendar_provider_catalogs(&mut startup, &mut profiles)?;
-    conduit_presentation::install_geometry_catalogs(&mut startup, &mut profiles)?;
+    conduit_face::install_geometry_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_vision_catalogs(&mut startup, &mut profiles)?;
     conduit_language::install_linguistics_catalogs(&mut startup, &mut profiles)?;
     conduit_data::install_tabular_catalogs(&mut startup, &mut profiles)?;
@@ -278,7 +275,7 @@ mod tests {
     #[test]
     fn product_compiler_checks_the_ordinary_mask_plot_boundary() {
         let source = parse(
-            "plot browser-mask (\n    >> face: Presentation\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
+            "plot browser-mask (\n    >> face: Face\n    interaction: FaceInteraction...| >>\n    show: Show >>\n) {\n}\n",
         )
         .unwrap();
         let checked = conduit_plot::check_syntax_document(&source.syntax, &source.startup).unwrap();
@@ -286,15 +283,15 @@ mod tests {
 
         assert_eq!(
             front.inputs()[0].value_kind.as_str(),
-            conduit_presentation::PRESENTATION_VALUE_KIND
+            conduit_face::FACE_VALUE_KIND
         );
         assert_eq!(
             front.outputs()[0].value_kind.as_str(),
-            conduit_presentation::FACE_INTERACTION_VALUE_KIND
+            conduit_face::FACE_INTERACTION_VALUE_KIND
         );
         assert_eq!(
             front.outputs()[1].value_kind.as_str(),
-            conduit_presentation::SHOW_VALUE_KIND
+            conduit_face::SHOW_VALUE_KIND
         );
     }
 }

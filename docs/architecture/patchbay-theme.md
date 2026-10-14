@@ -1,9 +1,9 @@
 # Patchbay renderer theme contract
 
 Patchbay renderers share the toolkit-independent `ApplicationTheme` token contract from
-`conduit-presentation`, re-exported by `conduit-patchbay-workbench`. The `conduit.presentation/phosphor@1` theme supplies bounded RGB values for
+`conduit-face`, re-exported by `conduit-patchbay-workbench`. The `conduit.face/phosphor@1` theme supplies bounded RGB values for
 background, surface, structure, readable text, emphasis, focus, warning, failure, success, and
-muted presentation roles. It contains no renderer primitives, fonts, geometry, effects, host
+muted face roles. It contains no renderer primitives, fonts, geometry, effects, host
 facts, or semantic identities.
 
 The native renderer maps those roles directly to its finite pixel target. The HTML renderer
@@ -14,7 +14,7 @@ imports proprietary reference artwork.
 Selection and keyboard focus use the yellow-gold focus role plus non-color cues: native selected
 rows have a textual `>` marker, HTML selected graph nodes retain their selected class and stronger
 stroke, and HTML keyboard focus retains a visible outline. Text remains legible without glow or
-animation. A high-contrast browser option changes presentation only.
+animation. A high-contrast browser option changes face only.
 
 The public Conduit home, Body, Crèche transition, and browser Patchbay share the same shell vocabulary and
 phosphor cyan/blue/amber roles. Dark is the reference palette; browser surfaces provide a restrained

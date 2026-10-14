@@ -9,8 +9,7 @@ use conduit_plot::{
 use crate::{
     install_distributed_lenia_catalogs, install_lenia_catalogs, LENIA_JOIN_KIND,
     LENIA_PARTITION_KIND, LENIA_REGION_RESULT_INFO_ID, LENIA_REGION_STEP_KIND,
-    LENIA_REGION_WORK_INFO_ID, LENIA_STEP_KIND, SCALAR_FIELD_GRAY8_KIND,
-    SCALAR_FIELD_PRESENTATION_KIND,
+    LENIA_REGION_WORK_INFO_ID, LENIA_STEP_KIND, SCALAR_FIELD_FACE_KIND, SCALAR_FIELD_GRAY8_KIND,
 };
 
 pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalPlot, alloc::string::String> {
@@ -18,7 +17,7 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalPlot, alloc::str
     let mut profile = ProfileCatalog::new();
     install_lenia_catalogs(&mut startup, &mut profile)?;
     conduit_time::install_tick_catalog(&mut startup, &mut profile)?;
-    conduit_presentation::install_bitmap_presentation_catalog(&mut startup, &mut profile)?;
+    conduit_face::install_bitmap_face_catalog(&mut startup, &mut profile)?;
     install_distributed_lenia_catalogs(&mut startup, &mut profile)?;
 
     let source = include_str!("../../../plots/lenia-orbium/main.conduit");
@@ -40,25 +39,20 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalPlot, alloc::str
     backs
         .insert(&definition, &back, LENIA_STEP_KIND)
         .map_err(|error| format!("distributed Lenia Back: {error:?}"))?;
-    let presentation_back_source = format!(
-        "plot presentation/scalar-field (\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n >> field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}\n field >> bitmap.field\n bitmap.bitmap >> manifest.bitmap\n}}\n",
+    let face_back_source = format!(
+        "plot face/scalar-field (\n label: Text\n title: Text = \"Scalar field\"\n minimum: Scalar = 0.0\n maximum: Scalar = 1.0\n >> field: {}...|\n) {{\n bitmap: {SCALAR_FIELD_GRAY8_KIND}\n manifest: {}(label = label)\n field >> bitmap.field\n bitmap.bitmap >> manifest.bitmap\n}}\n",
         crate::SCALAR_FIELD2_INFO_ID,
-        conduit_presentation::BITMAP_PRESENTATION_KIND,
+        conduit_face::BITMAP_FACE_KIND,
     );
-    let presentation_back =
-        check_syntax_document(&parse_syntax_document(&presentation_back_source), &startup)
-            .map_err(|diagnostics| format!("Lenia bitmap presentation Back: {diagnostics:?}"))?;
-    let presentation_definition = profile
-        .canonical_kind(&conduit_core::kind_id(SCALAR_FIELD_PRESENTATION_KIND))
-        .ok_or_else(|| "Lenia profile lacks scalar-field presentation definition".to_string())?
+    let face_back = check_syntax_document(&parse_syntax_document(&face_back_source), &startup)
+        .map_err(|diagnostics| format!("Lenia bitmap face Back: {diagnostics:?}"))?;
+    let face_definition = profile
+        .canonical_kind(&conduit_core::kind_id(SCALAR_FIELD_FACE_KIND))
+        .ok_or_else(|| "Lenia profile lacks scalar-field face definition".to_string())?
         .clone();
     backs
-        .insert(
-            &presentation_definition,
-            &presentation_back,
-            SCALAR_FIELD_PRESENTATION_KIND,
-        )
-        .map_err(|error| format!("Lenia bitmap presentation Back: {error:?}"))?;
+        .insert(&face_definition, &face_back, SCALAR_FIELD_FACE_KIND)
+        .map_err(|error| format!("Lenia bitmap face Back: {error:?}"))?;
     let expanded =
         expand_canonical_plot_with_backs(&checked, "lenia-orbium-demo", &profile, &backs)
             .map_err(|error| error.to_string())?;
@@ -88,13 +82,12 @@ pub fn expanded_three_region_lenia() -> Result<ExpandedCanonicalPlot, alloc::str
         || expanded
             .gears
             .iter()
-            .filter(|gear| gear.kind_id.as_str() == conduit_presentation::BITMAP_PRESENTATION_KIND)
+            .filter(|gear| gear.kind_id.as_str() == conduit_face::BITMAP_FACE_KIND)
             .count()
             != 1
     {
         return Err(
-            "distributed Lenia expansion lacks workers, exact Cords, or bitmap presentation"
-                .to_string(),
+            "distributed Lenia expansion lacks workers, exact Cords, or bitmap face".to_string(),
         );
     }
     expanded

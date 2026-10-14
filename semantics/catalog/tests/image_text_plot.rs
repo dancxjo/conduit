@@ -184,7 +184,7 @@ fn delivery_record_is_an_ordinary_composition_over_shared_framing() {
 }
 
 #[test]
-fn reusable_and_composed_inspection_plots_use_generic_structured_presentation() {
+fn reusable_and_composed_inspection_plots_use_generic_structured_face() {
     for (name, source, gears, connections) in [
         (
             "image-text-inspection",
@@ -221,7 +221,7 @@ fn reusable_and_composed_inspection_plots_use_generic_structured_presentation() 
         assert_eq!(authored.expanded.gears.len(), gears);
         assert_eq!(authored.expanded.connections.len(), connections);
         assert!(authored.expanded.gears.iter().any(|gear| {
-            gear.kind_id.as_str() == STRUCTURED_PRESENTATION_KIND
+            gear.kind_id.as_str() == STRUCTURED_FACE_KIND
                 && gear.inputs[0].value_kind
                     == image_text_record_type()
                         .profile()

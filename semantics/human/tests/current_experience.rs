@@ -235,7 +235,7 @@ fn current_experience_contains_no_host_placement_or_effect_authority() {
         "AuthorityGrantId",
         "HostCallId",
         "BodyLifecycleEvent",
-        "PresentationAction",
+        "FaceAction",
     ] {
         assert!(!source.contains(forbidden));
     }

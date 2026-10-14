@@ -800,7 +800,7 @@ fn body_wardrobe_directives_are_role_specific_lossless_syntax() {
 
 #[test]
 fn canonical_clock_plot_round_trips_with_named_and_inline_gears() {
-    let source = "# canonical source\nplot clock-demo {\n    clock: time/every(1s)\n    clock >> presentation/tick\n}\n";
+    let source = "# canonical source\nplot clock-demo {\n    clock: time/every(1s)\n    clock >> face/tick(\"Clock tick\")\n}\n";
     let document = parse_syntax_document(source);
     let plots = document.plots().expect("canonical plot parses");
 
@@ -822,7 +822,7 @@ fn canonical_clock_plot_round_trips_with_named_and_inline_gears() {
     assert!(matches!(
         &cord.stages[..],
         [CordStage::Reference(clock), CordStage::InlineGear(tick)]
-            if clock.text == "clock" && tick.kind.text == "presentation/tick"
+            if clock.text == "clock" && tick.kind.text == "face/tick"
     ));
 }
 
@@ -1081,7 +1081,8 @@ fn expression_body_is_one_lossless_sugar_for_an_explicit_cord() {
 
 #[test]
 fn canonical_parser_handles_inline_plot_calls_and_quoted_punctuation() {
-    let source = "plot demo {\n    label = \"{ready} > waiting\"\n    greet(\"hello\") >> presentation/text\n}\n";
+    let source =
+        "plot demo {\n    label = \"{ready} > waiting\"\n    greet(\"hello\") >> face/text(\"Message\")\n}\n";
     let document = parse_syntax_document(source);
     let plot = &document
         .plots()

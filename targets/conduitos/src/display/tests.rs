@@ -1,5 +1,5 @@
 use super::*;
-use conduit_presentation::{GraphicsCommand, GraphicsShapeStyle};
+use conduit_face::{GraphicsCommand, GraphicsShapeStyle};
 
 struct Buffer<'a> {
     format: DisplayFormat,
@@ -42,7 +42,7 @@ fn format() -> DisplayFormat {
 
 #[test]
 fn routed_path_rasterizes_only_its_clipped_axis_aligned_segments() {
-    use conduit_presentation::{GraphicsPath, GraphicsPoint};
+    use conduit_face::{GraphicsPath, GraphicsPoint};
     let path = GraphicsPath::new(&[
         GraphicsPoint::new(-4, 4).unwrap(),
         GraphicsPoint::new(10, 4).unwrap(),
@@ -343,8 +343,7 @@ fn unsupported_format_and_small_buffer_refuse() {
 
 #[test]
 fn portable_gray8_bitmap_reaches_exact_framebuffer_pixels() {
-    let bitmap =
-        conduit_presentation::Gray8Bitmap::new(2, 2, alloc::vec![0, 64, 128, 255]).unwrap();
+    let bitmap = conduit_face::Gray8Bitmap::new(2, 2, alloc::vec![0, 64, 128, 255]).unwrap();
     let mut exact = format();
     exact.width = 4;
     exact.height = 4;

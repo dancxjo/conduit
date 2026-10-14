@@ -59,7 +59,8 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         Some("wasm32-unknown-unknown"),
         Some(ProofClass::ContractCompile),
         &[],
-    ),
+    )
+    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
     Step::new(
         "check.browser.host-entrance-build",
         "Build the standalone browser Host entrance",

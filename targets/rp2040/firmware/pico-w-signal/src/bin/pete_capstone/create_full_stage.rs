@@ -3,8 +3,8 @@
 use core::fmt::Write as _;
 
 use conduit_create_oi::{
-    presentation_bytes_are_motion_free, require_provider, CreateUartProvider, PRESENTATION_FULL,
-    PRESENTATION_SAFE, PRESENTATION_START,
+    face_bytes_are_motion_free, require_provider, CreateUartProvider, FACE_FULL,
+    FACE_SAFE, FACE_START,
 };
 use embassy_rp::watchdog::Watchdog;
 use embassy_time::{Duration, Instant, Timer};
@@ -30,7 +30,7 @@ fn reset_report() {
 }
 
 fn write_exact(provider: &mut Provider, bytes: &[u8]) -> bool {
-    presentation_bytes_are_motion_free(bytes)
+    face_bytes_are_motion_free(bytes)
         && require_provider(provider).is_ok()
         && provider.write_all(bytes).is_ok()
 }
@@ -107,17 +107,17 @@ pub async fn execute(provider: &mut Provider, watchdog: &mut Watchdog) -> bool {
     create_play::set_state(create_play::RequestState::Active);
 
     let mut completed =
-        create_link_gate::authorized() && write_exact(provider, &PRESENTATION_START);
+        create_link_gate::authorized() && write_exact(provider, &FACE_START);
     START_SENT.store(completed, Ordering::Release);
     if completed {
         watchdog_delay(watchdog, START_SETTLE_MS).await;
-        completed = create_link_gate::authorized() && write_exact(provider, &PRESENTATION_FULL);
+        completed = create_link_gate::authorized() && write_exact(provider, &FACE_FULL);
         FULL_SENT.store(completed, Ordering::Release);
     }
     if completed {
         watchdog_delay(watchdog, FULL_HOLD_MS).await;
     }
-    let safe = write_exact(provider, &PRESENTATION_SAFE);
+    let safe = write_exact(provider, &FACE_SAFE);
     SAFE_SENT.store(safe, Ordering::Release);
     watchdog_delay(watchdog, START_SETTLE_MS).await;
 

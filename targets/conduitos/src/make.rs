@@ -3,10 +3,10 @@
 pub const MAKE_SCHEMA: &str = "conduit.conduitos/make-record@1";
 pub const MAX_ID_BYTES: usize = 160;
 pub const IMPL_TIME_TICK: u16 = 1 << 0;
-pub const IMPL_TICK_PRESENTATION: u16 = 1 << 1;
+pub const IMPL_TICK_FACE: u16 = 1 << 1;
 pub const IMPL_TEXT_LITERAL: u16 = 1 << 2;
 pub const IMPL_TEXT_UPPER: u16 = 1 << 3;
-pub const IMPL_TEXT_PRESENTATION: u16 = 1 << 4;
+pub const IMPL_TEXT_FACE: u16 = 1 << 4;
 pub const IMPL_KEYBOARD: u16 = 1 << 5;
 pub const IMPL_PC_SPEAKER: u16 = 1 << 6;
 pub const IMPL_OPL2: u16 = 1 << 7;
@@ -22,7 +22,7 @@ pub const IMPL_USB_TRANSPORT: u16 = 1 << 14;
 pub const ALL_KNOWN_IMPLEMENTATIONS: u16 = (1 << 15) - 1;
 pub const FACILITY_NATIVE_COMPOSITOR: u16 = 1;
 pub const FACILITY_HTTP_CLIENT: u16 = 1 << 1;
-pub const RESOURCE_PRESENTATION_SURFACE: u16 = 1;
+pub const RESOURCE_FACE_SURFACE: u16 = 1;
 pub const RESOURCE_HTTP_CLIENT: u16 = 1 << 1;
 pub const BASE_DISPLAY_SCANOUT: u16 = 1;
 pub const BASE_HTTP_NETWORK: u16 = 1 << 2;
@@ -69,8 +69,8 @@ pub struct MakeRecord {
     pub drivers: u16,
     pub presenters: u16,
     pub proof_instrumentation: u16,
-    pub presentation_surface_slots: u32,
-    pub presentation_surface_bytes: u64,
+    pub face_surface_slots: u32,
+    pub face_surface_bytes: u64,
     pub runtime_arena_ceiling: u64,
     pub operation_slot_ceiling: u32,
     pub timer_slot_ceiling: u32,
@@ -115,8 +115,8 @@ impl MakeRecord {
             drivers: 0,
             presenters: 0,
             proof_instrumentation: 0,
-            presentation_surface_slots: 0,
-            presentation_surface_bytes: 0,
+            face_surface_slots: 0,
+            face_surface_bytes: 0,
             runtime_arena_ceiling: 0,
             operation_slot_ceiling: 0,
             timer_slot_ceiling: 0,
@@ -149,7 +149,7 @@ impl MakeRecord {
                 "conduitos/x86_64/pc" | "conduitos/aarch64/virt"
             ) && self.includes(IMPL_USB_TRANSPORT))
             || self.facilities & !(FACILITY_NATIVE_COMPOSITOR | FACILITY_HTTP_CLIENT) != 0
-            || self.resources & !(RESOURCE_PRESENTATION_SURFACE | RESOURCE_HTTP_CLIENT) != 0
+            || self.resources & !(RESOURCE_FACE_SURFACE | RESOURCE_HTTP_CLIENT) != 0
             || self.bases & !(BASE_DISPLAY_SCANOUT | BASE_SERIAL_TEXT | BASE_HTTP_NETWORK) != 0
             || self.drivers
                 & !(DRIVER_LINEAR_FRAMEBUFFER
@@ -168,12 +168,12 @@ impl MakeRecord {
         let native = self.includes(IMPL_NATIVE_PRESENTER);
         let linear = self.includes(IMPL_LINEAR_PRESENTER);
         if self.includes_facility(FACILITY_NATIVE_COMPOSITOR) != native
-            || (self.resources & RESOURCE_PRESENTATION_SURFACE != 0) != native
+            || (self.resources & RESOURCE_FACE_SURFACE != 0) != native
             || (self.bases & BASE_DISPLAY_SCANOUT != 0) != native
             || (self.drivers & DRIVER_LINEAR_FRAMEBUFFER != 0) != native
             || (self.presenters & PRESENTER_NATIVE_GRAPHICAL != 0) != native
-            || (self.presentation_surface_slots != 0) != native
-            || (self.presentation_surface_bytes != 0) != native
+            || (self.face_surface_slots != 0) != native
+            || (self.face_surface_bytes != 0) != native
         {
             return Err(MakeError::UnknownInventory);
         }
@@ -260,13 +260,13 @@ mod tests {
             target: "conduitos/x86_64/pc",
             implementations: ALL_KNOWN_IMPLEMENTATIONS & !IMPL_LINEAR_PRESENTER & !IMPL_HTTP_CLIENT,
             facilities: FACILITY_NATIVE_COMPOSITOR,
-            resources: RESOURCE_PRESENTATION_SURFACE,
+            resources: RESOURCE_FACE_SURFACE,
             bases: BASE_DISPLAY_SCANOUT,
             drivers: DRIVER_LINEAR_FRAMEBUFFER,
             presenters: PRESENTER_NATIVE_GRAPHICAL,
             proof_instrumentation: 0,
-            presentation_surface_slots: 4,
-            presentation_surface_bytes: 8 * 1024 * 1024,
+            face_surface_slots: 4,
+            face_surface_bytes: 8 * 1024 * 1024,
             runtime_arena_ceiling: 16 * 1024 * 1024,
             operation_slot_ceiling: 64,
             timer_slot_ceiling: 32,
@@ -347,11 +347,11 @@ mod tests {
                 ..record
             },
             MakeRecord {
-                presentation_surface_slots: 0,
+                face_surface_slots: 0,
                 ..record
             },
             MakeRecord {
-                presentation_surface_bytes: 0,
+                face_surface_bytes: 0,
                 ..record
             },
             MakeRecord {
@@ -406,8 +406,8 @@ mod tests {
             bases: BASE_SERIAL_TEXT,
             drivers: DRIVER_PL011_SERIAL,
             presenters: PRESENTER_LINEAR_SERIAL,
-            presentation_surface_slots: 0,
-            presentation_surface_bytes: 0,
+            face_surface_slots: 0,
+            face_surface_bytes: 0,
             ..x86
         };
         assert_eq!(record.validate(1), Ok(()));

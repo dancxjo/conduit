@@ -20,7 +20,7 @@ impl PreparedTimerGraph {
         };
         writer.u16(0x5451)?;
         writer.u16(1)?;
-        for node in [self.timer, self.count, self.presentation] {
+        for node in [self.timer, self.count, self.face] {
             writer.u16(node.0)?;
         }
         writer.bytes(&self.period.to_le_bytes())?;
@@ -73,7 +73,7 @@ impl PreparedTimerGraph {
         }
         let timer = NodeId(reader.u16()?);
         let count = NodeId(reader.u16()?);
-        let presentation = NodeId(reader.u16()?);
+        let face = NodeId(reader.u16()?);
         let period = u64::from_le_bytes(reader.take()?);
         let start = u64::from_le_bytes(reader.take()?);
         let sign_bytes = reader.u32()?;
@@ -163,7 +163,7 @@ impl PreparedTimerGraph {
             bindings,
             timer,
             count,
-            presentation,
+            face,
             period,
             start,
             sign_bytes,

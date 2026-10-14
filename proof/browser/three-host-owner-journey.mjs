@@ -15,7 +15,7 @@ import { captureRunId } from './three-host-run-identity.mjs';
 import { captureOwnerSelectedSpeech, observeOwnerSpeech } from './three-host-owner-speech.mjs';
 import { retainOwnerSpeechArtifacts } from './three-host-owner-speech-artifacts.mjs';
 import { writeThreeHostWalkthrough } from './three-host-walkthrough.mjs';
-import { capturePresentationRecovery } from './three-host-presentation-recovery.mjs';
+import { captureFaceRecovery } from './three-host-face-recovery.mjs';
 import { recordBrowserCapture } from './three-host-capture-observation.mjs';
 import { verifyWalkthroughAssets } from './three-host-walkthrough-assets.mjs';
 
@@ -138,16 +138,16 @@ try {
   const screenFreeCheckpoint = async (phase, routeId, routeAvailable, details = {}) => {
     if (process.env.CONDUIT_SCREEN_FREE_CHECKPOINTS !== '1') return undefined;
     assert.ok(['model-provider-unavailable', 'model-provider-restored',
-      'browser-presentation-unavailable', 'browser-presentation-restored'].includes(phase));
+      'browser-face-unavailable', 'browser-face-restored'].includes(phase));
     assert.match(routeId, /^route\//);
     const face = run(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(face.presentation.basis.body_id, bodyId);
+    assert.equal(face.face.basis.body_id, bodyId);
     const ready = {
       schema: 'conduit.proof/screen-free-checkpoint@1', phase,
       source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
       owner_host_id: ownerPartAtCapture.host_id, owner_boot_id: ownerPartAtCapture.boot_id,
-      face_id: face.presentation.identity,
-      face_revision: face.presentation_revision_decimal,
+      face_id: face.face.identity,
+      face_revision: face.face_revision_decimal,
       route_id: routeId, route_available: routeAvailable,
       ...details,
     };
@@ -491,9 +491,9 @@ try {
   const changedShow = terminalShows.at(-1);
   if (terminalShows.length === 3) {
     assert.notEqual(terminalShows[0][1], actionShow[1],
-      'explicit same-attachment presentation must produce a new Show');
+      'explicit same-attachment face must produce a new Show');
     assert.equal(terminalShows[0][5], actionShow[5],
-      'same-attachment presentation must not change the Host offer generation');
+      'same-attachment face must not change the Host offer generation');
   }
   assert.notEqual(actionShow[1], changedShow[1],
     'a new Face cannot reuse the previous terminal Show');
@@ -513,12 +513,12 @@ try {
   assert.equal(terminalAction.prior_show_id, actionShow[1]);
   assert.match(await readFile(path.join(state, 'body/source.conduit'), 'utf8'), /time\/every\(500ms\)/);
   const ownerAfterTerminal = run(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(ownerAfterTerminal.presentation.basis.body_id, bodyId);
+  assert.equal(ownerAfterTerminal.face.basis.body_id, bodyId);
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(faceId => {
     try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent)
       .face_id === faceId; } catch { return false; }
-  }, ownerAfterTerminal.presentation.identity, { timeout: 12_000 });
+  }, ownerAfterTerminal.face.identity, { timeout: 12_000 });
   const afterTerminalDoff = await readWardrobe();
   assert.notEqual(afterTerminalDoff.owner_plan_id, beforeTerminal.owner_plan_id,
     'changed Face and terminal Host offers require a replacement owner Plan');
@@ -638,7 +638,7 @@ try {
     const command = (verb, ...extra) => run(['body', 'spoken-mask', '--state-dir', state,
       verb, ...extra]);
     const before = run(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(before.presentation.identity, currentBrowserFace.face_id);
+    assert.equal(before.face.identity, currentBrowserFace.face_id);
     const admitted = command('admit');
     const selected = command('select');
     assert.equal(admitted.schema, 'conduit.body/direct-spoken-route@1');
@@ -669,14 +669,14 @@ try {
       terminal.speaker_playback?.detail ?? 'direct speaker reading was incomplete');
     assert.equal(terminal.speaker_played, true);
     assert.equal(terminal.route_plan_id, selected.route_plan_id);
-    assert.equal(terminal.source_face_id, before.presentation.identity);
+    assert.equal(terminal.source_face_id, before.face.identity);
     assert.equal(terminal.mask_artifact_scope, 'opening');
     assert.equal(terminal.artifact.active_play_id, terminal.active_play_id);
     const played = terminal.speaker_playback;
     assert.equal(played.schema, 'conduit.body/selected-speech-terminal@1');
     assert.equal(played.outcome, 'completed');
-    assert.equal(played.face_id, before.presentation.identity);
-    assert.equal(played.face_revision_decimal, before.presentation_revision_decimal);
+    assert.equal(played.face_id, before.face.identity);
+    assert.equal(played.face_revision_decimal, before.face_revision_decimal);
     assert.equal(played.source_show_id, terminal.show_id);
     assert.equal(played.host_id, ownerPart.current.host_id);
     assert.equal(played.boot_id, ownerPart.current.boot_id);
@@ -716,15 +716,15 @@ try {
         bytes: wav.length, sha256: batch.wav_sha256 } });
     }
     const after = run(['body', 'face', '--state-dir', state, '--json']);
-    assert.equal(after.presentation.identity, before.presentation.identity,
+    assert.equal(after.face.identity, before.face.identity,
       'direct Mask may not invent a new Face');
     const terminalBytes = Buffer.from(`${JSON.stringify(terminal, null, 2)}\n`);
     await writeFile(path.join(directory, 'terminal.json'), terminalBytes, { flag: 'wx' });
     ownerDirectSpeech = {
       proof_class: 'installed-owner-direct-mask-and-same-play-speaker',
       source_commit: installed.release_source_identity, run_id: runId, body_id: bodyId,
-      face_id: before.presentation.identity,
-      face_revision_decimal: before.presentation_revision_decimal,
+      face_id: before.face.identity,
+      face_revision_decimal: before.face_revision_decimal,
       route_plan_id: selected.route_plan_id, show_id: terminal.show_id,
       mask_artifact_play_id: terminal.active_play_id,
       provider_sha256: played.provider_sha256,
@@ -895,14 +895,14 @@ try {
     assert.equal(report.selected?.route_id, browserRoute.route_id);
   }
   const ownerBeforeBrowserReturn = run(['body', 'face', '--state-dir', state, '--json']);
-  assert.equal(ownerBeforeBrowserReturn.presentation.basis.body_id, bodyId);
+  assert.equal(ownerBeforeBrowserReturn.face.basis.body_id, bodyId);
   await page.getByRole('button', { name: 'Refresh this Face' }).click();
   await page.waitForFunction(faceId => {
     const face = globalThis.__conduitOwnerParticipation.face();
     return face?.face_id === faceId && face.show_state === 'available'
       && document.querySelector('[data-handbook-application]')
         ?.dataset.ownerShowAcknowledged === face.show_id;
-  }, ownerBeforeBrowserReturn.presentation.identity, { timeout: 12_000 });
+  }, ownerBeforeBrowserReturn.face.identity, { timeout: 12_000 });
   await page.getByRole('button', { name: 'Inspect current wardrobe' }).click();
   await page.waitForFunction(() => {
     try {
@@ -911,7 +911,7 @@ try {
         && report.show_id === globalThis.__conduitOwnerParticipation.face()?.show_id;
     } catch { return false; }
   }, null, { timeout: 12_000 });
-  const presentationRecovery = await capturePresentationRecovery({
+  const faceRecovery = await captureFaceRecovery({
     page, context, serverUrl: server.url, owner: run, state, bodyId,
     ownerPartId: ownerPart.part_id, guestPartId: arrived.guest_part.part_id,
     browserCredential: joined.credential, browserBootId: identity.bootId,
@@ -925,12 +925,12 @@ try {
         observed_route_status: routeAvailable ? 'restored' : 'browser-part-retired',
         part_id: partId, observed_boot_id: bootId,
       });
-      eventObservedAt[phase === 'browser-presentation-unavailable'
+      eventObservedAt[phase === 'browser-face-unavailable'
         ? 'browser_unavailable' : 'browser_restored_checkpoint'] = Date.now();
     },
   });
   eventObservedAt.browser_return = Date.now();
-  observations.push(presentationRecovery.observation);
+  observations.push(faceRecovery.observation);
   await writeFile(path.join(native, 'resume-native-finish'), 'continue\n');
   const nativeReceipt = await waitForFile(path.join(native, 'owner-action-proof.json'), 15_000);
   assert.equal(nativeReceipt.coordinated, true);
@@ -963,8 +963,8 @@ try {
     const expected = ownerLlmSpeech && ownerModelRouteControlArgument &&
       ownerModelRouteControlArgument !== '-'
       ? ['model-provider-unavailable', 'model-provider-restored',
-        'browser-presentation-unavailable', 'browser-presentation-restored']
-      : ['browser-presentation-unavailable', 'browser-presentation-restored'];
+        'browser-face-unavailable', 'browser-face-restored']
+      : ['browser-face-unavailable', 'browser-face-restored'];
     assert.deepEqual(checkpointHandoffs.map(item => item.phase), expected,
       'every held route transition needs a completed screen-free operator checkpoint');
   }
@@ -1035,14 +1035,14 @@ try {
       path: 'browser-wardrobe.json', bytes: wardrobeBytes.length,
       sha256: digest(wardrobeBytes),
     },
-    presentation_host_recovery: {
-      path: 'browser-presentation-recovery.json',
-      bytes: presentationRecovery.bytes.length,
-      sha256: digest(presentationRecovery.bytes),
-      lost_boot_id: presentationRecovery.receipt.lost_browser_boot_id,
-      recovered_boot_id: presentationRecovery.receipt.recovered_browser_boot_id,
-      old_show_id: presentationRecovery.receipt.old_show_id,
-      recovered_show_id: presentationRecovery.receipt.recovered_show_id,
+    face_host_recovery: {
+      path: 'browser-face-recovery.json',
+      bytes: faceRecovery.bytes.length,
+      sha256: digest(faceRecovery.bytes),
+      lost_boot_id: faceRecovery.receipt.lost_browser_boot_id,
+      recovered_boot_id: faceRecovery.receipt.recovered_browser_boot_id,
+      old_show_id: faceRecovery.receipt.old_show_id,
+      recovered_show_id: faceRecovery.receipt.recovered_show_id,
     },
     ...(directSpeech ? { direct_speech: directSpeech } : {}),
     ...(ownerSelectedSpeech ? { owner_selected_speech: ownerSelectedSpeech } : {}),

@@ -165,7 +165,7 @@ fn musical_variant_selection_has_exact_output_and_explicit_unmatched_paths() {
 }
 
 #[test]
-fn feedback_field_projection_is_typed_for_presentation() {
+fn feedback_field_projection_is_typed_for_face() {
     let feedback_type = StructuredInfoType::record(
         KindId::from("device/feedback@1"),
         vec![

@@ -1,4 +1,4 @@
-//! Finite presentation of scheduler-owned debugger execution control.
+//! Finite face of scheduler-owned debugger execution control.
 
 use crate::DebuggerExecutionIdentity;
 use alloc::{borrow::ToOwned, string::String, vec::Vec};

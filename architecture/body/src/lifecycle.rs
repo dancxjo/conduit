@@ -99,7 +99,7 @@ pub struct WakePlan {
 }
 
 /// Host-neutral facts retained when a candidate Plan or realization cannot be
-/// admitted. Presentation copy is derived later; these are durable evidence.
+/// admitted. Face copy is derived later; these are durable evidence.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct WakeRejectionEvidence {
     pub reason_code: alloc::string::String,

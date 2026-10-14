@@ -10,8 +10,8 @@ use std::net::TcpStream;
 #[derive(Deserialize)]
 #[serde(deny_unknown_fields)]
 struct Request {
-    presentation_id: String,
-    presentation_revision: u64,
+    face_id: String,
+    face_revision: u64,
     basis_plan_id: PlanId,
     mode: MaskTopologyModeWire,
 }
@@ -42,8 +42,8 @@ impl PatchbayHtmlServer {
     fn apply_mask_topology(&mut self, body: &[u8]) -> Result<Vec<u8>, ServerError> {
         let request: Request =
             serde_json::from_slice(body).map_err(|_| ServerError::InvalidRequest)?;
-        if request.presentation_id != self.snapshot.presentation.identity.as_str()
-            || request.presentation_revision != self.snapshot.presentation.revision
+        if request.face_id != self.snapshot.face.identity.as_str()
+            || request.face_revision != self.snapshot.face.revision
         {
             return Err(ServerError::Interaction("StaleRequest".into()));
         }
@@ -91,14 +91,14 @@ impl PatchbayHtmlServer {
             super::body_execution::history::retain(&self.snapshot, session, &planning)?;
         snapshot.body_planning = Some(planning.snapshot());
         control
-            .refresh_presentation(snapshot.presentation.clone())
+            .refresh_face(snapshot.face.clone())
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         let play = conduit_body::BodyPlayIdentity::bind(planning.current_plan(), sequence);
         let topology = control
             .project_current(&planning, &play)
             .map_err(|error| ServerError::Interaction(format!("{error:?}")))?;
         snapshot.mask_topology = Some(
-            patchbay_application::project_mask_topology(control.presentation(), &topology)
+            patchbay_application::project_mask_topology(control.face(), &topology)
                 .map_err(|error| ServerError::Interaction(format!("{error:?}")))?,
         );
         snapshot.interaction.revision = sequence;
@@ -184,8 +184,8 @@ mod tests {
 
         let invoke = |server: &mut PatchbayHtmlServer, mode: &str| {
             let request = json!({
-                "presentation_id": server.snapshot.presentation.identity,
-                "presentation_revision": server.snapshot.presentation.revision,
+                "face_id": server.snapshot.face.identity,
+                "face_revision": server.snapshot.face.revision,
                 "basis_plan_id": server.body_planning.as_ref().unwrap().current_plan().plan_id,
                 "mode": mode,
             });
@@ -228,11 +228,10 @@ mod tests {
         }
     }
 
-    fn chains(presentation: &conduit_presentation::Presentation) -> usize {
-        presentation
-            .subjects
+    fn chains(face: &conduit_face::Face) -> usize {
+        face.subjects
             .iter()
-            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Manifestation)
+            .filter(|subject| subject.role == conduit_face::FaceRole::Manifestation)
             .count()
     }
 }

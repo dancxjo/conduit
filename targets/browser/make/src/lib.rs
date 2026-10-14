@@ -20,10 +20,10 @@ pub struct BrowserCapabilityIntentDescriptor {
 
 pub const BROWSER_CAPABILITY_INTENTS: &[BrowserCapabilityIntentDescriptor] = &[
     capability_intent(
-        "host-contribution/graphical-presentation",
+        "host-contribution/graphical-face",
         "Display this body",
-        "browser/contribution-graphical-presentation@1",
-        &["browser/dom", "presentation/graphical"],
+        "browser/contribution-graphical-face@1",
+        &["browser/dom", "face/graphical"],
     ),
     capability_intent(
         "host-contribution/keyboard-pointer-input",
@@ -70,7 +70,7 @@ pub use inventory::{
     default_configuration_bases, validate_browser_inventory, BrowserImplementationDescriptor,
     BrowserInventoryDiagnostic, BrowserRealizationDescriptor, BrowserRuntimePrerequisite,
     BrowserStorageRealizationDescriptor, BROWSER_DURABLE_STORAGE_REALIZATION,
-    BROWSER_HUMAN_PRESENTATION_REALIZATIONS, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
+    BROWSER_HUMAN_FACE_REALIZATIONS, BROWSER_IMPLEMENTATIONS, REVIEWED_DISTRIBUTION_ID,
     REVIEWED_RUNTIME_ARTIFACT,
 };
 pub use line::{BrowserLineRealizationDescriptor, BROWSER_LINE_REALIZATIONS};
@@ -116,7 +116,7 @@ fn package_catalog() -> PackageCatalogContribution {
                 targets: vec!["browser/wasm32/page".into()],
                 prerequisites: vec![
                     PrerequisiteNode::HostCall("conduit.host/present@1".into()),
-                    PrerequisiteNode::Resource("presentation/surface".into()),
+                    PrerequisiteNode::Resource("face/surface".into()),
                     PrerequisiteNode::Base("browser/dom".into()),
                 ],
             },
@@ -383,12 +383,12 @@ mod tests {
     }
 
     #[test]
-    fn human_and_presentation_entries_bind_exact_portable_runtime_realizations() {
+    fn human_and_face_entries_bind_exact_portable_runtime_realizations() {
         let made = BROWSER_IMPLEMENTATIONS
             .iter()
             .map(|item| item.implementation_id)
             .collect::<BTreeSet<_>>();
-        for realization in BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
+        for realization in BROWSER_HUMAN_FACE_REALIZATIONS {
             assert!(made.contains(realization.make_implementation_id));
             assert!(!realization.portable_kind.contains("browser"));
             assert!(realization
@@ -402,15 +402,15 @@ mod tests {
             assert!((1..=8).contains(&realization.maximum_queue_items));
             assert!(realization.maximum_queue_bytes > 0);
         }
-        assert!(BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+        assert!(BROWSER_HUMAN_FACE_REALIZATIONS.iter().any(|item| {
             item.make_implementation_id == "browser/keyboard-events@1"
                 && item.portable_kind == "input/keyboard"
         }));
-        assert!(BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+        assert!(BROWSER_HUMAN_FACE_REALIZATIONS.iter().any(|item| {
             item.make_implementation_id == "browser/pointer-events@1"
                 && item.portable_kind == "input/pointer-source"
         }));
-        assert!(!BROWSER_HUMAN_PRESENTATION_REALIZATIONS.iter().any(|item| {
+        assert!(!BROWSER_HUMAN_FACE_REALIZATIONS.iter().any(|item| {
             item.portable_kind.contains("touch") || item.portable_kind.contains("gamepad")
         }));
     }

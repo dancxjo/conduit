@@ -58,7 +58,7 @@ through the actual sibling-state address, an arbitrary kernel-function call,
 device-MMIO space, direct serial-port I/O, an arbitrary handle, another
 domain's real handle, a wrong operation, excess submission, a malformed
 pointer, and a revoked handle. It also performs one
-authorized serial presentation through the capability gate. The kernel resumes
+authorized serial face through the capability gate. The kernel resumes
 the bounded fixture after expected protection faults and terminates on any
 unexpected vector or sequence.
 
@@ -123,7 +123,7 @@ current product path uses protection domains. It also checks that Compose
 state survives separate entries and that its Unicode output reaches the
 protected uppercase implementation.
 
-The text region requests one serial presentation through an opaque authenticated
+The text region requests one serial face through an opaque authenticated
 handle. Root checks the current Host, Boot, Plan, Play, selected implementation,
 provider and resource generations, operation, subject, authority and bounded
 request before operating its serial Base. Successful completion consumes the
@@ -151,7 +151,7 @@ The native keyboard partition now prepares an exact provider scope and binds
 its domain to the aggregate Body Plan and actual Body Play at activation. It
 keeps the connected four-placement keyboard chain intact. Keymap and uppercase
 execute in the domain; Root delivers canonical keyboard events and authorizes
-serial presentation before retaining the operator-facing result. Cancellation,
+serial face before retaining the operator-facing result. Cancellation,
 input-provider loss, and execution failure revoke the domain. Other native
 Plot implementations remain cooperative. The supported graphical `journey-proof` passed in the local x86_64 guest:
 ordinary USB keyboard input selected Keyboard canvas and produced `A` from `a`
@@ -160,7 +160,7 @@ Stop revoked the domain and zeroed its allocation. Its exact Body cost record
 reported five entries and gates, one Base gate, 10 runtime copy bytes, ten
 CR3/TLB switches and privilege transitions, a five-byte shared-window peak,
 118,784 backend bytes and 6,324 per-domain Root metadata bytes. This includes
-keymap initialization, press/release handling, uppercase and presentation;
+keymap initialization, press/release handling, uppercase and face;
 it is not the total memory cost of the complete Body or its trusted kernel.
 Keymap and uppercase now execute together in one entry. Root forwards the
 precomputed result only after the existing kernel presents the matching
@@ -170,14 +170,14 @@ and cleared on revocation. The focused chain fixture also expands `ß` to `SS`
 in one entry. The first graphical checkpoint used six entries, twelve
 privilege transitions, 11 copy bytes and a four-byte shared-window peak;
 batching removes one entry and copy while retaining the same Source flow.
-Memory Lantern's connected keyboard/keymap/edit/presentation region now has a
+Memory Lantern's connected keyboard/keymap/edit/face region now has a
 separate Body-bound domain admission. Its keymap and bounded retained editor
 share one entry and private storage. The editor uses the same allocation-free
 semantic owner as the hosted implementation; Root forwards its result through
-the existing typed Cord and capability-gated presentation path. Preparation
+the existing typed Cord and capability-gated face path. Preparation
 reserves the domain and Root staging before Play. Cancellation retires both
 text domains and clears pending results. The journey collector exercises
-retention, deletion to an empty value, sibling presentation independence and
+retention, deletion to an empty value, sibling face independence and
 exact per-partition retirement costs. The canonical graphical proof passed locally: the editor recorded 21 entries,
 five Base gates and 58 runtime copy bytes; each domain revoked on Stop and
 zeroed its 118,784-byte allocation. Its per-domain Root metadata was 6,324 bytes.
@@ -196,11 +196,11 @@ may be requested first. A changed input cannot consume the other branch's
 completion, and a Morse refusal does not alter the uppercase result.
 
 Preparation checks the selected artifact and kind contract against the current
-Host offer for all five placements. Text and indicator presentation receive
+Host offer for all five placements. Text and indicator face receive
 separate opaque handles, exact operation scopes and one-effect limits. Their
 copy windows are bounded to 256 and 645 bytes respectively. Text's admitted
 completion envelope retains its portable 256-byte limit; indicator completion
-has no payload. A handle issued for one presentation cannot authorize the
+has no payload. A handle issued for one face cannot authorize the
 other. Completion, cancellation and terminal gate faults revoke the domain.
 
 All five supported ordinary-domain emulator lanes exercised the production
@@ -233,7 +233,7 @@ it does not establish a physical indicator or a graphical Morse interaction.
 ### Private standing timer execution
 
 The native count-over-time product now prepares a protected three-placement
-region for Every, Count and Count Presentation. Root retains the verified
+region for Every, Count and Count Face. Root retains the verified
 Plan/Play binding, numeric preparation data, capability table and provider
 tokens. The separately compiled domain image owns the production fixed
 scheduler, Count state, Cord movement and decimal rendering. Root enters at
@@ -241,14 +241,14 @@ actual effect/completion boundaries; an idle domain stays suspended while its
 physical timer is pending. Other semantic families retain their separately
 declared execution profiles.
 
-Timer and Count Presentation receive separate opaque handles. Admission pins
+Timer and Count Face receive separate opaque handles. Admission pins
 Host/Boot, Plan/Play, implementation artifact and contract, Base/resource
 identity and generation, operation, parameter/work limits and independent
 in-flight/operation bounds. Every's selected provider identity seals both its
 physical Timer and Clock; replacing either changes the current scope. A timer
 lease remains in flight until the exact current provider wake matches the
 entire pending interest. Count's semantic input is eight bytes; its physical
-presentation window allows at most twenty decimal digits. Root validates that
+face window allows at most twenty decimal digits. Root validates that
 window without computing or substituting the semantic count.
 
 The reviewed finite product arms 120 milliseconds. Conversion rounds upward
@@ -362,7 +362,7 @@ The IA-32 image uses SSE instructions. Its transition saves Root floating
 state, installs separate domain state and restores Root state on return;
 interrupt handlers also protect the interrupted floating state. The normal
 BIOS specimen completed its original two-region Source: text/upper ran in
-CPL3, serial presentation crossed the admitted capability gate, and the timer
+CPL3, serial face crossed the admitted capability gate, and the timer
 region retained its separate wake. The text domain was revoked and zeroed on
 Play completion. The receipt measured three entries/gates, one Base gate, six
 privilege transitions and CR3 reloads, 64 shared-window copy bytes, a 32-byte
@@ -524,7 +524,7 @@ instructions. The receipt records the actual emulator version and executable
 digest. This diagnostic proof does not establish stock-emulator support,
 physical execution or accepted-release parity.
 
-The ordinary text serial presentation now passes through its domain capability
+The ordinary text serial face now passes through its domain capability
 gate, and the supplemental Sign reports `effect_capability_gates:true`.
 The reviewed protected text, Keyboard, Memory Lantern, Morse and standing
 timer paths do not implicitly protect other native workset implementations.

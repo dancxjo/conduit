@@ -108,7 +108,8 @@ pub fn run(args: &WorkspaceArgs, opts: &GlobalOpts) -> Result<(), Box<dyn std::e
                 "--features",
                 "creche-surface,plot-runner",
             ],
-        ),
+        )
+        .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
         &root,
         opts,
     )?;

@@ -1,14 +1,14 @@
 use std::{env, fs, path::PathBuf};
 
-use conduit_embedded_build::{EmbeddedImageBounds, generate_embedded_plan};
+use conduit_embedded_build::{generate_embedded_plan, EmbeddedImageBounds};
 use conduit_host_esp32_make::{
-    Esp32BoardDescriptor, esp32_descriptor_binding, validate_esp32_descriptor,
+    esp32_descriptor_binding, validate_esp32_descriptor, Esp32BoardDescriptor,
 };
-use conduit_plan_lowering::lowering::{FIXED_KERNEL_STORAGE_PORTS_PER_NODE, lower_plan_fragment};
+use conduit_plan_lowering::lowering::{lower_plan_fragment, FIXED_KERNEL_STORAGE_PORTS_PER_NODE};
 use conduit_signal::SIGNAL_ENCODED_LEN;
 use conduit_signal_conformance::{
-    DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS, ESP32_S3_PHYSICAL_HOST_ID,
-    exact_std_esp32_s3_bluetooth_plan,
+    exact_std_esp32_s3_bluetooth_plan, DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,
+    ESP32_S3_PHYSICAL_HOST_ID,
 };
 
 fn main() {
@@ -54,7 +54,7 @@ fn image_bounds() -> EmbeddedImageBounds {
         maximum_host_calls: 2,
         maximum_resources: 2,
         maximum_sign_expectations: 8,
-        maximum_configuration_entries: 0,
+        maximum_configuration_entries: 1,
         maximum_ports_per_node: FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
         maximum_remote_endpoints: 1,
         maximum_cord_value_slots: DISTRIBUTED_MAXIMUM_IN_FLIGHT_ITEMS,

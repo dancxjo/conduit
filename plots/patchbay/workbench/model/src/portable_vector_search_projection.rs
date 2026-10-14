@@ -1,7 +1,7 @@
 //! Vector-search-specific disclosure over exact generic Plan facts.
 
 use conduit_core::PlannedGear;
-use conduit_presentation::PresentationPropertyValue;
+use conduit_face::FacePropertyValue;
 
 use crate::portable_projection::ContentBuilder;
 use crate::PatchbayGear;
@@ -32,7 +32,7 @@ pub(super) fn append_vector_search_realization(
         content.property(
             subject,
             "vector-search-proof-class",
-            PresentationPropertyValue::Text(proof_class.into()),
+            FacePropertyValue::Text(proof_class.into()),
         );
     }
 
@@ -44,7 +44,7 @@ pub(super) fn append_vector_search_realization(
         content.property(
             subject,
             "vector-index-resource",
-            PresentationPropertyValue::Text(format!(
+            FacePropertyValue::Text(format!(
                 "pool={} class={} units={}",
                 resource.pool_id.as_str(),
                 resource.class_id.as_str(),

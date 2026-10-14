@@ -456,7 +456,7 @@ fn evidence() -> HeterogeneousCapstoneEvidence {
             CapstoneDeviceClass {
                 class_id: "class/browser".into(),
                 disposition: CapstoneDeviceDisposition::Used {
-                    workload_id: "workload/interactive-presentation".into(),
+                    workload_id: "workload/interactive-face".into(),
                 },
             },
             CapstoneDeviceClass {
@@ -486,10 +486,9 @@ fn evidence() -> HeterogeneousCapstoneEvidence {
                     .into(),
             },
             CapstoneDecision {
-                workload_id: "workload/interactive-presentation".into(),
+                workload_id: "workload/interactive-face".into(),
                 choice: "screen-on-browser".into(),
-                principal_reason: "interactive latency policy keeps presentation human-local"
-                    .into(),
+                principal_reason: "interactive latency policy keeps face human-local".into(),
             },
             CapstoneDecision {
                 workload_id: "workload/local-chain".into(),

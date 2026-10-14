@@ -10,12 +10,10 @@ mod interaction;
 pub use interaction::{todo_command_from_contributed_interaction, todo_command_from_interaction};
 
 use alloc::{format, string::ToString, vec, vec::Vec};
-use conduit_presentation::{
-    FaceActionArgument, PresentationAction, PresentationActionAvailability,
-    PresentationContributionBasis, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationFragment, PresentationFragmentError, PresentationProperty,
-    PresentationPropertyValue, PresentationRelationship, PresentationRelationshipKind,
-    PresentationRole, PresentationSubject, PresentationText,
+use conduit_face::{
+    FaceAction, FaceActionArgument, FaceActionAvailability, FaceContributionBasis, FaceDisclosure,
+    FaceDisclosureLevel, FaceFragment, FaceFragmentError, FaceProperty, FacePropertyValue,
+    FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
 use conduit_todo_plot::TodoState;
 
@@ -23,8 +21,8 @@ use conduit_todo_plot::TodoState;
 pub enum TodoFaceError {
     InvalidState,
     InvalidActionContract,
-    InvalidFragment(PresentationFragmentError),
-    InvalidInteraction(conduit_presentation::FaceInteractionRefusal),
+    InvalidFragment(FaceFragmentError),
+    InvalidInteraction(conduit_face::FaceInteractionRefusal),
     StaleState,
     UnsupportedAction,
     CommandRefused(conduit_todo_plot::TodoRefusal),
@@ -35,9 +33,9 @@ pub enum TodoFaceError {
 /// this Plot's current Play; a read-only route still exposes the same content.
 pub fn todo_fragment(
     state: &TodoState,
-    basis: PresentationContributionBasis,
+    basis: FaceContributionBasis,
     actions_admitted: bool,
-) -> Result<PresentationFragment, TodoFaceError> {
+) -> Result<FaceFragment, TodoFaceError> {
     state.validate().map_err(|_| TodoFaceError::InvalidState)?;
     let list = "todo/list".to_string();
     let status = "todo/status".to_string();
@@ -47,67 +45,67 @@ pub fn todo_fragment(
         "{open} {} left · {completed} completed",
         if open == 1 { "thing" } else { "things" }
     );
-    let mut fragment = PresentationFragment {
+    let mut fragment = FaceFragment {
         basis,
         subjects: vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: list.clone(),
-                role: PresentationRole::Collection,
+                role: FaceRole::Collection,
                 name: state.title.clone(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: status.clone(),
-                role: PresentationRole::Status,
+                role: FaceRole::Status,
                 name: "Progress".into(),
             },
         ],
-        relationships: vec![PresentationRelationship {
+        relationships: vec![FaceRelationship {
             source: list.clone(),
             target: status.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         }],
         composition: Vec::new(),
-        properties: vec![PresentationProperty {
+        properties: vec![FaceProperty {
             subject: list.clone(),
             name: "todo-revision".into(),
-            value: PresentationPropertyValue::Count(u64::from(state.revision)),
+            value: FacePropertyValue::Count(u64::from(state.revision)),
         }],
-        text: vec![PresentationText {
+        text: vec![FaceText {
             subject: status.clone(),
             text: count,
         }],
         actions: Vec::new(),
         disclosures: vec![
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: list.clone(),
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             },
-            PresentationDisclosure {
+            FaceDisclosure {
                 subject: status,
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             },
         ],
         temporal_references: Vec::new(),
         temporal_facts: Vec::new(),
     };
     let availability = if actions_admitted {
-        PresentationActionAvailability::Available
+        FaceActionAvailability::Available
     } else {
-        PresentationActionAvailability::Unavailable {
+        FaceActionAvailability::Unavailable {
             reason_code: "todo-return-route-unavailable".into(),
             explanation: "This Todo Play has no admitted action return route.".into(),
         }
     };
     let add_availability =
         if actions_admitted && state.items.len() == conduit_todo_plot::MAX_TODO_ITEMS {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "todo-list-full".into(),
                 explanation: "The list has reached its admitted item capacity.".into(),
             }
         } else {
             availability.clone()
         };
-    fragment.actions.push(PresentationAction {
+    fragment.actions.push(FaceAction {
         identity: "todo.add".into(),
         intent: "todo/add@1".into(),
         target: list.clone(),
@@ -119,42 +117,42 @@ pub fn todo_fragment(
             conduit_todo_plot::MAX_TODO_TEXT_BYTES as u32,
         )
         .map_err(|_| TodoFaceError::InvalidActionContract)?],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: add_availability,
     });
     for (order, item) in state.items.iter().enumerate() {
         let identity = format!("todo/item/{}", item.id);
-        fragment.subjects.push(PresentationSubject {
+        fragment.subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: item.text.clone(),
         });
-        fragment.relationships.push(PresentationRelationship {
+        fragment.relationships.push(FaceRelationship {
             source: list.clone(),
             target: identity.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
         fragment.properties.extend([
-            PresentationProperty {
+            FaceProperty {
                 subject: identity.clone(),
                 name: "complete".into(),
-                value: PresentationPropertyValue::Flag(item.complete),
+                value: FacePropertyValue::Flag(item.complete),
             },
-            PresentationProperty {
+            FaceProperty {
                 subject: identity.clone(),
                 name: "order".into(),
-                value: PresentationPropertyValue::Count(order as u64),
+                value: FacePropertyValue::Count(order as u64),
             },
         ]);
-        fragment.disclosures.push(PresentationDisclosure {
+        fragment.disclosures.push(FaceDisclosure {
             subject: identity.clone(),
             level: if item.complete {
-                PresentationDisclosureLevel::SelectedDetail
+                FaceDisclosureLevel::SelectedDetail
             } else {
-                PresentationDisclosureLevel::Primary
+                FaceDisclosureLevel::Primary
             },
         });
-        fragment.actions.push(PresentationAction {
+        fragment.actions.push(FaceAction {
             identity: format!(
                 "todo.{}.{id}",
                 if item.complete { "reopen" } else { "complete" },
@@ -169,16 +167,16 @@ pub fn todo_fragment(
             target: identity.clone(),
             name: if item.complete { "reopen" } else { "complete" }.into(),
             arguments: Vec::new(),
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability: availability.clone(),
         });
-        fragment.actions.push(PresentationAction {
+        fragment.actions.push(FaceAction {
             identity: format!("todo.remove.{}", item.id),
             intent: "todo/remove@1".into(),
             target: identity,
             name: "remove".into(),
             arguments: Vec::new(),
-            disclosure: PresentationDisclosureLevel::SelectedDetail,
+            disclosure: FaceDisclosureLevel::SelectedDetail,
             availability: availability.clone(),
         });
     }

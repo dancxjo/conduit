@@ -1,7 +1,7 @@
 //! Native operation adapter for shared Workspace Tutorial actions.
 use super::*;
 use crate::native_workset::TutorialAction;
-use conduit_presentation::{ApplicationEvent, ApplicationView};
+use conduit_face::{ApplicationEvent, ApplicationView};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TutorialRefusal {
@@ -53,7 +53,7 @@ impl ProductJourney {
         } else {
             conduit_tutorial_plot::TutorialPlayback::Playing
         };
-        conduit_tutorial_plot::presentation_from_evidence(
+        conduit_tutorial_plot::face_from_evidence(
             evidence,
             u32::try_from(evidence.records.len()).map_err(|_| TutorialRefusal::InvalidAction)?,
             playback,

@@ -184,7 +184,7 @@ Those belong to an **ordinary Form serving the Mask role and its exact ordinary 
 
 ### Status: Mask Form role and Body wardrobe grammar are canonical
 
-Mask topology uses ordinary canonical `form` source, checking, expansion, planning and execution. A representative Mask-role Fore has one bounded face input (currently carried by the migration-era Rust `Presentation` type) and `FaceInteraction` plus `Show` outputs. There is no `mask` keyword, second graph language or Mask-specific planner.
+Mask topology uses ordinary canonical `form` source, checking, expansion, planning and execution. A representative Mask-role Fore has one bounded face input (currently carried by the migration-era Rust `Face` type) and `FaceInteraction` plus `Show` outputs. There is no `mask` keyword, second graph language or Mask-specific planner.
 
 Required semantic direction:
 

@@ -2,14 +2,11 @@
 //! The accepted wording comes from the current Face through the reviewed
 //! semantic validator; synthesis and the artifact have separate receipts.
 
-use super::{
-    presentation_wardrobe::OwnerPresentationWardrobe,
-    presentation_wardrobe_runtime::wardrobe_error, Owner,
-};
+use super::{face_wardrobe::OwnerFaceWardrobe, face_wardrobe_runtime::wardrobe_error, Owner};
 use conduit_core::{port_id, ConnectionTrack, SignId};
-use conduit_presentation::{
-    GenerativePresenterBounds, GenerativePresenterRequest, LocalOwnerMaskRouteSeal, MaskShow,
-    Presentation, PresentationRole,
+use conduit_face::{
+    Face, FaceRole, GenerativePresenterBounds, GenerativePresenterRequest, LocalOwnerMaskRouteSeal,
+    MaskShow,
 };
 use conduit_std_host::{spoken_mask_runtime::SpokenMaskPreparation, ExternalForeInput};
 
@@ -45,7 +42,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -56,14 +53,14 @@ impl Owner {
             &face,
             super::super::super::current_time_millis()?,
         );
-        if let Some(wardrobe) = &mut self.presentation_wardrobe {
+        if let Some(wardrobe) = &mut self.face_wardrobe {
             wardrobe
                 .admit_or_replace(&self.session, &face, &current)
                 .map_err(wardrobe_error)?;
         } else {
             let plot = seal.planned_mask.mask.plot_identity.clone();
-            self.presentation_wardrobe = Some(
-                OwnerPresentationWardrobe::seal(
+            self.face_wardrobe = Some(
+                OwnerFaceWardrobe::seal(
                     &self.session,
                     &face,
                     &current,
@@ -93,7 +90,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -104,9 +101,9 @@ impl Owner {
             &face,
             super::super::super::current_time_millis()?,
         );
-        self.presentation_wardrobe
+        self.face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?
+            .ok_or("owner face wardrobe is not admitted")?
             .select_plot(
                 &self.session,
                 &face,
@@ -144,7 +141,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -156,9 +153,9 @@ impl Owner {
             super::super::super::current_time_millis()?,
         );
         let wardrobe = self
-            .presentation_wardrobe
+            .face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?;
+            .ok_or("owner face wardrobe is not admitted")?;
         wardrobe
             .reconcile(&self.session, &face, &current)
             .map_err(wardrobe_error)?;
@@ -183,10 +180,10 @@ impl Owner {
         let front_subject = face
             .subjects
             .iter()
-            .find(|subject| subject.role == PresentationRole::Body)
+            .find(|subject| subject.role == FaceRole::Body)
             .map(|subject| subject.identity.clone())
             .ok_or("LLM spoken Face has no Body subject")?;
-        let request = GenerativePresenterRequest::from_presentation(
+        let request = GenerativePresenterRequest::from_face(
             format!("request/{}/wording", seal.route_plan_id.as_str()),
             conduit_std_host::hosted_local_model::finite_face_wording_presenter_policy(),
             face.clone(),
@@ -196,7 +193,7 @@ impl Owner {
         .map_err(|error| format!("prepare LLM Presenter request: {error:?}"))?;
         let preparation = SpokenMaskPreparation {
             request,
-            presentation: face.clone(),
+            face: face.clone(),
             planned_mask: prepared.planned_mask,
             front_subject,
             target_subject: "artifact/owner-llm-spoken".into(),
@@ -247,7 +244,7 @@ impl Owner {
             &self.session,
             &face,
         )?;
-        let current = Self::current_presentation_routes_with_native_and_speech(
+        let current = Self::current_face_routes_with_native_and_speech(
             self.host.advertisement(),
             self.pending_browser.as_ref(),
             terminal,
@@ -258,9 +255,9 @@ impl Owner {
             &face,
             super::super::super::current_time_millis()?,
         );
-        self.presentation_wardrobe
+        self.face_wardrobe
             .as_mut()
-            .ok_or("owner presentation wardrobe is not admitted")?
+            .ok_or("owner face wardrobe is not admitted")?
             .acknowledge_selected_show(&self.session, &face, &current, &seal.route_plan_id, show)
             .map_err(wardrobe_error)
     }
@@ -268,7 +265,7 @@ impl Owner {
 
 pub(crate) struct LlmSpokenStart {
     pub(crate) seal: LocalOwnerMaskRouteSeal,
-    pub(crate) face: Presentation,
+    pub(crate) face: Face,
     pub(crate) fragment: conduit_core::PlanFragment,
     pub(crate) preparation: SpokenMaskPreparation,
     pub(crate) input: ExternalForeInput,

@@ -108,7 +108,7 @@ fn fixture(error: &str) -> (conduit_plot::CheckedPlot, Vec<HostAdvertisement>) {
     profiles
         .insert_kind(conduit_signal::show_semantic_contract())
         .unwrap();
-    let source = format!("plot numeric-selection-fixture {{\n pulse: flow/pulse(count=2,period-ms=0,initial=false,numeric-request={{value:0.3,maximum-error:{error}}})\n show: presentation/show\n pulse >> show\n}}\n");
+    let source = format!("plot numeric-selection-fixture {{\n pulse: flow/pulse(count=2,period-ms=0,initial=false,numeric-request={{value:0.3,maximum-error:{error}}})\n show: face/show(\"Signal\")\n pulse >> show\n}}\n");
     let plot = conduit_plot::parse_with_startup(&source, &startup, &profiles).unwrap();
     plot.validate_identities().unwrap();
     let mut other = host.clone();

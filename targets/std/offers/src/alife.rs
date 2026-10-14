@@ -4,28 +4,27 @@ use conduit_alife::{LENIA_MAXIMUM_FIELD_BYTES, LENIA_STEP_KIND};
 use conduit_core::{
     kind_id, present_host_call_requirement, resource_requirement, ArtifactId, Back,
     BackOfferBuilder, CapabilityId, CapabilityOffer, ExecutionProfileId, HostCallContractId,
-    HostCallRequirement, ImplementationId, Kind, ResourceRequirement, PRESENTATION_RESOURCE_CLASS,
+    HostCallRequirement, ImplementationId, Kind, ResourceRequirement, FACE_RESOURCE_CLASS,
 };
 
 pub const ORBIUM_SEED_EXECUTION_PROFILE: &str = "conduit.std/orbium-seed-fixed-q16.16@1";
 pub const LENIA_STEP_EXECUTION_PROFILE: &str = "conduit.std/lenia-spatial-fixed-q16.16@1";
-pub const SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE: &str =
-    "conduit.std/present-scalar-field-terminal@1";
+pub const SCALAR_FIELD_FACE_EXECUTION_PROFILE: &str = "conduit.std/present-scalar-field-terminal@1";
 pub const ORBIUM_SEED_IMPLEMENTATION: &str = "std/kernel-orbium-seed@1";
 pub const LENIA_STEP_IMPLEMENTATION: &str = "std/kernel-lenia-step@1";
-pub const SCALAR_FIELD_PRESENTATION_IMPLEMENTATION: &str = "std/kernel-present-scalar-field@1";
+pub const SCALAR_FIELD_FACE_IMPLEMENTATION: &str = "std/kernel-present-scalar-field@1";
 pub const ORBIUM_SEED_ARTIFACT: &str = "conduit-std-host/orbium-seed@1";
 pub const LENIA_STEP_ARTIFACT: &str = "conduit-std-host/lenia-spatial-q16@1";
-pub const SCALAR_FIELD_PRESENTATION_ARTIFACT: &str = "conduit-std-host/presentation-scalar-field@1";
+pub const SCALAR_FIELD_FACE_ARTIFACT: &str = "conduit-std-host/face-scalar-field@1";
 pub const LENIA_INITIALIZE_HOST_CALL: &str = "conduit.host/lenia-initialize@1";
 pub const LENIA_STEP_HOST_CALL: &str = "conduit.host/lenia-step@1";
-pub const SCALAR_FIELD_PRESENTATION_TARGET: &str = "presentation/stdout-scalar-field";
+pub const SCALAR_FIELD_FACE_TARGET: &str = "face/stdout-scalar-field";
 
 pub fn alife_offers() -> Vec<CapabilityOffer> {
     vec![
         orbium_seed_offer(),
         lenia_step_offer(),
-        scalar_field_presentation_offer(),
+        scalar_field_face_offer(),
     ]
 }
 
@@ -68,18 +67,18 @@ pub fn lenia_step_offer() -> CapabilityOffer {
     )
 }
 
-pub fn scalar_field_presentation_offer() -> CapabilityOffer {
+pub fn scalar_field_face_offer() -> CapabilityOffer {
     offer(
-        conduit_semantic_catalog::scalar_field_presentation_semantic_contract(),
-        "std-scalar-field-presentation-v1",
-        SCALAR_FIELD_PRESENTATION_EXECUTION_PROFILE,
-        SCALAR_FIELD_PRESENTATION_IMPLEMENTATION,
-        SCALAR_FIELD_PRESENTATION_ARTIFACT,
+        conduit_semantic_catalog::scalar_field_face_semantic_contract(),
+        "std-scalar-field-face-v1",
+        SCALAR_FIELD_FACE_EXECUTION_PROFILE,
+        SCALAR_FIELD_FACE_IMPLEMENTATION,
+        SCALAR_FIELD_FACE_ARTIFACT,
         vec![present_host_call_requirement(
-            kind_id(SCALAR_FIELD_PRESENTATION_TARGET),
+            kind_id(SCALAR_FIELD_FACE_TARGET),
             LENIA_MAXIMUM_FIELD_BYTES,
         )],
-        vec![resource_requirement(PRESENTATION_RESOURCE_CLASS, 1)],
+        vec![resource_requirement(FACE_RESOURCE_CLASS, 1)],
     )
 }
 
@@ -123,8 +122,8 @@ mod tests {
                 conduit_semantic_catalog::lenia_step_contract(),
             ),
             (
-                scalar_field_presentation_offer(),
-                conduit_semantic_catalog::scalar_field_presentation_contract(),
+                scalar_field_face_offer(),
+                conduit_semantic_catalog::scalar_field_face_contract(),
             ),
         ] {
             assert_eq!(offer.kind_id, contract.kind_id);

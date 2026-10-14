@@ -354,8 +354,8 @@ fn validate_signs(
                 return Err("observation identity disagrees with its play".to_string());
             }
         }
-        if observation.presentation_id.is_some() && observation.active_play_id.is_none() {
-            return Err("presentation Sign has no active play identity".to_string());
+        if observation.face_id.is_some() && observation.active_play_id.is_none() {
+            return Err("face Sign has no active play identity".to_string());
         }
         validate_sign_plan_membership(snapshot, observation)?;
         if !sign_ids.insert(observation.sign_id.clone()) {

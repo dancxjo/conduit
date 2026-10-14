@@ -4,7 +4,7 @@ use super::*;
 fn canonical_little_seismograph_and_unrelated_text_complete_in_one_body_play() {
     let request = tests::request_from_sources(&[
         include_str!("../../../../../plots/little-seismograph/main.conduit"),
-        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message >> show\n}.\n",
+        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -22,10 +22,10 @@ fn canonical_little_seismograph_and_unrelated_text_complete_in_one_body_play() {
                     panic!("deterministic Seismograph source must not request a host effect")
                 };
                 assert_eq!(value.active_play_id, started.play.active_play_id.as_str());
-                match value.presentation_kind.as_str() {
-                    conduit_data::MEASUREMENT_PLOT_PRESENTATION_KIND => plot = value.text,
-                    conduit_data::MEASUREMENT_THRESHOLD_PRESENTATION_KIND => threshold = value.text,
-                    "presentation/text" => {
+                match value.face_kind.as_str() {
+                    conduit_data::MEASUREMENT_PLOT_FACE_KIND => plot = value.text,
+                    conduit_data::MEASUREMENT_THRESHOLD_FACE_KIND => threshold = value.text,
+                    "face/text" => {
                         assert_eq!(value.text.as_deref(), Some("unrelated workload"));
                         unrelated = true;
                     }

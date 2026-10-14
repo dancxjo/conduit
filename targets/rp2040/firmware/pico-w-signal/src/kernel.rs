@@ -25,7 +25,7 @@ use embassy_time::{Duration, Timer};
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::receipts::BootIdentity;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-use crate::receipts::PresentationReceiptIdentity;
+use crate::receipts::FaceReceiptIdentity;
 #[cfg(not(feature = "wifi-bootstrap"))]
 use crate::receipts::TerminalIdentity;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
@@ -35,7 +35,7 @@ use crate::signal_image::BOOT_SIGN_ID;
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 use crate::signal_image::{
     decode_wait_ms, generated_cords, generated_host_bindings, generated_nodes, generated_routes,
-    presentation_identity, signal_layout, value_store_bytes, CORDS, EMPTY_VALUE_REF,
+    face_identity, signal_layout, value_store_bytes, CORDS, EMPTY_VALUE_REF,
     HOST_BINDING_SLOTS, MAX_STORED_SIGNAL_VALUES, NODES, PENDING_REQUESTS, PORTS, QUEUE_SLOTS,
     ROUTE_SLOTS, ROUTE_TARGETS, RUNTIME_SIGN_BYTES, RUNTIME_SIGN_EVENTS, VALUE_SLOTS,
     WAIT_VALUE_BYTES,
@@ -169,7 +169,7 @@ pub async fn run_signal_demo(
                         error = true;
                         break;
                     };
-                    let Some(identity) = presentation_identity(*signal.sequence() as usize) else {
+                    let Some(identity) = face_identity(*signal.sequence() as usize) else {
                         fail_host_request(&mut scheduler, req.node, req.request);
                         error = true;
                         break;
@@ -179,7 +179,7 @@ pub async fn run_signal_demo(
                         .write_receipt(
                             *signal.sequence(),
                             *signal.level(),
-                            presentation_receipt_identity(identity),
+                            face_receipt_identity(identity),
                             runtime,
                         )
                         .await
@@ -225,10 +225,10 @@ pub fn boot_identity() -> BootIdentity {
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-pub fn presentation_receipt_identity(
-    identity: crate::signal_image::PresentationIdentity,
-) -> PresentationReceiptIdentity {
-    PresentationReceiptIdentity {
+pub fn face_receipt_identity(
+    identity: crate::signal_image::FaceIdentity,
+) -> FaceReceiptIdentity {
+    FaceReceiptIdentity {
         firmware_build_id: FIRMWARE_BUILD_ID,
         source_document_id: SOURCE_DOCUMENT_ID,
         checked_plot_id: CHECKED_PLOT_ID,
@@ -238,7 +238,7 @@ pub fn presentation_receipt_identity(
         host_id: HOST_ID,
         boot_id: BOOT_ID,
         active_play_id: ACTIVE_PLAY_ID,
-        presentation_id: identity.presentation_id,
+        face_id: identity.face_id,
         sign_id: identity.sign_id,
     }
 }

@@ -206,7 +206,7 @@ export class BrowserBody {
   /** Admit one exact Plan and return the Play receipt emitted by the Rust runtime. */
   wake(options = {}) { return this.#operate(() => this.#wake(options)); }
 
-  async #wake({ root = this.#root, presentationRootFor } = {}) {
+  async #wake({ root = this.#root, faceRootFor } = {}) {
     if (this.#play) throw sdkRefusal("Body.wake", { code: "PlayAlreadyActive", message: "Body already has an active Play" }, this.#identities());
     await this.#openWorkspace();
     const proposalResult = this.#bridge.workspaceRequest({
@@ -221,7 +221,7 @@ export class BrowserBody {
       adapter = this.#acquireBodyHost({
         api: this.#api, hostId: this.#host, bootId: this.#boot, proposal,
         storage: this.#storage,
-        inputTarget: root, outputRoot: root, presentationRootFor,
+        inputTarget: root, outputRoot: root, faceRootFor,
         foregroundPlot: () => {
           const current = this.#bridge.workspaceRequest({ action: "Current" });
           if (current.status < 0) throw sdkRefusal("Body.foreground", current.outputJson, this.#identities());
@@ -374,7 +374,7 @@ export class BrowserBody {
 }
 
 // This only preserves the reviewed envelope; Rust still checks every source and
-// presentation profile when the new workset is admitted.
+// face profile when the new workset is admitted.
 function reviewedBundle(source) {
   try {
     const value = JSON.parse(source);

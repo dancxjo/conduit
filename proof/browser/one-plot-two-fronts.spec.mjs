@@ -17,7 +17,7 @@ function startJourneyEntrance() {
   return {child,lines,url};
 }
 
-test("one Presentation manifests as retained native and pinned-browser fronts",async({browser,page})=>{
+test("one Face manifests as retained native and pinned-browser fronts",async({browser,page})=>{
   const evidenceRoot=process.env.CONDUIT_TWO_FACES_EVIDENCE_ROOT;
   expect(evidenceRoot).toBeTruthy();
   const native=JSON.parse(await readFile(path.join(evidenceRoot,"native.json"),"utf8"));
@@ -26,13 +26,13 @@ test("one Presentation manifests as retained native and pinned-browser fronts",a
     const url=await server.url;
     await page.goto(url);
     const snapshot=await page.evaluate(async()=>(await fetch("/api/snapshot",{cache:"no-store"})).json());
-    expect(snapshot.presentation.identity).toBe(native.presentation_id);
-    expect(snapshot.presentation.revision).toBe(native.presentation_revision);
-    expect(snapshot.presentation.basis).toEqual(native.presentation_basis);
-    const plot=snapshot.presentation.subjects.find(subject=>subject.role==="Plot");
+    expect(snapshot.face.identity).toBe(native.face_id);
+    expect(snapshot.face.revision).toBe(native.face_revision);
+    expect(snapshot.face.basis).toEqual(native.face_basis);
+    const plot=snapshot.face.subjects.find(subject=>subject.role==="Plot");
     expect(plot).toBeTruthy();
     await expect(page.getByRole("article",{name:plot.name,exact:true})).toBeVisible();
-    await expect(page.locator("#flow-root")).toHaveAttribute("data-presentation-id",native.presentation_id);
+    await expect(page.locator("#flow-root")).toHaveAttribute("data-face-id",native.face_id);
     await page.screenshot({
       path:path.join(evidenceRoot,"browser.png"),
       fullPage:true,
@@ -43,11 +43,11 @@ test("one Presentation manifests as retained native and pinned-browser fronts",a
     const viewport=page.viewportSize();
     const receipt={
       schema:"conduit.journey/one-plot-two-fronts-browser@1",
-      presentation_id:snapshot.presentation.identity,
-      presentation_revision:snapshot.presentation.revision,
-      presentation_basis:snapshot.presentation.basis,
+      face_id:snapshot.face.identity,
+      face_revision:snapshot.face.revision,
+      face_basis:snapshot.face.basis,
       renderer_kind:"browser-dom-svg",
-      renderer_implementation:"presentation/renderer-dom-svg@1",
+      renderer_implementation:"face/renderer-dom-svg@1",
       manifestation_id:snapshot.renderer.manifestation.manifestation_id,
       renderer_plan_id:snapshot.renderer.plan.plan_id,
       renderer_play_id:snapshot.renderer.manifestation.active_play_id,

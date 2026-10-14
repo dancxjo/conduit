@@ -7,7 +7,7 @@ fn append(bytes: &[u8]) -> Result<(), &'static str> {
     #[cfg(target_os = "none")]
     crate::arch::append_boot_diagnostic(bytes).map_err(|_| "protocol-usb-preflight-diagnostic")?;
     #[cfg(not(target_os = "none"))]
-    let _ = bytes; // Deterministic tests do not access native presentation MMIO.
+    let _ = bytes; // Deterministic tests do not access native face MMIO.
     Ok(())
 }
 fn hex(bytes: &[u8]) -> Result<(), &'static str> {

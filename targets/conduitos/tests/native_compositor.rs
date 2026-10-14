@@ -5,14 +5,13 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
+use conduit_face::{
+    Face, FaceBasis, FaceRole, FaceSubject, FaceText, GraphicsCommand, GraphicsPaintRole,
+    GraphicsScene, GraphicsShapeStyle, LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation,
+    ManifestationLifecycle, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_plot::{ProfileCatalog, parse};
-use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
-    MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
-    PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
-    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
-};
 use conduitos::{
     display::DisplayError,
     native_compositor::{
@@ -27,11 +26,11 @@ mod support;
 mod text_damage;
 use support::MemoryDisplay;
 
-const SURFACE_CLASS: &str = "presentation/surface";
+const SURFACE_CLASS: &str = "face/surface";
 
 #[test]
 fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
-    let (presentation, plan, mut manifestation) = specimen();
+    let (face, plan, mut manifestation) = specimen();
     manifestation = manifestation
         .transition(
             ManifestationLifecycle::Available,
@@ -64,16 +63,9 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
         .unwrap();
     let scene = scene();
     let receipt = compositor
-        .update_surface(
-            &presentation,
-            &manifestation,
-            &plan,
-            "surface/main",
-            &base,
-            &scene,
-        )
+        .update_surface(&face, &manifestation, &plan, "surface/main", &base, &scene)
         .unwrap();
-    assert_eq!(receipt.presentation_id, presentation.identity);
+    assert_eq!(receipt.face_id, face.identity);
     assert_eq!(receipt.manifestation_id, manifestation.manifestation_id);
     assert_eq!(receipt.plan_id, plan.plan_id);
     assert_eq!(receipt.active_play_id, manifestation.active_play_id);
@@ -90,7 +82,7 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
     assert_ne!(display.pixels[33], 0);
     assert_eq!(
         compositor.update_surface(
-            &presentation,
+            &face,
             &manifestation,
             &plan,
             "surface/main",
@@ -103,7 +95,7 @@ fn admitted_native_compositor_binds_exact_manifestation_and_scanout() {
 
 #[test]
 fn admission_and_exact_identity_fail_closed_before_scanout() {
-    let (presentation, plan, manifestation) = specimen();
+    let (face, plan, manifestation) = specimen();
     let base = HostBaseId::from("display/base/0");
     assert_eq!(
         CompositorAdmission::new(
@@ -163,14 +155,7 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
             .admit_surface("surface/main", surface_bounds(), 0)
             .unwrap();
         assert_eq!(
-            compositor.update_surface(
-                &presentation,
-                &changed,
-                &plan,
-                "surface/main",
-                &base,
-                &scene
-            ),
+            compositor.update_surface(&face, &changed, &plan, "surface/main", &base, &scene),
             Err(expected)
         );
         assert_eq!(compositor.receipts().count(), 0);
@@ -181,7 +166,7 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
         .unwrap();
     assert_eq!(
         compositor.update_surface(
-            &presentation,
+            &face,
             &manifestation,
             &plan,
             "surface/unadmitted",
@@ -192,7 +177,7 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
     );
     assert_eq!(
         compositor.update_surface(
-            &presentation,
+            &face,
             &manifestation,
             &plan,
             "surface/main",
@@ -211,15 +196,8 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
     let mut lost = NativeCompositor::admitted(admission);
     lost.admit_surface("surface/main", surface_bounds(), 0)
         .unwrap();
-    lost.update_surface(
-        &presentation,
-        &available,
-        &plan,
-        "surface/main",
-        &base,
-        &scene,
-    )
-    .unwrap();
+    lost.update_surface(&face, &available, &plan, "surface/main", &base, &scene)
+        .unwrap();
     assert_eq!(
         lost.compose_frame(&mut MemoryDisplay::lost()),
         Err(NativeCompositorError::Display(DisplayError::Lost))
@@ -229,7 +207,7 @@ fn admission_and_exact_identity_fail_closed_before_scanout() {
 
 #[test]
 fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
-    let (presentation, plan, manifestation) = specimen();
+    let (face, plan, manifestation) = specimen();
     let first = manifestation
         .transition(
             ManifestationLifecycle::Available,
@@ -243,7 +221,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
         2,
     );
     let second = Manifestation::prepared(
-        &presentation,
+        &face,
         &plan,
         active,
         manifestation.placement_id.clone(),
@@ -295,7 +273,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
         .unwrap();
     compositor
         .update_surface(
-            &presentation,
+            &face,
             &first,
             &plan,
             "surface/main",
@@ -305,7 +283,7 @@ fn retained_surfaces_update_independently_and_compose_by_geometry_and_z() {
         .unwrap();
     compositor
         .update_surface(
-            &presentation,
+            &face,
             &second,
             &plan,
             "surface/overlay",
@@ -390,11 +368,11 @@ fn colored_scene(paint: GraphicsPaintRole) -> GraphicsScene {
     scene
 }
 
-fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
+fn specimen() -> (Face, conduit_core::Plan, Manifestation) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
     let plot = parse(
-        "plot front {\n    renderer: presentation/renderer\n}\n",
+        "plot front {\n    renderer: face/renderer(\"Body view\")\n}\n",
         &catalog,
     )
     .unwrap();
@@ -409,9 +387,9 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     )
     .unwrap();
     let (body, wake) = body.wake(1, SignId::from("body/wake")).unwrap();
-    let presentation = Presentation::new(
+    let face = Face::new(
         1,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(plot.source_document_id),
@@ -419,16 +397,16 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
             expanded_plot_id: Some(plot.expanded_plot_id),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
-            sign_ids: vec![SignId::from("presentation/source")],
+            sign_ids: vec![SignId::from("face/source")],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "front/main".into(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: "Main front".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "front/main".into(),
             text: "Native compositor".into(),
         }],
@@ -437,7 +415,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
     let placement = &plan.fragments[0].placements[0];
     let active = bind_active_play(&plan.plan_id, &placement.host_id, &placement.boot_id, 1);
     let manifestation = Manifestation::prepared(
-        &presentation,
+        &face,
         &plan,
         active,
         placement.placement_id.clone(),
@@ -446,7 +424,7 @@ fn specimen() -> (Presentation, conduit_core::Plan, Manifestation) {
         SignId::from("manifestation/prepared"),
     )
     .unwrap();
-    (presentation, plan, manifestation)
+    (face, plan, manifestation)
 }
 
 fn native_host() -> HostAdvertisement {
@@ -465,7 +443,7 @@ fn native_host() -> HostAdvertisement {
             artifact_id: ArtifactId::from("conduitos/native-image@1"),
             host_call: HostCallRequirement {
                 contract_id: HostCallContractId::from("conduit.host/present@1"),
-                target_kind: Some(kind_id("presentation/base/native-compositor@1")),
+                target_kind: Some(kind_id("face/base/native-compositor@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                 maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,

@@ -1,6 +1,6 @@
 //! An actual terminal provider consumes its Show before the next Todo Play.
 use super::*;
-use conduit_presentation::{FaceInteraction, PresentationPropertyValue};
+use conduit_face::{FaceInteraction, FacePropertyValue};
 
 #[test]
 fn terminal_completes_verified_todo_and_rejects_prior_show() {
@@ -61,7 +61,7 @@ fn terminal_completes_verified_todo_and_rejects_prior_show() {
         .iter()
         .any(|p| p.subject == "todo/item/task-1"
             && p.name == "complete"
-            && p.value == PresentationPropertyValue::Flag(true)));
+            && p.value == FacePropertyValue::Flag(true)));
     assert_ne!(next_plan, plan);
     assert_ne!(next_show.show_id, show.show_id);
     assert!(runtime
@@ -102,9 +102,9 @@ fn committed_todo_admits_next_action_without_terminal_provider() {
             &show,
             "todo.add",
             "todo/list",
-            vec![conduit_presentation::FaceInteractionArgument {
+            vec![conduit_face::FaceInteractionArgument {
                 name: "text".into(),
-                value_kind: conduit_presentation::UTF8_TEXT_VALUE_KIND.into(),
+                value_kind: conduit_face::UTF8_TEXT_VALUE_KIND.into(),
                 value: format!("Next {sequence}").into_bytes(),
             }],
             sequence,

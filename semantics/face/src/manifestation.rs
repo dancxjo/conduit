@@ -1,0 +1,502 @@
+//! Exact portable result of one planned renderer realization.
+
+use alloc::string::String;
+use conduit_body::{BodyId, WakeId};
+use conduit_core::{
+    bind_active_play, verify_plan, ActivePlayId, ActivePlayIdentity, ArtifactId, BootId,
+    CapabilityId, HostId, ImplementationId, OfferGeneration, PlacementId, Plan, PlanId,
+    PlannedGear, SignId,
+};
+use serde::{Deserialize, Serialize};
+use sha2::{Digest, Sha256};
+
+use crate::{Face, FaceContentId, RENDERER_KIND};
+
+pub const MAX_MANIFESTATION_TARGET_BYTES: usize = 256;
+pub const MAX_MANIFESTATION_SIGNS: usize = 3;
+
+#[derive(Debug, Clone, PartialEq, Eq, PartialOrd, Ord, Serialize, Deserialize)]
+pub struct ManifestationId(String);
+
+impl ManifestationId {
+    pub fn as_str(&self) -> &str {
+        &self.0
+    }
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ManifestationLifecycle {
+    Prepared,
+    Available,
+    Replaced,
+    Closed,
+    Failed,
+}
+
+#[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum ManifestationFailure {
+    AdapterUnavailable,
+    OutputRejected,
+    DeliveryFailed,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ManifestationSign {
+    pub sign_id: SignId,
+    pub manifestation_id: ManifestationId,
+    pub face_id: FaceContentId,
+    pub plan_id: PlanId,
+    pub active_play_id: ActivePlayId,
+    pub play_sequence: u64,
+    pub placement_id: PlacementId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub presenter_implementation_id: ImplementationId,
+    pub lifecycle: ManifestationLifecycle,
+    pub failure: Option<ManifestationFailure>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct Manifestation {
+    pub manifestation_id: ManifestationId,
+    pub body_id: Option<BodyId>,
+    pub wake_id: Option<WakeId>,
+    pub face_id: FaceContentId,
+    pub face_revision: u64,
+    pub plan_id: PlanId,
+    pub active_play_id: ActivePlayId,
+    pub play_sequence: u64,
+    pub placement_id: PlacementId,
+    pub front_subject: String,
+    pub presenter_capability_id: CapabilityId,
+    pub presenter_implementation_id: ImplementationId,
+    pub presenter_artifact_id: ArtifactId,
+    pub host_id: HostId,
+    pub boot_id: BootId,
+    pub offer_generation: OfferGeneration,
+    pub target_subject: String,
+    pub lifecycle: ManifestationLifecycle,
+    pub failure: Option<ManifestationFailure>,
+    pub signs: alloc::vec::Vec<ManifestationSign>,
+}
+
+/// Canonical face vocabulary for one finite realized occurrence.
+///
+/// The underlying Rust representation retains its historical name while the
+/// public Mask boundary and semantic value identity migrate to Show.
+pub type Show = Manifestation;
+pub type ShowId = ManifestationId;
+pub type ShowLifecycle = ManifestationLifecycle;
+pub type ShowFailure = ManifestationFailure;
+pub type ShowSign = ManifestationSign;
+pub type ShowError = ManifestationError;
+
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub enum ManifestationError {
+    InvalidFace,
+    InvalidPlan,
+    MissingRendererPlacement,
+    WrongRendererContract,
+    UnknownFaceSubject,
+    InvalidTarget,
+    TooManyManifestations,
+    DuplicateManifestation,
+    UnadmittedManifestation,
+    InvalidTransition,
+    StaleIdentity,
+}
+
+impl core::fmt::Display for ManifestationError {
+    fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        write!(formatter, "invalid Manifestation: {self:?}")
+    }
+}
+
+impl Manifestation {
+    pub fn prepared(
+        face: &Face,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement_id: PlacementId,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        face.validate()
+            .map_err(|_| ManifestationError::InvalidFace)?;
+        let placement = renderer_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            face,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    pub(crate) fn prepared_at_mask_plot_boundary(
+        face: &Face,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement_id: PlacementId,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        face.validate()
+            .map_err(|_| ManifestationError::InvalidFace)?;
+        let placement = planned_placement(plan, &placement_id)?;
+        Self::prepared_at_placement(
+            face,
+            plan,
+            active_play,
+            placement,
+            front_subject,
+            target_subject,
+            sign_id,
+        )
+    }
+
+    #[allow(clippy::too_many_arguments)]
+    fn prepared_at_placement(
+        face: &Face,
+        plan: &Plan,
+        active_play: ActivePlayIdentity,
+        placement: &PlannedGear,
+        front_subject: String,
+        target_subject: String,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        if active_play.plan_id != plan.plan_id
+            || active_play.host_id != placement.host_id
+            || active_play.boot_id != placement.boot_id
+            || active_play
+                != bind_active_play(
+                    &plan.plan_id,
+                    &placement.host_id,
+                    &placement.boot_id,
+                    active_play.play_sequence,
+                )
+        {
+            return Err(ManifestationError::StaleIdentity);
+        }
+        validate_target(&front_subject)?;
+        validate_front_subject(face, &front_subject)?;
+        validate_target(&target_subject)?;
+        let manifestation_id = bind_manifestation(
+            &face.identity,
+            &plan.plan_id,
+            &active_play.active_play_id,
+            placement,
+            &front_subject,
+            &target_subject,
+        );
+        let mut manifestation = Self {
+            manifestation_id,
+            body_id: face.basis.body_id.clone(),
+            wake_id: face.basis.wake_id.clone(),
+            face_id: face.identity.clone(),
+            face_revision: face.revision,
+            plan_id: plan.plan_id.clone(),
+            active_play_id: active_play.active_play_id,
+            play_sequence: active_play.play_sequence,
+            placement_id: placement.placement_id.clone(),
+            front_subject,
+            presenter_capability_id: placement.capability_id.clone(),
+            presenter_implementation_id: placement.implementation_id.clone(),
+            presenter_artifact_id: placement.artifact_id.clone(),
+            host_id: placement.host_id.clone(),
+            boot_id: placement.boot_id.clone(),
+            offer_generation: placement.offer_generation,
+            target_subject,
+            lifecycle: ManifestationLifecycle::Prepared,
+            failure: None,
+            signs: alloc::vec::Vec::new(),
+        };
+        manifestation.push_sign(sign_id);
+        Ok(manifestation)
+    }
+
+    pub fn transition(
+        &self,
+        lifecycle: ManifestationLifecycle,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        let accepted = matches!(
+            (self.lifecycle, lifecycle),
+            (
+                ManifestationLifecycle::Prepared,
+                ManifestationLifecycle::Available
+            ) | (
+                ManifestationLifecycle::Available,
+                ManifestationLifecycle::Replaced
+            ) | (
+                ManifestationLifecycle::Available,
+                ManifestationLifecycle::Closed
+            )
+        );
+        if !accepted
+            || self.signs.len() >= MAX_MANIFESTATION_SIGNS
+            || self.signs.iter().any(|sign| sign.sign_id == sign_id)
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
+        let mut next = self.clone();
+        next.lifecycle = lifecycle;
+        next.failure = None;
+        next.push_sign(sign_id);
+        Ok(next)
+    }
+
+    pub fn fail(
+        &self,
+        failure: ManifestationFailure,
+        sign_id: SignId,
+    ) -> Result<Self, ManifestationError> {
+        if !matches!(
+            self.lifecycle,
+            ManifestationLifecycle::Prepared | ManifestationLifecycle::Available
+        ) || self.signs.len() >= MAX_MANIFESTATION_SIGNS
+            || self.signs.iter().any(|sign| sign.sign_id == sign_id)
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
+        let mut next = self.clone();
+        next.lifecycle = ManifestationLifecycle::Failed;
+        next.failure = Some(failure);
+        next.push_sign(sign_id);
+        Ok(next)
+    }
+
+    pub fn validate_against<'a>(
+        &self,
+        face: &Face,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
+        face.validate()
+            .map_err(|_| ManifestationError::InvalidFace)?;
+        let placement = renderer_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(face, plan, placement)?;
+        Ok(placement)
+    }
+
+    pub(crate) fn validate_against_mask_plot<'a>(
+        &self,
+        face: &Face,
+        plan: &'a Plan,
+    ) -> Result<&'a PlannedGear, ManifestationError> {
+        face.validate()
+            .map_err(|_| ManifestationError::InvalidFace)?;
+        let placement = planned_placement(plan, &self.placement_id)?;
+        self.validate_at_placement(face, plan, placement)?;
+        Ok(placement)
+    }
+
+    fn validate_at_placement(
+        &self,
+        face: &Face,
+        plan: &Plan,
+        placement: &PlannedGear,
+    ) -> Result<(), ManifestationError> {
+        if self.body_id != face.basis.body_id
+            || self.wake_id != face.basis.wake_id
+            || self.face_id != face.identity
+            || self.face_revision != face.revision
+            || self.plan_id != plan.plan_id
+            || self.presenter_capability_id != placement.capability_id
+            || self.presenter_implementation_id != placement.implementation_id
+            || self.presenter_artifact_id != placement.artifact_id
+            || self.host_id != placement.host_id
+            || self.boot_id != placement.boot_id
+            || self.offer_generation != placement.offer_generation
+            || self.active_play_id
+                != bind_active_play(
+                    &plan.plan_id,
+                    &placement.host_id,
+                    &placement.boot_id,
+                    self.play_sequence,
+                )
+                .active_play_id
+            || self.manifestation_id
+                != bind_manifestation(
+                    &face.identity,
+                    &plan.plan_id,
+                    &self.active_play_id,
+                    placement,
+                    &self.front_subject,
+                    &self.target_subject,
+                )
+        {
+            return Err(ManifestationError::StaleIdentity);
+        }
+        validate_target(&self.front_subject)?;
+        validate_front_subject(face, &self.front_subject)?;
+        validate_target(&self.target_subject)?;
+        if (self.lifecycle == ManifestationLifecycle::Failed) != self.failure.is_some()
+            || !self.valid_signs()
+        {
+            return Err(ManifestationError::InvalidTransition);
+        }
+        Ok(())
+    }
+
+    fn push_sign(&mut self, sign_id: SignId) {
+        self.signs.push(ManifestationSign {
+            sign_id,
+            manifestation_id: self.manifestation_id.clone(),
+            face_id: self.face_id.clone(),
+            plan_id: self.plan_id.clone(),
+            active_play_id: self.active_play_id.clone(),
+            play_sequence: self.play_sequence,
+            placement_id: self.placement_id.clone(),
+            host_id: self.host_id.clone(),
+            boot_id: self.boot_id.clone(),
+            offer_generation: self.offer_generation,
+            presenter_implementation_id: self.presenter_implementation_id.clone(),
+            lifecycle: self.lifecycle,
+            failure: self.failure,
+        });
+    }
+
+    fn valid_signs(&self) -> bool {
+        if self.signs.is_empty() || self.signs.len() > MAX_MANIFESTATION_SIGNS {
+            return false;
+        }
+        let mut prior = None;
+        for (index, sign) in self.signs.iter().enumerate() {
+            if sign.sign_id.as_str().is_empty()
+                || sign.sign_id.as_str().len() > crate::MAX_FACE_ID_BYTES
+                || self.signs[..index]
+                    .iter()
+                    .any(|earlier| earlier.sign_id == sign.sign_id)
+                || sign.manifestation_id != self.manifestation_id
+                || sign.face_id != self.face_id
+                || sign.plan_id != self.plan_id
+                || sign.active_play_id != self.active_play_id
+                || sign.play_sequence != self.play_sequence
+                || sign.placement_id != self.placement_id
+                || sign.host_id != self.host_id
+                || sign.boot_id != self.boot_id
+                || sign.offer_generation != self.offer_generation
+                || sign.presenter_implementation_id != self.presenter_implementation_id
+                || (sign.lifecycle == ManifestationLifecycle::Failed) != sign.failure.is_some()
+                || !valid_lifecycle_step(prior, sign.lifecycle)
+            {
+                return false;
+            }
+            prior = Some(sign.lifecycle);
+        }
+        self.signs
+            .last()
+            .is_some_and(|sign| sign.lifecycle == self.lifecycle && sign.failure == self.failure)
+    }
+}
+
+fn valid_lifecycle_step(
+    prior: Option<ManifestationLifecycle>,
+    next: ManifestationLifecycle,
+) -> bool {
+    matches!(
+        (prior, next),
+        (None, ManifestationLifecycle::Prepared)
+            | (
+                Some(ManifestationLifecycle::Prepared),
+                ManifestationLifecycle::Available | ManifestationLifecycle::Failed
+            )
+            | (
+                Some(ManifestationLifecycle::Available),
+                ManifestationLifecycle::Replaced
+                    | ManifestationLifecycle::Closed
+                    | ManifestationLifecycle::Failed
+            )
+    )
+}
+
+pub(crate) fn renderer_placement<'a>(
+    plan: &'a Plan,
+    placement_id: &PlacementId,
+) -> Result<&'a PlannedGear, ManifestationError> {
+    let placement = planned_placement(plan, placement_id)?;
+    if placement.kind_id.as_str() != RENDERER_KIND
+        || placement.inputs != crate::renderer_inputs()
+        || placement.outputs != crate::renderer_outputs()
+    {
+        return Err(ManifestationError::WrongRendererContract);
+    }
+    Ok(placement)
+}
+
+fn planned_placement<'a>(
+    plan: &'a Plan,
+    placement_id: &PlacementId,
+) -> Result<&'a PlannedGear, ManifestationError> {
+    if !verify_plan(plan) {
+        return Err(ManifestationError::InvalidPlan);
+    }
+    let placement = plan
+        .fragments
+        .iter()
+        .flat_map(|fragment| &fragment.placements)
+        .find(|placement| &placement.placement_id == placement_id)
+        .ok_or(ManifestationError::MissingRendererPlacement)?;
+    Ok(placement)
+}
+
+fn validate_target(value: &str) -> Result<(), ManifestationError> {
+    if value.is_empty() || value.len() > MAX_MANIFESTATION_TARGET_BYTES {
+        Err(ManifestationError::InvalidTarget)
+    } else {
+        Ok(())
+    }
+}
+
+fn validate_front_subject(face: &Face, front_subject: &str) -> Result<(), ManifestationError> {
+    if face
+        .subjects
+        .iter()
+        .any(|subject| subject.identity == front_subject)
+    {
+        Ok(())
+    } else {
+        Err(ManifestationError::UnknownFaceSubject)
+    }
+}
+
+fn bind_manifestation(
+    face: &FaceContentId,
+    plan: &PlanId,
+    active_play: &ActivePlayId,
+    placement: &PlannedGear,
+    front_subject: &str,
+    target_subject: &str,
+) -> ManifestationId {
+    let mut digest = Sha256::new();
+    for value in [
+        "conduit.face/show@1",
+        face.as_str(),
+        plan.as_str(),
+        active_play.as_str(),
+        placement.placement_id.as_str(),
+        placement.host_id.as_str(),
+        placement.boot_id.as_str(),
+        placement.capability_id.as_str(),
+        placement.implementation_id.as_str(),
+        placement.artifact_id.as_str(),
+        front_subject,
+        target_subject,
+    ] {
+        digest.update((value.len() as u32).to_le_bytes());
+        digest.update(value.as_bytes());
+    }
+    digest.update(placement.offer_generation.0.to_le_bytes());
+    let bytes: [u8; 32] = digest.finalize().into();
+    let mut output = String::with_capacity(64);
+    for byte in bytes {
+        use core::fmt::Write;
+        let _ = write!(output, "{byte:02x}");
+    }
+    ManifestationId(output)
+}

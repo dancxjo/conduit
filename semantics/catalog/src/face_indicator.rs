@@ -1,0 +1,105 @@
+//! Portable manifestation of one finite Morse indicator pattern.
+
+use super::{KindTerminalBehavior, StandardKindContract};
+use alloc::{string::ToString, vec, vec::Vec};
+use conduit_core::{
+    kind_id, port_id, CapabilityLimits, Kind, KindIdentity, PortDescriptor, PortDirection,
+    PortTemporal,
+};
+
+pub const INDICATOR_FACE_KIND: &str = "face/indicator";
+pub const INDICATOR_FACE_CONTRACT_REVISION: &str = "conduit.face/indicator@2";
+pub const MAXIMUM_PENDING_INDICATOR_PATTERNS: u16 = 4;
+
+pub fn indicator_face_contract() -> StandardKindContract {
+    StandardKindContract {
+        kind_id: kind_id(INDICATOR_FACE_KIND),
+        plain_name: "Indicator pattern".to_string(),
+        summary:
+            "Manifest one finite timed indication pattern through an admitted presenter effect."
+                .to_string(),
+        inputs: indicator_face_inputs(),
+        outputs: Vec::new(),
+        configuration: crate::data_label_configuration(),
+        limits: CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: MAXIMUM_PENDING_INDICATOR_PATTERNS,
+            max_queue_bytes: conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+                * u32::from(MAXIMUM_PENDING_INDICATOR_PATTERNS),
+        },
+        terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
+        hosted_implementation_required: true,
+        browser_manifestation_honest: true,
+        pico_manifestation_honest: false,
+        example: "light: face/indicator(\"Indicator pattern\")".to_string(),
+    }
+}
+
+pub fn indicator_face_semantic_contract() -> Kind {
+    let contract = indicator_face_contract();
+    Kind {
+        startup_parameters: crate::startup_front(&contract.configuration),
+        shorthand: None,
+        kind_id: contract.kind_id,
+        kind_contract_revision: KindIdentity::from(INDICATOR_FACE_CONTRACT_REVISION),
+        inputs: contract.inputs,
+        outputs: contract.outputs,
+        configuration: contract.configuration,
+        semantic_laws: alloc::vec![conduit_core::KindSemanticLaw::Terminal(
+            contract.terminal_behavior
+        )],
+        limits: contract.limits,
+    }
+}
+
+pub fn indicator_face_inputs() -> Vec<PortDescriptor> {
+    vec![PortDescriptor {
+        port_id: port_id("pattern"),
+        value_kind: kind_id(conduit_text::MORSE_PATTERN_VALUE_KIND),
+        direction: PortDirection::Input,
+        temporal: PortTemporal::Value,
+        abnormal_kind: None,
+    }]
+}
+
+#[cfg(feature = "plot-catalog")]
+pub fn install_indicator_face_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), alloc::string::String> {
+    use conduit_plot::KindSignature;
+    startup.insert(KindSignature {
+        kind: INDICATOR_FACE_KIND.into(),
+        startup_parameters: crate::data_label_startup_signature(),
+    })?;
+    profile
+        .insert_kind(indicator_face_semantic_contract())
+        .map_err(|error| error.to_string())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn indicator_consumes_the_canonical_morse_pattern_without_platform_facts() {
+        let contract = indicator_face_contract();
+        assert_eq!(
+            contract.inputs[0].value_kind.as_str(),
+            conduit_text::MORSE_PATTERN_VALUE_KIND
+        );
+        assert_eq!(contract.inputs[0].temporal, PortTemporal::Value);
+        assert!(contract.outputs.is_empty());
+        assert_eq!(
+            contract.limits.max_queue_items,
+            MAXIMUM_PENDING_INDICATOR_PATTERNS
+        );
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            conduit_text::MAXIMUM_MORSE_PATTERN_BYTES as u32
+                * u32::from(MAXIMUM_PENDING_INDICATOR_PATTERNS)
+        );
+        assert!(contract.browser_manifestation_honest);
+        assert!(!contract.pico_manifestation_honest);
+    }
+}

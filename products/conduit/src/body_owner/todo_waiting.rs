@@ -9,8 +9,8 @@ use conduit_core::{
     port_id, AuthorityGrant, ConnectionTrack, ResourceAccessMode, ResourceContentRequirement,
     TerminalDisposition,
 };
+use conduit_face::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_kernel::KernelEventKind;
-use conduit_presentation::{FaceInteraction, FaceInteractionId, MaskShow};
 use conduit_std_host::body_execution::{
     BodyForeOutputAdapter, BodyRunReport, BodyRunRequest, TodoCheckpointSelection, WaitingTodoFore,
 };

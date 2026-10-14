@@ -2,6 +2,10 @@
 //! One pending Play survives the actual terminal effect and typed return path.
 use crate::terminal_face_mask::{TerminalEffectReceipt, TerminalError, TerminalMaskExecution};
 use conduit_core::{HostAdvertisement, PortDirection};
+use conduit_face::{
+    Face, FaceInteraction, ManifestationLifecycle, MaskInteractionCorrelation, MaskShow,
+    PlannedMaskPlot,
+};
 use conduit_kernel::scheduler::{
     HostCallRequest, RemoteIngressOutcome, RemoteTerminalDisposition, SchedulerStatus,
 };
@@ -10,10 +14,6 @@ use conduit_kernel::{
 };
 use conduit_plan_lowering::lowering::{
     lower_plan_fragment, LoweredForePort, FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
-};
-use conduit_presentation::{
-    FaceInteraction, ManifestationLifecycle, MaskInteractionCorrelation, MaskShow, PlannedMaskPlot,
-    Presentation,
 };
 
 #[path = "terminal_mask_execution/backs.rs"]
@@ -38,8 +38,8 @@ mod tests;
 pub const MAX_TERMINAL_VALUE_BYTES: u32 = 64 * 1024;
 const PORTS: usize = FIXED_KERNEL_STORAGE_PORTS_PER_NODE;
 const PRESENT_CALL: &str = "conduit.host/present@1";
-const INTERACTION_CALL: &str = "conduit.host/presentation-interaction@1";
-const TERMINAL_TARGET: &str = "presentation/base/std-terminal@1";
+const INTERACTION_CALL: &str = "conduit.host/face-interaction@1";
+const TERMINAL_TARGET: &str = "face/base/std-terminal@1";
 fn error(message: impl Into<String>) -> TerminalError {
     TerminalError::Execution(message.into())
 }
@@ -63,7 +63,7 @@ pub struct HostedTerminalMaskExecution {
 }
 struct Play {
     scheduler: Box<kernel::Scheduler>,
-    face: Presentation,
+    face: Face,
     show: MaskShow,
     request: HostCallRequest,
     show_fore: LoweredForePort,
@@ -174,7 +174,7 @@ impl HostedTerminalMaskExecution {
 }
 
 impl TerminalMaskExecution for HostedTerminalMaskExecution {
-    fn begin_render(&mut self, face: &Presentation) -> Result<MaskShow, TerminalError> {
+    fn begin_render(&mut self, face: &Face) -> Result<MaskShow, TerminalError> {
         if self.scope_end.is_some_and(|end| self.next_sequence >= end) {
             return Err(error("terminal Body Show bound exhausted"));
         }
@@ -243,7 +243,7 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             || interaction.as_ref().is_some_and(|interaction| {
                 interaction.call != HostCallId(0)
                     || interaction.target_kind.as_ref().map(|k| k.as_str())
-                        != Some(conduit_presentation::FACE_INTERACTION_VALUE_KIND)
+                        != Some(conduit_face::FACE_INTERACTION_VALUE_KIND)
             })
         {
             return Err(error("terminal Host Call binding mismatch"));
@@ -429,7 +429,7 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             .validate_against(&play.face, &play.show)
             .map_err(TerminalError::Interaction)?;
         let expected = interaction.encode();
-        if expected.len() > conduit_presentation::MAX_FACE_INTERACTION_BYTES {
+        if expected.len() > conduit_face::MAX_FACE_INTERACTION_BYTES {
             return Err(TerminalError::InputPressure);
         }
         play.complete_call(Some(&expected))?;

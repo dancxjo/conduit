@@ -1,16 +1,14 @@
 use conduit_birth_plot::{
     BirthActionOutcome, BirthActions, BirthDraft, BirthDraftRefusal, BirthPlotChoice,
-    BirthPresentation,
+    BirthWidgetFace,
 };
 use conduit_body::ResidentPlot;
-use conduit_presentation::ApplicationEventKind;
+use conduit_face::ApplicationEventKind;
 
 #[test]
 fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
     use conduit_birth_plot::HostOwnedBirthFaceBasis;
-    use conduit_presentation::{
-        PresentationActionAvailability, plan_face_utterances, render_linear_presentation,
-    };
+    use conduit_face::{FaceActionAvailability, plan_face_utterances, render_linear_face};
     let draft = draft();
     let selection = draft.selection(draft.revision()).unwrap();
     let face = draft
@@ -20,8 +18,8 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
             encounter_id: "encounter/prebirth-conformance".into(),
         })
         .unwrap();
-    let specimen: conduit_presentation::Presentation = serde_json::from_str(include_str!(
-        "../../../proof/conformance/presentation-waist/domain-derived/prebirth-face.json"
+    let specimen: conduit_face::Face = serde_json::from_str(include_str!(
+        "../../../proof/conformance/face-waist/domain-derived/prebirth-face.json"
     ))
     .unwrap();
     assert_eq!(specimen, face);
@@ -29,9 +27,9 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
     assert!(face.basis.wake_id.is_none());
     assert!(face.basis.plan_id.is_none());
     assert!(face.basis.active_play_id.is_none());
-    let linear = render_linear_presentation(&face).unwrap();
+    let linear = render_linear_face(&face).unwrap();
     let aural = plan_face_utterances(&face).unwrap();
-    assert_eq!(linear.presentation_id, face.identity);
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(aural.source_face_identity, face.identity.as_str());
     assert_eq!(linear.revision, face.revision);
     assert_eq!(aural.source_face_revision, face.revision);
@@ -56,13 +54,13 @@ fn zero_body_draft_preserves_choice_availability_in_nonvisual_projections() {
         .find(|action| {
             matches!(
                 action.availability,
-                PresentationActionAvailability::Unavailable { .. }
+                FaceActionAvailability::Unavailable { .. }
             )
         })
         .unwrap();
     assert!(matches!(
         face.resolve_action(face.revision, &unavailable.identity),
-        Err(conduit_presentation::PresentationActionRefusal::Unavailable { .. })
+        Err(conduit_face::FaceActionRefusal::Unavailable { .. })
     ));
     assert_eq!(draft.selection(draft.revision()).unwrap(), selection);
 }
@@ -94,7 +92,7 @@ fn draft() -> BirthDraft {
 fn current_birth_widget_projects_the_reviewed_friendly_name_and_birth_action() {
     let mut draft = draft();
     draft.edit_name(draft.revision(), "Roseau".into()).unwrap();
-    let view = draft.presentation().unwrap().lower().unwrap();
+    let view = draft.widget_face().unwrap().lower().unwrap();
     assert!(
         view.actions
             .iter()
@@ -106,7 +104,7 @@ fn current_birth_widget_projects_the_reviewed_friendly_name_and_birth_action() {
 #[test]
 fn one_presented_action_boundary_serves_both_presenters_and_preserves_refusals() {
     let mut draft = draft();
-    let view = draft.presentation().unwrap().lower().unwrap();
+    let view = draft.widget_face().unwrap().lower().unwrap();
     assert!(
         view.actions
             .iter()
@@ -116,7 +114,7 @@ fn one_presented_action_boundary_serves_both_presenters_and_preserves_refusals()
         view.nodes
             .iter()
             .any(|node| node.key == "name-system-control"
-                && node.component == conduit_presentation::ApplicationComponent::Select)
+                && node.component == conduit_face::ApplicationComponent::Select)
     );
     assert_eq!(
         draft
@@ -205,7 +203,7 @@ fn search_preserves_selection_and_empty_search_results_remain_presentable() {
             "AUDIO",
         )
         .unwrap();
-    let view = draft.presentation().unwrap().lower().unwrap();
+    let view = draft.widget_face().unwrap().lower().unwrap();
     assert!(view.nodes.iter().any(|node| node.text == "Chime"));
     assert!(
         !view
@@ -228,7 +226,7 @@ fn search_preserves_selection_and_empty_search_results_remain_presentable() {
             "no match",
         )
         .unwrap();
-    let view = draft.presentation().unwrap().lower().unwrap();
+    let view = draft.widget_face().unwrap().lower().unwrap();
     assert!(
         view.nodes
             .iter()
@@ -254,11 +252,11 @@ fn full_inventory_and_every_tradition_fit_the_current_widget_view() {
     let mut draft =
         BirthDraft::new("11111111-2222-4333-8444-555555555555".into(), choices).unwrap();
     draft = draft.allow_idle_body();
-    let view = draft.presentation().unwrap().lower().unwrap();
+    let view = draft.widget_face().unwrap().lower().unwrap();
     assert_eq!(
         view.nodes
             .iter()
-            .filter(|node| node.component == conduit_presentation::ApplicationComponent::Option)
+            .filter(|node| node.component == conduit_face::ApplicationComponent::Option)
             .count(),
         24
     );
@@ -286,7 +284,7 @@ fn widget_protocol_bounds_and_stale_events_refuse_before_mutation() {
             oversized_action.as_str(),
             ApplicationEventKind::Input,
             oversized_value.as_str(),
-            BirthDraftRefusal::StalePresentation,
+            BirthDraftRefusal::StaleFace,
         ),
         (
             revision,
@@ -335,19 +333,19 @@ fn widget_protocol_bounds_and_stale_events_refuse_before_mutation() {
 
 #[test]
 fn widget_control_order_and_single_choice_search_gate_stay_adapter_owned() {
-    use conduit_presentation::PresentationMechanism;
+    use conduit_face::FaceMechanism;
 
     let draft = draft();
-    let view = draft.presentation().unwrap();
+    let view = draft.widget_face().unwrap();
     let mut controls = Vec::new();
     // Native arrival consumes this order to route keyboard focus.
     for node in &view.root.children {
         match &node.mechanism {
-            PresentationMechanism::FormField(field) => {
+            FaceMechanism::FormField(field) => {
                 controls.push(field.input_action.identity.as_str());
             }
-            PresentationMechanism::Action(action) => controls.push(action.identity.as_str()),
-            PresentationMechanism::ChoiceGroup { options, .. } => {
+            FaceMechanism::Action(action) => controls.push(action.identity.as_str()),
+            FaceMechanism::ChoiceGroup { options, .. } => {
                 controls.extend(
                     options
                         .iter()
@@ -376,7 +374,7 @@ fn widget_control_order_and_single_choice_search_gate_stay_adapter_owned() {
     .unwrap();
     assert!(
         !single
-            .presentation()
+            .widget_face()
             .unwrap()
             .lower()
             .unwrap()

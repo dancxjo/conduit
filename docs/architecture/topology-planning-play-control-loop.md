@@ -160,7 +160,7 @@ they admit candidates during planning but do not transfer a prior realization,
 play, grant, reservation, or attachment. Without that proof realization replaces
 the state and reports the gap.
 
-### 6. Observatory presentation
+### 6. Observatory face
 
 Observatory presents an ordered sign view, not invented causality:
 

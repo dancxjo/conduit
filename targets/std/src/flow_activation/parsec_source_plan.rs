@@ -3,16 +3,16 @@
 use conduit_core::{
     CapabilityOffer, ConfigurationValue, HostAdvertisement, Plan, PreparationHostIdentity,
 };
+use conduit_face::{
+    prepare_checked_parsec_map_transition, prepare_checked_source_plan, CheckedSourcePlanInputs,
+    PreparedCheckedSourcePlan, PreparedParsecMapTransition, PARSEC_MAP_FRAME_BYTES,
+    PARSEC_MAP_TRANSITION_SOURCE,
+};
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlacementChoices, PlanningOptions};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     CanonicalBackCatalog, CheckedSyntaxDocument, ExpandedAuthoringPlot, PortableExpressionProgram,
     ProfileCatalog, StartupCatalog,
-};
-use conduit_presentation::{
-    prepare_checked_parsec_map_transition, prepare_checked_source_plan, CheckedSourcePlanInputs,
-    PreparedCheckedSourcePlan, PreparedParsecMapTransition, PARSEC_MAP_FRAME_BYTES,
-    PARSEC_MAP_TRANSITION_SOURCE,
 };
 use std::collections::BTreeMap;
 

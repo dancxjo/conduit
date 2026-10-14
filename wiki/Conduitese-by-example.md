@@ -18,7 +18,7 @@ Current tree: [plots/hello/main.conduit](https://github.com/dancxjo/conduit/blob
 ```conduit
 plot hello {
     upper: text/upper
-    show: presentation/text
+    show: face/text("Message")
 
     "Hello, world." >> upper >> show
 }.
@@ -35,7 +35,7 @@ Current tree: [plots/clock/main.conduit](https://github.com/dancxjo/conduit/blob
 ```conduit
 plot clock-demo {
     clock: time/every(1s)
-    clock >> presentation/tick
+    clock >> face/tick("Clock tick")
 }
 ```
 
@@ -52,7 +52,7 @@ plot memory_lantern {
     keyboard: input/keyboard
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)
-    show: presentation/text
+    show: face/text("Message")
 
     keyboard.key >> keymap.key
     keymap.text >> message.fragment
@@ -97,7 +97,7 @@ Current tree: [plots/button-across-room/main.conduit](https://github.com/dancxjo
 plot button_across_room {
     button: input/button
     state: input/button-indicator-state
-    indicator: presentation/indicator-state
+    indicator: face/indicator-state("Button state")
 
     button >> state >> indicator
 }
@@ -144,7 +144,7 @@ plot pulse-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
-    light: presentation/pulse
+    light: face/pulse("Pulse activity")
 
     tick >> observe.tick
     observe.observation >> light.pulse
@@ -162,7 +162,7 @@ plot pulse-light-tone-manifestation (
     >> tick: value/tick@1...
 ) {
     observe: time/pulse-observe(period-ms = 240)
-    light: presentation/pulse
+    light: face/pulse("Pulse activity")
     tone: sound/pulse-tone
 
     tick >> observe.tick
@@ -217,7 +217,7 @@ Current tree: [plots/body-chat/main.conduit](https://github.com/dancxjo/conduit/
 ```conduit
 plot body-chat (
     >> interaction: FaceInteraction...|
-    face: Presentation...| >>
+    face: Face...| >>
 ) {
     ui: chat/state(title = "Body Chat", history-label = "Conversation", input-label = "Message", submit-label = "Send", status-label = "Body", maximum-history-items = 16, maximum-message-bytes = 256)
     submit: chat/submit(action = "chat/send", maximum-message-bytes = 256)
@@ -230,7 +230,7 @@ plot body-chat (
 
     available.value >> availability.source
     availability.value >> ui.live
-    ui.presentation >> face
+    ui.face >> face
     interaction >> submit.interaction
     submit.message >> prompt.message
     context.context >> prompt.context
@@ -250,19 +250,19 @@ Current tree: [plots/native-graphical-mask/main.conduit](https://github.com/danc
 
 ```conduit
 plot native-graphical (
-    >> face: Presentation
+    >> face: Face
     interaction: FaceInteraction...| >>
     show: Show >>
 ) {
-    spread: presentation/tee
-    surface: presentation/show-resource-source
-    render: presentation/resource-renderer
-    human: face/interaction
+    spread: face/tee("Shared Face")
+    surface: face/show-resource-source("Output resource")
+    render: face/resource-renderer("Resource view")
+    human: face/interaction("User actions")
 
-    face >> spread.presentation
-    spread.presentation >> render.presentation
+    face >> spread.face
+    spread.face >> render.face
     surface.show-resource >> render.show-resource
-    spread.presentation >> human.presentation
+    spread.face >> human.face
     render.show >> human.show
     render.show >> show
     human.interaction >> interaction
@@ -406,14 +406,14 @@ host tiny-screen (
     target = conduitos/x86_64/pc
     build = release
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 2
         bytes = 2MiB
     )
 
     display: base machine/display
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = display
     )

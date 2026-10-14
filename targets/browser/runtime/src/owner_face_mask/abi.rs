@@ -72,7 +72,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
     match frame.response {
         OwnerFaceSnapshotResponse::Snapshot {
             schema,
-            presentation,
+            face,
             interactions_admitted,
             route,
         } if schema == OWNER_FACE_RESPONSE_SCHEMA => {
@@ -93,13 +93,9 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             let Some(route) = route else {
                 return -5;
             };
-            let Ok(mask) = OwnerBrowserMask::prepare(
-                basis,
-                *presentation,
-                *route,
-                sequence,
-                interactions_admitted,
-            ) else {
+            let Ok(mask) =
+                OwnerBrowserMask::prepare(basis, *face, *route, sequence, interactions_admitted)
+            else {
                 return -5;
             };
             let result = write_output(&mask.view());
@@ -111,7 +107,7 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
                             ManifestationLifecycle::Replaced,
                             SignId::from(format!(
                                 "sign/browser-owner-face-replaced/{}",
-                                previous.presentation.revision
+                                previous.face.revision
                             )),
                         ) {
                             Ok(show) => show,
@@ -143,8 +139,8 @@ pub extern "C" fn conduit_browser_owner_face_prepare(basis_len: usize, frame_len
             if mask.body_id != basis.body_id
                 || mask.play.host_id != basis.host_id
                 || mask.play.boot_id != basis.boot_id
-                || mask.presentation.revision != revision
-                || mask.presentation.identity != identity
+                || mask.face.revision != revision
+                || mask.face.identity != identity
             {
                 return -6;
             }
@@ -245,8 +241,8 @@ pub extern "C" fn conduit_browser_owner_face_canonical_snapshot() -> i32 {
         }
         write_output(&serde_json::json!({
             "schema": "conduit.browser/owner-canonical-face@1",
-            "presentation": &mask.presentation,
-            "presentation_revision_decimal": mask.presentation.revision.to_string(),
+            "face": &mask.face,
+            "face_revision_decimal": mask.face.revision.to_string(),
             "route": &mask.route,
             "show_id": mask.show.show_id.as_str(),
         }))
@@ -268,7 +264,7 @@ mod tests {
     use super::*;
     use conduit_body::Body;
     use conduit_core::{CheckedPlotId, SourceDocumentId};
-    use conduit_presentation::{Face, FaceContext, FaceFocus};
+    use conduit_face::{BodyFace, FaceContext, FaceFocus};
 
     fn send(basis: &serde_json::Value, response: &OwnerFaceSnapshotResponse) -> i32 {
         let basis = serde_json::to_vec(basis).unwrap();
@@ -298,7 +294,7 @@ mod tests {
             SignId::from("sign/canonical-observation"),
         )
         .unwrap();
-        let face = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             u64::MAX,
@@ -307,7 +303,7 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let mask = OwnerBrowserMask::prepare_component_fixture(
             HostBasis {
                 body_id: body.body_id.clone(),
@@ -341,8 +337,7 @@ mod tests {
             .unwrap()
             .contains("18446744073709551615"));
         let observed: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
-        let retained: Presentation =
-            serde_json::from_value(observed["presentation"].clone()).unwrap();
+        let retained: Face = serde_json::from_value(observed["face"].clone()).unwrap();
         assert_eq!(retained, face);
         assert_eq!(observed["show_id"], prepared.show_id);
         assert_eq!(conduit_browser_owner_face_canonical_snapshot(), 0);
@@ -361,7 +356,7 @@ mod tests {
         )
         .unwrap();
         let revision = 9_007_199_254_740_993;
-        let face = Face::project(
+        let face = BodyFace::project(
             &body,
             None,
             revision,
@@ -370,7 +365,7 @@ mod tests {
             vec![],
         )
         .unwrap()
-        .presentation;
+        .face;
         let basis = serde_json::json!({
             "body_id": body.body_id,
             "host_id": "host/browser-owner-abi",
@@ -381,7 +376,7 @@ mod tests {
                 &basis,
                 &OwnerFaceSnapshotResponse::Snapshot {
                     schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
-                    presentation: Box::new(face.clone()),
+                    face: Box::new(face.clone()),
                     interactions_admitted: false,
                     route: None,
                 }

@@ -1,0 +1,328 @@
+#![cfg(feature = "plot-catalog")]
+
+use conduit_core::{
+    bind_active_play, ActivePlayId, BootId, HostAdvertisement, HostId, HostProfileId,
+    OfferGeneration, PlanId, SignId, PROTOCOL_VERSION,
+};
+use conduit_face::{
+    Face, FaceError, FaceText, Manifestation, ManifestationError, ManifestationFailure,
+    ManifestationLifecycle, FACE_VALUE_KIND, SHOW_VALUE_KIND,
+};
+use conduit_planner::{default_placements, PlannerError};
+use conduit_plot::{check_syntax_document, parse_syntax_document, KindSignature, StartupCatalog};
+mod common;
+use common::{checked_renderer_plot, face, host, plan_for, DOM_RESOURCE, WAYLAND_RESOURCE};
+
+#[test]
+fn unchanged_front_plans_to_exact_wayland_and_dom_realizations() {
+    let plot = checked_renderer_plot();
+    let wayland = plan_for(
+        &plot,
+        host(
+            "linux-host",
+            "linux-boot",
+            "renderer-wayland",
+            "face/renderer-wayland@1",
+            "patchbay-native/wayland@1",
+            "face/base/wayland-surface@1",
+            WAYLAND_RESOURCE,
+        ),
+    );
+    let html = plan_for(
+        &plot,
+        host(
+            "browser-host",
+            "browser-boot",
+            "renderer-dom-svg",
+            "face/renderer-dom-svg@1",
+            "patchbay-html/dom-svg@1",
+            "face/base/dom-svg@1",
+            DOM_RESOURCE,
+        ),
+    );
+
+    assert_eq!(wayland.source_document_id, html.source_document_id);
+    assert_eq!(wayland.checked_plot_id, html.checked_plot_id);
+    assert_eq!(wayland.expanded_plot_id, html.expanded_plot_id);
+    assert_ne!(wayland.plan_id, html.plan_id);
+    let native = &wayland.fragments[0].placements[0];
+    let browser = &html.fragments[0].placements[0];
+    assert_eq!(native.kind_id, browser.kind_id);
+    assert_eq!(
+        native.kind_contract_revision,
+        browser.kind_contract_revision
+    );
+    assert_eq!(native.inputs, browser.inputs);
+    assert_eq!(native.outputs, browser.outputs);
+    assert_ne!(native.implementation_id, browser.implementation_id);
+    assert_ne!(native.artifact_id, browser.artifact_id);
+    assert_ne!(native.host_id, browser.host_id);
+    assert_ne!(native.boot_id, browser.boot_id);
+    assert_ne!(native.host_calls, browser.host_calls);
+    assert_ne!(native.resources[0].class_id, browser.resources[0].class_id);
+}
+
+#[test]
+fn headless_host_is_valid_but_cannot_invent_a_renderer_offer() {
+    let plot = checked_renderer_plot();
+    let headless = HostAdvertisement {
+        protocol_version: PROTOCOL_VERSION,
+        host_id: HostId::from("headless"),
+        boot_id: BootId::from("headless-boot"),
+        offer_generation: OfferGeneration(1),
+        profile: HostProfileId::from("headless@1"),
+        bases: vec![],
+        resources: vec![],
+        capabilities: vec![],
+        planner_capabilities: vec![],
+    };
+    assert!(matches!(
+        default_placements(&plot, &[headless]),
+        Err(PlannerError::UnknownCapability(_))
+    ));
+}
+
+#[test]
+fn renderer_front_can_be_composed_as_an_ordinary_plot_back() {
+    let mut startup = StartupCatalog::new();
+    startup
+        .insert_value_kind_alias("Face", conduit_core::kind_id(FACE_VALUE_KIND))
+        .unwrap();
+    startup
+        .insert_value_kind_alias("Show", conduit_core::kind_id(SHOW_VALUE_KIND))
+        .unwrap();
+    startup
+        .insert(KindSignature {
+            kind: "face/renderer".into(),
+            startup_parameters: vec![conduit_plot::StartupParameterSignature {
+                name: "label".into(),
+                value_type: "Text".into(),
+                default: None,
+            }],
+        })
+        .unwrap();
+    let syntax = parse_syntax_document(
+        "plot patchbay-show (\n    >> face: Face\n    show: Show >>\n) {\n    renderer: face/renderer(\"Rendered Face\")\n    face >> renderer.face\n    renderer.show >> show\n}\n",
+    );
+    let checked = check_syntax_document(&syntax, &startup).expect("portable renderer Back checks");
+    let plot = &checked.plots[0];
+    assert_eq!(plot.runtime_ports.len(), 2);
+    assert_eq!(plot.gears[0].kind, "face/renderer");
+    assert_eq!(plot.cords.len(), 2);
+}
+
+#[test]
+fn manifestation_is_exact_bounded_and_fails_closed_on_stale_identity() {
+    let plot = checked_renderer_plot();
+    let plan = plan_for(
+        &plot,
+        host(
+            "linux-host",
+            "linux-boot",
+            "renderer-wayland",
+            "face/renderer-wayland@1",
+            "patchbay-native/wayland@1",
+            "face/base/wayland-surface@1",
+            WAYLAND_RESOURCE,
+        ),
+    );
+    let face = face(&plot, &plan);
+    let placement = plan.fragments[0].placements[0].placement_id.clone();
+    let active = bind_active_play(
+        &plan.plan_id,
+        &plan.fragments[0].host_id,
+        &plan.fragments[0].boot_id,
+        1,
+    );
+    let prepared = Manifestation::prepared(
+        &face,
+        &plan,
+        active,
+        placement,
+        "patchbay/plot".into(),
+        "linux-host/display-0".into(),
+        SignId::from("manifestation/prepared"),
+    )
+    .unwrap();
+    let available = prepared
+        .transition(
+            ManifestationLifecycle::Available,
+            SignId::from("manifestation/available"),
+        )
+        .unwrap();
+    assert_eq!(available.signs.len(), 2);
+    assert_eq!(available.signs[1].plan_id, available.plan_id);
+    assert_eq!(available.signs[1].active_play_id, available.active_play_id);
+    assert_eq!(available.signs[1].placement_id, available.placement_id);
+    let failed = available
+        .fail(
+            ManifestationFailure::OutputRejected,
+            SignId::from("manifestation/failed"),
+        )
+        .unwrap();
+    assert_eq!(failed.lifecycle, ManifestationLifecycle::Failed);
+    assert_eq!(failed.failure, Some(ManifestationFailure::OutputRejected));
+    assert!(failed.validate_against(&face, &plan).is_ok());
+    let mut drifted_sign = failed.clone();
+    drifted_sign.signs[1].plan_id = PlanId::from("different-plan");
+    assert_eq!(
+        drifted_sign.validate_against(&face, &plan),
+        Err(ManifestationError::InvalidTransition)
+    );
+    let realized = available.validate_against(&face, &plan).unwrap();
+    assert_eq!(
+        realized.implementation_id.as_str(),
+        "face/renderer-wayland@1"
+    );
+    assert!(matches!(
+        available.transition(
+            ManifestationLifecycle::Prepared,
+            SignId::from("manifestation/backwards")
+        ),
+        Err(ManifestationError::InvalidTransition)
+    ));
+    assert!(matches!(
+        available.transition(
+            ManifestationLifecycle::Closed,
+            SignId::from("manifestation/prepared")
+        ),
+        Err(ManifestationError::InvalidTransition)
+    ));
+
+    let other_plan = plan_for(
+        &plot,
+        host(
+            "browser-host",
+            "browser-boot",
+            "renderer-dom-svg",
+            "face/renderer-dom-svg@1",
+            "patchbay-html/dom-svg@1",
+            "face/base/dom-svg@1",
+            DOM_RESOURCE,
+        ),
+    );
+    assert!(matches!(
+        available.validate_against(&face, &other_plan),
+        Err(ManifestationError::MissingRendererPlacement | ManifestationError::StaleIdentity)
+    ));
+}
+
+#[test]
+fn face_rejects_unbounded_and_drifting_semantic_content() {
+    let plot = checked_renderer_plot();
+    let plan = plan_for(
+        &plot,
+        host(
+            "browser-host",
+            "browser-boot",
+            "renderer-dom-svg",
+            "face/renderer-dom-svg@1",
+            "patchbay-html/dom-svg@1",
+            "face/base/dom-svg@1",
+            DOM_RESOURCE,
+        ),
+    );
+    let valid = face(&plot, &plan);
+    assert!(valid.validate().is_ok());
+
+    let mut drifting = valid.clone();
+    drifting.subjects[0].name = "Different".into();
+    assert_eq!(drifting.validate(), Err(FaceError::InvalidIdentity));
+
+    let mut duplicate = valid.basis.clone();
+    duplicate.sign_ids.push(duplicate.sign_ids[0].clone());
+    assert_eq!(
+        Face::new(
+            valid.revision,
+            duplicate,
+            valid.subjects.clone(),
+            valid.relationships.clone(),
+            valid.properties.clone(),
+            valid.text.clone()
+        ),
+        Err(FaceError::DuplicateSign)
+    );
+
+    let mut noncanonical = valid.clone();
+    noncanonical.basis.sign_ids.push(SignId::from("aaa"));
+    assert_eq!(noncanonical.validate(), Err(FaceError::NonCanonicalSign));
+
+    let mut incoherent = valid.basis.clone();
+    incoherent.plan_id = None;
+    incoherent.active_play_id = Some(ActivePlayId::from("play/without-plan"));
+    assert_eq!(
+        Face::new(
+            valid.revision,
+            incoherent,
+            valid.subjects.clone(),
+            valid.relationships.clone(),
+            valid.properties.clone(),
+            valid.text.clone()
+        ),
+        Err(FaceError::InvalidBasis)
+    );
+
+    let mut intent_only = valid.basis.clone();
+    intent_only.plan_id = None;
+    intent_only.active_play_id = None;
+    assert!(Face::new(
+        valid.revision,
+        intent_only,
+        valid.subjects.clone(),
+        valid.relationships.clone(),
+        valid.properties.clone(),
+        valid.text.clone(),
+    )
+    .is_ok());
+
+    let mut birthed_lulled = valid.basis.clone();
+    birthed_lulled.wake_id = None;
+    birthed_lulled.plan_id = None;
+    birthed_lulled.active_play_id = None;
+    assert!(Face::new(
+        valid.revision,
+        birthed_lulled,
+        valid.subjects.clone(),
+        valid.relationships.clone(),
+        valid.properties.clone(),
+        valid.text.clone(),
+    )
+    .is_ok());
+
+    let mut disembodied_wake = valid.basis.clone();
+    disembodied_wake.body_id = None;
+    disembodied_wake.source_document_id = None;
+    disembodied_wake.checked_plot_id = None;
+    disembodied_wake.expanded_plot_id = None;
+    disembodied_wake.plan_id = None;
+    disembodied_wake.active_play_id = None;
+    assert_eq!(
+        Face::new(
+            valid.revision,
+            disembodied_wake,
+            valid.subjects.clone(),
+            valid.relationships.clone(),
+            valid.properties.clone(),
+            valid.text.clone(),
+        ),
+        Err(FaceError::InvalidBasis)
+    );
+
+    let oversized_text = (0..513)
+        .map(|_| FaceText {
+            subject: "patchbay/plot".into(),
+            text: "x".repeat(1_024),
+        })
+        .collect();
+    assert_eq!(
+        Face::new(
+            valid.revision,
+            valid.basis,
+            valid.subjects,
+            valid.relationships,
+            valid.properties,
+            oversized_text
+        ),
+        Err(FaceError::TooManyBytes)
+    );
+}

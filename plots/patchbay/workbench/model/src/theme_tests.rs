@@ -1,15 +1,14 @@
 use conduit_core::CharacteristicId;
+use conduit_face::{ThemeColor, CONDUIT_APPLICATION_THEME};
 use conduit_planner::{
-    dos_shell_style, PlannerFactRef, PlannerFactValue, PlannerPreference,
-    PRESENTATION_PALETTE_CLASS,
+    dos_shell_style, PlannerFactRef, PlannerFactValue, PlannerPreference, FACE_PALETTE_CLASS,
 };
-use conduit_presentation::{ThemeColor, CONDUIT_APPLICATION_THEME};
 
 #[test]
 fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {
     assert_eq!(
         CONDUIT_APPLICATION_THEME.identity,
-        "conduit.presentation/phosphor@1"
+        "conduit.face/phosphor@1"
     );
     assert_eq!(
         CONDUIT_APPLICATION_THEME.background.packed_rgb(),
@@ -66,12 +65,12 @@ fn phosphor_decoration_is_a_truthful_realization_of_the_dos_shell_palette_prefer
     let style = dos_shell_style();
     assert_eq!(
         CONDUIT_APPLICATION_THEME.identity,
-        "conduit.presentation/phosphor@1"
+        "conduit.face/phosphor@1"
     );
     assert!(style.preferences.contains(&PlannerPreference::PreferEqual {
-        fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-            PRESENTATION_PALETTE_CLASS,
-        )),
+        fact: PlannerFactRef::RealizationCharacteristic(
+            CharacteristicId::from(FACE_PALETTE_CLASS,)
+        ),
         value: PlannerFactValue::Category("phosphor-cyan-amber".into()),
     }));
 }

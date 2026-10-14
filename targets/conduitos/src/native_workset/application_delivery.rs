@@ -90,10 +90,10 @@ impl PatchbayTargets {
 
 pub(super) const EVENT_IMPLEMENTATION: &str = "conduitos/application-event-delivery@1";
 pub(super) const STATE_IMPLEMENTATION: &str = "conduitos/retained-application@1";
-pub(super) const PRESENTATION_IMPLEMENTATION: &str = "conduitos/application-view-presentation@1";
+pub(super) const FACE_IMPLEMENTATION: &str = "conduitos/application-view-face@1";
 pub(super) const EVENT_OPERATION: &str = "conduit.host/application-next-event@1";
 pub(super) const STATE_OPERATION: &str = "conduit.host/application-apply-event@1";
-pub(super) const PRESENTATION_OPERATION: &str = "conduit.host/present-application-view@1";
+pub(super) const FACE_OPERATION: &str = "conduit.host/present-application-view@1";
 pub(super) const EVENT_BYTES: u32 = 128;
 pub(super) const VIEW_BYTES: u32 = 3 * 1024;
 
@@ -116,9 +116,9 @@ pub(super) fn offers(build: &str) -> [CapabilityOffer; 3] {
             build,
         ),
         offer(
-            conduit_semantic_catalog::view_presentation_contract(),
-            PRESENTATION_IMPLEMENTATION,
-            PRESENTATION_OPERATION,
+            conduit_semantic_catalog::view_face_contract(),
+            FACE_IMPLEMENTATION,
+            FACE_OPERATION,
             VIEW_BYTES,
             0,
             build,
@@ -165,7 +165,7 @@ fn offer(
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::{
+    use conduit_face::{
         ApplicationComponent, ApplicationEvent, ApplicationEventKind, ApplicationView,
     };
 

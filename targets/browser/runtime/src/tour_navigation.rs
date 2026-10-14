@@ -23,14 +23,12 @@ pub extern "C" fn conduit_tour_navigation_view(
         current_page,
         page_count,
     })
-    .presentation()
+    .face()
     .and_then(|view| view.lower())
     .and_then(|view| view.encode().map_err(Into::into))
     {
         Ok(encoded) if encoded.len() <= MAX_VIEW_BYTES => encoded,
-        Err(conduit_presentation::SemanticPresentationRefusal::InvalidNavigation) => {
-            return ERROR_NAVIGATION
-        }
+        Err(conduit_face::SemanticFaceRefusal::InvalidNavigation) => return ERROR_NAVIGATION,
         _ => return ERROR_VIEW,
     };
     VIEW.with(|view| view.borrow_mut()[..encoded.len()].copy_from_slice(&encoded));
@@ -50,7 +48,7 @@ pub extern "C" fn conduit_tour_navigation_view_len() -> usize {
 
 #[cfg(test)]
 mod tests {
-    use conduit_presentation::{ApplicationComponent, ApplicationView};
+    use conduit_face::{ApplicationComponent, ApplicationView};
 
     use super::*;
 

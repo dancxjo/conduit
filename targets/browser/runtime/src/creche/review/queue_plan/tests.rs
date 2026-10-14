@@ -63,8 +63,8 @@ fn declare_english_fixture_coverage(offer: &mut CapabilityOffer) {
 #[test]
 fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
     let source = include_str!("../../../../../../../plots/live-conversation/main.conduit");
-    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
-        crate::installed_browser::PresentationProfile::Annotation,
+    let (startup, mut profile) = crate::installed_browser::catalogs_for_face(
+        crate::installed_browser::FaceProfile::Annotation,
     )
     .unwrap();
     let checked =
@@ -226,8 +226,8 @@ fn reviewed_voice_fixture_offers() -> Vec<CapabilityOffer> {
 #[test]
 fn reviewed_fixture_voice_offers_cover_every_expanded_remote_conversation_gear() {
     let source = include_str!("../../../../../../../plots/live-conversation/main.conduit");
-    let (startup, mut profile) = crate::installed_browser::catalogs_for_presentation(
-        crate::installed_browser::PresentationProfile::Annotation,
+    let (startup, mut profile) = crate::installed_browser::catalogs_for_face(
+        crate::installed_browser::FaceProfile::Annotation,
     )
     .unwrap();
     let checked =

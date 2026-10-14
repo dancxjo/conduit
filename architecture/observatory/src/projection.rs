@@ -260,7 +260,7 @@ fn sign_row(observation: &conduit_core::Observation, historical: bool) -> SignRo
     SignRow {
         sign_id: observation.sign_id.clone(),
         active_play_id: observation.active_play_id.clone(),
-        presentation_id: observation.presentation_id.clone(),
+        face_id: observation.face_id.clone(),
         host_id: observation.host_id.clone(),
         boot_id: observation.boot_id.clone(),
         plan_id: observation.plan_id.clone(),

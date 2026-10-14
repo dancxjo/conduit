@@ -2,11 +2,10 @@ use conduit_core::{
     kind_id, ActivePlayId, CheckedPlotId, CheckedValueContract, ExpandedPlotId, PlanId,
     SourceDocumentId,
 };
-use conduit_presentation::{
-    FaceActionArgument, FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, MaskShow,
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationContributionBasis, PresentationProperty, PresentationPropertyValue,
-    PresentationRole, PresentationSubject, UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    Face, FaceAction, FaceActionArgument, FaceActionAvailability, FaceBasis, FaceContributionBasis,
+    FaceInteraction, FaceInteractionArgument, FaceInteractionRefusal, FaceProperty,
+    FacePropertyValue, FaceRole, FaceSubject, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 use conduit_todo_face::{
     todo_command_from_contributed_interaction, todo_command_from_interaction, todo_fragment,
@@ -14,7 +13,7 @@ use conduit_todo_face::{
 };
 use conduit_todo_plot::{TodoCommand, TodoItem, TodoState};
 
-#[path = "../../../../semantics/presentation/tests/common/mod.rs"]
+#[path = "../../../../semantics/face/tests/common/mod.rs"]
 mod common;
 
 fn state() -> TodoState {
@@ -37,8 +36,8 @@ fn state() -> TodoState {
     }
 }
 
-fn todo_face(state: &TodoState, actions_admitted: bool) -> (Presentation, MaskShow) {
-    let basis = PresentationContributionBasis {
+fn todo_face(state: &TodoState, actions_admitted: bool) -> (Face, MaskShow) {
+    let basis = FaceContributionBasis {
         checked_plot_id: CheckedPlotId::from("checked/todo"),
         plan_id: PlanId::from("plan/todo"),
         active_play_id: ActivePlayId::from("play/todo"),
@@ -46,14 +45,14 @@ fn todo_face(state: &TodoState, actions_admitted: bool) -> (Presentation, MaskSh
     };
     let fragment = todo_fragment(state, basis.clone(), actions_admitted).unwrap();
     let mut subjects = fragment.subjects;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "patchbay/plot".into(),
-        role: PresentationRole::Plot,
+        role: FaceRole::Plot,
         name: "Todo encounter".into(),
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         u64::from(state.revision),
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),
@@ -75,8 +74,8 @@ fn todo_face(state: &TodoState, actions_admitted: bool) -> (Presentation, MaskSh
     (face, show)
 }
 
-fn reface(face: Presentation, actions: Vec<PresentationAction>) -> (Presentation, MaskShow) {
-    let revised = Presentation::new_with_semantics(
+fn representation(face: Face, actions: Vec<FaceAction>) -> (Face, MaskShow) {
+    let revised = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -92,7 +91,7 @@ fn reface(face: Presentation, actions: Vec<PresentationAction>) -> (Presentation
 }
 
 fn interaction(
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     action: &str,
     target: &str,
@@ -159,7 +158,7 @@ fn every_todo_action_routes_to_one_typed_command_without_changing_state() {
 fn composed_owner_face_requires_exact_contribution_basis() {
     let state = state();
     let (face, _) = todo_face(&state, true);
-    let basis = PresentationContributionBasis {
+    let basis = FaceContributionBasis {
         checked_plot_id: face.basis.checked_plot_id.clone().unwrap(),
         plan_id: face.basis.plan_id.clone().unwrap(),
         active_play_id: face.basis.active_play_id.clone().unwrap(),
@@ -171,15 +170,15 @@ fn composed_owner_face_requires_exact_contribution_basis() {
         ("plan-id", basis.plan_id.as_str()),
         ("active-play-id", basis.active_play_id.as_str()),
     ] {
-        properties.push(PresentationProperty {
+        properties.push(FaceProperty {
             subject: "contribution/foreground/0".into(),
             name: name.into(),
-            value: PresentationPropertyValue::Identity(value.into()),
+            value: FacePropertyValue::Identity(value.into()),
         });
     }
-    let composed = Presentation::new_with_semantics(
+    let composed = Face::new_with_semantics(
         face.revision,
-        PresentationBasis {
+        FaceBasis {
             source_document_id: None,
             checked_plot_id: None,
             expanded_plot_id: None,
@@ -189,9 +188,9 @@ fn composed_owner_face_requires_exact_contribution_basis() {
         },
         {
             let mut subjects = face.subjects;
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: "contribution/foreground/0".into(),
-                role: PresentationRole::Plot,
+                role: FaceRole::Plot,
                 name: "Todo contribution".into(),
             });
             subjects
@@ -309,16 +308,16 @@ fn stale_unknown_unavailable_and_malformed_interactions_refuse() {
     );
 
     let mut actions = face.actions.clone();
-    actions.push(PresentationAction {
+    actions.push(FaceAction {
         identity: "todo.unknown".into(),
         intent: "todo/unknown@1".into(),
         target: "todo/list".into(),
         name: "unknown".into(),
         arguments: vec![],
-        disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
-        availability: PresentationActionAvailability::Available,
+        disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+        availability: FaceActionAvailability::Available,
     });
-    let (forged, forged_show) = reface(face.clone(), actions);
+    let (forged, forged_show) = representation(face.clone(), actions);
     let unknown = interaction(&forged, &forged_show, "todo.unknown", "todo/list", vec![]);
     assert_eq!(
         todo_command_from_interaction(&state, &forged, &forged_show, &unknown),
@@ -335,7 +334,7 @@ fn stale_unknown_unavailable_and_malformed_interactions_refuse() {
         value_name: "Text".into(),
         contract: CheckedValueContract::new(kind_id("value/bool"), 1, vec![]).unwrap(),
     }];
-    let (forged, forged_show) = reface(face, actions);
+    let (forged, forged_show) = representation(face, actions);
     let malformed = interaction(
         &forged,
         &forged_show,
@@ -365,7 +364,7 @@ fn stale_unknown_unavailable_and_malformed_interactions_refuse() {
     )
     .unwrap()];
     add_action.intent = "todo/other@1".into();
-    let (wrong_intent, wrong_intent_show) = reface(forged, actions);
+    let (wrong_intent, wrong_intent_show) = representation(forged, actions);
     let interaction = interaction(
         &wrong_intent,
         &wrong_intent_show,

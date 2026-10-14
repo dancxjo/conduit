@@ -5,7 +5,7 @@ impl SpokenFaceSession {
     /// acknowledged Show. A stale session cannot continue to act or speak.
     pub fn command(
         &mut self,
-        current_face: &Presentation,
+        current_face: &Face,
         current_show: &MaskShow,
         command: ReaderCommand,
         sequence: u64,
@@ -79,8 +79,8 @@ impl SpokenFaceSession {
                 let reading_command = match command {
                     ReaderCommand::ReadAll => FaceReadingCommand::ReadAll,
                     ReaderCommand::ReadCurrentItems => FaceReadingCommand::ReadRoleAtDisclosure(
-                        PresentationRole::Item,
-                        conduit_presentation::PresentationDisclosureLevel::Primary,
+                        FaceRole::Item,
+                        conduit_face::FaceDisclosureLevel::Primary,
                     ),
                     ReaderCommand::Next => FaceReadingCommand::Next,
                     ReaderCommand::Previous => FaceReadingCommand::Previous,
@@ -109,8 +109,8 @@ impl SpokenFaceSession {
                 let reading_current_items = matches!(
                     reading_command,
                     FaceReadingCommand::ReadRoleAtDisclosure(
-                        PresentationRole::Item,
-                        conduit_presentation::PresentationDisclosureLevel::Primary
+                        FaceRole::Item,
+                        conduit_face::FaceDisclosureLevel::Primary
                     )
                 );
                 let outcome = self

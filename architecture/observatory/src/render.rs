@@ -1,6 +1,6 @@
 use alloc::format;
 use alloc::string::String;
-use conduit_core::{ActivePlayId, ConnectionId, PlacementId, PlanId, PresentationId};
+use conduit_core::{ActivePlayId, ConnectionId, FaceId, PlacementId, PlanId};
 use core::fmt::Write;
 
 use crate::ObservatoryReport;
@@ -254,11 +254,11 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for sign in &report.signs {
         let _ = writeln!(
             output,
-            "sign id={} history={} active_play={} presentation={} host={} boot={} plan={} placement={} connection={} kind={:?}",
+            "sign id={} history={} active_play={} face={} host={} boot={} plan={} placement={} connection={} kind={:?}",
             sign.sign_id.as_str(),
             if sign.historical { "historical" } else { "current" },
             sign.active_play_id.as_ref().map(ActivePlayId::as_str).unwrap_or("none"),
-            sign.presentation_id.as_ref().map(PresentationId::as_str).unwrap_or("none"),
+            sign.face_id.as_ref().map(FaceId::as_str).unwrap_or("none"),
             sign.host_id.as_str(),
             sign.boot_id.as_str(),
             sign.plan_id.as_ref().map(PlanId::as_str).unwrap_or("none"),

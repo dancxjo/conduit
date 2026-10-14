@@ -1,6 +1,6 @@
 # A living Night Radio station: each submitted portable text report becomes an
 # exact typed record, crosses an ordinary planned Line when placed remotely,
-# and is reconstructed for presentation. The Line session retains its sent,
+# and is reconstructed for face. The Line session retains its sent,
 # received, and terminal events through the shared bounded transcript contract.
 # Transport, Host, storage, and renderer choices remain outside authored meaning.
 plot night-radio {
@@ -12,7 +12,7 @@ plot night-radio {
     queue: record/ordered-send-queue(maximum-items = 4, maximum-frame-bytes = 4096)
     deframe: record/deframe-typed
     decode: record/typed-to-text
-    show: presentation/text
+    show: face/text("Now playing")
 
     keyboard.key >> keymap.key
     keymap.text >> report.fragment

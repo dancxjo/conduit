@@ -13,7 +13,7 @@ When one gear calls another, it depends on the called gear's **front**: meaning 
 plot same-morse-caller {
     message: text/literal("HELLO")
     morse: text/morse(40)
-    light: presentation/indicator
+    light: face/indicator("Light signal")
 
     message >> morse >> light
 }

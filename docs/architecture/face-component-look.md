@@ -6,7 +6,7 @@ must all be established before claiming the complete vertical.
 
 ## Ownership
 
-Face (`Presentation` in the existing Rust API) owns subjects, exact relationships,
+Face (`Face` in the existing Rust API) owns subjects, exact relationships,
 semantic order, names, availability, disclosure and typed source actions. Todo's
 accepted model/scan remains the sole owner of its item state and transitions.
 
@@ -30,7 +30,7 @@ not establish readable geometry or reachable controls.
 
 ## Checked source and realization boundary
 
-The ordinary Mask Fore stays `face: Presentation` in, `show: Show` and closing
+The ordinary Mask Fore stays `face: Face` in, `show: Show` and closing
 `interaction: FaceInteraction` out. The component embeds its recipe and exposes
 only a typed expression startup parameter. Changing expression may change the
 expanded Plot, selected Mask Plan, Mask Play and Show. The component's original
@@ -79,7 +79,7 @@ new domain actions. Optional detail must remain genuinely reachable.
 ## Compatibility
 
 Preserve `ApplicationTheme`, `APPLICATION_THEME_VERSION = 2` and
-`conduit.presentation/phosphor@1`. Existing finite bytes remain a compatibility
+`conduit.face/phosphor@1`. Existing finite bytes remain a compatibility
 carrier. Their responsive breakpoint/grid-min fields do not give a new Look
 unbounded layout authority: the configured structural recipe/Mask must own and
 admit layout selection and reflow. The new visual admission does not reinterpret
@@ -104,7 +104,7 @@ Deterministic admission tests, actual renderer execution, emulator/native and
 physical/human evidence remain different proof classes.
 
 The current reference document is
-`semantics/presentation/components/todo-mask.conduit`. Its Compact and Spacious
+`semantics/face/components/todo-mask.conduit`. Its Compact and Spacious
 roots invoke the same checked component with separate finite structured visual
 values; Flat and Grouped are independent source-owned recipes. The production
 browser offer plans this exact document through the ordinary planner and runs
@@ -128,7 +128,7 @@ placement reconstruction, styles, and scene options alone are not evidence of
 successful native scanout, actual browser acknowledgement, stale-return refusal,
 or complete issue acceptance.
 
-## Native presentation entrance
+## Native face entrance
 
 The native owner window exposes F6 (Compact/Flat), F7 (Spacious/Flat), F8
 (Spacious/Grouped), and F9 (100%/200% minimum text size). These are Mask-local

@@ -1,25 +1,23 @@
 //! Portable semantic projection of exact Mask topology truth.
 
 use alloc::{format, vec};
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationDisclosure,
-    PresentationDisclosureLevel, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationRelationshipKind, PresentationRole, PresentationSubject,
-    PresentationText,
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceDisclosure, FaceDisclosureLevel, FaceProperty,
+    FacePropertyValue, FaceRelationship, FaceRelationshipKind, FaceRole, FaceSubject, FaceText,
 };
 
 use crate::{MaskTopology, MaskTopologyRefusal, MASK_TOPOLOGY_SCHEMA};
 
 /// Add exact Mask-chain truth and typed controls to the portable
-/// Presentation consumed by both browser and native Patchbay renderers.
+/// Face consumed by both browser and native Patchbay renderers.
 pub fn project_mask_topology(
-    base: &Presentation,
+    base: &Face,
     topology: &MaskTopology,
-) -> Result<Presentation, MaskTopologyRefusal> {
+) -> Result<Face, MaskTopologyRefusal> {
     topology.validate()?;
     if base.basis.body_id.as_ref() != Some(&topology.body_id)
         || base.basis.source_document_id != topology.source_document_id
-        || base.identity.as_str() != topology.presentation_id
+        || base.identity.as_str() != topology.face_id
     {
         return Err(MaskTopologyRefusal::StaleRequest);
     }
@@ -31,25 +29,25 @@ pub fn project_mask_topology(
         base.actions.clone(),
         base.disclosures.clone(),
     );
-    let root = format!("mask-topology/{}", topology.presentation_id);
-    subjects.push(PresentationSubject {
+    let root = format!("mask-topology/{}", topology.face_id);
+    subjects.push(FaceSubject {
         identity: root.clone(),
-        role: PresentationRole::Plan,
+        role: FaceRole::Plan,
         name: "Mask topology".into(),
     });
-    properties.push(PresentationProperty {
+    properties.push(FaceProperty {
         subject: root.clone(),
         name: "schema".into(),
-        value: PresentationPropertyValue::Text(MASK_TOPOLOGY_SCHEMA.into()),
+        value: FacePropertyValue::Text(MASK_TOPOLOGY_SCHEMA.into()),
     });
-    properties.push(PresentationProperty {
+    properties.push(FaceProperty {
         subject: root.clone(),
         name: "parallel-chain-count".into(),
-        value: PresentationPropertyValue::Count(topology.chains.len() as u64),
+        value: FacePropertyValue::Count(topology.chains.len() as u64),
     });
-    disclosures.push(PresentationDisclosure {
+    disclosures.push(FaceDisclosure {
         subject: root.clone(),
-        level: PresentationDisclosureLevel::Primary,
+        level: FaceDisclosureLevel::Primary,
     });
     actions.push(topology_action(&root, "add", "Add Mask", true));
     actions.push(topology_action(
@@ -60,20 +58,20 @@ pub fn project_mask_topology(
     ));
     for chain in &topology.chains {
         let chain_subject = format!("{root}/chain/{}", chain.chain_id);
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: chain_subject.clone(),
-            role: PresentationRole::Manifestation,
+            role: FaceRole::Manifestation,
             name: format!("Mask chain {}", chain.chain_id),
         });
-        relationships.push(PresentationRelationship {
+        relationships.push(FaceRelationship {
             source: root.clone(),
             target: chain_subject.clone(),
-            kind: PresentationRelationshipKind::Contains,
+            kind: FaceRelationshipKind::Contains,
         });
-        properties.push(PresentationProperty {
+        properties.push(FaceProperty {
             subject: chain_subject.clone(),
             name: "show".into(),
-            value: PresentationPropertyValue::Identity(chain.manifestation_id.clone()),
+            value: FacePropertyValue::Identity(chain.manifestation_id.clone()),
         });
         actions.push(topology_action(
             &chain_subject,
@@ -95,15 +93,15 @@ pub fn project_mask_topology(
         ));
         for (stage_order, stage) in chain.stages.iter().enumerate() {
             let stage_subject = format!("{chain_subject}/stage/{}", stage.stage_id);
-            subjects.push(PresentationSubject {
+            subjects.push(FaceSubject {
                 identity: stage_subject.clone(),
-                role: PresentationRole::Capability,
+                role: FaceRole::Capability,
                 name: stage.implementation_id.as_str().into(),
             });
-            relationships.push(PresentationRelationship {
+            relationships.push(FaceRelationship {
                 source: chain_subject.clone(),
                 target: stage_subject.clone(),
-                kind: PresentationRelationshipKind::Contains,
+                kind: FaceRelationshipKind::Contains,
             });
             for (name, value) in [
                 ("placement", stage.placement_id.as_str()),
@@ -113,18 +111,18 @@ pub fn project_mask_topology(
                 ("boot", stage.boot_id.as_str()),
                 ("input-kind", stage.input_kind.as_str()),
             ] {
-                properties.push(PresentationProperty {
+                properties.push(FaceProperty {
                     subject: stage_subject.clone(),
                     name: name.into(),
-                    value: PresentationPropertyValue::Text(value.into()),
+                    value: FacePropertyValue::Text(value.into()),
                 });
             }
-            properties.push(PresentationProperty {
+            properties.push(FaceProperty {
                 subject: stage_subject.clone(),
                 name: "capacity-cost".into(),
-                value: PresentationPropertyValue::Count(stage.capacity_cost.into()),
+                value: FacePropertyValue::Count(stage.capacity_cost.into()),
             });
-            text.push(PresentationText {
+            text.push(FaceText {
                 subject: stage_subject,
                 text: format!(
                     "stage={} implementation={} host={} boot={} capacity={}",
@@ -137,7 +135,7 @@ pub fn project_mask_topology(
             });
         }
     }
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         base.revision,
         base.basis.clone(),
         subjects,
@@ -150,23 +148,18 @@ pub fn project_mask_topology(
     .map_err(|_| MaskTopologyRefusal::InvalidTopology)
 }
 
-fn topology_action(
-    target: &str,
-    operation: &str,
-    label: &str,
-    available: bool,
-) -> PresentationAction {
-    PresentationAction {
+fn topology_action(target: &str, operation: &str, label: &str, available: bool) -> FaceAction {
+    FaceAction {
         identity: format!("action/mask-topology/{operation}/{target}"),
         intent: format!("conduit.intent/mask-topology-{operation}@1"),
         target: target.into(),
         name: label.into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if available {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "IncompatibleType".into(),
                 explanation: "A one-stage Mask chain has no valid reordered sequence.".into(),
             }

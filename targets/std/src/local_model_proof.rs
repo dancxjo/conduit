@@ -10,8 +10,8 @@ use execution::{run_expanded, run_profile, sha256};
 use crate::{StdHost, StdHostComposition, StdHostConfig, TimerAdapter};
 use conduit_ai::LocalModelKindProfile;
 use conduit_core::{BaseImplementationId, BootId, HostId, OfferGeneration};
+use conduit_face::{GeneratedManifestationCandidate, GenerativePresenterRequest};
 use conduit_plot::{check_syntax_document, parse_syntax_document, ProfileCatalog, StartupCatalog};
-use conduit_presentation::{GeneratedManifestationCandidate, GenerativePresenterRequest};
 use serde::Serialize;
 use std::collections::BTreeMap;
 use std::sync::{Arc, Mutex};
@@ -46,8 +46,8 @@ pub struct PresenterRequestProofReceipt {
     pub plan_id: String,
     pub play_completed: bool,
     pub request_identity: String,
-    pub source_presentation_identity: String,
-    pub source_presentation_revision: u64,
+    pub source_face_identity: String,
+    pub source_face_revision: u64,
     pub policy_revision: String,
     pub manifestation: GeneratedManifestationCandidate,
 }
@@ -218,11 +218,8 @@ pub fn run(
             plan_id: execution.0,
             play_completed: execution.1,
             request_identity: request.request_identity.clone(),
-            source_presentation_identity: request
-                .semantic_data
-                .source_presentation_identity
-                .clone(),
-            source_presentation_revision: request.semantic_data.source_presentation_revision,
+            source_face_identity: request.semantic_data.source_face_identity.clone(),
+            source_face_revision: request.semantic_data.source_face_revision,
             policy_revision: request.policy.template_contract_revision.clone(),
             manifestation,
         });
@@ -338,11 +335,8 @@ pub fn run_presenter_only(
             plan_id,
             play_completed,
             request_identity: request.request_identity.clone(),
-            source_presentation_identity: request
-                .semantic_data
-                .source_presentation_identity
-                .clone(),
-            source_presentation_revision: request.semantic_data.source_presentation_revision,
+            source_face_identity: request.semantic_data.source_face_identity.clone(),
+            source_face_revision: request.semantic_data.source_face_revision,
             policy_revision: request.policy.template_contract_revision.clone(),
             manifestation,
         },

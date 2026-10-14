@@ -94,7 +94,7 @@ impl KeyboardIngress {
         Ok(())
     }
 
-    /// Run at most `budget` admitted semantic deliveries. Presentation is
+    /// Run at most `budget` admitted semantic deliveries. Face is
     /// intentionally not part of this operation; consumers return after the
     /// semantic input boundary and let a separate dirty-driven frame phase
     /// decide whether to compose.

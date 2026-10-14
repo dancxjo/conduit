@@ -10,13 +10,12 @@ use conduit_core::{
     RealizationAdvertisement,
 };
 use conduit_planner::{
-    dos_shell_style, plan, presentation_style_characteristics,
-    select_realization_with_scoped_policy, HardRealizationRequirements, NamedStyle,
-    PlacementChoice, PlacementChoices, PlannerFactRef, PlannerFactValue, PlannerPredicate,
-    PlannerPreference, PolicyLayer, PolicyScope, PolicySourceId, PolicySourceRevision,
-    PresentationStyleFacts, RealizationDecisionDisposition, RealizationPreference,
-    ReviewedObservation, StyleId, PRESENTATION_DENSITY, PRESENTATION_FRAMING,
-    PRESENTATION_KEYBOARD_VISIBLE, PRESENTATION_PALETTE_CLASS, PRESENTATION_TEXT_LAYOUT,
+    dos_shell_style, face_style_characteristics, plan, select_realization_with_scoped_policy,
+    FaceStyleFacts, HardRealizationRequirements, NamedStyle, PlacementChoice, PlacementChoices,
+    PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference, PolicyLayer,
+    PolicyScope, PolicySourceId, PolicySourceRevision, RealizationDecisionDisposition,
+    RealizationPreference, ReviewedObservation, StyleId, FACE_DENSITY, FACE_FRAMING,
+    FACE_KEYBOARD_VISIBLE, FACE_PALETTE_CLASS, FACE_TEXT_LAYOUT,
 };
 
 mod common;
@@ -217,24 +216,24 @@ fn llm_and_compute_policy_share_one_selector_and_produce_exact_replacement_plans
     }
 }
 
-fn presentation_fixture() -> (
+fn face_fixture() -> (
     conduit_plot::CheckedPlot,
     Vec<conduit_core::HostAdvertisement>,
     Vec<RealizationAdvertisement>,
 ) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
-        .expect("presentation catalogs install");
+    conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)
+        .expect("face catalogs install");
     let plot = conduit_plot::parse(
-        "plot styled {\n    canvas: presentation/patchbay\n}\n",
+        "plot styled {\n    canvas: face/patchbay(\"Plot graph\")\n}\n",
         &profile,
     )
-    .expect("semantic presentation checks");
+    .expect("semantic face checks");
     let profiles = [
         (
             "native",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("fixed-cell".into()),
                 density: Some("compact".into()),
                 framing: Some("hard-line".into()),
@@ -244,7 +243,7 @@ fn presentation_fixture() -> (
         ),
         (
             "browser",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("flow".into()),
                 density: Some("comfortable".into()),
                 framing: Some("minimal".into()),
@@ -254,7 +253,7 @@ fn presentation_fixture() -> (
         ),
         (
             "terminal",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("fixed-cell".into()),
                 density: Some("compact".into()),
                 framing: Some("hard-line".into()),
@@ -270,7 +269,7 @@ fn presentation_fixture() -> (
             HostId::from(format!("style-{family}")),
             conduit_core::BootId::from(format!("style-{family}-boot")),
         );
-        let mut offer = conduit_std_offers::patchbay_presentation_offers()[0].clone();
+        let mut offer = conduit_std_offers::patchbay_face_offers()[0].clone();
         offer.capability_id = CapabilityId::from(format!("style-{family}/patchbay@1"));
         offer.implementation.implementation_id =
             ImplementationId::from(format!("style-{family}/presenter@1"));
@@ -281,7 +280,7 @@ fn presentation_fixture() -> (
             boot_id: host.boot_id.clone(),
             offer_generation: host.offer_generation,
             capability_id: offer.capability_id,
-            characteristics: presentation_style_characteristics(&facts),
+            characteristics: face_style_characteristics(&facts),
         });
         hosts.push(host);
     }
@@ -290,12 +289,12 @@ fn presentation_fixture() -> (
 
 #[test]
 fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
-    let (plot, hosts, advertisements) = presentation_fixture();
+    let (plot, hosts, advertisements) = face_fixture();
     let observations = reviewed(&hosts, 5, 5);
     let accessibility = HardRealizationRequirements {
         predicates: vec![PlannerPredicate::Equal {
             fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                PRESENTATION_KEYBOARD_VISIBLE,
+                FACE_KEYBOARD_VISIBLE,
             )),
             value: PlannerFactValue::Boolean(true),
         }],
@@ -305,17 +304,13 @@ fn style_is_another_policy_layer_not_a_presenter_specific_selector() {
         style_id: StyleId::from("conduit.style/spacious@1"),
         revision: 1,
         preferences: vec![
-            style_equal(PRESENTATION_TEXT_LAYOUT, "flow"),
-            style_equal(PRESENTATION_DENSITY, "comfortable"),
-            style_equal(PRESENTATION_FRAMING, "minimal"),
-            style_equal(PRESENTATION_PALETTE_CLASS, "system-adaptive"),
+            style_equal(FACE_TEXT_LAYOUT, "flow"),
+            style_equal(FACE_DENSITY, "comfortable"),
+            style_equal(FACE_FRAMING, "minimal"),
+            style_equal(FACE_PALETTE_CLASS, "system-adaptive"),
         ],
     };
-    let semantic = source(
-        "accessible-presentation",
-        1,
-        PolicyScope::SemanticRequirements,
-    );
+    let semantic = source("accessible-face", 1, PolicyScope::SemanticRequirements);
     let dos = select_realization_with_scoped_policy(
         &plot.gears[0],
         &hosts,

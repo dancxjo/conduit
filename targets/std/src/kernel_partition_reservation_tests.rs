@@ -9,8 +9,7 @@ fn workload() -> (HostAdvertisement, [conduit_core::Plan; 3]) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_time::install_time_every_catalog(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut profile).unwrap();
     let host = crate::StdHost::new();
     let source = include_str!("../../../plots/clock/main.conduit");
     let plans = ["1s", "2s", "3s"].map(|period| {

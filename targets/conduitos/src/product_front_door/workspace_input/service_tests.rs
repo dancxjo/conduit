@@ -74,11 +74,8 @@ fn release_has_an_observation_receipt_without_another_frame() {
     assert_eq!(after.input_count, 2);
     assert_eq!(after.result, before.result);
     assert_eq!(after.active_play_id, before.active_play_id);
-    assert_eq!(
-        released.presentation_id,
-        door.presentation().unwrap().identity
-    );
-    assert_ne!(released.presentation_id, pressed.presentation_id);
+    assert_eq!(released.face_id, door.face().unwrap().identity);
+    assert_ne!(released.face_id, pressed.face_id);
     assert_eq!(display.writes, writes);
     assert_eq!(presenter.compositor_frame_sequence(), 1);
     assert!(

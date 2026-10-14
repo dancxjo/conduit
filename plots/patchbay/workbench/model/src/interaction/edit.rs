@@ -32,6 +32,8 @@ pub enum PatchbayEdit {
     PlaceGear {
         basis: PatchbayEditBasis,
         kind_id: String,
+        /// The caller's data name, required by Face constructor admission.
+        data_label: Option<String>,
     },
     DuplicateGear {
         basis: PatchbayEditBasis,
@@ -95,7 +97,17 @@ impl PatchbayEdit {
             self.basis().expanded_plot_id.clone(),
         )?;
         match self {
-            Self::PlaceGear { kind_id, .. } => validate_field(kind_id),
+            Self::PlaceGear {
+                kind_id,
+                data_label,
+                ..
+            } => {
+                validate_field(kind_id)?;
+                if let Some(label) = data_label {
+                    validate_field(label)?;
+                }
+                Ok(())
+            }
             Self::DuplicateGear {
                 subject_identity, ..
             }

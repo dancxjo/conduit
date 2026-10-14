@@ -5,14 +5,13 @@ use conduit_core::{
     OfferGeneration, PROTOCOL_VERSION, Plan, SignId, bind_active_play, kind_id, resource_offer,
     resource_requirement,
 };
+use conduit_face::{
+    Face, FaceBasis, FaceRole, FaceSubject, FaceText, GraphicsCommand, GraphicsPaintRole,
+    GraphicsScene, GraphicsShapeStyle, LayoutRect, MAX_RENDERER_VALUE_BYTES, Manifestation,
+    ManifestationLifecycle, RendererRealizationOffer, renderer_kind_projection, renderer_offer,
+};
 use conduit_planner::{default_placements, plan};
 use conduit_plot::{ProfileCatalog, parse};
-use conduit_presentation::{
-    GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutRect,
-    MAX_RENDERER_VALUE_BYTES, Manifestation, ManifestationLifecycle, Presentation,
-    PresentationBasis, PresentationRole, PresentationSubject, PresentationText,
-    RendererRealizationOffer, renderer_kind_projection, renderer_offer,
-};
 use conduitos::native_compositor::{
     CompositorAdmission, InputRoute, NATIVE_PRESENTER_IMPLEMENTATION, NativeCompositor,
 };
@@ -30,14 +29,14 @@ pub fn delivered<T>(route: InputRoute<T>) -> T {
 
 pub fn update(
     compositor: &mut NativeCompositor,
-    presentation: &Presentation,
+    face: &Face,
     plan: &Plan,
     manifestation: &Manifestation,
     surface: &str,
 ) {
     compositor
         .update_surface(
-            presentation,
+            face,
             manifestation,
             plan,
             surface,
@@ -49,7 +48,7 @@ pub fn update(
 
 pub fn update_with_scene(
     compositor: &mut NativeCompositor,
-    presentation: &Presentation,
+    face: &Face,
     plan: &Plan,
     manifestation: &Manifestation,
     surface: &str,
@@ -57,7 +56,7 @@ pub fn update_with_scene(
 ) {
     compositor
         .update_surface(
-            presentation,
+            face,
             manifestation,
             plan,
             surface,
@@ -67,19 +66,11 @@ pub fn update_with_scene(
         .unwrap();
 }
 
-pub fn fixture(
-    revision: u64,
-) -> (
-    Presentation,
-    Plan,
-    Manifestation,
-    Manifestation,
-    NativeCompositor,
-) {
+pub fn fixture(revision: u64) -> (Face, Plan, Manifestation, Manifestation, NativeCompositor) {
     let mut catalog = ProfileCatalog::new();
     catalog.insert(renderer_kind_projection()).unwrap();
     let plot = parse(
-        "plot front {\n    renderer: presentation/renderer\n}\n",
+        "plot front {\n    renderer: face/renderer(\"Body view\")\n}\n",
         &catalog,
     )
     .unwrap();
@@ -94,9 +85,9 @@ pub fn fixture(
     )
     .unwrap();
     let (body, wake) = body.wake(1, SignId::from("body/wake")).unwrap();
-    let presentation = Presentation::new(
+    let face = Face::new(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body.body_id),
             wake_id: Some(wake.wake_id),
             source_document_id: Some(plot.source_document_id),
@@ -104,16 +95,16 @@ pub fn fixture(
             expanded_plot_id: Some(plot.expanded_plot_id),
             plan_id: Some(plan.plan_id.clone()),
             active_play_id: None,
-            sign_ids: vec![SignId::from("presentation/source")],
+            sign_ids: vec![SignId::from("face/source")],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "front/main".into(),
-            role: PresentationRole::Plot,
+            role: FaceRole::Plot,
             name: "Main front".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "front/main".into(),
             text: "Input route".into(),
         }],
@@ -122,7 +113,7 @@ pub fn fixture(
     let placement = &plan.fragments[0].placements[0];
     let manifestation = |surface: &str, sequence: u64| {
         Manifestation::prepared(
-            &presentation,
+            &face,
             &plan,
             bind_active_play(
                 &plan.plan_id,
@@ -179,7 +170,7 @@ pub fn fixture(
             1,
         )
         .unwrap();
-    (presentation, plan, main, top, compositor)
+    (face, plan, main, top, compositor)
 }
 
 fn scene() -> GraphicsScene {
@@ -212,7 +203,7 @@ fn native_host() -> HostAdvertisement {
         offer_generation: OfferGeneration(3),
         profile: HostProfileId::from("conduitos/native@1"),
         bases: vec![],
-        resources: vec![resource_offer(MAIN, "presentation/surface", 2)],
+        resources: vec![resource_offer(MAIN, "face/surface", 2)],
         capabilities: vec![renderer_offer(RendererRealizationOffer {
             capability_id: CapabilityId::from("presenter/native"),
             execution_profile_id: ExecutionProfileId::from("conduitos/native@1"),
@@ -220,12 +211,12 @@ fn native_host() -> HostAdvertisement {
             artifact_id: ArtifactId::from("conduitos/native-image@1"),
             host_call: HostCallRequirement {
                 contract_id: HostCallContractId::from("conduit.host/present@1"),
-                target_kind: Some(kind_id("presentation/base/native-compositor@1")),
+                target_kind: Some(kind_id("face/base/native-compositor@1")),
                 maximum_in_flight: 1,
                 maximum_input_bytes: MAX_RENDERER_VALUE_BYTES,
                 maximum_output_bytes: MAX_RENDERER_VALUE_BYTES,
             },
-            resource_requirement: resource_requirement("presentation/surface", 1),
+            resource_requirement: resource_requirement("face/surface", 1),
             limits: CapabilityLimits {
                 max_active_instances: 1,
                 max_queue_items: 1,

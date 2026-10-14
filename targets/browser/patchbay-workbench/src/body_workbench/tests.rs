@@ -5,7 +5,7 @@ use conduit_body::{
 use conduit_core::SignId;
 
 fn evidence(snapshot: &RendererSnapshot) -> Vec<u8> {
-    let basis = &snapshot.presentation.basis;
+    let basis = &snapshot.face.basis;
     let born_body = Body::born(
         basis.source_document_id.clone().unwrap(),
         basis.checked_plot_id.clone().unwrap(),
@@ -66,19 +66,19 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
     assert_eq!(workbench.history["entries"].as_array().unwrap().len(), 4);
     let mut stale = workbench.clone();
     stale.body_id.push_str("-stale");
-    assert!(validate_body_workbench(&stale, &snapshot.presentation).is_err());
+    assert!(validate_body_workbench(&stale, &snapshot.face).is_err());
 
     let entrance =
         body_workbench_snapshot(1, &bytes, BrowserBodyWorkbenchEntrance::ExternalReader).unwrap();
     let plots = entrance
-        .presentation
+        .face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Plot)
+        .filter(|subject| subject.role == FaceRole::Plot)
         .collect::<Vec<_>>();
     assert_eq!(plots.len(), 2);
     let initial_checked = snapshot
-        .presentation
+        .face
         .basis
         .checked_plot_id
         .as_ref()
@@ -88,19 +88,16 @@ fn attached_workbench_retains_exact_evidence_and_refuses_identity_drift() {
     assert!(plots
         .iter()
         .any(|subject| subject.name == "checked/recorder"));
-    assert_eq!(
-        entrance.presentation.basis.body_id,
-        snapshot.presentation.basis.body_id
-    );
+    assert_eq!(entrance.face.basis.body_id, snapshot.face.basis.body_id);
     let navigation = entrance.navigation.unwrap();
     assert!(navigation
         .navigation
         .places
         .iter()
-        .any(|place| place.place == conduit_presentation::PresentationPlace::Program));
+        .any(|place| place.place == conduit_face::FacePlace::Program));
     assert!(navigation
         .navigation
         .places
         .iter()
-        .any(|place| place.place == conduit_presentation::PresentationPlace::Body));
+        .any(|place| place.place == conduit_face::FacePlace::Body));
 }

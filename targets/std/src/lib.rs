@@ -358,7 +358,7 @@ pub struct StdKernelExecutionReport {
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),
     pub value_allocation_capacity_after: (usize, usize),
-    pub presentation_ids: Vec<conduit_core::PresentationId>,
+    pub face_ids: Vec<conduit_core::FaceId>,
     pub playback: Vec<hosted_audio::PlaybackReport>,
     pub wav_artifacts: Vec<hosted_wav_artifact::WavArtifactReport>,
     pub midi_input: Vec<hosted_midi::MidiInputReport>,
@@ -2003,7 +2003,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let plot = parse_with_startup(
-            "plot virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: presentation/show\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "plot virtual {\n pulse: flow/pulse(count = 3, period-ms = 7, initial = false)\n show: face/show(\"Signal\")\n pulse >> show\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("virtual-clock plot parses");
         let plan = host.plan_local(&plot, None).expect("local plan resolves");
         let fragment = plan.fragments[0].clone();
@@ -2039,15 +2039,12 @@ mod tests {
         assert!(kernel.decisions > 0);
         assert!(kernel.kernel_events > 0);
         assert_ne!(kernel.active_play_id.as_str(), plan_id.as_str());
-        assert_eq!(kernel.presentation_ids.len(), 3);
+        assert_eq!(kernel.face_ids.len(), 3);
         assert_eq!(kernel.identity.plan_id, plan_id);
         assert_eq!(kernel.identity.active_play_id, kernel.active_play_id);
         assert_eq!(kernel.identity.lengths(), (5, 3, 4));
         assert_eq!(kernel.post_play_start_allocations, 0);
-        assert!(kernel
-            .presentation_ids
-            .windows(2)
-            .all(|pair| pair[0] != pair[1]));
+        assert!(kernel.face_ids.windows(2).all(|pair| pair[0] != pair[1]));
         assert_eq!(
             kernel.value_allocation_capacity_before,
             kernel.value_allocation_capacity_after
@@ -2058,7 +2055,7 @@ mod tests {
                 .iter()
                 .filter(|observation| {
                     observation.active_play_id.as_ref() == Some(&kernel.active_play_id)
-                        && observation.presentation_id.is_some()
+                        && observation.face_id.is_some()
                 })
                 .count()
                 == 3
@@ -2068,34 +2065,31 @@ mod tests {
                 .identity
                 .sign_identity(&observation.sign_id)
                 .expect("host sign reverses to its kernel identity row");
-            assert_eq!(
-                sign.presentation_id.as_ref(),
-                observation.presentation_id.as_ref()
-            );
-            if let Some(presentation_id) = &observation.presentation_id {
-                let presentation = kernel
+            assert_eq!(sign.face_id.as_ref(), observation.face_id.as_ref());
+            if let Some(face_id) = &observation.face_id {
+                let face = kernel
                     .identity
-                    .presentation(presentation_id)
-                    .expect("presentation reverses to one kernel request");
+                    .face(face_id)
+                    .expect("face reverses to one kernel request");
                 let request = kernel
                     .identity
-                    .request(presentation.node, presentation.request)
-                    .expect("presentation request reverses to its Host Call contract");
+                    .request(face.node, face.request)
+                    .expect("face request reverses to its Host Call contract");
                 assert!(kernel
                     .identity
-                    .request_for_contract(presentation.node, &request.contract_id)
+                    .request_for_contract(face.node, &request.contract_id)
                     .any(|candidate| candidate == request));
                 assert_eq!(
                     kernel
                         .identity
-                        .presentation_for_request(presentation.node, presentation.request)
-                        .map(|identity| &identity.presentation_id),
-                    Some(presentation_id)
+                        .face_for_request(face.node, face.request)
+                        .map(|identity| &identity.face_id),
+                    Some(face_id)
                 );
                 assert_eq!(
                     kernel
                         .identity
-                        .sign_for_presentation(presentation_id)
+                        .sign_for_face(face_id)
                         .map(|identity| &identity.sign_id),
                     Some(&observation.sign_id)
                 );
@@ -2153,7 +2147,7 @@ mod tests {
             offer_generation: OfferGeneration(1),
         });
         let plot = parse_with_startup(
-            "plot wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: presentation/show\n right: presentation/show\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
+            "plot wider {\n first: flow/pulse(count = 1)\n second: flow/pulse(count = 1)\n left: face/show(\"Signal\")\n right: face/show(\"Signal\")\n first >> left\n second >> right\n}\n", &conduit_signal::signal_startup_catalog(), &signal_profile_catalog())
         .expect("unsupported wider plot remains semantically valid");
         let plan = host
             .plan_local(&plot, None)

@@ -53,7 +53,7 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
         comparisons.add(comparisonKey);
       }
       if (row.effect?.effect_kind !== 'manifestation'
-          || row.effect.presentation_kind !== (comparator ? 'presentation/text' : 'presentation/bool-value')
+          || row.effect.face_kind !== (comparator ? 'face/text' : 'face/bool-value')
           || row.effect.text !== expectedText
           || (comparator ? planned?.implementation_id !== 'browser/converted-equals@1'
                          : !planned?.implementation_id?.startsWith('browser/exact-'))

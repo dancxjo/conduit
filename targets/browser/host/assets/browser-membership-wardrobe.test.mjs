@@ -14,7 +14,7 @@ test('wardrobe response binds to one request and bounded owner report', () => {
 });
 
 test('wardrobe frame preserves exact u64 revision and one controlled numeric slot', () => {
-  const request = { schema: 'conduit.presentation/owner-face-request@1', body_id: 'body/clock' };
+  const request = { schema: 'conduit.face/owner-face-request@1', body_id: 'body/clock' };
   const bytes = checkedOwnerWardrobeRequestFrame({ requestId: pending.requestId, request,
     ownerPlanId: 'plan/owner', basisRevision: '18446744073709551615', action: { Wear: {
       source_document_id: 'source', checked_plot_id: 'checked', expanded_plot_id: 'expanded',

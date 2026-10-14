@@ -307,9 +307,9 @@ impl<T> BoundedDeliveryQueue<T> {
 
 /// Renderer throttling is deliberately not semantic delivery accounting.
 #[derive(Debug, Clone, Copy, Default, PartialEq, Eq, Serialize, Deserialize)]
-pub struct PresentationCoalescing {
+pub struct FaceCoalescing {
     pub rendered: u64,
-    pub presentation_updates_coalesced: u64,
+    pub face_updates_coalesced: u64,
 }
 
 #[cfg(test)]
@@ -456,11 +456,11 @@ mod tests {
         let mut queue = BoundedDeliveryQueue::new(ORDERED, 1, 3).unwrap();
         queue.admit(1).unwrap();
         let semantic = queue.accounting();
-        let presentation = PresentationCoalescing {
+        let face = FaceCoalescing {
             rendered: 1,
-            presentation_updates_coalesced: 153,
+            face_updates_coalesced: 153,
         };
-        assert_eq!(presentation.presentation_updates_coalesced, 153);
+        assert_eq!(face.face_updates_coalesced, 153);
         assert_eq!(queue.accounting(), semantic);
         assert_eq!(queue.accounting().coalesced, 0);
     }

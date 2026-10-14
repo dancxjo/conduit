@@ -1,8 +1,8 @@
 use crate::RendererSnapshot;
 use conduit_core::SignId;
+use conduit_face::ManifestationFailure;
+use conduit_face::CONDUIT_APPLICATION_THEME;
 use conduit_patchbay_workbench::PatchbayInteraction;
-use conduit_presentation::ManifestationFailure;
-use conduit_presentation::CONDUIT_APPLICATION_THEME;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
 
@@ -45,7 +45,7 @@ pub struct PatchbayHtmlServer {
     encoded_snapshot: Vec<u8>,
     theme_css: Vec<u8>,
     interaction: PatchbayInteraction,
-    navigation: Option<conduit_presentation::NavigationState>,
+    navigation: Option<conduit_face::NavigationState>,
     front_door:
         Option<std::sync::Arc<std::sync::Mutex<conduit_patchbay_workbench::LocalFrontDoor>>>,
     zero_body_front_door:
@@ -130,13 +130,8 @@ impl PatchbayHtmlServer {
         let planning_plots = body_host_planning_offer::planning_plots(workset, &plots)?;
         conduit_body_make::body_planning_requirements(workset, &planning_plots)
             .map_err(|error| ServerError::Interaction(format!("Body planning plots: {error:?}")))?;
-        let selector_plot = if self
-            .snapshot
-            .presentation
-            .basis
-            .source_document_id
-            .is_none()
-            && self.snapshot.presentation.basis.checked_plot_id.is_none()
+        let selector_plot = if self.snapshot.face.basis.source_document_id.is_none()
+            && self.snapshot.face.basis.checked_plot_id.is_none()
         {
             Some(None)
         } else {
@@ -144,9 +139,9 @@ impl PatchbayHtmlServer {
                 .plots()
                 .iter()
                 .find(|resident| {
-                    self.snapshot.presentation.basis.source_document_id.as_ref()
+                    self.snapshot.face.basis.source_document_id.as_ref()
                         == Some(&resident.source_document_id)
-                        && self.snapshot.presentation.basis.checked_plot_id.as_ref()
+                        && self.snapshot.face.basis.checked_plot_id.as_ref()
                             == Some(&resident.checked_plot_id)
                 })
                 .cloned()
@@ -156,7 +151,7 @@ impl PatchbayHtmlServer {
             let manifestation = &self.snapshot.renderer.manifestation;
             self.mask_control = Some(
                 conduit_patchbay_workbench::MaskControlSession::new(
-                    self.snapshot.presentation.clone(),
+                    self.snapshot.face.clone(),
                     conduit_body::BodyFaceSelector {
                         plot,
                         source_placement_id: None,

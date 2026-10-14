@@ -1,22 +1,22 @@
 use super::*;
 
-fn long_list() -> Presentation {
+fn long_list() -> Face {
     let (base, _) = face_with_action();
     let mut subjects = base.subjects;
     let mut disclosures = base.disclosures;
     for index in 0..8 {
         let identity = format!("item/{index}");
-        subjects.push(PresentationSubject {
+        subjects.push(FaceSubject {
             identity: identity.clone(),
-            role: PresentationRole::Item,
+            role: FaceRole::Item,
             name: format!("Page item {index}"),
         });
-        disclosures.push(PresentationDisclosure {
+        disclosures.push(FaceDisclosure {
             subject: identity,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         });
     }
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         base.revision,
         base.basis,
         subjects,
@@ -74,7 +74,7 @@ fn refresh_refuses_an_old_page_until_a_new_selection_is_requested() {
         .command(&face, &show, ReaderCommand::ReadItemPage, 1)
         .unwrap();
     reader.take_text_readout().unwrap();
-    let next = Presentation::new_with_semantics(
+    let next = Face::new_with_semantics(
         face.revision + 1,
         face.basis.clone(),
         face.subjects.clone(),

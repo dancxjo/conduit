@@ -3,10 +3,9 @@
 //! properties, unavailable actions, input contracts, and provenance.
 use super::*;
 use alloc::{format, string::String};
-use conduit_presentation::{
-    FaceUtteranceProvenance as Provenance, PresentationActionAvailability,
-    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole, plan_face_utterances,
-    readable_finite_text_choices,
+use conduit_face::{
+    FaceActionAvailability, FaceDisclosureLevel, FacePropertyValue, FaceRole,
+    FaceUtteranceProvenance as Provenance, plan_face_utterances, readable_finite_text_choices,
 };
 
 pub(super) struct Item {
@@ -32,7 +31,7 @@ fn item(text: String, role: GraphicsTextRole) -> Item {
 }
 
 pub(super) fn prepare(
-    face: &Presentation,
+    face: &Face,
     interaction_admitted: bool,
 ) -> Result<(Vec<Item>, Vec<Item>), FaceSceneError> {
     let plan = plan_face_utterances(face).map_err(|_| FaceSceneError::DocumentBound)?;
@@ -41,7 +40,7 @@ pub(super) fn prepare(
     for (index, subject) in face.subjects.iter().enumerate().filter(|(_, subject)| {
         matches!(
             subject.role,
-            PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord
+            FaceRole::Gear | FaceRole::Port | FaceRole::Cord
         )
     }) {
         let mut identity = item(
@@ -50,7 +49,7 @@ pub(super) fn prepare(
         );
         identity.subject_index = Some(index);
         details.push(identity);
-        if subject.role == PresentationRole::Cord {
+        if subject.role == FaceRole::Cord {
             let mut endpoints = item(
                 super::ports::cord_summary(face, subject),
                 GraphicsTextRole::Body,
@@ -59,7 +58,7 @@ pub(super) fn prepare(
             details.push(endpoints);
             for relation in face.relationships.iter().filter(|relation| {
                 relation.source == subject.identity
-                    && relation.kind == conduit_presentation::PresentationRelationshipKind::Connects
+                    && relation.kind == conduit_face::FaceRelationshipKind::Connects
             }) {
                 let mut endpoint = item(
                     format!("{} connects {}", subject.identity, relation.target),
@@ -117,24 +116,19 @@ pub(super) fn prepare(
             disclosure.subject == subject.identity
                 && (matches!(
                     disclosure.level,
-                    PresentationDisclosureLevel::CurrentAction
-                        | PresentationDisclosureLevel::SelectedDetail
-                        | PresentationDisclosureLevel::ExactProvenance
-                ) || (disclosure.level == PresentationDisclosureLevel::Context
-                    && !matches!(
-                        subject.role,
-                        PresentationRole::Collection | PresentationRole::Document
-                    )))
+                    FaceDisclosureLevel::CurrentAction
+                        | FaceDisclosureLevel::SelectedDetail
+                        | FaceDisclosureLevel::ExactProvenance
+                ) || (disclosure.level == FaceDisclosureLevel::Context
+                    && !matches!(subject.role, FaceRole::Collection | FaceRole::Document)))
         }) {
             continue;
         }
         let role = match subject.role {
-            PresentationRole::Document | PresentationRole::Body | PresentationRole::Host => {
-                GraphicsTextRole::Title
-            }
-            PresentationRole::Region | PresentationRole::Collection => GraphicsTextRole::Heading,
-            PresentationRole::Status => GraphicsTextRole::Status,
-            PresentationRole::Diagnostic => GraphicsTextRole::Warning,
+            FaceRole::Document | FaceRole::Body | FaceRole::Host => GraphicsTextRole::Title,
+            FaceRole::Region | FaceRole::Collection => GraphicsTextRole::Heading,
+            FaceRole::Status => GraphicsTextRole::Status,
+            FaceRole::Diagnostic => GraphicsTextRole::Warning,
             _ => GraphicsTextRole::Label,
         };
         // Contains is Face truth. Its visual indentation is Mask geometry;
@@ -144,10 +138,7 @@ pub(super) fn prepare(
         while depth < 2 {
             let Some(parent) = face.relationships.iter().find(|relation| {
                 relation.target == ancestor
-                    && matches!(
-                        relation.kind,
-                        conduit_presentation::PresentationRelationshipKind::Contains
-                    )
+                    && matches!(relation.kind, conduit_face::FaceRelationshipKind::Contains)
             }) else {
                 break;
             };
@@ -162,14 +153,14 @@ pub(super) fn prepare(
                 .position(|candidate| candidate.identity == subject.identity);
             primary.push(item);
         };
-        let name = if subject.role == PresentationRole::Item {
+        let name = if subject.role == FaceRole::Item {
             face.properties
                 .iter()
                 .find(|property| {
                     property.subject == subject.identity && property.name == "complete"
                 })
                 .and_then(|property| match &property.value {
-                    PresentationPropertyValue::Flag(complete) => Some(*complete),
+                    FacePropertyValue::Flag(complete) => Some(*complete),
                     _ => None,
                 })
                 .map(|complete| format!("[{}] {}", if complete { 'x' } else { ' ' }, subject.name))
@@ -179,16 +170,16 @@ pub(super) fn prepare(
         };
         let mut heading = item(name, role);
         heading.paint = match subject.role {
-            PresentationRole::Diagnostic => GraphicsPaintRole::Warning,
-            PresentationRole::Status => GraphicsPaintRole::Foreground,
-            PresentationRole::Region | PresentationRole::Collection => GraphicsPaintRole::Accent,
+            FaceRole::Diagnostic => GraphicsPaintRole::Warning,
+            FaceRole::Status => GraphicsPaintRole::Foreground,
+            FaceRole::Region | FaceRole::Collection => GraphicsPaintRole::Accent,
             _ => GraphicsPaintRole::Foreground,
         };
         append(heading);
         // The Body name anchors the encounter. Its generic lifecycle and
         // resident-count sentence is inspection context; application subjects
         // supply the ordinary view's useful content.
-        if subject.role != PresentationRole::Body {
+        if subject.role != FaceRole::Body {
             for text in face
                 .text
                 .iter()
@@ -215,10 +206,7 @@ pub(super) fn prepare(
             if action.target != subject.identity {
                 continue;
             }
-            if !matches!(
-                action.availability,
-                PresentationActionAvailability::Available
-            ) {
+            if !matches!(action.availability, FaceActionAvailability::Available) {
                 continue;
             }
             let paint = if interaction_admitted {
@@ -266,7 +254,7 @@ pub(super) fn prepare(
     Ok((primary, details))
 }
 
-fn argument_hint(argument: &conduit_presentation::FaceActionArgument) -> String {
+fn argument_hint(argument: &conduit_face::FaceActionArgument) -> String {
     readable_finite_text_choices(&argument.contract).map_or_else(
         || "Enter a value".into(),
         |choices| format!("Choose {}", choices.join(", ")),

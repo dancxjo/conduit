@@ -41,10 +41,10 @@ mod tests {
         let mut product = TourProduct::canonical(1);
         product
             .controller
-            .request(&conduit_presentation::ApplicationEvent {
+            .request(&conduit_face::ApplicationEvent {
                 revision: 1,
                 action: conduit_tour_model::OPEN_PATCHBAY_ACTION_ID.into(),
-                kind: conduit_presentation::ApplicationEventKind::Activate,
+                kind: conduit_face::ApplicationEventKind::Activate,
                 value: alloc::vec![],
             })
             .unwrap();

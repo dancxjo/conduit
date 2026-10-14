@@ -41,13 +41,13 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
           property(identity, "semantic-id", cord.subject), property(identity, "source-port", `port/${source}`), property(identity, "sink-port", `port/${sink}`));
         relationships.push({ source: `wrapper-${i}`, target: source, kind: "Contains" }, { source: `wrapper-${i + 1}`, target: sink, kind: "Contains" });
       });
-      window.snapshot = { authoring: { ...fixture.basis, connection_candidates: [] }, presentation: { identity: "presentation/exact", revision: 1, basis: fixture.basis, subjects, properties, relationships, text: [], actions: [] }, interaction: { revision: 1, selected_subject: null } };
+      window.snapshot = { authoring: { ...fixture.basis, connection_candidates: [] }, face: { identity: "face/exact", revision: 1, basis: fixture.basis, subjects, properties, relationships, text: [], actions: [] }, interaction: { revision: 1, selected_subject: null } };
       if (fresh) {
         delete snapshot.authoring;
-        snapshot.presentation.basis = { source_document_id: null, checked_plot_id: null };
-        snapshot.presentation.subjects = [{ identity: "body/present", role: "Body", name: "Present Body" }];
-        snapshot.presentation.properties = [];
-        snapshot.presentation.relationships = [];
+        snapshot.face.basis = { source_document_id: null, checked_plot_id: null };
+        snapshot.face.subjects = [{ identity: "body/present", role: "Body", name: "Present Body" }];
+        snapshot.face.properties = [];
+        snapshot.face.relationships = [];
       }
       window.before = JSON.stringify(window.snapshot);
       window.store = new Map(stored);
@@ -104,10 +104,10 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
     await page.evaluate(async () => {
       await flow.selectFlowLayout("Vertical");
       await flow.saveFlowLayout("Personal");
-      await flow.annotateFlow({ id: "personal", text: "Only presentation", subject: "gear/source", x: 20, y: 30 });
+      await flow.annotateFlow({ id: "personal", text: "Only face", subject: "gear/source", x: 20, y: 30 });
       await flow.routeFlow("cord/fourth", "manual", [{ x: 400, y: 300 }, { x: 600, y: 500 }]);
     });
-    await page.getByText("Only presentation", { exact: true }).waitFor();
+    await page.getByText("Only face", { exact: true }).waitFor();
     const result = await page.evaluate(async () => {
       await flow.flowStorageSettled();
       const encoded = flow.exportFlowWorkspace();
@@ -128,9 +128,9 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
     const stored = await page.evaluate(() => [...store.entries()]);
     await page.evaluate(() => {
       snapshot.authoring = { ...snapshot.authoring, source_document_id: "source/edited", checked_plot_id: "checked/edited" };
-      snapshot.presentation.subjects = snapshot.presentation.subjects.filter((subject) => subject.identity !== "wrapper-0");
-      snapshot.presentation.properties = snapshot.presentation.properties.filter((property) => property.subject !== "wrapper-0");
-      snapshot.presentation.revision++;
+      snapshot.face.subjects = snapshot.face.subjects.filter((subject) => subject.identity !== "wrapper-0");
+      snapshot.face.properties = snapshot.face.properties.filter((property) => property.subject !== "wrapper-0");
+      snapshot.face.revision++;
       flow.renderFlow(snapshot, handlers);
     });
     await page.waitForFunction(() => flow.flowWorkspaceStatus().basis?.checked_plot_id === "checked/edited");
@@ -144,7 +144,7 @@ test("pinned Chromium stores, switches, reloads and refuses future portable layo
     await page.reload();
     await page.evaluate(initialize, { fixture, stored });
     await page.waitForFunction(() => window.flow?.flowWorkspaceStatus().active_layout === "Personal");
-    await page.getByText("Only presentation", { exact: true }).waitFor();
+    await page.getByText("Only face", { exact: true }).waitFor();
     assert.deepEqual(await page.evaluate(() => flow.flowSceneSnapshot().nodes.map((node) => node.position)), result.positions);
     const future = JSON.parse(result.stored); future.schema = "conduit.patchbay.workspace/v99";
     const futureEncoded = JSON.stringify(future);

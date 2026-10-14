@@ -8,12 +8,12 @@ use crate::{
 use conduit_body::{Body, BodyPlan, BodyPlotPlan, ResidentPlot};
 use conduit_core::{port_id, ConnectionTrack, HostAdvertisement, PortDirection};
 use conduit_core::{BootId, HostId, OfferGeneration, SignId, TerminalDisposition};
+use conduit_face::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use conduit_planner::{ConnectionQueueLimits, ForeBoundaryKey, PlanningOptions};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     rust_binding::NativeRustBinding, CanonicalBackCatalog, ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::{ParsecMapCommand, ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES};
 use std::collections::BTreeMap;
 use std::{sync::mpsc, time::Duration};
 

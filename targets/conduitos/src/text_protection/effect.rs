@@ -1,4 +1,4 @@
-//! Exact capability-gated bounded presentation and completion.
+//! Exact capability-gated bounded face and completion.
 use super::*;
 
 impl<I: TextOwner> ProtectedText<I> {
@@ -155,7 +155,7 @@ pub(super) struct Window<const N: usize> {
 }
 impl Window<MAXIMUM_BYTES> {
     const TEXT: Self = Self {
-        prepare: TextDomain::presentation,
+        prepare: TextDomain::face,
         request: TextDomain::effect_request,
         utf8: true,
     };
@@ -163,7 +163,7 @@ impl Window<MAXIMUM_BYTES> {
 
 impl Window<{ conduit_text::MAXIMUM_MORSE_PATTERN_BYTES }> {
     pub(super) const MORSE: Self = Self {
-        prepare: TextDomain::morse_presentation,
+        prepare: TextDomain::morse_face,
         request: TextDomain::morse_effect_request,
         utf8: false,
     };

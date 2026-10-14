@@ -1,4 +1,4 @@
-//! One deterministic Presentation retained through native and browser renderers.
+//! One deterministic Face retained through native and browser renderers.
 
 use crate::evidence::{
     EvidenceKind, EvidenceManifest, EvidenceOutput, EvidenceProvenance, EvidenceResult,
@@ -82,14 +82,14 @@ fn command(command: &mut Command, description: &str) -> Result<(), String> {
 fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
     let native = read_receipt(&root.join("native.json"))?;
     let browser = read_receipt(&root.join("browser.json"))?;
-    let presentation_id = text(&native, "presentation_id")?;
-    let browser_presentation_id = text(&browser, "presentation_id")?;
-    let revision = integer(&native, "presentation_revision")?;
-    if presentation_id != browser_presentation_id
-        || revision != integer(&browser, "presentation_revision")?
-        || native.get("presentation_basis") != browser.get("presentation_basis")
+    let face_id = text(&native, "face_id")?;
+    let browser_face_id = text(&browser, "face_id")?;
+    let revision = integer(&native, "face_revision")?;
+    if face_id != browser_face_id
+        || revision != integer(&browser, "face_revision")?
+        || native.get("face_basis") != browser.get("face_basis")
     {
-        return Err("native and browser receipts do not identify one exact Presentation".into());
+        return Err("native and browser receipts do not identify one exact Face".into());
     }
     let mut manifest = EvidenceManifest::new(
         root,
@@ -139,8 +139,8 @@ fn finish_manifest(root: &Path, workspace: &Path) -> Result<(), String> {
             required: true,
             provenance: EvidenceProvenance {
                 scenario_id: "one-plot-two-fronts.front-door@1".into(),
-                presentation_id: Some(presentation_id.into()),
-                presentation_revision: Some(revision.to_string()),
+                face_id: Some(face_id.into()),
+                face_revision: Some(revision.to_string()),
                 manifestation_id: Some(text(receipt, "manifestation_id")?.into()),
                 plan_id: Some(text(receipt, "renderer_plan_id")?.into()),
                 active_play_id: Some(text(receipt, "renderer_play_id")?.into()),

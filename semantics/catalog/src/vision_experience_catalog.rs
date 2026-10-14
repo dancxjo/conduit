@@ -4,11 +4,11 @@ use alloc::{vec, vec::Vec};
 use conduit_core::{
     kind_id, port_id, KindId, PortDescriptor, PortDirection, PortTemporal, StructuredInfoType,
 };
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
+use conduit_face::{
     VisionMotionsFour, VisionObjectObservations, VisionTextsEight, VisionTracksFour,
     VisualExperience, VisualImpression,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 use crate::image_resource_type;
 

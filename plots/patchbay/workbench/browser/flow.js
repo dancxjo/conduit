@@ -15,7 +15,7 @@ const ReactDOM = window.ReactDOM;
 const Flow = window.ReactFlow;
 
 if (!React || !ReactDOM || !Flow) {
-  throw new Error("preserved React Flow presentation assets are unavailable");
+  throw new Error("preserved React Flow face assets are unavailable");
 }
 
 const e = React.createElement;
@@ -133,8 +133,8 @@ function presentEdges(edges) {
 function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onOpenBack, onWorkspaceChange, lens, selectionGroup }) {
   const [openedBacks, setOpenedBacks] = React.useState(() => new Set());
   React.useEffect(() => setOpenedBacks(new Set()), [
-    snapshot.presentation.basis.checked_plot_id,
-    snapshot.presentation.basis.expanded_plot_id,
+    snapshot.face.basis.checked_plot_id,
+    snapshot.face.basis.expanded_plot_id,
     snapshot.authoring?.checked_plot_id,
     snapshot.authoring?.expanded_plot_id,
   ]);
@@ -203,7 +203,7 @@ function Workspace({ snapshot, onSelect, onConnect, onConnectStart, onClear, onO
     });
     const document = workspaceDocuments.get(projected.workspaceIdentity);
     setEdges(presentEdges(document ? applyWorkspace(document, projected).edges : projected.edges));
-  }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.presentation.identity, snapshot.presentation.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision, snapshot.authoring?.connection_candidates]);
+  }, [projected.workspaceIdentity, projected.lens, openedBacks, snapshot.face.identity, snapshot.face.revision, snapshot.interaction.revision, snapshot.debugger?.revision, snapshot.timeline?.revision, snapshot.authoring?.connection_candidates]);
   arrangeCurrent = () => {
     const next = reconcileFlowScene(projected);
     setNodes(next.nodes);
@@ -316,11 +316,11 @@ export function renderFlow(snapshot, handlers) {
   root.render(e(Workspace, {
     snapshot,
     ...workspaceHandlers,
-    selectionGroup: `patchbay-flow-${target.id || snapshot.presentation.identity}`,
+    selectionGroup: `patchbay-flow-${target.id || snapshot.face.identity}`,
   }));
   target.dataset.renderer = "react-flow";
-  target.dataset.presentationId = snapshot.presentation.identity;
-  target.dataset.presentationRevision = String(snapshot.presentation.revision);
+  target.dataset.faceId = snapshot.face.identity;
+  target.dataset.faceRevision = String(snapshot.face.revision);
 }
 
 export function renderFlowRefusal(target, message) {

@@ -16,8 +16,8 @@ const MAX_JSON_BYTES: usize =
 #[derive(Serialize)]
 struct Snapshot<'a> {
     schema: &'static str,
-    presentation: &'a conduit_presentation::Presentation,
-    presentation_revision_decimal: String,
+    face: &'a conduit_face::Face,
+    face_revision_decimal: String,
     advertisement: &'a conduit_core::HostAdvertisement,
 }
 
@@ -25,15 +25,13 @@ pub(crate) fn run(state_dir: &Path, json: bool) -> Result<(), String> {
     if !json {
         return Err("body face requires --json".into());
     }
-    let (presentation, advertisement) =
-        crate::durable_host_control::local_face_snapshot(state_dir)?;
-    presentation
-        .validate()
+    let (face, advertisement) = crate::durable_host_control::local_face_snapshot(state_dir)?;
+    face.validate()
         .map_err(|error| format!("installed owner returned an invalid Face: {error:?}"))?;
     let bytes = serde_json::to_vec(&Snapshot {
         schema: SCHEMA,
-        presentation: &presentation,
-        presentation_revision_decimal: presentation.revision.to_string(),
+        face: &face,
+        face_revision_decimal: face.revision.to_string(),
         advertisement: &advertisement,
     })
     .map_err(|error| format!("encode current Body Face: {error}"))?;

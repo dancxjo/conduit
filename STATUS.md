@@ -16,7 +16,7 @@ Protection-domain work for [#5113](https://github.com/dancxjo/conduit/issues/511
 provides ordinary execution-region isolation on five reviewed native emulator
 profiles. Local x86_64 proofs exercise checked text Source and
 the ordinary graphical Keyboard canvas in CPL3 with capability-gated serial
-presentation. The keyboard domain binds the actual Body Plan and Play; Stop
+face. The keyboard domain binds the actual Body Plan and Play; Stop
 revokes it. Eighteen hostile entries, malformed capability requests and
 retained Compose state are checked. Keymap and Unicode uppercase share one
 protected entry; the graphical specimen uses five entries and one Base gate.
@@ -46,7 +46,7 @@ headless `prove` entrance separately from its graphical product journey. The IA-
 two independent normal BIOS boots separately from its instrumented checks.
 The standing timer product now owns its production fixed scheduler and Count
 state inside a private domain, with separate capability-gated Timer and Count
-presentation operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
+face operations. Local x86_64, IA-32, AArch64, RISC-V64 and LoongArch64
 proofs passed the physical 120 ms product, terminal replay refusal and complete
 zeroization. Each used eleven domain entries, four Base gates and 313 runtime
 bytes copied. Broader ordinary implementation coverage remains unfinished.
@@ -61,7 +61,7 @@ See the [exact per-target boundary](docs/architecture/conduitos-protection-domai
 | **Language and composition** | Canonical `.conduit` parsing, located diagnostics, checking, recursive Plots through Fores/Backs, exact typed ports, open-ended numeric semantic ranges, and separate source/checked/expanded identities. Ordinary examples run through planning and the production kernel. | Every actual value and implementation resource envelope is finitely admitted even when a Type's semantic domain is open; a catalog entry does not promise an implementation on every Host. See [plots](plots/README.md). |
 | **Planning and execution** | One port-aware kernel, explicit fan-out, bounded queues and Host Calls, plan-owned per-Step fuel, fair cooperative yielding, resource and authority admission, immutable plans, pressure, and correlated signs. Exact abnormal-terminal kinds, separate terminal-transduction profiles, containing-Plot propagation, typed semantic cancellation requests, and cancellation-driven deadlines remain checked and planned through execution. Shared code serves hosted, browser, and embedded paths. Confined Wasm instruction fuel forcibly returns control even from a non-cooperative infinite loop. | A cancellation request is not proof of cancellation, and successful fallback does not manufacture semantic abnormal truth. Native in-process, browser, ConduitOS, and firmware Backs remain cooperative unless their exact Host profile names and proves a hard containment mechanism. General SMP, preemption, and physical real-time guarantees are not established by cooperative execution. |
 | **body lifecycle** | Zero/one/many initial plots, durable part membership, current/offline host presence, body-wide workload admission, one current plan and at most one active play. Multi-plot execution and workload changes have hosted and browser evidence. Live plots treat structural drain as quiescence; a canonical trailing full stop makes that drain semantic completion. | This is implemented, not merely the old #2062 proposal. Durable keep realization across Wake, Boot, and Body loss remains part of the open persistence vertical rather than an implicit lifecycle promise. |
-| **Face and Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Plots contribute Face truth; ordinary Plots serving the Mask role realize exact Face revisions as Shows through deterministic-linear, browser, and native graphical routes. Bounded hosted terminal and mechanical spoken Mask implementations also consume that Face. The [one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/) retains one live local run spanning a Linux owner, browser, and QEMU guest, with five Masks, user-driven screen-free Birth and operation, selected direct and model-assisted speaker Plays, and host/provider loss and recovery. Authored Body source admits an unordered `wear …, …` eligibility set and optional ordered `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The Rust carrier type is still named `Presentation` during migration. The retained run proves automated nonvisual interaction and selected device playback, not attended human listening, physical ConduitOS output, arbitrary workload migration, or automatic failover. Browser permission, device availability, tab lifetime, and supported profile still apply. |
+| **Face and Masks** | One bounded renderer-neutral Face grammar carries exact basis, subjects, relationships, typed content, wording, actions, inputs, semantic order, context, and provenance. Ordinary Plots contribute Face truth; ordinary Plots serving the Mask role realize exact Face revisions as Shows through deterministic-linear, browser, and native graphical routes. Bounded hosted terminal and mechanical spoken Mask implementations also consume that Face. The [one-Body journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/) retains one live local run spanning a Linux owner, browser, and QEMU guest, with five Masks, user-driven screen-free Birth and operation, selected direct and model-assisted speaker Plays, and host/provider loss and recovery. Authored Body source admits an unordered `wear …, …` eligibility set and optional ordered `want … over …` policy while runtime wear/doff remains replacement-planning input rather than Plan mutation. | The retained run proves automated nonvisual interaction and selected device playback, not attended human listening, physical ConduitOS output, arbitrary workload migration, or automatic failover. Browser permission, device availability, tab lifetime, and supported profile still apply. |
 | **Patchbay** | A resident native projection shows the active plots on the present body with exact plan/play identities and Mask topology; broader native and browser inspection/editing, bounded Watches, observation replay, and scoped breakpoint/causal-trace support also exist. | Patchbay is a projection over authoritative body and execution truth, not a second scheduler. Replay is distinct from re-execution, and these features do not establish distributed stop-the-world debugging. |
 | **Crèche and make** | Birth a body with reviewed plots, prepare target-native artifacts, inspect membership, and retain body evidence into Patchbay. Make packages cover hosted computers, browser, ConduitOS, and board families. | Building or downloading an artifact is distinct from installing, booting, admitting a part, and executing work. Consult each [target](targets/README.md). |
 | **ConduitOS** | Five product targets: x86_64 and IA-32 PC, AArch64 and RISC-V64 virt, and LoongArch64 virt. The x86_64 graphical journey uses QMP keyboard input to arrive at Crèche, birth and wake one Body, plan and play it, open Patchbay, inspect its semantic Face and live graph, and stop. Ten screen captures and a correlated receipt come from the retained product image. Its graphical Mask moves one boot-discovered framebuffer resource through an exact planned resource Cord into renderer possession, authorizes one present operation, then revokes that possession at Play end; the other four targets have serial product media. | The illustrated journey is **freestanding-emulator** proof. Non-x86 targets still need interactive input and lifecycle loops for parity. The physical laptop campaign is open. A target's boot proof does not establish graphics, drivers, or hardware parity. |
@@ -106,21 +106,21 @@ Their presence is not an additional physical or release acceptance claim:
   partial targets. Deterministic language/parser, model-private speech and
   actual linear Face fixtures, plus borrowing Patchbay boundary inspection,
   establish the [projection contract](docs/architecture/projection.md).
-  This does not establish live parser/model accuracy, physical presentation,
+  This does not establish live parser/model accuracy, physical face,
   every adapter's integration or stable-release acceptance.
 
 
-- **Owner presentation routes (#4922, development):** The installed owner can
+- **Owner face routes (#4922, development):** The installed owner can
   present its actual lulled clock Body through an attached terminal Mask without
   inventing a workload Wake or Play. The ordinary Mask Plan/Play returns an
   acknowledged Show and typed interval action to the same owner's workset.
-  Finite owner presentation Plans retain exact child routes and distinguish
+  Finite owner face Plans retain exact child routes and distinguish
   already-sealed alternative selection from replacement and fresh Show
-  acknowledgement. `cargo xtask check owner-presentation` exercises actual
+  acknowledgement. `cargo xtask check owner-face` exercises actual
   Unix-provider attachment/actions and deterministic seal, loss, cancellation,
-  bound and wardrobe contracts. The [route contract](docs/architecture/owner-presentation-routes.md)
+  bound and wardrobe contracts. The [route contract](docs/architecture/owner-face-routes.md)
   records the browser carrier's narrower evidence boundary. This focused owner
-  check alone does not prove presentation during active installed workload
+  check alone does not prove face during active installed workload
   execution or a distributed Mask Plot; the separately retained
   [live multi-host journey](https://dancxjo.github.io/conduit/journeys/current/one-body-five-masks/)
   supplies its own correlated run and publication evidence.

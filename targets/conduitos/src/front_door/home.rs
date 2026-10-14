@@ -1,13 +1,13 @@
-//! Finite ConduitOS Home and command-bar presentation state.
+//! Finite ConduitOS Home and command-bar face state.
 
 use alloc::format;
-pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
-use conduit_home_model::{HomeEvent, HomeModel};
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition, KeymapDisposition};
-use conduit_presentation::{
+use conduit_face::{
     GraphicsCommand, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, GraphicsTextRole,
     LayoutRect,
 };
+pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
+use conduit_home_model::{HomeEvent, HomeModel};
+use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition, KeymapDisposition};
 
 use super::{Error, FrontDoor};
 
@@ -308,7 +308,7 @@ impl FrontDoor {
             .as_ref()
             .is_none_or(|journey| journey.body_id.is_none())
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.home = Some(Home::new());
         self.advance()
@@ -320,7 +320,7 @@ impl FrontDoor {
 
     pub fn close_home(&mut self) -> Result<(), Error> {
         if self.home.take().is_none() {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.advance()
     }
@@ -333,19 +333,17 @@ impl FrontDoor {
         self.home.as_ref().map(|home| home.model.selected_index())
     }
 
-    pub fn home_application_view(
-        &self,
-    ) -> Result<Option<conduit_presentation::ApplicationView>, Error> {
+    pub fn home_application_view(&self) -> Result<Option<conduit_face::ApplicationView>, Error> {
         self.home
             .as_ref()
             .map(|home| {
                 home.model
-                    .presentation(
-                        u32::try_from(self.revision).map_err(|_| Error::Presentation)?,
+                    .face(
+                        u32::try_from(self.revision).map_err(|_| Error::Face)?,
                         &installed_plot_titles(),
                     )
                     .lower()
-                    .map_err(|_| Error::Presentation)
+                    .map_err(|_| Error::Face)
             })
             .transpose()
     }

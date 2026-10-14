@@ -6,7 +6,7 @@
   "fragments": [],
   "capabilities": [],
   "host_calls": ["conduit.host/present@1"],
-  "resources": [{ "id": "surface/dom", "class": "presentation/surface", "slots": 4, "bytes": 1048576 }],
+  "resources": [{ "id": "surface/dom", "class": "face/surface", "slots": 4, "bytes": 1048576 }],
   "bases": [{ "id": "browser/dom", "kind": "browser/dom", "driver": "browser/dom@1" }],
   "drivers": [{ "id": "driver/dom", "kind": "browser/dom@1" }],
   "lines": ["line/websocket@1"],

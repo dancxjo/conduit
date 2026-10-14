@@ -1,7 +1,7 @@
 // A Mask over exact resident graph facts. No parsing, planning, or graph edits.
 const encoder = new TextEncoder();
 const decoder = new TextDecoder('utf-8', { fatal: true });
-const SCHEMA = 'conduit.presentation/graph-canvas@1';
+const SCHEMA = 'conduit.face/graph-canvas@1';
 const SVG = 'http://www.w3.org/2000/svg';
 export function decodeGraphCanvas(source) {
   const bytes = encoder.encode(source);

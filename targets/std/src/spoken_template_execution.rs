@@ -10,9 +10,7 @@ use crate::{
     TimerAdapter,
 };
 use conduit_core::{port_id, ConnectionTrack, ObservationKind, PlanFragment, TerminalDisposition};
-use conduit_presentation::{
-    DirectArtifactAcknowledgedSpokenShow, MaskShow, Presentation, SpokenTemplateWording,
-};
+use conduit_face::{DirectArtifactAcknowledgedSpokenShow, Face, MaskShow, SpokenTemplateWording};
 use serde::Serialize;
 use sha2::{Digest, Sha256};
 
@@ -51,7 +49,7 @@ pub struct SpokenTemplateExecutionSummary {
 
 pub struct SpokenTemplateExecutionSession {
     reading: PreparedSpokenTemplateReading,
-    face: Presentation,
+    face: Face,
     opening: DirectArtifactAcknowledgedSpokenShow,
     next: usize,
     receipts: Vec<SpokenTemplateFrameReceipt>,
@@ -63,7 +61,7 @@ impl ExternalForeOutputAdapter for OneShow {
     fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
         if value.front_port_id.as_str() != "show"
             || value.track != ConnectionTrack::Payload
-            || value.value_kind.as_str() != conduit_presentation::SHOW_VALUE_KIND
+            || value.value_kind.as_str() != conduit_face::SHOW_VALUE_KIND
             || value.sequence != 0
             || self.0.is_some()
         {
@@ -83,7 +81,7 @@ impl StdHost {
     /// The opaque reading and private preparation must belong to this current Host.
     pub fn execute_prepared_spoken_template_opening(
         &mut self,
-        face: &Presentation,
+        face: &Face,
         fragment: PlanFragment,
         preparation: DirectSpokenMaskPreparation,
         reading: PreparedSpokenTemplateReading,
@@ -99,7 +97,7 @@ impl StdHost {
             "spoken/expanded@1" => "owner_spoken_expanded_template_mask",
             _ => return Err("unknown privately selected template".into()),
         };
-        if preparation.presentation != *face
+        if preparation.face != *face
             || preparation.opening_wording()? != reading.opening_wording()
             || preparation.planned_mask.mask.plot_name != expected_namespace
             || preparation.planned_mask.plan.fragments.as_slice()
@@ -256,7 +254,7 @@ impl SpokenTemplateExecutionSession {
     pub fn read_next(
         &mut self,
         host: &mut StdHost,
-        current_face: &Presentation,
+        current_face: &Face,
         current_show: &MaskShow,
         control: &RunControl,
     ) -> Result<SpokenStreamExecution, String> {
@@ -269,7 +267,7 @@ impl SpokenTemplateExecutionSession {
     fn read_next_inner(
         &mut self,
         host: &mut StdHost,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         control: &RunControl,
     ) -> Result<SpokenStreamExecution, String> {

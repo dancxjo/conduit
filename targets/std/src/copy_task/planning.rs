@@ -6,7 +6,8 @@ use conduit_planner::{default_placements, plan_with_options, PlanningOptions};
 use conduit_plot::CheckedPlot;
 use std::collections::BTreeMap;
 
-const COPY_PLOT_SOURCE: &str = "plot copy-task {\n    task: file/copy\n    show: presentation/structured-info\n    task >> show\n}\n";
+const COPY_PLOT_SOURCE: &str =
+    "plot copy-task {\n    task: file/copy\n    show: face/structured-info(\"Observation\")\n    task >> show\n}\n";
 
 #[derive(Debug, Clone)]
 pub struct PreparedCopyTask {

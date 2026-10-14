@@ -6,11 +6,11 @@ use crate::{
 };
 use conduit_body::{BodyPlan, BodyPlayIdentity};
 use conduit_core::HostAdvertisement;
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
-    ActionInputBindingProposalInfo, GeneratedActionAffordance, MaskShow, ParsecMapState,
-    PreparedParsecInputPolicy, Presentation, PARSEC_MAP_FRAME_BYTES,
+use conduit_face::{
+    ActionInputBindingProposalInfo, Face, GeneratedActionAffordance, MaskShow, ParsecMapState,
+    PreparedParsecInputPolicy, PARSEC_MAP_FRAME_BYTES,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use std::io::Write;
 
 #[path = "parsec_terminal_face.rs"]
@@ -25,10 +25,10 @@ pub(super) struct ParsecTerminalOwner {
     plan: BodyPlan,
     host: HostAdvertisement,
     policy: PreparedParsecInputPolicy,
-    instruction: conduit_presentation::PreparedParsecInputInstruction,
+    instruction: conduit_face::PreparedParsecInputInstruction,
     execution: HostedTerminalMaskExecution,
     terminal: Option<TerminalFaceMask>,
-    face: Option<Presentation>,
+    face: Option<Face>,
     state: Vec<u8>,
     shown_play: Option<BodyPlayIdentity>,
     columns: usize,
@@ -243,7 +243,7 @@ impl ParsecTerminalOwner {
         &'a mut self,
         map: &ParsecAcknowledgedMap,
         host: &HostAdvertisement,
-    ) -> Result<(&'a Presentation, &'a MaskShow), String> {
+    ) -> Result<(&'a Face, &'a MaskShow), String> {
         if self.input_inflight.is_some() || self.refresh_after_input {
             return Err("Parsec consumed Show awaits source acknowledgement".into());
         }

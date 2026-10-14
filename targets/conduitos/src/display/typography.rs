@@ -1,6 +1,6 @@
 //! Fixed graphical font resources. Lookup and coverage sampling allocate nothing.
 //!
-//! Roles belong to the graphical Presenter, not authored Presentation identity.
+//! Roles belong to the graphical Presenter, not authored Face identity.
 //! Missing front coverage uses the pinned rescue subset; unsupported scalars use
 //! its explicit replacement glyph. This is scalar rendering, not general shaping.
 
@@ -22,9 +22,9 @@ pub enum TextRole {
     Code,
 }
 
-impl From<conduit_presentation::GraphicsTextRole> for TextRole {
-    fn from(role: conduit_presentation::GraphicsTextRole) -> Self {
-        use conduit_presentation::GraphicsTextRole;
+impl From<conduit_face::GraphicsTextRole> for TextRole {
+    fn from(role: conduit_face::GraphicsTextRole) -> Self {
+        use conduit_face::GraphicsTextRole;
         match role {
             GraphicsTextRole::Body => Self::Body,
             GraphicsTextRole::Label => Self::Label,

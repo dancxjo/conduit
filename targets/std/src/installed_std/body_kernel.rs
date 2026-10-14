@@ -1,6 +1,6 @@
 //! Local multi-partition composition of the existing kernel and Host effects.
 use super::{
-    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_presentation_host,
+    fore_sign_storage, kernel_preparation::KernelTables, preparation, simple_face_host,
     InstalledBack, InstalledScheduler, MAX_CORDS, MAX_NODES, MAX_QUEUE_SLOTS, PENDING_REQUESTS,
 };
 use crate::{
@@ -41,6 +41,7 @@ pub(crate) struct BodyKernel<'a> {
     activations: Vec<LoweredFragmentActivations>,
     partitions: Vec<KernelIdentityMap>,
     operations: Vec<LoweredHostCall>,
+    face_labels: Vec<Option<String>>,
     input_origin: Option<super::keyboard_input_binding::KeyboardRequestAdmission>,
     typed_record_hosts: Vec<Option<super::typed_record_back::TypedRecordHost>>,
     image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
@@ -131,14 +132,14 @@ fn image_text(contract: &conduit_core::HostCallContractId) -> bool {
             | conduit_std_offers::IMAGE_TEXT_RECORD_OPERATION
     )
 }
-fn presentation(operation: &LoweredHostCall) -> bool {
+fn face(operation: &LoweredHostCall) -> bool {
     operation.target_kind.as_ref().is_some_and(|target| {
         matches!(
             target.as_str(),
-            "presentation/stdout-text"
-                | conduit_std_offers::TICK_PRESENTATION_TARGET
-                | conduit_std_offers::COUNT_PRESENTATION_TARGET
-                | conduit_std_offers::BOOL_PRESENTATION_TARGET
+            "face/stdout-text"
+                | conduit_std_offers::TICK_FACE_TARGET
+                | conduit_std_offers::COUNT_FACE_TARGET
+                | conduit_std_offers::BOOL_FACE_TARGET
         ) && operation.contract_id
             == conduit_core::present_host_call_requirement(
                 target.clone(),
@@ -312,7 +313,7 @@ impl<'a> BodyKernel<'a> {
                 && !input_semantic(&operation.contract_id)
                 && !todo_checkpoint(operation)
                 && !todo_checkpoint_read(operation)
-                && !presentation(operation)
+                && !face(operation)
             {
                 return Err(format!(
                     "Body Host Call is unsupported: {}",
@@ -418,9 +419,24 @@ impl<'a> BodyKernel<'a> {
                     .map(super::text_state_back::TextStateHost::from_placement)
             })
             .collect::<Result<Vec<_>, String>>()?;
+        let mut face_labels = vec![None; MAX_NODES];
+        for (fragment, partition) in fragments.iter().zip(&lowered.partitions) {
+            for placement in &fragment.placements {
+                if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+                    let node = partition
+                        .identity
+                        .node_for_placement(&placement.placement_id)
+                        .ok_or("named Face Gear was not lowered")?;
+                    face_labels[usize::from(node.0)] = Some(
+                        conduit_semantic_catalog::face_data_label(&placement.configuration)?.into(),
+                    );
+                }
+            }
+        }
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
+            face_labels,
             input_origin: None,
             fore,
             activations,
@@ -1157,12 +1173,13 @@ impl<'a> BodyKernel<'a> {
                         })?;
                         deadlines.arm(request, duration, now)?;
                         continue;
-                    } else if !simple_presentation_host::present(
+                    } else if !simple_face_host::present_named(
                         operation.target_kind.as_ref(),
                         input,
                         output,
+                        self.face_labels[usize::from(request.node.0)].as_deref(),
                     )? {
-                        return Err("Body presentation contract became unsupported".into());
+                        return Err("Body face contract became unsupported".into());
                     }
                     self.scheduler
                         .complete_host_call(
@@ -1295,7 +1312,7 @@ impl<'a> BodyKernel<'a> {
             host_id,
             boot_id,
         );
-        // Presentation snapshots run after the sealed Play. Preserve child
+        // Face snapshots run after the sealed Play. Preserve child
         // identity and any receipt refusal instead of mixing child events
         // into the parent's unqualified kernel Sign stream.
         let scan_child_signs = self

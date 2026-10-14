@@ -282,20 +282,20 @@ fn boot_with_memory(
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_KERNEL_SIGN "))
         .collect();
-    let presentation_signs: Vec<_> = serial
+    let face_signs: Vec<_> = serial
         .lines()
-        .filter_map(|line| line.strip_prefix("CONDUIT_PRESENTATION_SIGN "))
+        .filter_map(|line| line.strip_prefix("CONDUIT_FACE_SIGN "))
         .collect();
     let pc_speaker_signs: Vec<_> = serial
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_PC_SPEAKER_SIGN "))
         .collect();
-    if presentation_signs.len() != 1 {
+    if face_signs.len() != 1 {
         return Err(ConduitosError::refusal(
-            "malformed-presentation-sign",
+            "malformed-face-sign",
             format!(
-                "expected one structured presentation Sign, found {}",
-                presentation_signs.len()
+                "expected one structured face Sign, found {}",
+                face_signs.len()
             ),
         ));
     }
@@ -325,17 +325,17 @@ fn boot_with_memory(
         .lines()
         .filter_map(|line| line.strip_prefix(conduitos::keyboard_text_observatory::EXPORT_PREFIX))
         .collect();
-    let presentations: Vec<_> = serial
+    let faces: Vec<_> = serial
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_SERIAL_PRESENT "))
         .collect();
-    if presentations.len() != 2
-        || presentations[0] != "HELLO, CONDUITOS"
-        || presentations[1].as_bytes() != [0; conduit_time::TICK_ENCODED_LEN as usize]
+    if faces.len() != 2
+        || faces[0] != "HELLO, CONDUITOS"
+        || faces[1].as_bytes() != [0; conduit_time::TICK_ENCODED_LEN as usize]
     {
         return Err(ConduitosError::refusal(
-            "invalid-serial-presentation",
-            format!("expected exact bounded text presentation, found {presentations:?}"),
+            "invalid-serial-face",
+            format!("expected exact bounded text face, found {faces:?}"),
         ));
     }
     if observatory_snapshots.len() != 1 {
@@ -366,10 +366,8 @@ fn boot_with_memory(
     let keyboard_text = keyboard_text_run::extract(&serial)?;
     let kernel: GuestKernelSign = serde_json::from_str(kernel_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-kernel-sign", error.to_string()))?;
-    let presentation: GuestPresentationSign =
-        serde_json::from_str(presentation_signs[0]).map_err(|error| {
-            ConduitosError::refusal("malformed-presentation-sign", error.to_string())
-        })?;
+    let face: GuestFaceSign = serde_json::from_str(face_signs[0])
+        .map_err(|error| ConduitosError::refusal("malformed-face-sign", error.to_string()))?;
     let pc_speaker: GuestPcSpeakerSign = serde_json::from_str(pc_speaker_signs[0])
         .map_err(|error| ConduitosError::refusal("malformed-pc-speaker-sign", error.to_string()))?;
     let observatory: conduit_observatory::ObservatorySnapshot =
@@ -381,7 +379,7 @@ fn boot_with_memory(
             ConduitosError::refusal("malformed-keyboard-text-observatory", error.to_string())
         })?;
     validate_boot(&boot, qemu_profile, arena_bytes)?;
-    validate_presentation(&boot, &presentation)?;
+    validate_face(&boot, &face)?;
     validate_pc_speaker(&boot, &pc_speaker)?;
     validate_xhci(&boot, &xhci)?;
     usb_run::validate(&boot, &xhci, &usb)?;
@@ -401,7 +399,7 @@ fn boot_with_memory(
             "ordinary_play_id": kernel.active_play_id}),
         "x86_64",
     )?;
-    validate_observatory(&boot, &kernel, &presentation, &domain_cost, &observatory)?;
+    validate_observatory(&boot, &kernel, &face, &domain_cost, &observatory)?;
     if !opts.quiet && !opts.json {
         println!("{}", signs[0]);
         println!("{}", kernel_signs[0]);
@@ -409,7 +407,7 @@ fn boot_with_memory(
     }
     Ok(GuestRun {
         boot,
-        presentation,
+        face,
         pc_speaker,
         xhci,
         usb,

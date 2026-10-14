@@ -2,10 +2,10 @@
 //! Body Fore queue. Queue acceptance is Host staging, never a state mutation.
 
 use conduit_core::{ActivePlayId, TerminalDisposition};
-use conduit_presentation::{
-    FaceEvidenceAckRefusal, FaceInteraction, FaceInteractionDisposition, FaceInteractionEvidence,
-    FaceInteractionId, FaceInteractionLedger, FaceInteractionRefusal, MaskShow, Presentation,
-    MAX_INTERACTION_LEDGER_ADMISSIONS,
+use conduit_face::{
+    Face, FaceEvidenceAckRefusal, FaceInteraction, FaceInteractionDisposition,
+    FaceInteractionEvidence, FaceInteractionId, FaceInteractionLedger, FaceInteractionRefusal,
+    MaskShow, MAX_INTERACTION_LEDGER_ADMISSIONS,
 };
 use conduit_std_host::body_execution::BodyRunReport;
 use conduit_std_host::{BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery};
@@ -104,7 +104,7 @@ impl<Q: TodoForeSubmission> TodoActionBridge<Q> {
     pub fn submit(
         &mut self,
         state: &TodoState,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
         interaction: FaceInteraction,
     ) -> Result<TodoActionAdmission, TodoActionBridgeRefusal> {

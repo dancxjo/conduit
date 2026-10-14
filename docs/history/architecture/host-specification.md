@@ -158,7 +158,7 @@ Examples include:
 
 ```text
 flow/pulse
-presentation/show
+face/show
 network/http
 vision/frame
 speech/synthesize
@@ -176,7 +176,7 @@ An **implementation** is a concrete realization of a kind.
 Example:
 
 ```text
-presentation/show
+face/show
     stdout/show-signal
     browser/show-signal
     pico-led/show-signal
@@ -607,14 +607,14 @@ The manifestation description explains how the semantic operation becomes percep
 For example:
 
 ```text
-kind: presentation/show<Signal>
+kind: face/show<Signal>
 manifestation: stdout line
 ```
 
 or:
 
 ```text
-kind: presentation/show<Signal>
+kind: face/show<Signal>
 manifestation: onboard LED
 ```
 
@@ -816,13 +816,13 @@ Examples:
 
 ```text
 Rust std host
-    presentation/show<Signal> -> stdout
+    face/show<Signal> -> stdout
 
 Browser host
-    presentation/show<Signal> -> DOM
+    face/show<Signal> -> DOM
 
 Pico W host
-    presentation/show<Signal> -> onboard LED
+    face/show<Signal> -> onboard LED
 ```
 
 A primitive host may still contain internal libraries, drivers, tasks, workers, or executors.
@@ -890,7 +890,7 @@ host A:
     flow/pulse -> Output<Signal>
 
 host B:
-    presentation/show -> Input<Signal>
+    face/show -> Input<Signal>
 ```
 
 An internal form connects them:
@@ -1012,10 +1012,10 @@ flow/pulse -> Output<Signal>
 The first sink kind is:
 
 ```text
-presentation/show <- Input<Signal>
+face/show <- Input<Signal>
 ```
 
-The semantic requirement of `presentation/show` is:
+The semantic requirement of `face/show` is:
 
 1. accept signals in increasing sequence order;
 2. manifest the exact `level`;
@@ -1043,7 +1043,7 @@ The form remains:
 ```conduit
 signal-demo {
     pulse: flow/pulse
-    show: presentation/show
+    show: face/show
 
     pulse.count = 16
     pulse.period-ms = 250

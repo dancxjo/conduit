@@ -11,7 +11,7 @@ fn root(label: &str) -> std::path::PathBuf {
 
 fn owner(host: StdHost) -> Owner {
     let plot = crate::plot_source::parse(
-        "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap()
     .expand_entry_for_authoring()
@@ -29,7 +29,7 @@ fn owner(host: StdHost) -> Owner {
 }
 
 /// A boundary-test Show, not evidence of a completed Mask or speaker Play.
-fn fixture_show(face: &Presentation, planned: &conduit_presentation::PlannedMaskPlot) -> MaskShow {
+fn fixture_show(face: &Face, planned: &conduit_face::PlannedMaskPlot) -> MaskShow {
     let placement = planned.show_placement();
     let play = conduit_core::bind_active_play(
         &planned.plan.plan_id,
@@ -139,7 +139,7 @@ fn direct_remaining_cancellation_restores_same_host_without_provider_effect() {
 #[test]
 fn remaining_scope_and_pages_select_the_same_actual_todo_primary_items() {
     use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
-    use conduit_presentation::{PresentationBasis, PresentationContributionBasis};
+    use conduit_face::{FaceBasis, FaceContributionBasis};
     use conduit_todo_plot::{TodoItem, TodoState};
     let root = root("direct-detail-selection");
     let (host, _) = selected_host_with_artifact(&root, true);
@@ -157,7 +157,7 @@ fn remaining_scope_and_pages_select_the_same_actual_todo_primary_items() {
     };
     let fragment = conduit_todo_face::todo_fragment(
         &state,
-        PresentationContributionBasis {
+        FaceContributionBasis {
             checked_plot_id: CheckedPlotId::from("checked/todo"),
             plan_id: PlanId::from("plan/todo"),
             active_play_id: ActivePlayId::from("play/todo"),
@@ -166,9 +166,9 @@ fn remaining_scope_and_pages_select_the_same_actual_todo_primary_items() {
         true,
     )
     .unwrap();
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         20,
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),

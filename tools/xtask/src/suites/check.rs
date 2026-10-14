@@ -10,7 +10,7 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         "check.committed-todo-mask-exchange",
         "Prove fresh owner checkpoint Faces through native, linear, aural and checked browser Masks",
         "node",
-        &["proof/conformance/presentation-waist/committed-todo-exchange.mjs"],
+        &["proof/conformance/face-waist/committed-todo-exchange.mjs"],
     ),
     Step::new(
         "check.fmt",
@@ -103,13 +103,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         ],
     ),
     Step::new(
-        "check.no-std.presentation",
-        "Portable presentation no-default-features check",
+        "check.no-std.face",
+        "Portable face no-default-features check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-presentation",
+            "conduit-face",
             "--no-default-features",
         ],
     ),
@@ -355,13 +355,13 @@ pub const WORKSPACE_STEPS: &[Step] = &[
         &[],
     ),
     Step::typed(
-        "check.thumb.presentation",
-        "Portable presentation Thumb target check",
+        "check.thumb.face",
+        "Portable face Thumb target check",
         "cargo",
         &[
             "check",
             "-p",
-            "conduit-presentation",
+            "conduit-face",
             "--no-default-features",
             "--target",
             "thumbv6m-none-eabi",
@@ -683,7 +683,7 @@ pub const PLOT_S3_STEPS: &[Step] = &[
     Step::new("check.plot.composite-input-output-only", "test input_only_and_output_only_exports_plan_as_ordinary_operations", "cargo", &["test", "-p", "conduit-composite", "input_only_and_output_only_exports_plan_as_ordinary_operations"]),
     Step::new("check.plot.composite-front-mapping-mutation", "test composite_definition_rejects_every_front_mapping_mutation", "cargo", &["test", "-p", "conduit-composite", "composite_definition_rejects_every_front_mapping_mutation"]),
     Step::new("check.plot.composite-terminal-failure", "test named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks", "cargo", &["test", "-p", "conduit-composite", "named_front_delivery_failure_and_cancellation_are_parent_terminal_without_topology_leaks"]),
-    Step::new("check.plot.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_presentation_distinct"]),
+    Step::new("check.plot.execution-identity-chain", "test execution_identity_chain_keeps_plan_play_sign_and_face_distinct", "cargo", &["test", "-p", "conduit-core", "execution_identity_chain_keeps_plan_play_sign_and_face_distinct"]),
     Step::new("check.plot.observatory-current-plan", "test projects exact current plan truth", "cargo", &["test", "-p", "conduit-observatory", "projects_exact_std_pico_usb_arrangement_without_promoting_physical_proof"]),
 ];
 

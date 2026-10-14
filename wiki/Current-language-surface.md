@@ -371,7 +371,7 @@ Canonical authored type spelling is `resource T`:
 
 ```conduit
 region: resource machine/memory/mmio/region
-surface: resource presentation/surface
+surface: resource face/surface
 ```
 
 Keep distinct:
@@ -439,7 +439,7 @@ host conduitos-native (
     build = release
     loader = limine
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 4
         bytes = 8MiB
     )
@@ -450,7 +450,7 @@ host conduitos-native (
         memory = mmio
     )
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = framebuffer
     )

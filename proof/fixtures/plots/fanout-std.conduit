@@ -1,8 +1,8 @@
 plot fanout-std {
     pulse: flow/pulse(count = 16, period-ms = 250, initial = false)
-    local: presentation/show
-    web: presentation/show
-    light: presentation/show
+    local: face/show("Signal")
+    web: face/show("Signal")
+    light: face/show("Signal")
 
     pulse >> local
     pulse >> web

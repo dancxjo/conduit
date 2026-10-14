@@ -171,7 +171,7 @@ fn observation_records_contain_no_action_or_acquisition_authority() {
         "MediaAcquisition",
         "AuthorityGrantId",
         "HostCallId",
-        "PresentationAction",
+        "FaceAction",
         "BodyLifecycleEvent",
     ] {
         assert!(!source.contains(forbidden));

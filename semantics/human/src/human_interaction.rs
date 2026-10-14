@@ -3,7 +3,7 @@
 //! Conduitese owns every portable family, value, proposal, availability,
 //! outcome and refusal. The remaining Rust contracts validate relationships,
 //! retain canonical structured views, and advance bounded proposal state
-//! (classes C/M). Presentation, renderer-local focus, manifestation,
+//! (classes C/M). Face, renderer-local focus, manifestation,
 //! application acceptance, and resulting state remain separate identities.
 
 use crate::{

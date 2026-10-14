@@ -9,7 +9,7 @@ const script = "tools/ci/stage-journey-pages-evidence.mjs";
 const commit = "0123456789abcdef0123456789abcdef01234567";
 const inventories = new Map([
   ["one-plot-two-fronts", ["index.html", "manifest.json", "native.png", "native.json", "browser.png", "browser.json"]],
-  ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "presentation.txt", "execution.json"]],
+  ["little-life", ["index.html", "manifest.json", "t000.png", "t001.png", "t008.png", "t032.png", "face.txt", "execution.json"]],
 ]);
 const verticals = [
   ["field-station-clock", "accepted", "08c5ad83e8bebe9dc195c5d77772ffb8ee67aa30"],

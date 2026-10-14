@@ -121,7 +121,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         first.advertisement.host_id.as_str(),
     )?;
     let body_id = first
-        .presentation
+        .face
         .basis
         .body_id
         .as_ref()
@@ -131,7 +131,7 @@ pub(super) fn run(args: Args) -> Result<(), Box<dyn std::error::Error>> {
         "{}/{}/{}/{}",
         source_commit,
         body_id.as_str(),
-        first.presentation.revision,
+        first.face.revision,
         run_nonce,
     );
     let run_digest = format!("{:x}", Sha256::digest(run_seed.as_bytes()));

@@ -152,7 +152,7 @@ pub(super) fn tutorial_request(
     stage: &str,
     revision: u64,
     playback: conduit_tutorial_plot::TutorialPlayback,
-) -> Result<conduit_presentation::GenerativePresenterRequest, Box<dyn std::error::Error>> {
+) -> Result<conduit_face::GenerativePresenterRequest, Box<dyn std::error::Error>> {
     conduit_tutorial_plot::generative_request(
         body,
         format!("request/workspace/orifina/journey/{stage}"),

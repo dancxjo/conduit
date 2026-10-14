@@ -1,8 +1,7 @@
 use alloc::{format, string::String, vec, vec::Vec};
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, FieldKind, FormField, PresentationMechanism,
-    SemanticAction, SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal,
-    StatusKind,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, FaceMechanism, FieldKind, FormField, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, SemanticFaceRefusal, StatusKind,
 };
 
 use super::node;
@@ -30,7 +29,7 @@ pub struct TourGalleryState {
 }
 
 impl TourGalleryState {
-    pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+    pub fn face(&self) -> Result<SemanticApplicationView, SemanticFaceRefusal> {
         let over_capacity = self.query.len() > GALLERY_SEARCH_BYTES;
         let normalized = self.query.trim().to_ascii_lowercase();
         let terms = normalized.split_whitespace().collect::<Vec<_>>();
@@ -65,13 +64,13 @@ impl TourGalleryState {
                 self.selected_checked_plot_id.as_deref() == Some(entry.checked_plot_id.as_str());
             cards.push(node(
                 &format!("plot-{index}"),
-                PresentationMechanism::Panel {
+                FaceMechanism::Panel {
                     title: String::new(),
                 },
                 vec![
                     node(
                         &format!("plot-intro-{index}"),
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: StatusKind::Ordinary,
                             title: format!("{:02} / {}", index + 1, entry.category),
                             detail: entry.description.clone(),
@@ -80,14 +79,14 @@ impl TourGalleryState {
                     ),
                     node(
                         &format!("plot-heading-{index}"),
-                        PresentationMechanism::Heading {
+                        FaceMechanism::Heading {
                             text: entry.title.clone(),
                         },
                         vec![],
                     ),
                     node(
                         &format!("plot-state-{index}"),
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: if selected {
                                 StatusKind::Success
                             } else {
@@ -110,13 +109,13 @@ impl TourGalleryState {
                     ),
                     node(
                         &format!("plot-details-{index}"),
-                        PresentationMechanism::Disclosure {
+                        FaceMechanism::Disclosure {
                             summary: "Plot details".into(),
                         },
                         vec![
                             node(
                                 &format!("plot-requirements-{index}"),
-                                PresentationMechanism::Status {
+                                FaceMechanism::Status {
                                     kind: StatusKind::Ordinary,
                                     title: "Current capabilities".into(),
                                     detail: entry.realization.clone(),
@@ -125,7 +124,7 @@ impl TourGalleryState {
                             ),
                             node(
                                 &format!("plot-id-{index}"),
-                                PresentationMechanism::CodeBlock {
+                                FaceMechanism::CodeBlock {
                                     language: "checked-plot-id".into(),
                                     code: entry.checked_plot_id.clone(),
                                 },
@@ -135,7 +134,7 @@ impl TourGalleryState {
                     ),
                     node(
                         &format!("plot-actions-{index}"),
-                        PresentationMechanism::ActionGroup {
+                        FaceMechanism::ActionGroup {
                             label: format!("{} actions", entry.title),
                         },
                         vec![
@@ -143,7 +142,7 @@ impl TourGalleryState {
                             gallery_action(index, "inspect", "Inspect Patchbay"),
                             node(
                                 &format!("plot-add-{index}"),
-                                PresentationMechanism::Link {
+                                FaceMechanism::Link {
                                     label: "Use in your body".into(),
                                     destination: entry.handoff.clone(),
                                 },
@@ -168,18 +167,18 @@ impl TourGalleryState {
             revision: self.revision,
             root: node(
                 "gallery",
-                PresentationMechanism::Workbench,
+                FaceMechanism::Workbench,
                 vec![
                     node(
                         "gallery-heading",
-                        PresentationMechanism::Heading {
+                        FaceMechanism::Heading {
                             text: "Plot Gallery".into(),
                         },
                         vec![],
                     ),
                     node(
                         "gallery-introduction",
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: StatusKind::Ordinary,
                             title: "Small programs. Real possibilities.".into(),
                             detail:
@@ -190,7 +189,7 @@ impl TourGalleryState {
                     ),
                     node(
                         "gallery-search",
-                        PresentationMechanism::FormField(FormField {
+                        FaceMechanism::FormField(FormField {
                             label: "Search reviewed plots".into(),
                             help: "Find a title, an idea, or a kind of Gear.".into(),
                             error: over_capacity
@@ -209,7 +208,7 @@ impl TourGalleryState {
                     ),
                     node(
                         "gallery-status",
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: if over_capacity {
                                 StatusKind::Warning
                             } else {
@@ -220,17 +219,17 @@ impl TourGalleryState {
                         },
                         vec![],
                     ),
-                    node("gallery-cards", PresentationMechanism::Grid, cards),
+                    node("gallery-cards", FaceMechanism::Grid, cards),
                 ],
             ),
         })
     }
 }
 
-fn gallery_action(index: usize, operation: &str, label: &str) -> SemanticPresentationNode {
+fn gallery_action(index: usize, operation: &str, label: &str) -> SemanticFaceNode {
     node(
         &format!("plot-{operation}-{index}"),
-        PresentationMechanism::Action(SemanticAction {
+        FaceMechanism::Action(SemanticAction {
             identity: format!("gallery.{operation}.{index}"),
             event: ApplicationEventKind::Activate,
             label: label.into(),
@@ -243,7 +242,7 @@ fn gallery_action(index: usize, operation: &str, label: &str) -> SemanticPresent
 #[cfg(test)]
 mod tests {
     use super::*;
-    use conduit_presentation::ApplicationComponent;
+    use conduit_face::ApplicationComponent;
 
     fn state(query: &str) -> TourGalleryState {
         TourGalleryState {
@@ -255,8 +254,8 @@ mod tests {
                 category: "A first small program".into(),
                 description: "Give a thought a place to glow.".into(),
                 checked_plot_id: "checked/memory".into(),
-                realization: "presentation/text=current/local".into(),
-                search_terms: "presentation/text".into(),
+                realization: "face/text=current/local".into(),
+                search_terms: "face/text".into(),
                 runnable: true,
                 handoff: "/conduit/creche/?plot=memory_lantern&checked_plot_id=checked%2Fmemory"
                     .into(),
@@ -266,7 +265,7 @@ mod tests {
 
     #[test]
     fn gallery_is_lowered_entirely_through_shared_semantics() {
-        let lowered = state("").presentation().unwrap().lower().unwrap();
+        let lowered = state("").face().unwrap().lower().unwrap();
         assert!(
             lowered
                 .nodes
@@ -292,7 +291,7 @@ mod tests {
     #[test]
     fn over_bound_search_is_an_explicit_warning_with_no_cards() {
         let lowered = state(&"x".repeat(GALLERY_SEARCH_BYTES + 1))
-            .presentation()
+            .face()
             .unwrap()
             .lower()
             .unwrap();

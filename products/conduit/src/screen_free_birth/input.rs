@@ -3,7 +3,7 @@
 use std::io::BufRead;
 
 use conduit_core::kind_id;
-use conduit_presentation::{FaceUtteranceProvenance, Presentation, PresentationRole};
+use conduit_face::{Face, FaceRole, FaceUtteranceProvenance};
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 
 #[cfg(test)]
@@ -71,7 +71,7 @@ fn discard_command_tail(input: &mut impl BufRead) -> std::io::Result<()> {
 pub(super) fn parse_command(
     line: &str,
     reader: &SpokenFaceSession,
-    face: &Presentation,
+    face: &Face,
 ) -> Result<ReaderCommand, &'static str> {
     match line {
         "help" => Ok(ReaderCommand::Help),
@@ -95,24 +95,24 @@ pub(super) fn parse_command(
         "previous subject" => Ok(ReaderCommand::PreviousSubject),
         "next action" => Ok(ReaderCommand::NextAction),
         "previous action" => Ok(ReaderCommand::PreviousAction),
-        "next main" => Ok(ReaderCommand::NextRole(PresentationRole::Semantic(
-            kind_id("document/main"),
-        ))),
-        "previous main" => Ok(ReaderCommand::PreviousRole(PresentationRole::Semantic(
-            kind_id("document/main"),
-        ))),
-        "next article" => Ok(ReaderCommand::NextRole(PresentationRole::Semantic(
-            kind_id("document/article"),
-        ))),
-        "previous article" => Ok(ReaderCommand::PreviousRole(PresentationRole::Semantic(
-            kind_id("document/article"),
-        ))),
-        "next navigation" => Ok(ReaderCommand::NextRole(PresentationRole::Semantic(
-            kind_id("document/navigation"),
-        ))),
-        "previous navigation" => Ok(ReaderCommand::PreviousRole(PresentationRole::Semantic(
-            kind_id("document/navigation"),
-        ))),
+        "next main" => Ok(ReaderCommand::NextRole(FaceRole::Semantic(kind_id(
+            "document/main",
+        )))),
+        "previous main" => Ok(ReaderCommand::PreviousRole(FaceRole::Semantic(kind_id(
+            "document/main",
+        )))),
+        "next article" => Ok(ReaderCommand::NextRole(FaceRole::Semantic(kind_id(
+            "document/article",
+        )))),
+        "previous article" => Ok(ReaderCommand::PreviousRole(FaceRole::Semantic(kind_id(
+            "document/article",
+        )))),
+        "next navigation" => Ok(ReaderCommand::NextRole(FaceRole::Semantic(kind_id(
+            "document/navigation",
+        )))),
+        "previous navigation" => Ok(ReaderCommand::PreviousRole(FaceRole::Semantic(kind_id(
+            "document/navigation",
+        )))),
         "activate" => Ok(ReaderCommand::Activate),
         "stop" => Ok(ReaderCommand::Stop),
         _ => {

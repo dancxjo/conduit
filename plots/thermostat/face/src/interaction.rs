@@ -1,8 +1,5 @@
 //! Resolve only the owner's current contributed thermostat action contract.
-use conduit_presentation::{
-    FaceInteraction, MaskShow, Presentation, PresentationContributionBasis,
-    PresentationPropertyValue,
-};
+use conduit_face::{Face, FaceContributionBasis, FaceInteraction, FacePropertyValue, MaskShow};
 use conduit_thermostat_plot::{Command, ThermostatState};
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum ThermostatFaceError {
@@ -15,10 +12,10 @@ pub enum ThermostatFaceError {
 }
 pub fn thermostat_command_from_contributed_interaction(
     state: &ThermostatState,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     interaction: &FaceInteraction,
-    basis: PresentationContributionBasis,
+    basis: FaceContributionBasis,
 ) -> Result<Command, ThermostatFaceError> {
     state
         .validate()
@@ -26,7 +23,7 @@ pub fn thermostat_command_from_contributed_interaction(
     if !face.properties.iter().any(|property| {
         property.subject == "thermostat/device"
             && property.name == "thermostat-revision"
-            && property.value == PresentationPropertyValue::Count(u64::from(state.revision))
+            && property.value == FacePropertyValue::Count(u64::from(state.revision))
     }) {
         return Err(ThermostatFaceError::StaleState);
     }
@@ -39,19 +36,17 @@ pub fn thermostat_command_from_contributed_interaction(
     let contributed = face.properties.iter().any(|property| {
         property.subject.starts_with("contribution/foreground/")
             && property.name == "checked-plot-id"
-            && property.value
-                == PresentationPropertyValue::Identity(basis.checked_plot_id.as_str().into())
+            && property.value == FacePropertyValue::Identity(basis.checked_plot_id.as_str().into())
             && face.properties.iter().any(|other| {
                 other.subject == property.subject
                     && other.name == "plan-id"
-                    && other.value
-                        == PresentationPropertyValue::Identity(basis.plan_id.as_str().into())
+                    && other.value == FacePropertyValue::Identity(basis.plan_id.as_str().into())
             })
             && face.properties.iter().any(|other| {
                 other.subject == property.subject
                     && other.name == "active-play-id"
                     && other.value
-                        == PresentationPropertyValue::Identity(basis.active_play_id.as_str().into())
+                        == FacePropertyValue::Identity(basis.active_play_id.as_str().into())
             })
     });
     if !standalone && !contributed {

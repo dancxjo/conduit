@@ -12,7 +12,7 @@ pub use crate::kernel_signal::SignalManifestation;
 
 impl StdHost {
     /// Run an exact installed Signal fragment while delegating only the
-    /// `presentation/show` platform effect to an admitted external adapter.
+    /// `face/show` platform effect to an admitted external adapter.
     pub fn run_signal_fragment_with_manifestation<W, T, M>(
         &mut self,
         fragment: PlanFragment,

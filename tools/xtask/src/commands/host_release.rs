@@ -93,9 +93,7 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
                 "wasm32-unknown-unknown",
             ])
             // Keep the retained browser product compact across its dependency graph.
-            .env("CARGO_PROFILE_RELEASE_OPT_LEVEL", "z")
-            .env("CARGO_PROFILE_RELEASE_LTO", "fat")
-            .env("CARGO_PROFILE_RELEASE_CODEGEN_UNITS", "1"),
+            .envs(crate::process::BROWSER_RELEASE_ENVIRONMENT),
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;

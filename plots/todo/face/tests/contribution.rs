@@ -1,13 +1,13 @@
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
-use conduit_presentation::{
-    Presentation, PresentationActionAvailability, PresentationBasis, PresentationContributionBasis,
-    PresentationDisclosureLevel, PresentationPropertyValue, PresentationRole,
+use conduit_face::{
+    Face, FaceActionAvailability, FaceBasis, FaceContributionBasis, FaceDisclosureLevel,
+    FacePropertyValue, FaceRole,
 };
 use conduit_todo_face::{todo_fragment, TodoFaceError};
 use conduit_todo_plot::{TodoItem, TodoState};
 
-fn basis() -> PresentationContributionBasis {
-    PresentationContributionBasis {
+fn basis() -> FaceContributionBasis {
+    FaceContributionBasis {
         checked_plot_id: CheckedPlotId::from("checked/todo"),
         plan_id: PlanId::from("plan/todo"),
         active_play_id: ActivePlayId::from("play/todo"),
@@ -37,7 +37,7 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
     let list = fragment
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Collection)
+        .find(|subject| subject.role == FaceRole::Collection)
         .unwrap();
     assert_eq!(list.name, "Groceries");
     assert!(!fragment
@@ -54,16 +54,15 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
             .find(|entry| entry.subject == list.identity)
             .unwrap()
             .level,
-        PresentationDisclosureLevel::Primary
+        FaceDisclosureLevel::Primary
     );
     let primary = fragment
         .subjects
         .iter()
         .filter(|subject| {
-            subject.role == PresentationRole::Item
+            subject.role == FaceRole::Item
                 && fragment.disclosures.iter().any(|entry| {
-                    entry.subject == subject.identity
-                        && entry.level == PresentationDisclosureLevel::Primary
+                    entry.subject == subject.identity && entry.level == FaceDisclosureLevel::Primary
                 })
         })
         .count();
@@ -72,32 +71,32 @@ fn same_todo_truth_is_ready_for_distinct_masks_without_reading_seventeen_complet
         fragment
             .disclosures
             .iter()
-            .filter(|entry| entry.level == PresentationDisclosureLevel::SelectedDetail)
+            .filter(|entry| entry.level == FaceDisclosureLevel::SelectedDetail)
             .count(),
         17
     );
     assert!(fragment.properties.iter().any(|property| {
         property.subject == "todo/item/task-4"
             && property.name == "complete"
-            && property.value == PresentationPropertyValue::Flag(true)
+            && property.value == FacePropertyValue::Flag(true)
     }));
     assert!(fragment.actions.iter().any(|action| {
         action.identity == "todo.add"
             && action.target == "todo/list"
             && action.arguments.len() == 1
-            && matches!(&action.availability, PresentationActionAvailability::Unavailable { reason_code, .. } if reason_code == "todo-list-full")
+            && matches!(&action.availability, FaceActionAvailability::Unavailable { reason_code, .. } if reason_code == "todo-list-full")
     }));
     assert!(fragment.actions.iter().any(|action| {
         action.identity == "todo.complete.task-1"
             && action.target == "todo/item/task-1"
-            && action.availability == PresentationActionAvailability::Available
+            && action.availability == FaceActionAvailability::Available
     }));
     assert!(fragment.actions.iter().any(|action| {
         action.identity == "todo.reopen.task-4" && action.target == "todo/item/task-4"
     }));
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         20,
-        PresentationBasis {
+        FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/todo")),
@@ -124,7 +123,7 @@ fn read_only_projection_cannot_advertise_an_unadmitted_action_route() {
     assert!(fragment.actions.iter().all(|action| {
         matches!(
             action.availability,
-            PresentationActionAvailability::Unavailable { .. }
+            FaceActionAvailability::Unavailable { .. }
         )
     }));
 }

@@ -5,7 +5,7 @@ use std::collections::BTreeMap;
 
 #[test]
 fn button_completion_progresses_while_an_independent_timer_remains_pending() {
-    let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
+    let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: face/indicator-state(\"Button state\")\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: face/count(\"Current count\")\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
     let (startup, catalog) = crate::installed_browser::catalogs().unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot(&checked, "concurrent", &catalog).unwrap();
@@ -71,7 +71,7 @@ fn button_completion_progresses_while_an_independent_timer_remains_pending() {
         assert!(complete_host_effect_with_output(&mut scheduler, &button, &bytes).is_err());
     }
     assert_eq!(available_slots(&mut scheduler), available);
-    let presentation = (0..4)
+    let face = (0..4)
         .find_map(|_| match drive(&mut scheduler, &fragment).unwrap() {
             DriveStatus::Effect(effect)
                 if matches!(effect.effect, BrowserHostEffect::Manifestation(_)) =>
@@ -86,11 +86,11 @@ fn button_completion_progresses_while_an_independent_timer_remains_pending() {
             _ => panic!("button must manifest without completing the timer"),
         })
         .expect("bounded downstream work must reach the indicator");
-    let BrowserHostEffect::Manifestation(value) = &presentation.effect else {
+    let BrowserHostEffect::Manifestation(value) = &face.effect else {
         panic!("expected indicator")
     };
     assert_eq!(value.canonical_value, [1]);
-    complete_host_effect(&mut scheduler, &presentation).unwrap();
+    complete_host_effect(&mut scheduler, &face).unwrap();
     assert!(matches!(
         drive(&mut scheduler, &fragment).unwrap(),
         DriveStatus::Waiting { pending_effects: 2 }

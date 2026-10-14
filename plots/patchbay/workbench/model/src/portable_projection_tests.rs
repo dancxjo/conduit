@@ -1,26 +1,18 @@
 use conduit_body::Body;
 use conduit_core::{bind_active_play, BaseImplementationId, SignId};
+use conduit_face::{FaceContributionBasis, FacePropertyValue, FaceRole, MAX_FACE_TOTAL_BYTES};
 use conduit_observatory::{
     SoundCandidateInspection, SoundCandidateStatus, SoundProofClass, SoundRealizationInspection,
     SoundRealizationRoute, SOUND_INSPECTION_SCHEMA,
 };
-use conduit_presentation::{
-    PresentationContributionBasis, PresentationPropertyValue, PresentationRole,
-    MAX_PRESENTATION_TOTAL_BYTES,
-};
 use conduit_std_host::{StdHost, ThreadTimer};
 
 use crate::{
-    DistributedRouteDemo, PatchbayGraph, PatchbayPresentation, PatchbayRequestId, PlanDocument,
+    DistributedRouteDemo, PatchbayFace, PatchbayGraph, PatchbayRequestId, PlanDocument,
     PlayDocument, PlotEditor, PortableProjectionError,
 };
 
-fn living_portable() -> (
-    PatchbayPresentation,
-    Body,
-    conduit_body::Wake,
-    conduit_presentation::Presentation,
-) {
+fn living_portable() -> (PatchbayFace, Body, conduit_body::Wake, conduit_face::Face) {
     let editor = PlotEditor::from_source(
         "hello.conduit".into(),
         include_str!("../../../../../plots/hello/main.conduit").into(),
@@ -57,13 +49,13 @@ fn living_portable() -> (
         .unwrap();
     let route = DistributedRouteDemo::build().unwrap();
     let graph = PatchbayGraph::from_expanded(&expanded).unwrap();
-    let projection = PatchbayPresentation::new(
+    let projection = PatchbayFace::new(
         7,
         editor.view(),
         Some(plan_document),
         Some(play_document),
         None,
-        vec![route.presentation().clone()],
+        vec![route.face().clone()],
     )
     .unwrap()
     .with_graph(graph)
@@ -101,20 +93,20 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     assert!(portable
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Document));
+        .any(|subject| subject.role == FaceRole::Document));
     assert!(portable
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Plan));
+        .any(|subject| subject.role == FaceRole::Plan));
     assert!(portable
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Play));
+        .any(|subject| subject.role == FaceRole::Play));
     assert_eq!(
         portable
             .subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Gear)
+            .filter(|subject| subject.role == FaceRole::Gear)
             .count(),
         projection.graph.as_ref().unwrap().gears.len()
     );
@@ -122,7 +114,7 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
         portable
             .subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Port)
+            .filter(|subject| subject.role == FaceRole::Port)
             .count(),
         projection
             .graph
@@ -135,28 +127,28 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     );
     assert!(portable.properties.iter().any(|property| {
         property.name == "icon-token"
-            && property.value == PresentationPropertyValue::Text("case-upper".into())
+            && property.value == FacePropertyValue::Text("case-upper".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "source-plot"
-            && property.value == PresentationPropertyValue::Identity("hello".into())
+            && property.value == FacePropertyValue::Identity("hello".into())
     }));
     assert!(portable.properties.iter().any(|property| {
-        property.name == "plot-path"
-            && property.value == PresentationPropertyValue::Text("hello".into())
+        property.name == "plot-path" && property.value == FacePropertyValue::Text("hello".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "value-contract"
             && matches!(
                 &property.value,
-                PresentationPropertyValue::ValueContract(contract)
+                FacePropertyValue::ValueContract(contract)
                     if contract.value_kind.as_str() == conduit_core::TEXT_INFO_ID
                         && contract.maximum_bytes == 256
             )
     }));
-    assert!(portable.relationships.iter().any(|relationship| {
-        relationship.kind == conduit_presentation::PresentationRelationshipKind::Connects
-    }));
+    assert!(portable
+        .relationships
+        .iter()
+        .any(|relationship| { relationship.kind == conduit_face::FaceRelationshipKind::Connects }));
     for required in [
         "plan-id",
         "plan-status",
@@ -179,40 +171,38 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     }
     assert!(portable.properties.iter().any(|property| {
         property.name == "pressure-policy"
-            && property.value == PresentationPropertyValue::Text("preserve-order".into())
+            && property.value == FacePropertyValue::Text("preserve-order".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "pressure-effect"
             && property.value
-                == PresentationPropertyValue::Text(
+                == FacePropertyValue::Text(
                     "pressure retains the pending value; a fan-out commits only when every branch admits it"
                         .into(),
                 )
     }));
     assert!(portable.properties.iter().any(|property| {
-        property.name == "plan-status"
-            && property.value == PresentationPropertyValue::Text("active".into())
+        property.name == "plan-status" && property.value == FacePropertyValue::Text("active".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "line"
-            && property.value
-                == PresentationPropertyValue::Text("local Cord; no external Line".into())
+            && property.value == FacePropertyValue::Text("local Cord; no external Line".into())
     }));
     assert!(!portable.properties.iter().any(|property| {
         property.name == "plan-status"
-            && property.value == PresentationPropertyValue::Text("candidate".into())
+            && property.value == FacePropertyValue::Text("candidate".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
             && property.value
-                == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                == FacePropertyValue::BaseImplementationId(BaseImplementationId::from(
                     "conduit.base/usb-cdc-acm@1",
                 ))
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "base"
             && property.value
-                == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+                == FacePropertyValue::BaseImplementationId(BaseImplementationId::from(
                     "conduit.base/websocket-rfc6455@1",
                 ))
     }));
@@ -233,11 +223,11 @@ fn living_patchbay_projection_preserves_lifecycle_plan_play_and_sign() {
     }
     assert!(portable.properties.iter().any(|property| {
         property.name == "route-status"
-            && property.value == PresentationPropertyValue::Text("unavailable".into())
+            && property.value == FacePropertyValue::Text("unavailable".into())
     }));
     assert!(portable.properties.iter().any(|property| {
         property.name == "route-status"
-            && property.value == PresentationPropertyValue::Text("selected".into())
+            && property.value == FacePropertyValue::Text("selected".into())
     }));
     assert!(portable.validate().is_ok());
 }
@@ -258,7 +248,7 @@ fn renderer_local_state_cannot_change_portable_content_identity() {
 }
 
 #[test]
-fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_presentation() {
+fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_face() {
     let (projection, body, wake, _) = living_portable();
     let lulled = wake.lull(SignId::from("patchbay/lulled")).unwrap();
     assert_eq!(
@@ -278,20 +268,20 @@ fn stale_or_terminal_lifecycle_cannot_masquerade_as_live_presentation() {
 fn portable_projection_remains_inside_the_reviewed_aggregate_bound() {
     let (_, _, _, portable) = living_portable();
     let encoded = serde_json::to_vec(&portable).unwrap();
-    assert!(encoded.len() <= MAX_PRESENTATION_TOTAL_BYTES);
+    assert!(encoded.len() <= MAX_FACE_TOTAL_BYTES);
 }
 
 #[test]
 fn patchbay_projects_plot_meaning_without_redeclaring_face_owned_truth() {
     let (projection, body, wake, portable) = living_portable();
-    let basis = PresentationContributionBasis {
+    let basis = FaceContributionBasis {
         checked_plot_id: portable.basis.checked_plot_id.clone().unwrap(),
         plan_id: portable.basis.plan_id.clone().unwrap(),
         active_play_id: portable.basis.active_play_id.clone().unwrap(),
         required_interaction_context: None,
     };
     let fragment = projection
-        .to_presentation_fragment(&body, &wake, basis.clone())
+        .to_face_fragment(&body, &wake, basis.clone())
         .unwrap();
 
     assert_eq!(fragment.basis, basis);
@@ -308,7 +298,7 @@ fn patchbay_projects_plot_meaning_without_redeclaring_face_owned_truth() {
     assert!(fragment
         .subjects
         .iter()
-        .any(|subject| subject.role == PresentationRole::Gear));
+        .any(|subject| subject.role == FaceRole::Gear));
     let debug = format!("{fragment:?}");
     for forbidden in ["viewport", "pixel", "x_coordinate", "dom_id", "elbow_path"] {
         assert!(!debug.contains(forbidden));
@@ -320,7 +310,7 @@ fn portable_graph_must_share_the_open_plot_identity_chain() {
     let (projection, _, _, _) = living_portable();
     let mut graph = projection.graph.clone().unwrap();
     graph.expanded_plot_id = "expanded/stale".into();
-    let without_graph = PatchbayPresentation::new(
+    let without_graph = PatchbayFace::new(
         projection.revision,
         projection.document,
         projection.plan,

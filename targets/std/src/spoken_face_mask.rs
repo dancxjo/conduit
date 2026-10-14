@@ -7,11 +7,10 @@
 
 use std::collections::BTreeMap;
 
-use conduit_presentation::{
-    FaceReadingCommand, FaceReadingCursor, FaceUtteranceClause, FaceUtterancePlan,
-    FaceUtteranceProvenance, MaskShow, Presentation, PresentationActionAvailability,
-    PresentationPropertyValue, PresentationRelationshipKind, PresentationRole,
-    UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    Face, FaceActionAvailability, FacePropertyValue, FaceReadingCommand, FaceReadingCursor,
+    FaceRelationshipKind, FaceRole, FaceUtteranceClause, FaceUtterancePlan,
+    FaceUtteranceProvenance, MaskShow, UTF8_TEXT_VALUE_KIND,
 };
 use conduit_tongues::{SpeakableSegment, SpeechCommitReason, MAXIMUM_SPEAKABLE_SEGMENT_BYTES};
 use sha2::{Digest, Sha256};
@@ -36,7 +35,7 @@ mod tests;
 /// One bounded speech turn at a time. Only one segment may be in flight, so
 /// producer pressure cannot turn an unacknowledged clip into a completed Show.
 pub struct SpokenFaceSession {
-    face: Presentation,
+    face: Face,
     show: MaskShow,
     cursor: FaceReadingCursor,
     item_cursor: Option<SpokenItemCursor>,
@@ -56,7 +55,7 @@ pub struct SpokenFaceSession {
 }
 
 impl SpokenFaceSession {
-    pub fn new(face: Presentation, show: MaskShow) -> Result<Self, SpokenFaceRefusal> {
+    pub fn new(face: Face, show: MaskShow) -> Result<Self, SpokenFaceRefusal> {
         check_show(&face, &show)?;
         let cursor = FaceReadingCursor::new(&face).map_err(reading_refusal)?;
         let voiced = voice_clauses(&face, cursor.plan())?;
@@ -81,7 +80,7 @@ impl SpokenFaceSession {
         })
     }
 
-    pub fn face(&self) -> &Presentation {
+    pub fn face(&self) -> &Face {
         &self.face
     }
     pub fn show(&self) -> &MaskShow {
@@ -138,7 +137,7 @@ impl SpokenFaceSession {
 
     /// Replace the exact Face/Show after the producer has accepted a change.
     /// The old local focus survives only if its provenance still exists.
-    pub fn refresh(&mut self, face: Presentation, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
+    pub fn refresh(&mut self, face: Face, show: MaskShow) -> Result<(), SpokenFaceRefusal> {
         if self.pending.is_some() || self.pending_batch.is_some() {
             return Err(SpokenFaceRefusal::SpeechPressure);
         }
@@ -331,7 +330,7 @@ impl SpokenFaceSession {
         }
     }
 
-    fn check_current(&self, face: &Presentation, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
+    fn check_current(&self, face: &Face, show: &MaskShow) -> Result<(), SpokenFaceRefusal> {
         if face != &self.face {
             return Err(SpokenFaceRefusal::StaleFace);
         }
@@ -340,7 +339,7 @@ impl SpokenFaceSession {
         }
         check_show(face, show)
     }
-    fn focused_action(&self) -> Option<&conduit_presentation::PresentationAction> {
+    fn focused_action(&self) -> Option<&conduit_face::FaceAction> {
         let id = match &self.cursor.focused_clause().provenance {
             FaceUtteranceProvenance::Action(value) => value.identity(),
             FaceUtteranceProvenance::ActionArgument(value) => value.action_identity(),

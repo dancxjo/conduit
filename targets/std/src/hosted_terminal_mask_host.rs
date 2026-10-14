@@ -118,10 +118,10 @@ impl StdHost {
     /// satisfied or the route is retired.
     pub fn present_attached_terminal_face_with_interaction(
         &mut self,
-        face: &conduit_presentation::Presentation,
+        face: &conduit_face::Face,
     ) -> Result<
         (
-            conduit_presentation::MaskShow,
+            conduit_face::MaskShow,
             terminal_mask_execution::HostedTerminalMaskExecution,
         ),
         String,
@@ -144,9 +144,9 @@ impl StdHost {
     /// execution advances the Play sequence without changing Host offers.
     pub fn represent_attached_terminal_face_with_execution(
         &mut self,
-        face: &conduit_presentation::Presentation,
+        face: &conduit_face::Face,
         execution: &mut terminal_mask_execution::HostedTerminalMaskExecution,
-    ) -> Result<conduit_presentation::MaskShow, String> {
+    ) -> Result<conduit_face::MaskShow, String> {
         use crate::terminal_face_mask::{TerminalFaceMask, TerminalMaskExecution};
         execution
             .validate_current_host(&self.advertisement)
@@ -189,8 +189,8 @@ impl StdHost {
     /// requested a readable Show.
     pub fn present_attached_terminal_face(
         &mut self,
-        face: &conduit_presentation::Presentation,
-    ) -> Result<conduit_presentation::MaskShow, String> {
+        face: &conduit_face::Face,
+    ) -> Result<conduit_face::MaskShow, String> {
         use crate::terminal_face_mask::TerminalMaskExecution;
         let (show, mut execution) = self.present_attached_terminal_face_with_interaction(face)?;
         if let Err(error) = execution.close_without_input() {

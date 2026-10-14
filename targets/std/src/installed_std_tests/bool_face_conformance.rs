@@ -1,0 +1,85 @@
+use super::*;
+
+const PLOT: &str = "plot bool_face {\n    source: test/timing-bool-source\n    show: face/bool(\"Current state\")\n    source >> show\n}\n";
+
+fn plan(host: &StdHost) -> conduit_core::Plan {
+    let plot = parse(PLOT, &installed_std::test_catalog()).expect("Boolean face Plot parses");
+    let hosts = [host.advertisement().clone()];
+    let placements = default_placements(&plot, &hosts).expect("Boolean face resolves");
+    plan_with_options(
+        &plot,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: conduit_core::BOOL_ENCODED_LEN as u32,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+    )
+    .expect("Boolean face plans")
+}
+
+#[test]
+fn current_booleans_manifest_through_the_admitted_std_operation() {
+    let mut host = host("bool-face-host");
+    let plan = plan(&host);
+    let placement = plan.fragments[0]
+        .placements
+        .iter()
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_FACE_KIND)
+        .expect("Boolean presenter is placed");
+    assert_eq!(
+        placement.implementation_id.as_str(),
+        conduit_std_offers::BOOL_FACE_IMPLEMENTATION
+    );
+    assert_eq!(placement.host_calls.len(), 1);
+    assert_eq!(placement.resources.len(), 1);
+
+    let mut output = Vec::with_capacity(1_024);
+    let mut timer = RecordingTimer {
+        waits: Vec::with_capacity(4),
+    };
+    let report = host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .expect("Boolean face executes through the production kernel");
+    let output = String::from_utf8(output).unwrap();
+    assert_eq!(
+        output
+            .lines()
+            .filter_map(|line| line.strip_prefix("Current state: "))
+            .filter(|line| line.starts_with("bool value="))
+            .collect::<Vec<_>>(),
+        ["bool value=false", "bool value=true", "bool value=false"]
+    );
+    let kernel = report.kernel.expect("kernel report exists");
+    assert_eq!(kernel.post_play_start_allocations, 0);
+    assert_eq!(
+        kernel.value_allocation_capacity_before,
+        kernel.value_allocation_capacity_after
+    );
+}
+
+#[test]
+fn mutated_std_presenter_identity_refuses_before_play() {
+    let host = host("mutated-bool-face-host");
+    let mut plan = plan(&host);
+    plan.fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::BOOL_FACE_KIND)
+        .unwrap()
+        .artifact_id = conduit_core::ArtifactId::from("mutated/bool-presenter");
+    let mut host = host;
+    let mut output = Vec::new();
+    let mut timer = RecordingTimer { waits: Vec::new() };
+    assert!(host
+        .run_fragment_to(plan.fragments[0].clone(), &mut output, &mut timer)
+        .is_err());
+    assert!(!String::from_utf8(output).unwrap().contains("bool value="));
+    assert!(timer.waits.is_empty());
+}

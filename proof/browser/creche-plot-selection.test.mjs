@@ -18,8 +18,8 @@ const inventory = Object.freeze({
   maximum_selection: 3,
   plots: [
     { name: "clock", title: "Clock", source: "plot clock {}\n", source_document_id: "source/clock", checked_plot_id: "checked/clock", required_kinds: ["time/every"] },
-    { name: "desk_telegraph", title: "Desk Telegraph", source: "plot desk_telegraph {}\n", source_document_id: "source/telegraph", checked_plot_id: "checked/telegraph", required_kinds: ["presentation/text", "text/literal"] },
-    { name: "memory_lantern", title: "Memory Lantern", source: "plot memory_lantern {}\n", source_document_id: "source/lantern", checked_plot_id: "checked/lantern", required_kinds: ["presentation/text"] },
+    { name: "desk_telegraph", title: "Desk Telegraph", source: "plot desk_telegraph {}\n", source_document_id: "source/telegraph", checked_plot_id: "checked/telegraph", required_kinds: ["face/text", "text/literal"] },
+    { name: "memory_lantern", title: "Memory Lantern", source: "plot memory_lantern {}\n", source_document_id: "source/lantern", checked_plot_id: "checked/lantern", required_kinds: ["face/text"] },
   ],
 });
 

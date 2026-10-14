@@ -9,9 +9,7 @@ use conduit_core::{
     HostCallRequirement, ImplementationId, Kind, KindIdentity, PortDescriptor, PortDirection,
     PortTemporal, ResourceOffer,
 };
-use conduit_presentation::{
-    MAX_FACE_INTERACTION_BYTES, MAX_PRESENTATION_TOTAL_BYTES, PRESENTATION_VALUE_KIND,
-};
+use conduit_face::{FACE_VALUE_KIND, MAX_FACE_INTERACTION_BYTES, MAX_FACE_TOTAL_BYTES};
 
 use crate::{CHAT_SEND_ACTION, MAXIMUM_CHAT_HISTORY_ITEMS, MAXIMUM_CHAT_MESSAGE_BYTES};
 
@@ -153,12 +151,12 @@ pub fn chat_state_offer() -> CapabilityOffer {
                 host_call(
                     CHAT_STATE_CONNECTION_HOST_CALL,
                     1,
-                    MAX_PRESENTATION_TOTAL_BYTES as u32,
+                    MAX_FACE_TOTAL_BYTES as u32,
                 ),
                 host_call(
                     CHAT_STATE_MESSAGE_HOST_CALL,
                     MAXIMUM_CHAT_MESSAGE_BYTES,
-                    MAX_PRESENTATION_TOTAL_BYTES as u32,
+                    MAX_FACE_TOTAL_BYTES as u32,
                 ),
             ],
             resource_requirements: Vec::new(),
@@ -187,8 +185,8 @@ fn chat_state_contract() -> Kind {
         kind_contract_revision: KindIdentity::from(CHAT_STATE_REVISION),
         inputs: chat_state_inputs(),
         outputs: vec![port(
-            "presentation",
-            PRESENTATION_VALUE_KIND,
+            "face",
+            FACE_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Flow { closes: true },
         )],
@@ -199,7 +197,7 @@ fn chat_state_contract() -> Kind {
         semantic_laws: Default::default(),
         limits: limits(
             MAXIMUM_CHAT_HISTORY_ITEMS as u16,
-            MAX_PRESENTATION_TOTAL_BYTES as u32 * 2,
+            MAX_FACE_TOTAL_BYTES as u32 * 2,
         ),
     }
 }
@@ -243,7 +241,7 @@ fn chat_submit_contract() -> Kind {
         kind_contract_revision: KindIdentity::from(CHAT_SUBMIT_REVISION),
         inputs: vec![port(
             "interaction",
-            conduit_presentation::FACE_INTERACTION_VALUE_KIND,
+            conduit_face::FACE_INTERACTION_VALUE_KIND,
             PortDirection::Input,
             PortTemporal::Flow { closes: true },
         )],
@@ -319,7 +317,7 @@ pub fn install_browser_chat_catalogs(
 ) -> Result<(), alloc::string::String> {
     use conduit_plot::{KindSignature, StartupParameterSignature};
 
-    conduit_presentation::install_mask_plot_value_aliases(startup)?;
+    conduit_face::install_mask_plot_value_aliases(startup)?;
     startup.insert(KindSignature {
         kind: CHAT_STATE_KIND.into(),
         startup_parameters: CHAT_CONFIGURATION_FIELDS

@@ -7,7 +7,7 @@ use super::{input, quantity_output};
 use conduit_core::{
     resource_offer, BaseImplementationId, BootId, CapabilityOffer, HostAdvertisement, HostId,
     HostProfileId, ImplementationId, OfferGeneration, PlannerCapabilityOffer, PlannerLimits,
-    PlannerProfileId, PRESENTATION_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
+    PlannerProfileId, FACE_RESOURCE_CLASS, PROTOCOL_VERSION, TIMER_RESOURCE_CLASS,
 };
 use conduit_planner::BROWSER_PLANNER_PROFILE;
 use installations::INSTALLATIONS;
@@ -16,6 +16,18 @@ pub(crate) const TOUR_LOCAL_BASE: &str = "conduit.base/local@1";
 pub(crate) struct BrowserManifestation {
     pub kind_id: &'static str,
     pub canonical_value: Vec<u8>,
+    pub data_label: Option<String>,
+}
+
+pub(super) fn manifestation_label(
+    placement: &conduit_core::PlannedGear,
+) -> Result<Option<String>, String> {
+    if conduit_semantic_catalog::face_data_label_required(placement.kind_id.as_str()) {
+        conduit_semantic_catalog::face_data_label(&placement.configuration)
+            .map(|label| Some(label.to_owned()))
+    } else {
+        Ok(None)
+    }
 }
 
 pub(crate) struct BrowserHostResult {
@@ -37,7 +49,7 @@ pub(crate) struct BrowserInstallation {
 }
 
 pub(crate) const AUDIO_MAKE_ID: &str = "browser/audio-cue@1";
-pub(crate) const PRESENTATION_MAKE_ID: &str = "browser/dom-presentation@1";
+pub(crate) const FACE_MAKE_ID: &str = "browser/dom-face@1";
 pub(crate) const KEYBOARD_MAKE_ID: &str = "browser/keyboard-events@1";
 pub(crate) const POINTER_MAKE_ID: &str = "browser/pointer-events@1";
 
@@ -47,7 +59,7 @@ pub(crate) const POINTER_MAKE_ID: &str = "browser/pointer-events@1";
 /// surface is merely how the host realizes these selections after Boot.
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub(crate) struct BrowserMachinery {
-    presentation: bool,
+    face: bool,
     keyboard: bool,
     pointer: bool,
     audio: bool,
@@ -55,8 +67,8 @@ pub(crate) struct BrowserMachinery {
 
 impl BrowserMachinery {
     #[cfg(test)]
-    pub(crate) const PRESENTATION_ONLY: Self = Self {
-        presentation: true,
+    pub(crate) const FACE_ONLY: Self = Self {
+        face: true,
         keyboard: false,
         pointer: false,
         audio: false,
@@ -66,7 +78,7 @@ impl BrowserMachinery {
         let has = |identity| selected.contains(&identity);
         for identity in selected {
             if ![
-                PRESENTATION_MAKE_ID,
+                FACE_MAKE_ID,
                 KEYBOARD_MAKE_ID,
                 POINTER_MAKE_ID,
                 AUDIO_MAKE_ID,
@@ -79,7 +91,7 @@ impl BrowserMachinery {
             }
         }
         Ok(Self {
-            presentation: has(PRESENTATION_MAKE_ID),
+            face: has(FACE_MAKE_ID),
             keyboard: has(KEYBOARD_MAKE_ID),
             pointer: has(POINTER_MAKE_ID),
             audio: has(AUDIO_MAKE_ID),
@@ -108,16 +120,16 @@ impl BrowserMachinery {
         if offer
             .resource_requirements
             .iter()
-            .any(|requirement| requirement.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
+            .any(|requirement| requirement.class_id.as_str() == FACE_RESOURCE_CLASS)
         {
-            return self.presentation;
+            return self.face;
         }
         true
     }
 
     pub(crate) fn selected_make_ids(self) -> Vec<&'static str> {
         [
-            (self.presentation, PRESENTATION_MAKE_ID),
+            (self.face, FACE_MAKE_ID),
             (self.keyboard, KEYBOARD_MAKE_ID),
             (self.pointer, POINTER_MAKE_ID),
             (self.audio, AUDIO_MAKE_ID),
@@ -130,7 +142,7 @@ impl BrowserMachinery {
 
 pub(crate) fn selected_human_machinery() -> Vec<&'static str> {
     BrowserMachinery::from_selected(&[
-        PRESENTATION_MAKE_ID,
+        FACE_MAKE_ID,
         KEYBOARD_MAKE_ID,
         POINTER_MAKE_ID,
         AUDIO_MAKE_ID,
@@ -151,7 +163,7 @@ pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
         .collect()
 }
 
-pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_presentation};
+pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_face};
 
 pub(crate) fn factory(
     implementation_id: &ImplementationId,
@@ -209,17 +221,17 @@ pub(crate) fn factory(
     if implementation_id.as_str() == super::test_measurement_decision_sink::KIND {
         return Some(&super::test_measurement_decision_sink::SINK);
     }
-    if implementation_id.as_str() == super::comparison_presentation::IMPLEMENTATION {
-        return Some(&super::comparison_presentation::PRESENTATION);
+    if implementation_id.as_str() == super::comparison_face::IMPLEMENTATION {
+        return Some(&super::comparison_face::FACE);
     }
-    if implementation_id.as_str() == super::normalized_presentation::IMPLEMENTATION {
-        return Some(&super::normalized_presentation::PRESENTATION);
+    if implementation_id.as_str() == super::normalized_face::IMPLEMENTATION {
+        return Some(&super::normalized_face::FACE);
     }
-    if implementation_id.as_str() == quantity_output::PRESENTATION_IMPLEMENTATION {
-        return Some(&quantity_output::PRESENTATION);
+    if implementation_id.as_str() == quantity_output::FACE_IMPLEMENTATION {
+        return Some(&quantity_output::FACE);
     }
-    if implementation_id.as_str() == quantity_output::DIRECT_PRESENTATION_IMPLEMENTATION {
-        return Some(&quantity_output::DIRECT_PRESENTATION);
+    if implementation_id.as_str() == quantity_output::DIRECT_FACE_IMPLEMENTATION {
+        return Some(&quantity_output::DIRECT_FACE);
     }
     INSTALLATIONS
         .iter()
@@ -236,33 +248,32 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
     )
 }
 
-pub(crate) fn advertisement_for_presentation(
+pub(crate) fn advertisement_for_face(
     host_id: HostId,
     boot_id: BootId,
-    profile: super::PresentationProfile,
+    profile: super::FaceProfile,
 ) -> HostAdvertisement {
     let mut host = advertisement(host_id, boot_id);
-    if profile == super::PresentationProfile::Annotation {
+    if profile == super::FaceProfile::Annotation {
         for offer in &mut host.capabilities {
             if matches!(
                 offer.kind_id.as_str(),
                 conduit_language::TOKENIZE_FOUR_KIND
                     | conduit_language::ANNOTATE_FOUR_KIND
-                    | conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
+                    | conduit_semantic_catalog::STRUCTURED_FACE_KIND
             ) {
                 offer.limits.max_queue_bytes = super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32;
             }
         }
         return host;
     }
-    host.capabilities.retain(|offer| {
-        offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_PRESENTATION_KIND
-    });
+    host.capabilities
+        .retain(|offer| offer.kind_id.as_str() != conduit_semantic_catalog::STRUCTURED_FACE_KIND);
     let mut presenter = match profile {
-        super::PresentationProfile::Quantity => quantity_output::direct_presentation_offer(),
-        super::PresentationProfile::PatternComparison => super::comparison_presentation::offer(),
-        super::PresentationProfile::NormalizedDurations => super::normalized_presentation::offer(),
-        super::PresentationProfile::Annotation => unreachable!(),
+        super::FaceProfile::Quantity => quantity_output::direct_face_offer(),
+        super::FaceProfile::PatternComparison => super::comparison_face::offer(),
+        super::FaceProfile::NormalizedDurations => super::normalized_face::offer(),
+        super::FaceProfile::Annotation => unreachable!(),
     };
     presenter.limits.max_queue_bytes = super::MAXIMUM_BROWSER_VALUE_BYTES as u32;
     if !host
@@ -304,10 +315,10 @@ pub(crate) fn advertisement_for_machinery(
             1,
         ));
     }
-    if machinery.presentation {
+    if machinery.face {
         resources.push(resource_offer(
-            "browser/presentation",
-            PRESENTATION_RESOURCE_CLASS,
+            "browser/face",
+            FACE_RESOURCE_CLASS,
             super::MAXIMUM_BROWSER_GEARS as u32,
         ));
     }
@@ -381,13 +392,13 @@ mod profile_tests {
         let viewer = advertisement_for_machinery(
             HostId::from("browser/viewer"),
             BootId::from("browser/viewer-boot"),
-            BrowserMachinery::PRESENTATION_ONLY,
+            BrowserMachinery::FACE_ONLY,
         );
         assert!(viewer.capabilities.iter().any(|offer| {
             offer
                 .resource_requirements
                 .iter()
-                .any(|item| item.class_id.as_str() == PRESENTATION_RESOURCE_CLASS)
+                .any(|item| item.class_id.as_str() == FACE_RESOURCE_CLASS)
         }));
         assert!(!viewer.capabilities.iter().any(|offer| {
             offer.implementation.implementation_id.as_str() == input::KEYBOARD_IMPLEMENTATION
@@ -400,12 +411,8 @@ mod profile_tests {
         let control = advertisement_for_machinery(
             HostId::from("browser/control"),
             BootId::from("browser/control-boot"),
-            BrowserMachinery::from_selected(&[
-                PRESENTATION_MAKE_ID,
-                KEYBOARD_MAKE_ID,
-                POINTER_MAKE_ID,
-            ])
-            .unwrap(),
+            BrowserMachinery::from_selected(&[FACE_MAKE_ID, KEYBOARD_MAKE_ID, POINTER_MAKE_ID])
+                .unwrap(),
         );
         assert!(control.capabilities.iter().any(|offer| {
             offer.implementation.implementation_id.as_str() == input::KEYBOARD_IMPLEMENTATION
@@ -423,7 +430,7 @@ mod profile_tests {
             HostId::from("browser/metadata-test"),
             BootId::from("browser/metadata-test-boot"),
         );
-        for binding in conduit_host_browser_make::BROWSER_HUMAN_PRESENTATION_REALIZATIONS {
+        for binding in conduit_host_browser_make::BROWSER_HUMAN_FACE_REALIZATIONS {
             let Some(installation) = INSTALLATIONS
                 .iter()
                 .find(|entry| entry.implementation_id == binding.runtime_implementation_id)
@@ -491,3 +498,6 @@ mod profile_tests {
         }
     }
 }
+
+#[cfg(test)]
+mod data_label_tests;

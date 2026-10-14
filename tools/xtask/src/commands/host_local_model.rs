@@ -186,8 +186,8 @@ pub(super) fn prove(
                 "Orifina Presenter: request={} policy={} source={}@{} provider={} model={} disposition={:?}",
                 presenter.request_identity,
                 presenter.policy_revision,
-                presenter.source_presentation_identity,
-                presenter.source_presentation_revision,
+                presenter.source_face_identity,
+                presenter.source_face_revision,
                 presenter.manifestation.provider_identity,
                 presenter.manifestation.model_identity,
                 presenter.manifestation.disposition,
@@ -198,7 +198,7 @@ pub(super) fn prove(
 }
 
 pub(super) struct PreparedOrifinaJourney {
-    pub(super) requests: Vec<conduit_presentation::GenerativePresenterRequest>,
+    pub(super) requests: Vec<conduit_face::GenerativePresenterRequest>,
     pub(super) receipt: OrifinaJourneyReceipt,
 }
 

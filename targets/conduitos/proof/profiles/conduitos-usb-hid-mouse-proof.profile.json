@@ -21,7 +21,7 @@
   "resources": [
     {
       "id": "surface/main",
-      "class": "presentation/surface",
+      "class": "face/surface",
       "slots": 4,
       "bytes": 8388608
     }

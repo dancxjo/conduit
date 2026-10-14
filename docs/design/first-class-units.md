@@ -97,7 +97,7 @@ narrow carrier, implicit rounding, or floating-point fallback.
 plot convert-pitch {
     operation: units/convert(source = 1kHz, to = Hz)
     exact: units/converted-equals(expected = 1000Hz)
-    show: presentation/text
+    show: face/text("Message")
     operation.receipt >> exact.receipt
     exact.result >> (. ? "Exactly 1000 Hz" : "Conversion refused or differed") >> show.text
 }.

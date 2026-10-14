@@ -1,6 +1,6 @@
 use alloc::string::String;
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SourceDocumentId};
-use conduit_presentation::{ApplicationEvent, ApplicationViewRefusal};
+use conduit_face::{ApplicationEvent, ApplicationViewRefusal};
 
 use crate::{
     NEXT_CHAPTER_ACTION_ID, NEXT_STAGE_ACTION_ID, OPEN_PATCHBAY_ACTION_ID,
@@ -52,7 +52,7 @@ pub enum TourRunTerminal {
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum TourWorkspaceRefusal {
-    Presentation,
+    Face,
     Event(ApplicationViewRefusal),
     RunAlreadyPending,
     RunNotPending,
@@ -69,7 +69,7 @@ pub enum TourWorkspaceRefusal {
 impl TourWorkspaceRefusal {
     pub const fn as_str(self) -> &'static str {
         match self {
-            Self::Presentation => "presentation-refused",
+            Self::Face => "face-refused",
             Self::Event(ApplicationViewRefusal::StaleRevision) => "stale-revision",
             Self::Event(ApplicationViewRefusal::UnknownAction) => "unknown-action",
             Self::Event(_) => "application-event-refused",
@@ -174,9 +174,9 @@ impl TourWorkspaceController {
     ) -> Result<Option<TourWorkspaceRequest>, TourWorkspaceRefusal> {
         let view = self
             .state
-            .presentation()
-            .and_then(|presentation| presentation.lower())
-            .map_err(|_| TourWorkspaceRefusal::Presentation)?;
+            .face()
+            .and_then(|face| face.lower())
+            .map_err(|_| TourWorkspaceRefusal::Face)?;
         event.validate(&view).map_err(TourWorkspaceRefusal::Event)?;
         match event.action.as_str() {
             RUN_ACTION_ID => {
@@ -333,7 +333,7 @@ impl TourWorkspaceController {
             self.state.progress.chapter,
             self.state.progress.stage,
         )
-        .map_err(|_| TourWorkspaceRefusal::Presentation)?;
+        .map_err(|_| TourWorkspaceRefusal::Face)?;
         self.state.result = None;
         self.state.phase = TourWorkspacePhase::LessonReady;
         self.state.focused_key = "source".into();
@@ -351,7 +351,7 @@ impl TourWorkspaceController {
 #[cfg(test)]
 mod tests {
     use alloc::{string::ToString, vec};
-    use conduit_presentation::{ApplicationEventKind, ApplicationViewRefusal};
+    use conduit_face::{ApplicationEventKind, ApplicationViewRefusal};
 
     use super::*;
     use crate::{CANONICAL_RESULT, CANONICAL_SPECIMEN_ID};
@@ -504,14 +504,14 @@ mod tests {
             "canonical-plot:same-morse-caller"
         );
         assert!(controller.state().source.contains("plot same-morse-caller"));
-        let application_view = controller.state().presentation().unwrap().lower().unwrap();
+        let application_view = controller.state().face().unwrap().lower().unwrap();
         assert!(
             application_view
                 .nodes
                 .iter()
                 .any(|node| node.text.contains("fronts, backs, and implementation"))
         );
-        let workspace = controller.state().workspace_presentation().unwrap();
+        let workspace = controller.state().workspace_face().unwrap();
         assert!(
             workspace
                 .text

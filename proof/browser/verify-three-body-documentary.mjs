@@ -62,7 +62,7 @@ try {
     schema: "conduit.evidence/documentary-browser-review@1", browser: await browser.version(),
     retries: 0, workers: 1, images: 37, audio_clips: 11, video_clips: 1,
     default_json_collapsed: true, body_navigation: true, mobile_overflow: false,
-    boundary: "Browser media decoding and presentation checks, not physical speaker or human listening acceptance.",
+    boundary: "Browser media decoding and face checks, not physical speaker or human listening acceptance.",
   }, null, 2), { flag: "wx" });
   console.log(`DOCUMENTARY BROWSER CHECK COMPLETE: ${output}`);
 } finally {

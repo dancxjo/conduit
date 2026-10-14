@@ -10,14 +10,14 @@ use conduit_core::{
     kind_id, port_id, CapabilityLimits, ConfigurationValue, Kind, KindIdentity, KindSemanticLaw,
     PortDescriptor, PortDirection, PortTemporal,
 };
-use conduit_presentation::{
+use conduit_face::{
     APPLICATION_EVENT_INFO_ID, APPLICATION_VIEW_INFO_ID, MAX_APPLICATION_EVENT_ENCODED_BYTES,
     MAX_APPLICATION_VIEW_BYTES,
 };
 
 pub const APPLICATION_EVENT_SOURCE_KIND: &str = "input/application-event";
 pub const RETAINED_APPLICATION_KIND: &str = "application/retained";
-pub const APPLICATION_VIEW_PRESENTATION_KIND: &str = "presentation/application-view";
+pub const APPLICATION_VIEW_FACE_KIND: &str = "face/application-view";
 pub const APPLICATION_EVENT_PORT: &str = "event";
 pub const APPLICATION_VIEW_PORT: &str = "view";
 pub const APPLICATION_ID_CONFIGURATION: &str = "application";
@@ -35,7 +35,7 @@ pub fn application_contracts() -> Vec<StandardKindContract> {
     vec![
         event_source_contract(),
         retained_application_contract(),
-        view_presentation_contract(),
+        view_face_contract(),
     ]
 }
 
@@ -101,9 +101,9 @@ pub fn retained_application_contract() -> StandardKindContract {
     }
 }
 
-pub fn view_presentation_contract() -> StandardKindContract {
+pub fn view_face_contract() -> StandardKindContract {
     StandardKindContract {
-        kind_id: kind_id(APPLICATION_VIEW_PRESENTATION_KIND),
+        kind_id: kind_id(APPLICATION_VIEW_FACE_KIND),
         plain_name: "Application view".into(),
         summary:
             "Present bounded renderer-neutral application views without owning application state."
@@ -116,13 +116,13 @@ pub fn view_presentation_contract() -> StandardKindContract {
             abnormal_kind: None,
         }],
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: crate::data_label_configuration(),
         limits: limits(MAX_APPLICATION_VIEW_BYTES),
         terminal_behavior: KindTerminalBehavior::PresentsEachFieldAndCompletesWhenInputCloses,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
-        example: "view: presentation/application-view".into(),
+        example: "view: face/application-view(\"Application view\")".into(),
     }
 }
 
@@ -142,7 +142,11 @@ pub fn install_application_catalogs(
                     name: field.key.clone(),
                     value_type: "Text".to_string(),
                     default: match &field.default_value {
-                        ConfigurationValue::Text(value) => Some(alloc::format!("{value:?}")),
+                        ConfigurationValue::Text(value)
+                            if !matches!(field.rule, KindConfigurationRule::DataLabel { .. }) =>
+                        {
+                            Some(alloc::format!("{value:?}"))
+                        }
                         _ => None,
                     },
                 })

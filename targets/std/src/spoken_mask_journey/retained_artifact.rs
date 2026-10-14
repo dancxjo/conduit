@@ -27,7 +27,7 @@ pub struct RetainedWavArtifact {
 
 pub(super) fn inspect(
     path: &Path,
-    receipt: &conduit_presentation::SpokenMaskArtifactReceipt,
+    receipt: &conduit_face::SpokenMaskArtifactReceipt,
 ) -> Result<RetainedWavArtifact, String> {
     // The selected writer produces one canonical 44-byte stereo S16 WAV header.
     // Bound the evidence read by the already acknowledged PCM extent.

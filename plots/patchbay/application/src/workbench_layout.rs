@@ -21,7 +21,7 @@ pub struct GearPlacement {
     pub group: Option<String>,
 }
 
-/// One finite presentation-only waypoint for an exact semantic Cord.
+/// One finite face-only waypoint for an exact semantic Cord.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct CordRoute {
     pub source_port_identity: String,
@@ -36,7 +36,7 @@ pub struct PatchbayLayout {
     pub gears: Vec<GearPlacement>,
     #[serde(default)]
     pub cords: Vec<CordRoute>,
-    /// Gear reverse visibility is presentation state, never Plot or Plan truth.
+    /// Gear reverse visibility is face state, never Plot or Plan truth.
     #[serde(default)]
     pub reversed_gears: Vec<String>,
 }
@@ -229,7 +229,7 @@ impl PatchbayLayout {
             .map(|route| (route.bend_x, route.bend_y))
     }
 
-    /// Changes only durable presentation geometry. The exact Cord must already
+    /// Changes only durable face geometry. The exact Cord must already
     /// exist in the checked graph; no authored connectivity is created here.
     pub fn route_cord(
         &mut self,

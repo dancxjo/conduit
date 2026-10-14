@@ -3,7 +3,7 @@ plot r1-three-peer-control {
     browser-a: interaction/level
     browser-b: interaction/level
     merge: flow/merge-three-signal
-    show: presentation/show
+    show: face/show("Signal")
 
     terminal.signal >> merge.terminal
     browser-a.signal >> merge.browser-a

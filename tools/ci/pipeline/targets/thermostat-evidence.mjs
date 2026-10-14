@@ -22,7 +22,7 @@ export function retainThermostatEvidence(results, destination, runtime, sourceHe
       || proof.selectedBack?.implementation_id !== 'browser/kernel-thermostat-combine@1'
       || proof.recovered?.bodyId !== proof.awake?.bodyId
       || proof.independent?.bodyId === proof.recovered?.bodyId
-      || proof.exhausted?.presentation?.revision !== 256
+      || proof.exhausted?.face?.revision !== 256
       || ['stale', 'forged', 'show_id', 'face_id', 'range', 'bound'].some(key => proof[key]?.accepted !== false)) {
     throw new Error('Thermostat receipt lacks exact runtime, local execution or refusal evidence');
   }

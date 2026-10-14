@@ -6,8 +6,8 @@ use super::*;
 #[serde(deny_unknown_fields)]
 pub struct BrowserMaskInteraction {
     pub show_id: String,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub action_id: String,
     pub target: String,
     pub arguments: Vec<FaceInteractionArgument>,
@@ -18,7 +18,7 @@ pub struct BrowserMaskInteraction {
 pub struct BrowserMaskInteractionReceipt {
     pub schema: &'static str,
     pub correlation: MaskInteractionCorrelation,
-    pub semantic_action: PresentationAction,
+    pub semantic_action: FaceAction,
 }
 
 impl BrowserMaskRuntime {
@@ -30,8 +30,8 @@ impl BrowserMaskRuntime {
             return Err("browser Mask refuses interaction before its Show is available".into());
         }
         if proposed.show_id != self.show.show_id.as_str()
-            || proposed.presentation_id != self.presentation.identity.as_str()
-            || proposed.presentation_revision != self.presentation.revision
+            || proposed.face_id != self.face.identity.as_str()
+            || proposed.face_revision != self.face.revision
         {
             return Err("browser Mask interaction is stale or mismatched".into());
         }
@@ -39,7 +39,7 @@ impl BrowserMaskRuntime {
             return Err("browser Mask interaction Fore is already terminal".into());
         }
         let interaction = FaceInteraction::new(
-            &self.presentation,
+            &self.face,
             &self.show,
             &proposed.action_id,
             &proposed.target,
@@ -48,8 +48,8 @@ impl BrowserMaskRuntime {
         )
         .map_err(|refusal| format!("browser Mask interaction refused: {refusal:?}"))?;
         let semantic_action = self
-            .presentation
-            .resolve_action(self.presentation.revision, &proposed.action_id)
+            .face
+            .resolve_action(self.face.revision, &proposed.action_id)
             .map_err(|refusal| format!("browser Mask semantic action refused: {refusal:?}"))?
             .clone();
         let correlation = self

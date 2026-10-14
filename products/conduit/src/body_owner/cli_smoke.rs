@@ -56,7 +56,7 @@ fn installed_cli_runs_and_recovers_same_body_on_new_boot() {
     let source = root.join("hello.conduit");
     fs::write(
         &source,
-        "plot hello {\n show: presentation/text\n \"Hello.\" >> show\n}.",
+        "plot hello {\n show: face/text(\"Message\")\n \"Hello.\" >> show\n}.",
     )
     .unwrap();
     let first = run(&installation.product_executable, &state, &source,

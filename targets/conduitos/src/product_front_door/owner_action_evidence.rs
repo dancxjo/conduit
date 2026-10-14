@@ -1,7 +1,7 @@
 //! Bounded serial receipt for one owner-validated native Mask submission.
 //! This observes the typed action; the owner remains the only state authority.
 
-use conduit_presentation::{FaceInteraction, MaskShow, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{FaceInteraction, MaskShow, UTF8_TEXT_VALUE_KIND};
 
 use crate::{arch, native_owner_return::NativeReturnOutcome};
 

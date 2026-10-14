@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 import { buildBrowserBundleImage, verifyBrowserBundleImage } from "../../targets/browser/deployment/browser/browser-bundle.mjs";
 
 const encoder = new TextEncoder();
-const ids = ["browser/dom-presentation@1", "browser/dom@1", "browser/indexeddb@1"];
+const ids = ["browser/dom-face@1", "browser/dom@1", "browser/indexeddb@1"];
 
 test("checked Browser PROFILE binds reviewed prebuilt bytes into a distinct verifiable IMAGE without a compiler", async () => {
   const distribution = await fixture();

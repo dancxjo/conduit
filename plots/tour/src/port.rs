@@ -1,7 +1,7 @@
 //! Exact ordinary plot-Port adapter for the retained Tour model.
 
 use alloc::vec::Vec;
-use conduit_presentation::{ApplicationEvent, ApplicationView, ApplicationViewRefusal};
+use conduit_face::{ApplicationEvent, ApplicationView, ApplicationViewRefusal};
 
 use crate::{TourRunProof, TourWorkspaceController, TourWorkspaceRefusal, TourWorkspaceRequest};
 
@@ -9,13 +9,13 @@ use crate::{TourRunProof, TourWorkspaceController, TourWorkspaceRefusal, TourWor
 pub enum TourPortRefusal {
     Event(ApplicationViewRefusal),
     Application(TourWorkspaceRefusal),
-    Presentation,
+    Face,
 }
 
 #[derive(Debug, Eq, PartialEq)]
 pub struct TourPortOutput {
     pub view: Vec<u8>,
-    /// Authority-bearing requests remain outside retained presentation state.
+    /// Authority-bearing requests remain outside retained face state.
     pub request: Option<TourWorkspaceRequest>,
 }
 
@@ -63,9 +63,9 @@ impl TourApplicationPort {
     fn view(&self) -> Result<ApplicationView, TourPortRefusal> {
         self.controller
             .state()
-            .presentation()
+            .face()
             .and_then(|view| view.lower())
-            .map_err(|_| TourPortRefusal::Presentation)
+            .map_err(|_| TourPortRefusal::Face)
     }
 }
 
@@ -73,7 +73,7 @@ impl TourApplicationPort {
 mod tests {
     use super::*;
     use crate::{NEXT_CHAPTER_ACTION_ID, OPEN_PATCHBAY_ACTION_ID};
-    use conduit_presentation::ApplicationEventKind;
+    use conduit_face::ApplicationEventKind;
 
     #[test]
     fn initial_view_and_real_event_share_the_typed_port_encoding() {

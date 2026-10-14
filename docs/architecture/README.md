@@ -25,7 +25,7 @@ is not itself evidence that every target implements it.
 
 ## Bodies, resources, and lifecycle
 
-- [Owner presentation routes](owner-presentation-routes.md)
+- [Owner face routes](owner-face-routes.md)
 - [Body lifecycle boundaries](body-lifecycle-waists.md)
 - [Durable continuity](durable-continuity.md)
 - [Optional pre-play hold](pre-play-hold.md)
@@ -61,13 +61,13 @@ is not itself evidence that every target implements it.
 - [Structured diagnostics](structured-diagnostics.md)
 - [Machine-readable proof classes](proof-classes.md)
 
-## Hosts and human presentation
+## Hosts and human face
 
 - [Host composition](../host-architecture.md)
 - [Face, mask, and show](../presenter-hourglass.md)
 - [Portable input semantics](../input-semantics.md)
-- [Universal face grammar](presentation-grammar-conformance.md)
-- [Portable presentation renderer](presentation-renderer.md)
+- [Universal face grammar](face-grammar-conformance.md)
+- [Portable face renderer](face-renderer.md)
 - [Application theme in Patchbay](patchbay-theme.md)
 - [Browser make inventory](browser-make-inventory.md)
 - [Browser identity and membership](browser-host-membership.md)

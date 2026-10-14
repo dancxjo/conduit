@@ -5,7 +5,7 @@ use crate::{
 };
 use conduit_std_host::{StdHost, ThreadTimer};
 
-fn living_projection() -> (PatchbayPresentation, conduit_core::Plan) {
+fn living_projection() -> (PatchbayFace, conduit_core::Plan) {
     let mut editor = PlotEditor::from_source(
         "hello.conduit".into(),
         include_str!("../../../../../plots/hello/main.conduit").into(),
@@ -27,11 +27,8 @@ fn living_projection() -> (PatchbayPresentation, conduit_core::Plan) {
     let patchbay = PatchbayModel::with_identity("renderer/host".into(), "renderer/boot".into());
     let mut topology = PatchbayTopology::new(1).unwrap();
     topology.ingest(&patchbay.startup_snapshot()).unwrap();
-    let route = DistributedRouteDemo::build()
-        .unwrap()
-        .presentation()
-        .clone();
-    let presentation = PatchbayPresentation::new(
+    let route = DistributedRouteDemo::build().unwrap().face().clone();
+    let face = PatchbayFace::new(
         7,
         editor.view(),
         Some(plan_document),
@@ -40,13 +37,13 @@ fn living_projection() -> (PatchbayPresentation, conduit_core::Plan) {
         vec![route],
     )
     .unwrap();
-    (presentation, plan)
+    (face, plan)
 }
 
 #[test]
 fn one_projection_preserves_exact_document_plan_play_route_and_sign_facts() {
-    let (presentation, plan) = living_projection();
-    let identities = presentation.identities();
+    let (face, plan) = living_projection();
+    let identities = face.identities();
     assert_eq!(
         identities.source_document_id.as_ref(),
         Some(&plan.source_document_id)
@@ -66,17 +63,17 @@ fn one_projection_preserves_exact_document_plan_play_route_and_sign_facts() {
     );
     assert_eq!(
         identities.active_play_id.as_ref(),
-        presentation.play.as_ref().map(|play| &play.active_play_id)
+        face.play.as_ref().map(|play| &play.active_play_id)
     );
-    for observation in &presentation.play.as_ref().unwrap().signs {
+    for observation in &face.play.as_ref().unwrap().signs {
         assert!(identities.sign_ids.contains(&observation.sign_id));
     }
-    let route = &presentation.routes[0];
+    let route = &face.routes[0];
     assert_eq!(
         route.new_plan.prior.candidates[0].base,
         conduit_core::BaseImplementationId::from("conduit.base/usb-cdc-acm@1")
     );
-    assert!(presentation.selection().is_some());
+    assert!(face.selection().is_some());
 }
 
 #[test]
@@ -89,8 +86,8 @@ fn renderer_layout_and_disclosure_cannot_change_conduit_identities() {
         node_order: Vec<String>,
     }
 
-    let (presentation, _) = living_projection();
-    let before = presentation.identities();
+    let (face, _) = living_projection();
+    let before = face.identities();
     let mut local = LocalRendererState {
         pan: (0, 0),
         zoom_percent: 100,
@@ -101,23 +98,23 @@ fn renderer_layout_and_disclosure_cannot_change_conduit_identities() {
     local.zoom_percent = 35;
     local.inspector_open = false;
     local.node_order.reverse();
-    assert_eq!(presentation.identities(), before);
+    assert_eq!(face.identities(), before);
     assert_eq!(local.node_order, ["second", "first"]);
 }
 
 #[test]
 fn projection_rejects_each_unbounded_collection() {
-    let (presentation, _) = living_projection();
+    let (face, _) = living_projection();
 
-    let mut graph = presentation.document.clone();
+    let mut graph = face.document.clone();
     let item = graph.checked.plots[0].items[0].clone();
     graph.checked.plots[0].items = vec![item; MAX_RENDERER_GRAPH_ITEMS + 1];
     assert_eq!(
-        PatchbayPresentation::new(8, graph, None, None, None, Vec::new()),
+        PatchbayFace::new(8, graph, None, None, None, Vec::new()),
         Err(RendererProjectionError::GraphTooLarge)
     );
 
-    let mut diagnostics = presentation.document.clone();
+    let mut diagnostics = face.document.clone();
     let diagnostic = crate::EditorDiagnostic {
         code: "renderer-test",
         message: "bounded diagnostic".into(),
@@ -125,15 +122,15 @@ fn projection_rejects_each_unbounded_collection() {
     };
     diagnostics.checked.diagnostics = vec![diagnostic; MAX_RENDERER_DIAGNOSTICS + 1];
     assert_eq!(
-        PatchbayPresentation::new(8, diagnostics, None, None, None, Vec::new()),
+        PatchbayFace::new(8, diagnostics, None, None, None, Vec::new()),
         Err(RendererProjectionError::TooManyDiagnostics)
     );
 
-    let route = presentation.routes[0].clone();
+    let route = face.routes[0].clone();
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
+            face.document.clone(),
             None,
             None,
             None,
@@ -142,30 +139,23 @@ fn projection_rejects_each_unbounded_collection() {
         Err(RendererProjectionError::TooManyRoutes)
     );
 
-    let mut line_candidates = presentation.routes.clone();
+    let mut line_candidates = face.routes.clone();
     let candidate = line_candidates[0].same_plan.plan.candidates[0].clone();
     line_candidates[0].same_plan.plan.candidates =
         vec![candidate; MAX_RENDERER_ROUTE_CANDIDATES + 1];
     assert_eq!(
-        PatchbayPresentation::new(
-            8,
-            presentation.document.clone(),
-            None,
-            None,
-            None,
-            line_candidates,
-        ),
+        PatchbayFace::new(8, face.document.clone(), None, None, None, line_candidates,),
         Err(RendererProjectionError::TooManyRouteCandidates)
     );
 
-    let mut play = presentation.play.clone().unwrap();
+    let mut play = face.play.clone().unwrap();
     let observation = play.signs[0].clone();
     play.signs = vec![observation; MAX_RENDERER_SIGNS + 1];
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
-            presentation.plan.clone(),
+            face.document.clone(),
+            face.plan.clone(),
             Some(play),
             None,
             Vec::new(),
@@ -173,13 +163,13 @@ fn projection_rejects_each_unbounded_collection() {
         Err(RendererProjectionError::TooManySigns)
     );
 
-    let mut topology = presentation.topology.clone().unwrap();
+    let mut topology = face.topology.clone().unwrap();
     let host = topology.hosts[0].clone();
     topology.hosts = vec![host; MAX_RENDERER_TOPOLOGY_ITEMS + 1];
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
+            face.document.clone(),
             None,
             None,
             Some(topology),
@@ -188,28 +178,28 @@ fn projection_rejects_each_unbounded_collection() {
         Err(RendererProjectionError::TopologyTooLarge)
     );
 
-    let mut plan = presentation.plan.clone().unwrap();
+    let mut plan = face.plan.clone().unwrap();
     plan.lines = vec![String::new(); MAX_RENDERER_INSPECTION_LINES + 1];
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
+            face.document.clone(),
             Some(plan),
-            presentation.play.clone(),
+            face.play.clone(),
             None,
             Vec::new(),
         ),
         Err(RendererProjectionError::InspectionTooLarge)
     );
 
-    let mut oversized_plan = presentation.plan.clone().unwrap();
+    let mut oversized_plan = face.plan.clone().unwrap();
     let configuration = oversized_plan.exact.fragments[0].placements[0].configuration[0].clone();
     oversized_plan.exact.fragments[0].placements[0].configuration =
         vec![configuration; MAX_RENDERER_PLAN_ITEMS + 1];
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
+            face.document.clone(),
             Some(oversized_plan),
             None,
             None,
@@ -218,41 +208,41 @@ fn projection_rejects_each_unbounded_collection() {
         Err(RendererProjectionError::PlanTooLarge)
     );
 
-    let mut source = presentation.document.clone();
+    let mut source = face.document.clone();
     source.source = "x".repeat(crate::MAX_PLOT_SOURCE_BYTES + 1);
     assert_eq!(
-        PatchbayPresentation::new(8, source, None, None, None, Vec::new()),
+        PatchbayFace::new(8, source, None, None, None, Vec::new()),
         Err(RendererProjectionError::SourceTooLarge)
     );
 }
 
 #[test]
 fn projection_rejects_a_drifting_document_plan_or_play_identity() {
-    let (presentation, _) = living_projection();
-    let mut plan = presentation.plan.clone().unwrap();
+    let (face, _) = living_projection();
+    let mut plan = face.plan.clone().unwrap();
     plan.checked_plot_id = "checked/drift".into();
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document.clone(),
+            face.document.clone(),
             Some(plan),
-            presentation.play.clone(),
-            presentation.topology.clone(),
-            presentation.routes.clone(),
+            face.play.clone(),
+            face.topology.clone(),
+            face.routes.clone(),
         ),
         Err(RendererProjectionError::IdentityMismatch)
     );
 
-    let mut play = presentation.play.clone().unwrap();
+    let mut play = face.play.clone().unwrap();
     play.plan_id = "plan/drift".into();
     assert_eq!(
-        PatchbayPresentation::new(
+        PatchbayFace::new(
             8,
-            presentation.document,
-            presentation.plan,
+            face.document,
+            face.plan,
             Some(play),
-            presentation.topology,
-            presentation.routes,
+            face.topology,
+            face.routes,
         ),
         Err(RendererProjectionError::IdentityMismatch)
     );
@@ -260,24 +250,24 @@ fn projection_rejects_a_drifting_document_plan_or_play_identity() {
 
 #[test]
 fn checked_attempted_edit_diagnostic_does_not_replace_valid_graph_identity() {
-    let (presentation, _) = living_projection();
-    let before = presentation.identities();
+    let (face, _) = living_projection();
+    let before = face.identities();
     let diagnostic = crate::EditorDiagnostic {
         code: "CND-PLOT-TEST",
         message: "malformed attempted edit".into(),
-        span: presentation.document.checked.plots[0].source_span,
+        span: face.document.checked.plots[0].source_span,
     };
-    let stale = crate::AttemptedEditPresentation {
-        revision: presentation.document.revision,
+    let stale = crate::AttemptedEditFace {
+        revision: face.document.revision,
         source: "malformed".into(),
         diagnostics: vec![diagnostic.clone()],
     };
     assert_eq!(
-        presentation.clone().with_attempted_edit(stale),
+        face.clone().with_attempted_edit(stale),
         Err(RendererProjectionError::InvalidAttemptedEdit)
     );
-    let revised = presentation
-        .with_attempted_edit(crate::AttemptedEditPresentation {
+    let revised = face
+        .with_attempted_edit(crate::AttemptedEditFace {
             revision: 1,
             source: "plot malformed {".into(),
             diagnostics: vec![diagnostic],

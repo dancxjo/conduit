@@ -79,8 +79,8 @@ fn fragment(host: &StdHost, source: &str) -> conduit_core::PlanFragment {
     let mut startup_profile = conduit_plot::ProfileCatalog::new();
     conduit_time::install_tick_catalog(&mut startup, &mut startup_profile)
         .expect("tick startup signature installs");
-    conduit_semantic_catalog::install_tick_presentation_catalog(&mut startup, &mut startup_profile)
-        .expect("tick presentation signature installs");
+    conduit_semantic_catalog::install_tick_face_catalog(&mut startup, &mut startup_profile)
+        .expect("tick face signature installs");
     conduit_semantic_catalog::install_timing_catalogs(&mut startup, &mut startup_profile)
         .expect("timing startup signatures install");
     startup

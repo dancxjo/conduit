@@ -34,7 +34,7 @@ fn canonical_program_one_runs_through_the_planner_kernel_and_terminal_sign() {
         .map(|operation| operation.kind_id.as_str())
         .collect::<Vec<_>>();
     kinds.sort_unstable();
-    assert_eq!(kinds, ["presentation/text", "text/literal", "text/upper"]);
+    assert_eq!(kinds, ["face/text", "text/literal", "text/upper"]);
     assert!(expanded
         .gears
         .iter()
@@ -86,8 +86,7 @@ fn canonical_morse_network_runs_through_the_std_kernel_and_indicator_effect() {
     conduit_semantic_catalog::install_keyboard_catalogs(&mut startup, &mut profile).unwrap();
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile).unwrap();
     conduit_text::install_morse_catalogs(&mut startup, &mut profile).unwrap();
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
-        .unwrap();
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile).unwrap();
     let syntax = parse_syntax_document(MORSE_NETWORK);
     let checked = check_syntax_document(&syntax, &startup).expect("Morse Network checks");
     let expanded =

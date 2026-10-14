@@ -5,14 +5,24 @@ use super::*;
 #[test]
 fn domain_corpus_terminal_shows_and_cancelled_execution_refuse_before_interaction_emission() {
     let specimens = [
-        include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/open-domain-face.json"),
-        include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/finite-place-face.json"),
-        include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/lulled-body-face.json"),
-        include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/awake-body-face.json"),
-        include_str!("../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"),
+        include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/open-domain-face.json"
+        ),
+        include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/finite-place-face.json"
+        ),
+        include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/lulled-body-face.json"
+        ),
+        include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/awake-body-face.json"
+        ),
+        include_str!(
+            "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
+        ),
     ];
     for specimen in specimens {
-        let face: Presentation = serde_json::from_str(specimen).unwrap();
+        let face: Face = serde_json::from_str(specimen).unwrap();
         face.validate().unwrap();
         for lifecycle in [
             Some(ManifestationLifecycle::Closed),
@@ -47,7 +57,7 @@ fn domain_corpus_terminal_shows_and_cancelled_execution_refuse_before_interactio
                     mask.show = if state == ManifestationLifecycle::Failed {
                         mask.show
                             .fail(
-                                conduit_presentation::ManifestationFailure::AdapterUnavailable,
+                                conduit_face::ManifestationFailure::AdapterUnavailable,
                                 SignId::from("sign/corpus-adapter-loss"),
                             )
                             .unwrap()
@@ -96,7 +106,7 @@ fn domain_corpus_terminal_shows_and_cancelled_execution_refuse_before_interactio
                 mask.pending_interaction, pending,
                 "refusal changed interaction request"
             );
-            assert_eq!(mask.presentation, face);
+            assert_eq!(mask.face, face);
             let egress = mask.scheduler.remote_egress_offer(
                 mask.interaction_boundary.endpoint,
                 mask.interaction_boundary.cord,

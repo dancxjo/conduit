@@ -17,9 +17,8 @@ use crate::{
 
 pub const MEASUREMENT_PLOT_KIND: &str = "data/measurement-plot";
 pub const MEASUREMENT_PLOT_CONTRACT_REVISION: &str = "conduit.data/measurement-plot@1";
-pub const MEASUREMENT_PLOT_PRESENTATION_KIND: &str = "presentation/measurement-plot";
-pub const MEASUREMENT_PLOT_PRESENTATION_REVISION: &str =
-    "conduit.data/presentation-measurement-plot@1";
+pub const MEASUREMENT_PLOT_FACE_KIND: &str = "face/measurement-plot";
+pub const MEASUREMENT_PLOT_FACE_REVISION: &str = "conduit.data/face-measurement-plot@1";
 
 pub fn install_measurement_plot_catalog(
     startup: &mut StartupCatalog,
@@ -47,32 +46,36 @@ pub fn install_measurement_plot_catalog(
         .insert_kind(measurement_plot_semantic_contract())
         .map_err(|error| error.to_string())?;
     startup.insert(KindSignature {
-        kind: MEASUREMENT_PLOT_PRESENTATION_KIND.to_string(),
-        startup_parameters: vec![],
+        kind: MEASUREMENT_PLOT_FACE_KIND.to_string(),
+        startup_parameters: vec![conduit_plot::StartupParameterSignature {
+            name: "label".into(),
+            value_type: "Text".into(),
+            default: None,
+        }],
     })?;
     profile
-        .insert_kind(measurement_plot_presentation_semantic_contract())
+        .insert_kind(measurement_plot_face_semantic_contract())
         .map_err(|error| error.to_string())
 }
 
-pub fn measurement_plot_presentation_definition() -> KindProjection {
+pub fn measurement_plot_face_definition() -> KindProjection {
     KindProjection {
-        kind_id: kind_id(MEASUREMENT_PLOT_PRESENTATION_KIND),
-        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_PRESENTATION_REVISION),
+        kind_id: kind_id(MEASUREMENT_PLOT_FACE_KIND),
+        kind_contract_revision: KindIdentity::from(MEASUREMENT_PLOT_FACE_REVISION),
         inputs: vec![port(
             "series",
             &measurement_plot_series_type(),
             PortDirection::Input,
         )],
         outputs: vec![],
-        configuration: vec![],
+        configuration: conduit_core::data_label_configuration(),
     }
 }
 
-pub fn measurement_plot_presentation_semantic_contract() -> Kind {
-    let definition = measurement_plot_presentation_definition();
+pub fn measurement_plot_face_semantic_contract() -> Kind {
+    let definition = measurement_plot_face_definition();
     Kind {
-        startup_parameters: vec![],
+        startup_parameters: conduit_core::data_label_startup_front(),
         shorthand: None,
         kind_id: definition.kind_id,
         kind_contract_revision: definition.kind_contract_revision,

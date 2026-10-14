@@ -5,7 +5,7 @@ use alloc::vec::Vec;
 #[test]
 fn heterogeneous_connection_limits_preserve_defaults_and_refuse_unfit_overrides() {
     let plot = parse_with_startup(
-        "plot heterogeneous {\n large: flow/pulse(count=1, period-ms=0, initial=false)\n large_sink: presentation/show\n small: flow/pulse(count=1, period-ms=0, initial=false)\n small_sink: presentation/show\n large >> large_sink\n small >> small_sink\n}\n",
+        "plot heterogeneous {\n large: flow/pulse(count=1, period-ms=0, initial=false)\n large_sink: face/show(\"Signal\")\n small: flow/pulse(count=1, period-ms=0, initial=false)\n small_sink: face/show(\"Signal\")\n large >> large_sink\n small >> small_sink\n}\n",
         &conduit_signal::signal_startup_catalog(),
         &signal_profile_catalog(),
     ).unwrap();
