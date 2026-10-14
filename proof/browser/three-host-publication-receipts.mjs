@@ -85,7 +85,7 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
   assert.equal(nativeStandby.guest_part.part_id, report.guest_part_id);
   assert.equal(nativeStandby.face.face_id, nativeReceipt.face_before.face_id);
   assert.equal(nativeStandby.face.face_revision, nativeReceipt.face_before.face_revision);
-  const recovery = await load(path.join(output, report.presentation_host_recovery.path));
+  const recovery = await load(path.join(output, report.face_host_recovery.path));
   assert.equal(recovery.body_id, report.body_id);
   const loss = exact(report.owner_model_route_loss, 'selected model route loss');
   const direct = exact(report.owner_direct_speech, 'direct owner speech');
@@ -150,8 +150,8 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
       refusal: loss.refusal, operation_started_on_loss: loss.operation_started_on_loss });
   const modelReturned = await event('selected-speaker-play', loss.restored.listener_play_id,
     loss.restored.face_revision_decimal, observed.model_restored, loss.restored);
-  const browserLost = await event('presentation-leave', recovery.lost_browser_boot_id,
-    checkpoint('browser-presentation-unavailable').final_reading.face_revision,
+  const browserLost = await event('face-leave', recovery.lost_browser_boot_id,
+    checkpoint('browser-face-unavailable').final_reading.face_revision,
     observed.browser_unavailable,
     recovery.loss);
   const browserReturned = await event('membership-return', recovery.recovered_browser_boot_id,
@@ -212,7 +212,7 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
     chapter('see', 'Change how you see it', 'Meet the current work through different Masks.',
       'Use the terminal action and change browser wardrobe preference.',
       'The current Face and selected Show remain correlated.',
-      'Presentation changes do not make a second Body.', 'Hear the Face.',
+      'Face changes do not make a second Body.', 'Hear the Face.',
       ['A wardrobe choice is not a new clock action.'],
       [changedTerminal, selectedWardrobe], [
         await media('terminal', report.terminal_show, changedTerminal,
@@ -244,12 +244,12 @@ export async function writeThreeHostPublicationReceipts({ output, report, birth,
           loss.restored, modelSpeech(loss.restored, restoredModelOutput)),
       ]),
     chapter('return', 'Come back', 'Return to the retained Body from a fresh browser Boot.',
-      'Leave the browser presentation, inspect its loss, then rejoin.',
+      'Leave the browser face, inspect its loss, then rejoin.',
       'Old browser actions become unavailable; the fresh Boot receives a new acknowledged Show.',
       'The owner preserves Body continuity while browser route identities change.', 'Start the clock.',
       ['No QEMU reboot or workload failover is claimed.'], [browserLost, browserReturned], [
-        await transcriptMedia(checkpoint('browser-presentation-unavailable').transcript,
-          browserLost, 'Screen-free inspection during browser presentation loss'),
+        await transcriptMedia(checkpoint('browser-face-unavailable').transcript,
+          browserLost, 'Screen-free inspection during browser face loss'),
         await chromium('browser-after-recovery.png', browserReturned,
           'Fresh browser Boot showing the same Body', browserRecovery),
       ]),

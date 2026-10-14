@@ -204,7 +204,7 @@ impl ProtectedTimer {
         idle: &mut D,
         started: u64,
     ) -> Result<MachineRunReceipt, MachineRunError> {
-        let mut presentations = 0;
+        let mut faces = 0;
         let mut wakes = 0;
         let mut waiting = false;
         for _ in 0..512 {
@@ -243,7 +243,7 @@ impl ProtectedTimer {
                 .map_err(MachineRunError::ProtectionDomain)?
                 .timer_observation()
                 .map_err(MachineRunError::ProtectionDomain)?;
-            if presentations == 2
+            if faces == 2
                 && wakes == 1
                 && self.pending.is_some()
                 && observation.pending == 1
@@ -276,7 +276,7 @@ impl ProtectedTimer {
                     kernel_signs: stopped.signs,
                     timer_irq_wakes: wakes,
                     idle_entries: idle.idle_count(),
-                    serial_presentations: serial.presentation_count(),
+                    serial_faces: serial.face_count(),
                     clock_monotonic: clock.now() >= started,
                     pending_host_calls: 1,
                     overlap_witness: false,
@@ -342,7 +342,7 @@ impl ProtectedTimer {
                                 .complete_count(request.request, serial.provider_generation())
                                 .map_err(gate_error)?;
                             self.completion(2, request.request)?;
-                            presentations += 1;
+                            faces += 1;
                         }
                         _ => return Err(MachineRunError::UnexpectedHostCall),
                     }

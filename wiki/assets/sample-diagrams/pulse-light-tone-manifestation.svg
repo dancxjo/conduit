@@ -23,7 +23,7 @@
 <text class="port-name" text-anchor="end" x="859" y="464">observation</text>
 </g>
 <g><rect class="gear" x="1210" y="240" width="280" height="120" rx="10"/><path class="header" d="M1210,250 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>pulse-light-tone-manifestation/light — kind presentation/pulse</title>
+<title>pulse-light-tone-manifestation/light — kind face/pulse</title>
 <use href="#gear-mark" x="1222" y="251" width="28" height="28"/><text class="label" x="1260" y="262">light</text><text class="kind" x="1260" y="283">pulse-light-tone-manifestatio…</text>
 <g><title>pulse: time/pulse-observation@1</title><circle class="port input-port" cx="1210" cy="320" r="5"/></g>
 <text class="port-name" text-anchor="start" x="1221" y="324">pulse</text>

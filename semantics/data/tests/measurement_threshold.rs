@@ -93,7 +93,7 @@ fn invalid_policy_and_summary_units_refuse_distinctly() {
 }
 
 #[test]
-fn threshold_is_a_reusable_plot_independent_of_presentation() {
+fn threshold_is_a_reusable_plot_independent_of_face() {
     let mut startup = StartupCatalog::new();
     let mut catalog = ProfileCatalog::new();
     install_measurement_window_catalog(&mut startup, &mut catalog).unwrap();

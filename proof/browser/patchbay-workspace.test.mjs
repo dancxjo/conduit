@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { readFileSync } from "node:fs";
 import {
-  applyWorkspace, captureWorkspace, decodeWorkspace, migrateFlowPresentation,
+  applyWorkspace, captureWorkspace, decodeWorkspace, migrateFlowFace,
   validateWorkspace, workspaceCorrelation,
 } from "../../plots/patchbay/workbench/browser/flow-workspace.js";
 import { projectFlowScene, workspaceBasis, workspaceIdentity } from "../../plots/patchbay/workbench/browser/flow-scene.js";
@@ -68,15 +68,15 @@ test("missing and renamed subjects remain explicit orphans and changed basis ref
 test("migration is deterministic and requires exact legacy wrapper-to-semantic mapping", () => {
   const projected = scene();
   const legacy = {
-    schema: "conduit.patchbay.flow-presentation/v1", workspaceIdentity: projected.workspaceIdentity,
+    schema: "conduit.patchbay.flow-face/v1", workspaceIdentity: projected.workspaceIdentity,
     nodes: [{ id: "renderer-0", position: { x: -1.9, y: 2.8 }, selected: true }],
     viewport: { x: 0, y: 0, zoom: 1 },
   };
-  const migrated = migrateFlowPresentation(legacy, projected);
-  assert.deepEqual(migrated, migrateFlowPresentation(legacy, projected));
+  const migrated = migrateFlowFace(legacy, projected);
+  assert.deepEqual(migrated, migrateFlowFace(legacy, projected));
   assert.deepEqual(migrated.layouts[0].positions, [{ subject: "gear/source", x: -1, y: 2 }]);
   legacy.nodes[0].id = "deleted-wrapper";
-  assert.throws(() => migrateFlowPresentation(legacy, projected), /UnmappedLegacySubject/);
+  assert.throws(() => migrateFlowFace(legacy, projected), /UnmappedLegacySubject/);
 });
 
 test("unknown fields, future versions, counts, UTF-8 bytes and nonfinite geometry refuse", () => {
@@ -95,9 +95,9 @@ test("unknown fields, future versions, counts, UTF-8 bytes and nonfinite geometr
   assert.throws(() => decodeWorkspace("x".repeat(65537), scene()), /BoundExceeded/);
 });
 
-test("authoring workspace uses exact checked source rather than enclosing Body presentation", () => {
+test("authoring workspace uses exact checked source rather than enclosing Body face", () => {
   const snapshot = { authoring: { source_document_id: "source/authored", checked_plot_id: "checked/authored" },
-    presentation: { basis: { source_document_id: "source/body", checked_plot_id: "checked/body" } } };
+    face: { basis: { source_document_id: "source/body", checked_plot_id: "checked/body" } } };
   assert.deepEqual(workspaceBasis(snapshot), snapshot.authoring);
   assert.equal(workspaceIdentity(snapshot), "source/authored/checked/authored/canonical");
   snapshot.authoring.checked_plot_id = undefined;
@@ -105,7 +105,7 @@ test("authoring workspace uses exact checked source rather than enclosing Body p
 });
 
 test("fresh Entrance and Body scenes have no portable Plot workspace and still project", () => {
-  const snapshot = { presentation: { identity: "entrance", revision: 1,
+  const snapshot = { face: { identity: "entrance", revision: 1,
     basis: { source_document_id: null, checked_plot_id: null },
     subjects: [{ identity: "body/present", role: "Body", name: "Present Body" }],
     properties: [], relationships: [] }, interaction: { selected_subject: null } };
@@ -121,7 +121,7 @@ test("port compatibility is copied from canonical candidates by semantic identit
   const candidate = { sink_identity: "port/exact", compatible: false, diagnostic: "Canonical temporal mismatch", adapters: [] };
   const snapshot = {
     authoring: { ...fixture().basis, connection_candidates: [candidate] },
-    presentation: { identity: "presentation", revision: 1, basis: fixture().basis,
+    face: { identity: "face", revision: 1, basis: fixture().basis,
       subjects: [{ identity: "gear-wrapper", role: "Gear", name: "Gear" },
         { identity: "port-wrapper", role: "Port", name: "Misleading label", label: "Same-looking Text" }],
       relationships: [{ source: "gear-wrapper", target: "port-wrapper", kind: "Contains" }],

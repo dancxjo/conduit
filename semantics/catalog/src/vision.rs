@@ -5,12 +5,12 @@
 
 use alloc::{vec, vec::Vec};
 use conduit_core::{Quantity, QuantityDimension, StructuredInfoType};
-use conduit_plot::rust_binding::NativeRustBinding;
-use conduit_presentation::{
+use conduit_face::{
     ImageColorProfile, ImageFormat, ImagePixelExtent, ImageResource, VisionColorSample,
     VisionDetection, VisionDetectionSlot, VisionDetectionsFour, VisionEvidenceClass,
     VisionKeypoint, VisionLandmarkSlot, VisionLandmarks, VisionProvenance, VisionRgbSample,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const IMAGE_RESOURCE_TYPE: &str = "ImageResource";
 pub const VISION_DETECTION_TYPE: &str = "VisionDetection";

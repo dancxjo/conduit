@@ -24,7 +24,7 @@ pub(crate) fn offer() -> CapabilityOffer {
         shorthand: None,
         inputs: vec![PortDescriptor {
             port_id: port_id("stroke"),
-            value_kind: conduit_presentation::path2_type(4)
+            value_kind: conduit_face::path2_type(4)
                 .unwrap()
                 .profile()
                 .unwrap()
@@ -59,7 +59,7 @@ pub(crate) fn offer() -> CapabilityOffer {
 
 fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
     super::factory::validate_placement(placement, &offer())?;
-    Ok(BrowserBack::presentation(
+    Ok(BrowserBack::face(
         super::MAXIMUM_BROWSER_STORED_VALUE_BYTES as u32,
         1,
     ))
@@ -69,6 +69,7 @@ fn present(_: &PlannedGear, input: &[u8]) -> Result<BrowserHostResult, String> {
     Ok(BrowserHostResult {
         output: None,
         manifestation: Some(BrowserManifestation {
+            data_label: None,
             kind_id: KIND,
             canonical_value: input.to_vec(),
         }),

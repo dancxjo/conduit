@@ -3,9 +3,7 @@ use conduit_body::{
     FulfillmentReadiness, derive_fulfillment_readiness,
 };
 use conduit_core::{AuthorityGrantId, SignId};
-use conduit_tutorial_plot::{
-    TutorialPlayback, presentation_from_evidence, purpose_state_from_evidence,
-};
+use conduit_tutorial_plot::{TutorialPlayback, face_from_evidence, purpose_state_from_evidence};
 
 #[test]
 fn explicit_fulfillment_is_distinct_from_completing_optional_tutorial_exercises() {
@@ -33,7 +31,7 @@ fn explicit_fulfillment_is_distinct_from_completing_optional_tutorial_exercises(
         derive_fulfillment_readiness(&purpose).unwrap(),
         FulfillmentReadiness::NotReady { .. }
     ));
-    let view = presentation_from_evidence(&evidence, 1, TutorialPlayback::Fulfilled)
+    let view = face_from_evidence(&evidence, 1, TutorialPlayback::Fulfilled)
         .unwrap()
         .lower()
         .unwrap();

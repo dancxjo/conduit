@@ -1,0 +1,283 @@
+//! Body-owned runtime eligibility for ordinary Plots serving as Masks.
+
+use alloc::{string::String, vec::Vec};
+use conduit_body::{BodyId, WakeId};
+use conduit_core::{PlacementId, PlanId, PlotIdentity};
+use serde::{Deserialize, Serialize};
+
+use crate::{MaskPlanningDisposition, MaskWardrobeError, MaskWardrobeLifetime};
+
+pub const MAX_WORN_MASK_PLOTS: usize = 16;
+pub const MAX_SEALED_MASK_ROUTES: usize = 32;
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct MaskWardrobe {
+    pub revision: u64,
+    pub lifetime: MaskWardrobeLifetime,
+    pub worn: Vec<PlotIdentity>,
+    /// Most preferred first. Preference never confers eligibility.
+    pub preference: Vec<PlotIdentity>,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct BodyMaskWardrobe {
+    pub body_id: BodyId,
+    pub wake_id: Option<WakeId>,
+    pub wardrobe: MaskWardrobe,
+}
+
+/// One realization route already sealed by an immutable ordinary Plan.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SealedMaskPlotRoute {
+    pub route_id: String,
+    pub mask_plot: PlotIdentity,
+    /// The Plan that seals this selectable route. An owner face Plan
+    /// may contain several distinct child Mask Plot Plans.
+    pub plan_id: PlanId,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub child_mask_plan_id: Option<PlanId>,
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub owner_route_seal_id: Option<PlanId>,
+    pub placement_ids: Vec<PlacementId>,
+    pub currently_available: bool,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct SelectedMaskPlotRoute {
+    pub route_id: String,
+    pub mask_plot: PlotIdentity,
+    pub plan_id: PlanId,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub enum MaskShowDisposition {
+    Retain(SelectedMaskPlotRoute),
+    SelectSealed {
+        prior: Option<SelectedMaskPlotRoute>,
+        selected: SelectedMaskPlotRoute,
+    },
+    NoCurrentShow {
+        prior: Option<SelectedMaskPlotRoute>,
+    },
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MaskReconciliation {
+    pub show: MaskShowDisposition,
+    pub planning: MaskPlanningDisposition,
+}
+
+impl BodyMaskWardrobe {
+    pub fn new(
+        body_id: BodyId,
+        wake_id: Option<WakeId>,
+        wardrobe: MaskWardrobe,
+    ) -> Result<Self, MaskWardrobeError> {
+        wardrobe.validate()?;
+        if matches!(wardrobe.lifetime, MaskWardrobeLifetime::Wake) != wake_id.is_some() {
+            return Err(MaskWardrobeError::InvalidLifetimeScope);
+        }
+        Ok(Self {
+            body_id,
+            wake_id,
+            wardrobe,
+        })
+    }
+}
+
+impl MaskWardrobe {
+    pub fn new(
+        lifetime: MaskWardrobeLifetime,
+        worn: Vec<PlotIdentity>,
+        preference: Vec<PlotIdentity>,
+    ) -> Result<Self, MaskWardrobeError> {
+        let wardrobe = Self {
+            revision: 0,
+            lifetime,
+            worn,
+            preference,
+        };
+        wardrobe.validate()?;
+        Ok(wardrobe)
+    }
+
+    pub fn wear(
+        &self,
+        basis_revision: u64,
+        mask_plot: PlotIdentity,
+    ) -> Result<Self, MaskWardrobeError> {
+        self.require_revision(basis_revision)?;
+        if self.worn.contains(&mask_plot) {
+            return Err(MaskWardrobeError::DuplicateMask);
+        }
+        let mut next = self.clone();
+        next.revision += 1;
+        next.worn.push(mask_plot);
+        next.validate()?;
+        Ok(next)
+    }
+
+    pub fn doff(
+        &self,
+        basis_revision: u64,
+        mask_plot: &PlotIdentity,
+    ) -> Result<Self, MaskWardrobeError> {
+        self.require_revision(basis_revision)?;
+        let Some(index) = self.worn.iter().position(|worn| worn == mask_plot) else {
+            return Err(MaskWardrobeError::UnknownMask);
+        };
+        let mut next = self.clone();
+        next.revision += 1;
+        next.worn.remove(index);
+        next.preference.retain(|preferred| preferred != mask_plot);
+        next.validate()?;
+        Ok(next)
+    }
+
+    pub fn prefer(
+        &self,
+        basis_revision: u64,
+        preference: Vec<PlotIdentity>,
+    ) -> Result<Self, MaskWardrobeError> {
+        self.require_revision(basis_revision)?;
+        let mut next = self.clone();
+        next.revision += 1;
+        next.preference = preference;
+        next.validate()?;
+        Ok(next)
+    }
+
+    pub fn reconcile(
+        &self,
+        active_plan_id: &PlanId,
+        routes: &[SealedMaskPlotRoute],
+        selected: Option<&SelectedMaskPlotRoute>,
+    ) -> Result<MaskReconciliation, MaskWardrobeError> {
+        self.validate()?;
+        validate_routes(active_plan_id, routes)?;
+        if let Some(selected) = selected {
+            let route = routes.iter().find(|route| {
+                route.route_id == selected.route_id
+                    && route.mask_plot == selected.mask_plot
+                    && route.plan_id == selected.plan_id
+            });
+            if selected.plan_id != *active_plan_id || route.is_none() {
+                return Err(MaskWardrobeError::StaleSelection);
+            }
+            if self.worn.contains(&selected.mask_plot)
+                && route.is_some_and(|route| route.currently_available)
+            {
+                return Ok(MaskReconciliation {
+                    show: MaskShowDisposition::Retain(selected.clone()),
+                    planning: MaskPlanningDisposition::NotRequired,
+                });
+            }
+        }
+        if let Some(route) = self.select_available_route(routes) {
+            return Ok(MaskReconciliation {
+                show: MaskShowDisposition::SelectSealed {
+                    prior: selected.cloned(),
+                    selected: SelectedMaskPlotRoute {
+                        route_id: route.route_id.clone(),
+                        mask_plot: route.mask_plot.clone(),
+                        plan_id: route.plan_id.clone(),
+                    },
+                },
+                planning: MaskPlanningDisposition::NotRequired,
+            });
+        }
+        Ok(MaskReconciliation {
+            show: MaskShowDisposition::NoCurrentShow {
+                prior: selected.cloned(),
+            },
+            planning: if self.worn.is_empty() {
+                MaskPlanningDisposition::NotRequired
+            } else {
+                MaskPlanningDisposition::ReplacementRequired
+            },
+        })
+    }
+
+    fn select_available_route<'a>(
+        &self,
+        routes: &'a [SealedMaskPlotRoute],
+    ) -> Option<&'a SealedMaskPlotRoute> {
+        for preferred in &self.preference {
+            if let Some(route) = routes
+                .iter()
+                .filter(|route| route.currently_available && &route.mask_plot == preferred)
+                .min_by(|left, right| left.route_id.cmp(&right.route_id))
+            {
+                return Some(route);
+            }
+        }
+        routes
+            .iter()
+            .filter(|route| {
+                route.currently_available
+                    && self.worn.contains(&route.mask_plot)
+                    && !self.preference.contains(&route.mask_plot)
+            })
+            .min_by(|left, right| left.route_id.cmp(&right.route_id))
+    }
+
+    fn require_revision(&self, basis_revision: u64) -> Result<(), MaskWardrobeError> {
+        (basis_revision == self.revision)
+            .then_some(())
+            .ok_or(MaskWardrobeError::StaleRevision)
+    }
+
+    fn validate(&self) -> Result<(), MaskWardrobeError> {
+        if self.worn.len() > MAX_WORN_MASK_PLOTS || self.preference.len() > MAX_WORN_MASK_PLOTS {
+            return Err(MaskWardrobeError::CapacityExceeded);
+        }
+        if has_duplicates(&self.worn) || has_duplicates(&self.preference) {
+            return Err(MaskWardrobeError::DuplicateMask);
+        }
+        if self
+            .preference
+            .iter()
+            .any(|preferred| !self.worn.contains(preferred))
+        {
+            return Err(MaskWardrobeError::UnknownPreference);
+        }
+        Ok(())
+    }
+}
+
+fn validate_routes(
+    active_plan_id: &PlanId,
+    routes: &[SealedMaskPlotRoute],
+) -> Result<(), MaskWardrobeError> {
+    if routes.len() > MAX_SEALED_MASK_ROUTES {
+        return Err(MaskWardrobeError::CapacityExceeded);
+    }
+    for (index, route) in routes.iter().enumerate() {
+        if route.plan_id != *active_plan_id
+            || route.child_mask_plan_id.is_some() != route.owner_route_seal_id.is_some()
+            || route.route_id.is_empty()
+            || route.placement_ids.is_empty()
+            || has_duplicates(&route.placement_ids)
+        {
+            return Err(MaskWardrobeError::InvalidRoute);
+        }
+        if routes[index + 1..]
+            .iter()
+            .any(|other| other.route_id == route.route_id)
+        {
+            return Err(MaskWardrobeError::DuplicateRoute);
+        }
+    }
+    Ok(())
+}
+
+fn has_duplicates<T: PartialEq>(values: &[T]) -> bool {
+    values
+        .iter()
+        .enumerate()
+        .any(|(index, value)| values[index + 1..].contains(value))
+}

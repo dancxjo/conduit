@@ -23,10 +23,10 @@ fn checked_tutorial_plot_projects_current_body_truth_inside_its_admitted_play() 
         }
     };
     assert_eq!(
-        effect.presentation_kind,
-        conduit_semantic_catalog::APPLICATION_VIEW_PRESENTATION_KIND
+        effect.face_kind,
+        conduit_semantic_catalog::APPLICATION_VIEW_FACE_KIND
     );
-    let view = conduit_presentation::ApplicationView::decode(
+    let view = conduit_face::ApplicationView::decode(
         effect
             .application_view
             .as_deref()
@@ -60,7 +60,7 @@ fn checked_tutorial_plot_projects_current_body_truth_inside_its_admitted_play() 
 #[test]
 fn ordinary_five_plot_body_is_not_confined_to_the_single_plot_gear_table() {
     let sources = (0..5)
-        .map(|index| format!("plot body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: presentation/text\n message >> first >> second >> result\n}}\n"))
+        .map(|index| format!("plot body_{index} {{\n message: text/literal(\"hello\")\n first: text/upper\n second: text/upper\n result: face/text(\"Message\")\n message >> first >> second >> result\n}}\n"))
         .collect::<Vec<_>>();
     let source_refs = sources.iter().map(String::as_str).collect::<Vec<_>>();
     let request = request_from_sources(&source_refs);
@@ -144,14 +144,14 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
                             .plots
                             .iter()
                             .any(|part| part.plan.plan_id.as_str() == value.plan_id));
-                        match value.presentation_kind.as_str() {
-                            conduit_semantic_catalog::TICK_PRESENTATION_KIND => {
+                        match value.face_kind.as_str() {
+                            conduit_semantic_catalog::TICK_FACE_KIND => {
                                 ticks.push(value.text.unwrap())
                             }
-                            conduit_semantic_catalog::INDICATOR_STATE_PRESENTATION_KIND => {
+                            conduit_semantic_catalog::INDICATOR_STATE_FACE_KIND => {
                                 levels.push(value.text.unwrap())
                             }
-                            "presentation/text" => {
+                            "face/text" => {
                                 assert_eq!(value.text.as_deref(), Some("a"));
                                 telegraph = true;
                             }
@@ -216,7 +216,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
 fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
     let request = request_from_sources(&[
         include_str!("../../../../../plots/firefly-choir/main.conduit"),
-        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message >> show\n}.\n",
+        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -238,14 +238,14 @@ fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
                             .plots
                             .iter()
                             .any(|part| part.plan.plan_id.as_str() == value.plan_id));
-                        match value.presentation_kind.as_str() {
-                            conduit_semantic_catalog::PULSE_PRESENTATION_KIND => {
+                        match value.face_kind.as_str() {
+                            conduit_semantic_catalog::PULSE_FACE_KIND => {
                                 pulses.push(value.text.unwrap())
                             }
-                            conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND => {
+                            conduit_semantic_catalog::RHYTHM_FACE_KIND => {
                                 rhythms.push(value.text.unwrap())
                             }
-                            "presentation/text" => {
+                            "face/text" => {
                                 assert_eq!(value.text.as_deref(), Some("unrelated workload"));
                                 unrelated = true;
                             }
@@ -278,7 +278,7 @@ fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
 fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
     let request = request_from_sources(&[
         include_str!("../../../../../plots/signal-garden/main.conduit"),
-        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: presentation/text\n message >> show\n}.\n",
+        "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
     let (mut session, started) = prepare(request).unwrap();
@@ -299,15 +299,15 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
                     .plots
                     .iter()
                     .any(|part| part.plan.plan_id.as_str() == value.plan_id));
-                match value.presentation_kind.as_str() {
-                    conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND => {
+                match value.face_kind.as_str() {
+                    conduit_semantic_catalog::GARDEN_STATE_FACE_KIND => {
                         assert_eq!(
                             value.text.as_deref(),
                             Some("garden step 1 · vitality 0.600000 · activity 0.400000")
                         );
                         garden = true;
                     }
-                    "presentation/text" => {
+                    "face/text" => {
                         assert_eq!(value.text.as_deref(), Some("unrelated workload"));
                         unrelated = true;
                     }
@@ -331,7 +331,7 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
 }
 
 #[test]
-fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
+fn unchanged_canonical_clock_uses_installed_browser_tick_face() {
     let source = include_str!("../../../../../plots/clock/main.conduit");
     let (mut session, effect) =
         TourSession::prepare("clock-browser", "clock-boot", source, 1).unwrap();
@@ -347,10 +347,7 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
                         waits += 1;
                     }
                     TourHostEffect::Manifestation(value) => {
-                        assert_eq!(
-                            value.presentation_kind,
-                            conduit_semantic_catalog::TICK_PRESENTATION_KIND
-                        );
+                        assert_eq!(value.face_kind, conduit_semantic_catalog::TICK_FACE_KIND);
                         ticks.push(value.text.unwrap());
                     }
                     _ => panic!("unexpected clock effect"),
@@ -370,7 +367,8 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_presentation() {
     assert_eq!(waits, 5);
     assert_eq!(ticks, ["0", "1", "2", "3", "4"]);
     let malformed = crate::installed_browser::BrowserManifestation {
-        kind_id: conduit_semantic_catalog::TICK_PRESENTATION_KIND,
+        data_label: Some("Clock tick".into()),
+        kind_id: conduit_semantic_catalog::TICK_FACE_KIND,
         canonical_value: vec![0; 7],
     };
     assert!(decode_manifestation(&malformed).is_err());

@@ -115,7 +115,7 @@ fn stale_completion_from_replaced_browser_boot_refuses_current_truth() {
         .expect("old value admits");
     old.advance().expect("old value delivered");
     old.hold_first_value = false;
-    old.advance().expect("old presentation prepares");
+    old.advance().expect("old face prepares");
     let old_completion = old.expected_completion[..old.expected_completion_len].to_vec();
 
     let mut current = DistributedSink::prepare(
@@ -135,12 +135,9 @@ fn stale_completion_from_replaced_browser_boot_refuses_current_truth() {
         .expect("current value admits");
     current.advance().expect("current value delivered");
     current.hold_first_value = false;
-    current.advance().expect("current presentation prepares");
+    current.advance().expect("current face prepares");
 
-    assert_eq!(
-        current.complete_presentation(&old_completion),
-        Err(ERROR_PRESENTATION)
-    );
+    assert_eq!(current.complete_face(&old_completion), Err(ERROR_FACE));
 }
 
 #[test]
@@ -193,15 +190,12 @@ fn browser_sink_failure_and_cancellation_emit_structured_terminal_frames() {
     failed.ingest(&offered(&binding, 0)).expect("value admits");
     failed.advance().expect("value delivered");
     failed.hold_first_value = false;
-    failed.advance().expect("presentation prepared");
+    failed.advance().expect("face prepared");
     let mut completion = failed.expected_completion[..failed.expected_completion_len].to_vec();
     completion.push(0);
-    assert_eq!(
-        failed.complete_presentation(&completion),
-        Err(ERROR_PRESENTATION)
-    );
+    assert_eq!(failed.complete_face(&completion), Err(ERROR_FACE));
     assert_eq!(failed.output[5], 8, "sink failure frame");
-    assert_eq!(failed.advance(), Err(ERROR_PRESENTATION));
+    assert_eq!(failed.advance(), Err(ERROR_FACE));
     assert_eq!(failed.output[5], 9, "failed terminal frame");
     assert_eq!(failed.scheduler.values().used_items(), 0);
 
@@ -234,7 +228,7 @@ fn wrong_remote_completion_identity_fails_closed() {
     sink.ingest(&offered(&binding, 0)).expect("value admits");
     sink.advance().expect("value delivered");
     sink.hold_first_value = false;
-    sink.advance().expect("presentation prepared");
+    sink.advance().expect("face prepared");
     let mut completion = sink.expected_completion[..sink.expected_completion_len].to_vec();
     let identity = binding.attachment.link_binding_id.as_str().as_bytes();
     let offset = completion
@@ -243,10 +237,7 @@ fn wrong_remote_completion_identity_fails_closed() {
         .expect("completion carries the exact link identity");
     completion[offset] ^= 1;
     completion.push(1);
-    assert_eq!(
-        sink.complete_presentation(&completion),
-        Err(ERROR_PRESENTATION)
-    );
+    assert_eq!(sink.complete_face(&completion), Err(ERROR_FACE));
     assert_eq!(
         sink.output[5], 8,
         "identity failure is a structured Failed frame"

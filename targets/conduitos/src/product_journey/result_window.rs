@@ -1,4 +1,4 @@
-//! A bounded view of recent Presentation output, not retained authored State.
+//! A bounded view of recent Face output, not retained authored State.
 pub(super) const RESULT_WINDOW_BYTES: usize = 128;
 
 pub(super) struct ResultWindow {

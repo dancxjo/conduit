@@ -28,7 +28,7 @@ fn frame_boundaries_preserve_unicode_whitespace_and_words_exactly() {
     assert!(frame_ranges("").is_err());
     assert!(frame_ranges(&" ".repeat(8192)).is_err());
     assert!(frame_ranges(&"a".repeat(MAX_SPOKEN_TEMPLATE_FRAME_BYTES + 1)).is_err());
-    assert!(frame_ranges(&"x ".repeat(conduit_presentation::MAX_SPOKEN_TEMPLATE_BYTES)).is_err());
+    assert!(frame_ranges(&"x ".repeat(conduit_face::MAX_SPOKEN_TEMPLATE_BYTES)).is_err());
 }
 
 fn host(boot: &str) -> StdHost {
@@ -55,8 +55,7 @@ fn actual_face_reading_is_source_backed_complete_and_stale_safe() {
     );
     assert!(path.is_absolute());
     let record: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
-    let face: Presentation =
-        serde_json::from_value(record.get("presentation").unwrap_or(&record).clone()).unwrap();
+    let face: Face = serde_json::from_value(record.get("face").unwrap_or(&record).clone()).unwrap();
     assert!(face.basis.body_id.is_some());
     let host = host("proof/spoken-template-reading/boot");
     let mut receipts = Vec::new();

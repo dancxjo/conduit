@@ -29,7 +29,7 @@ pub const BOOT_REPORT_BYTES: usize = 8;
 pub const MAX_TRANSITIONS_PER_REPORT: usize = 20;
 /// Fixed physical receive depth. Eight boot reports still fit in the same
 /// page-aligned HID DMA allocation while giving the controller enough runway
-/// to keep sampling during bounded semantic and presentation work.
+/// to keep sampling during bounded semantic and face work.
 pub const REPORT_BUFFERS: usize = 8;
 pub const TRANSFER_RING_REPORT_SLOTS: usize = INTERRUPT_TRANSFER_TRBS - 1;
 pub const MAX_SESSION_TRANSITIONS: usize = 64;

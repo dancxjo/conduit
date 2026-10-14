@@ -10,7 +10,7 @@ use conduit_body::{
 };
 use conduit_core::HostAdvertisement;
 use conduit_core::{bind_sign, port_id, BaseImplementationId, ConnectionTrack, PortDirection};
-use conduit_presentation::{OwnerFaceSnapshotRequest, Presentation};
+use conduit_face::{Face, OwnerFaceSnapshotRequest};
 use conduit_std_host::body_execution::BodyRunRequest;
 use conduit_std_host::{RunControl, RunControlRequestId, StdHost, ThreadTimer, TimerAdapter};
 #[cfg(unix)]
@@ -45,16 +45,16 @@ pub(crate) use direct_spoken_route::DirectSpokenStart;
 #[path = "llm_spoken_route.rs"]
 mod llm_spoken_route;
 pub(crate) use llm_spoken_route::LlmSpokenStart;
+#[path = "face_wardrobe.rs"]
+mod face_wardrobe;
+#[path = "face_wardrobe_report.rs"]
+mod face_wardrobe_report;
+#[path = "face_wardrobe_runtime.rs"]
+mod face_wardrobe_runtime;
+#[path = "face_wardrobe_witness.rs"]
+mod face_wardrobe_witness;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
-#[path = "presentation_wardrobe.rs"]
-mod presentation_wardrobe;
-#[path = "presentation_wardrobe_report.rs"]
-mod presentation_wardrobe_report;
-#[path = "presentation_wardrobe_runtime.rs"]
-mod presentation_wardrobe_runtime;
-#[path = "presentation_wardrobe_witness.rs"]
-mod presentation_wardrobe_witness;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
@@ -182,12 +182,12 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
-    attached_terminal_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
-    direct_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
+    attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
+    direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
         Option<conduit_std_host::direct_spoken_template_mask::PreparedDirectSpokenTemplateMask>,
-    llm_spoken_route: Option<conduit_presentation::LocalOwnerMaskRouteSeal>,
-    presentation_wardrobe: Option<presentation_wardrobe::OwnerPresentationWardrobe>,
+    llm_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
+    face_wardrobe: Option<face_wardrobe::OwnerFaceWardrobe>,
     /// Bounded projection cache from the configured initial Form and the exact
     /// current Thermostat scan Fore. The kernel owns its retained accumulator.
     thermostat_live: Option<thermostat_face::ThermostatLive>,
@@ -197,7 +197,7 @@ pub(crate) struct Owner {
     /// Bounded display cache from an exact selected read Host Call and both
     /// terminal Signs. It is never a reducer or a source of authority.
     todo_verified: Option<(
-        conduit_presentation::CommittedStateContributionBasis,
+        conduit_face::CommittedStateContributionBasis,
         conduit_todo_plot::TodoState,
     )>,
 }
@@ -292,7 +292,7 @@ impl Owner {
             direct_spoken_route: None,
             direct_spoken_template: None,
             llm_spoken_route: None,
-            presentation_wardrobe: None,
+            face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,
@@ -319,7 +319,7 @@ impl Owner {
             direct_spoken_route: None,
             direct_spoken_template: None,
             llm_spoken_route: None,
-            presentation_wardrobe: None,
+            face_wardrobe: None,
             thermostat_live: None,
             todo_live: None,
             todo_verified: None,
@@ -364,10 +364,7 @@ impl Owner {
     /// Project one canonical Face from the current retained owner session.
     /// Credential matching and current incarnation are checked here, even
     /// though the routed caller has already authenticated the same Line.
-    pub(crate) fn face_snapshot(
-        &self,
-        request: &OwnerFaceSnapshotRequest,
-    ) -> Result<Presentation, String> {
+    pub(crate) fn face_snapshot(&self, request: &OwnerFaceSnapshotRequest) -> Result<Face, String> {
         let admitted = self.admissions.as_ref().is_some_and(|manager| {
             manager.receipts.iter().any(|receipt| {
                 request.has_exact_basis()
@@ -396,7 +393,7 @@ impl Owner {
     /// The installed owner's current Face. Only the authenticated local
     /// control service calls this; remote callers still need an exact admitted
     /// credential and current Part above.
-    pub(crate) fn local_face_snapshot(&self) -> Result<Presentation, String> {
+    pub(crate) fn local_face_snapshot(&self) -> Result<Face, String> {
         if let Some(live) = &self.thermostat_live {
             return self.project_thermostat_face(live);
         }

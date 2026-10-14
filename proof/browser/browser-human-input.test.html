@@ -12,8 +12,8 @@
 import { openBrowserHumanInput } from "../../targets/browser/host/assets/browser-human-input.mjs";
 
 const selected = new URL(location.href).searchParams.get("profile") === "viewer"
-  ? ["browser/dom-presentation@1"]
-  : ["browser/dom-presentation@1", "browser/keyboard-events@1", "browser/pointer-events@1"];
+  ? ["browser/dom-face@1"]
+  : ["browser/dom-face@1", "browser/keyboard-events@1", "browser/pointer-events@1"];
 let current = {
   host_id: "browser/human-input-proof",
   boot_id: "browser/human-input-proof-boot",

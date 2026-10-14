@@ -56,25 +56,23 @@ fn native_presenter_offer_requires_exact_image_and_live_compositor_stack() {
 }
 
 fn native_presenter_offer() -> conduit_core::CapabilityOffer {
-    conduit_presentation::renderer_offer(conduit_presentation::RendererRealizationOffer {
+    conduit_face::renderer_offer(conduit_face::RendererRealizationOffer {
         capability_id: conduit_core::CapabilityId::from("presenter/native"),
         execution_profile_id: conduit_core::ExecutionProfileId::from("conduitos/native@1"),
         implementation_id: conduit_core::ImplementationId::from("presenter/native-graphical@1"),
         artifact_id: conduit_core::ArtifactId::from("conduitos/native-image@1"),
         host_call: conduit_core::HostCallRequirement {
             contract_id: conduit_core::HostCallContractId::from("conduit.host/present@1"),
-            target_kind: Some(conduit_core::kind_id(
-                "presentation/base/native-compositor@1",
-            )),
+            target_kind: Some(conduit_core::kind_id("face/base/native-compositor@1")),
             maximum_in_flight: 1,
-            maximum_input_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
-            maximum_output_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+            maximum_input_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
+            maximum_output_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
         },
-        resource_requirement: conduit_core::resource_requirement("presentation/surface", 1),
+        resource_requirement: conduit_core::resource_requirement("face/surface", 1),
         limits: conduit_core::CapabilityLimits {
             max_active_instances: 1,
             max_queue_items: 1,
-            max_queue_bytes: conduit_presentation::MAX_RENDERER_VALUE_BYTES,
+            max_queue_bytes: conduit_face::MAX_RENDERER_VALUE_BYTES,
         },
     })
 }
@@ -104,7 +102,7 @@ fn native_runtime_inputs(
             capabilities: vec![presenter],
             resources: vec![conduit_core::resource_offer(
                 "surface/main",
-                "presentation/surface",
+                "face/surface",
                 1,
             )],
         }],
@@ -112,7 +110,7 @@ fn native_runtime_inputs(
         planner_capabilities: vec![],
         facts: RuntimeFacts {
             ready_resource_classes: ready
-                .then(|| "presentation/surface".to_owned())
+                .then(|| "face/surface".to_owned())
                 .into_iter()
                 .collect(),
             initialized_base_kinds: ready

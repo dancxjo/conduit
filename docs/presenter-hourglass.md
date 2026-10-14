@@ -20,7 +20,7 @@ tutorial and inspection -------+
 
 The waist is **Face**: bounded, renderer-neutral humanly relevant semantic
 truth and control. The current Rust implementation is the migration-era
-`conduit_presentation::Presentation` value; that type name is not a second
+`conduit_face::Face` value; that type name is not a second
 architectural altitude.
 
 ```text
@@ -43,7 +43,7 @@ It is not a pixel surface, scene graph, DOM tree, widget hierarchy, callback
 set, spoken script, LLM prompt, or renderer-local layout. A local object that
 depicts a gear does not become that gear.
 
-`PresentationMechanism`, `SemanticApplicationView`, and `ApplicationView` are
+`FaceMechanism`, `SemanticApplicationView`, and `ApplicationView` are
 useful finite UI-oriented vocabularies and compatibility adapters. They are
 downstream from the waist. `Panel`, `Grid`, `Button`, `PatchbayCanvas`, and
 similar compositions do not define what Face can mean.
@@ -192,10 +192,10 @@ and multiple disclosure depths to graphical, deterministic-linear, and
 generative masks. It must preserve the same semantic identities without
 application-specific rewiring. Separate plan proof establishes that direct and
 recursive masks select distinct exact realizations without changing the source
-Face. Current tests may name the serialized Rust value `Presentation`; that is
+Face. Current tests may name the serialized Rust value `Face`; that is
 an implementation migration marker, not architectural vocabulary.
 
-The [grammar conformance method](architecture/presentation-grammar-conformance.md)
+The [grammar conformance method](architecture/face-grammar-conformance.md)
 pressure-tests that claim against heterogeneous encounters. It distinguishes a
 missing cross-medium human meaning from familiar interface furniture and makes
 each proposed extension prove its place at the semantic waist.

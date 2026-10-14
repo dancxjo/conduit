@@ -5,7 +5,7 @@
 
 use std::path::{Path, PathBuf};
 
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::hosted_speech_synthesis::EspeakDiscovery;
 use conduit_std_host::spoken_face_mask::{
     SpokenBatch, SpokenBatchDelivery, SpokenFaceSession, SpokenTurnReceipt,
@@ -46,7 +46,7 @@ impl BirthSpeechOutput {
     pub fn advance(
         &mut self,
         reader: &mut SpokenFaceSession,
-        face: &Presentation,
+        face: &Face,
         show: &MaskShow,
     ) -> Result<Option<SpokenBirthStep>, String> {
         // The Crèche's full semantic readout is longer than one admitted

@@ -4,7 +4,7 @@ import assert from 'node:assert/strict';
 
 export const checkpointPhases = [
   'model-provider-unavailable', 'model-provider-restored',
-  'browser-presentation-unavailable', 'browser-presentation-restored',
+  'browser-face-unavailable', 'browser-face-restored',
 ];
 
 export function verifyCheckpointReady(ready, phase, bodyId, ownerPart, face) {
@@ -13,9 +13,9 @@ export function verifyCheckpointReady(ready, phase, bodyId, ownerPart, face) {
   assert.equal(ready.body_id, bodyId);
   assert.equal(ready.owner_host_id, ownerPart.host_id);
   assert.equal(ready.owner_boot_id, ownerPart.boot_id);
-  assert.equal(ready.face_id, face.presentation.identity);
-  assert.equal(String(ready.face_revision), face.presentation_revision_decimal);
-  assert.equal(face.presentation.basis.body_id, bodyId);
+  assert.equal(ready.face_id, face.face.identity);
+  assert.equal(String(ready.face_revision), face.face_revision_decimal);
+  assert.equal(face.face.basis.body_id, bodyId);
   assert.equal(face.advertisement.host_id, ownerPart.host_id);
   assert.equal(face.advertisement.boot_id, ownerPart.boot_id);
   assert.match(ready.route_id, /^route\//);
@@ -29,7 +29,7 @@ export function verifyCheckpointWardrobe(output, ready, ownerPart, selectedSpeak
     if (start < 0) return [];
     try { return [JSON.parse(line.slice(start))]; } catch { return []; }
   }).find(item => item.schema === 'conduit.body/screen-free-wardrobe-refusal@1');
-  if (ready.phase === 'browser-presentation-unavailable' && refusal) {
+  if (ready.phase === 'browser-face-unavailable' && refusal) {
     assert.equal(ready.route_available, false);
     assert.equal(refusal.code, 'stale-body-or-face');
     assert.match(output, /previous Mask Plan is stale, so no route from that Plan can be used now/);

@@ -19,7 +19,8 @@ pub fn run(opts: &GlobalOpts) -> Result<(), Box<dyn std::error::Error>> {
                 "wasm32-unknown-unknown",
                 "--release",
             ],
-        ),
+        )
+        .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
         &root,
         opts,
     )?;

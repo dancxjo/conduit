@@ -1,7 +1,7 @@
 //! Bounded, proof-native declarations and provenance for human-inspectable evidence.
 //!
 //! Semantic proof remains authoritative. Evidence is emitted only as a digest-bound
-//! presentation of that proof and is explicitly complete or diagnostic/incomplete.
+//! face of that proof and is explicitly complete or diagnostic/incomplete.
 
 use std::{
     collections::BTreeSet,
@@ -74,8 +74,10 @@ pub struct EvidenceProvenance {
     pub device_scale_factor: Option<String>,
     pub locale: Option<String>,
     pub timezone: Option<String>,
-    pub presentation_id: Option<String>,
-    pub presentation_revision: Option<String>,
+    #[serde(alias = "presentation_id")]
+    pub face_id: Option<String>,
+    #[serde(alias = "presentation_revision")]
+    pub face_revision: Option<String>,
     pub plan_id: Option<String>,
     pub active_play_id: Option<String>,
     pub manifestation_id: Option<String>,

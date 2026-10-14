@@ -94,7 +94,7 @@ test("artifact and location validation fail before platform effects", async () =
   }));
   assert.equal(oversized.disposition, "artifact-not-admitted");
   const external = await calls.moveLocation(request("location", "location/external", {
-    presentationRevision: 1,
+    faceRevision: 1,
     mode: "push",
     path: "https://example.com/ambient",
   }));
@@ -102,7 +102,7 @@ test("artifact and location validation fail before platform effects", async () =
   assert.equal(effects, 0);
 });
 
-test("location movement is bounded presentation state and remains correlated", async () => {
+test("location movement is bounded face state and remains correlated", async () => {
   const moves = [];
   const calls = createBrowserHostCalls({
     ...context,
@@ -114,7 +114,7 @@ test("location movement is bounded presentation state and remains correlated", a
     },
   });
   const result = await calls.moveLocation(request("location", "location/page-2", {
-    presentationRevision: 9,
+    faceRevision: 9,
     mode: "replace",
     path: "/tour/page-2/",
   }));

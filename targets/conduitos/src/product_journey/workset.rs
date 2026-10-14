@@ -1,7 +1,7 @@
-//! Authoritative foreground selection and bounded Presentation projections.
+//! Authoritative foreground selection and bounded Face projections.
 use super::*;
 use conduit_body::ResidentPlot;
-use native_workset::NativePresentation;
+use native_workset::NativeFace;
 
 #[derive(Clone, Debug, Eq, PartialEq)]
 pub struct WorkspacePlot {
@@ -21,7 +21,7 @@ pub struct WorkspaceProjection {
 pub(super) struct PlotResult {
     pub(super) input_sequence: Option<u32>,
     recent: ResultWindow,
-    current: Option<NativePresentation>,
+    current: Option<NativeFace>,
     pub(super) sign: Option<SignId>,
 }
 impl PlotResult {
@@ -36,7 +36,7 @@ impl PlotResult {
     pub(super) fn record(
         &mut self,
         plot: NativePlot,
-        value: NativePresentation,
+        value: NativeFace,
         sign: SignId,
     ) -> Result<(), JourneyError> {
         match plot {
@@ -54,9 +54,9 @@ impl PlotResult {
     fn text(&self, plot: Option<NativePlot>) -> Option<&str> {
         match plot? {
             NativePlot::KeyboardCanvas => self.sign.as_ref().map(|_| self.recent.as_str()),
-            NativePlot::MemoryLantern => self.current.as_ref().map(NativePresentation::text),
-            NativePlot::Tour => self.current.as_ref().map(NativePresentation::text),
-            NativePlot::Patchbay => self.current.as_ref().map(NativePresentation::text),
+            NativePlot::MemoryLantern => self.current.as_ref().map(NativeFace::text),
+            NativePlot::Tour => self.current.as_ref().map(NativeFace::text),
+            NativePlot::Patchbay => self.current.as_ref().map(NativeFace::text),
         }
     }
     pub(super) fn omitted_bytes(&self, plot: Option<NativePlot>) -> u64 {
@@ -122,9 +122,9 @@ impl ProductJourney {
         self.propose(identities, offer, build_id, None)
     }
 
-    /// The accepted input sequence that last produced foreground Presentation.
+    /// The accepted input sequence that last produced foreground Face.
     /// Releases consumed without output leave this value unchanged.
-    pub fn foreground_presentation_sequence(&self) -> Option<u32> {
+    pub fn foreground_face_sequence(&self) -> Option<u32> {
         self.results[self.foreground_index()].input_sequence
     }
 
@@ -150,7 +150,7 @@ impl ProductJourney {
 
     pub fn select_plot(&mut self, plot: &ResidentPlot, revision: u64) -> Result<(), JourneyError> {
         if revision != self.revision {
-            return Err(JourneyError::StalePresentation);
+            return Err(JourneyError::StaleFace);
         }
         let body = self.body().ok_or(JourneyError::BodyAbsent)?;
         let index = body

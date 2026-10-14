@@ -7,7 +7,7 @@
   },
   "host_implementations": [
     "browser/dom@1",
-    "browser/dom-presentation@1",
+    "browser/dom-face@1",
     "browser/indexeddb@1"
   ],
   "resources": [

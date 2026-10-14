@@ -27,7 +27,7 @@ pub(super) fn verify(record: &Value) {
         assert_eq!(view["face_id"], canonical.identity.as_str());
         assert_eq!(view["face_revision"], canonical.revision.to_string());
         assert_eq!(
-            source["presentation_revision_decimal"],
+            source["face_revision_decimal"],
             canonical.revision.to_string()
         );
         assert_eq!(view["show_state"], "available");
@@ -136,7 +136,7 @@ pub(super) fn verify(record: &Value) {
         let items: Vec<_> = canonical
             .subjects
             .iter()
-            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Item)
+            .filter(|subject| subject.role == conduit_face::FaceRole::Item)
             .collect();
         let lists = dom["lists"].as_array().unwrap();
         for (prefix, pending) in [("Things left in ", true), ("Completed items in ", false)] {
@@ -264,10 +264,7 @@ pub(super) fn verify(record: &Value) {
             );
             assert_eq!(retirement["current_show_id"], view["show_id"]);
             assert_eq!(retirement["refusal"]["refused"], true);
-            assert_eq!(
-                retirement["after_refusal_owner_face"],
-                source["presentation"]
-            );
+            assert_eq!(retirement["after_refusal_owner_face"], source["face"]);
             assert_eq!(
                 retirement["refusal"]["message"],
                 "owner Face interaction refused (-5)"
@@ -283,7 +280,7 @@ pub(super) fn verify(record: &Value) {
     assert!(compact.is_finite() && compact > 0.0 && spacious.is_finite() && spacious > compact);
     // No owner mutation lies between the comparisons and the retained helper's initial Face.
     assert_eq!(
-        source["presentation"],
-        record["retained_dom_completion"]["initial"]["presentation"]
+        source["face"],
+        record["retained_dom_completion"]["initial"]["face"]
     );
 }

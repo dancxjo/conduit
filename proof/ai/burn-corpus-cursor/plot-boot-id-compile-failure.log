@@ -14,7 +14,7 @@
    Compiling conduit-human v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/human)
    Compiling conduit-audio v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/audio)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/face)
    Compiling conduit-language v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/language)
    Compiling conduit-web v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/web)
    Compiling conduit-text v0.1.0 (/home/dancxjo/conduit-burn-corpus-cursor/semantics/text)

@@ -1,4 +1,4 @@
-//! Reviewed presentation profiles select existing exact typed realizations in one body.
+//! Reviewed face profiles select existing exact typed realizations in one body.
 use super::{initial_plots, session};
 
 fn bundle() -> String {
@@ -6,7 +6,7 @@ fn bundle() -> String {
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [
             {"slug": "memory-lantern", "entry": "memory_lantern", "source": include_str!("../../../../../plots/memory-lantern/main.conduit")},
-            {"slug": "secret-knock", "entry": "secret-knock-demo", "presentation_profile": 3, "source": include_str!("../../../../../plots/secret-knock/main.conduit")}
+            {"slug": "secret-knock", "entry": "secret-knock-demo", "face_profile": 3, "source": include_str!("../../../../../plots/secret-knock/main.conduit")}
         ]
     }).to_string()
 }
@@ -18,7 +18,7 @@ fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
         "plots": [{
             "slug": "pocket-theremin",
             "entry": "pocket-theremin",
-            "presentation_profile": 1,
+            "face_profile": 1,
             "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
@@ -50,7 +50,7 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
         "plots": [{
             "slug": "pocket-theremin",
             "entry": "phone-two-axis-controller",
-            "presentation_profile": 1,
+            "face_profile": 1,
             "source": include_str!("../../../../../plots/pocket-theremin/main.conduit"),
         }],
     })
@@ -129,7 +129,7 @@ fn typed_inventory_accepts_canonical_default_aliases() {
 }
 
 #[test]
-fn text_and_pattern_presentations_plan_together_under_one_body() {
+fn text_and_pattern_faces_plan_together_under_one_body() {
     session::clear_for_test();
     let source = bundle();
     let inventory = initial_plots::reviewed_inventory(&source).unwrap();

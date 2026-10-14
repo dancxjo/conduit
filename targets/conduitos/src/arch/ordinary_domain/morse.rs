@@ -38,7 +38,7 @@ impl TextDomain {
         );
         Ok((length, frame.morse_status))
     }
-    pub fn morse_presentation(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
+    pub fn morse_face(&mut self, input: &[u8], handle: u64) -> Result<(), DomainRefusal> {
         if input.len() > MORSE_CAPACITY {
             return Err(DomainRefusal::InvalidMemory);
         }

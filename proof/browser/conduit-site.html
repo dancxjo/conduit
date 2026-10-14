@@ -84,7 +84,7 @@
     .terminal-grid dt { color: var(--muted); }
     .terminal-grid dd { margin: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
     #browser-sink { max-height: 8rem; overflow: auto; border-top: 1px solid var(--line); padding: .65rem 1rem; }
-    #browser-sink:empty::before { content: "No admitted presentation yet."; color: var(--muted); font: .72rem ui-monospace, monospace; }
+    #browser-sink:empty::before { content: "No admitted face yet."; color: var(--muted); font: .72rem ui-monospace, monospace; }
     #browser-sink output { display: block; color: #96988f; font: .68rem/1.45 ui-monospace, monospace; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
     .error { color: var(--error) !important; }
     footer { display: flex; justify-content: space-between; gap: 1rem; padding: 1.4rem 0 2.2rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .8rem; }
@@ -128,13 +128,13 @@
           <article class="step"><small>01 / PLOT</small><h3>Describe meaning</h3><p>Authored programs name typed gears and relationships, never sockets, devices, or browser APIs.</p></article>
           <article class="step"><small>02 / PLAN</small><h3>Make it exact</h3><p>Capabilities, hosts, resources, identities, routes, and finite bounds are admitted before play start.</p></article>
           <article class="step"><small>03 / HOST</small><h3>Cross reality</h3><p>One kernel coordinates implementations while effects cross narrow host-call boundaries.</p></article>
-          <article class="step"><small>04 / SIGN</small><h3>Keep the truth</h3><p>Success, pressure, failure, identity, and presentation remain distinct machine-readable facts.</p></article>
+          <article class="step"><small>04 / SIGN</small><h3>Keep the truth</h3><p>Success, pressure, failure, identity, and face remain distinct machine-readable facts.</p></article>
         </div>
         <div class="platforms" aria-label="Current platforms"><span>Rust / std</span><span>Browser / WASM</span><span>Pico W</span><span>WebSocket</span><span>USB CDC</span><span>Portable planning</span></div>
       </section>
 
       <section class="sign" id="sign" aria-labelledby="sign-title">
-        <div class="sign-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="sign-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>presentation/bool</code> effect carrying the canonical current Boolean from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
+        <div class="sign-copy"><div class="eyebrow">Live proof, not theater</div><h2 id="sign-title">This light belongs to Conduit.</h2><p>The manifestation above changes only after the browser host successfully completes an admitted <code>face/bool</code> effect carrying the canonical current Boolean from the real browser/WASM runtime. The latest exact identity chain appears here.</p></div>
         <div class="terminal" aria-label="Latest Conduit manifestation sign">
           <div class="terminal-head"><span>latest manifestation</span><span id="receipt-count">0 / 16 receipts</span></div>
           <dl class="terminal-grid">
@@ -142,7 +142,7 @@
             <dt>plan</dt><dd id="proof-plan">—</dd>
             <dt>fragment</dt><dd id="proof-fragment">—</dd>
             <dt>play</dt><dd id="proof-play">—</dd>
-            <dt>presentation</dt><dd id="proof-presentation">—</dd>
+            <dt>face</dt><dd id="proof-face">—</dd>
             <dt>sign</dt><dd id="proof-sign">—</dd>
             <dt>sequence</dt><dd id="proof-sequence">—</dd>
           </dl>
@@ -165,13 +165,13 @@
     function showReceipt(receipt) {
       root.dataset.manifestation = String(receipt.level);
       text("#manifestation-title", receipt.level ? "Conduit is live" : "Conduit is manifest");
-      text("#manifestation-detail", `Boolean presentation ${receipt.sequence} completed by the browser host.`);
+      text("#manifestation-detail", `Boolean face ${receipt.sequence} completed by the browser host.`);
       text("#manifestation-state", receipt.level ? "live / true" : "live / false");
-      text("#proof-status", "presentation completed successfully");
+      text("#proof-status", "face completed successfully");
       text("#proof-plan", receipt.planId);
       text("#proof-fragment", receipt.fragmentId);
       text("#proof-play", receipt.activePlayId);
-      text("#proof-presentation", receipt.presentationId);
+      text("#proof-face", receipt.faceId);
       text("#proof-sign", receipt.signId);
       text("#proof-sequence", receipt.sequence);
       text("#receipt-count", `${document.querySelectorAll("#browser-sink output").length} / 16 receipts`);
@@ -201,8 +201,8 @@
         });
         const runtime = await instantiateDistributedToggleRuntime(wasmBytes);
         const observableDomHost = Object.freeze({
-          completePresentation(effect) {
-            const result = domHost.completePresentation(effect);
+          completeFace(effect) {
+            const result = domHost.completeFace(effect);
             if (result.ok) showReceipt(result.receipt);
             return result;
           },

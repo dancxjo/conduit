@@ -2,7 +2,7 @@
 
 use alloc::{string::String, vec::Vec};
 use conduit_core::{PlanId, PlotIdentity};
-use conduit_presentation::{
+use conduit_face::{
     AdmittedMaskPlotRoutes, MaskPlanningDisposition, MaskReconciliation, MaskShow,
     MaskShowDisposition, MaskWardrobe, PlannedMaskPlot, SealedMaskPlotRoute, SelectedMaskPlotRoute,
 };
@@ -33,8 +33,8 @@ pub struct MaskInspectionShow {
     pub plan_id: PlanId,
     pub mask_plan_id: PlanId,
     pub show_id: String,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub show_occurrence_id: String,
 }
 
@@ -154,8 +154,8 @@ fn project_show(
     if show.mask_plot != selected.mask_plot
         || show.planned_mask != *planned
         || show.show.plan_id != planned.plan.plan_id
-        || show.presentation_id != show.show.presentation_id
-        || show.presentation_revision != show.show.presentation_revision
+        || show.face_id != show.show.face_id
+        || show.face_revision != show.show.face_revision
     {
         return Err(MaskInspectionError::ShowMismatch);
     }
@@ -165,8 +165,8 @@ fn project_show(
         plan_id: selected.plan_id.clone(),
         mask_plan_id: planned.plan.plan_id.clone(),
         show_id: show.show_id.as_str().into(),
-        presentation_id: show.presentation_id.as_str().into(),
-        presentation_revision: show.presentation_revision,
+        face_id: show.face_id.as_str().into(),
+        face_revision: show.face_revision,
         show_occurrence_id: show.show.manifestation_id.as_str().into(),
     }))
 }

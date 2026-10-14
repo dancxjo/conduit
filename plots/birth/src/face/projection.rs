@@ -1,26 +1,26 @@
 //! Lossless readable projection of the current Birth widget vocabulary.
-use super::{BirthFaceRefusal, FaceBasis};
-use crate::{BirthDraft, BirthPresentation};
+use super::{BirthFaceRefusal, BirthProjectionBasis};
+use crate::{BirthDraft, BirthWidgetFace};
 use alloc::{format, string::String, vec, vec::Vec};
 use conduit_core::{CheckedValueContract, ValueConstraint, kind_id};
-use conduit_presentation::*;
+use conduit_face::*;
 
 type Events = Vec<(String, ApplicationEventKind)>;
 pub(super) fn project(
     draft: &BirthDraft,
-    basis: FaceBasis<'_>,
-) -> Result<(Presentation, Events), BirthFaceRefusal> {
+    basis: BirthProjectionBasis<'_>,
+) -> Result<(Face, Events), BirthFaceRefusal> {
     if basis.encounter_id().is_empty() || basis.encounter_id().len() > 128 {
         return Err(BirthFaceRefusal::InvalidProjection);
     }
     let root = format!("birth/{}", basis.encounter_id());
-    let view = draft.presentation().map_err(BirthFaceRefusal::View)?;
+    let view = draft.widget_face().map_err(BirthFaceRefusal::View)?;
     let heading = view
         .root
         .children
         .iter()
         .find_map(|node| match &node.mechanism {
-            PresentationMechanism::Heading { text } => Some(text.clone()),
+            FaceMechanism::Heading { text } => Some(text.clone()),
             _ => None,
         })
         .ok_or(BirthFaceRefusal::UnsupportedMechanism)?;
@@ -33,24 +33,24 @@ pub(super) fn project(
         article: article.clone(),
         navigation: navigation.clone(),
         subjects: vec![
-            PresentationSubject {
+            FaceSubject {
                 identity: root.clone(),
-                role: PresentationRole::Host,
+                role: FaceRole::Host,
                 name: heading.clone(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: main.clone(),
-                role: PresentationRole::Semantic(kind_id("document/main")),
+                role: FaceRole::Semantic(kind_id("document/main")),
                 name: heading,
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: article.clone(),
-                role: PresentationRole::Semantic(kind_id("document/article")),
+                role: FaceRole::Semantic(kind_id("document/article")),
                 name: "Body name and starting Plots".into(),
             },
-            PresentationSubject {
+            FaceSubject {
                 identity: navigation.clone(),
-                role: PresentationRole::Semantic(kind_id("document/navigation")),
+                role: FaceRole::Semantic(kind_id("document/navigation")),
                 name: "Birth actions".into(),
             },
         ],
@@ -61,10 +61,10 @@ pub(super) fn project(
             // The initial name field is the native Mask's focused control.
             // Put the actions first in every Mask's semantic reading order so
             // reverse navigation reaches Suggest and then Birth.
-            PresentationRelationship {
+            FaceRelationship {
                 source: navigation.clone(),
                 target: article.clone(),
-                kind: PresentationRelationshipKind::Semantic(kind_id("document/precedes")),
+                kind: FaceRelationshipKind::Semantic(kind_id("document/precedes")),
             },
         ],
         text: vec![],
@@ -73,17 +73,17 @@ pub(super) fn project(
     };
     projection.node(&view.root)?;
     let (source_document_id, checked_plot_id, expanded_plot_id, plan_id) = match &basis {
-        FaceBasis::Planned(b) => (
+        BirthProjectionBasis::Planned(b) => (
             Some(b.producer_plot.source_document_id.clone()),
             Some(b.producer_plot.checked_plot_id.clone()),
             Some(b.producer_plot.expanded_plot_id.clone()),
             Some(b.producer_plan_id.clone()),
         ),
-        FaceBasis::HostOwned(_) => (None, None, None, None),
+        BirthProjectionBasis::HostOwned(_) => (None, None, None, None),
     };
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         u64::from(draft.revision()),
-        PresentationBasis {
+        conduit_face::FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id,
@@ -96,25 +96,25 @@ pub(super) fn project(
         projection.subjects,
         projection.relationships,
         vec![
-            PresentationProperty {
+            FaceProperty {
                 subject: root.clone(),
                 name: "host-id".into(),
-                value: PresentationPropertyValue::Identity(basis.host_id().as_str().into()),
+                value: FacePropertyValue::Identity(basis.host_id().as_str().into()),
             },
-            PresentationProperty {
+            FaceProperty {
                 subject: root.clone(),
                 name: "boot-id".into(),
-                value: PresentationPropertyValue::Identity(basis.boot_id().as_str().into()),
+                value: FacePropertyValue::Identity(basis.boot_id().as_str().into()),
             },
         ],
         projection.text,
         projection.actions,
-        vec![PresentationDisclosure {
+        vec![FaceDisclosure {
             subject: root,
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         }],
     )
-    .map_err(BirthFaceRefusal::Presentation)?;
+    .map_err(BirthFaceRefusal::Face)?;
     Ok((face, projection.events))
 }
 struct Projection {
@@ -122,23 +122,23 @@ struct Projection {
     main: String,
     article: String,
     navigation: String,
-    subjects: Vec<PresentationSubject>,
-    relationships: Vec<PresentationRelationship>,
-    text: Vec<PresentationText>,
-    actions: Vec<PresentationAction>,
+    subjects: Vec<FaceSubject>,
+    relationships: Vec<FaceRelationship>,
+    text: Vec<FaceText>,
+    actions: Vec<FaceAction>,
     events: Events,
 }
-fn contains(source: &str, target: &str) -> PresentationRelationship {
-    PresentationRelationship {
+fn contains(source: &str, target: &str) -> FaceRelationship {
+    FaceRelationship {
         source: source.into(),
         target: target.into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     }
 }
 impl Projection {
     fn words(&mut self, subject: &str, text: String) {
         if !text.is_empty() {
-            self.text.push(PresentationText {
+            self.text.push(FaceText {
                 subject: subject.into(),
                 text,
             });
@@ -150,40 +150,36 @@ impl Projection {
         action: &SemanticAction,
         arguments: Vec<FaceActionArgument>,
     ) {
-        self.actions.push(PresentationAction {
+        self.actions.push(FaceAction {
             identity: action.identity.clone(),
             intent: format!("conduit.intent/{}@1", action.identity),
             target: subject.into(),
             name: action.label.clone(),
             arguments,
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability: match &action.availability {
-                ActionAvailability::Available => PresentationActionAvailability::Available,
-                ActionAvailability::Busy { detail } => {
-                    PresentationActionAvailability::Unavailable {
-                        reason_code: "birth/busy".into(),
-                        explanation: detail.clone(),
-                    }
-                }
-                ActionAvailability::Unavailable { detail } => {
-                    PresentationActionAvailability::Unavailable {
-                        reason_code: "birth/unavailable".into(),
-                        explanation: detail.clone(),
-                    }
-                }
+                ActionAvailability::Available => FaceActionAvailability::Available,
+                ActionAvailability::Busy { detail } => FaceActionAvailability::Unavailable {
+                    reason_code: "birth/busy".into(),
+                    explanation: detail.clone(),
+                },
+                ActionAvailability::Unavailable { detail } => FaceActionAvailability::Unavailable {
+                    reason_code: "birth/unavailable".into(),
+                    explanation: detail.clone(),
+                },
             },
         });
         self.events.push((action.identity.clone(), action.event));
     }
-    fn node(&mut self, node: &SemanticPresentationNode) -> Result<(), BirthFaceRefusal> {
+    fn node(&mut self, node: &SemanticFaceNode) -> Result<(), BirthFaceRefusal> {
         let subject = format!("{}/{}", self.root, node.key);
         match &node.mechanism {
-            PresentationMechanism::Shell => {}
-            PresentationMechanism::Heading { text } => self.words(&self.main.clone(), text.clone()),
-            PresentationMechanism::FormField(field) => {
-                self.subjects.push(PresentationSubject {
+            FaceMechanism::Shell => {}
+            FaceMechanism::Heading { text } => self.words(&self.main.clone(), text.clone()),
+            FaceMechanism::FormField(field) => {
+                self.subjects.push(FaceSubject {
                     identity: subject.clone(),
-                    role: PresentationRole::TextEntry,
+                    role: FaceRole::TextEntry,
                     name: field.label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
@@ -244,18 +240,18 @@ impl Projection {
                 }
                 self.action(&subject, &field.input_action, vec![argument]);
             }
-            PresentationMechanism::ChoiceGroup { label, options, .. } => {
-                self.subjects.push(PresentationSubject {
+            FaceMechanism::ChoiceGroup { label, options, .. } => {
+                self.subjects.push(FaceSubject {
                     identity: subject.clone(),
-                    role: PresentationRole::Collection,
+                    role: FaceRole::Collection,
                     name: label.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));
                 for (index, option) in options.iter().enumerate() {
                     let id = format!("{subject}/{index}");
-                    self.subjects.push(PresentationSubject {
+                    self.subjects.push(FaceSubject {
                         identity: id.clone(),
-                        role: PresentationRole::Plot,
+                        role: FaceRole::Plot,
                         name: option.label.clone(),
                     });
                     self.relationships.push(contains(&subject, &id));
@@ -276,13 +272,11 @@ impl Projection {
                     self.action(&id, &option.change_action, vec![argument]);
                 }
             }
-            PresentationMechanism::Action(action) => {
-                self.action(&self.navigation.clone(), action, vec![])
-            }
-            PresentationMechanism::Status { title, detail, .. } => {
-                self.subjects.push(PresentationSubject {
+            FaceMechanism::Action(action) => self.action(&self.navigation.clone(), action, vec![]),
+            FaceMechanism::Status { title, detail, .. } => {
+                self.subjects.push(FaceSubject {
                     identity: subject.clone(),
-                    role: PresentationRole::Status,
+                    role: FaceRole::Status,
                     name: title.clone(),
                 });
                 self.relationships.push(contains(&self.article, &subject));

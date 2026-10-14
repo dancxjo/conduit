@@ -270,7 +270,7 @@ export class BrowserBody {
   /** Stream retained runtime events; replay is opt-in and notifications are polled/coalesced from bounded evidence. */
   events(options?: { replay?: boolean; pollIntervalMillis?: number; signal?: AbortSignal }): AsyncIterable<BrowserBodyEvent>;
   /** Propose, admit, and start one exact runtime Play through the reviewed Browser Host adapters. */
-  wake(options?: { root?: Element | ShadowRoot; presentationRootFor?: (placement: Readonly<{
+  wake(options?: { root?: Element | ShadowRoot; faceRootFor?: (placement: Readonly<{
     checkedPlotId: string; placementId: string; gearId: string;
   }>) => Element | ShadowRoot }): Promise<BrowserPlay>;
   /** Terminate or close the current Play and record the exact Body lull transition. */
@@ -352,7 +352,7 @@ export class BrowserPlay {
 }
 
 export interface BrowserOptions {
-  /** An application-owned Element or ShadowRoot used only for presentation. */
+  /** An application-owned Element or ShadowRoot used only for face. */
   root?: Element | ShadowRoot;
   /** Same-origin directory containing the exact package-bound BrowserBundle. */
   bundleRoot?: string | URL;

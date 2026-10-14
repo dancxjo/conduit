@@ -93,7 +93,7 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
         return Err("Body track facts must cover every retained detailed receipt".into());
     }
     if source.mask_actions.as_array().map(Vec::len)
-        != Some(conduit_presentation::MASK_JOURNEY_ACTIONS.len())
+        != Some(conduit_face::MASK_JOURNEY_ACTIONS.len())
     {
         return Err("Body track requires every producer-owned Mask action".into());
     }
@@ -167,11 +167,11 @@ pub(crate) fn write(mut source: TrackSource, output: &Path) -> Result<(), String
     for outcome in mask_actions.iter_mut() {
         let face = outcome
             .as_object_mut()
-            .and_then(|object| object.remove("presentation_id"))
+            .and_then(|object| object.remove("face_id"))
             .ok_or("Body track Mask action lacks its exact Face identity")?;
         outcome["face_id"] = face;
     }
-    for (index, (expected, outcome)) in conduit_presentation::MASK_JOURNEY_ACTIONS
+    for (index, (expected, outcome)) in conduit_face::MASK_JOURNEY_ACTIONS
         .iter()
         .zip(mask_actions.iter_mut())
         .enumerate()

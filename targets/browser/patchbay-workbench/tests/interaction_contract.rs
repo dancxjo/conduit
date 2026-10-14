@@ -3,10 +3,10 @@ use conduit_patchbay_workbench::{
     PatchbayAction, PatchbayInteractionRequest, PatchbayInteractionRequestId, PatchbaySubjectRef,
 };
 
-fn presentation() -> conduit_presentation::Presentation {
-    conduit_presentation::Presentation::new_with_semantics(
+fn face() -> conduit_face::Face {
+    conduit_face::Face::new_with_semantics(
         3,
-        conduit_presentation::PresentationBasis {
+        conduit_face::FaceBasis {
             body_id: None,
             wake_id: None,
             source_document_id: None,
@@ -16,22 +16,22 @@ fn presentation() -> conduit_presentation::Presentation {
             active_play_id: None,
             sign_ids: vec![],
         },
-        vec![conduit_presentation::PresentationSubject {
+        vec![conduit_face::FaceSubject {
             identity: "body/example".into(),
-            role: conduit_presentation::PresentationRole::Body,
+            role: conduit_face::FaceRole::Body,
             name: "Example Body".into(),
         }],
         vec![],
         vec![],
         vec![],
-        vec![conduit_presentation::PresentationAction {
+        vec![conduit_face::FaceAction {
             identity: "action/birth/example".into(),
-            intent: PatchbayAction::Birth.presentation_intent().into(),
+            intent: PatchbayAction::Birth.face_intent().into(),
             target: "body/example".into(),
             name: "Birth".into(),
             arguments: vec![],
-            disclosure: conduit_presentation::PresentationDisclosureLevel::CurrentAction,
-            availability: conduit_presentation::PresentationActionAvailability::Available,
+            disclosure: conduit_face::FaceDisclosureLevel::CurrentAction,
+            availability: conduit_face::FaceActionAvailability::Available,
         }],
         vec![],
     )
@@ -49,10 +49,10 @@ fn html_can_emit_the_shared_semantic_contract_without_dom_identity() {
         &subject,
     )
     .unwrap();
-    let presentation = presentation();
+    let face = face();
     let invocation = PatchbayInteractionRequest::invoke(
         PatchbayInteractionRequestId::new("html/birth/2").unwrap(),
-        &presentation,
+        &face,
         "action/birth/example",
     )
     .unwrap();

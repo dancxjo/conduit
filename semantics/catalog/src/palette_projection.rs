@@ -185,13 +185,13 @@ mod tests {
         let join = palette.find(&KindId::from("text/join")).unwrap();
         assert!(matches!(
             join.configuration[0].rule,
-            KindConfigurationRule::TextBytes { .. }
+            KindConfigurationRule::DataLabel { .. } | KindConfigurationRule::TextBytes { .. }
         ));
         assert_eq!(join.limits, conduit_text::text_join_semantics().limits);
     }
 
     #[test]
-    fn category_and_icon_are_ordered_presentation_metadata_not_kind_identity() {
+    fn category_and_icon_are_ordered_face_metadata_not_kind_identity() {
         let palette = GearPalette::standard().unwrap();
         let categories = palette
             .entries()

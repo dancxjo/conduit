@@ -5,16 +5,15 @@ use conduit_body::{
     PartId,
 };
 use conduit_core::{HostAdvertisement, SignId};
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceAspect, FaceCursor, FaceDepth,
+    FaceDisclosureLevel, FacePlace, FacePropertyValue, FaceRelationshipKind, FaceRole,
+    NavigationOperation, NavigationState, MAX_NAVIGATION_HISTORY,
+};
 use conduit_observatory::{
     build_report, CapabilityAvailability, CapabilityStatusReport, CapabilitySupport, HostReport,
     LineReport, ObservatorySnapshot, OfferFreshness, OperationalState, RetentionReport,
     SNAPSHOT_SCHEMA,
-};
-use conduit_presentation::{
-    NavigationOperation, NavigationState, Presentation, PresentationAction,
-    PresentationActionAvailability, PresentationAspect, PresentationCursor, PresentationDepth,
-    PresentationDisclosureLevel, PresentationPlace, PresentationPropertyValue,
-    PresentationRelationshipKind, PresentationRole, MAX_NAVIGATION_HISTORY,
 };
 use conduit_semantic_catalog::TextLabLineLossReceipt;
 use conduit_semantic_catalog::{
@@ -25,8 +24,8 @@ use serde::{Deserialize, Serialize};
 
 use crate::text_lab_explanation_loss::validate_loss;
 use crate::{
-    portable_content::ContentBuilder, PatchbayGraph, PatchbayPresentation, PatchbayRequestId,
-    PlanDocument, PlotEditor,
+    portable_content::ContentBuilder, PatchbayFace, PatchbayGraph, PatchbayRequestId, PlanDocument,
+    PlotEditor,
 };
 
 const SOURCE: &str = include_str!("../../../../../plots/text-lab/main.conduit");
@@ -34,12 +33,12 @@ const SOURCE: &str = include_str!("../../../../../plots/text-lab/main.conduit");
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct TextLabSplitExplanation {
     pub ordinary_path: String,
-    pub presentation: Presentation,
+    pub face: Face,
     pub navigation: PatchbayNavigationProjection,
-    pub upper_program_cursor: PresentationCursor,
-    pub browser_host_cursor: PresentationCursor,
-    pub return_line_cursor: PresentationCursor,
-    pub returned_program_cursor: PresentationCursor,
+    pub upper_program_cursor: FaceCursor,
+    pub browser_host_cursor: FaceCursor,
+    pub return_line_cursor: FaceCursor,
+    pub returned_program_cursor: FaceCursor,
 }
 
 pub fn text_lab_split_explanation(base: &str) -> Result<TextLabSplitExplanation, String> {
@@ -59,7 +58,7 @@ fn text_lab_explanation(
 ) -> Result<TextLabSplitExplanation, String> {
     let exact = exact_text_lab_split_plan(
         base,
-        &conduit_browser_runtime::presentation_nucleus::browser_text_upper_offer(),
+        &conduit_browser_runtime::face_nucleus::browser_text_upper_offer(),
     )?;
     if let Some(receipt) = loss {
         validate_loss(base, &exact.plan, receipt)?;
@@ -144,7 +143,7 @@ fn text_lab_explanation(
             dropped_items: 0,
         },
     };
-    let projection = PatchbayPresentation::new(
+    let projection = PatchbayFace::new(
         1,
         editor.view(),
         Some(plan),
@@ -155,25 +154,17 @@ fn text_lab_explanation(
     .map_err(|error| error.to_string())?
     .with_graph(PatchbayGraph::from_expanded(&expanded).map_err(|error| error.to_string())?)
     .map_err(|error| error.to_string())?;
-    let presentation = projection
+    let face = projection
         .to_portable_front_door(&body, &wake, &parts)
         .map_err(|error| error.to_string())?;
-    let presentation = append_ordinary_path(presentation, loss)?;
-    let navigation = PatchbayNavigationProjection::for_embodied(&presentation)?;
-    let upper = subject_with_identity_property(
-        &presentation,
-        PresentationRole::Gear,
-        "host-id",
-        TEXT_LAB_BROWSER_HOST,
-    )?;
-    let browser = realized_target(&presentation, &upper, PresentationRole::Host)?;
-    let return_cord = subject_with_identity_property(
-        &presentation,
-        PresentationRole::Cord,
-        "line-id",
-        TEXT_LAB_RETURN_LINE,
-    )?;
-    let return_line = realized_target(&presentation, &return_cord, PresentationRole::Line)?;
+    let face = append_ordinary_path(face, loss)?;
+    let navigation = PatchbayNavigationProjection::for_embodied(&face)?;
+    let upper =
+        subject_with_identity_property(&face, FaceRole::Gear, "host-id", TEXT_LAB_BROWSER_HOST)?;
+    let browser = realized_target(&face, &upper, FaceRole::Host)?;
+    let return_cord =
+        subject_with_identity_property(&face, FaceRole::Cord, "line-id", TEXT_LAB_RETURN_LINE)?;
+    let return_line = realized_target(&face, &return_cord, FaceRole::Line)?;
 
     let mut state = NavigationState::new(
         &navigation.navigation,
@@ -183,83 +174,57 @@ fn text_lab_explanation(
     .map_err(|error| format!("{error:?}"))?;
     navigate(
         &mut state,
-        &presentation,
+        &face,
         &navigation,
-        NavigationOperation::Enter(PresentationPlace::Program),
+        NavigationOperation::Enter(FacePlace::Program),
     )?;
     navigate(
         &mut state,
-        &presentation,
+        &face,
         &navigation,
-        NavigationOperation::Show(PresentationAspect::Plan),
+        NavigationOperation::Show(FaceAspect::Plan),
     )?;
     navigate(
         &mut state,
-        &presentation,
+        &face,
         &navigation,
         NavigationOperation::Focus(upper.clone()),
     )?;
     let upper_program_cursor = state.cursor().clone();
-    follow_to(&mut state, &presentation, &navigation, &upper, &browser)?;
+    follow_to(&mut state, &face, &navigation, &upper, &browser)?;
     navigate(
         &mut state,
-        &presentation,
+        &face,
         &navigation,
-        NavigationOperation::Disclose(PresentationDepth::Exact),
+        NavigationOperation::Disclose(FaceDepth::Exact),
     )?;
     let browser_host_cursor = state.cursor().clone();
+    navigate(&mut state, &face, &navigation, NavigationOperation::Back)?;
+    navigate(&mut state, &face, &navigation, NavigationOperation::Back)?;
     navigate(
         &mut state,
-        &presentation,
-        &navigation,
-        NavigationOperation::Back,
-    )?;
-    navigate(
-        &mut state,
-        &presentation,
-        &navigation,
-        NavigationOperation::Back,
-    )?;
-    navigate(
-        &mut state,
-        &presentation,
+        &face,
         &navigation,
         NavigationOperation::Focus(return_cord.clone()),
     )?;
-    follow_to(
-        &mut state,
-        &presentation,
-        &navigation,
-        &return_cord,
-        &return_line,
-    )?;
+    follow_to(&mut state, &face, &navigation, &return_cord, &return_line)?;
     navigate(
         &mut state,
-        &presentation,
+        &face,
         &navigation,
-        NavigationOperation::Disclose(PresentationDepth::Exact),
+        NavigationOperation::Disclose(FaceDepth::Exact),
     )?;
     let return_line_cursor = state.cursor().clone();
-    navigate(
-        &mut state,
-        &presentation,
-        &navigation,
-        NavigationOperation::Back,
-    )?;
-    navigate(
-        &mut state,
-        &presentation,
-        &navigation,
-        NavigationOperation::Back,
-    )?;
+    navigate(&mut state, &face, &navigation, NavigationOperation::Back)?;
+    navigate(&mut state, &face, &navigation, NavigationOperation::Back)?;
     let returned_program_cursor = state.cursor().clone();
 
     Ok(TextLabSplitExplanation {
         ordinary_path: loss.map_or_else(
-            || "keyboard here -> uppercase there -> presentation here".into(),
+            || "keyboard here -> uppercase there -> face here".into(),
             |_| "browser Part unavailable -> unchanged Plot currently unrealizable".into(),
         ),
-        presentation,
+        face,
         navigation,
         upper_program_cursor,
         browser_host_cursor,
@@ -269,35 +234,32 @@ fn text_lab_explanation(
 }
 
 fn append_ordinary_path(
-    mut presentation: Presentation,
+    mut face: Face,
     loss: Option<&TextLabLineLossReceipt>,
-) -> Result<Presentation, String> {
+) -> Result<Face, String> {
     let mut content = ContentBuilder::from_parts(
-        presentation.subjects,
-        presentation.relationships,
-        presentation.properties,
-        presentation.text,
+        face.subjects,
+        face.relationships,
+        face.properties,
+        face.text,
     );
     let path = content.subject_with_identity(
         "text-lab/ordinary-path",
-        PresentationRole::Info,
-        "Text Lab placement: keyboard here, uppercase there, presentation here",
+        FaceRole::Info,
+        "Text Lab placement: keyboard here, uppercase there, face here",
     );
-    content.line(
-        &path,
-        "keyboard here -> uppercase there -> presentation here",
-    );
+    content.line(&path, "keyboard here -> uppercase there -> face here");
     let plot = content
         .subjects
         .iter()
-        .find(|subject| subject.role == PresentationRole::Plot)
+        .find(|subject| subject.role == FaceRole::Plot)
         .map(|subject| subject.identity.clone())
         .ok_or("Text Lab explanation lacks its Program Plot")?;
     content.contains(&plot, &path);
     if let Some(receipt) = loss {
         let unavailable = content.subject_with_identity(
             "text-lab/unavailable",
-            PresentationRole::Info,
+            FaceRole::Info,
             "Text Lab unavailable: browser Part lost; unchanged Plot currently unrealizable",
         );
         content.line(
@@ -307,7 +269,7 @@ fn append_ordinary_path(
         content.contains(&plot, &unavailable);
         let sign = content.subject_with_identity(
             format!("sign/{}", receipt.sign_id),
-            PresentationRole::Sign,
+            FaceRole::Sign,
             format!("Causal Text Lab Line-loss Sign {}", receipt.sign_id),
         );
         content.line(
@@ -324,39 +286,38 @@ fn append_ordinary_path(
                 receipt.refusal
             ),
         );
-        presentation
-            .basis
+        face.basis
             .sign_ids
             .push(conduit_core::SignId::from(receipt.sign_id.clone()));
     }
-    let mut actions = presentation.actions;
-    actions.push(PresentationAction {
+    let mut actions = face.actions;
+    actions.push(FaceAction {
         identity: "action/text-lab/observe-return-line-loss".into(),
         intent: "conduit.intent/observe-line-loss@1".into(),
         target: path,
         name: "Observe browser loss".into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if loss.is_some() {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "line/already-unavailable".into(),
                 explanation: "The exact return Line is already unavailable.".into(),
             }
         } else {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         },
     });
-    Presentation::new_with_semantics_and_temporal(
-        presentation.revision + u64::from(loss.is_some()),
-        presentation.basis,
+    Face::new_with_semantics_and_temporal(
+        face.revision + u64::from(loss.is_some()),
+        face.basis,
         content.subjects,
         content.relationships,
         content.properties,
         content.text,
         actions,
-        presentation.disclosures,
-        presentation.temporal_references,
-        presentation.temporal_facts,
+        face.disclosures,
+        face.temporal_references,
+        face.temporal_facts,
     )
     .map_err(|error| format!("invalid Text Lab ordinary explanation: {error:?}"))
 }
@@ -417,38 +378,32 @@ fn available_host(advertisement: &HostAdvertisement) -> HostReport {
 }
 
 fn subject_with_identity_property(
-    presentation: &Presentation,
-    role: PresentationRole,
+    face: &Face,
+    role: FaceRole,
     name: &str,
     value: &str,
 ) -> Result<String, String> {
-    presentation
-        .subjects
+    face.subjects
         .iter()
         .find(|subject| {
             subject.role == role
-                && presentation.properties.iter().any(|property| {
+                && face.properties.iter().any(|property| {
                     property.subject == subject.identity
                         && property.name == name
-                        && property.value == PresentationPropertyValue::Identity(value.into())
+                        && property.value == FacePropertyValue::Identity(value.into())
                 })
         })
         .map(|subject| subject.identity.clone())
         .ok_or_else(|| format!("Text Lab explanation lacks {role:?} with {name}={value}"))
 }
 
-fn realized_target(
-    presentation: &Presentation,
-    source: &str,
-    role: PresentationRole,
-) -> Result<String, String> {
-    presentation
-        .relationships
+fn realized_target(face: &Face, source: &str, role: FaceRole) -> Result<String, String> {
+    face.relationships
         .iter()
         .find(|relationship| {
             relationship.source == source
-                && relationship.kind == PresentationRelationshipKind::Realizes
-                && presentation
+                && relationship.kind == FaceRelationshipKind::Realizes
+                && face
                     .subjects
                     .iter()
                     .any(|subject| subject.identity == relationship.target && subject.role == role)
@@ -459,7 +414,7 @@ fn realized_target(
 
 fn follow_to(
     state: &mut NavigationState,
-    presentation: &Presentation,
+    face: &Face,
     navigation: &PatchbayNavigationProjection,
     source: &str,
     target: &str,
@@ -472,7 +427,7 @@ fn follow_to(
         .ok_or("Text Lab explanation lacks exact cross-domain FOLLOW")?;
     navigate(
         state,
-        presentation,
+        face,
         navigation,
         NavigationOperation::Follow(follow.identity.clone()),
     )
@@ -480,17 +435,12 @@ fn follow_to(
 
 fn navigate(
     state: &mut NavigationState,
-    presentation: &Presentation,
+    face: &Face,
     navigation: &PatchbayNavigationProjection,
     operation: NavigationOperation,
 ) -> Result<(), String> {
     state
-        .navigate(
-            presentation,
-            &navigation.navigation,
-            presentation.revision,
-            operation,
-        )
+        .navigate(face, &navigation.navigation, face.revision, operation)
         .map(|_| ())
         .map_err(|error| format!("Text Lab navigation refused: {error:?}"))
 }

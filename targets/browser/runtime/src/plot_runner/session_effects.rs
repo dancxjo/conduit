@@ -169,7 +169,7 @@ mod tests {
 
     #[test]
     fn correlated_completion_preserves_other_pending_effects_and_rejects_stale_identity() {
-        let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: presentation/indicator-state\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: presentation/count\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
+        let source = "plot concurrent {\n button: input/button\n state: input/button-indicator-state\n indicator: face/indicator-state(\"Button state\")\n clock: time/every(freq = 100ms)\n count: state/count(start = 0)\n show: face/count(\"Current count\")\n button >> state >> indicator\n clock.tick >> count.bump\n count.value >> show.value\n}\n";
         let (mut session, _) =
             TourSession::prepare("browser/test", "boot/test", source, 1).unwrap();
         let capacity = session.pending.capacity();

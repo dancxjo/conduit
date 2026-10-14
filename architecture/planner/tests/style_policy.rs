@@ -2,16 +2,16 @@ use conduit_core::{
     ArtifactId, CapabilityId, CharacteristicId, HostId, ImplementationId, RealizationAdvertisement,
 };
 use conduit_planner::{
-    dos_shell_style, presentation_style_characteristics, select_realization_with_style,
+    dos_shell_style, face_style_characteristics, select_realization_with_style, FaceStyleFacts,
     HardRealizationRequirements, NamedStyle, PlannerError, PlannerFactRef, PlannerFactValue,
     PlannerPredicate, PlannerPreference, PolicyScope, PolicySourceId, PolicySourceRevision,
-    PresentationStyleFacts, ReviewedObservation, StyleId, StylePreferenceOutcome,
-    PRESENTATION_KEYBOARD_VISIBLE, PRESENTATION_PALETTE_CLASS,
+    ReviewedObservation, StyleId, StylePreferenceOutcome, FACE_KEYBOARD_VISIBLE,
+    FACE_PALETTE_CLASS,
 };
 
 mod common;
 
-fn presentation_fixture() -> (
+fn face_fixture() -> (
     conduit_plot::CheckedGear,
     Vec<conduit_core::HostAdvertisement>,
     Vec<RealizationAdvertisement>,
@@ -19,20 +19,20 @@ fn presentation_fixture() -> (
 ) {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
-    conduit_semantic_catalog::install_patchbay_presentation_catalogs(&mut startup, &mut profile)
-        .expect("Patchbay presentation catalogs install");
+    conduit_semantic_catalog::install_patchbay_face_catalogs(&mut startup, &mut profile)
+        .expect("Patchbay face catalogs install");
     let gear = conduit_plot::parse(
-        "plot styled {\n    canvas: presentation/patchbay\n}\n",
+        "plot styled {\n    canvas: face/patchbay(\"Plot graph\")\n}\n",
         &profile,
     )
-    .expect("semantic Patchbay presentation checks")
+    .expect("semantic Patchbay face checks")
     .gears
     .remove(0);
 
     let profiles = [
         (
             "native",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("fixed-cell".into()),
                 density: Some("compact".into()),
                 framing: Some("hard-line".into()),
@@ -42,7 +42,7 @@ fn presentation_fixture() -> (
         ),
         (
             "browser",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("flow".into()),
                 density: Some("comfortable".into()),
                 framing: Some("minimal".into()),
@@ -52,7 +52,7 @@ fn presentation_fixture() -> (
         ),
         (
             "terminal",
-            PresentationStyleFacts {
+            FaceStyleFacts {
                 text_layout: Some("fixed-cell".into()),
                 density: Some("compact".into()),
                 framing: Some("hard-line".into()),
@@ -69,7 +69,7 @@ fn presentation_fixture() -> (
             HostId::from(format!("style-{family}")),
             conduit_core::BootId::from(format!("style-{family}-boot")),
         );
-        let mut offer = conduit_std_offers::patchbay_presentation_offers()[0].clone();
+        let mut offer = conduit_std_offers::patchbay_face_offers()[0].clone();
         offer.capability_id = CapabilityId::from(format!("style-{family}/patchbay@1"));
         offer.implementation.implementation_id =
             ImplementationId::from(format!("style-{family}/presenter@1"));
@@ -80,7 +80,7 @@ fn presentation_fixture() -> (
             boot_id: host.boot_id.clone(),
             offer_generation: host.offer_generation,
             capability_id: offer.capability_id.clone(),
-            characteristics: presentation_style_characteristics(&facts),
+            characteristics: face_style_characteristics(&facts),
         });
         for (pool_index, pool) in host.resources.iter().enumerate() {
             observations.push(ReviewedObservation {
@@ -117,7 +117,7 @@ fn source(id: &str, revision: u64, scope: PolicyScope) -> PolicySourceRevision {
 
 #[test]
 fn one_named_style_lowers_through_c3_and_selects_truthful_host_specific_implementations() {
-    let (gear, hosts, advertisements, observations) = presentation_fixture();
+    let (gear, hosts, advertisements, observations) = face_fixture();
     let style = dos_shell_style();
     for expected in ["native", "browser", "terminal"] {
         let host = hosts
@@ -139,11 +139,7 @@ fn one_named_style_lowers_through_c3_and_selects_truthful_host_specific_implemen
             core::slice::from_ref(host),
             &host_advertisements,
             &HardRealizationRequirements::default(),
-            source(
-                "semantic-presentation",
-                1,
-                PolicyScope::SemanticRequirements,
-            ),
+            source("semantic-face", 1, PolicyScope::SemanticRequirements),
             &[],
             &style,
             &host_observations,
@@ -159,7 +155,7 @@ fn one_named_style_lowers_through_c3_and_selects_truthful_host_specific_implemen
 
 #[test]
 fn partial_style_satisfaction_is_legal_and_inspectable() {
-    let (gear, hosts, advertisements, observations) = presentation_fixture();
+    let (gear, hosts, advertisements, observations) = face_fixture();
     let terminal = hosts
         .iter()
         .find(|host| host.host_id.as_str() == "style-terminal")
@@ -173,11 +169,7 @@ fn partial_style_satisfaction_is_legal_and_inspectable() {
             .cloned()
             .collect::<Vec<_>>(),
         &HardRealizationRequirements::default(),
-        source(
-            "semantic-presentation",
-            1,
-            PolicyScope::SemanticRequirements,
-        ),
+        source("semantic-face", 1, PolicyScope::SemanticRequirements),
         &[],
         &dos_shell_style(),
         &observations
@@ -187,7 +179,7 @@ fn partial_style_satisfaction_is_legal_and_inspectable() {
             .collect::<Vec<_>>(),
         4,
     )
-    .expect("missing palette preference does not invalidate the presentation");
+    .expect("missing palette preference does not invalidate the face");
     assert_eq!(result.preferences.len(), 5);
     assert_eq!(
         result.preferences[4].outcome,
@@ -200,7 +192,7 @@ fn partial_style_satisfaction_is_legal_and_inspectable() {
 
 #[test]
 fn hard_accessibility_truth_outranks_a_conflicting_style() {
-    let (gear, mut hosts, mut advertisements, observations) = presentation_fixture();
+    let (gear, mut hosts, mut advertisements, observations) = face_fixture();
     let native_advertisement = advertisements
         .iter_mut()
         .find(|item| item.host_id.as_str() == "style-native")
@@ -208,7 +200,7 @@ fn hard_accessibility_truth_outranks_a_conflicting_style() {
     let keyboard = native_advertisement
         .characteristics
         .iter_mut()
-        .find(|item| item.definition.characteristic_id.as_str() == PRESENTATION_KEYBOARD_VISIBLE)
+        .find(|item| item.definition.characteristic_id.as_str() == FACE_KEYBOARD_VISIBLE)
         .unwrap();
     keyboard.value = conduit_core::CharacteristicValue::Boolean(false);
     hosts.retain(|host| matches!(host.host_id.as_str(), "style-native" | "style-terminal"));
@@ -228,7 +220,7 @@ fn hard_accessibility_truth_outranks_a_conflicting_style() {
         revision: 1,
         preferences: vec![PlannerPreference::PreferEqual {
             fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                PRESENTATION_KEYBOARD_VISIBLE,
+                FACE_KEYBOARD_VISIBLE,
             )),
             value: PlannerFactValue::Boolean(false),
         }],
@@ -240,7 +232,7 @@ fn hard_accessibility_truth_outranks_a_conflicting_style() {
         &HardRealizationRequirements {
             predicates: vec![PlannerPredicate::Equal {
                 fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                    PRESENTATION_KEYBOARD_VISIBLE,
+                    FACE_KEYBOARD_VISIBLE,
                 )),
                 value: PlannerFactValue::Boolean(true),
             }],
@@ -266,7 +258,7 @@ fn style_rejects_renderer_specific_vocabulary_and_contains_no_hard_clauses() {
         revision: 1,
         preferences: vec![PlannerPreference::PreferEqual {
             fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-                "presentation/css-color",
+                "face/css-color",
             )),
             value: PlannerFactValue::Category("#00ffff".into()),
         }],
@@ -280,8 +272,6 @@ fn style_rejects_renderer_specific_vocabulary_and_contains_no_hard_clauses() {
     assert_eq!(lowered.source.scope, PolicyScope::NamedStyle);
     assert_eq!(
         lowered.preferences[4].lower().fact(),
-        &PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(
-            PRESENTATION_PALETTE_CLASS,
-        ))
+        &PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(FACE_PALETTE_CLASS,))
     );
 }

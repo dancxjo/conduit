@@ -13,7 +13,7 @@ pub(crate) fn checked_expanded_text_plot_named(
         .map_err(|_| PreparationError::PlotRejected)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
     let checked = conduit_plot::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::PlotRejected)?;
@@ -32,7 +32,7 @@ pub(crate) fn checked_expanded_text_plot_with_morse_backs(
         .map_err(|_| PreparationError::PlotRejected)?;
     conduit_text::install_morse_catalogs(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
-    conduit_semantic_catalog::install_indicator_presentation_catalog(&mut startup, &mut profile)
+    conduit_semantic_catalog::install_indicator_face_catalog(&mut startup, &mut profile)
         .map_err(|_| PreparationError::PlotRejected)?;
     let checked = conduit_plot::check_syntax_document(&syntax, &startup)
         .map_err(|_| PreparationError::PlotRejected)?;

@@ -130,7 +130,7 @@ impl SerialBase for Serial {
         self.0 = self.0.checked_add(1).ok_or(BaseError::Unavailable)?;
         Ok(())
     }
-    fn presentation_count(&self) -> u32 {
+    fn face_count(&self) -> u32 {
         self.0
     }
     fn provider_generation(&self) -> Option<u64> {

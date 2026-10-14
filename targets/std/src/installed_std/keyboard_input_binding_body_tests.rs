@@ -401,7 +401,7 @@ fn ordinary_body_entry_issues_origin_and_delivers_input_before_cancellation() {
     assert_eq!(
         output
             .lines()
-            .filter_map(|line| line.strip_prefix("bool value="))
+            .filter_map(|line| line.strip_prefix("Button state: bool value="))
             .collect::<Vec<_>>(),
         ["true", "false", "true", "false"]
     );

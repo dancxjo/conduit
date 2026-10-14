@@ -75,7 +75,7 @@ fn prepare_with_base(
     let firefly_sink_kinds = [
         conduit_time::RHYTHM_STATE_SOURCE_KIND,
         conduit_time::PHASE_SYNCHRONIZE_KIND,
-        conduit_semantic_catalog::RHYTHM_PRESENTATION_KIND,
+        conduit_semantic_catalog::RHYTHM_FACE_KIND,
     ];
     let sink_kinds = sink_kinds.or_else(|| {
         firefly_sink_kinds

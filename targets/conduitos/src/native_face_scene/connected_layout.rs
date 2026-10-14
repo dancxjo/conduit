@@ -1,5 +1,5 @@
 //! Finite renderer ordering of exact Face connections; no semantic graph edits.
-use conduit_presentation::{Presentation, PresentationRelationshipKind, PresentationRole};
+use conduit_face::{Face, FaceRelationshipKind, FaceRole};
 
 pub(super) const MAX_GEARS: usize = 64;
 const MAX_CORDS: usize = 128;
@@ -26,7 +26,7 @@ impl Order {
     }
 }
 
-pub(super) fn order(face: &Presentation) -> Order {
+pub(super) fn order(face: &Face) -> Order {
     let mut result = Order {
         subjects: [0; MAX_GEARS],
         count: 0,
@@ -37,12 +37,12 @@ pub(super) fn order(face: &Presentation) -> Order {
     let count = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Gear)
+        .filter(|s| s.role == FaceRole::Gear)
         .count();
     let cords = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Cord)
+        .filter(|s| s.role == FaceRole::Cord)
         .count();
     if count > MAX_GEARS || cords > MAX_CORDS {
         result.fallback = true;
@@ -53,18 +53,14 @@ pub(super) fn order(face: &Presentation) -> Order {
         .subjects
         .iter()
         .enumerate()
-        .filter(|(_, s)| s.role == PresentationRole::Gear)
+        .filter(|(_, s)| s.role == FaceRole::Gear)
         .enumerate()
     {
         gears[index] = subject;
     }
     let mut outgoing = [0u64; MAX_GEARS];
     let mut incoming = [0u64; MAX_GEARS];
-    for cord in face
-        .subjects
-        .iter()
-        .filter(|s| s.role == PresentationRole::Cord)
-    {
+    for cord in face.subjects.iter().filter(|s| s.role == FaceRole::Cord) {
         let endpoints = super::ports::endpoint(face, cord, "source-port", "outgoing")
             .zip(super::ports::endpoint(face, cord, "sink-port", "receiving"));
         let pair = endpoints.and_then(|(source, sink)| {
@@ -116,23 +112,23 @@ pub(super) fn order(face: &Presentation) -> Order {
     result
 }
 
-fn index_for_port(face: &Presentation, gears: &[usize], port: &str) -> Option<usize> {
+fn index_for_port(face: &Face, gears: &[usize], port: &str) -> Option<usize> {
     let owner = unique_owner(face, port)?;
     gears.iter().position(|&subject| subject == owner)
 }
 
 /// Ownership ambiguity must remain unresolved even when one owner is off-page.
-pub(super) fn unique_owner(face: &Presentation, port: &str) -> Option<usize> {
+pub(super) fn unique_owner(face: &Face, port: &str) -> Option<usize> {
     let mut owner = None;
     for relation in face
         .relationships
         .iter()
-        .filter(|r| r.kind == PresentationRelationshipKind::Contains && r.target == port)
+        .filter(|r| r.kind == FaceRelationshipKind::Contains && r.target == port)
     {
         let Some(index) = face
             .subjects
             .iter()
-            .position(|s| s.role == PresentationRole::Gear && s.identity == relation.source)
+            .position(|s| s.role == FaceRole::Gear && s.identity == relation.source)
         else {
             continue;
         };

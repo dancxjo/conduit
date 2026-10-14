@@ -11,8 +11,8 @@ use conduit_core::{
 
 pub const SCALAR_LITERAL_KIND: &str = "scalar/literal";
 pub const BOOL_LITERAL_KIND: &str = "boolean/literal";
-pub const SCALAR_VALUE_PRESENTATION_KIND: &str = "presentation/scalar";
-pub const BOOL_VALUE_PRESENTATION_KIND: &str = "presentation/bool-value";
+pub const SCALAR_VALUE_FACE_KIND: &str = "face/scalar";
+pub const BOOL_VALUE_FACE_KIND: &str = "face/bool-value";
 pub const VALUE_PRIMITIVE_CONTRACT_REVISION: &str = "conduit.std/value-primitives@1";
 
 pub fn scalar_literal_contract() -> StandardKindContract {
@@ -46,18 +46,18 @@ pub fn bool_literal_contract() -> StandardKindContract {
     )
 }
 
-pub fn scalar_value_presentation_contract() -> StandardKindContract {
-    presentation(
-        SCALAR_VALUE_PRESENTATION_KIND,
+pub fn scalar_value_face_contract() -> StandardKindContract {
+    face(
+        SCALAR_VALUE_FACE_KIND,
         "Present scalar value",
         SCALAR_INFO_ID,
         conduit_core::SCALAR_ENCODED_LEN as u32,
     )
 }
 
-pub fn bool_value_presentation_contract() -> StandardKindContract {
-    presentation(
-        BOOL_VALUE_PRESENTATION_KIND,
+pub fn bool_value_face_contract() -> StandardKindContract {
+    face(
+        BOOL_VALUE_FACE_KIND,
         "Present Boolean value",
         BOOL_INFO_ID,
         conduit_core::BOOL_ENCODED_LEN as u32,
@@ -87,7 +87,7 @@ fn source(
     }
 }
 
-fn presentation(kind: &str, name: &str, value_kind: &str, bytes: u32) -> StandardKindContract {
+fn face(kind: &str, name: &str, value_kind: &str, bytes: u32) -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(kind),
         plain_name: name.to_string(),
@@ -95,13 +95,13 @@ fn presentation(kind: &str, name: &str, value_kind: &str, bytes: u32) -> Standar
             .to_string(),
         inputs: vec![port("value", value_kind, PortDirection::Input)],
         outputs: Vec::new(),
-        configuration: Default::default(),
+        configuration: crate::data_label_configuration(),
         limits: limits(bytes),
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true,
         browser_manifestation_honest: true,
         pico_manifestation_honest: false,
-        example: alloc::format!("show: {kind}"),
+        example: alloc::format!("show: {kind}(\"Result value\")"),
     }
 }
 
@@ -132,8 +132,8 @@ pub fn install_value_primitive_catalogs(
     for contract in [
         scalar_literal_contract(),
         bool_literal_contract(),
-        scalar_value_presentation_contract(),
-        bool_value_presentation_contract(),
+        scalar_value_face_contract(),
+        bool_value_face_contract(),
     ] {
         startup.insert(KindSignature {
             kind: contract.kind_id.as_str().to_string(),
@@ -145,14 +145,19 @@ pub fn install_value_primitive_catalogs(
                     value_type: match field.default_value {
                         ConfigurationValue::I64(_) => "Scalar",
                         ConfigurationValue::Bool(_) => "Boolean",
+                        ConfigurationValue::Text(_) => "Text",
                         _ => unreachable!(),
                     }
                     .to_string(),
-                    default: Some(match field.default_value {
-                        ConfigurationValue::I64(value) => value.to_string(),
-                        ConfigurationValue::Bool(value) => value.to_string(),
-                        _ => unreachable!(),
-                    }),
+                    default: if matches!(field.rule, KindConfigurationRule::DataLabel { .. }) {
+                        None
+                    } else {
+                        Some(match field.default_value {
+                            ConfigurationValue::I64(value) => value.to_string(),
+                            ConfigurationValue::Bool(value) => value.to_string(),
+                            _ => unreachable!(),
+                        })
+                    },
                 })
                 .collect(),
         })?;
@@ -172,7 +177,7 @@ mod tests {
         let scalar = scalar_literal_contract();
         assert_eq!(scalar.outputs[0].value_kind.as_str(), SCALAR_INFO_ID);
         assert_eq!(scalar.outputs[0].temporal, PortTemporal::Value);
-        let boolean = bool_value_presentation_contract();
+        let boolean = bool_value_face_contract();
         assert_eq!(boolean.inputs[0].value_kind.as_str(), BOOL_INFO_ID);
         assert_eq!(boolean.inputs[0].temporal, PortTemporal::Value);
     }

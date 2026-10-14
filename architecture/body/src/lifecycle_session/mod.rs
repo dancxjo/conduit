@@ -116,7 +116,7 @@ impl BodyLifecycleSession {
         Ok(())
     }
 
-    /// Foreground is presentation focus within the current workset. Selecting a
+    /// Foreground is face focus within the current workset. Selecting a
     /// surface changes neither its body lifecycle nor the exact admitted play.
     pub fn select_plot(&mut self, plot: &ResidentPlot) -> Result<(), BodyLifecycleSessionError> {
         if !self.evidence.body.workset.plots().contains(plot) {

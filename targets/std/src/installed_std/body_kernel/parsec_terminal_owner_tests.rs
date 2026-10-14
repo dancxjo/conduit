@@ -2,12 +2,12 @@
 use super::*;
 use conduit_body::{Body, BodyPlayIdentity, BodyPlotPlan, ResidentPlot};
 use conduit_core::{resource_offer, PlannedActivationEntry, INPUT_RESOURCE_CLASS};
+use conduit_face::{ManifestationLifecycle, ParsecMapCommand};
 use conduit_kernel::NodeId;
 use conduit_plan_lowering::{
     fragment_set::{lower_local_fragment_set_from_plans, FragmentSetBounds},
     lowering::{KernelIdentityMap, LoweredForePort, FIXED_KERNEL_STORAGE_PROFILE},
 };
-use conduit_presentation::{ManifestationLifecycle, ParsecMapCommand};
 
 fn terminal_host() -> crate::StdHost {
     let mut advertisement = crate::composition::build_advertisement(

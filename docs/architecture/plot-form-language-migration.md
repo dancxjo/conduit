@@ -44,7 +44,7 @@ No survivor denotes the former executable Form concept.
 
 ## Scientific Plot collision
 
-`MeasurementPlot` and `presentation/measurement-plot` remain the scientific
+`MeasurementPlot` and `face/measurement-plot` remain the scientific
 visualization concept. The one compound where a blind migration would repeat
 the word instead uses the role-bearing `measurement_plot_source_*` spelling.
 No doubled Plot identifier is admitted.

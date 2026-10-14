@@ -3,10 +3,10 @@ use super::{expanded, Producer};
 use conduit_core::{
     CapabilityOffer, ConfigurationValue, HostAdvertisement, PreparationHostIdentity,
 };
-use conduit_plot::{CheckedSyntaxDocument, PortableExpressionProgram};
-use conduit_presentation::{
+use conduit_face::{
     checked_parsec_input_policy, prepare_checked_parsec_input_policy, PreparedParsecInputPolicy,
 };
+use conduit_plot::{CheckedSyntaxDocument, PortableExpressionProgram};
 
 pub fn required_parsec_input_policy_offer() -> Result<CapabilityOffer, String> {
     let checked = checked_parsec_input_policy().map_err(|e| format!("Parsec policy: {e:?}"))?;

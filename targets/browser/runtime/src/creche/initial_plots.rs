@@ -18,7 +18,7 @@ struct BundledPlot {
     #[serde(default)]
     entry: Option<String>,
     #[serde(default)]
-    presentation_profile: u8,
+    face_profile: u8,
     source: String,
 }
 
@@ -27,7 +27,7 @@ pub(super) struct CheckedInventoryEntry {
     pub(super) checked: conduit_plot::CheckedSyntaxDocument,
     pub(super) entry_name: Option<String>,
     pub(super) entry_title: Option<String>,
-    pub(super) presentation: crate::installed_browser::PresentationProfile,
+    pub(super) face: crate::installed_browser::FaceProfile,
 }
 
 #[derive(Clone, Debug, PartialEq, Eq, Serialize, Deserialize)]
@@ -163,15 +163,14 @@ pub(super) fn check_inventory_with_catalogs(
     catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> Result<Vec<CheckedInventoryEntry>, String> {
     let Ok(bundle) = serde_json::from_str::<ReviewedPlotBundle>(source) else {
-        let (startup, profile) =
-            catalogs.get(crate::installed_browser::PresentationProfile::Annotation)?;
+        let (startup, profile) = catalogs.get(crate::installed_browser::FaceProfile::Annotation)?;
         return check_source_with_catalogs(source, startup, profile).map(|checked| {
             vec![CheckedInventoryEntry {
                 source: source.to_owned(),
                 checked,
                 entry_name: None,
                 entry_title: None,
-                presentation: crate::installed_browser::PresentationProfile::Annotation,
+                face: crate::installed_browser::FaceProfile::Annotation,
             }]
         });
     };
@@ -194,14 +193,14 @@ pub(super) fn check_inventory_with_catalogs(
         {
             return Err("reviewed plot bundle entry is malformed".into());
         }
-        let presentation = match entry.presentation_profile {
-            0 => crate::installed_browser::PresentationProfile::Annotation,
-            1 => crate::installed_browser::PresentationProfile::Quantity,
-            2 => crate::installed_browser::PresentationProfile::NormalizedDurations,
-            3 => crate::installed_browser::PresentationProfile::PatternComparison,
-            _ => return Err("reviewed plot has an unsupported presentation profile".into()),
+        let face = match entry.face_profile {
+            0 => crate::installed_browser::FaceProfile::Annotation,
+            1 => crate::installed_browser::FaceProfile::Quantity,
+            2 => crate::installed_browser::FaceProfile::NormalizedDurations,
+            3 => crate::installed_browser::FaceProfile::PatternComparison,
+            _ => return Err("reviewed plot has an unsupported face profile".into()),
         };
-        let (startup, profile) = catalogs.get(presentation)?;
+        let (startup, profile) = catalogs.get(face)?;
         let document = check_source_with_catalogs(&entry.source, startup, profile)?;
         let expected_entry = entry.entry.unwrap_or_else(|| entry.slug.replace('-', "_"));
         let plot = document
@@ -227,7 +226,7 @@ pub(super) fn check_inventory_with_catalogs(
             checked: document,
             entry_name: Some(expected_entry),
             entry_title: entry.title,
-            presentation,
+            face,
         });
     }
     Ok(checked)
@@ -263,7 +262,7 @@ pub(crate) fn inventory_application_subjects(
                         .map(|plot| (entry, plot))
                 })
                 .ok_or("resident application subject is absent from the reviewed inventory")?;
-            let (_, profile) = catalogs.get(entry.presentation)?;
+            let (_, profile) = catalogs.get(entry.face)?;
             let expanded = if plot.name == "thermostat/main" {
                 conduit_plot::expand_canonical_plot_for_authoring(
                     &entry.checked,
@@ -286,18 +285,15 @@ pub(crate) fn inventory_application_subjects(
 
 #[cfg(test)]
 pub(super) fn check_source(source: &str) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
-    check_source_for_presentation(
-        source,
-        crate::installed_browser::PresentationProfile::Annotation,
-    )
+    check_source_for_face(source, crate::installed_browser::FaceProfile::Annotation)
 }
 
 #[cfg(test)]
-pub(super) fn check_source_for_presentation(
+pub(super) fn check_source_for_face(
     source: &str,
-    presentation: crate::installed_browser::PresentationProfile,
+    face: crate::installed_browser::FaceProfile,
 ) -> Result<conduit_plot::CheckedSyntaxDocument, String> {
-    let (startup, profile) = crate::installed_browser::catalogs_for_presentation(presentation)?;
+    let (startup, profile) = crate::installed_browser::catalogs_for_face(face)?;
     check_source_with_catalogs(source, &startup, &profile)
 }
 
@@ -349,7 +345,7 @@ pub(super) fn reviewed_browser_host_with_inventory(
 ) -> Result<conduit_core::HostAdvertisement, String> {
     let mut host = crate::installed_browser::advertisement(host, boot);
     for entry in inventory {
-        let (startup, base_profile) = catalogs.get(entry.presentation)?;
+        let (startup, base_profile) = catalogs.get(entry.face)?;
         // Selectors are specific to this checked document, not retained in the
         // installed base profile used for the next document.
         let mut profile = std::borrow::Cow::Borrowed(base_profile);

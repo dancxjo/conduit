@@ -1,0 +1,15 @@
+# Source-owned input policy declarations. Outputs are proposals, not admitted bindings.
+plot pregame-fire-binding (
+ >> context: ActionInputBindingProposalInfo
+ binding: ActionInputBindingProposalInfo >>
+) = {available: .available, boot_id: .boot_id, control_identity: "control/fire", control_label: "Fire", face_identity: .face_identity, host_id: .host_id, input_plan_id: .input_plan_id, mapping_revision: .mapping_revision, offered_action: {action_identity: "game/start", source_face_revision: .offered_action.source_face_revision}, show_identity: .show_identity, version: 1}
+
+plot pregame-enter-binding (
+ >> context: ActionInputBindingProposalInfo
+ binding: ActionInputBindingProposalInfo >>
+) = {available: .available, boot_id: .boot_id, control_identity: "keyboard/enter", control_label: "Enter", face_identity: .face_identity, host_id: .host_id, input_plan_id: .input_plan_id, mapping_revision: .mapping_revision, offered_action: {action_identity: "game/start", source_face_revision: .offered_action.source_face_revision}, show_identity: .show_identity, version: 1}
+
+plot gameplay-fire-binding (
+ >> context: ActionInputBindingProposalInfo
+ binding: ActionInputBindingProposalInfo >>
+) = {available: .available, boot_id: .boot_id, control_identity: "control/fire", control_label: "Fire", face_identity: .face_identity, host_id: .host_id, input_plan_id: .input_plan_id, mapping_revision: .mapping_revision, offered_action: {action_identity: "game/shoot", source_face_revision: .offered_action.source_face_revision}, show_identity: .show_identity, version: 1}

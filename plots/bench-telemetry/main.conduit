@@ -1,5 +1,5 @@
 # Bench consumes the reviewed bounded measurement-plot Back. Device decoding,
-# windowing, thresholding, acquisition, recording, commands, and presentation
+# windowing, thresholding, acquisition, recording, commands, and face
 # remain separate Plots and Host truth; this slice owns one telemetry component.
 plot bench-telemetry (
     >> window: MeasurementWindow

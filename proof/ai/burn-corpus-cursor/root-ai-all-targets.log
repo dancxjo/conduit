@@ -252,7 +252,7 @@ running 11 tests
 test confidence_and_work_accounting_are_native_values ... ok
 test exact_revision_and_front_compatibility_rejects_mutation ... ok
 test implementation_controls_and_determinism_claims_stay_outside_portable_semantics ... ok
-test generative_presentation_is_structured_and_distinct_from_input_interpretation ... ok
+test generative_face_is_structured_and_distinct_from_input_interpretation ... ok
 test llm_work_bounds_are_native_and_exactly_bounded ... ok
 test streaming_generation_is_a_distinct_closing_delta_flow ... ok
 test model_derived_envelope_is_bounded_correlated_and_not_sign_evidence ... ok
@@ -646,7 +646,7 @@ test exact_validity_boundaries_determine_duration ... ok
 test event_ordering_refuses_different_clock_bases ... ok
 test missing_boundary_and_invalid_intervals_refuse_explicitly ... ok
 test uncertain_age_remains_a_bounded_relation_not_a_scalar_guess ... ok
-test model_and_human_presentation_consume_the_same_canonical_relation ... ok
+test model_and_human_face_consume_the_same_canonical_relation ... ok
 test old_observation_retrieved_now_remains_old ... ok
 test retrieval_cannot_claim_knowledge_after_the_decision_instant ... ok
 test clock_basis_and_reference_are_native_with_exact_identity_bounds ... ok

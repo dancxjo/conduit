@@ -242,7 +242,7 @@ mod tests {
     }
 
     #[test]
-    fn presentation_controls_cannot_select_an_incompatible_or_unplanned_candidate() {
+    fn face_controls_cannot_select_an_incompatible_or_unplanned_candidate() {
         let mut incompatible = candidate(
             "candidate",
             SoundCandidateStatus::Incompatible {

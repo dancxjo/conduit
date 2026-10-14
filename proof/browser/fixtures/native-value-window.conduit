@@ -16,7 +16,7 @@ plot native-value-window {
     seed: text/literal("type admission")
     created: make
     checked: verify
-    show: presentation/bool-value
+    show: face/bool-value("Result")
     seed >> created.input
     created.result >> checked.input
     checked.result >> show.value

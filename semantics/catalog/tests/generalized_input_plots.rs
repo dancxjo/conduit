@@ -3,11 +3,11 @@ use conduit_core::{
     Quantity, StructuredInfoValue, StructuredInfoValueShape, StructuredSelection,
     StructuredSelector, Unit, UnmatchedVariantDisposition, PROTOCOL_VERSION,
 };
+use conduit_face::install_geometry_catalogs;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     ProfileCatalog, StartupCatalog,
 };
-use conduit_presentation::install_geometry_catalogs;
 use conduit_semantic_catalog::{
     deterministic_gamepad_outputs, deterministic_generalized_input_fixture,
     deterministic_pointer_touch_outputs, gamepad_state_type, input_axis_slot_type,

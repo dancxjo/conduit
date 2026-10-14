@@ -4,15 +4,15 @@ use conduit_core::{
     validate_canonical_structured_value, HostAdvertisement, PlannedActivationEntry,
     PlannedForePort, PreparationHostIdentity, StructuredCanonicalSelection, StructuredSelector,
 };
+use conduit_face::{
+    ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES, PARSEC_MAP_TRANSITION_SOURCE,
+};
 use conduit_kernel::NodeId;
 use conduit_plan_lowering::lowering::{
     KernelForeEndpointIdentity, KernelIdentityMap, LoweredForePort,
 };
 use conduit_plot::{
     check_syntax_document, parse_syntax_document, CheckedNativeType, StartupCatalog,
-};
-use conduit_presentation::{
-    ParsecMapTransitionResult, PARSEC_MAP_FRAME_BYTES, PARSEC_MAP_TRANSITION_SOURCE,
 };
 
 pub(super) struct ParsecAcknowledgedMap {

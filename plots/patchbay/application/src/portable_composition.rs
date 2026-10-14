@@ -5,10 +5,10 @@
 //! reference composition operations.
 
 use alloc::{string::String, vec, vec::Vec};
-use conduit_presentation::{
-    CompositionError, CompositionItem, CompositionItemKind, CompositionRole, GraphicsCommand,
-    GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle, LayoutAlignment,
-    LayoutFrame, PresentationComposition, PresentationIconKey,
+use conduit_face::{
+    CompositionError, CompositionItem, CompositionItemKind, CompositionRole, FaceComposition,
+    FaceIconKey, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutAlignment, LayoutFrame,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -20,13 +20,13 @@ pub struct DirectObligation {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub struct DirectPresentation {
+pub struct DirectFace {
     obligations: Vec<DirectObligation>,
 }
 
-impl DirectPresentation {
+impl DirectFace {
     pub fn icon(token: &str, name: &str) -> Result<Self, CompositionError> {
-        if !conduit_presentation::is_authoritative_icon(token) {
+        if !conduit_face::is_authoritative_icon(token) {
             return Err(CompositionError::UnknownIcon);
         }
         Ok(Self {
@@ -59,8 +59,8 @@ impl DirectPresentation {
         self
     }
 
-    pub fn normalize(&self) -> Result<PresentationComposition, CompositionError> {
-        let mut output = PresentationComposition::empty();
+    pub fn normalize(&self) -> Result<FaceComposition, CompositionError> {
+        let mut output = FaceComposition::empty();
         for obligation in &self.obligations {
             output.push(CompositionItem::new(
                 obligation.kind,
@@ -78,7 +78,7 @@ impl DirectPresentation {
 pub fn constrained_frame_layout(
     width: u16,
     height: u16,
-) -> Result<LayoutFrame, conduit_presentation::LayoutError> {
+) -> Result<LayoutFrame, conduit_face::LayoutError> {
     LayoutFrame::for_viewport(width, height, 2, 24, 12)?
         .inset(4)?
         .align(LayoutAlignment::Center, LayoutAlignment::Center)
@@ -87,7 +87,7 @@ pub fn constrained_frame_layout(
 /// Lower resolved composition obligations through the one canonical graphics
 /// leaf vocabulary. Direct higher-level presenters remain free to bypass it.
 pub fn constrained_graphics_scene(
-    composition: &PresentationComposition,
+    composition: &FaceComposition,
     width: u16,
     height: u16,
 ) -> Result<GraphicsScene, GraphicsError> {
@@ -100,7 +100,7 @@ pub fn constrained_graphics_scene(
                 layout.children[1],
                 layout.viewport,
                 GraphicsPaintRole::Accent,
-                PresentationIconKey::from_token(item.token()).ok_or(GraphicsError::UnknownIcon)?,
+                FaceIconKey::from_token(item.token()).ok_or(GraphicsError::UnknownIcon)?,
             )?)?,
             CompositionItemKind::Frame => scene.push(GraphicsCommand::rect(
                 layout.viewport,
@@ -133,13 +133,13 @@ mod tests {
 
     #[test]
     fn direct_and_reference_presenters_normalize_the_same_obligations() {
-        let reference = PresentationComposition::icon("presentation", "Patchbay")
+        let reference = FaceComposition::icon("face", "Patchbay")
             .unwrap()
             .frame("panel", "Gear Front")
             .unwrap()
             .badge("warning", "Cord pressure")
             .unwrap();
-        let direct = DirectPresentation::icon("presentation", "Patchbay")
+        let direct = DirectFace::icon("face", "Patchbay")
             .unwrap()
             .frame("panel", "Gear Front")
             .badge("warning", "Cord pressure")
@@ -157,11 +157,11 @@ mod tests {
         assert_eq!(graphics.commands().len(), 4);
         assert_eq!(
             graphics.commands()[0].kind,
-            conduit_presentation::GraphicsCommandKind::Icon
+            conduit_face::GraphicsCommandKind::Icon
         );
         assert_eq!(
             graphics.commands()[1].kind,
-            conduit_presentation::GraphicsCommandKind::Rect
+            conduit_face::GraphicsCommandKind::Rect
         );
         assert_eq!(graphics.commands()[3].payload(), "warning");
     }

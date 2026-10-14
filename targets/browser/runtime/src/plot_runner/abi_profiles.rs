@@ -1,20 +1,20 @@
-//! Explicit selection among the installed structured presentation profiles.
+//! Explicit selection among the installed structured face profiles.
 use super::*;
 
 #[no_mangle]
-pub extern "C" fn conduit_browser_plot_start_with_presentation(
+pub extern "C" fn conduit_browser_plot_start_with_face(
     host_length: usize,
     boot_length: usize,
     source_length: usize,
     play_sequence: u64,
-    presentation: u32,
+    face: u32,
 ) -> i32 {
-    use crate::installed_browser::PresentationProfile;
-    let presentation = match presentation {
-        0 => PresentationProfile::Annotation,
-        1 => PresentationProfile::Quantity,
-        2 => PresentationProfile::NormalizedDurations,
-        3 => PresentationProfile::PatternComparison,
+    use crate::installed_browser::FaceProfile;
+    let face = match face {
+        0 => FaceProfile::Annotation,
+        1 => FaceProfile::Quantity,
+        2 => FaceProfile::NormalizedDurations,
+        3 => FaceProfile::PatternComparison,
         _ => return ERROR_INPUT,
     };
     start(
@@ -23,23 +23,23 @@ pub extern "C" fn conduit_browser_plot_start_with_presentation(
         source_length,
         play_sequence,
         false,
-        presentation,
+        face,
     )
 }
 
 /// Read-only projection under the same exact structured profile used for Play.
 #[no_mangle]
-pub extern "C" fn conduit_browser_plot_project_with_presentation(
+pub extern "C" fn conduit_browser_plot_project_with_face(
     source_length: usize,
     sequence: u64,
-    presentation: u32,
+    face: u32,
 ) -> i32 {
-    use crate::installed_browser::PresentationProfile;
-    let presentation = match presentation {
-        0 => PresentationProfile::Annotation,
-        1 => PresentationProfile::Quantity,
-        2 => PresentationProfile::NormalizedDurations,
-        3 => PresentationProfile::PatternComparison,
+    use crate::installed_browser::FaceProfile;
+    let face = match face {
+        0 => FaceProfile::Annotation,
+        1 => FaceProfile::Quantity,
+        2 => FaceProfile::NormalizedDurations,
+        3 => FaceProfile::PatternComparison,
         _ => return ERROR_INPUT,
     };
     clear_output();
@@ -51,12 +51,7 @@ pub extern "C" fn conduit_browser_plot_project_with_presentation(
         let result = core::str::from_utf8(&input[..source_length])
             .map_err(|_| "compact Tour Patchbay source is not UTF-8".to_owned())
             .and_then(|source| {
-                super::super::compact_patchbay::project_with_presentation(
-                    source,
-                    sequence,
-                    false,
-                    presentation,
-                )
+                super::super::compact_patchbay::project_with_face(source, sequence, false, face)
             });
         input[..source_length].fill(0);
         match result {

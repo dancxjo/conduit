@@ -28,7 +28,7 @@
    Compiling conduit-finance v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/finance)
    Compiling conduit-home-model v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/home)
    Compiling conduit-data v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/data)
-   Compiling conduit-presentation v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/presentation)
+   Compiling conduit-face v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/face)
     Checking conduit-little-seismograph-fixture v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/plots/little-seismograph/fixture)
    Compiling conduit-ai v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/semantics/ai)
     Checking conduit-midi v0.1.0 (/home/dancxjo/conduit-5208-plot-journey/mechanisms/protocols/midi)

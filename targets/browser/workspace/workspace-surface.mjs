@@ -6,7 +6,7 @@ export function configureWorkspaceInput(input, plot, partition, unavailableReaso
   const acceptsInput = keyboard || pointer || button;
   const theremin = plot?.name === 'phone-two-axis-controller' || plot?.entry === 'phone-two-axis-controller';
   input.toggleAttribute('data-pocket-theremin', theremin);
-  const hasOutput = placements.some(placement => placement.resources.some(resource => resource.class_id === 'conduit.resource/presentation-slot@1'));
+  const hasOutput = placements.some(placement => placement.resources.some(resource => resource.class_id === 'conduit.resource/face-slot@1'));
   input.hidden = !plot || (!acceptsInput && !hasOutput);
   input.dataset.acceptsInput = String(acceptsInput);
   input.setAttribute('role', keyboard ? 'textbox' : 'group');

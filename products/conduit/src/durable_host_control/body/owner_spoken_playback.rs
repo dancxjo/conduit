@@ -2,7 +2,7 @@
 //! selected speaker and retained WAV are siblings in one audio Plan and Play.
 
 use crate::durable_host::selected_speech::AttachedEquipment;
-use conduit_presentation::{MaskShow, Presentation};
+use conduit_face::{Face, MaskShow};
 use conduit_std_host::{
     spoken_face_mask::SpokenBatch,
     spoken_face_stream_execution::{
@@ -18,7 +18,7 @@ use serde_json::{json, Value};
 /// each WAV still names its own Plan, Play, and committed speaker PCM.
 pub(super) fn play_direct_opening_wording(
     host: &mut StdHost,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     wording: &str,
     equipment: &AttachedEquipment,
@@ -106,7 +106,7 @@ fn direct_opening_receipt(
 
 pub(super) fn play_accepted_wording(
     host: &mut StdHost,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     wording: &str,
     equipment: &AttachedEquipment,

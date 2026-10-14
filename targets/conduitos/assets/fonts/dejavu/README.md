@@ -34,7 +34,7 @@ rather than interpreting their payload with changed offsets.
 Focused proofs cover naming coverage, unsupported scalars, clipping, wrapping,
 640 allocation-free text frames, and partial compositor damage. A native QEMU
 journey has shown proportional prose and monospace source. The four Chromium
-presentation-nucleus cases pass against the rebuilt WASM runtime, including
+face-nucleus cases pass against the rebuilt WASM runtime, including
 the role byte. Headless final-artifact exclusion and exact integrated acceptance
 remain required before closing #3163. The headless profile currently fails to
 compile because the boot entry references feature-disabled graphical product

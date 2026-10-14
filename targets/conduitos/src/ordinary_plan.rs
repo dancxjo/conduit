@@ -21,7 +21,7 @@ use crate::{
     text_planned_kernel::TextPlannedKernel,
 };
 
-pub const ORDINARY_PLOT_SOURCE: &str = "plot conduitos-text-upper {\n    upper: text/upper\n    show: presentation/text\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
+pub const ORDINARY_PLOT_SOURCE: &str = "plot conduitos-text-upper {\n    upper: text/upper\n    show: face/text(\"Message\")\n    \"Hello, ConduitOS\" >> upper >> show\n}\n";
 pub const TEXT_LITERAL: &str = "Hello, ConduitOS";
 pub const TEXT_RESULT: &str = "HELLO, CONDUITOS";
 const CORD_BYTES: u32 = conduit_text::MAX_TEXT_BYTES;
@@ -224,20 +224,19 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].contract_revision != conduit_text::TEXT_LITERAL_CONTRACT_REVISION
         || fixed.capabilities[3].kind != conduit_text::TEXT_UPPER_KIND
         || fixed.capabilities[3].contract_revision != conduit_text::TEXT_UPPER_CONTRACT_REVISION
-        || fixed.capabilities[4].kind != conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+        || fixed.capabilities[4].kind != conduit_semantic_catalog::TEXT_FACE_KIND
         || fixed.capabilities[4].contract_revision
-            != conduit_semantic_catalog::TEXT_PRESENTATION_CONTRACT_REVISION
+            != conduit_semantic_catalog::TEXT_FACE_CONTRACT_REVISION
         || fixed.capabilities[2].implementation != crate::offer::TEXT_LITERAL_IMPLEMENTATION
         || fixed.capabilities[3].implementation != crate::offer::TEXT_UPPER_IMPLEMENTATION
-        || fixed.capabilities[4].implementation != crate::offer::TEXT_PRESENTATION_IMPLEMENTATION
+        || fixed.capabilities[4].implementation != crate::offer::TEXT_FACE_IMPLEMENTATION
         || fixed.capabilities[5].kind != conduit_text::TEXT_MORSE_KIND
         || fixed.capabilities[5].contract_revision != conduit_text::TEXT_MORSE_CONTRACT_REVISION
         || fixed.capabilities[5].implementation != crate::offer::TEXT_MORSE_IMPLEMENTATION
-        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_PRESENTATION_KIND
+        || fixed.capabilities[6].kind != conduit_semantic_catalog::INDICATOR_FACE_KIND
         || fixed.capabilities[6].contract_revision
-            != conduit_semantic_catalog::INDICATOR_PRESENTATION_CONTRACT_REVISION
-        || fixed.capabilities[6].implementation
-            != crate::offer::INDICATOR_PRESENTATION_IMPLEMENTATION
+            != conduit_semantic_catalog::INDICATOR_FACE_CONTRACT_REVISION
+        || fixed.capabilities[6].implementation != crate::offer::INDICATOR_FACE_IMPLEMENTATION
         || [
             (
                 conduit_text::TEXT_CHARACTERS_KIND,
@@ -280,9 +279,9 @@ pub(crate) fn advertisement(
                 crate::offer::STATE_COUNT_IMPLEMENTATION,
             ),
             (
-                conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-                conduit_semantic_catalog::COUNT_PRESENTATION_CONTRACT_REVISION,
-                crate::offer::COUNT_PRESENTATION_IMPLEMENTATION,
+                conduit_semantic_catalog::COUNT_FACE_KIND,
+                conduit_semantic_catalog::COUNT_FACE_CONTRACT_REVISION,
+                crate::offer::COUNT_FACE_IMPLEMENTATION,
             ),
         ]
         .iter()
@@ -297,7 +296,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[2].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
         || fixed.capabilities[2].output.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_FACE_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Output
         })
         || fixed.capabilities[3].required_base != crate::machine::BaseKind::Memory
@@ -309,7 +308,7 @@ pub(crate) fn advertisement(
         || fixed.capabilities[4].maximum_input_bytes != crate::offer::SERIAL_MAXIMUM_BYTES
         || fixed.capabilities[4].input.is_none_or(|port| {
             port.name != "text"
-                || port.value_kind != conduit_semantic_catalog::TEXT_PRESENTATION_VALUE_KIND
+                || port.value_kind != conduit_semantic_catalog::TEXT_FACE_VALUE_KIND
                 || port.direction != crate::offer::PortDirection::Input
         })
         || fixed
@@ -349,24 +348,17 @@ pub(crate) fn advertisement(
     );
     let mut upper = crate::functional_offers::text_upper_offer();
     bind_native_capability(&mut upper, &fixed.capabilities[3], build_id, "text-upper");
-    let mut presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_semantic_catalog::TEXT_PRESENTATION_KIND,
-    )
-    .expect("ConduitOS owns text presentation");
-    bind_native_capability(
-        &mut presentation,
-        &fixed.capabilities[4],
-        build_id,
-        "presentation-text",
-    );
+    let mut face = crate::face_offers::face_offer_for(conduit_semantic_catalog::TEXT_FACE_KIND)
+        .expect("ConduitOS owns text face");
+    bind_native_capability(&mut face, &fixed.capabilities[4], build_id, "face-text");
     let mut morse = crate::functional_offers::text_morse_offer();
     bind_native_capability(&mut morse, &fixed.capabilities[5], build_id, "text-morse");
-    let mut indicator = crate::functional_offers::indicator_presentation_offer();
+    let mut indicator = crate::functional_offers::indicator_face_offer();
     bind_native_capability(
         &mut indicator,
         &fixed.capabilities[6],
         build_id,
-        "presentation-indicator",
+        "face-indicator",
     );
     let mut composition = crate::functional_offers::morse_composition_offers();
     for ((index, capability), name) in composition.iter_mut().enumerate().zip([
@@ -382,15 +374,14 @@ pub(crate) fn advertisement(
     bind_native_capability(&mut every, &fixed.capabilities[12], build_id, "time-every");
     let mut count = crate::functional_offers::state_count_offer();
     bind_native_capability(&mut count, &fixed.capabilities[13], build_id, "state-count");
-    let mut count_presentation = crate::presentation_offers::presentation_offer_for(
-        conduit_semantic_catalog::COUNT_PRESENTATION_KIND,
-    )
-    .expect("ConduitOS owns count presentation");
+    let mut count_face =
+        crate::face_offers::face_offer_for(conduit_semantic_catalog::COUNT_FACE_KIND)
+            .expect("ConduitOS owns count face");
     bind_native_capability(
-        &mut count_presentation,
+        &mut count_face,
         &fixed.capabilities[14],
         build_id,
-        "presentation-count",
+        "face-count",
     );
     let mut advertisement = HostAdvertisement {
         protocol_version: PROTOCOL_VERSION,
@@ -411,13 +402,13 @@ pub(crate) fn advertisement(
                 )
             })
             .collect::<Vec<ResourceOffer>>(),
-        capabilities: vec![literal, upper, presentation, morse, indicator],
+        capabilities: vec![literal, upper, face, morse, indicator],
         planner_capabilities: Vec::new(),
     };
     advertisement.capabilities.append(&mut composition);
     advertisement
         .capabilities
-        .extend([every, count, count_presentation]);
+        .extend([every, count, count_face]);
     crate::ordinary_base::append_serial(&mut advertisement, fixed)?;
     crate::ordinary_base::append_timer(&mut advertisement, fixed)?;
     if let Some(keyboard) = fixed.keyboard {

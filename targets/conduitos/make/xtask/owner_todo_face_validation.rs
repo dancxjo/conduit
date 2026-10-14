@@ -38,7 +38,7 @@ pub(super) fn read_and_validate_current(
     }
     let document: Value = serde_json::from_slice(&output.stdout)
         .map_err(|_| refusal("native-todo-owner-face-invalid"))?;
-    let face = &document["presentation"];
+    let face = &document["face"];
     let items = face["subjects"]
         .as_array()
         .ok_or_else(|| refusal("native-todo-owner-face-invalid"))?

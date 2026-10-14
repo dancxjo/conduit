@@ -48,7 +48,7 @@ pub(super) fn prepare_copy_scheduler(
         let back = if placement.kind_id.as_str() == conduit_semantic_catalog::COPY_FILE_KIND {
             CopyTaskBack::Copy(CopyBack::new(command))
         } else if placement.implementation_id.as_str()
-            == conduit_std_offers::COPY_RESULT_PRESENTATION_IMPLEMENTATION
+            == conduit_std_offers::COPY_RESULT_FACE_IMPLEMENTATION
         {
             CopyTaskBack::Sink(CopyResultBack::new())
         } else {

@@ -6,7 +6,7 @@
 use crate::{BirthActionOutcome, BirthActions, BirthDraft, BirthDraftRefusal};
 use alloc::string::String;
 use conduit_core::{BootId, HostId, PlanId, PlotIdentity};
-use conduit_presentation::{FaceInteraction, FaceInteractionRefusal, MaskShow, Presentation};
+use conduit_face::{Face, FaceInteraction, FaceInteractionRefusal, MaskShow};
 mod projection;
 #[cfg(test)]
 mod tests;
@@ -31,12 +31,12 @@ pub struct HostOwnedBirthFaceBasis {
     pub encounter_id: String,
 }
 
-pub(super) enum FaceBasis<'a> {
+pub(super) enum BirthProjectionBasis<'a> {
     Planned(&'a BirthFaceBasis),
     HostOwned(&'a HostOwnedBirthFaceBasis),
 }
 
-impl FaceBasis<'_> {
+impl BirthProjectionBasis<'_> {
     fn host_id(&self) -> &HostId {
         match self {
             Self::Planned(basis) => &basis.host_id,
@@ -60,8 +60,8 @@ impl FaceBasis<'_> {
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub enum BirthFaceRefusal {
     InvalidProjection,
-    Presentation(conduit_presentation::PresentationError),
-    View(conduit_presentation::SemanticPresentationRefusal),
+    Face(conduit_face::FaceError),
+    View(conduit_face::SemanticFaceRefusal),
     UnsupportedMechanism,
     Interaction(FaceInteractionRefusal),
     WrongEvent,
@@ -69,15 +69,15 @@ pub enum BirthFaceRefusal {
 }
 
 impl BirthDraft {
-    pub fn face(&self, basis: &BirthFaceBasis) -> Result<Presentation, BirthFaceRefusal> {
-        projection::project(self, FaceBasis::Planned(basis)).map(|(face, _)| face)
+    pub fn face(&self, basis: &BirthFaceBasis) -> Result<Face, BirthFaceRefusal> {
+        projection::project(self, BirthProjectionBasis::Planned(basis)).map(|(face, _)| face)
     }
 
     pub fn host_owned_face(
         &self,
         basis: &HostOwnedBirthFaceBasis,
-    ) -> Result<Presentation, BirthFaceRefusal> {
-        projection::project(self, FaceBasis::HostOwned(basis)).map(|(face, _)| face)
+    ) -> Result<Face, BirthFaceRefusal> {
+        projection::project(self, BirthProjectionBasis::HostOwned(basis)).map(|(face, _)| face)
     }
 
     /// Validate against the current draft, never against a caller-supplied Face.
@@ -88,7 +88,7 @@ impl BirthDraft {
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
-        self.apply_projected_interaction(FaceBasis::Planned(basis), show, input)
+        self.apply_projected_interaction(BirthProjectionBasis::Planned(basis), show, input)
     }
 
     pub fn apply_host_owned_face_interaction(
@@ -97,12 +97,12 @@ impl BirthDraft {
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {
-        self.apply_projected_interaction(FaceBasis::HostOwned(basis), show, input)
+        self.apply_projected_interaction(BirthProjectionBasis::HostOwned(basis), show, input)
     }
 
     fn apply_projected_interaction(
         &mut self,
-        basis: FaceBasis<'_>,
+        basis: BirthProjectionBasis<'_>,
         show: &MaskShow,
         input: &FaceInteraction,
     ) -> Result<BirthActionOutcome, BirthFaceRefusal> {

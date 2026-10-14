@@ -50,7 +50,7 @@ fn native_advertisement_for_test(host_id: HostId, boot_id: BootId) -> HostAdvert
 #[test]
 fn visual_and_linear_views_preserve_one_typed_identity_set() {
     let demo = DistributedRouteDemo::build().expect("route demo");
-    let facts = demo.presentation();
+    let facts = demo.face();
     let visual = demo.visual_lines().join("\n");
     let linear = demo.linear_lines().join("\n");
     let exact_identities = [
@@ -98,7 +98,7 @@ fn visual_and_linear_views_preserve_one_typed_identity_set() {
 #[test]
 fn projection_uses_typed_bases_and_exact_validated_event_sign() {
     let demo = DistributedRouteDemo::build().expect("route demo");
-    let facts = demo.presentation();
+    let facts = demo.face();
     assert_eq!(
         facts.new_plan.prior.candidates[0].base,
         BaseImplementationId::from("conduit.base/usb-cdc-acm@1")

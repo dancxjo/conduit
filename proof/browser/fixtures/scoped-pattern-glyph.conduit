@@ -6,7 +6,7 @@ plot equivalent (
 plot scoped-pattern-glyph {
     seed: text/literal("checked glyph equality")
     compare: equivalent
-    show: presentation/bool-value
+    show: face/bool-value("Result")
     seed >> compare.input
     compare.result >> show.value
 }.

@@ -1,15 +1,14 @@
-//! Adapt the living Patchbay projection into Conduit's portable Presentation value.
+//! Adapt the living Patchbay projection into Conduit's portable Face value.
 
 use conduit_body::{Body, BodyLifecycleError, BodyState, Wake, WakeLifecycle};
 use conduit_core::{ActivePlayId, CheckedPlotId, ExpandedPlotId, PlanId, SignId, SourceDocumentId};
-use conduit_presentation::{
-    Presentation, PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationContributionBasis, PresentationDisclosure, PresentationDisclosureLevel,
-    PresentationError, PresentationFragment, PresentationFragmentError, PresentationRole,
+use conduit_face::{
+    Face, FaceAction, FaceActionAvailability, FaceBasis, FaceContributionBasis, FaceDisclosure,
+    FaceDisclosureLevel, FaceError, FaceFragment, FaceFragmentError, FaceRole,
 };
 
 pub(super) use crate::portable_content::ContentBuilder;
-use crate::{GraphItemKind, PatchbayPresentation};
+use crate::{GraphItemKind, PatchbayFace};
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum PortableProjectionError {
@@ -19,27 +18,20 @@ pub enum PortableProjectionError {
     MissingCheckedPlot,
     PlanMismatch,
     PlayMismatch,
-    InvalidPresentation(PresentationError),
-    InvalidFragment(PresentationFragmentError),
+    InvalidFace(FaceError),
+    InvalidFragment(FaceFragmentError),
 }
 
 impl core::fmt::Display for PortableProjectionError {
     fn fmt(&self, formatter: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
-        write!(
-            formatter,
-            "cannot project portable Patchbay presentation: {self:?}"
-        )
+        write!(formatter, "cannot project portable Patchbay face: {self:?}")
     }
 }
 
 impl std::error::Error for PortableProjectionError {}
 
-impl PatchbayPresentation {
-    pub fn to_portable(
-        &self,
-        body: &Body,
-        wake: &Wake,
-    ) -> Result<Presentation, PortableProjectionError> {
+impl PatchbayFace {
+    pub fn to_portable(&self, body: &Body, wake: &Wake) -> Result<Face, PortableProjectionError> {
         self.to_portable_with_wake(body, Some(wake))
     }
 
@@ -47,11 +39,11 @@ impl PatchbayPresentation {
         &self,
         body: &Body,
         wake: Option<&Wake>,
-    ) -> Result<Presentation, PortableProjectionError> {
+    ) -> Result<Face, PortableProjectionError> {
         let projection = self.prepare_portable_content(body, wake)?;
-        Presentation::new_with_semantics(
+        Face::new_with_semantics(
             self.revision,
-            PresentationBasis {
+            FaceBasis {
                 body_id: Some(body.body_id.clone()),
                 wake_id: wake.map(|wake| wake.wake_id.clone()),
                 source_document_id: Some(projection.source_document_id),
@@ -66,24 +58,24 @@ impl PatchbayPresentation {
             projection.content.properties,
             projection.content.text,
             projection.actions,
-            vec![PresentationDisclosure {
+            vec![FaceDisclosure {
                 subject: projection.document,
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             }],
         )
-        .map_err(PortableProjectionError::InvalidPresentation)
+        .map_err(PortableProjectionError::InvalidFace)
     }
 
     /// Project Patchbay meaning as an ordinary resident Plot contribution.
     ///
     /// Face-owned Body and resident-Plot subjects are referenced but not
     /// redeclared, preventing Patchbay from becoming a second truth registry.
-    pub fn to_presentation_fragment(
+    pub fn to_face_fragment(
         &self,
         body: &Body,
         wake: &Wake,
-        basis: PresentationContributionBasis,
-    ) -> Result<PresentationFragment, PortableProjectionError> {
+        basis: FaceContributionBasis,
+    ) -> Result<FaceFragment, PortableProjectionError> {
         let mut projection = self.prepare_portable_content(body, Some(wake))?;
         let face_owned_plots = body
             .workset
@@ -95,7 +87,7 @@ impl PatchbayPresentation {
         projection.content.subjects.retain(|subject| {
             subject.identity != body_subject && !face_owned_plots.contains(&subject.identity)
         });
-        let fragment = PresentationFragment {
+        let fragment = FaceFragment {
             basis,
             subjects: projection.content.subjects,
             relationships: projection.content.relationships,
@@ -103,9 +95,9 @@ impl PatchbayPresentation {
             properties: projection.content.properties,
             text: projection.content.text,
             actions: projection.actions,
-            disclosures: vec![PresentationDisclosure {
+            disclosures: vec![FaceDisclosure {
                 subject: projection.document,
-                level: PresentationDisclosureLevel::Primary,
+                level: FaceDisclosureLevel::Primary,
             }],
             temporal_references: Vec::new(),
             temporal_facts: Vec::new(),
@@ -149,7 +141,7 @@ impl PatchbayPresentation {
         let mut content = ContentBuilder::new();
         let document = content.subject_with_identity(
             format!("document/{}", source_document_id.as_str()),
-            PresentationRole::Document,
+            FaceRole::Document,
             format!("Patchbay document {}", source_document_id.as_str()),
         );
         content.line(
@@ -174,7 +166,7 @@ impl PatchbayPresentation {
         if target != document {
             let action_target = content.subject_with_identity(
                 target.clone(),
-                PresentationRole::Plot,
+                FaceRole::Plot,
                 "Current checked and expanded Plot",
             );
             content.contains(&document, &action_target);
@@ -206,10 +198,10 @@ struct PreparedPatchbayContent {
     sign_ids: Vec<SignId>,
     document: String,
     content: ContentBuilder,
-    actions: Vec<PresentationAction>,
+    actions: Vec<FaceAction>,
 }
 
-pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<PresentationAction> {
+pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<FaceAction> {
     let current: &[&str] = match lifecycle {
         WakeLifecycle::AwaitingPlan
         | WakeLifecycle::Unsatisfied
@@ -236,19 +228,19 @@ pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<P
         ("lull", "Lull", "conduit.intent/lull@1"),
     ]
     .iter()
-    .map(|(name, label, intent)| PresentationAction {
+    .map(|(name, label, intent)| FaceAction {
         identity: format!("action/{name}/{target}"),
         intent: (*intent).into(),
         target: target.into(),
         name: (*label).into(),
         arguments: vec![],
-        disclosure: PresentationDisclosureLevel::CurrentAction,
+        disclosure: FaceDisclosureLevel::CurrentAction,
         availability: if matches!(*name, "open-back" | "save" | "toggle-linear-view")
             || current.contains(name)
         {
-            PresentationActionAvailability::Available
+            FaceActionAvailability::Available
         } else {
-            PresentationActionAvailability::Unavailable {
+            FaceActionAvailability::Unavailable {
                 reason_code: "lifecycle/not-current".into(),
                 explanation: format!("{label} is not available in {lifecycle:?}."),
             }
@@ -257,12 +249,12 @@ pub(super) fn lifecycle_actions(lifecycle: WakeLifecycle, target: &str) -> Vec<P
     .collect()
 }
 
-fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &mut ContentBuilder) {
-    let Some(inspection) = &presentation.sound_inspection else {
+fn append_sound(face: &PatchbayFace, document: &str, content: &mut ContentBuilder) {
+    let Some(inspection) = &face.sound_inspection else {
         return;
     };
     let sound = content.subject(
-        PresentationRole::Plan,
+        FaceRole::Plan,
         "Sound realization compatibility and exact selection",
     );
     content.contains(document, &sound);
@@ -316,16 +308,16 @@ fn append_sound(presentation: &PatchbayPresentation, document: &str, content: &m
 }
 
 fn validate_lifecycle(
-    presentation: &PatchbayPresentation,
+    face: &PatchbayFace,
     body: &Body,
     wake: &Wake,
 ) -> Result<(), PortableProjectionError> {
-    let checked = presentation
+    let checked = face
         .document
         .checked
         .plots
         .iter()
-        .find(|plot| plot.name == presentation.document.open_plot)
+        .find(|plot| plot.name == face.document.open_plot)
         .ok_or(PortableProjectionError::MissingCheckedPlot)?;
     let active_body = matches!(
         &body.state,
@@ -336,8 +328,7 @@ fn validate_lifecycle(
         || body.workset != wake.workset
         || body.workload_revision != wake.workload_revision
         || !body.workset.contains(&conduit_body::ResidentPlot::new(
-            presentation
-                .document
+            face.document
                 .checked
                 .source_document_id
                 .clone()
@@ -348,7 +339,7 @@ fn validate_lifecycle(
         return Err(PortableProjectionError::LifecycleMismatch);
     }
 
-    match (&presentation.plan, &presentation.play) {
+    match (&face.plan, &face.play) {
         (None, None) if wake.lifecycle == WakeLifecycle::AwaitingPlan => Ok(()),
         (Some(plan), None)
             if wake.lifecycle == WakeLifecycle::AwaitingPlay
@@ -376,15 +367,11 @@ fn validate_lifecycle(
     }
 }
 
-fn append_document(
-    presentation: &PatchbayPresentation,
-    document: &str,
-    content: &mut ContentBuilder,
-) {
-    for plot in &presentation.document.checked.plots {
+fn append_document(face: &PatchbayFace, document: &str, content: &mut ContentBuilder) {
+    for plot in &face.document.checked.plots {
         let plot_subject = content.subject_with_identity(
             format!("plot/{}", plot.checked_plot_id.as_str()),
-            PresentationRole::Plot,
+            FaceRole::Plot,
             format!(
                 "Plot {} checked {}",
                 plot.name,
@@ -400,13 +387,13 @@ fn append_document(
                 plot.checked_plot_id.as_str()
             ),
         );
-        if presentation.document.open_plot == plot.name {
-            if let Some(graph) = &presentation.graph {
+        if face.document.open_plot == plot.name {
+            if let Some(graph) = &face.graph {
                 crate::portable_graph_projection::append_exact_graph(
                     &plot_subject,
                     graph,
-                    presentation.plan.as_ref(),
-                    presentation.play.as_ref(),
+                    face.plan.as_ref(),
+                    face.play.as_ref(),
                     content,
                 );
                 continue;
@@ -414,9 +401,9 @@ fn append_document(
         }
         for item in &plot.items {
             let role = match item.kind {
-                GraphItemKind::FaceInput | GraphItemKind::FaceOutput => PresentationRole::Port,
-                GraphItemKind::StartupValue | GraphItemKind::Gear => PresentationRole::Gear,
-                GraphItemKind::Cord => PresentationRole::Cord,
+                GraphItemKind::FaceInput | GraphItemKind::FaceOutput => FaceRole::Port,
+                GraphItemKind::StartupValue | GraphItemKind::Gear => FaceRole::Gear,
+                GraphItemKind::Cord => FaceRole::Cord,
             };
             let subject = content.subject(role, &item.label);
             content.contains(&plot_subject, &subject);
@@ -429,10 +416,10 @@ fn append_document(
             );
         }
     }
-    for diagnostic in &presentation.document.checked.diagnostics {
+    for diagnostic in &face.document.checked.diagnostics {
         append_diagnostic(document, diagnostic.code, &diagnostic.message, content);
     }
-    if let Some(attempted) = &presentation.attempted_edit {
+    if let Some(attempted) = &face.attempted_edit {
         for diagnostic in &attempted.diagnostics {
             append_diagnostic(document, diagnostic.code, &diagnostic.message, content);
         }
@@ -440,20 +427,16 @@ fn append_document(
 }
 
 fn append_diagnostic(document: &str, code: &str, message: &str, content: &mut ContentBuilder) {
-    let subject = content.subject(PresentationRole::Diagnostic, format!("Diagnostic {code}"));
+    let subject = content.subject(FaceRole::Diagnostic, format!("Diagnostic {code}"));
     content.describes(&subject, document);
     content.line(&subject, format!("{code}: {message}"));
 }
 
-fn append_plan_and_play(
-    presentation: &PatchbayPresentation,
-    document: &str,
-    content: &mut ContentBuilder,
-) {
-    if let Some(plan) = &presentation.plan {
+fn append_plan_and_play(face: &PatchbayFace, document: &str, content: &mut ContentBuilder) {
+    if let Some(plan) = &face.plan {
         let subject = content.subject_with_identity(
             format!("plan/{}", plan.plan_id.as_str()),
-            PresentationRole::Plan,
+            FaceRole::Plan,
             format!("Plan {}", plan.plan_id.as_str()),
         );
         content.describes(&subject, document);
@@ -461,10 +444,10 @@ fn append_plan_and_play(
             content.line(&subject, line);
         }
     }
-    if let Some(play) = &presentation.play {
+    if let Some(play) = &face.play {
         let subject = content.subject_with_identity(
             format!("play/{}", play.active_play_id.as_str()),
-            PresentationRole::Play,
+            FaceRole::Play,
             format!("Play {}", play.active_play_id.as_str()),
         );
         content.describes(&subject, document);
@@ -480,7 +463,7 @@ fn append_plan_and_play(
 pub(super) fn append_sign(document: &str, sign: &SignId, content: &mut ContentBuilder) {
     let subject = content.subject_with_identity(
         format!("sign/{}", sign.as_str()),
-        PresentationRole::Sign,
+        FaceRole::Sign,
         format!("Sign {}", sign.as_str()),
     );
     content.describes(&subject, document);

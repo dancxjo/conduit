@@ -1,8 +1,8 @@
 use alloc::{format, string::String, vec, vec::Vec};
 
-use conduit_presentation::{
-    ActionAvailability, ApplicationEventKind, PresentationMechanism, SemanticAction,
-    SemanticApplicationView, SemanticPresentationNode, SemanticPresentationRefusal, StatusKind,
+use conduit_face::{
+    ActionAvailability, ApplicationEventKind, FaceMechanism, SemanticAction,
+    SemanticApplicationView, SemanticFaceNode, SemanticFaceRefusal, StatusKind,
 };
 
 pub const PREVIOUS_PAGE_ACTION: &str = "tour.previous";
@@ -16,15 +16,15 @@ pub struct TourPageNavigation {
 }
 
 impl TourPageNavigation {
-    pub fn presentation(&self) -> Result<SemanticApplicationView, SemanticPresentationRefusal> {
+    pub fn face(&self) -> Result<SemanticApplicationView, SemanticFaceRefusal> {
         if self.page_count == 0 || self.current_page >= self.page_count {
-            return Err(SemanticPresentationRefusal::InvalidNavigation);
+            return Err(SemanticFaceRefusal::InvalidNavigation);
         }
         let view = SemanticApplicationView {
             revision: self.revision,
             root: node(
                 "navigation",
-                PresentationMechanism::Navigation {
+                FaceMechanism::Navigation {
                     label: "Tour pages".into(),
                     current: if self.current_page > 0 {
                         "previous".into()
@@ -35,7 +35,7 @@ impl TourPageNavigation {
                 vec![
                     node(
                         "progress",
-                        PresentationMechanism::Status {
+                        FaceMechanism::Status {
                             kind: StatusKind::Ordinary,
                             title: format!("Page {} of {}", self.current_page + 1, self.page_count),
                             detail: String::new(),
@@ -79,10 +79,10 @@ fn action(
     identity: &str,
     label: &str,
     availability: ActionAvailability,
-) -> SemanticPresentationNode {
+) -> SemanticFaceNode {
     node(
         key,
-        PresentationMechanism::Action(SemanticAction {
+        FaceMechanism::Action(SemanticAction {
             identity: identity.into(),
             event: ApplicationEventKind::Activate,
             label: label.into(),
@@ -92,12 +92,8 @@ fn action(
     )
 }
 
-fn node(
-    key: &str,
-    mechanism: PresentationMechanism,
-    children: Vec<SemanticPresentationNode>,
-) -> SemanticPresentationNode {
-    SemanticPresentationNode {
+fn node(key: &str, mechanism: FaceMechanism, children: Vec<SemanticFaceNode>) -> SemanticFaceNode {
+    SemanticFaceNode {
         key: key.into(),
         mechanism,
         children,
@@ -106,18 +102,18 @@ fn node(
 
 #[cfg(test)]
 mod tests {
-    use conduit_presentation::{ApplicationComponent, ApplicationView};
+    use conduit_face::{ApplicationComponent, ApplicationView};
 
     use super::*;
 
     #[test]
-    fn navigation_is_finite_semantic_presentation_with_boundary_actions() {
+    fn navigation_is_finite_semantic_face_with_boundary_actions() {
         let lowered = TourPageNavigation {
             revision: 7,
             current_page: 0,
             page_count: 3,
         }
-        .presentation()
+        .face()
         .unwrap()
         .lower()
         .unwrap();
@@ -157,8 +153,8 @@ mod tests {
             },
         ] {
             assert_eq!(
-                navigation.presentation(),
-                Err(SemanticPresentationRefusal::InvalidNavigation)
+                navigation.face(),
+                Err(SemanticFaceRefusal::InvalidNavigation)
             );
         }
     }

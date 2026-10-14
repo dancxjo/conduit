@@ -95,11 +95,11 @@ fn fragment(interactive: bool) -> PlanFragment {
         "garden-state-step"
     };
     let source = format!(
-        "{}\nplot garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}\n source.prior >> evolve.prior\n source.clock >> evolve.clock\n{} evolve.next >> result.state\n}}\n",
+        "{}\nplot garden-kernel-proof {{\n source: {}\n evolve: {}\n result: {}(\"Garden state\")\n source.prior >> evolve.prior\n source.clock >> evolve.clock\n{} evolve.next >> result.state\n}}\n",
         include_str!("../../../../../plots/signal-garden/main.conduit"),
         SOURCE_KIND,
         evolve_plot,
-        conduit_semantic_catalog::GARDEN_STATE_PRESENTATION_KIND,
+        conduit_semantic_catalog::GARDEN_STATE_FACE_KIND,
         contact_cord,
     );
     let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();

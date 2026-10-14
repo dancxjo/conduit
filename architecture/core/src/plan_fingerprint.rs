@@ -457,6 +457,10 @@ fn push_semantic_contract(canonical: &mut Vec<u8>, contract: &crate::KindSemanti
                 canonical.extend_from_slice(&maximum.to_le_bytes());
                 push_string(canonical, &canonical_unit.semantic_id());
             }
+            Rule::DataLabel { maximum } => {
+                canonical.push(11);
+                push_u32(canonical, *maximum);
+            }
             Rule::TextBytes { maximum } => {
                 canonical.push(5);
                 push_u32(canonical, *maximum);

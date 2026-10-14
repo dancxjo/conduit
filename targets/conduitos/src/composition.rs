@@ -16,7 +16,7 @@ pub struct MachineRunReceipt {
     pub kernel_signs: u16,
     pub timer_irq_wakes: u32,
     pub idle_entries: u32,
-    pub serial_presentations: u32,
+    pub serial_faces: u32,
     pub clock_monotonic: bool,
     pub pending_host_calls: u8,
     pub overlap_witness: bool,
@@ -114,7 +114,7 @@ where
                         .map_err(|_| MachineRunError::SerialBaseFailure)?;
                 }
                 kernel
-                    .complete_presentation(request)
+                    .complete_face(request)
                     .map_err(|_| MachineRunError::KernelFailure)?;
             } else {
                 return Err(MachineRunError::UnexpectedHostCall);
@@ -138,7 +138,7 @@ where
                     kernel_signs: kernel.sign_count(),
                     timer_irq_wakes: timer.wake_count(),
                     idle_entries: idle.idle_count(),
-                    serial_presentations: serial.presentation_count(),
+                    serial_faces: serial.face_count(),
                     clock_monotonic: ended >= started,
                     pending_host_calls: kernel.pending_host_calls() as u8,
                     overlap_witness: false,

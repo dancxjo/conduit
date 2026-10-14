@@ -191,7 +191,7 @@ test("two native browser clients exchange bounded chat through planned kernels",
   await context.close();
 });
 
-test("authored Presentation labels change the generic host without JavaScript changes", async ({ page }) => {
+test("authored Face labels change the generic host without JavaScript changes", async ({ page }) => {
   const oracleServer = await startWebchatServer();
   const target = `/proof/browser/webchat.test.html?ws=${encodeURIComponent(oracleServer.url)}&plot=chat/browser-client-label-oracle`;
   await page.goto(target);
@@ -199,11 +199,11 @@ test("authored Presentation labels change the generic host without JavaScript ch
   await expect(page.getByLabel("Say something")).toBeVisible();
   await expect(page.getByRole("button", { name: "Transmit" })).toBeEnabled();
   const proof = await page.evaluate(() => globalThis.__webchat.proof());
-  expect(proof.presentationId).toBeTruthy();
+  expect(proof.faceId).toBeTruthy();
   expect(proof.manifestationId).toBeTruthy();
-  expect(proof.presentationRevision).toBeGreaterThan(0);
+  expect(proof.faceRevision).toBeGreaterThan(0);
   const refusals = await page.evaluate(() => ({
-    stale: globalThis.__webchat.refusal({ presentation_revision: 0 }),
+    stale: globalThis.__webchat.refusal({ face_revision: 0 }),
     oversize: globalThis.__webchat.refusal({ value: "x".repeat(257) }),
   }));
   expect(refusals.stale).toBe(-251);
@@ -322,7 +322,7 @@ test("one native Body presents three mixed browser Parts without mutating its pl
   expect(receipt.physical_pico_admitted).toBe(Boolean(picoPort));
   if (!picoPort) {
     const navigation = receipt.cord_line_navigation;
-    expect(navigation.schema).toBe("conduit.presentation/live-cord-line-navigation@1");
+    expect(navigation.schema).toBe("conduit.face/live-cord-line-navigation@1");
     expect(navigation.plan_id).toBe(receipt.active_plan_id);
     expect(navigation.cord_subject).not.toBe(navigation.line_subject);
     expect(navigation.program_cursor.place).toBe("Program");
@@ -403,18 +403,18 @@ test("Patchbay front door presents one live browser Part through restart and rep
   expect(receipt.line_selection_preserved_on_loss).toBe(true);
   expect(receipt.line_base).toBe("WebSocket");
   expect(receipt.line_availability_transition).toEqual(["Ready", "Unavailable"]);
-  expect(receipt.loss_navigation.schema).toBe("conduit.presentation/loss-navigation-receipt@1");
+  expect(receipt.loss_navigation.schema).toBe("conduit.face/loss-navigation-receipt@1");
   expect(receipt.loss_navigation.before.place).toBe("Body");
   expect(receipt.loss_navigation.before.aspect).toBe("Plan");
   expect(receipt.loss_navigation.before.depth).toBe("Exact");
   expect(receipt.loss_navigation.before.focus).toBe(receipt.loss_navigation.line_subject);
-  expect(receipt.loss_navigation.prior_cursor_refusal).toBe("StalePresentation");
+  expect(receipt.loss_navigation.prior_cursor_refusal).toBe("StaleFace");
   expect(receipt.loss_navigation.after.place).toBe("Body");
   expect(receipt.loss_navigation.after.aspect).toBe("Plan");
   expect(receipt.loss_navigation.after.depth).toBe("Exact");
   expect(receipt.loss_navigation.after.focus).toBe(receipt.loss_navigation.line_subject);
-  expect(receipt.loss_navigation.after.presentation)
-    .not.toBe(receipt.loss_navigation.before.presentation);
+  expect(receipt.loss_navigation.after.face)
+    .not.toBe(receipt.loss_navigation.before.face);
   expect(receipt.loss_navigation.line_is_unavailable).toBe(true);
   expect(receipt.loss_navigation.plan_id_before_and_after).toBe(receipt.first_plan_id);
   expect(receipt.loss_navigation.play_id_before_and_after).toBe(receipt.first_play_id);

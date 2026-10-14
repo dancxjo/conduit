@@ -7,9 +7,9 @@ pub(crate) fn source(
 ) -> String {
     let language_request = conduit_language::language_request_literal(language);
     let projection = if streaming {
-        "presentation/generated-manifestation-speech-stream"
+        "face/generated-manifestation-speech-stream"
     } else {
-        "presentation/generated-manifestation-speech"
+        "face/generated-manifestation-speech"
     };
     let synthesis = if streaming {
         format!("commit: speech/commit-generated-text\n voice: speech/synthesize-stream(language-request = {language_request}, maximum-output-bytes = {maximum_output_bytes}, maximum-audio-millis = 30000, maximum-segments = 32)")
@@ -22,9 +22,9 @@ pub(crate) fn source(
         ""
     };
     let artifact_work = if streaming {
-        "(maximum-blocks = 32768, maximum-audio-millis = 30000)"
+        "(label = \"Spoken output\", maximum-blocks = 32768, maximum-audio-millis = 30000)"
     } else {
-        ""
+        "(\"Spoken output\")"
     };
     let speech_cord = if streaming {
         "speech.speech >> commit.generated\n commit.segments >> voice.text"
@@ -33,22 +33,22 @@ pub(crate) fn source(
     };
     format!(
         r#"plot {plot_name} (
- >> face: Presentation
+ >> face: Face
  interaction: FaceInteraction...| >>
  show: Show >>
 ) {{
- request: presentation/adapt-generative-request
+ request: face/adapt-generative-request("Adapt generative request")
  language: llm/present(16384, 1, 4096, 16384, 0)
- envelope: presentation/build-generated-validation-envelope
- validator: presentation/generated-semantic-validator
- accepted: presentation/retain-generated-validation
- speech: {projection}
+ envelope: face/build-generated-validation-envelope("Build generated validation envelope")
+ validator: face/generated-semantic-validator("Validated output")
+ accepted: face/retain-generated-validation("Retain generated validation")
+ speech: {projection}("Spoken words")
  {synthesis}
  convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = "stereo-left-right"{work})
- artifact: presentation/spoken-artifact{artifact_work}
- shown: presentation/artifact-acknowledged-show
- no-input: presentation/no-interaction
- face >> request.presentation
+ artifact: face/spoken-artifact{artifact_work}
+ shown: face/artifact-acknowledged-show("Artifact acknowledged show")
+ no-input: face/no-interaction("Interaction completion")
+ face >> request.face
  request.request >> language.request
  request.request >> envelope.request
  language.result >> envelope.candidate

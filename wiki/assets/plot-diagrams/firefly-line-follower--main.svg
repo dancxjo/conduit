@@ -47,7 +47,7 @@
 <text class="port-name" text-anchor="end" x="2099" y="444">updated</text>
 </g>
 <g><rect class="gear" x="2450" y="380" width="280" height="120" rx="10"/><path class="header" d="M2450,390 q0,-10 10,-10 h260 q10,0 10,10 v42 h-280 z"/>
-<title>firefly-line-follower/manifest — kind presentation/rhythm</title>
+<title>firefly-line-follower/manifest — kind face/rhythm</title>
 <use href="#gear-mark" x="2462" y="391" width="28" height="28"/><text class="label" x="2500" y="402">manifest</text><text class="kind" x="2500" y="423">firefly-line-follower/manifes…</text>
 <g><title>state: time/rhythm-state@1</title><circle class="port input-port" cx="2450" cy="460" r="5"/></g>
 <text class="port-name" text-anchor="start" x="2461" y="464">state</text>

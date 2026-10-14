@@ -11,7 +11,7 @@ use conduit_plan_lowering::lowering::{
     lower_plan_fragment, KernelExecutionIdentityMap, LoweredPlanFragment, RemoteCordDirection,
     FIXED_KERNEL_STORAGE_PORTS_PER_NODE,
 };
-use conduit_semantic_catalog::{BodyCoordinationPlan, TEXT_PRESENTATION_KIND};
+use conduit_semantic_catalog::{BodyCoordinationPlan, TEXT_FACE_KIND};
 use conduit_text::{MAX_TEXT_BYTES, TEXT_LITERAL_KIND};
 use conduit_wire::{SessionBinding, SessionMachine, SessionRole};
 
@@ -37,7 +37,7 @@ type CoordinationScheduler = FixedScheduler<
 
 enum CoordinationBack {
     Literal { value: ValueRef, emitted: bool },
-    Presentation { pending: Option<RequestId> },
+    Face { pending: Option<RequestId> },
 }
 
 impl CoordinationBack {
@@ -69,7 +69,7 @@ impl StepBack<PORTS> for CoordinationBack {
                 *emitted = true;
                 StepOutcome::Progress
             }
-            Self::Presentation { pending } => {
+            Self::Face { pending } => {
                 if let Some(expected) = *pending {
                     let Some((request, outcome)) = io.host_completion() else {
                         return StepOutcome::Await;
@@ -113,7 +113,7 @@ impl StepBack<PORTS> for CoordinationBack {
     fn cancel(&mut self) {
         match self {
             Self::Literal { .. } => {}
-            Self::Presentation { pending } => *pending = None,
+            Self::Face { pending } => *pending = None,
         }
     }
 }
@@ -189,7 +189,7 @@ impl CoordinationEndpoint {
                         emitted: false,
                     }
                 }
-                TEXT_PRESENTATION_KIND => CoordinationBack::Presentation { pending: None },
+                TEXT_FACE_KIND => CoordinationBack::Face { pending: None },
                 kind => return Err(format!("unsupported coordination Kind {kind}")),
             };
             drivers.push(back);
@@ -300,7 +300,7 @@ impl CoordinationEndpoint {
 
     pub fn next_offer(&mut self) -> Result<CoordinationOffer, String> {
         loop {
-            self.complete_presentation_request()?;
+            self.complete_face_request()?;
             let (endpoint, cord) = self.remote(RemoteCordDirection::Egress);
             if let Some(offer) = self
                 .scheduler
@@ -369,7 +369,7 @@ impl CoordinationEndpoint {
 
     pub fn finish(&mut self) -> Result<(), String> {
         loop {
-            if self.complete_presentation_request()? {
+            if self.complete_face_request()? {
                 continue;
             }
             match self
@@ -409,7 +409,7 @@ impl CoordinationEndpoint {
         &self.lowered
     }
 
-    fn complete_presentation_request(&mut self) -> Result<bool, String> {
+    fn complete_face_request(&mut self) -> Result<bool, String> {
         let Some(request) = self.scheduler.next_host_request() else {
             return Ok(false);
         };
@@ -419,7 +419,7 @@ impl CoordinationEndpoint {
             .map_err(|error| format!("{error:?}"))?;
         let text = core::str::from_utf8(bytes).map_err(|error| error.to_string())?;
         if self.received.len() + text.len() > MAX_TEXT_BYTES as usize {
-            return Err("coordination presentation exceeds admitted bytes".into());
+            return Err("coordination face exceeds admitted bytes".into());
         }
         self.received.push_str(text);
         self.scheduler
@@ -439,7 +439,7 @@ impl CoordinationEndpoint {
     fn drive_until_presented(&mut self, expected: usize) -> Result<(), String> {
         let target = self.received.len() + expected;
         while self.received.len() < target {
-            if self.complete_presentation_request()? {
+            if self.complete_face_request()? {
                 continue;
             }
             match self
@@ -448,9 +448,9 @@ impl CoordinationEndpoint {
                 .map_err(|error| format!("{error:?}"))?
             {
                 SchedulerStatus::Progress { .. } => {}
-                SchedulerStatus::Idle => return Err("coordination presentation idle".into()),
+                SchedulerStatus::Idle => return Err("coordination face idle".into()),
                 SchedulerStatus::Drained => {
-                    return Err("coordination presentation completed too early".into())
+                    return Err("coordination face completed too early".into())
                 }
                 SchedulerStatus::Cancelled => return Err("coordination endpoint cancelled".into()),
             }

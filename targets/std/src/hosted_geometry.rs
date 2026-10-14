@@ -5,7 +5,7 @@ use conduit_core::{
     HostCallContractId, HostCallRequirement, ImplementationId, Kind,
     MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
-use conduit_presentation::{geometry_semantic_contracts, POINT2_LITERAL_KIND};
+use conduit_face::{geometry_semantic_contracts, POINT2_LITERAL_KIND};
 use std::{format, vec, vec::Vec};
 
 pub const GEOMETRY_PROFILE: &str = "std/geometry-kernel-hosted@1";

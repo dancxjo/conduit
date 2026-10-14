@@ -283,3 +283,47 @@ fn corrupt_weight_member_refuses_without_replacing_model() {
     );
     assert_eq!(before, fresh.snapshot_identity().unwrap());
 }
+
+#[test]
+fn changed_config_and_schema_refuse_even_with_valid_descriptor_digest() {
+    use sha2::{Digest, Sha256};
+    let directory = tempfile::tempdir().unwrap();
+    let store = DirectoryCheckpointStore::new(directory.path(), 65536, 16).unwrap();
+    let mut trained = adapter();
+    let cancel = Cancellation::default();
+    trained
+        .train_step(&common::request(1), &common::batch(), &cancel)
+        .unwrap();
+    let metrics = trained
+        .evaluate(&common::request(1).batch, &common::batch())
+        .unwrap()
+        .metrics;
+    let saved = trained.checkpoint(&store, metrics, &cancel).unwrap();
+    let descriptor: serde_json::Value = serde_json::from_slice(
+        &std::fs::read(store.descriptor_path(&saved.checkpoint.content.identity.digest())).unwrap(),
+    )
+    .unwrap();
+    for (field, value) in [
+        ("config_identity", serde_json::json!(vec![99; 32])),
+        ("checkpoint_schema", serde_json::json!(2)),
+        ("schema", serde_json::json!(99)),
+    ] {
+        let mut changed = descriptor.clone();
+        changed[field] = value;
+        let bytes = serde_json::to_vec(&changed).unwrap();
+        let identity: [u8; 32] = Sha256::digest(&bytes).into();
+        // Rehash valid JSON so this checks compatibility rather than corruption.
+        std::fs::write(store.descriptor_path(&identity), bytes).unwrap();
+        let mut fresh = adapter();
+        let before = fresh.snapshot_identity().unwrap();
+        let expected = fresh.infer(&common::batch().inputs).unwrap();
+        assert_eq!(
+            fresh.resume(&store, &identity),
+            Err(Error::IncompatibleCheckpoint),
+            "{field}"
+        );
+        assert_eq!(fresh.snapshot_identity().unwrap(), before);
+        assert_eq!(fresh.state().completed_steps, 0);
+        assert_eq!(fresh.infer(&common::batch().inputs).unwrap(), expected);
+    }
+}

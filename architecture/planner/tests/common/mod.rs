@@ -19,8 +19,8 @@ pub fn standard_planning_fixture(
         bases: vec![],
         resources: vec![
             conduit_core::resource_offer(
-                "planner-test/presentation",
-                conduit_core::PRESENTATION_RESOURCE_CLASS,
+                "planner-test/face",
+                conduit_core::FACE_RESOURCE_CLASS,
                 16,
             ),
             conduit_core::resource_offer(

@@ -28,7 +28,7 @@ pub struct StdHostComposition {
     pub logic: bool,
     pub math: bool,
     pub layout: bool,
-    pub presentation: bool,
+    pub face: bool,
     pub robotics: bool,
     pub navigation: bool,
     pub files: bool,
@@ -55,7 +55,7 @@ impl StdHostComposition {
             logic: true,
             math: true,
             layout: true,
-            presentation: true,
+            face: true,
             robotics: true,
             navigation: true,
             files: true,
@@ -83,7 +83,7 @@ impl StdHostComposition {
             logic: false,
             math: false,
             layout: false,
-            presentation: false,
+            face: false,
             robotics: false,
             navigation: false,
             files: false,
@@ -151,8 +151,8 @@ impl StdHostComposition {
         self
     }
 
-    pub const fn with_presentation(mut self) -> Self {
-        self.presentation = true;
+    pub const fn with_face(mut self) -> Self {
+        self.face = true;
         self
     }
 
@@ -233,8 +233,8 @@ pub(super) fn build_advertisement(
             conduit_std_offers::time_deadline_offer(),
             conduit_std_offers::recurrence_std_offer(),
             conduit_std_offers::calendar_proposal_std_offer(),
-            conduit_std_offers::tick_presentation_offer(),
-            conduit_std_offers::bool_presentation_offer(),
+            conduit_std_offers::tick_face_offer(),
+            conduit_std_offers::bool_face_offer(),
         ]);
     }
     if composition.pulse_observation {
@@ -294,7 +294,7 @@ pub(super) fn build_advertisement(
         capabilities.extend([
             conduit_std_offers::state_count_offer(),
             conduit_std_offers::state_toggle_offer(),
-            conduit_std_offers::count_presentation_offer(),
+            conduit_std_offers::count_face_offer(),
             conduit_std_offers::state_latest_scalar_offer(),
             conduit_std_offers::flow_tee_scalar_offer(),
             conduit_std_offers::flow_first_scalar_offer(),
@@ -341,18 +341,18 @@ pub(super) fn build_advertisement(
             conduit_std_offers::layout_align_offer(),
         ]);
     }
-    if composition.presentation {
+    if composition.face {
         capabilities.extend([
-            conduit_std_offers::quantity_presentation_std_offer(),
-            conduit_std_offers::presentation_icon_offer(),
-            conduit_std_offers::presentation_frame_offer(),
-            conduit_std_offers::presentation_badge_offer(),
+            conduit_std_offers::quantity_face_std_offer(),
+            conduit_std_offers::face_icon_offer(),
+            conduit_std_offers::face_frame_offer(),
+            conduit_std_offers::face_badge_offer(),
             conduit_std_offers::graphics_rect_offer(),
             conduit_std_offers::graphics_text_offer(),
             conduit_std_offers::graphics_icon_offer(),
-            conduit_std_offers::graphics_presentation_offer(),
-            conduit_std_offers::bitmap_presentation_offer(),
-            conduit_std_offers::indicator_presentation_offer(),
+            conduit_std_offers::graphics_face_offer(),
+            conduit_std_offers::bitmap_face_offer(),
+            conduit_std_offers::indicator_face_offer(),
         ]);
     }
     if composition.robotics {
@@ -372,7 +372,7 @@ pub(super) fn build_advertisement(
     if composition.files {
         capabilities.extend([
             conduit_std_offers::copy_file_offer(),
-            conduit_std_offers::copy_result_presentation_offer(),
+            conduit_std_offers::copy_result_face_offer(),
         ]);
     }
     if composition.external_websocket {

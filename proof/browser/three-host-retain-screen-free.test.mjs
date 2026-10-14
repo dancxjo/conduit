@@ -47,15 +47,15 @@ async function fixture() {
       transcript: await artifact('wardrobe-transcript.txt'),
     },
   };
-  const checkpointInput = 'screen-free-checkpoint-browser-presentation-unavailable-input.txt';
-  const checkpointTranscript = 'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt';
+  const checkpointInput = 'screen-free-checkpoint-browser-face-unavailable-input.txt';
+  const checkpointTranscript = 'screen-free-checkpoint-browser-face-unavailable-transcript.txt';
   const liveArtifact = async name => {
     const bytes = Buffer.from(`observed ${name}\n`);
     await writeFile(path.join(walkthrough, name), bytes);
     return { path: name, bytes: bytes.length, sha256: digest(bytes) };
   };
   report.screen_free_checkpoints = { checkpoints: [{
-    phase: 'browser-presentation-unavailable',
+    phase: 'browser-face-unavailable',
     input: await liveArtifact(checkpointInput),
     transcript: await liveArtifact(checkpointTranscript),
   }] };
@@ -75,7 +75,7 @@ test('retains only verified nonvisual sessions beside the walkthrough', async ()
     assert.equal(report.screen_free_clock.finish.transcript.path, 'clock-finish-transcript.txt');
     assert.equal(report.screen_free_wardrobe.transcript.path, 'wardrobe-transcript.txt');
     assert.equal(report.screen_free_checkpoints.checkpoints[0].transcript.path,
-      'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt');
+      'screen-free-checkpoint-browser-face-unavailable-transcript.txt');
     assert.equal(digest(await readFile(path.join(walkthrough, 'birth-input.txt'))),
       report.birth.input.sha256);
   } finally { await rm(root, { recursive: true, force: true }); }
@@ -88,8 +88,8 @@ test('refuses a changed transcript before retaining it', async () => {
     await assert.rejects(retainScreenFreeSessions(root, walkthrough, report),
       /changed after its receipt/);
     assert.deepEqual((await readdir(walkthrough)).sort(), [
-      'screen-free-checkpoint-browser-presentation-unavailable-input.txt',
-      'screen-free-checkpoint-browser-presentation-unavailable-transcript.txt',
+      'screen-free-checkpoint-browser-face-unavailable-input.txt',
+      'screen-free-checkpoint-browser-face-unavailable-transcript.txt',
     ]);
   } finally { await rm(root, { recursive: true, force: true }); }
 });

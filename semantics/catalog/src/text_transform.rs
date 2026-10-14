@@ -4,8 +4,6 @@ use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
 };
 use alloc::string::ToString;
-#[cfg(feature = "plot-catalog")]
-use alloc::vec;
 
 pub fn text_literal_contract() -> StandardKindContract {
     describe(
@@ -13,7 +11,7 @@ pub fn text_literal_contract() -> StandardKindContract {
         "Text literal",
         "Emit one bounded immutable UTF-8 startup value.",
         KindTerminalBehavior::EmitsOnce,
-        "\"Hello\" >> presentation/text",
+        "\"Hello\" >> face/text(\"Greeting\")",
     )
 }
 
@@ -45,17 +43,20 @@ pub fn install_text_pipeline_catalogs(
     use conduit_plot::{KindSignature, StartupParameterSignature};
     conduit_text::install_text_catalogs(startup, profile)?;
     startup.insert(KindSignature {
-        kind: super::TEXT_PRESENTATION_KIND.to_string(),
-        startup_parameters: vec![StartupParameterSignature {
-            name: "maximum-values".to_string(),
-            value_type: "Count".to_string(),
-            default: Some(super::MAX_TEXT_VALUES.to_string()),
-        }],
+        kind: super::TEXT_FACE_KIND.to_string(),
+        startup_parameters: {
+            let mut parameters = crate::data_label_startup_signature();
+            parameters.push(StartupParameterSignature {
+                name: "maximum-values".to_string(),
+                value_type: "Count".to_string(),
+                default: Some(super::MAX_TEXT_VALUES.to_string()),
+            });
+            parameters
+        },
     })?;
     profile
         .insert_kind(
-            super::text_presentation_contract()
-                .into_semantic_contract(super::TEXT_PRESENTATION_CONTRACT_REVISION),
+            super::text_face_contract().into_semantic_contract(super::TEXT_FACE_CONTRACT_REVISION),
         )
         .map_err(|error| error.to_string())?;
     Ok(())

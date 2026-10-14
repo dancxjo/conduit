@@ -6,8 +6,8 @@ mod generated_signal {
 }
 
 use conduit_kernel::{
-    CordId, FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId,
-    RemoteEndpointId, ValueRef,
+    CordId, FixedHostCallBindings, FixedRoutes, HostCallId, NodeId, PortId, RemoteEndpointId,
+    ValueRef,
 };
 use conduit_signal::{PULSE_KIND, SHOW_KIND, SIGNAL_ENCODED_LEN, SIGNAL_PORT, SIGNAL_VALUE_KIND};
 
@@ -51,16 +51,16 @@ const PRESENT_HOST_CALL_CONTRACT: &str = "conduit.host/present@1";
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
 #[derive(Clone, Copy)]
-pub struct PresentationIdentity {
-    pub presentation_id: &'static str,
+pub struct FaceIdentity {
+    pub face_id: &'static str,
     pub sign_id: &'static str,
 }
 
 #[cfg(any(feature = "pico-local", feature = "pico-local-minimal"))]
-pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
-    Some(PresentationIdentity {
-        presentation_id: generated_signal::PRESENTATION_IDS.get(sequence)?,
-        sign_id: generated_signal::PRESENTATION_SIGN_IDS.get(sequence)?,
+pub fn face_identity(sequence: usize) -> Option<FaceIdentity> {
+    Some(FaceIdentity {
+        face_id: generated_signal::FACE_IDS.get(sequence)?,
+        sign_id: generated_signal::FACE_SIGN_IDS.get(sequence)?,
     })
 }
 
@@ -70,8 +70,8 @@ pub fn presentation_identity(sequence: usize) -> Option<PresentationIdentity> {
     feature = "wifi-bootstrap",
     feature = "bluetooth-line"
 ))]
-pub fn presentation_ids() -> &'static [&'static str] {
-    &generated_signal::PRESENTATION_IDS
+pub fn face_ids() -> &'static [&'static str] {
+    &generated_signal::FACE_IDS
 }
 
 #[cfg(any(
@@ -80,8 +80,8 @@ pub fn presentation_ids() -> &'static [&'static str] {
     feature = "wifi-bootstrap",
     feature = "bluetooth-line"
 ))]
-pub fn presentation_sign_ids() -> &'static [&'static str] {
-    &generated_signal::PRESENTATION_SIGN_IDS
+pub fn face_sign_ids() -> &'static [&'static str] {
+    &generated_signal::FACE_SIGN_IDS
 }
 
 pub fn generated_nodes() -> [conduit_kernel::scheduler::NodeSpec<PORTS>; NODES] {
@@ -236,6 +236,10 @@ fn generated_signal_configuration(pulse_node: NodeId) -> Option<SignalConfigurat
             continue;
         }
         match (key, value) {
+            ("label", generated_signal::GeneratedConfigurationValue::Text(value))
+                if !value.trim().is_empty()
+                    && value.len() <= 128
+                    && !value.chars().any(char::is_control) => {}
             ("count", generated_signal::GeneratedConfigurationValue::U64(value)) => {
                 count = usize::try_from(value).ok();
             }
@@ -334,7 +338,8 @@ pub fn generated_remote_endpoint() -> Option<RemoteEndpointIdentity> {
         peer_host: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_HOSTS.first()?,
         peer_boot: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_BOOTS.first()?,
         peer_endpoint: generated_signal::GENERATED_REMOTE_ENDPOINT_PEER_ENDPOINTS.first()?,
-        base_implementation_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS.first()?,
+        base_implementation_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_IMPLEMENTATION_IDS
+            .first()?,
         contract: *generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_CONTRACTS.first()?,
         base_instance_id: generated_signal::GENERATED_REMOTE_ENDPOINT_BASE_INSTANCE_IDS.first()?,
         line_id: generated_signal::GENERATED_REMOTE_ENDPOINT_LINE_IDS.first()?,

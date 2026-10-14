@@ -4,10 +4,10 @@
 use std::cell::RefCell;
 
 use conduit_birth_plot::{
-    BirthActionOutcome, BirthActions, BirthDraft, BirthPlotChoice, BirthPresentation,
+    BirthActionOutcome, BirthActions, BirthDraft, BirthPlotChoice, BirthWidgetFace,
 };
 use conduit_body::ResidentPlot;
-use conduit_presentation::ApplicationEventKind;
+use conduit_face::ApplicationEventKind;
 use serde::{Deserialize, Serialize};
 
 use super::abi;
@@ -103,8 +103,8 @@ impl CurrentDraft {
             .map_err(|error| format!("Crèche draft refused: {error:?}"))?
             .allow_idle_body();
         draft
-            .presentation()
-            .map_err(|error| format!("Crèche presentation refused: {error:?}"))?;
+            .widget_face()
+            .map_err(|error| format!("Crèche face refused: {error:?}"))?;
         // Admit the largest possible selection and escaped editable metadata
         // before replacing the current draft. Later events cannot outgrow the
         // response buffer after a successful state change.
@@ -121,7 +121,7 @@ impl CurrentDraft {
         let snapshot_bytes =
             serde_json::to_vec(&largest).map_err(|_| "Crèche draft snapshot cannot be encoded")?;
         let view_bytes = draft
-            .presentation()
+            .widget_face()
             .map_err(|_| "Crèche view refused")?
             .lower()
             .map_err(|_| "Crèche view lowering refused")?
@@ -189,15 +189,15 @@ pub extern "C" fn conduit_creche_birth_draft_view(generation: u32) -> i32 {
             .draft
             .as_ref()
             .ok_or("Crèche draft is absent")?
-            .presentation()
-            .map_err(|error| format!("Crèche presentation refused: {error:?}"))?
+            .widget_face()
+            .map_err(|error| format!("Crèche face refused: {error:?}"))?
             .lower()
-            .map_err(|error| format!("Crèche presentation lowering refused: {error:?}"))?
+            .map_err(|error| format!("Crèche face lowering refused: {error:?}"))?
             .encode()
-            .map_err(|error| format!("Crèche presentation encoding refused: {error:?}"))
+            .map_err(|error| format!("Crèche face encoding refused: {error:?}"))
             .and_then(|bytes| {
                 abi::write_output_bytes(&bytes)
-                    .map_err(|_| "Crèche presentation exceeds its output bound".into())
+                    .map_err(|_| "Crèche face exceeds its output bound".into())
             })
     });
     finish(result)

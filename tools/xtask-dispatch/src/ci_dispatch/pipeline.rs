@@ -50,6 +50,7 @@ fn unit(name: &str) -> Result<(), String> {
     for step in steps {
         eprintln!("UNIT {name}: {}", step.description);
         let mut command = Command::new(step.program);
+        command.envs(step.environment.iter().copied());
         if step.program == "cargo"
             && matches!(step.args.first(), Some(&"test" | &"clippy" | &"check"))
         {
@@ -87,6 +88,7 @@ fn unit(name: &str) -> Result<(), String> {
                 eprintln!("UNIT {name}: {}", proof.step.description);
                 let status = Command::new(proof.step.program)
                     .args(&proof.arguments)
+                    .envs(proof.step.environment.iter().copied())
                     .status()
                     .map_err(|error| error.to_string())?;
                 if !status.success() {

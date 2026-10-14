@@ -57,7 +57,7 @@ host conduitos-native (
     build = release
     loader = limine
 ) {
-    surface: resource presentation/surface (
+    surface: resource face/surface (
         slots = 4
         bytes = 8MiB
     )
@@ -68,7 +68,7 @@ host conduitos-native (
         memory = mmio
     )
 
-    graphics: back presentation/graphics (
+    graphics: back face/graphics (
         surface = surface
         display = framebuffer
     )

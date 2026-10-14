@@ -22,7 +22,7 @@ fn inventory() -> VoyagerBodyInventory {
         accelerator_hosts: 1,
         constrained_hosts: 3,
         sensor_input_capabilities: 2,
-        presentation_capabilities: 2,
+        face_capabilities: 2,
         line_mechanisms: 4,
         dormant_equipment: 1,
         recursive_realization_families: 1,
@@ -350,7 +350,7 @@ fn progressive_damage_exposes_every_truthful_voyager_phenomenon() {
                     4,
                     &[
                         WorkloadResourceRequest {
-                            workload_id: "presentation/nonessential".into(),
+                            workload_id: "face/nonessential".into(),
                             resource_units: 4,
                             criticality: ExplicitCriticality::Deferrable,
                             policy_source_id: "policy/voyager/operator-reviewed@1".into(),

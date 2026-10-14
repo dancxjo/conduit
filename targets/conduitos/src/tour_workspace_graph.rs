@@ -1,6 +1,6 @@
 //! Native projection of the Tour specimen's Gear contracts.
 use super::*;
-use conduit_presentation::{GraphicsPath, GraphicsPoint};
+use conduit_face::{GraphicsPath, GraphicsPoint};
 use conduit_tour_model::CANONICAL_PATCHBAY_GEARS;
 
 pub(super) fn card_bounds(bounds: LayoutRect, index: usize) -> LayoutRect {
@@ -80,9 +80,7 @@ pub(super) fn append(
                     match (gear, direction, port.port_id.as_str()) {
                         ("meet-one-gear/change", "in", "source") => observed.upper_input.text(),
                         ("meet-one-gear/change", "out", "text") => observed.upper_output.text(),
-                        ("meet-one-gear/result", "in", "text") => {
-                            observed.presentation_input.text()
-                        }
+                        ("meet-one-gear/result", "in", "text") => observed.face_input.text(),
                         _ => None,
                     }
                 });
@@ -112,7 +110,7 @@ pub(super) fn append(
         // Keep their contiguous text in one command, reserving separate runs
         // only for the distinct selected/hovered heading paint.
         if paint == GraphicsPaintRole::Foreground
-            && text.len() <= conduit_presentation::MAX_GRAPHICS_TEXT_BYTES
+            && text.len() <= conduit_face::MAX_GRAPHICS_TEXT_BYTES
         {
             scene
                 .push(
@@ -277,7 +275,7 @@ mod tests {
         assert_eq!(paths.len(), 2);
         paths.sort_by_key(|path| *path.points()[2].x());
         assert!(scene.commands().len() >= 21);
-        assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+        assert!(scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
         let words = card_bounds(graph, 0);
         let change = card_bounds(graph, 1);
         let result = card_bounds(graph, 2);

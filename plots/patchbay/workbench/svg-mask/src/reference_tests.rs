@@ -8,7 +8,7 @@ plot handbook {
     prefix: text/join("<&>")
     upper: text/upper
     label: text/join("Result: ")
-    shown: presentation/text(maximum-values = 3)
+    shown: face/text(label = "Message", maximum-values = 3)
     greeting >> prefix >> upper >> label >> shown
 }
 "#;

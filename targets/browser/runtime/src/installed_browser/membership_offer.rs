@@ -10,7 +10,7 @@ pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertiseme
             .retain(|prior| prior.capability_id != offer.capability_id);
         advertised.capabilities.push(offer);
     }
-    // The DOM Mask has its own bounded presentation executor and is not a
+    // The DOM Mask has its own bounded face executor and is not a
     // general workload Back in the ordinary browser plot runner.
     for mask in [
         super::dom_mask::offer(),

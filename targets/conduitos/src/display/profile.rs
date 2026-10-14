@@ -1,5 +1,5 @@
 //! The single compiled graphical profile. No discovery, cache, or runtime allocation.
-use conduit_presentation::GraphicsTextRole;
+use conduit_face::GraphicsTextRole;
 
 pub const PROFILE_ID: &str = "conduitos/graphical/dejavu-v1";
 pub use super::tokens::*;

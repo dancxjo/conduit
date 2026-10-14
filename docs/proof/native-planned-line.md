@@ -47,7 +47,7 @@ The existing profile remains unchanged:
 | Buffered bytes | 1024 |
 | Encoded frame | 1024 bytes |
 
-This profile cannot transport a general 4096-byte native Mask Presentation as
+This profile cannot transport a general 4096-byte native Mask Face as
 one value. No fragmentation protocol or larger Line profile is introduced here.
 
 ## Proof boundary

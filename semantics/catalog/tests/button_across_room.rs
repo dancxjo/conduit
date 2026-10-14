@@ -1,7 +1,7 @@
 use conduit_plot::{check_syntax_document, expand_canonical_plot, parse_syntax_document};
 use conduit_semantic_catalog::{
     install_button_indicator_catalogs, BUTTON_INDICATOR_STATE_KIND, BUTTON_SOURCE_KIND,
-    INDICATOR_STATE_PRESENTATION_KIND,
+    INDICATOR_STATE_FACE_KIND,
 };
 
 const SOURCE: &str = include_str!("../../../plots/button-across-room/main.conduit");
@@ -28,7 +28,7 @@ fn canonical_plot_is_only_the_semantic_button_to_indicator_chain() {
     let mut expected = vec![
         BUTTON_SOURCE_KIND,
         BUTTON_INDICATOR_STATE_KIND,
-        INDICATOR_STATE_PRESENTATION_KIND,
+        INDICATOR_STATE_FACE_KIND,
     ];
     expected.sort_unstable();
     assert_eq!(kinds, expected);

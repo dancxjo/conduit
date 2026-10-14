@@ -140,9 +140,9 @@ export function decodeEffect(bytes) {
       kind,
       ...common,
       ...remote,
-      presentationId: frame.text(),
+      faceId: frame.text(),
       signId: frame.text(),
-      presentationKind: frame.text(),
+      faceKind: frame.text(),
       value: Object.freeze({
         valueKind: frame.text(),
         encoded: Object.freeze([...frame.bytes()]),
@@ -186,7 +186,7 @@ function encodeCompletion(effect, completion) {
     frame.text(completion.baseInstanceId);
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
-    frame.text(completion.presentationId);
+    frame.text(completion.faceId);
     frame.text(completion.signId);
     frame.text(completion.value.valueKind);
     frame.bytesField(Uint8Array.from(completion.value.encoded));
@@ -280,7 +280,7 @@ export async function runBrowserRuntime(runtime, domHost) {
   let timerCount = 0;
   let requestedTimerMs = 0;
   let completionCount = 0;
-  const presentations = [];
+  const faces = [];
   while (runtime.api.conduit_browser_status() === STATUS_RUNNING) {
     const effect = currentEffect(runtime);
     if (!effect) throw new Error("CND-BRW-S4-009 running runtime has no effect");
@@ -297,10 +297,10 @@ export async function runBrowserRuntime(runtime, domHost) {
         ...commonCompletion(effect),
       });
     } else {
-      const result = domHost.completePresentation(effect);
+      const result = domHost.completeFace(effect);
       if (!result.ok) throw new Error(`${result.code} ${result.detail}`);
       completion = result.completion;
-      presentations.push(effect);
+      faces.push(effect);
       completionCount += 1;
     }
     const status = submitCompletion(runtime, effect, completion);
@@ -318,7 +318,7 @@ export async function runBrowserRuntime(runtime, domHost) {
     receiptCount: runtime.api.conduit_browser_receipt_count(),
     capacityStable: runtime.api.conduit_browser_capacity_stable() === 1,
     terminalFailure: runtime.api.conduit_browser_terminal_failure() === 1,
-    presentations: Object.freeze(presentations),
+    faces: Object.freeze(faces),
   });
 }
 
@@ -336,7 +336,7 @@ export function successfulCompletion(effect) {
     completion.baseInstanceId = effect.baseInstanceId;
   }
   if (effect.kind === EFFECT_PRESENT || effect.kind === EFFECT_DISTRIBUTED_PRESENT) {
-    completion.presentationId = effect.presentationId;
+    completion.faceId = effect.faceId;
     completion.signId = effect.signId;
     completion.value = effect.value;
   }

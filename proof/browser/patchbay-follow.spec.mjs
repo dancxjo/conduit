@@ -32,8 +32,8 @@ test("exact gear realization FOLLOW crosses Program and Body then returns",async
     const followed=await(await fetch(`${url}/api/snapshot`)).json();
     expect(followed.navigation.cursor.place).toBe("Body");
     expect(followed.navigation.cursor.focus).toMatch(/^host\//);
-    expect(followed.presentation.identity).toBe(before.presentation.identity);
-    expect(followed.presentation.basis).toEqual(before.presentation.basis);
+    expect(followed.face.identity).toBe(before.face.identity);
+    expect(followed.face.basis).toEqual(before.face.basis);
 
     const reverse=page.locator("#structured-navigator").getByRole("radio",{name:/Follow Realizes to Gear:.*hello\/upper/}).first();
     await expect(reverse).toBeVisible();
@@ -41,8 +41,8 @@ test("exact gear realization FOLLOW crosses Program and Body then returns",async
     await expect(page.locator("#lens-label")).toHaveText("PROGRAM · PLAN");
     const returned=await(await fetch(`${url}/api/snapshot`)).json();
     expect(returned.navigation.cursor.focus).toBe(gearIdentity);
-    expect(returned.presentation.identity).toBe(before.presentation.identity);
-    expect(returned.presentation.basis).toEqual(before.presentation.basis);
+    expect(returned.face.identity).toBe(before.face.identity);
+    expect(returned.face.basis).toEqual(before.face.basis);
 
     await page.locator('[data-navigation-back="true"]').press("Enter");
     await expect(page.locator("#lens-label")).toHaveText("BODY · PLAN");
@@ -80,8 +80,8 @@ test("a delayed navigation response cannot replace a newer cursor",async({page})
     await expect(page.locator("#structured-navigator")).toHaveJSProperty("inert",true);
     const basis=await(await fetch(`${url}/api/snapshot`)).json();
     const advanced=await page.request.post(`${url}/api/navigation`,{data:{
-      presentation_id:basis.presentation.identity,
-      presentation_revision:basis.presentation.revision,
+      face_id:basis.face.identity,
+      face_revision:basis.face.revision,
       navigation_id:basis.navigation.navigation.identity,
       operation:{kind:"show",aspect:"Plan"},
     }});

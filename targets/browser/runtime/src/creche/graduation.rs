@@ -10,7 +10,7 @@ use conduit_planner::{
 };
 use std::collections::BTreeMap;
 
-const PATCHBAY_SOURCE: &str = "plot creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: presentation/patchbay\n    subject >> surface.subject\n}\n";
+const PATCHBAY_SOURCE: &str = "plot creche_graduation {\n    subject: text/literal(\"Body history\")\n    surface: face/patchbay(\"Plot graph\")\n    subject >> surface.subject\n}\n";
 
 pub(super) fn readiness() -> Result<GraduationReadiness, String> {
     let receipt =
@@ -67,7 +67,7 @@ pub(super) fn graduate(
                     .fragments
                     .iter()
                     .flat_map(|fragment| fragment.placements.iter())
-                    .find(|placement| placement.kind_id.as_str() == "presentation/patchbay")
+                    .find(|placement| placement.kind_id.as_str() == "face/patchbay")
                     .ok_or_else(|| "planned Patchbay placement is absent".to_string())?
                     .implementation_id
                     .as_str()

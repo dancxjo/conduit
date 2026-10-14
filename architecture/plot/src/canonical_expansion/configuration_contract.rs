@@ -48,6 +48,11 @@ pub fn validate_configuration_value(
             .value()
             .to_i64(**canonical_unit)
             .is_ok_and(|value| (*minimum..=*maximum).contains(&value)),
+        (KindConfigurationRule::DataLabel { maximum }, ConfigurationValue::Text(value)) => {
+            value.len() <= *maximum as usize
+                && !value.trim().is_empty()
+                && !value.chars().any(char::is_control)
+        }
         (KindConfigurationRule::TextBytes { maximum }, ConfigurationValue::Text(value)) => {
             value.len() <= *maximum as usize
         }

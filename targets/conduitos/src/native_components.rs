@@ -1,9 +1,9 @@
 //! Small native rendering vocabulary, with no action or runtime ownership.
 
 #[cfg(any(test, all(target_arch = "x86_64", feature = "native-compositor")))]
-use conduit_presentation::{
-    GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene, GraphicsShapeStyle,
-    LayoutRect, MAX_GRAPHICS_COMMANDS, PresentationIconKey,
+use conduit_face::{
+    FaceIconKey, GraphicsCommand, GraphicsError, GraphicsPaintRole, GraphicsScene,
+    GraphicsShapeStyle, LayoutRect, MAX_GRAPHICS_COMMANDS,
 };
 
 /// Append one button atomically within the admitted scene budget.
@@ -14,7 +14,7 @@ pub(crate) fn action_button(
     bounds: LayoutRect,
     clip: LayoutRect,
     label: &str,
-    icon: Option<PresentationIconKey>,
+    icon: Option<FaceIconKey>,
 ) -> Result<(), GraphicsError> {
     let command_count = if icon.is_some() { 3 } else { 2 };
     if scene.commands().len() > MAX_GRAPHICS_COMMANDS - command_count {
@@ -160,7 +160,7 @@ mod tests {
             BOUNDS,
             BOUNDS,
             "Close",
-            Some(PresentationIconKey::Close),
+            Some(FaceIconKey::Close),
         )
         .unwrap();
         assert_eq!(scene.commands().len(), 3);

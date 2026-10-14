@@ -173,11 +173,11 @@ fn fixtures(facts: &[PlanningFact]) -> Vec<FragmentFixture> {
             facts,
         ),
         FragmentFixture::new(
-            "fragment/browser-presentation",
+            "fragment/browser-face",
             "browser-primary",
             vec![candidate(
                 "browser-primary",
-                "fragment/browser-presentation",
+                "fragment/browser-face",
                 &[key(FactDomain::Host, "host/browser")],
             )],
             facts,
@@ -258,7 +258,7 @@ fn browser_loss_preserves_three_fragments_and_reports_a_specific_refusal() {
     lose(&mut current, &changed);
     let mut inputs = Vec::new();
     for fixture in &mut fixtures {
-        if fixture.fragment_id == "fragment/browser-presentation" {
+        if fixture.fragment_id == "fragment/browser-face" {
             let error = fixture
                 .planner
                 .plan(
@@ -273,7 +273,7 @@ fn browser_loss_preserves_three_fragments_and_reports_a_specific_refusal() {
                 previous_candidate_id: fixture.previous_candidate_id.into(),
                 candidates: fixture.candidates.clone(),
                 fresh_plan: None,
-                refusal: Some(format!("browser presentation unavailable: {error}")),
+                refusal: Some(format!("browser face unavailable: {error}")),
             });
         } else {
             let fresh = fixture.replan(&current);
@@ -292,7 +292,7 @@ fn browser_loss_preserves_three_fragments_and_reports_a_specific_refusal() {
     assert!(matches!(
         &assessment.what_failed()[0].disposition,
         DegradationFragmentDisposition::Refused { reason }
-            if reason.contains("browser presentation unavailable")
+            if reason.contains("browser face unavailable")
     ));
 }
 
@@ -349,7 +349,7 @@ fn stale_reuse_mutable_plan_repair_and_generic_refusal_fail_closed() {
 
     let browser = key(FactDomain::Host, "host/browser");
     let refusal = DegradationInput {
-        fragment_id: "fragment/browser-presentation".into(),
+        fragment_id: "fragment/browser-face".into(),
         previous_candidate_id: "browser-primary".into(),
         candidates: fixtures[3].candidates.clone(),
         fresh_plan: None,

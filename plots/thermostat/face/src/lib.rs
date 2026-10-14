@@ -2,34 +2,26 @@
 //! Thermostat-owned semantic contribution. Masks own appearance, never settings.
 extern crate alloc;
 use alloc::{format, vec, vec::Vec};
-use conduit_presentation::*;
+use conduit_face::*;
 use conduit_thermostat_plot::*;
 
 pub fn fragment(
     state: &ThermostatState,
-    basis: PresentationContributionBasis,
+    basis: FaceContributionBasis,
     actions_admitted: bool,
-) -> Result<PresentationFragment, &'static str> {
+) -> Result<FaceFragment, &'static str> {
     state.validate().map_err(|_| "invalid thermostat state")?;
-    let mut fragment = PresentationFragment {
+    let mut fragment = FaceFragment {
         basis: basis.clone(),
         subjects: vec![
-            subject("thermostat/device", PresentationRole::Region, "Living room"),
-            subject(
-                "thermostat/target",
-                PresentationRole::Info,
-                "Target temperature",
-            ),
+            subject("thermostat/device", FaceRole::Region, "Living room"),
+            subject("thermostat/target", FaceRole::Info, "Target temperature"),
             subject(
                 "thermostat/current",
-                PresentationRole::Status,
+                FaceRole::Status,
                 "Current temperature",
             ),
-            subject(
-                "thermostat/status",
-                PresentationRole::Status,
-                "Requested control",
-            ),
+            subject("thermostat/status", FaceRole::Status, "Requested control"),
         ],
         relationships: [
             "thermostat/target",
@@ -42,21 +34,21 @@ pub fn fragment(
         composition: Vec::new(),
         properties: vec![property(
             "thermostat-revision",
-            PresentationPropertyValue::Count(state.revision.into()),
+            FacePropertyValue::Count(state.revision.into()),
         )],
         text: vec![
-            PresentationText {
+            FaceText {
                 subject: "thermostat/current".into(),
                 text: match state.measured {
                     Some(_) => "Observed temperature".into(),
                     None => "Sensor unavailable".into(),
                 },
             },
-            PresentationText {
+            FaceText {
                 subject: "thermostat/status".into(),
                 text: state.demand().into(),
             },
-            PresentationText {
+            FaceText {
                 subject: "thermostat/device".into(),
                 text: "Requested settings; equipment operation is unconfirmed.".into(),
             },
@@ -85,10 +77,10 @@ pub fn fragment(
             Vec::new(),
         )
         .map_err(|_| "invalid temperature value contract")?;
-        fragment.properties.push(PresentationProperty {
+        fragment.properties.push(FaceProperty {
             subject: subject.into(),
             name: "value".into(),
-            value: PresentationPropertyValue::TypedValue {
+            value: FacePropertyValue::TypedValue {
                 contract,
                 bytes: quantity.encode().to_vec(),
             },
@@ -124,39 +116,37 @@ pub fn fragment(
     ] {
         fragment.subjects.push(subject(
             group,
-            PresentationRole::Semantic(conduit_core::kind_id(CHOICE_GROUP_ROLE)),
+            FaceRole::Semantic(conduit_core::kind_id(CHOICE_GROUP_ROLE)),
             name,
         ));
         fragment
             .relationships
             .push(contains("thermostat/device", group));
-        fragment.properties.push(PresentationProperty {
+        fragment.properties.push(FaceProperty {
             subject: group.into(),
             name: "choice-multiplicity".into(),
-            value: PresentationPropertyValue::Text("exclusive".into()),
+            value: FacePropertyValue::Text("exclusive".into()),
         });
-        fragment.text.push(PresentationText {
+        fragment.text.push(FaceText {
             subject: group.into(),
             text: format!("{} selected", selected),
         });
         for (id, label) in options {
-            fragment
-                .subjects
-                .push(subject(id, PresentationRole::Action, label));
+            fragment.subjects.push(subject(id, FaceRole::Action, label));
             fragment.relationships.push(contains(group, id));
-            fragment.properties.push(PresentationProperty {
+            fragment.properties.push(FaceProperty {
                 subject: (*id).into(),
                 name: "selected".into(),
-                value: PresentationPropertyValue::Flag(id.rsplit('.').next() == Some(selected)),
+                value: FacePropertyValue::Flag(id.rsplit('.').next() == Some(selected)),
             });
         }
     }
     fragment.disclosures = fragment
         .subjects
         .iter()
-        .map(|subject| PresentationDisclosure {
+        .map(|subject| FaceDisclosure {
             subject: subject.identity.clone(),
-            level: PresentationDisclosureLevel::Primary,
+            level: FaceDisclosureLevel::Primary,
         })
         .collect();
     for (id, label) in ACTIONS {
@@ -168,7 +158,7 @@ pub fn fragment(
             )
         } else {
             match state.apply(command) {
-                Ok(_) => PresentationActionAvailability::Available,
+                Ok(_) => FaceActionAvailability::Available,
                 Err(Refusal::RevisionExhausted) => unavailable(
                     "thermostat-revision-exhausted",
                     "The settings revision has reached its admitted capacity.",
@@ -183,7 +173,7 @@ pub fn fragment(
                 ),
             }
         };
-        fragment.actions.push(PresentationAction {
+        fragment.actions.push(FaceAction {
             identity: id.into(),
             intent: format!("{id}@1"),
             target: if id == "thermostat.lower" || id == "thermostat.raise" {
@@ -193,7 +183,7 @@ pub fn fragment(
             },
             name: label.into(),
             arguments: Vec::new(),
-            disclosure: PresentationDisclosureLevel::CurrentAction,
+            disclosure: FaceDisclosureLevel::CurrentAction,
             availability,
         });
     }
@@ -203,19 +193,19 @@ pub fn fragment(
     Ok(fragment)
 }
 /// Renderer-neutral choice grouping; multiplicity and selection remain Face facts.
-pub const CHOICE_GROUP_ROLE: &str = "conduit.presentation/choice-group@1";
-fn subject(identity: &str, role: PresentationRole, name: &str) -> PresentationSubject {
-    PresentationSubject {
+pub const CHOICE_GROUP_ROLE: &str = "conduit.face/choice-group@1";
+fn subject(identity: &str, role: FaceRole, name: &str) -> FaceSubject {
+    FaceSubject {
         identity: identity.into(),
         role,
         name: name.into(),
     }
 }
-fn contains(source: &str, target: &str) -> PresentationRelationship {
-    PresentationRelationship {
+fn contains(source: &str, target: &str) -> FaceRelationship {
+    FaceRelationship {
         source: source.into(),
         target: target.into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     }
 }
 mod interaction;
@@ -223,15 +213,15 @@ pub use interaction::{thermostat_command_from_contributed_interaction, Thermosta
 #[cfg(test)]
 mod tests;
 
-fn property(name: &str, value: PresentationPropertyValue) -> PresentationProperty {
-    PresentationProperty {
+fn property(name: &str, value: FacePropertyValue) -> FaceProperty {
+    FaceProperty {
         subject: "thermostat/device".into(),
         name: name.into(),
         value,
     }
 }
-fn unavailable(code: &str, message: &str) -> PresentationActionAvailability {
-    PresentationActionAvailability::Unavailable {
+fn unavailable(code: &str, message: &str) -> FaceActionAvailability {
+    FaceActionAvailability::Unavailable {
         reason_code: code.into(),
         explanation: message.into(),
     }

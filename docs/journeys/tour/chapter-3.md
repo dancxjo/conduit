@@ -18,7 +18,7 @@ hosts also provide effects over time. This example uses a timer and state gear s
 ```conduit run
 plot count-over-time {
     count: state/count(start = 0)
-    show: presentation/count
+    show: face/count("Current count")
     clock: time/every(freq = 120ms)
 
     clock.tick >> count.bump

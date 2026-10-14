@@ -1,14 +1,14 @@
 use super::*;
 use crate::native_face_scene::NativeFaceScene;
 use alloc::{format, string::String, vec::Vec};
-use conduit_presentation::{
-    GraphicsCommandKind, GraphicsShapeStyle, PresentationProperty, PresentationPropertyValue,
-    PresentationRelationship, PresentationSubject,
+use conduit_face::{
+    FaceProperty, FacePropertyValue, FaceRelationship, FaceSubject, GraphicsCommandKind,
+    GraphicsShapeStyle,
 };
 
 // Explicit renderer fixtures, separate from actual authored Patchbay proof.
-fn graph(names: &[&str], edges: &[(usize, usize)]) -> Presentation {
-    let mut face: Presentation = serde_json::from_str(include_str!(
+fn graph(names: &[&str], edges: &[(usize, usize)]) -> Face {
+    let mut face: Face = serde_json::from_str(include_str!(
         "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
@@ -20,38 +20,32 @@ fn graph(names: &[&str], edges: &[(usize, usize)]) -> Presentation {
     face.disclosures.clear();
     for (index, name) in names.iter().enumerate() {
         let gear = format!("gear/{index}");
-        face.subjects.push(PresentationSubject {
+        face.subjects.push(FaceSubject {
             identity: gear.clone(),
-            role: PresentationRole::Gear,
+            role: FaceRole::Gear,
             name: (*name).into(),
         });
         for (direction, suffix) in [("receiving", "in"), ("outgoing", "out")] {
             let port = format!("port/{index}/{suffix}");
-            face.subjects.push(PresentationSubject {
+            face.subjects.push(FaceSubject {
                 identity: port.clone(),
-                role: PresentationRole::Port,
+                role: FaceRole::Port,
                 name: suffix.into(),
             });
-            face.relationships.push(PresentationRelationship {
+            face.relationships.push(FaceRelationship {
                 source: gear.clone(),
                 target: port.clone(),
-                kind: PresentationRelationshipKind::Contains,
+                kind: FaceRelationshipKind::Contains,
             });
             for (name, value) in [
-                (
-                    "semantic-id",
-                    PresentationPropertyValue::Identity(port.clone()),
-                ),
-                (
-                    "direction",
-                    PresentationPropertyValue::Text(direction.into()),
-                ),
+                ("semantic-id", FacePropertyValue::Identity(port.clone())),
+                ("direction", FacePropertyValue::Text(direction.into())),
                 (
                     "value-kind",
-                    PresentationPropertyValue::Identity("value/text".into()),
+                    FacePropertyValue::Identity("value/text".into()),
                 ),
             ] {
-                face.properties.push(PresentationProperty {
+                face.properties.push(FaceProperty {
                     subject: port.clone(),
                     name: name.into(),
                     value,
@@ -61,32 +55,32 @@ fn graph(names: &[&str], edges: &[(usize, usize)]) -> Presentation {
     }
     for (index, &(from, to)) in edges.iter().enumerate() {
         let cord = format!("cord/{index}");
-        face.subjects.push(PresentationSubject {
+        face.subjects.push(FaceSubject {
             identity: cord.clone(),
-            role: PresentationRole::Cord,
+            role: FaceRole::Cord,
             name: format!("Link {index}"),
         });
         for (name, port) in [
             ("source-port", format!("port/{from}/out")),
             ("sink-port", format!("port/{to}/in")),
         ] {
-            face.properties.push(PresentationProperty {
+            face.properties.push(FaceProperty {
                 subject: cord.clone(),
                 name: name.into(),
-                value: PresentationPropertyValue::Identity(port.clone()),
+                value: FacePropertyValue::Identity(port.clone()),
             });
-            face.relationships.push(PresentationRelationship {
+            face.relationships.push(FaceRelationship {
                 source: cord.clone(),
                 target: port,
-                kind: PresentationRelationshipKind::Connects,
+                kind: FaceRelationshipKind::Connects,
             });
         }
     }
     seal(face)
 }
 
-fn seal(face: Presentation) -> Presentation {
-    Presentation::new_with_semantics(
+fn seal(face: Face) -> Face {
+    Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -99,7 +93,7 @@ fn seal(face: Presentation) -> Presentation {
     .unwrap()
 }
 
-fn names(face: &Presentation, ordering: &Order) -> Vec<String> {
+fn names(face: &Face, ordering: &Order) -> Vec<String> {
     ordering.subjects[..ordering.count]
         .iter()
         .map(|&i| face.subjects[i].name.clone())
@@ -142,7 +136,7 @@ fn directional_fan_graphs_and_disconnected_components_have_stable_order() {
             }
         }
         assert_eq!(first, scene.frame().unwrap().scene);
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
     }
 }
 
@@ -161,7 +155,7 @@ fn cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages() {
         scene.show_diagram(true);
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
-            assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
             let shown = frame
                 .scene
                 .commands()
@@ -185,17 +179,17 @@ fn cycles_and_self_links_preserve_every_declared_cord_and_bounded_pages() {
         for index in 0..4 {
             assert!(text.contains(&format!("cord/{index}")));
         }
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
     }
 }
 
 #[test]
 fn missing_and_off_page_ambiguous_owners_never_invent_connectivity() {
     let mut face = graph(&["A", "B", "Other"], &[(0, 1)]);
-    face.relationships.push(PresentationRelationship {
+    face.relationships.push(FaceRelationship {
         source: "gear/2".into(),
         target: "port/0/out".into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     });
     let face = seal(face);
     assert_eq!(order(&face).unresolved, 1);
@@ -217,7 +211,7 @@ fn missing_and_off_page_ambiguous_owners_never_invent_connectivity() {
     let mut missing = graph(&["A", "B"], &[(0, 1)]);
     missing
         .relationships
-        .retain(|r| !(r.kind == PresentationRelationshipKind::Connects && r.target == "port/1/in"));
+        .retain(|r| !(r.kind == FaceRelationshipKind::Connects && r.target == "port/1/in"));
     let missing = seal(missing);
     assert_eq!(order(&missing).unresolved, 1);
 }
@@ -243,7 +237,7 @@ fn over_budget_layout_keeps_original_order_and_all_details() {
     let mut text = String::new();
     for _ in 0..scene.pages() {
         let frame = scene.frame().unwrap();
-        assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+        assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
         for command in frame.scene.commands() {
             text.push_str(command.payload());
         }
@@ -252,7 +246,7 @@ fn over_budget_layout_keeps_original_order_and_all_details() {
     for index in 0..MAX_GEARS + 1 {
         assert!(text.contains(&format!("Gear identity: gear/{index}")));
     }
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]

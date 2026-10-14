@@ -73,8 +73,8 @@ impl DurableHostRuntime {
                 if show.show.host_id != request.host_id
                     || show.show.boot_id != request.boot_id
                     || show.show.body_id.as_ref() != Some(&request.body_id)
-                    || show.presentation_id != face.identity
-                    || show.presentation_revision != face.revision
+                    || show.face_id != face.identity
+                    || show.face_revision != face.revision
                 {
                     return Err("browser-show-basis-mismatch".into());
                 }

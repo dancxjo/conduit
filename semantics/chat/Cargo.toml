@@ -9,7 +9,7 @@ conduit-body = { path = "../../architecture/body", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 conduit-net = { path = "../net" }
-conduit-presentation = { path = "../presentation", default-features = false }
+conduit-face = { path = "../face", default-features = false }
 conduit-text = { path = "../text" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }
 serde_json = { version = "1", default-features = false, features = ["alloc"] }
@@ -23,7 +23,7 @@ plot-catalog = [
     "conversation-flow",
     "conduit-ai/plot-catalog",
     "conduit-net/plot-catalog",
-    "conduit-presentation/plot-catalog",
+    "conduit-face/plot-catalog",
 ]
 
 [build-dependencies]

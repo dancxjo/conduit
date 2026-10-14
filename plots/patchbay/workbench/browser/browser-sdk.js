@@ -1,7 +1,7 @@
 /**
  * Realize one immutable `@conduit/browser` Body Patchbay projection as a small
  * inspection Mask. Runtime and semantic truth stay in the SDK value; this
- * module owns only browser presentation mechanics.
+ * module owns only browser face mechanics.
  */
 export function renderBrowserBodyPatchbay(root, snapshot) {
   if (typeof Element === "undefined" || !(root instanceof Element || root instanceof ShadowRoot)) {

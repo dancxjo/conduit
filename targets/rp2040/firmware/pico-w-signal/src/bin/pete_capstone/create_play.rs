@@ -21,7 +21,7 @@ pub enum RequestKind {
     None = 0,
     Motion = 1,
     Hello = 2,
-    Presentation = 3,
+    Face = 3,
     FullStage = 4,
     LightsStage = 5,
     BatteryRx = 6,
@@ -32,7 +32,7 @@ impl RequestKind {
         match value {
             1 => Self::Motion,
             2 => Self::Hello,
-            3 => Self::Presentation,
+            3 => Self::Face,
             4 => Self::FullStage,
             5 => Self::LightsStage,
             6 => Self::BatteryRx,

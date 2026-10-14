@@ -192,7 +192,7 @@ export function createBrowserHostCalls({
     },
     async moveLocation(request) {
       return run(request, "location", async () => {
-        if (!Number.isInteger(request.presentationRevision) || request.presentationRevision < 1
+        if (!Number.isInteger(request.faceRevision) || request.faceRevision < 1
           || !["push", "replace"].includes(request.mode) || typeof request.path !== "string"
           || byteLength(request.path) < 1 || byteLength(request.path) > MAXIMUM_LOCATION_BYTES) {
           refuse("location-not-admitted");

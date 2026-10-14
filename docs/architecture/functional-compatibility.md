@@ -154,7 +154,7 @@ play identity
 sign identity
 ```
 
-A canonical checked-fore identity must derive from the callable signature rather than from the source/catalog name. Face identity belongs to human presentation and must not be used as a synonym for callable compatibility.
+A canonical checked-fore identity must derive from the callable signature rather than from the source/catalog name. Face identity belongs to human face and must not be used as a synonym for callable compatibility.
 
 Two differently named things with the same checked fore may have different source/catalog identities while sharing the same compatibility class.
 

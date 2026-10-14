@@ -3,7 +3,7 @@ use conduit_core::{
     verify_plan, CapabilityOffer, ConnectionTrack, FrontValueLocation, HostAdvertisement, Plan,
     PlannedActivationEntry, PlannedForePort, PlannedGear, PortDirection, PortTemporal,
 };
-use conduit_presentation::PARSEC_MAP_FRAME_BYTES;
+use conduit_face::PARSEC_MAP_FRAME_BYTES;
 
 pub(super) fn validate(plan: &Plan, host: &HostAdvertisement) -> Result<(), String> {
     if !verify_plan(plan) || plan.fragments.len() != 1 || plan.activations.len() != 1 {

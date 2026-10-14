@@ -5,7 +5,7 @@ use conduit_body::{
     BodyPlanningSessionError, BodyPlanningTransition, BodyPlayIdentity, WakeLifecycle,
 };
 use conduit_core::SignId;
-use conduit_presentation::{Manifestation, Presentation, RendererExecution};
+use conduit_face::{Face, Manifestation, RendererExecution};
 
 use crate::{
     prepare_renderer_execution_with_offer_generation, RendererAdapterIdentity, RendererAdapterKind,
@@ -21,7 +21,7 @@ pub enum MaskTopologyMode {
 
 #[derive(Debug, Clone)]
 pub struct MaskControlSession {
-    presentation: Presentation,
+    face: Face,
     selector: BodyFaceSelector,
     graphical_kind: RendererAdapterKind,
     graphical_identity: RendererAdapterIdentity,
@@ -42,7 +42,7 @@ pub enum MaskControlError {
 
 impl MaskControlSession {
     pub fn new(
-        presentation: Presentation,
+        face: Face,
         selector: BodyFaceSelector,
         graphical_kind: RendererAdapterKind,
         graphical_identity: RendererAdapterIdentity,
@@ -50,12 +50,12 @@ impl MaskControlSession {
     ) -> Result<Self, MaskControlError> {
         let selector_matches = match &selector.plot {
             Some(plot) => {
-                presentation.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
-                    && presentation.basis.checked_plot_id.as_ref() == Some(&plot.checked_plot_id)
+                face.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
+                    && face.basis.checked_plot_id.as_ref() == Some(&plot.checked_plot_id)
             }
             None => {
-                presentation.basis.source_document_id.is_none()
-                    && presentation.basis.checked_plot_id.is_none()
+                face.basis.source_document_id.is_none()
+                    && face.basis.checked_plot_id.is_none()
                     && selector.source_placement_id.is_none()
             }
         };
@@ -63,7 +63,7 @@ impl MaskControlSession {
             return Err(MaskControlError::StaleRequest);
         }
         Ok(Self {
-            presentation,
+            face,
             selector,
             graphical_kind,
             graphical_identity,
@@ -160,7 +160,7 @@ impl MaskControlSession {
         }
         let play = BodyPlayIdentity::bind(next_planning.current_plan(), transition.play_sequence);
         let projected = MaskTopology::from_body_plan_truth(
-            &candidate.presentation,
+            &candidate.face,
             next_planning.current_plan(),
             &play,
             &candidate.manifestations(),
@@ -171,26 +171,20 @@ impl MaskControlSession {
         Ok(projected)
     }
 
-    pub fn presentation(&self) -> &Presentation {
-        &self.presentation
+    pub fn face(&self) -> &Face {
+        &self.face
     }
 
     /// Retarget the selected Mask Plans at a fresh immutable projection of
-    /// the same body/Plot subject. Runtime evolution changes Presentation
+    /// the same body/Plot subject. Runtime evolution changes Face
     /// identity; it does not make the renderer the owner of that evolution.
-    pub fn refresh_presentation(
-        &mut self,
-        presentation: Presentation,
-    ) -> Result<(), MaskControlError> {
+    pub fn refresh_face(&mut self, face: Face) -> Result<(), MaskControlError> {
         let selector_matches = match &self.selector.plot {
             Some(plot) => {
-                presentation.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
-                    && presentation.basis.checked_plot_id.as_ref() == Some(&plot.checked_plot_id)
+                face.basis.source_document_id.as_ref() == Some(&plot.source_document_id)
+                    && face.basis.checked_plot_id.as_ref() == Some(&plot.checked_plot_id)
             }
-            None => {
-                presentation.basis.source_document_id.is_none()
-                    && presentation.basis.checked_plot_id.is_none()
-            }
+            None => face.basis.source_document_id.is_none() && face.basis.checked_plot_id.is_none(),
         };
         if !selector_matches {
             return Err(MaskControlError::StaleRequest);
@@ -200,7 +194,7 @@ impl MaskControlSession {
             let current_sequence = *sequence;
             *sequence = sequence.saturating_add(1);
             let mut next = RendererExecution::prepare_planned_sequence(
-                presentation.clone(),
+                face.clone(),
                 current.plan.clone(),
                 current.manifestation.target_subject.clone(),
                 current_sequence,
@@ -226,7 +220,7 @@ impl MaskControlSession {
         self.graphical = graphical;
         self.speech = speech;
         self.sequence = sequence;
-        self.presentation = presentation;
+        self.face = face;
         Ok(())
     }
 
@@ -236,7 +230,7 @@ impl MaskControlSession {
         play: &BodyPlayIdentity,
     ) -> Result<MaskTopology, MaskControlError> {
         MaskTopology::from_body_plan_truth(
-            &self.presentation,
+            &self.face,
             planning.current_plan(),
             play,
             &self.manifestations(),
@@ -253,7 +247,7 @@ impl MaskControlSession {
         let sequence = self.sequence;
         self.sequence = self.sequence.saturating_add(1);
         let mut execution = prepare_renderer_execution_with_offer_generation(
-            self.presentation.clone(),
+            self.face.clone(),
             kind,
             identity,
             sequence,

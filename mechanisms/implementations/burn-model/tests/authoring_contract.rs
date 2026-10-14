@@ -20,7 +20,10 @@ fn authoring_contract_refuses_invalid_profiles() {
         candidate_bytes: u64::MAX,
         ..descriptor.resources
     };
-    assert!(descriptor.validate().is_err());
+    assert_eq!(
+        descriptor.validate(),
+        Err(conduit_burn_model::Error::ResourceBound)
+    );
 }
 
 #[test]

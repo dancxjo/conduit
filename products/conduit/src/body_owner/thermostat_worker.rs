@@ -1,7 +1,7 @@
 //! The installed Owner's sole Host plays one finite, live Thermostat scan.
 use super::{debug, state, thermostat_face::ThermostatLive, BoundedOutput, DeadlineTimer, Owner};
 use conduit_body::{BodyPlayIdentity, Wake};
-use conduit_presentation::{FaceInteraction, MaskShow};
+use conduit_face::{FaceInteraction, MaskShow};
 use conduit_std_host::{
     body_execution::{BodyForeOutputAdapter, BodyRunReport, BodyRunRequest},
     BodyLiveForeAdmission, BodyLiveForeQueue, ExternalForeDelivery, RunControl,

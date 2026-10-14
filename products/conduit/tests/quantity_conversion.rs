@@ -50,7 +50,7 @@ fn standard_product_catalogue_checks_explicit_conversion_and_retained_refusal_va
 }
 
 #[test]
-fn invalid_conversion_requests_keep_exact_original_spans_in_both_product_presentations() {
+fn invalid_conversion_requests_keep_exact_original_spans_in_both_product_faces() {
     for (original, target, expected) in [
         ("21C", "K", "21C"),
         ("1m", "mkg", "mkg"),

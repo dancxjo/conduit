@@ -27,7 +27,7 @@ fn streamed_mask_stop_reaps_provider_and_never_acknowledges_partial_audio() {
     );
     let discovery = discovery.declare_language_coverage(coverage).unwrap();
     let words = "This Body keeps the clock you started. Change the interval, then inspect the connections to see how your action reaches the running work. You can pause the Body without erasing its history. When you return, inspect the current host and the new plan before starting again.";
-    let face = tests::presentation_with_text(words);
+    let face = tests::face_with_text(words);
     let candidate = tests::retained(face.clone());
     let control = crate::RunControl::default();
     let stop_id = crate::RunControlRequestId::new("stop/after-real-pcm").unwrap();

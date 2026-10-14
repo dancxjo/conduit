@@ -22,13 +22,13 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
     .unwrap();
     assert_eq!(
         request.policy.template_contract_revision,
-        conduit_presentation::ORIFINA_COMPLETION_POLICY_REVISION
+        conduit_face::ORIFINA_COMPLETION_POLICY_REVISION
     );
-    assert_eq!(request.semantic_data.presentation.revision, 11);
+    assert_eq!(request.semantic_data.face.revision, 11);
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .text
             .iter()
             .any(|text| { text.text.contains("Birth made one retained body") })
@@ -36,65 +36,55 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .properties
             .iter()
             .any(|property| {
                 property.name == "tutorial-phase"
-                    && property.value
-                        == conduit_presentation::PresentationPropertyValue::Text("wake".into())
+                    && property.value == conduit_face::FacePropertyValue::Text("wake".into())
             })
     );
     assert!(
         !request
             .semantic_data
-            .presentation
+            .face
             .text
             .iter()
             .any(|text| { text.text.contains(body.evidence().body.body_id.as_str()) })
     );
     assert_eq!(
-        request.semantic_data.presentation.basis.body_id.as_ref(),
+        request.semantic_data.face.basis.body_id.as_ref(),
         Some(&body.evidence().body.body_id)
     );
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .properties
             .iter()
             .any(|property| {
                 property.name == "readiness"
-                    && property.value
-                        == conduit_presentation::PresentationPropertyValue::Text("not-ready".into())
+                    && property.value == conduit_face::FacePropertyValue::Text("not-ready".into())
             })
     );
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .properties
             .iter()
             .any(|property| {
                 property.name == "workload-revision"
-                    && property.value == conduit_presentation::PresentationPropertyValue::Count(0)
+                    && property.value == conduit_face::FacePropertyValue::Count(0)
             })
     );
+    assert!(request.semantic_data.face.subjects.iter().any(|subject| {
+        subject.role == conduit_face::FaceRole::Plot && subject.identity == "plot/checked/morse"
+    }));
     assert!(
         request
             .semantic_data
-            .presentation
-            .subjects
-            .iter()
-            .any(|subject| {
-                subject.role == conduit_presentation::PresentationRole::Plot
-                    && subject.identity == "plot/checked/morse"
-            })
-    );
-    assert!(
-        request
-            .semantic_data
-            .presentation
+            .face
             .actions
             .iter()
             .any(|action| action.identity == "body.wake")
@@ -102,7 +92,7 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
     assert!(
         !request
             .semantic_data
-            .presentation
+            .face
             .actions
             .iter()
             .any(|action| action.identity == "body.fulfill")
@@ -112,7 +102,7 @@ fn tutorial_builds_an_exact_orifina_request_from_current_body_truth() {
 #[test]
 fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validation() {
     let body = born();
-    let face = conduit_tutorial_plot::face_presentation(
+    let face = conduit_tutorial_plot::canonical_face(
         &body,
         12,
         conduit_tutorial_plot::TutorialPlayback::Lulled,
@@ -142,13 +132,13 @@ fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validatio
         })
     );
 
-    let spoken = conduit_presentation::plan_face_utterances(&face).unwrap();
+    let spoken = conduit_face::plan_face_utterances(&face).unwrap();
     let spoken_argument = spoken
         .clauses
         .iter()
         .find(|clause| {
             clause.provenance
-                == conduit_presentation::FaceUtteranceProvenance::action_argument(
+                == conduit_face::FaceUtteranceProvenance::action_argument(
                     action.identity.clone(),
                     argument.name.clone(),
                 )
@@ -158,7 +148,7 @@ fn production_tutorial_face_keeps_one_constraint_across_encounters_and_validatio
     assert!(spoken_argument.text.contains("kind value/text"));
     assert!(spoken_argument.text.contains("at most 256 bytes"));
 
-    let linear = conduit_presentation::render_linear_presentation(&face).unwrap();
+    let linear = conduit_face::render_linear_face(&face).unwrap();
     let linear_action = linear
         .lines
         .iter()
@@ -180,18 +170,15 @@ fn playing_tutorial_request_uses_the_canonical_face_execution_projection() {
         conduit_tutorial_plot::TutorialPlayback::Playing,
     )
     .unwrap();
-    let presentation = &request.semantic_data.presentation;
+    let face = &request.semantic_data.face;
 
-    assert_eq!(
-        presentation.basis.wake_id.as_ref(),
-        Some(&realization.wake.wake_id)
-    );
-    assert!(presentation.subjects.iter().any(|subject| {
-        subject.role == conduit_presentation::PresentationRole::Plan
+    assert_eq!(face.basis.wake_id.as_ref(), Some(&realization.wake.wake_id));
+    assert!(face.subjects.iter().any(|subject| {
+        subject.role == conduit_face::FaceRole::Plan
             && subject.identity == format!("plan/{}", realization.plan.plan_id.as_str())
     }));
-    assert!(presentation.subjects.iter().any(|subject| {
-        subject.role == conduit_presentation::PresentationRole::Play
+    assert!(face.subjects.iter().any(|subject| {
+        subject.role == conduit_face::FaceRole::Play
             && subject.identity == format!("play/{}", play.active_play_id.as_str())
     }));
     assert_eq!(body.realization().unwrap().play.as_ref(), Some(&play));
@@ -272,19 +259,18 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .properties
             .iter()
             .any(|property| {
                 property.name == "readiness"
-                    && property.value
-                        == conduit_presentation::PresentationPropertyValue::Text("ready".into())
+                    && property.value == conduit_face::FacePropertyValue::Text("ready".into())
             })
     );
     assert!(
         request
             .semantic_data
-            .presentation
+            .face
             .actions
             .iter()
             .any(|action| action.identity == "body.fulfill")
@@ -295,14 +281,11 @@ fn exact_tutorial_completion_only_presents_fulfillment_as_an_operator_choice() {
 #[test]
 fn tutorial_guidance_is_a_renderer_neutral_revision_bound_application_view() {
     let body = born();
-    let view = conduit_tutorial_plot::presentation(
-        &body,
-        7,
-        conduit_tutorial_plot::TutorialPlayback::Lulled,
-    )
-    .unwrap()
-    .lower()
-    .unwrap();
+    let view =
+        conduit_tutorial_plot::face(&body, 7, conduit_tutorial_plot::TutorialPlayback::Lulled)
+            .unwrap()
+            .lower()
+            .unwrap();
     assert_eq!(view.revision, 7);
     assert!(view.nodes.iter().any(|node| node.text == "Wake this body"));
     assert!(view.actions.iter().any(|action| action.id == "body.wake"));
@@ -316,14 +299,11 @@ fn revised_tutorial_uses_the_shared_host_invitation_action() {
     let mut body = born();
     body.admit_plot(0, plot("notes"), &host(), &boot()).unwrap();
     start(&mut body);
-    let view = conduit_tutorial_plot::presentation(
-        &body,
-        8,
-        conduit_tutorial_plot::TutorialPlayback::Playing,
-    )
-    .unwrap()
-    .lower()
-    .unwrap();
+    let view =
+        conduit_tutorial_plot::face(&body, 8, conduit_tutorial_plot::TutorialPlayback::Playing)
+            .unwrap()
+            .lower()
+            .unwrap();
     assert!(
         view.nodes
             .iter()
@@ -402,14 +382,11 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
     )
     .unwrap();
 
-    let repair = conduit_tutorial_plot::presentation(
-        &body,
-        9,
-        conduit_tutorial_plot::TutorialPlayback::Refused,
-    )
-    .unwrap()
-    .lower()
-    .unwrap();
+    let repair =
+        conduit_tutorial_plot::face(&body, 9, conduit_tutorial_plot::TutorialPlayback::Refused)
+            .unwrap()
+            .lower()
+            .unwrap();
     assert!(
         repair
             .nodes
@@ -429,14 +406,11 @@ fn repaired_wake_advances_tutorial_guidance_from_fault_to_continuity() {
         obligation.obligation_id == "repair-fault"
             && matches!(obligation.state, PurposeObligationState::Satisfied { .. })
     }));
-    let repaired = conduit_tutorial_plot::presentation(
-        &body,
-        10,
-        conduit_tutorial_plot::TutorialPlayback::Playing,
-    )
-    .unwrap()
-    .lower()
-    .unwrap();
+    let repaired =
+        conduit_tutorial_plot::face(&body, 10, conduit_tutorial_plot::TutorialPlayback::Playing)
+            .unwrap()
+            .lower()
+            .unwrap();
     assert!(
         repaired
             .nodes
@@ -459,7 +433,7 @@ fn host() -> HostId {
 fn invitation_transfer_methods_share_one_revision_bound_semantic_identity() {
     let transfer_uri =
         "https://example.invalid/workspace/#body-invitation=header.payload.signature";
-    let semantic = conduit_body_invitation_plot::InvitationPresentation {
+    let semantic = conduit_body_invitation_plot::InvitationFace {
         invitation_id: "invitation/one",
         body_id: "body/one",
         body_name: "Orifina",
@@ -1218,7 +1192,7 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
     ])
     .unwrap();
     let view = library
-        .presentation(&body, 7, "keyboard text")
+        .face(&body, 7, "keyboard text")
         .unwrap()
         .lower()
         .unwrap();
@@ -1235,14 +1209,14 @@ fn library_projects_the_current_workset_and_preserves_exact_indices_when_filtere
             .iter()
             .any(|action| action.id.starts_with("library.remove"))
     );
-    let view = library.presentation(&body, 8, "").unwrap().lower().unwrap();
+    let view = library.face(&body, 8, "").unwrap().lower().unwrap();
     assert!(
         view.actions
             .iter()
             .any(|action| action.id == "library.remove.0")
     );
     assert!(matches!(
-        library.presentation(&body, 9, &"x".repeat(129)),
+        library.face(&body, 9, &"x".repeat(129)),
         Err(LibraryRefusal::SearchBound)
     ));
 }
@@ -1281,7 +1255,7 @@ fn library_keeps_reviewed_plots_visible_when_the_body_is_at_capacity() {
     ])
     .unwrap();
 
-    let semantic = library.presentation(&body, 10, "candidate").unwrap();
+    let semantic = library.face(&body, 10, "candidate").unwrap();
     let encoded = format!("{semantic:?}");
     assert!(encoded.contains("Body at capacity"));
     assert!(encoded.contains("Remove a plot before adding another"));
@@ -1294,7 +1268,7 @@ fn library_keeps_reviewed_plots_visible_when_the_body_is_at_capacity() {
     );
 
     let resident = library
-        .presentation(&body, 11, "resident")
+        .face(&body, 11, "resident")
         .unwrap()
         .lower()
         .unwrap();

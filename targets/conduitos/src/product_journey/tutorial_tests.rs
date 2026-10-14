@@ -1,7 +1,7 @@
 use super::test_support::{fixture, invoke};
 use super::*;
 use conduit_body::BodyWorkset;
-use conduit_presentation::{ApplicationEvent, ApplicationEventKind};
+use conduit_face::{ApplicationEvent, ApplicationEventKind};
 
 #[test]
 fn native_tutorial_uses_same_body_biography_through_wake_and_lull() {
@@ -38,7 +38,7 @@ fn native_tutorial_uses_same_body_biography_through_wake_and_lull() {
             .iter()
             .any(|e| matches!(e, WakeLifecycleEvent::PlayStarted { .. }))
     );
-    let expected = conduit_tutorial_plot::presentation_from_evidence(
+    let expected = conduit_tutorial_plot::face_from_evidence(
         evidence,
         evidence.records.len() as u32,
         conduit_tutorial_plot::TutorialPlayback::Playing,

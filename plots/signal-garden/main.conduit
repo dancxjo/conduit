@@ -49,12 +49,12 @@ plot signal-garden-interactive (
     evolve.next >> state
 }
 
-# Presentation consumes the semantic state after evolution and does not own the reducer.
+# Face consumes the semantic state after evolution and does not own the reducer.
 plot signal-garden-interactive-display {
     # Transactional display specimen: one admitted Garden transition.
     observations: garden/deterministic-observations
     evolve: garden-state-step-contact
-    show: presentation/garden-state
+    show: face/garden-state("Garden")
     observations.prior >> evolve.prior
     observations.clock >> evolve.clock
     observations.contact >> evolve.contact

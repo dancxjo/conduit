@@ -7,7 +7,7 @@
 
 use alloc::string::String;
 use conduit_core::{ActivePlayId, BootId, HostId, OfferGeneration, Plan, PlanId, PlotIdentity};
-use conduit_presentation::{Presentation, PresentationBasis};
+use conduit_face::{Face, FaceBasis};
 use serde::Serialize;
 
 mod execution;
@@ -26,7 +26,7 @@ pub enum FaceSnapshotRefusal {
     Catalog,
     Plan,
     Shape,
-    Presentation,
+    Face,
     ProducerBasis,
     Capacity,
     Kernel,
@@ -48,7 +48,7 @@ pub struct NativeFaceSnapshotProducer {
 #[derive(Clone, Debug, Eq, PartialEq, Serialize)]
 pub struct FaceSnapshotReceipt {
     /// Basis supplied by the trusted Face owner, distinct from this forwarding Plot.
-    pub observed_face_basis: PresentationBasis,
+    pub observed_face_basis: FaceBasis,
     pub producer_plot: PlotIdentity,
     pub producer_plan_id: PlanId,
     pub producer_active_play_id: ActivePlayId,
@@ -56,8 +56,8 @@ pub struct FaceSnapshotReceipt {
     pub boot_id: BootId,
     pub offer_generation: OfferGeneration,
     pub observation_sequence: u64,
-    pub presentation_id: String,
-    pub presentation_revision: u64,
+    pub face_id: String,
+    pub face_revision: u64,
     pub encoded_bytes: u32,
     pub value_sha256: [u8; 32],
     pub kernel_signs: u16,
@@ -67,7 +67,7 @@ pub struct FaceSnapshotReceipt {
 /// Publication is returned only after the actual output was delivered and its
 /// Fore closed normally. Rendering and Show acknowledgement are separate work.
 pub struct PublishedFaceSnapshot {
-    pub presentation: Presentation,
+    pub face: Face,
     pub receipt: FaceSnapshotReceipt,
 }
 
@@ -86,11 +86,11 @@ impl NativeFaceSnapshotProducer {
 
     pub fn forward(
         &mut self,
-        presentation: Presentation,
+        face: Face,
         observation_sequence: u64,
         play_sequence: u64,
     ) -> Result<PublishedFaceSnapshot, FaceSnapshotRefusal> {
-        self.prepare_snapshot(presentation, observation_sequence, play_sequence)?
+        self.prepare_snapshot(face, observation_sequence, play_sequence)?
             .run()
     }
 }

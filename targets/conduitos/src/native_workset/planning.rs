@@ -170,7 +170,7 @@ fn admitted_plot_input(plot: &BodyPlotPlan) -> Result<AdmittedPlotInput, Workset
     let application = placement.kind_id.as_str()
         == conduit_semantic_catalog::APPLICATION_EVENT_SOURCE_KIND
         && connection.source_port_id.as_str() == conduit_semantic_catalog::APPLICATION_EVENT_PORT
-        && connection.value_kind.as_str() == conduit_presentation::APPLICATION_EVENT_INFO_ID;
+        && connection.value_kind.as_str() == conduit_face::APPLICATION_EVENT_INFO_ID;
     if !keyboard && !application {
         return Err(WorksetRefusal::Plan);
     }
@@ -219,8 +219,7 @@ fn host(
     for capability in &mut advertisement.capabilities {
         if matches!(
             capability.kind_id.as_str(),
-            conduit_semantic_catalog::KEYMAP_KIND
-                | conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+            conduit_semantic_catalog::KEYMAP_KIND | conduit_semantic_catalog::TEXT_FACE_KIND
         ) {
             capability.limits.max_active_instances = 2;
         }
@@ -291,7 +290,7 @@ fn plan_plots(
         )
         .map_err(|_| WorksetRefusal::Plan)?;
         // The connected keyboard chain stays one region; Root delivers input
-        // and admits presentation while its pure implementations run protected.
+        // and admits face while its pure implementations run protected.
         let plan = if plan.fragments[0].placements.iter().any(|placement| {
             matches!(
                 placement.kind_id.as_str(),

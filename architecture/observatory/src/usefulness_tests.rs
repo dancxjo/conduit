@@ -35,8 +35,8 @@ fn report() -> CapabilityUsefulnessReport {
             },
             CapabilityUsefulnessEntry {
                 subject_id: "capability/browser".into(),
-                label: "browser presentation".into(),
-                kind_id: Some(KindId::from("presentation/browser")),
+                label: "browser face".into(),
+                kind_id: Some(KindId::from("face/browser")),
                 capability_id: Some(CapabilityId::from("cap/browser")),
                 implementation_id: Some(ImplementationId::from("impl/browser")),
                 disposition: CapabilityDisposition::Offered,
@@ -62,15 +62,11 @@ fn useful_roles_survive_specific_failure_and_render_first() {
     assert!(lines[0].contains("freshness=CURRENT"));
     assert!(lines[0].contains("BOOT boot/laptop/7 generation=11"));
     assert!(lines[0].contains("sign=sign/usefulness/11"));
-    assert!(lines[1].contains("browser presentation AVAILABLE"));
+    assert!(lines[1].contains("browser face AVAILABLE"));
     assert!(lines[2].contains("keyboard input AVAILABLE"));
     assert!(lines[3].contains("local build profile DOES NOT FIT"));
     assert!(lines[3].contains("required=900 reservable=640 short-by=260"));
-    assert_eq!(
-        report.entries.len(),
-        3,
-        "presentation cannot suppress truth"
-    );
+    assert_eq!(report.entries.len(), 3, "face cannot suppress truth");
 }
 
 #[test]

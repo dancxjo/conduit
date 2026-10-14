@@ -1,0 +1,68 @@
+{
+  "face_file": "open-domain-face.json",
+  "proof_class": "checked browser Mask with simulated DOM acknowledgement",
+  "request_summary": {
+    "boot_id": "boot/browser-open-domain-fixture",
+    "face_id": "ca4c508249a986b036205a44c47f783082383cc276494ff972d547464c93d4ac",
+    "face_revision": 30,
+    "host_id": "host/browser-open-domain-fixture",
+    "input_fore": "face",
+    "interaction_context": {
+      "basis": [
+        {
+          "relationship": "Contains",
+          "source": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+          "target": "body/9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2/context"
+        }
+      ],
+      "identity": "face/context/tutorial/checked/tutorial/focus/contribution/tutorial/node/concept/mitochondrion"
+    },
+    "mask_expanded_plot_id": "3d7a05f7cc37062b3f1cfed3921ea0378a46809341dbc5be83870565853dff8a",
+    "mask_plan_id": "14871c407b1febce88e64830d88bb8f6c1a9d8ba99c0f61906b50f2105656598",
+    "mask_play_id": "e6c608e4ffc1373c5f9aa70560345ca1083b11164025ab1ae77135c68e3a4538",
+    "mask_plot_id": "a87a85c48ba9f4e66ac69030366abba78c1fa6aac6e05f589248799b6f4c62a2",
+    "output_fore": "show",
+    "return_fore": "interaction",
+    "show_id": "show/44011bbd91631684ba1d3289db8bd86755028d58af225aa7153bae25d5bb466a",
+    "source_basis": {
+      "active_play_id": null,
+      "body_id": "9f83360f48ee5c2c1db03e590316f321d17489a19522492dc3f78aed302fd7d2",
+      "checked_plot_id": null,
+      "expanded_plot_id": null,
+      "plan_id": null,
+      "sign_ids": [
+        "sign/born",
+        "sign/planned",
+        "sign/playing",
+        "sign/woke"
+      ],
+      "source_document_id": null,
+      "wake_id": "0a2254d10496c9ca24c26186bb64eb6c1e520da9f0579800070f0c28fd5ac185"
+    }
+  },
+  "returned_interaction": {
+    "action_id": "lesson/answer",
+    "arguments": [
+      {
+        "name": "lesson/answer-text",
+        "value": [
+          69,
+          110,
+          101,
+          114,
+          103,
+          121
+        ],
+        "value_kind": "value/text"
+      }
+    ],
+    "face_id": "ca4c508249a986b036205a44c47f783082383cc276494ff972d547464c93d4ac",
+    "face_revision": 30,
+    "identity": "f37dad3a77a1dbb3346e79b4c77363998a7696fc3c3a677f0a5767579e50fb43",
+    "sequence": 1,
+    "show_id": "show/44011bbd91631684ba1d3289db8bd86755028d58af225aa7153bae25d5bb466a",
+    "target": "concept/mitochondrion"
+  },
+  "schema": "conduit.proof/face-mask-reference@1",
+  "source_effect_applied": false
+}

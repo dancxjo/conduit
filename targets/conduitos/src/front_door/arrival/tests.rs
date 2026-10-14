@@ -1,7 +1,7 @@
 use super::*;
 use alloc::borrow::ToOwned;
 use conduit_core::{BootId, CheckedPlotId, HostId, OfferGeneration, SourceDocumentId};
-use conduit_presentation::{PresentationActionAvailability, PresentationPropertyValue};
+use conduit_face::{FaceActionAvailability, FacePropertyValue};
 
 fn door(refusal: Option<String>) -> FrontDoor {
     let mut door = FrontDoor::new(
@@ -31,7 +31,7 @@ fn press(door: &mut FrontDoor, usage: u8) -> ArrivalInput {
 #[test]
 fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
     let mut door = door(None);
-    assert!(door.presentation().unwrap().basis.body_id.is_none());
+    assert!(door.face().unwrap().basis.body_id.is_none());
     let stale = door.revision();
     press(&mut door, 21); // r replaces the selected suggested name.
     press(&mut door, 18); // o
@@ -54,7 +54,7 @@ fn native_draft_edits_name_and_submits_exact_checked_selection_without_birth() {
         .unwrap()
         .plots()
     );
-    assert!(door.presentation().unwrap().basis.body_id.is_none());
+    assert!(door.face().unwrap().basis.body_id.is_none());
     assert!(door.close_creche().is_err());
 }
 
@@ -75,15 +75,14 @@ fn zero_body_arrival_has_no_lifecycle_plot_while_creche_inventory_is_usable() {
     assert!(!door.plot_open);
     door.observe_journey(lifecycle).unwrap();
 
-    let presentation = door.presentation().unwrap();
-    assert!(presentation.basis.body_id.is_none());
-    assert!(presentation.basis.source_document_id.is_none());
-    assert!(presentation.basis.checked_plot_id.is_none());
+    let face = door.face().unwrap();
+    assert!(face.basis.body_id.is_none());
+    assert!(face.basis.source_document_id.is_none());
+    assert!(face.basis.checked_plot_id.is_none());
     assert_eq!(
-        presentation
-            .subjects
+        face.subjects
             .iter()
-            .filter(|subject| subject.role == conduit_presentation::PresentationRole::Plot)
+            .filter(|subject| subject.role == conduit_face::FaceRole::Plot)
             .count(),
         crate::native_workset::inventory().len()
     );
@@ -103,21 +102,19 @@ fn selection_and_availability_are_visible_and_refuse_empty_or_unavailable_birth(
     press(&mut door, 44); // remove Tour
     press(&mut door, 43);
     press(&mut door, 44); // remove Patchbay
-    let presentation = door.presentation().unwrap();
+    let face = door.face().unwrap();
     assert!(
-        presentation
-            .properties
+        face.properties
             .iter()
-            .any(|p| p.name == "selected" && p.value == PresentationPropertyValue::Flag(false))
+            .any(|p| p.name == "selected" && p.value == FacePropertyValue::Flag(false))
     );
     assert!(matches!(
-        presentation
-            .actions
+        face.actions
             .iter()
             .find(|a| a.identity == "creche.birth")
             .unwrap()
             .availability,
-        PresentationActionAvailability::Unavailable { .. }
+        FaceActionAvailability::Unavailable { .. }
     ));
     assert!(matches!(press(&mut door, 60), ArrivalInput::Changed));
     press(&mut door, 44);
@@ -150,7 +147,7 @@ fn suggestion_and_tradition_use_shared_catalog_without_creating_lifecycle() {
         door.arrival.as_ref().unwrap().draft.requested_system(),
         "surprise"
     );
-    assert!(door.presentation().unwrap().basis.body_id.is_none());
+    assert!(door.face().unwrap().basis.body_id.is_none());
 }
 
 #[test]
@@ -158,9 +155,9 @@ fn unrelated_input_preserves_refusal_and_revision_exhaustion_is_atomic() {
     let mut door = door(None);
     press(&mut door, 42);
     press(&mut door, 60);
-    let before = door.presentation().unwrap();
+    let before = door.face().unwrap();
     assert!(matches!(press(&mut door, 70), ArrivalInput::Unchanged));
-    assert_eq!(door.presentation().unwrap(), before);
+    assert_eq!(door.face().unwrap(), before);
     door.revision = u64::MAX;
     let name = door
         .arrival
@@ -172,7 +169,7 @@ fn unrelated_input_preserves_refusal_and_revision_exhaustion_is_atomic() {
     let event = KeyEvent::new(21, KeyTransition::Pressed, KeyModifiers::from_bits(0)).unwrap();
     assert!(matches!(
         door.accept_creche(event, u64::MAX),
-        Err(Error::Presentation)
+        Err(Error::Face)
     ));
     assert_eq!(door.arrival.as_ref().unwrap().draft.friendly_name(), name);
 }
@@ -214,7 +211,7 @@ fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
     press(&mut door, 42);
     press(&mut door, 60);
     let scene = door.scene(&super::super::tests::Sink).unwrap();
-    assert!(scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+    assert!(scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
     let choices: alloc::vec::Vec<_> = scene
         .commands()
         .iter()
@@ -225,8 +222,7 @@ fn four_plot_scene_keeps_choices_status_and_birth_visually_separate() {
     assert_eq!(choices.len(), 4);
     assert!(choices.windows(2).all(|rows| {
         rows[1].bounds.y - rows[0].bounds.y
-            >= crate::display::profile::line_height(conduit_presentation::GraphicsTextRole::Body)
-                as i16
+            >= crate::display::profile::line_height(conduit_face::GraphicsTextRole::Body) as i16
     }));
     let selected = scene
         .commands()

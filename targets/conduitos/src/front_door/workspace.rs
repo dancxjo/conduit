@@ -41,12 +41,12 @@ impl FrontDoor {
     ) -> Result<(), Error> {
         if let Some(workspace) = journey.workspace_projection() {
             let application_view = if journey.foreground_is_tutorial() {
-                Some(journey.tutorial_view().map_err(|_| Error::Presentation)?)
+                Some(journey.tutorial_view().map_err(|_| Error::Face)?)
             } else {
                 journey.foreground_application_view().cloned()
             };
             if let Some(view) = &application_view {
-                view.validate().map_err(|_| Error::Presentation)?;
+                view.validate().map_err(|_| Error::Face)?;
             }
             let changed = self.application_view != application_view
                 || self
@@ -82,7 +82,7 @@ impl FrontDoor {
                     | crate::product_journey::JourneyStatus::InputUnavailable
             )
         ) {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         self.refusal = Some(WorkspaceRefusal::Play(reason.into()));
         self.advance()
@@ -108,7 +108,7 @@ impl FrontDoor {
                 .count()
                 != 1
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         if self
             .journey
@@ -120,13 +120,13 @@ impl FrontDoor {
                     .any(|prior| prior.plot == plot.plot)
             })
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         let selected = workspace
             .plots
             .iter()
             .find(|plot| plot.foreground)
-            .ok_or(Error::Presentation)?;
+            .ok_or(Error::Face)?;
         if journey.source_document_id.as_ref() != Some(&selected.plot.source_document_id)
             || journey.checked_plot_id.as_ref() != Some(&selected.plot.checked_plot_id)
             || self
@@ -138,7 +138,7 @@ impl FrontDoor {
             || journey.boot_id != self.boot_id
             || journey.offer_generation != self.offer_generation
         {
-            return Err(Error::Presentation);
+            return Err(Error::Face);
         }
         if let Some(previous) = &self.workspace {
             let unchanged = previous.plots.len() == workspace.plots.len()
@@ -164,7 +164,7 @@ impl FrontDoor {
             // Selection and output cannot rewrite membership. The sole growth
             // case is one exact canonical insertion backed by the Body/Wake event.
             if !unchanged && !admitted_insert {
-                return Err(Error::Presentation);
+                return Err(Error::Face);
             }
             if admitted_insert {
                 let inserted = workspace
@@ -176,28 +176,24 @@ impl FrontDoor {
                             .iter()
                             .any(|prior| prior.plot == current.plot)
                     })
-                    .ok_or(Error::Presentation)?;
-                let kind = crate::native_workset::resolve(&inserted.plot)
-                    .map_err(|_| Error::Presentation)?;
+                    .ok_or(Error::Face)?;
+                let kind =
+                    crate::native_workset::resolve(&inserted.plot).map_err(|_| Error::Face)?;
                 if kind.title() != inserted.title {
-                    return Err(Error::Presentation);
+                    return Err(Error::Face);
                 }
             }
         } else {
             for plot in &workspace.plots {
-                let kind =
-                    crate::native_workset::resolve(&plot.plot).map_err(|_| Error::Presentation)?;
+                let kind = crate::native_workset::resolve(&plot.plot).map_err(|_| Error::Face)?;
                 if kind.title() != plot.title {
-                    return Err(Error::Presentation);
+                    return Err(Error::Face);
                 }
             }
         }
-        self.revision.checked_add(1).ok_or(Error::Presentation)?;
-        self.source_document_id = journey
-            .source_document_id
-            .clone()
-            .ok_or(Error::Presentation)?;
-        self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Presentation)?;
+        self.revision.checked_add(1).ok_or(Error::Face)?;
+        self.source_document_id = journey.source_document_id.clone().ok_or(Error::Face)?;
+        self.checked_plot_id = journey.checked_plot_id.clone().ok_or(Error::Face)?;
         self.plot_subject = format!("plot/{}", self.checked_plot_id.as_str());
         if self.selected_subject.starts_with("plot/") {
             self.selected_subject = self.plot_subject.clone();

@@ -46,7 +46,7 @@ struct CatalogPlot {
     source: String,
     source_document_id: String,
     checked_plot_id: String,
-    presentation_profile: u8,
+    face_profile: u8,
     required_kinds: Vec<String>,
     unavailable_hint: String,
     graceful_fallback: Option<CatalogFallback>,
@@ -117,7 +117,7 @@ pub(crate) fn workspace_library(
         .unwrap_or_else(|| {
             let mut catalogs = super::catalog_preparation::CatalogPreparation::default();
             let mut order: Vec<usize> = (0..plots.len()).collect();
-            order.sort_by_key(|index| plots[*index].presentation_profile);
+            order.sort_by_key(|index| plots[*index].face_profile);
             let mut available = vec![false; plots.len()];
             for index in order {
                 available[index] = catalog_plot_plan(
@@ -181,7 +181,7 @@ pub(crate) fn workspace_library(
             .collect::<Result<Vec<_>, String>>()?,
     )
     .map_err(|error| format!("Plot library refused: {error:?}"))?;
-    // Publish only after the complete inventory and presentation metadata admit.
+    // Publish only after the complete inventory and face metadata admit.
     LIBRARY_ADMISSION.with(|cache| *cache.borrow_mut() = Some(LibraryAdmission { key, available }));
     Ok(library)
 }
@@ -194,14 +194,14 @@ fn catalog_plot_plan(
     joined_lines: &[JoinedLineObservation],
     catalogs: &mut super::catalog_preparation::CatalogPreparation,
 ) -> Result<(), String> {
-    let presentation = match entry.presentation_profile {
-        0 => crate::installed_browser::PresentationProfile::Annotation,
-        1 => crate::installed_browser::PresentationProfile::Quantity,
-        2 => crate::installed_browser::PresentationProfile::NormalizedDurations,
-        3 => crate::installed_browser::PresentationProfile::PatternComparison,
-        _ => return Err("reviewed plot has an unsupported presentation profile".into()),
+    let face = match entry.face_profile {
+        0 => crate::installed_browser::FaceProfile::Annotation,
+        1 => crate::installed_browser::FaceProfile::Quantity,
+        2 => crate::installed_browser::FaceProfile::NormalizedDurations,
+        3 => crate::installed_browser::FaceProfile::PatternComparison,
+        _ => return Err("reviewed plot has an unsupported face profile".into()),
     };
-    let (startup, base_profile, installed_backs) = catalogs.get_with_backs(presentation)?;
+    let (startup, base_profile, installed_backs) = catalogs.get_with_backs(face)?;
     let document =
         super::initial_plots::check_source_with_catalogs(&entry.source, startup, base_profile)?;
     if document.source_document_id.as_str() != entry.source_document_id {
@@ -334,7 +334,7 @@ pub(crate) fn plan_workspace_plots(
     let bases = crate::installed_browser::local_bases();
     let mut plans = Vec::with_capacity(evidence.body.workset.len());
     for resident in evidence.body.workset.plots() {
-        let (document, plot, presentation) = inventory
+        let (document, plot, face) = inventory
             .iter()
             .find_map(|entry| {
                 if entry.checked.source_document_id != resident.source_document_id {
@@ -345,10 +345,10 @@ pub(crate) fn plan_workspace_plots(
                     .plots
                     .iter()
                     .find(|plot| plot.checked_plot_id == resident.checked_plot_id)
-                    .map(|plot| (&entry.checked, plot, entry.presentation))
+                    .map(|plot| (&entry.checked, plot, entry.face))
             })
             .ok_or("Resident Plot has a stale or missing checked identity")?;
-        let (startup, base_profile) = catalogs.get(presentation)?;
+        let (startup, base_profile) = catalogs.get(face)?;
         let mut profile = base_profile.clone();
         crate::installed_browser::catalogs::install_checked_structured_selectors(
             document,

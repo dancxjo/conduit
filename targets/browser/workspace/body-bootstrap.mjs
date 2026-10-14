@@ -1,4 +1,4 @@
-import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-presentation.mjs";
+import { attachConduitSyntaxEditor } from "../../../targets/browser/host/assets/application-syntax-face.mjs";
 import {
   encodedPlotSelection,
   reviewInitialWorkload,
@@ -8,12 +8,12 @@ import {
 const encoder = new TextEncoder();
 const decoder = new TextDecoder();
 
-export function createBodyBirthRunner({ source, sourceKey, listingId, host, presentationFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged, onContinue }) {
+export function createBodyBirthRunner({ source, sourceKey, listingId, host, faceFor, inventory, initialSelection, onSelection, nextSequence, onBodyChanged, onContinue }) {
   const runner = document.createElement("section");
   runner.className = "runner body-birth-runner";
   runner.dataset.sourceKey = sourceKey;
   runner.innerHTML = `
-    <div class="birth-presentation">
+    <div class="birth-face">
       <div data-application-slot="birth-fields"></div><div data-application-slot="birth-feedback"></div>
       <details class="birth-details"><summary>Details and source</summary><div data-application-slot="birth-source"></div></details>
     </div>
@@ -28,7 +28,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
       <div class="body-evidence" data-application-slot="birth-evidence"></div>
       </details>
     </div>`;
-  const presentation = presentationFor(runner);
+  const face = faceFor(runner);
   const selectionNotice = initialPlotSelectionNotice(initialSelection);
   const state = {
     revision: 0,
@@ -45,7 +45,7 @@ export function createBodyBirthRunner({ source, sourceKey, listingId, host, pres
     selectionNotice,
   };
   const current = readCurrent(host.runtime);
-  const controls = { presentation, runtime: host.runtime, listingId, inventory, onContinue, onSelection: onSelection ?? (() => {}), onReview() {
+  const controls = { face, runtime: host.runtime, listingId, inventory, onContinue, onSelection: onSelection ?? (() => {}), onReview() {
     review(runner, host, state, controls);
   }, onBirth() {
     review(runner, host, state, controls);
@@ -116,16 +116,16 @@ function applyDraftSnapshot(state, controls, snapshot) {
 }
 
 function presentBirthControls(runner, state, controls) {
-  const { presentation, runtime, listingId, onSelection, onReview, onBirth } = controls;
-  runner.querySelector(".birth-presentation").hidden = state.terminal;
+  const { face, runtime, listingId, onSelection, onReview, onBirth } = controls;
+  runner.querySelector(".birth-face").hidden = state.terminal;
   if (state.terminal) return;
   if (state.draft && state.renderedDraftRevision !== state.draft.revision) {
     const code = runtime.conduit_creche_birth_draft_view(state.draft.generation);
     if (code < 0) throw new Error(readOutput(runtime).message ?? `Crèche view refused (${code})`);
     const view = new Uint8Array(runtime.memory.buffer, runtime.conduit_creche_output_ptr(), runtime.conduit_creche_output_len()).slice();
-    presentation.present("birth-fields", view, {
+    face.present("birth-fields", view, {
       onEvent(event) {
-        presentation.nextEvent("birth-fields");
+        face.nextEvent("birth-fields");
         try {
           const snapshot = draftCall(runtime, "conduit_creche_birth_draft_event", {
             generation: state.draft.generation, revision: event.revision,
@@ -150,11 +150,11 @@ function presentBirthControls(runner, state, controls) {
     });
     state.renderedDraftRevision = state.draft.revision;
   }
-  presentation.present("birth-feedback", {
+  face.present("birth-feedback", {
     revision: ++state.revision, actions: [],
     nodes: birthFeedbackNodes(state.status, state.outcome),
   });
-  presentation.present("birth-source", {
+  face.present("birth-source", {
     revision: ++state.revision,
     actions: [{ id: "workload.review", event: "activate" }],
     nodes: [
@@ -170,7 +170,7 @@ function presentBirthControls(runner, state, controls) {
         : "Selection not reviewed; Birth will review it before creating the body.", valueCapacity: 4096 },
       { parent: 0, component: "button", action: 0, key: "review", text: "Review workload" },
     ],
-  }, { onEvent() { presentation.nextEvent("birth-source"); onReview(); } });
+  }, { onEvent() { face.nextEvent("birth-source"); onReview(); } });
   attachConduitSyntaxEditor(runner.querySelector(`[data-application-key="${listingId}"]`), runtime);
 }
 
@@ -222,7 +222,7 @@ function review(runner, host, state, controls) {
   presentBirthControls(runner, state, controls);
 }
 
-function birth(runner, host, state, sequence, onBodyChanged, presentationOptions) {
+function birth(runner, host, state, sequence, onBodyChanged, faceOptions) {
   const api = host.runtime;
   const sourceBytes = encoder.encode(selectedReviewedSource(state.inventorySource, state.initialPlots));
   const hostBytes = encoder.encode(host.hostId);
@@ -233,14 +233,14 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
   if (total > api.conduit_creche_input_capacity()) {
     state.status = "The plot selection and exact host identities exceed the admitted BIRTH input bound.";
     state.outcome = "failure-status";
-    presentBirthControls(runner, state, presentationOptions);
+    presentBirthControls(runner, state, faceOptions);
     return;
   }
   const input = new Uint8Array(api.memory.buffer, api.conduit_creche_input_ptr(), total);
   input.set(sourceBytes);
   const admitted = api.conduit_creche_admit_source_interaction(sourceBytes.length, BigInt(sequence));
   if (admitted < 0) {
-    renderRefusal(runner, api, admitted, state, presentationOptions);
+    renderRefusal(runner, api, admitted, state, faceOptions);
     return;
   }
   input.set(hostBytes);
@@ -257,10 +257,10 @@ function birth(runner, host, state, sequence, onBodyChanged, presentationOptions
     BigInt(sequence),
   );
   if (code < 0) {
-    renderRefusal(runner, api, code, state, presentationOptions);
+    renderRefusal(runner, api, code, state, faceOptions);
     return;
   }
-  renderReceipt(runner, readOutput(api), false, state, presentationOptions);
+  renderReceipt(runner, readOutput(api), false, state, faceOptions);
   onBodyChanged?.();
 }
 
@@ -275,23 +275,23 @@ export function readBodyProjection(api) {
   return readCurrent(api);
 }
 
-function renderRefusal(runner, api, code, state, presentationOptions) {
+function renderRefusal(runner, api, code, state, faceOptions) {
   const refusal = api.conduit_creche_output_len() > 0 ? readOutput(api) : null;
   state.status = refusal?.message
     ? `BIRTH refused · ${refusal.category}: ${refusal.message}`
     : `BIRTH refused (${code}).`;
   state.outcome = "failure-status";
-  presentBirthControls(runner, state, presentationOptions);
+  presentBirthControls(runner, state, faceOptions);
 }
 
-function renderReceipt(runner, receipt, retained, state, presentationOptions) {
+function renderReceipt(runner, receipt, retained, state, faceOptions) {
   runner.querySelector(".body-birth-result").hidden = false;
   runner.dataset.bodyId = receipt.body_id;
   runner.dataset.birthSignId = receipt.birth_sign_id;
   state.terminal = true;
   state.friendlyName = receipt.friendly_name;
   state.initialPlots = receipt.initial_plots.map((plot) => {
-    const current = presentationOptions.inventory.plots.find((candidate) => candidate.name === plot.name
+    const current = faceOptions.inventory.plots.find((candidate) => candidate.name === plot.name
       && candidate.source_document_id === plot.source_document_id
       && candidate.checked_plot_id === plot.checked_plot_id);
     if (!current) throw new Error(`Body receipt carries stale initial Plot identity ${JSON.stringify(plot.name)}`);
@@ -301,12 +301,12 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   runner.querySelector(".body-id").textContent = receipt.body_id;
   runner.querySelector(".body-state").textContent = receipt.state;
   state.status = retained
-    ? "Same LULLED Body retained — Crèche presentation controls did not recreate it."
+    ? "Same LULLED Body retained — Crèche face controls did not recreate it."
     : `Born — ${receipt.initial_plots.length} checked plot(s) now have one LULLED Body; no Wake, Plan, or Play exists.`;
   state.outcome = "success-status";
-  if (!retained) presentationOptions.onSelection(null);
-  presentBirthControls(runner, state, presentationOptions);
-  presentationOptions.presentation.present("birth-next", {
+  if (!retained) faceOptions.onSelection(null);
+  presentBirthControls(runner, state, faceOptions);
+  faceOptions.face.present("birth-next", {
     revision: ++state.revision,
     actions: [{ id: "creche.continue", event: "activate" }],
     nodes: [
@@ -321,8 +321,8 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
       { parent: 0, component: "button", action: 0, key: "born-continue", text: "Continue on this host" },
     ],
   }, { onEvent() {
-    presentationOptions.presentation.nextEvent("birth-next");
-    presentationOptions.onContinue();
+    faceOptions.face.nextEvent("birth-next");
+    faceOptions.onContinue();
   } });
   if (!retained) {
     const heading = runner.querySelector('[data-application-key="born-heading"]');
@@ -349,7 +349,7 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
     initial_workload_review: receipt.initial_review,
     source_interaction: receipt.source_interaction,
   }, null, 2);
-  presentationOptions.presentation.present("birth-evidence", {
+  faceOptions.face.present("birth-evidence", {
     revision: ++state.revision,
     actions: [],
     nodes: [
@@ -362,13 +362,13 @@ function renderReceipt(runner, receipt, retained, state, presentationOptions) {
   });
 }
 
-export function createFirstHostRunner({ host, presentationFor, nextSequence, onBodyChanged }) {
+export function createFirstHostRunner({ host, faceFor, nextSequence, onBodyChanged }) {
   const runner = document.createElement("section");
   runner.className = "runner first-host-runner";
   runner.innerHTML = `
     <div data-application-slot="first-host-controls"></div>
     <div class="result" data-application-slot="first-host-evidence"></div>`;
-  const presentation = presentationFor(runner);
+  const face = faceFor(runner);
   const state = {
     revision: 0,
     status: "The body is still LULLED with no admitted host.",
@@ -379,14 +379,14 @@ export function createFirstHostRunner({ host, presentationFor, nextSequence, onB
   if (!current) {
     state.terminal = true;
     state.status = "Birth the body on page zero first.";
-    presentFirstHostControls(runner, presentation, state, () => {});
+    presentFirstHostControls(runner, face, state, () => {});
     return runner;
   }
   if (current.here_part_id) {
-    renderAttachedHost(runner, presentation, current, state);
+    renderAttachedHost(runner, face, current, state);
     return runner;
   }
-  presentFirstHostControls(runner, presentation, state, () => {
+  presentFirstHostControls(runner, face, state, () => {
     const api = host.runtime;
     const hostBytes = encoder.encode(host.hostId);
     const bootBytes = encoder.encode(host.bootId);
@@ -398,17 +398,17 @@ export function createFirstHostRunner({ host, presentationFor, nextSequence, onB
       const refusal = readOutput(api);
       state.status = `Host admission refused: ${refusal.message ?? code}`;
       state.outcome = "failure-status";
-      presentFirstHostControls(runner, presentation, state, () => {});
+      presentFirstHostControls(runner, face, state, () => {});
       return;
     }
-    renderAttachedHost(runner, presentation, readOutput(api), state);
+    renderAttachedHost(runner, face, readOutput(api), state);
     onBodyChanged?.();
   });
   return runner;
 }
 
-function presentFirstHostControls(runner, presentation, state, onAttach) {
-  presentation.present("first-host-controls", {
+function presentFirstHostControls(runner, face, state, onAttach) {
+  face.present("first-host-controls", {
     revision: ++state.revision,
     actions: state.terminal ? [] : [{ id: "host.attach", event: "activate" }],
     nodes: [
@@ -419,18 +419,18 @@ function presentFirstHostControls(runner, presentation, state, onAttach) {
       { parent: 0, component: state.outcome, action: null, key: "host-status", text: state.status },
     ],
   }, { onEvent() {
-    presentation.nextEvent("first-host-controls");
+    face.nextEvent("first-host-controls");
     onAttach();
   } });
 }
 
-function renderAttachedHost(runner, presentation, receipt, state) {
+function renderAttachedHost(runner, face, receipt, state) {
   state.terminal = true;
   state.outcome = "success-status";
   state.status = `${receipt.friendly_name} now has one admitted browser Host and remains LULLED.`;
-  presentFirstHostControls(runner, presentation, state, () => {});
+  presentFirstHostControls(runner, face, state, () => {});
   const values = [["Body", receipt.body_id], ["Part", receipt.here_part_id], ["Host", receipt.host_id], ["Boot", receipt.boot_id]];
-  presentation.present("first-host-evidence", {
+  face.present("first-host-evidence", {
     revision: ++state.revision,
     actions: [],
     nodes: [

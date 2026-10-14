@@ -1,8 +1,8 @@
 //! One exact input delivered by the same admitted Mask execution that rendered it.
 use super::*;
+use conduit_face::{FaceInteraction, MaskInteractionCorrelation, MaskShow};
 use conduit_kernel::scheduler::{HostCallRequest, RemoteTerminalDisposition, SchedulerStatus};
 use conduit_kernel::{BoundedValueRef, HostCallDisposition, HostCallOutcome, SignSink};
-use conduit_presentation::{FaceInteraction, MaskInteractionCorrelation, MaskShow};
 
 /// A finite session owns its pending Host Call and exact available Show. Consuming
 /// operations prevent duplicate delivery; dropping a live session cancels its Play.
@@ -29,7 +29,7 @@ impl NativeMaskInteractionSession {
         interaction: FaceInteraction,
     ) -> Result<MaskInteractionCorrelation, NativeMaskPlayError> {
         interaction
-            .validate_against(&self.play.renderer.presentation, self.show())
+            .validate_against(&self.play.renderer.face, self.show())
             .map_err(NativeMaskPlayError::Interaction)?;
         let bytes = interaction.encode();
         if bytes.len() > self.play.interaction_fore.byte_capacity as usize
@@ -40,7 +40,7 @@ impl NativeMaskInteractionSession {
         let correlation = self
             .show()
             .correlate_interaction(interaction)
-            .map_err(|_| NativeMaskPlayError::Presentation)?;
+            .map_err(|_| NativeMaskPlayError::Face)?;
         let value = self
             .play
             .scheduler

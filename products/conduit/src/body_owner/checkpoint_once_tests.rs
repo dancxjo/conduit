@@ -1,6 +1,6 @@
 use super::*;
 use conduit_core::{BootId, HostId, OfferGeneration, ResourceVersionIdentity};
-use conduit_presentation::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
+use conduit_face::{FaceInteraction, FaceInteractionArgument, UTF8_TEXT_VALUE_KIND};
 use conduit_std_host::todo_durable_resource::MissingV2Disposition;
 use conduit_std_host::{StdHost, StdHostConfig};
 

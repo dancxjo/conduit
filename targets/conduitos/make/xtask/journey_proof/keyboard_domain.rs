@@ -66,9 +66,7 @@ pub(super) fn verify_sibling(
         &[],
     )?;
     if latest(serial)?["result"] != "A" {
-        return Err(refusal(
-            "retained editor changed its sibling's presentation",
-        ));
+        return Err(refusal("retained editor changed its sibling's face"));
     }
     Ok(())
 }

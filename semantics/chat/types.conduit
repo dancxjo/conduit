@@ -11,7 +11,7 @@ type ChatStateRefusal =
     | oversize_message
     | malformed_message
     | sequence_exhausted
-    | invalid_presentation
+    | invalid_face
 
 type PresenceState =
     available

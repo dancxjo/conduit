@@ -213,7 +213,7 @@ impl KernelCompositeHost {
             .map_err(|reason| execution(route.child_index, reason))
     }
 
-    /// Allocating presentation convenience; sealed Play uses `output_into`.
+    /// Allocating face convenience; sealed Play uses `output_into`.
     pub fn output(
         &mut self,
         port_id: &PortId,
@@ -343,7 +343,7 @@ impl KernelCompositeHost {
         &self.cancellation_failures
     }
 
-    /// Allocating presentation snapshot, outside sealed Play.
+    /// Allocating face snapshot, outside sealed Play.
     pub fn signs(&self) -> BTreeMap<HostId, Vec<KernelEvent>> {
         self.children
             .iter()

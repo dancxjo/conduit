@@ -9,7 +9,7 @@ use conduit_core::{
 
 use super::{
     KindConfigurationField, KindConfigurationRule, KindTerminalBehavior, StandardKindContract,
-    TEXT_PRESENTATION_VALUE_KIND,
+    TEXT_FACE_VALUE_KIND,
 };
 
 pub const TEXT_EDIT_KIND: &str = "text/edit";
@@ -53,14 +53,14 @@ fn contract(kind: &str, revision: &str, output: &str, summary: &str) -> Standard
         summary: summary.to_string(),
         inputs: vec![PortDescriptor {
             port_id: port_id("fragment"),
-            value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
+            value_kind: kind_id(TEXT_FACE_VALUE_KIND),
             direction: PortDirection::Input,
             temporal: PortTemporal::Flow { closes: false },
             abnormal_kind: None,
         }],
         outputs: vec![PortDescriptor {
             port_id: port_id(output),
-            value_kind: kind_id(TEXT_PRESENTATION_VALUE_KIND),
+            value_kind: kind_id(TEXT_FACE_VALUE_KIND),
             direction: PortDirection::Output,
             temporal: PortTemporal::Flow { closes: false },
             abnormal_kind: None,

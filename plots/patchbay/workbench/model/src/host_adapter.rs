@@ -38,7 +38,7 @@ impl PatchbayHostAdapter for TestHostAdapter {
             PatchbayHostProfile::Authoring => StdHostComposition::minimal()
                 .with_text()
                 .with_math()
-                .with_presentation(),
+                .with_face(),
             PatchbayHostProfile::Reference => StdHostComposition::reference(),
             PatchbayHostProfile::PicoSimulation => StdHostComposition::minimal()
                 .with_signal()

@@ -18,8 +18,8 @@ function snapshot(reducedMotion = false) {
   ];
   const property = (subject, name, value) => ({ subject, name, value: { Text: value } });
   return {
-    presentation: {
-      identity: "presentation/debugger",
+    face: {
+      identity: "face/debugger",
       revision: 1,
       basis: { source_document_id: "source/debugger", checked_plot_id: "plot/debugger" },
       subjects,

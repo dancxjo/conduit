@@ -1,17 +1,17 @@
 use super::*;
 use crate::native_face_scene::NativeFaceScene;
 use alloc::borrow::ToOwned;
-use conduit_presentation::{GraphicsCommandKind, PresentationProperty, PresentationRelationship};
+use conduit_face::{FaceProperty, FaceRelationship, GraphicsCommandKind};
 
-fn fan_face() -> (Presentation, String, String, String) {
-    let mut face: Presentation = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+fn fan_face() -> (Face, String, String, String) {
+    let mut face: Face = serde_json::from_str(include_str!(
+        "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     let cords: alloc::vec::Vec<_> = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Cord)
+        .filter(|s| s.role == FaceRole::Cord)
         .collect();
     let source = property(&face, &cords[0].identity, "source-port", true)
         .unwrap()
@@ -28,9 +28,9 @@ fn fan_face() -> (Presentation, String, String, String) {
         .identity
         .clone();
     let id = "cord/fan-direct".to_owned();
-    face.subjects.push(PresentationSubject {
+    face.subjects.push(FaceSubject {
         identity: id.clone(),
-        role: PresentationRole::Cord,
+        role: FaceRole::Cord,
         name: "Direct text route".into(),
     });
     for (name, value) in [
@@ -38,20 +38,20 @@ fn fan_face() -> (Presentation, String, String, String) {
         ("sink-port", sink),
         ("value-kind", "value/text".into()),
     ] {
-        face.properties.push(PresentationProperty {
+        face.properties.push(FaceProperty {
             subject: id.clone(),
             name: name.into(),
-            value: PresentationPropertyValue::Identity(value),
+            value: FacePropertyValue::Identity(value),
         });
     }
     for target in [&source_subject, &sink_subject] {
-        face.relationships.push(PresentationRelationship {
+        face.relationships.push(FaceRelationship {
             source: id.clone(),
             target: target.clone(),
-            kind: PresentationRelationshipKind::Connects,
+            kind: FaceRelationshipKind::Connects,
         });
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -116,18 +116,16 @@ fn typed_direction_labels_and_exact_endpoints_survive_mixed_fan_graphs() {
             .iter()
             .any(|row| row.text == cord_summary(&face, cord))
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
 fn missing_relationship_cannot_be_replaced_by_a_nearby_port() {
     let (mut face, cord_id, source, _) = fan_face();
     face.relationships.retain(|r| {
-        !(r.source == cord_id
-            && r.target == source
-            && r.kind == PresentationRelationshipKind::Connects)
+        !(r.source == cord_id && r.target == source && r.kind == FaceRelationshipKind::Connects)
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -157,7 +155,7 @@ fn missing_relationship_cannot_be_replaced_by_a_nearby_port() {
             .count(),
         2
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
@@ -174,8 +172,8 @@ fn missing_port_facts_are_not_inferred_from_misleading_wording() {
         .iter_mut()
         .find(|p| p.subject == source && p.name == "direction")
         .unwrap()
-        .value = PresentationPropertyValue::Text("sideways".into());
-    let face = Presentation::new_with_semantics(
+        .value = FacePropertyValue::Text("sideways".into());
+    let face = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -205,7 +203,7 @@ fn missing_port_facts_are_not_inferred_from_misleading_wording() {
             .count(),
         1
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }
 
 #[test]
@@ -215,12 +213,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
     let graph_ids: alloc::vec::Vec<_> = original
         .subjects
         .iter()
-        .filter(|s| {
-            matches!(
-                s.role,
-                PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord
-            )
-        })
+        .filter(|s| matches!(s.role, FaceRole::Gear | FaceRole::Port | FaceRole::Cord))
         .map(|s| s.identity.clone())
         .collect();
     for group in 1..4 {
@@ -250,7 +243,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             if matches!(
                 property.name.as_str(),
                 "semantic-id" | "source-port" | "sink-port"
-            ) && let PresentationPropertyValue::Identity(value) = &mut property.value
+            ) && let FacePropertyValue::Identity(value) = &mut property.value
             {
                 *value = format!("{prefix}{value}");
             }
@@ -267,7 +260,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             face.relationships.push(relation);
         }
     }
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -281,7 +274,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
     let total = face
         .subjects
         .iter()
-        .filter(|s| s.role == PresentationRole::Cord)
+        .filter(|s| s.role == FaceRole::Cord)
         .count();
     assert_eq!(total, 12);
     for (width, height) in [(320, 240), (640, 720)] {
@@ -290,7 +283,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
         assert!(scene.pages() > 1);
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
-            assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
             let shown = frame
                 .scene
                 .commands()
@@ -308,7 +301,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
         let mut visible = alloc::vec::Vec::new();
         for _ in 0..scene.pages() {
             let frame = scene.frame().unwrap();
-            assert!(frame.scene.commands().len() <= conduit_presentation::MAX_GRAPHICS_COMMANDS);
+            assert!(frame.scene.commands().len() <= conduit_face::MAX_GRAPHICS_COMMANDS);
             visible.extend(
                 frame
                     .scene
@@ -318,12 +311,11 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
             );
             scene.turn_page(true);
         }
-        for subject in face.subjects.iter().filter(|s| {
-            matches!(
-                s.role,
-                PresentationRole::Gear | PresentationRole::Port | PresentationRole::Cord
-            )
-        }) {
+        for subject in face
+            .subjects
+            .iter()
+            .filter(|s| matches!(s.role, FaceRole::Gear | FaceRole::Port | FaceRole::Cord))
+        {
             let fact = format!("{:?} identity: {}", subject.role, subject.identity);
             assert!(
                 visible.iter().any(|text| text == &fact),
@@ -331,7 +323,7 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
                 subject.identity
             );
         }
-        assert_eq!(scene.presentation(), &face);
+        assert_eq!(scene.face(), &face);
     }
 }
 
@@ -339,16 +331,16 @@ fn large_graphs_keep_every_identity_reachable_and_report_omitted_geometry() {
 fn off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry() {
     let (mut face, cord_id, source, _) = fan_face();
     for index in 0..4 {
-        face.subjects.push(PresentationSubject {
+        face.subjects.push(FaceSubject {
             identity: format!("gear/disconnected/{index}"),
-            role: PresentationRole::Gear,
+            role: FaceRole::Gear,
             name: format!("Disconnected {index}"),
         });
     }
     let hidden_gear = "gear/ambiguous-offpage";
-    face.subjects.push(PresentationSubject {
+    face.subjects.push(FaceSubject {
         identity: hidden_gear.into(),
-        role: PresentationRole::Gear,
+        role: FaceRole::Gear,
         name: "Off-page ambiguity".into(),
     });
     let duplicate_id = "port/duplicate-source";
@@ -370,17 +362,17 @@ fn off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry() {
         property.subject = duplicate_id.into();
         face.properties.push(property);
     }
-    face.relationships.push(PresentationRelationship {
+    face.relationships.push(FaceRelationship {
         source: hidden_gear.into(),
         target: duplicate_id.into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     });
-    face.relationships.push(PresentationRelationship {
+    face.relationships.push(FaceRelationship {
         source: cord_id.clone(),
         target: duplicate_id.into(),
-        kind: PresentationRelationshipKind::Connects,
+        kind: FaceRelationshipKind::Connects,
     });
-    let face = Presentation::new_with_semantics(
+    let face = Face::new_with_semantics(
         face.revision,
         face.basis,
         face.subjects,
@@ -411,5 +403,5 @@ fn off_page_ambiguous_endpoint_never_borrows_a_visible_ports_geometry() {
             .count(),
         2
     );
-    assert_eq!(scene.presentation(), &face);
+    assert_eq!(scene.face(), &face);
 }

@@ -13,12 +13,12 @@ use conduit_core::{
     PoolMemberSessionDirection, PoolRealizationEnvelope, PoolRealizationObservation,
     PoolSelectionEvidence, SignId,
 };
+use conduit_face::{
+    Face, FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
+    OwnerFaceSnapshotResponse, RemoteOwnerMaskRouteSeal,
+};
 use conduit_kernel::scheduler::{RemoteIngressOutcome, SchedulerStatus};
 use conduit_plan_lowering::lowering::RemoteCordDirection;
-use conduit_presentation::{
-    FaceInteraction, MaskShow, MaskWardrobeAction, OwnerFaceSnapshotRequest,
-    OwnerFaceSnapshotResponse, Presentation, RemoteOwnerMaskRouteSeal,
-};
 use conduit_std_host::{
     browser_admission::{BrowserAdmissionEgress, BrowserAdmissionIngress},
     hosted_local_model::LocalModelAdapterTerminal,
@@ -65,14 +65,14 @@ fn supports_remote_mask_action_intent(intent: &str) -> bool {
 
 /// Native return needs a route before reviewed Plot actions become available.
 /// This permits route setup only; it does not make an unavailable action executable.
-pub(crate) fn has_native_return_route_intent(face: &Presentation) -> bool {
+pub(crate) fn has_native_return_route_intent(face: &Face) -> bool {
     face.actions
         .iter()
         .any(|action| supports_remote_mask_action_intent(&action.intent))
 }
 
 /// Browser interaction admission still requires an available, dispatched action.
-pub(crate) fn has_remote_mask_action(face: &Presentation) -> bool {
+pub(crate) fn has_remote_mask_action(face: &Face) -> bool {
     face.actions.iter().any(|action| {
         action.availability.is_available() && supports_remote_mask_action_intent(&action.intent)
     })
@@ -1098,7 +1098,7 @@ enum Request {
         window_id: String,
         credential: MembershipCredential,
     },
-    BodyFace {
+    Face {
         protocol: u16,
         token: Vec<u8>,
         request: OwnerFaceSnapshotRequest,
@@ -1141,7 +1141,7 @@ enum Request {
         request: OwnerFaceSnapshotRequest,
         show: Box<MaskShow>,
     },
-    BirthFace {
+    BirthWidgetFace {
         protocol: u16,
         token: Vec<u8>,
     },
@@ -1324,19 +1324,19 @@ enum Response {
         protocol: u16,
         biography: Box<BodyBiographyEvidence>,
     },
-    BodyFace {
+    Face {
         protocol: u16,
         response: Box<OwnerFaceSnapshotResponse>,
     },
     BodyLocalFace {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
         advertisement: HostAdvertisement,
     },
     BodyLocalWardrobe {
         protocol: u16,
         report: Box<serde_json::Value>,
-        presentation: Option<Box<Presentation>>,
+        face: Option<Box<Face>>,
         reading_refusal: Option<String>,
     },
     BodyNativeMaskRoute {
@@ -1346,19 +1346,19 @@ enum Response {
     BodyNativeMaskShowAccepted {
         protocol: u16,
     },
-    BirthFace {
+    BirthWidgetFace {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
         advertisement: HostAdvertisement,
     },
     BirthChanged {
         protocol: u16,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
     },
     BirthCompleted {
         protocol: u16,
         body_id: conduit_body::BodyId,
-        presentation: Box<Presentation>,
+        face: Box<Face>,
     },
     BodyInteraction {
         protocol: u16,
@@ -1909,13 +1909,13 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         | Request::BodyBrowserAbort { token, .. }
         | Request::BodyBrowserCancel { token, .. }
         | Request::BodyBrowserLeave { token, .. }
-        | Request::BodyFace { token, .. }
+        | Request::Face { token, .. }
         | Request::BodyLocalFace { token, .. }
         | Request::BodyLocalWardrobe { token, .. }
         | Request::BodyNativeMaskRoute { token, .. }
         | Request::BodyNativeComponentMask { token, .. }
         | Request::BodyNativeMaskShow { token, .. }
-        | Request::BirthFace { token, .. }
+        | Request::BirthWidgetFace { token, .. }
         | Request::BirthInteraction { token, .. }
         | Request::BodyInteraction { token, .. }
         | Request::BodyBrowserInteraction { token, .. }
@@ -1946,7 +1946,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             &request,
             Request::Status { .. }
                 | Request::BodyInspect { .. }
-                | Request::BodyFace { .. }
+                | Request::Face { .. }
                 | Request::BodyBrowserMaskRoute { .. }
                 | Request::BodyBrowserShow { .. }
                 | Request::BodyBrowserComponentMask { .. }
@@ -2103,12 +2103,12 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 BrowserComponentLook as L, BrowserComponentRecipe as R,
             };
             let look = match look {
-                L::Compact => conduit_presentation::ComponentMaskLook::Compact,
-                L::Spacious => conduit_presentation::ComponentMaskLook::Spacious,
+                L::Compact => conduit_face::ComponentMaskLook::Compact,
+                L::Spacious => conduit_face::ComponentMaskLook::Spacious,
             };
             let recipe = match recipe {
-                R::Flat => conduit_presentation::TodoComponentRecipe::Flat,
-                R::Grouped => conduit_presentation::TodoComponentRecipe::Grouped,
+                R::Flat => conduit_face::TodoComponentRecipe::Flat,
+                R::Grouped => conduit_face::TodoComponentRecipe::Grouped,
             };
             runtime
                 .select_browser_component_mask(&window_id, &binding, &request, &show, look, recipe)
@@ -2166,20 +2166,20 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 biography: Box::new(biography),
             })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BodyFace {
+        Request::Face {
             protocol, request, ..
         } if protocol == PROTOCOL => runtime
             .owned_body_face(&request)
-            .map(|response| Response::BodyFace {
+            .map(|response| Response::Face {
                 protocol: PROTOCOL,
                 response: Box::new(response),
             })
             .unwrap_or_else(|code| refused(&code)),
         Request::BodyLocalFace { protocol, .. } if protocol == PROTOCOL => runtime
             .owned_body_local_face()
-            .map(|(presentation, advertisement)| Response::BodyLocalFace {
+            .map(|(face, advertisement)| Response::BodyLocalFace {
                 protocol: PROTOCOL,
-                presentation: Box::new(presentation),
+                face: Box::new(face),
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
@@ -2203,14 +2203,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 action,
             )
             .map(|(report, reading)| {
-                let (presentation, reading_refusal) = match reading {
-                    Ok(presentation) => (Some(Box::new(presentation)), None),
+                let (face, reading_refusal) = match reading {
+                    Ok(face) => (Some(Box::new(face)), None),
                     Err(reason) => (None, Some(reason)),
                 };
                 Response::BodyLocalWardrobe {
                     protocol: PROTOCOL,
                     report: Box::new(report),
-                    presentation,
+                    face,
                     reading_refusal,
                 }
             })
@@ -2240,18 +2240,18 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
         } if protocol == PROTOCOL => {
             let look = match look {
                 conduit_std_host::browser_admission::BrowserComponentLook::Compact => {
-                    conduit_presentation::ComponentMaskLook::Compact
+                    conduit_face::ComponentMaskLook::Compact
                 }
                 conduit_std_host::browser_admission::BrowserComponentLook::Spacious => {
-                    conduit_presentation::ComponentMaskLook::Spacious
+                    conduit_face::ComponentMaskLook::Spacious
                 }
             };
             let recipe = match recipe {
                 conduit_std_host::browser_admission::BrowserComponentRecipe::Flat => {
-                    conduit_presentation::TodoComponentRecipe::Flat
+                    conduit_face::TodoComponentRecipe::Flat
                 }
                 conduit_std_host::browser_admission::BrowserComponentRecipe::Grouped => {
-                    conduit_presentation::TodoComponentRecipe::Grouped
+                    conduit_face::TodoComponentRecipe::Grouped
                 }
             };
             runtime
@@ -2271,15 +2271,15 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .owned_body_native_mask_show(&request, &show)
             .map(|()| Response::BodyNativeMaskShowAccepted { protocol: PROTOCOL })
             .unwrap_or_else(|code| refused(&code)),
-        Request::BirthFace { protocol, .. } if protocol == PROTOCOL => runtime
+        Request::BirthWidgetFace { protocol, .. } if protocol == PROTOCOL => runtime
             .birth_root
             .clone()
             .as_deref()
             .ok_or_else(|| "service Birth is unavailable".to_string())
             .and_then(|root| runtime.birth_face(root))
-            .map(|(presentation, advertisement)| Response::BirthFace {
+            .map(|(face, advertisement)| Response::BirthWidgetFace {
                 protocol: PROTOCOL,
-                presentation: Box::new(presentation),
+                face: Box::new(face),
                 advertisement,
             })
             .unwrap_or_else(|code| refused(&code)),
@@ -2295,17 +2295,14 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             .ok_or_else(|| "service Birth is unavailable".to_string())
             .and_then(|root| runtime.birth_interaction(root, &show, &interaction))
             .map(|result| match result {
-                BirthTransition::Changed(presentation) => Response::BirthChanged {
+                BirthTransition::Changed(face) => Response::BirthChanged {
                     protocol: PROTOCOL,
-                    presentation: Box::new(presentation),
+                    face: Box::new(face),
                 },
-                BirthTransition::Born {
-                    body_id,
-                    presentation,
-                } => Response::BirthCompleted {
+                BirthTransition::Born { body_id, face } => Response::BirthCompleted {
                     protocol: PROTOCOL,
                     body_id,
-                    presentation: Box::new(presentation),
+                    face: Box::new(face),
                 },
             })
             .unwrap_or_else(|code| refused(&code)),
@@ -2675,10 +2672,10 @@ mod tests {
 
     #[test]
     fn unavailable_todo_and_thermostat_intents_can_open_native_return_but_cannot_dispatch() {
-        use conduit_presentation::{PresentationActionAvailability, PresentationActionRefusal};
+        use conduit_face::{FaceActionAvailability, FaceActionRefusal};
 
-        let mut face: Presentation = serde_json::from_value(serde_json::json!({
-            "identity": "presentation/todo-return-fixture",
+        let mut face: Face = serde_json::from_value(serde_json::json!({
+            "identity": "face/todo-return-fixture",
             "revision": 1,
             "basis": {
                 "body_id": null, "wake_id": null, "source_document_id": null,
@@ -2701,11 +2698,11 @@ mod tests {
         assert!(!has_remote_mask_action(&face));
         assert!(matches!(
             face.resolve_action(1, "todo.add"),
-            Err(PresentationActionRefusal::Unavailable { reason_code })
+            Err(FaceActionRefusal::Unavailable { reason_code })
                 if reason_code == "todo-return-route-unavailable"
         ));
 
-        face.actions[0].availability = PresentationActionAvailability::Available;
+        face.actions[0].availability = FaceActionAvailability::Available;
         assert!(has_remote_mask_action(&face));
 
         for intent in [
@@ -2722,7 +2719,7 @@ mod tests {
             "thermostat.preset.sleep@1",
         ] {
             face.actions[0].intent = intent.into();
-            face.actions[0].availability = PresentationActionAvailability::Unavailable {
+            face.actions[0].availability = FaceActionAvailability::Unavailable {
                 reason_code: "return-route-unavailable".into(),
                 explanation: "This action has no admitted return route.".into(),
             };
@@ -2730,9 +2727,9 @@ mod tests {
             assert!(!has_remote_mask_action(&face), "{intent}");
             assert!(matches!(
                 face.resolve_action(1, "todo.add"),
-                Err(PresentationActionRefusal::Unavailable { .. })
+                Err(FaceActionRefusal::Unavailable { .. })
             ));
-            face.actions[0].availability = PresentationActionAvailability::Available;
+            face.actions[0].availability = FaceActionAvailability::Available;
             assert!(has_remote_mask_action(&face), "{intent}");
         }
         assert!(!supports_remote_mask_action_intent("thermostat.observe@1"));
@@ -2856,8 +2853,7 @@ mod tests {
                 .gears
                 .iter()
                 .map(|gear| {
-                    let host = if gear.kind_id.as_str()
-                        == conduit_semantic_catalog::TEXT_PRESENTATION_KIND
+                    let host = if gear.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
                     {
                         &advertisements[1]
                     } else {

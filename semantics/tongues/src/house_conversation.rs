@@ -229,7 +229,7 @@ pub fn prepare_house_generation_request(
         });
     }
     let prompt = serde_json::to_string(&PromptProjection {
-        schema: "conduit.house/model-context-presentation@1",
+        schema: "conduit.house/model-context-face@1",
         request_identity: request.request_identity(),
         response_instruction:
             "Answer briefly using only the wired context. Say temperature units in full, including degrees Celsius.",

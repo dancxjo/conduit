@@ -8,20 +8,18 @@ use conduit_core::{
     IntervalEndpoint, OfferGeneration, PlanId, Quantity, SourceDocumentId, Unit, ValueConstraint,
     COUNT_ENCODED_LEN, COUNT_INFO_ID, DISTANCE_INFO_ID, QUANTITY_ENCODED_LEN,
 };
-use conduit_plot::TextPatternExpression;
-use conduit_presentation::{
-    PresentationAction, PresentationActionAvailability, PresentationBasis,
-    PresentationCompositionKind, PresentationCompositionRelation, PresentationContextBasis,
-    PresentationDisclosureLevel, PresentationInteractionContext, PresentationRelationship,
-    PresentationRelationshipKind, PresentationRole, PresentationSubject, PresentationText,
-    UTF8_TEXT_VALUE_KIND,
+use conduit_face::{
+    FaceAction, FaceActionAvailability, FaceBasis, FaceCompositionKind, FaceCompositionRelation,
+    FaceContextBasis, FaceDisclosureLevel, FaceInteractionContext, FaceRelationship,
+    FaceRelationshipKind, FaceRole, FaceSubject, FaceText, UTF8_TEXT_VALUE_KIND,
 };
+use conduit_plot::TextPatternExpression;
 use serde::Deserialize;
 
 #[derive(Debug, Deserialize)]
 struct FaceSpecimen {
     identity: String,
-    presentation: FaceSpecimenValue,
+    face: FaceSpecimenValue,
 }
 
 #[derive(Debug, Deserialize)]
@@ -73,7 +71,7 @@ fn body_id() -> BodyId {
     .body_id
 }
 
-fn presentation() -> Presentation {
+fn face() -> Face {
     let lowercase = TextPatternExpression::Repeat {
         expression: Box::new(TextPatternExpression::ScalarRange {
             first: 'a' as u32,
@@ -84,9 +82,9 @@ fn presentation() -> Presentation {
     }
     .compile(32)
     .expect("reviewed browser Face pattern compiles during checking");
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         7,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body_id()),
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from("source/application")),
@@ -94,26 +92,26 @@ fn presentation() -> Presentation {
             expanded_plot_id: Some(ExpandedPlotId::from("expanded/application")),
             plan_id: Some(PlanId::from("plan/application")),
             active_play_id: None,
-            sign_ids: vec![SignId::from("sign/presentation")],
+            sign_ids: vec![SignId::from("sign/face")],
         },
-        vec![PresentationSubject {
+        vec![FaceSubject {
             identity: "body/browser-mask-test".into(),
-            role: PresentationRole::Body,
+            role: FaceRole::Body,
             name: "Test Body".into(),
         }],
         vec![],
         vec![],
-        vec![PresentationText {
+        vec![FaceText {
             subject: "body/browser-mask-test".into(),
             text: "One canonical journey".into(),
         }],
-        vec![PresentationAction {
+        vec![FaceAction {
             identity: "body.inspect".into(),
             intent: "conduit.intent/inspect@1".into(),
             target: "body/browser-mask-test".into(),
             name: "Inspect".into(),
             arguments: vec![
-                conduit_presentation::FaceActionArgument {
+                conduit_face::FaceActionArgument {
                     name: "input/inspect".into(),
                     value_name: "Lowercase subject".into(),
                     contract: CheckedValueContract::new(
@@ -134,7 +132,7 @@ fn presentation() -> Presentation {
                     )
                     .expect("reviewed browser Face pattern contract is canonical"),
                 },
-                conduit_presentation::FaceActionArgument {
+                conduit_face::FaceActionArgument {
                     name: "input/count".into(),
                     value_name: "Inspection count from two through four".into(),
                     contract: CheckedValueContract::new(
@@ -149,7 +147,7 @@ fn presentation() -> Presentation {
                     )
                     .expect("reviewed browser Face count range is canonical"),
                 },
-                conduit_presentation::FaceActionArgument {
+                conduit_face::FaceActionArgument {
                     name: "input/distance".into(),
                     value_name: "Inspection distance from one through two meters".into(),
                     contract: CheckedValueContract::new(
@@ -164,7 +162,7 @@ fn presentation() -> Presentation {
                     )
                     .expect("reviewed browser Face quantity range is canonical"),
                 },
-                conduit_presentation::FaceActionArgument {
+                conduit_face::FaceActionArgument {
                     name: "input/mode".into(),
                     value_name: "Inspection mode".into(),
                     contract: CheckedValueContract::new(
@@ -178,8 +176,8 @@ fn presentation() -> Presentation {
                     .expect("reviewed browser Face finite membership is canonical"),
                 },
             ],
-            disclosure: PresentationDisclosureLevel::CurrentAction,
-            availability: PresentationActionAvailability::Available,
+            disclosure: FaceDisclosureLevel::CurrentAction,
+            availability: FaceActionAvailability::Available,
         }],
         vec![],
     )
@@ -189,8 +187,8 @@ fn presentation() -> Presentation {
 fn interaction(effect: &BrowserMaskEffect) -> BrowserMaskInteraction {
     BrowserMaskInteraction {
         show_id: effect.show_id.clone(),
-        presentation_id: effect.presentation_id.clone(),
-        presentation_revision: effect.presentation_revision,
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
         action_id: "body.inspect".into(),
         target: "body/browser-mask-test".into(),
         arguments: vec![
@@ -226,26 +224,26 @@ fn acknowledgement(effect: &BrowserMaskEffect) -> BrowserMaskAcknowledgement {
         mask_plan_id: effect.mask_plan_id.clone(),
         active_play_id: effect.mask_play.active_play_id.clone(),
         placement_id: effect.placement_id.clone(),
-        presentation_id: effect.presentation_id.clone(),
-        presentation_revision: effect.presentation_revision,
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
     }
 }
 
-fn contextual_presentation(context: &str) -> Presentation {
-    let base = presentation();
+fn contextual_face(context: &str) -> Face {
+    let base = face();
     let mut subjects = base.subjects;
-    subjects.push(PresentationSubject {
+    subjects.push(FaceSubject {
         identity: "participant/current".into(),
-        role: PresentationRole::Semantic(kind_id("human/participant")),
+        role: FaceRole::Semantic(kind_id("human/participant")),
         name: "Current participant".into(),
     });
     let mut relationships = base.relationships;
-    relationships.push(PresentationRelationship {
+    relationships.push(FaceRelationship {
         source: "body/browser-mask-test".into(),
         target: "participant/current".into(),
-        kind: PresentationRelationshipKind::Contains,
+        kind: FaceRelationshipKind::Contains,
     });
-    Presentation::new_with_semantics(
+    Face::new_with_semantics(
         base.revision,
         base.basis,
         subjects,
@@ -256,11 +254,11 @@ fn contextual_presentation(context: &str) -> Presentation {
         base.disclosures,
     )
     .unwrap()
-    .with_interaction_context(PresentationInteractionContext {
+    .with_interaction_context(FaceInteractionContext {
         identity: format!("context/{context}"),
-        basis: vec![PresentationContextBasis {
+        basis: vec![FaceContextBasis {
             source: "body/browser-mask-test".into(),
-            relationship: PresentationRelationshipKind::Contains,
+            relationship: FaceRelationshipKind::Contains,
             target: "participant/current".into(),
         }],
     })
@@ -378,41 +376,41 @@ fn production_tutorial_basis() -> (
 
 fn face_specimens() -> Vec<FaceSpecimen> {
     serde_json::from_str(include_str!(
-        "../../../../proof/conformance/presentation-waist/specimens.json"
+        "../../../../proof/conformance/face-waist/specimens.json"
     ))
     .expect("shared Face specimens must remain valid JSON")
 }
 
-fn relationship_kind(kind: &str) -> PresentationRelationshipKind {
+fn relationship_kind(kind: &str) -> FaceRelationshipKind {
     match kind {
-        "Contains" => PresentationRelationshipKind::Contains,
-        "Connects" => PresentationRelationshipKind::Connects,
-        "Describes" => PresentationRelationshipKind::Describes,
-        "Realizes" => PresentationRelationshipKind::Realizes,
-        "Observes" => PresentationRelationshipKind::Observes,
-        semantic => PresentationRelationshipKind::Semantic(kind_id(semantic)),
+        "Contains" => FaceRelationshipKind::Contains,
+        "Connects" => FaceRelationshipKind::Connects,
+        "Describes" => FaceRelationshipKind::Describes,
+        "Realizes" => FaceRelationshipKind::Realizes,
+        "Observes" => FaceRelationshipKind::Observes,
+        semantic => FaceRelationshipKind::Semantic(kind_id(semantic)),
     }
 }
 
-fn composition_kind(kind: &str) -> PresentationCompositionKind {
+fn composition_kind(kind: &str) -> FaceCompositionKind {
     match kind {
-        "Group" => PresentationCompositionKind::Group,
-        "Contrast" => PresentationCompositionKind::Contrast,
-        "Juxtapose" => PresentationCompositionKind::Juxtapose,
-        "Emphasize" => PresentationCompositionKind::Emphasize,
-        "Subordinate" => PresentationCompositionKind::Subordinate,
-        "Associate" => PresentationCompositionKind::Associate,
-        "RevealAfter" => PresentationCompositionKind::RevealAfter,
-        semantic => PresentationCompositionKind::semantic(semantic.to_owned())
+        "Group" => FaceCompositionKind::Group,
+        "Contrast" => FaceCompositionKind::Contrast,
+        "Juxtapose" => FaceCompositionKind::Juxtapose,
+        "Emphasize" => FaceCompositionKind::Emphasize,
+        "Subordinate" => FaceCompositionKind::Subordinate,
+        "Associate" => FaceCompositionKind::Associate,
+        "RevealAfter" => FaceCompositionKind::RevealAfter,
+        semantic => FaceCompositionKind::semantic(semantic.to_owned())
             .expect("specimen semantic composition identity is bounded"),
     }
 }
 
-fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Presentation {
-    let value = &specimen.presentation;
-    Presentation::new_with_semantics(
+fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Face {
+    let value = &specimen.face;
+    Face::new_with_semantics(
         revision,
-        PresentationBasis {
+        FaceBasis {
             body_id: Some(body),
             wake_id: None,
             source_document_id: Some(SourceDocumentId::from(format!(
@@ -440,16 +438,16 @@ fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Presen
         value
             .subjects
             .iter()
-            .map(|subject| PresentationSubject {
+            .map(|subject| FaceSubject {
                 identity: subject.identity.clone(),
-                role: PresentationRole::Semantic(kind_id(&subject.role)),
+                role: FaceRole::Semantic(kind_id(&subject.role)),
                 name: subject.name.clone(),
             })
             .collect(),
         value
             .relationships
             .iter()
-            .map(|relationship| PresentationRelationship {
+            .map(|relationship| FaceRelationship {
                 source: relationship.source.clone(),
                 target: relationship.target.clone(),
                 kind: relationship_kind(&relationship.kind),
@@ -462,26 +460,26 @@ fn specimen_face(specimen: &FaceSpecimen, body: BodyId, revision: u64) -> Presen
             .iter()
             .map(|action| {
                 assert_eq!(action.availability, "available");
-                PresentationAction {
+                FaceAction {
                     identity: action.identity.clone(),
                     intent: action.intent.clone(),
                     target: action.target.clone(),
                     name: action.name.clone(),
                     arguments: vec![],
-                    disclosure: PresentationDisclosureLevel::CurrentAction,
-                    availability: PresentationActionAvailability::Available,
+                    disclosure: FaceDisclosureLevel::CurrentAction,
+                    availability: FaceActionAvailability::Available,
                 }
             })
             .collect(),
         vec![],
     )
-    .expect("Face specimen must construct the migration-era Presentation value")
+    .expect("Face specimen must construct the migration-era Face value")
     .with_composition(
         value
             .composition
             .iter()
             .enumerate()
-            .map(|(index, relation)| PresentationCompositionRelation {
+            .map(|(index, relation)| FaceCompositionRelation {
                 identity: format!("composition/{}/{index}", specimen.identity),
                 source: relation.source.clone(),
                 target: relation.target.clone(),
@@ -499,7 +497,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
         body,
         HostId::from("host/browser"),
         BootId::from("boot/browser"),
-        presentation(),
+        face(),
         wake,
         body_plan,
     )
@@ -509,11 +507,11 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
         ManifestationLifecycle::Prepared
     );
     assert_ne!(
-        runtime.presentation.basis.plan_id.as_ref(),
+        runtime.face.basis.plan_id.as_ref(),
         Some(&runtime.planned.plan.plan_id)
     );
     let mut stale = acknowledgement(&effect);
-    stale.presentation_revision += 1;
+    stale.face_revision += 1;
     assert!(runtime.acknowledge(&stale).is_err());
     assert_eq!(
         runtime.show.show.lifecycle,
@@ -529,7 +527,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
         vec![runtime.planned.mask.plot_identity.clone()]
     );
     let mut stale_interaction = interaction(&effect);
-    stale_interaction.presentation_revision += 1;
+    stale_interaction.face_revision += 1;
     assert!(runtime.interact(&stale_interaction).is_err());
     let mut invalid_interaction = interaction(&effect);
     invalid_interaction.arguments[0].value = b"Body".to_vec();
@@ -623,7 +621,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
             .iter()
             .map(|outcome| outcome.action_id)
             .collect::<Vec<_>>(),
-        conduit_presentation::MASK_JOURNEY_ACTIONS.map(conduit_presentation::MaskJourneyAction::id)
+        conduit_face::MASK_JOURNEY_ACTIONS.map(conduit_face::MaskJourneyAction::id)
     );
     let initial_plan = &journey[0].plan_id;
     assert_eq!(&journey[2].plan_id, initial_plan);
@@ -649,7 +647,7 @@ fn show_becomes_available_only_after_exact_browser_acknowledgement() {
 #[test]
 fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
     let (body, wake, body_plan) = production_tutorial_basis();
-    let face = conduit_tutorial_plot::face_presentation(
+    let face = conduit_tutorial_plot::canonical_face(
         &body,
         13,
         conduit_tutorial_plot::TutorialPlayback::Playing,
@@ -681,8 +679,8 @@ fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
 
     let proposed = |value: Vec<u8>, sequence| BrowserMaskInteraction {
         show_id: effect.show_id.clone(),
-        presentation_id: effect.presentation_id.clone(),
-        presentation_revision: effect.presentation_revision,
+        face_id: effect.face_id.clone(),
+        face_revision: effect.face_revision,
         action_id: action.identity.clone(),
         target: action.target.clone(),
         arguments: vec![FaceInteractionArgument {
@@ -707,8 +705,8 @@ fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
         .interact(&proposed(action.name.as_bytes().to_vec(), 3))
         .expect("valid production participation crosses the ordinary Mask interaction Fore");
     assert_eq!(receipt.semantic_action, action);
-    assert_eq!(receipt.correlation.presentation_id, face.identity);
-    assert_eq!(receipt.correlation.presentation_revision, face.revision);
+    assert_eq!(receipt.correlation.face_id, face.identity);
+    assert_eq!(receipt.correlation.face_revision, face.revision);
     assert_eq!(receipt.correlation.interaction.show_id, effect.show_id);
     assert_eq!(
         receipt.correlation.interaction.arguments[0].name,
@@ -726,8 +724,8 @@ fn production_tutorial_face_admits_one_show_bound_browser_interaction() {
 
 #[test]
 fn ordinary_mask_fore_refuses_same_revision_interaction_from_another_face_context() {
-    let teacher = contextual_presentation("teacher");
-    let student = contextual_presentation("student");
+    let teacher = contextual_face("teacher");
+    let student = contextual_face("student");
     assert_eq!(teacher.revision, student.revision);
     assert_ne!(teacher.identity, student.identity);
 
@@ -744,7 +742,7 @@ fn ordinary_mask_fore_refuses_same_revision_interaction_from_another_face_contex
     runtime.acknowledge(&acknowledgement(&effect)).unwrap();
 
     let mut stale = interaction(&effect);
-    stale.presentation_id = student.identity.as_str().into();
+    stale.face_id = student.identity.as_str().into();
     assert_eq!(
         runtime.interact(&stale).unwrap_err(),
         "browser Mask interaction is stale or mismatched"
@@ -753,10 +751,7 @@ fn ordinary_mask_fore_refuses_same_revision_interaction_from_another_face_contex
     assert!(runtime.pending_interaction_node.is_some());
 
     let receipt = runtime.interact(&interaction(&effect)).unwrap();
-    assert_eq!(
-        receipt.correlation.interaction.face_id,
-        effect.presentation_id
-    );
+    assert_eq!(receipt.correlation.interaction.face_id, effect.face_id);
 }
 
 #[test]
@@ -785,8 +780,8 @@ fn every_face_specimen_executes_through_the_ordinary_browser_mask_plot() {
         });
 
         assert_eq!(effect.schema, "conduit.browser/mask-effect@1");
-        assert_eq!(effect.presentation_id, expected_identity.as_str());
-        assert_eq!(effect.presentation_revision, expected_revision);
+        assert_eq!(effect.face_id, expected_identity.as_str());
+        assert_eq!(effect.face_revision, expected_revision);
         assert_eq!(
             runtime.show.show.lifecycle,
             ManifestationLifecycle::Prepared
@@ -798,7 +793,7 @@ fn every_face_specimen_executes_through_the_ordinary_browser_mask_plot() {
             });
 
         let observation = runtime.observation();
-        assert_eq!(observation.presentation.identity, expected_identity);
+        assert_eq!(observation.face.identity, expected_identity);
         assert_eq!(
             observation.mask_show.show.lifecycle,
             ManifestationLifecycle::Available
@@ -817,28 +812,22 @@ fn every_face_specimen_executes_through_the_ordinary_browser_mask_plot() {
             .any(|sign| { sign.kind == "RemoteValueDelivered" }));
 
         if specimen.identity == "source-destination" {
-            assert!(observation
-                .presentation
-                .relationships
-                .iter()
-                .any(|relationship| {
-                    relationship.source == "report"
-                        && relationship.target == "destination"
-                        && relationship.kind
-                            == PresentationRelationshipKind::Semantic(kind_id(
-                                "file/copy-destination",
-                            ))
-                }));
-            assert!(observation.presentation.composition.iter().any(|relation| {
+            assert!(observation.face.relationships.iter().any(|relationship| {
+                relationship.source == "report"
+                    && relationship.target == "destination"
+                    && relationship.kind
+                        == FaceRelationshipKind::Semantic(kind_id("file/copy-destination"))
+            }));
+            assert!(observation.face.composition.iter().any(|relation| {
                 relation.source == "source"
                     && relation.target == "destination"
-                    && relation.kind == PresentationCompositionKind::Juxtapose
+                    && relation.kind == FaceCompositionKind::Juxtapose
             }));
-            assert!(observation.presentation.actions.iter().any(|action| {
+            assert!(observation.face.actions.iter().any(|action| {
                 action.identity == "copy-to-destination"
                     && action.intent == "encounter/copy-to-destination"
                     && action.target == "report"
-                    && action.availability == PresentationActionAvailability::Available
+                    && action.availability == FaceActionAvailability::Available
             }));
         }
     }

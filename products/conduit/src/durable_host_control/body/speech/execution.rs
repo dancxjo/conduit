@@ -1,5 +1,5 @@
 //! Bounded acknowledged-Face reading through the existing selected audio Plan.
-use super::{AttachedEquipment, MaskShow, Presentation, RunControl, SpeechFailure, StdHost};
+use super::{AttachedEquipment, Face, MaskShow, RunControl, SpeechFailure, StdHost};
 use conduit_std_host::spoken_face_mask::{ReaderCommand, SpokenFaceSession};
 use serde_json::{json, Value};
 #[path = "batch.rs"]
@@ -28,7 +28,7 @@ impl ReadingScope {
 #[allow(clippy::too_many_arguments)]
 pub(super) fn play_selected(
     host: &mut StdHost,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     equipment: Option<&AttachedEquipment>,
     control: &RunControl,
@@ -63,7 +63,7 @@ pub(super) fn play_selected(
 #[allow(clippy::too_many_arguments)]
 fn play_selected_inner(
     host: &mut StdHost,
-    face: &Presentation,
+    face: &Face,
     show: &MaskShow,
     equipment: Option<&AttachedEquipment>,
     control: &RunControl,

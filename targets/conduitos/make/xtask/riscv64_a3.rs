@@ -59,7 +59,7 @@ pub(super) struct KernelSign {
     kernel_signs: u32,
     timer_irq_wakes: u32,
     idle_entries: u32,
-    serial_presentations: u32,
+    serial_faces: u32,
     clock_monotonic: bool,
     pending_host_calls: u32,
     overlap_witness: bool,
@@ -364,7 +364,7 @@ pub(super) fn validate(
         || kernel.kernel_signs == 0
         || kernel.timer_irq_wakes != 1
         || kernel.idle_entries == 0
-        || kernel.serial_presentations != 2
+        || kernel.serial_faces != 2
         || !kernel.clock_monotonic
         || kernel.pending_host_calls != 0
         || !kernel.overlap_witness

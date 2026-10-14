@@ -31,16 +31,12 @@ pub(crate) fn palette_semantics() -> Vec<(StandardKindContract, Kind)> {
             (description, kind)
         })
         .collect::<Vec<_>>();
-    entries.extend(
-        patchbay_presentation_contracts()
-            .into_iter()
-            .map(|description| {
-                let kind = description
-                    .clone()
-                    .into_semantic_contract(PATCHBAY_PRESENTATION_REVISION);
-                (description, kind)
-            }),
-    );
+    entries.extend(patchbay_face_contracts().into_iter().map(|description| {
+        let kind = description
+            .clone()
+            .into_semantic_contract(PATCHBAY_FACE_REVISION);
+        (description, kind)
+    }));
     let scalar = scalar_literal_contract();
     entries.push((
         scalar.clone(),
@@ -50,8 +46,8 @@ pub(crate) fn palette_semantics() -> Vec<(StandardKindContract, Kind)> {
         (orbium_seed_contract(), orbium_seed_semantic_contract()),
         (lenia_step_contract(), lenia_step_semantic_contract()),
         (
-            scalar_field_presentation_contract(),
-            scalar_field_presentation_semantic_contract(),
+            scalar_field_face_contract(),
+            scalar_field_face_semantic_contract(),
         ),
     ]);
     entries.extend(robotics_hazard_contracts_with_revisions().into_iter().map(

@@ -2,9 +2,7 @@ use conduit_browser_patchbay_workbench::{
     demonstration_snapshot, RendererSnapshot, SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA,
 };
 use conduit_core::BaseImplementationId;
-use conduit_presentation::{
-    ManifestationFailure, ManifestationLifecycle, PresentationPropertyValue,
-};
+use conduit_face::{FacePropertyValue, ManifestationFailure, ManifestationLifecycle};
 
 #[test]
 fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
@@ -13,19 +11,19 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
     let decoded = RendererSnapshot::decode(&bytes, snapshot.revision).unwrap();
     assert_eq!(decoded, snapshot);
     assert_eq!(decoded.schema, SNAPSHOT_SCHEMA);
-    assert!(decoded.presentation.properties.iter().any(|property| {
+    assert!(decoded.face.properties.iter().any(|property| {
         property.value
-            == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+            == FacePropertyValue::BaseImplementationId(BaseImplementationId::from(
                 "conduit.base/usb-cdc-acm@1",
             ))
     }));
-    assert!(decoded.presentation.properties.iter().any(|property| {
+    assert!(decoded.face.properties.iter().any(|property| {
         property.value
-            == PresentationPropertyValue::BaseImplementationId(BaseImplementationId::from(
+            == FacePropertyValue::BaseImplementationId(BaseImplementationId::from(
                 "conduit.base/websocket-rfc6455@1",
             ))
     }));
-    let basis = &decoded.presentation.basis;
+    let basis = &decoded.face.basis;
     assert!(basis.plan_id.is_some() && basis.active_play_id.is_some());
     assert!(!basis.sign_ids.is_empty());
     assert!(!basis.body_id.as_ref().unwrap().as_str().is_empty());
@@ -34,17 +32,14 @@ fn portable_snapshot_round_trip_preserves_lifecycle_base_plan_play_and_sign() {
         decoded.renderer.manifestation.lifecycle,
         ManifestationLifecycle::Prepared
     );
-    assert!(decoded
-        .renderer
-        .validate_against(&decoded.presentation)
-        .is_ok());
+    assert!(decoded.renderer.validate_against(&decoded.face).is_ok());
     assert_eq!(decoded.temporal_context.len(), 1);
     assert!(decoded.temporal_context[0]
         .relative_time
         .ends_with("seconds ago"));
     assert_eq!(
         decoded.temporal_context[0].source,
-        decoded.presentation.temporal_facts[0].source
+        decoded.face.temporal_facts[0].source
     );
 }
 
@@ -55,42 +50,41 @@ fn host_owned_snapshot_carries_bounded_debugger_state_for_an_exact_subject() {
     snapshot.timeline = None;
     snapshot.timeline_projection = None;
     snapshot.debugger_control = None;
-    let subject = snapshot.presentation.subjects[0].identity.clone();
-    let debugger: patchbay_application::DebuggerPresentation =
-        serde_json::from_value(serde_json::json!({
-            "schema": patchbay_application::DEBUGGER_PRESENTATION_SCHEMA,
-            "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
-            "revision": 1,
-            "tick": 0,
-            "reduced_motion": false,
-            "gap": null,
-            "activities": [{
-                "subject": subject,
-                "line_subject": null,
-                "host": 7,
-                "phase": "active",
-                "latest_kind": "gear-started",
-                "latest_sequence": 1,
-                "observed_count": 1,
-                "coalesced_count": 0,
-                "last_activity_tick": 0,
-                "latest_value": null,
-                "retained_fault_code": null
-            }]
-        }))
-        .unwrap();
+    let subject = snapshot.face.subjects[0].identity.clone();
+    let debugger: patchbay_application::DebuggerFace = serde_json::from_value(serde_json::json!({
+        "schema": patchbay_application::DEBUGGER_FACE_SCHEMA,
+        "execution": { "body": vec![1; 32], "plan": vec![2; 32], "play": vec![3; 32] },
+        "revision": 1,
+        "tick": 0,
+        "reduced_motion": false,
+        "gap": null,
+        "activities": [{
+            "subject": subject,
+            "line_subject": null,
+            "host": 7,
+            "phase": "active",
+            "latest_kind": "gear-started",
+            "latest_sequence": 1,
+            "observed_count": 1,
+            "coalesced_count": 0,
+            "last_activity_tick": 0,
+            "latest_value": null,
+            "retained_fault_code": null
+        }]
+    }))
+    .unwrap();
     snapshot.attach_debugger(debugger).unwrap();
     let bytes = snapshot.encode().unwrap();
     let decoded = RendererSnapshot::decode(&bytes, snapshot.revision).unwrap();
     assert_eq!(decoded.debugger, snapshot.debugger);
-    assert_eq!(decoded.presentation, snapshot.presentation);
+    assert_eq!(decoded.face, snapshot.face);
 }
 
 #[test]
-fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
+fn html_adapter_failure_is_typed_without_mutating_the_source_face() {
     let mut snapshot = demonstration_snapshot().unwrap();
-    let source_identity = snapshot.presentation.identity.clone();
-    let source_play = snapshot.presentation.basis.active_play_id.clone();
+    let source_identity = snapshot.face.identity.clone();
+    let source_play = snapshot.face.basis.active_play_id.clone();
     snapshot
         .mark_failed(
             ManifestationFailure::DeliveryFailed,
@@ -105,8 +99,8 @@ fn html_adapter_failure_is_typed_without_mutating_the_source_presentation() {
         snapshot.renderer.manifestation.failure,
         Some(ManifestationFailure::DeliveryFailed)
     );
-    assert_eq!(snapshot.presentation.identity, source_identity);
-    assert_eq!(snapshot.presentation.basis.active_play_id, source_play);
+    assert_eq!(snapshot.face.identity, source_identity);
+    assert_eq!(snapshot.face.basis.active_play_id, source_play);
     assert_eq!(
         snapshot
             .renderer
@@ -146,7 +140,7 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         Err(SnapshotError::UnsupportedSchema)
     );
     value = serde_json::from_slice(&bytes).unwrap();
-    value["presentation"]["basis"]["plan_id"] = "drifted".into();
+    value["face"]["basis"]["plan_id"] = "drifted".into();
     assert_eq!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)
@@ -158,20 +152,20 @@ fn stale_malformed_unknown_oversized_and_drifted_snapshots_fail_closed() {
         Err(SnapshotError::Malformed(_))
     ));
     value = serde_json::from_slice(&bytes).unwrap();
-    let base = value["presentation"]["properties"]
+    let base = value["face"]["properties"]
         .as_array()
         .unwrap()
         .iter()
         .position(|property| property["name"] == "base")
         .unwrap();
-    value["presentation"]["properties"][base]["value"]["BaseImplementationId"] =
+    value["face"]["properties"][base]["value"]["BaseImplementationId"] =
         serde_json::json!({ "not": "an identity string" });
     assert!(matches!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::Malformed(_))
     ));
     value = serde_json::from_slice(&bytes).unwrap();
-    value["renderer"]["manifestation"]["presentation_revision"] = 99.into();
+    value["renderer"]["manifestation"]["face_revision"] = 99.into();
     assert_eq!(
         RendererSnapshot::decode(&serde_json::to_vec(&value).unwrap(), 0),
         Err(SnapshotError::InvalidIdentity)

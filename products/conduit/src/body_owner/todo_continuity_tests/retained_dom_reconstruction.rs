@@ -1,8 +1,8 @@
 //! Explicit software reconstruction of a retained owner's actual DOM transition.
 //! No owner mutation, native gesture, scanout, delivered speech or human proof.
-use conduit_presentation::{
-    plan_face_utterances, render_linear_presentation, FaceUtteranceProvenance, GraphicsClipClass,
-    Presentation, PresentationRole,
+use conduit_face::{
+    plan_face_utterances, render_linear_face, Face, FaceRole, FaceUtteranceProvenance,
+    GraphicsClipClass,
 };
 use serde_json::Value;
 
@@ -21,7 +21,7 @@ fn evidence(variable: &str) -> Value {
     serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap()
 }
 
-fn occurrence(value: &Value, body: &str) -> Presentation {
+fn occurrence(value: &Value, body: &str) -> Face {
     let face = recorded_owner_face::decode(&value["owner"]).unwrap();
     assert_eq!(face.basis.body_id.as_ref().unwrap().as_str(), body);
     assert!(face.basis.active_play_id.is_none());
@@ -29,7 +29,7 @@ fn occurrence(value: &Value, body: &str) -> Presentation {
     assert_eq!(value["view"]["face_id"], face.identity.as_str());
     assert_eq!(value["view"]["face_revision"], face.revision.to_string());
     assert_eq!(
-        value["owner"]["presentation_revision_decimal"],
+        value["owner"]["face_revision_decimal"],
         face.revision.to_string()
     );
     assert_eq!(value["view"]["show_state"], "available");
@@ -41,7 +41,7 @@ fn occurrence(value: &Value, body: &str) -> Presentation {
     face
 }
 
-fn pending(face: &Presentation, id: &str) -> bool {
+fn pending(face: &Face, id: &str) -> bool {
     !face
         .properties
         .iter()
@@ -54,11 +54,11 @@ fn pending(face: &Presentation, id: &str) -> bool {
         .unwrap()
 }
 
-fn reconstruct(face: &Presentation, observed: &Value, remaining: usize) {
+fn reconstruct(face: &Face, observed: &Value, remaining: usize) {
     let items: Vec<_> = face
         .subjects
         .iter()
-        .filter(|subject| subject.role == PresentationRole::Item)
+        .filter(|subject| subject.role == FaceRole::Item)
         .collect();
     assert_eq!(items.len(), 3);
     assert_eq!(
@@ -99,8 +99,8 @@ fn reconstruct(face: &Presentation, observed: &Value, remaining: usize) {
             .unwrap_or_default();
         assert_eq!(actual, expected, "DOM semantic item order");
     }
-    let linear = render_linear_presentation(face).unwrap();
-    assert_eq!(linear.presentation_id, face.identity);
+    let linear = render_linear_face(face).unwrap();
+    assert_eq!(linear.face_id, face.identity);
     assert_eq!(linear.revision, face.revision);
     let lines = linear.lines.join("\n");
     let aural = plan_face_utterances(face).unwrap();
@@ -186,7 +186,7 @@ fn reconstruct(face: &Presentation, observed: &Value, remaining: usize) {
         linear_positions.windows(2).all(|pair| pair[0] < pair[1]),
         "linear reader must retain item order"
     );
-    assert_eq!(native.presentation(), face);
+    assert_eq!(native.face(), face);
 }
 
 #[test]
@@ -225,10 +225,10 @@ fn actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meani
         exchange["before"]["dom"]["look"]["density"],
         exchange["after"]["dom"]["look"]["density"]
     );
-    let item_ids = |face: &Presentation| {
+    let item_ids = |face: &Face| {
         face.subjects
             .iter()
-            .filter(|subject| subject.role == PresentationRole::Item)
+            .filter(|subject| subject.role == FaceRole::Item)
             .map(|subject| (subject.identity.clone(), subject.name.clone()))
             .collect::<Vec<_>>()
     };
@@ -321,17 +321,17 @@ fn actual_retained_dom_completion_reconstructs_native_linear_and_utterance_meani
         "actual observation before browser cleanup must preserve exact post-stale Face"
     );
     assert_eq!(
-        exchange["after_stale_owner"]["presentation_revision_decimal"],
+        exchange["after_stale_owner"]["face_revision_decimal"],
         after.revision.to_string()
     );
     assert_eq!(
         retained["after_stale_owner_face"],
-        exchange["after_stale_owner"]["presentation"]
+        exchange["after_stale_owner"]["face"]
     );
     // Browser departure can retire a route and reproject identity/revision. Keep that
     // later observation separate from the actual live post-stale observation.
     if let Some(closed) = retained.get("owner_after_browser_close_face") {
-        let closed: Presentation = serde_json::from_value(closed.clone()).unwrap();
+        let closed: Face = serde_json::from_value(closed.clone()).unwrap();
         closed.validate().unwrap();
         assert_eq!(closed.basis.body_id, after.basis.body_id);
         let mut expected = serde_json::to_value(&after).unwrap();
