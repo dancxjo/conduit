@@ -13,6 +13,9 @@ Actions syntax. This `candidate/quick` check runs on every PR update, including 
 Draft and ready PRs use the same admission checks. The required `candidate`
 result succeeds when all selected checks succeed; draft status itself is not a
 failure. GitHub still prevents merging a draft until it is marked ready.
+Changing only draft/readiness does not rerun or cancel proof for the same source.
+Opening, reopening and new commits still run Candidate against the exact merge
+preview; all required checks and branch protection remain unchanged.
 
 PR admission runs workspace Clippy with warnings denied and the owning workspace
 packages' unit, integration and doc tests, with one test thread. Both sides of
