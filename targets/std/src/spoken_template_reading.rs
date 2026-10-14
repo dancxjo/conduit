@@ -113,7 +113,7 @@ fn word_boundary(text: &str, offset: usize) -> bool {
                 .is_some_and(char::is_whitespace))
 }
 
-fn frame_ranges(text: &str) -> Result<Vec<Range<usize>>, String> {
+pub(crate) fn frame_ranges(text: &str) -> Result<Vec<Range<usize>>, String> {
     if text.is_empty() || text.len() > conduit_face::MAX_SPOKEN_TEMPLATE_BYTES {
         return Err("spoken template script is empty or exceeds admitted bound".into());
     }
