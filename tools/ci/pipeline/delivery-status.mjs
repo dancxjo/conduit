@@ -26,7 +26,7 @@ export function buildDeliveryStatus({ repository, development, main, integration
   return { schema: 'conduit.delivery-status/v1', repository, observed_at: new Date().toISOString(),
     admitted_dev_sha: development, accepted_main_sha: main,
     current_integration: runSummary(integration), latest_green_integration: runSummary(green),
-    published_release: published,
+    published_release: published, latest_publication_attempt: runSummary(publications[0]),
     latest_pages_attempt: deployments[0] ? { source_sha: exact(deployments[0].sha), statuses: deployments[0].statuses } : null,
     latest_successful_pages_deployment: deployed ? { source_sha: exact(deployed.sha), url: deployed.statuses[0].environment_url } : null,
     differences: { dev_from_green: green ? development !== green.head_sha : null,
