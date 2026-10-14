@@ -2,6 +2,7 @@
 #[derive(Clone, Copy, Debug, Default)]
 pub(super) struct ScanCounts {
     pub next_ready_nodes: u64,
+    pub ready_bytes: u64,
     pub pending_slots: u64,
     pub context_pending_slots: u64,
     pub input_ports: u64,
@@ -149,7 +150,11 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
     let counts = scheduler.scan_counts.get();
     let ready = if sparse { 1 } else { active };
     assert_eq!(steps, 2 * ready);
-    assert_eq!(counts.next_ready_nodes, 3 * active as u64);
+    assert_eq!(counts.next_ready_nodes, steps as u64);
+    assert!(counts.next_ready_nodes < 3 * active as u64);
+    if sparse && active >= 8 {
+        assert!(counts.ready_bytes + counts.next_ready_nodes < 3 * active as u64);
+    }
     assert_eq!(counts.pending_slots, counts.next_ready_nodes);
     assert_eq!(counts.context_pending_slots, steps as u64);
     assert_eq!(counts.input_ports, steps as u64);
@@ -169,7 +174,7 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
     assert_eq!(scheduler.values.used_items(), 0);
     assert_eq!(scheduler.values.used_bytes(), 0);
     if print {
-        std::println!("SCHEDULER_SCAN_ROW {{\"active_nodes\":{active},\"active_cords\":{active},\"ready_inputs\":{ready},\"sparse\":{sparse},\"trial\":{trial},\"prepare_ns\":{prepare_ns},\"step_ns\":{step_ns},\"steps\":{steps},\"ready_nodes_scanned\":{},\"pending_slots_scanned\":{},\"signs\":{},\"sign_bytes\":{},\"context_pending_slots\":{},\"input_ports_checked\":{},\"cords_scanned\":{},\"queue_peeks\":{},\"queue_pressure_refused\":true}}",counts.next_ready_nodes,counts.pending_slots,scheduler.signs.len()-before_signs,scheduler.signs.used_bytes()-before_bytes,counts.context_pending_slots,counts.input_ports,counts.cord_scans,counts.queue_peeks);
+        std::println!("SCHEDULER_SCAN_ROW {{\"active_nodes\":{active},\"active_cords\":{active},\"ready_inputs\":{ready},\"sparse\":{sparse},\"trial\":{trial},\"prepare_ns\":{prepare_ns},\"step_ns\":{step_ns},\"steps\":{steps},\"ready_nodes_scanned\":{},\"ready_bytes_scanned\":{},\"pending_slots_scanned\":{},\"signs\":{},\"sign_bytes\":{},\"context_pending_slots\":{},\"input_ports_checked\":{},\"cords_scanned\":{},\"queue_peeks\":{},\"queue_pressure_refused\":true}}",counts.next_ready_nodes,counts.ready_bytes,counts.pending_slots,scheduler.signs.len()-before_signs,scheduler.signs.used_bytes()-before_bytes,counts.context_pending_slots,counts.input_ports,counts.cord_scans,counts.queue_peeks);
     }
 }
 #[test]
