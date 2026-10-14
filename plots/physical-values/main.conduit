@@ -1,4 +1,4 @@
-# Reviewed specimen preparation for #5529; standing entrance still pending.
+# Custom-unit specimen preparation for #5529; review and standing entrance pending.
 # Conversion and physical comparison retain owned custom-unit definitions.
 unit smoot : Distance = { reference: m, scale: 1.7018 }
 plot physical-values (
