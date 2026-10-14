@@ -4,7 +4,8 @@ use conduit_plot::{
     CanonicalStartupValue, StartupCatalog,
 };
 
-const SOURCE: &str = include_str!("../../../plots/units/international-turns.conduit");
+const SOURCE: &str =
+    include_str!("../../../architecture/core/definitions/optional/international-turns.conduit");
 const NAMES: &[&str] = &[
     "tour",
     "toer",

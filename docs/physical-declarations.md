@@ -191,7 +191,7 @@ quantity suffix; `CND-FRM-058` for a conflicting declaration).
 
 ## Optional international full-turn vocabulary
 
-`plots/units/international-turns.conduit` provides `tour`, `toer`,
+`architecture/core/definitions/optional/international-turns.conduit` provides `tour`, `toer`,
 `revolución`, `rivoluzione`, `revolução`, `Umdrehung`, `varv`, and `obrót`.
 Each checked declaration references `turn` with scale 1. Bare names denote
 Units; suffixed quantities such as `1revolución` equal one turn, and
