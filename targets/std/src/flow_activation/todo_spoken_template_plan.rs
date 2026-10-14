@@ -130,7 +130,8 @@ mod tests {
             .iter_mut()
             .find(|x| x.capability_id == offers[0].capability_id)
             .unwrap()
-            .implementation.artifact_id = "forged/todo-wording".into();
+            .implementation
+            .artifact_id = "forged/todo-wording".into();
         assert!(
             TodoSpokenTemplateSourcePlan::prepare(&stale, "spoken/todo-brief-template").is_err()
         );
@@ -193,6 +194,94 @@ mod tests {
             changed.boot_id = "proof/foreign-boot".into();
             let changed = StdHost::from_advertisement(changed).unwrap();
             assert!(reading.validate_current(&changed, &face).is_err());
+        }
+    }
+}
+
+#[cfg(test)]
+mod retained_matrix {
+    use super::*;
+    use crate::{StdHost, StdHostConfig};
+    #[test]
+    #[ignore = "requires actual public owner count matrix through CONDUIT_TODO_COUNT_MATRIX"]
+    fn actual_owner_matrix_preserves_grammar_pages_and_full_linear_inspection() {
+        let directory =
+            std::path::PathBuf::from(std::env::var("CONDUIT_TODO_COUNT_MATRIX").unwrap());
+        let base = StdHost::new_with_config(StdHostConfig {
+            host_id: "proof/todo-matrix".into(),
+            boot_id: "proof/todo-matrix/boot".into(),
+            offer_generation: conduit_core::OfferGeneration(1),
+        });
+        let mut advertisement = base.advertisement().clone();
+        advertisement
+            .capabilities
+            .extend(required_todo_spoken_template_offers().unwrap());
+        advertisement
+            .capabilities
+            .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));
+        let host = StdHost::from_advertisement(advertisement).unwrap();
+        for count in [0, 1, 3, 20] {
+            let value: serde_json::Value = serde_json::from_slice(
+                &std::fs::read(directory.join(format!("owner-count-{count}.json"))).unwrap(),
+            )
+            .unwrap();
+            let face: conduit_face::Face = serde_json::from_value(value["face"].clone()).unwrap();
+            let mut pages = crate::spoken_face_mask::SpokenItemCursor::new(&face).unwrap();
+            let first = pages.next_page(&face).unwrap();
+            let ids: Vec<_> = first.subject_ids.iter().map(String::as_str).collect();
+            let mut wording = Vec::new();
+            for look in [
+                conduit_todo_face::TodoSpokenLook::Brief,
+                conduit_todo_face::TodoSpokenLook::Expanded,
+            ] {
+                let reading = crate::todo_spoken_reading::PreparedTodoSpokenReading::prepare(
+                    &host, &face, look, &ids, "en",
+                )
+                .unwrap();
+                assert_eq!(reading.wording().remaining(), count);
+                assert_eq!(reading.wording().completed(), 0);
+                assert_eq!(reading.wording().revision(), face.revision);
+                assert!(reading.wording().wording().contains(&format!(
+                    "{count} {} left.",
+                    if count == 1 { "thing" } else { "things" }
+                )));
+                assert!(reading.wording().wording().contains("0 completed."));
+                if count > 0 {
+                    assert!(reading
+                        .wording()
+                        .wording()
+                        .contains("Crème brûlée — 茶 🍵?"));
+                }
+                assert!(
+                    crate::todo_spoken_reading::PreparedTodoSpokenReading::prepare(
+                        &host, &face, look, &ids, "fr"
+                    )
+                    .is_err()
+                );
+                assert_eq!(reading.source_face(), &face);
+                wording.push(reading.wording().wording().to_string());
+            }
+            assert_ne!(wording[0], wording[1]);
+            let mut covered = first.subject_ids.clone();
+            let mut more = first.more;
+            while more {
+                let page = pages.next_page(&face).unwrap();
+                assert!(page.subject_ids.len() <= 3);
+                covered.extend(page.subject_ids);
+                more = page.more;
+            }
+            assert_eq!(covered.len(), count as usize);
+            let mut cursor = conduit_face::FaceReadingCursor::new(&face).unwrap();
+            let total = cursor.clause_count();
+            cursor
+                .command(&face, conduit_face::FaceReadingCommand::ReadAll)
+                .unwrap();
+            let mut read = 0;
+            while cursor.next_read_clause(&face).unwrap().is_some() {
+                read += 1;
+            }
+            assert_eq!(read, total);
+            assert!(read > 0);
         }
     }
 }

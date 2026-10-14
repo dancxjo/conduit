@@ -362,7 +362,14 @@ try {
     assert.equal(count('completed-count'), 0);
     assert.equal(ownerFace.face.subjects.filter(subject => subject.role === 'Item').length, expected);
     const filename = `owner-count-${expected}.json`;
-    await writeFile(path.join(output, filename), `${JSON.stringify(ownerFace, null, 2)}\n`);
+    const raw = spawnSync(binary, ['body', 'face', '--state-dir', state, '--json'],
+      { cwd: ownerCwd, encoding: 'utf8', timeout: 10_000 });
+    assert.equal(raw.status, 0, raw.stderr);
+    const exact = JSON.parse(raw.stdout);
+    assert.equal(exact.face.identity, ownerFace.face.identity);
+    assert.equal(exact.face_revision_decimal, ownerFace.face_revision_decimal);
+    // Preserve native canonical integer bytes; JSON.stringify rounds u64 revisions.
+    await writeFile(path.join(output, filename), raw.stdout);
     matrix.push({ remaining: expected, completed: 0, face_id: ownerFace.face.identity,
       revision: ownerFace.face_revision_decimal, file: filename });
     await writeFile(path.join(output, 'count-matrix.json'), `${JSON.stringify({
