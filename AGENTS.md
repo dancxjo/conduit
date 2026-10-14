@@ -19,6 +19,8 @@ to the canon; changing an invariant requires an explicit architecture issue.
 
 ## Work within a clear scope
 
+Follow the canonical [ownership and handoff flow](CONTRIBUTING.md#keep-ownership-and-handoffs-small).
+
 - Start from current `dev`; ordinary PRs target `dev`.
 - state the outcome, scope limits, files/contracts owned, and necessary proof.
   Check open PRs for overlap before substantial work.

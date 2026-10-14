@@ -48,6 +48,35 @@ Check open PRs for overlap before substantial work. An issue's acceptance
 criteria define that slice; a small documentation fix does not need a new
 architecture proposal.
 
+## Keep ownership and handoffs small
+
+Choose one independently verifiable child issue and check current `dev`, open
+PR ownership, and origin branches before branching. Salvage useful existing
+work with its discussion and proof intact. Keep at most two overlapping
+implementation PRs in review across the flow, with at most one merge-ready PR
+changing shared core contracts. Give each a named owner and disjoint scope.
+Other tickets stay unbranched until a slot opens or the owner explicitly hands
+off; when parallel preparation is requested, use isolated worktrees and hold
+prepared changes locally rather than expanding the PR queue.
+
+Move a reviewed result through its required green merge/integration or an
+explicit handoff before admitting the next result. While checks run, continue
+independent investigation, proof, or requested isolated preparation. If combined
+`dev` is red, the shepherd repairs or reverts the smallest cause before feature
+admission; preserve held branches and evidence. A handoff names the issue,
+branch/head, owned files, completed proof, remaining gate, and next owner.
+
+| Follow-up | Share one PR when… | Separate when… |
+|---|---|---|
+| Code | A fix and its refusal tests establish the same behavior. | A second change alters an independently owned core contract. |
+| Docs | The changed command needs matching instructions and examples. | A broader tutorial has its own runnable acceptance and proof. |
+| Hardware proof | A driver fix needs the same exact-target receipt to prove it. | A new board or physical run has independent equipment, ownership, or acceptance; keep that issue open until its real proof arrives. |
+
+Merged PRs retain their discussion and receipts; a successor references them
+rather than rewriting another author's branch. Candidate admission establishes
+PR eligibility. Integration and publication keep their separate source-bound
+proof obligations in the [CI guide](docs/contributing/ci.md).
+
 ## Make a focused change
 
 Create a branch from current `dev` and open the PR against `dev`. If you do not

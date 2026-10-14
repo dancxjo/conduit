@@ -1,0 +1,26 @@
+# Exact authored phase at a declared time and origin, independent of sampling.
+# Whole turns are preserved; normalization and phase evolution are separate laws.
+type AudioPhaseReference = {
+    anchor: AudioTrajectoryAnchor
+    at: AudioExactTimeOffset
+    numerator_turns: I64
+    denominator: U64 in 1..=18446744073709551615
+    provenance: AudioTrajectoryProvenance
+}
+type AudioPhaseReferenceMatch = {
+    reference: AudioPhaseReference
+    query: AudioTrajectoryQuery
+    where .reference.anchor == .query.anchor
+}
+
+# Transport custody is explicit and independent from rate/device realization.
+type AudioFrequencyControl = {
+    anchor: AudioTrajectoryAnchor
+    value: AudioFrequencyHz
+    provenance: AudioTrajectoryProvenance
+}
+type AudioTimeControl = {
+    anchor: AudioTrajectoryAnchor
+    value: AudioExactTimeOffset
+    provenance: AudioTrajectoryProvenance
+}
