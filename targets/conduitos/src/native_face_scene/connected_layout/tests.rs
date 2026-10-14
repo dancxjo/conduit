@@ -9,7 +9,7 @@ use conduit_face::{
 // Explicit renderer fixtures, separate from actual authored Patchbay proof.
 fn graph(names: &[&str], edges: &[(usize, usize)]) -> Face {
     let mut face: Face = serde_json::from_str(include_str!(
-        "../../../../../proof/conformance/presentation-waist/domain-derived/patchbay-face.json"
+        "../../../../../proof/conformance/face-waist/domain-derived/patchbay-face.json"
     ))
     .unwrap();
     face.subjects.clear();
