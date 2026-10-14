@@ -4,6 +4,7 @@ import { cargo, cargoArtifact, command, copyFile, digest, xtask } from './target
 import { setup } from './targets/setup.mjs';
 import { browser } from './targets/browser.mjs';
 import { embedded } from './targets/embedded.mjs';
+import { requireHostedHelloOutput } from './targets/hosted-hello.mjs';
 
 const lane = (id, family, runner, proofClass) => Object.freeze({ id, family, runner, proofClass });
 export const TARGETS = Object.freeze([
@@ -52,10 +53,7 @@ function hosted(id, directory) {
     '--artifacts', path.join(directory, 'hello-artifacts')], { stdio: ['ignore', 'pipe', 'inherit'], encoding: 'utf8', timeout: 60_000 });
   const output = result.stdout;
   process.stdout.write(output);
-  if (!output.split(/\r?\n/).includes('HELLO, WORLD.') || !/^plan .+ complete$/m.test(output) ||
-      !/^host std-host-1 boot boot-.+ profile rust-std protocol 1$/m.test(output)) {
-    throw new Error('Retained executable did not complete the canonical hello plot');
-  }
+  requireHostedHelloOutput(output);
   const snapshot = JSON.parse(readFileSync(report, 'utf8'));
   if (snapshot.schema !== 'conduit.observatory.snapshot/v2' || snapshot.hosts.length !== 1 || snapshot.plans.length !== 1) {
     throw new Error('Retained executable produced an invalid runtime report');
