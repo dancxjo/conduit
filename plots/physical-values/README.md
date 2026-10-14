@@ -1,17 +1,20 @@
-# Exact physical values specimen (#5529, in progress)
+# Exact physical values specimen
 
-The authored custom `smoot` Unit pins its metre reference and exact scale
-1.7018. The ordinary typed conversion Kind emits a validated receipt; the
-full-name physical comparator consumes that actual receipt and returns a
-Boolean runtime result against separately authored `1.7018m`.
+Run `cargo xtask plots run --deterministic --plot physical-values`. The reviewed
+Source declares `smoot` with exact metre scale 1.7018, sends the typed conversion
+receipt through a runtime Cord, and compares it against separately authored
+`1.7018m`. The installed std math Back returns true through the result Fore.
 
-This Source file is preparation, not product acceptance. Before publication:
-add its explicit reviewed inventory membership, use the supported standing
-Plot entrance, execute the production Source/Plan/Kernel path, retain actual
-Source/checked/expanded/Plan/Play and unit-definition identities, validate the
-emitted receipt, and prove malformed declaration and unsupported Host-profile
-refusals. Do not replace this with a Rust unit-test-only completion claim.
+The standing oracle reads this actual Source file, validates the conversion
+receipt, records Source/checked/expanded/Plan/Play and unit-definition identities,
+and checks allocation capacity. It also rejects a malformed declaration that
+references metres from Duration, retaining the Source refusal span, and refuses
+planning on a Host without the optional math offer. Execution uses kernel Backs
+without Host calls.
 
-The source-owned mismatch fixture is the same declaration with `Duration`
-instead of `Distance`: referencing `m` from that family must refuse with its
-original Source span. Layout does not participate in any physical identity.
+This is deterministic std proof. Browser, native device, hosted UI and stable
+release acceptance are separate; this specimen is excluded from the Workspace
+catalog and initial Body. Parent #5390 retains its broader acceptance gates.
+
+Omitting `--plot` preserves the full reviewed deterministic inventory run. An
+unknown selected slug refuses instead of reporting an empty successful proof.

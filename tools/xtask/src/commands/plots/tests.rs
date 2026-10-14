@@ -365,3 +365,28 @@ fn combined_workload_is_projected_without_static_execution_claims() {
             && result.checked_plot_id.is_some()
     }));
 }
+
+#[test]
+fn selected_plot_report_excludes_unrelated_and_combined_workloads() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let report = build_selected_report(
+        &root,
+        false,
+        &GlobalOpts::default(),
+        Some("physical-values"),
+    )
+    .unwrap();
+    assert_eq!(report.results.len(), 2);
+    assert!(report
+        .results
+        .iter()
+        .all(|result| result.slug == "physical-values"));
+    assert_eq!(report.results[0].status, "passed");
+    assert!(build_selected_report(
+        &root,
+        false,
+        &GlobalOpts::default(),
+        Some("missing-reviewed-plot")
+    )
+    .is_err());
+}
