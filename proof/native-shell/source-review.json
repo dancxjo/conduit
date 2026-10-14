@@ -1,0 +1,63 @@
+{
+  "issue": 5603,
+  "reviewed_source": "7989c14248d479715b5bd6e5379da11eb617fa87",
+  "files": [
+    {
+      "path": "targets/conduitos/src/front_door/projection.rs",
+      "git_blob": "b3d5c30e2388b4d32436d9d614a6c42a4932f4ba",
+      "sha256": "f4226a430e8f40277ad92e036cd3e7d189c1a45a81a91f2825840e981840c9cd"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/scene.rs",
+      "git_blob": "e7795d6a38a11e33a696f73bec75ebcb7754b007",
+      "sha256": "b03acdd24ba3a40c07f21e60c0daad64926b46d85504ce641d29709f970deaf8"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/home.rs",
+      "git_blob": "3c5d01010e35fddf7167c1223ab8a3a2a8b5e9b7",
+      "sha256": "ec24e122249f81791c84d3cf06a55c954265a0c419997480d16df669b1dcd4eb"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/semantics.rs",
+      "git_blob": "475d81b7c7ad0a1564955a79e4ed7bf74153c204",
+      "sha256": "25ba35f0e07040b9163563ad90aff404675fa999b6b1f095fc67a0dc91b4484c"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/workspace.rs",
+      "git_blob": "3b1367d7c60153e44ce5ef784986d7a70fe8e3d8",
+      "sha256": "7ab934d75afb092cd62ae81a49e016a0eb245857326209bb420c9e1aadbce9a6"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/workspace_scene.rs",
+      "git_blob": "01cb5f0cd6895c80b51c9eb9cfcd911ee5d61cba",
+      "sha256": "716e27747735dffbc84d15ec49426999ee9ec792cedce5fbe195cc286454f890"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/arrival/scene.rs",
+      "git_blob": "9ce10c1f3ee7a6a3358f7e7cc3f5eef5fcb2549c",
+      "sha256": "9c65ba0c1776a7b50ec72bf5e9ead40af9f4b032e3c51e1a3d55404e6ddfbc6a"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/graph_projection.rs",
+      "git_blob": "185286a8c98a352d06a0791cd4f04bf9c5867be4",
+      "sha256": "9bb16fe89812d0a3b090e77b35dd92f1a02f598376a4b83a4f56fa5fa028515b"
+    },
+    {
+      "path": "targets/conduitos/src/front_door/joining.rs",
+      "git_blob": "0a0186e82434e6121f982e6449728991f7bf8170",
+      "sha256": "d14509b9873c3df7039806c1ed3c8765736f80f53181218cdda19d1a931e6328"
+    },
+    {
+      "path": "targets/conduitos/src/product_front_door/face_arrival.rs",
+      "git_blob": "6e37262a6f16818abdf424d185ee77b6f91b323b",
+      "sha256": "fa452df4becef3e5d92da60129b69f03161ede415e6fcb4548290e19c3bb4327"
+    },
+    {
+      "path": "semantics/home/src/lib.rs",
+      "git_blob": "9f6a5a57431c8ce74983e223e6fc86f937a2ba10",
+      "sha256": "7a2e35a659c9a9eb1d10d8f0ae275d2dc730c492d2d82a1c5752d5cbb02cb2ca"
+    }
+  ],
+  "runtime_fixture_status": "five named states captured; 39 front-door tests passed",
+  "acceptance": "local audit proof passed; exact-head Candidate admission pending publication"
+}
