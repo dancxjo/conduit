@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 123
+maximum_plots = 124
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -595,3 +595,11 @@ entry = "physical-values"
 workspace_catalog = false
 deterministic = { package = "conduit-std-host", test = "physical_values_product", case = "reviewed_physical_values_source_executes_exact_receipt_and_comparison", plan_play_evidence = true }
 browser_safe_not_applicable = "exact custom-unit conversion requires an admitted math Host; no browser realization is claimed"
+
+[[plots]]
+slug = "commons"
+title = "Commons Places"
+entry = "commons"
+workspace_catalog = false
+deterministic = { package = "conduit-std-host", test = "commons_places", case = "commons_source_places_and_relations_execute_in_installed_plan_play", plan_play_evidence = true }
+browser_safe_not_applicable = "checked domain blueprint only; lifecycle actions and cross-Mask traversal remain separate"
