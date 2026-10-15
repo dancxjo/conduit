@@ -34,6 +34,17 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-audio"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-data",
+ "conduit-plot",
+ "libm",
+ "serde",
+]
+
+[[package]]
 name = "conduit-core"
 version = "0.1.0"
 dependencies = [
@@ -41,6 +52,15 @@ dependencies = [
  "libm",
  "serde",
  "sha2",
+]
+
+[[package]]
+name = "conduit-data"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "conduit-time",
 ]
 
 [[package]]
@@ -71,10 +91,20 @@ dependencies = [
 name = "conduit-speech"
 version = "0.1.0"
 dependencies = [
+ "conduit-audio",
  "conduit-core",
  "conduit-language",
  "conduit-plot",
  "postcard",
+]
+
+[[package]]
+name = "conduit-time"
+version = "0.1.0"
+dependencies = [
+ "conduit-core",
+ "conduit-plot",
+ "serde",
 ]
 
 [[package]]
