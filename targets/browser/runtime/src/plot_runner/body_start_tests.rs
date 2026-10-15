@@ -8,7 +8,7 @@ pub(in crate::plot_runner) use fixture::{request, request_from_sources};
 fn checked_tutorial_plot_projects_current_body_truth_inside_its_admitted_play() {
     let request = request_from_sources(&[include_str!("../../../../../plots/tour/main.conduit")]);
     let body_id = request.plan.body_id.clone();
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     let mut progress = started.progress;
     let effect = loop {
         let TourProgress::Effect(effect) = progress else {
@@ -73,7 +73,7 @@ fn ordinary_five_plot_body_is_not_confined_to_the_single_plot_gear_table() {
         .sum::<usize>();
     assert!(placements > crate::installed_browser::MAXIMUM_BROWSER_PLOT_GEARS);
     assert!(placements <= crate::installed_browser::MAXIMUM_BROWSER_GEARS);
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     assert_eq!(session.fragments.len(), 5);
     assert_eq!(started.play.wake_id, started.wake_at_start.wake_id);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
@@ -87,7 +87,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
         include_str!("../../../../../plots/desk-telegraph/main.conduit"),
     ]);
     let original = request.plan.clone();
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     let mut progress = started.progress;
     let mut transitions = 0_u64;
@@ -219,7 +219,7 @@ fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
         "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(original.plots.len(), 2);
 
@@ -281,7 +281,7 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
         "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(original.plots.len(), 2);
 
@@ -378,7 +378,7 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_face() {
 fn exact_body_starts_one_existing_browser_session_and_preserves_partition_identity() {
     let request = request();
     let original = request.plan.clone();
-    let (session, started) = prepare(request).unwrap();
+    let (mut session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(session.active_play_id, started.play.active_play_id);
     assert_eq!(
