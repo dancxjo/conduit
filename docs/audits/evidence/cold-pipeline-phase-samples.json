@@ -1,0 +1,5243 @@
+{
+  "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+  "log_sha256": "fb954360da41a008e776adba53526824b2bdc5f17f7030e2310a432f81ebdb56",
+  "clock_tuple_order": [
+    "elapsed_wall_ns",
+    "thread_cpu_ns"
+  ],
+  "metadata": {
+    "os": "Linux",
+    "kernel": "7.0.0-38-generic",
+    "architecture": "x86_64",
+    "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+    "cpu": {
+      "lscpu": [
+        {
+          "field": "Architecture:",
+          "data": "x86_64"
+        },
+        {
+          "field": "CPU op-mode(s):",
+          "data": "32-bit, 64-bit"
+        },
+        {
+          "field": "Address sizes:",
+          "data": "46 bits physical, 48 bits virtual"
+        },
+        {
+          "field": "Byte Order:",
+          "data": "Little Endian"
+        },
+        {
+          "field": "CPU(s):",
+          "data": "20"
+        },
+        {
+          "field": "On-line CPU(s) list:",
+          "data": "0-19"
+        },
+        {
+          "field": "Vendor ID:",
+          "data": "GenuineIntel"
+        },
+        {
+          "field": "Model name:",
+          "data": "12th Gen Intel(R) Core(TM) i7-12700"
+        },
+        {
+          "field": "CPU family:",
+          "data": "6"
+        },
+        {
+          "field": "Model:",
+          "data": "151"
+        },
+        {
+          "field": "Thread(s) per core:",
+          "data": "2"
+        },
+        {
+          "field": "Core(s) per socket:",
+          "data": "12"
+        },
+        {
+          "field": "Socket(s):",
+          "data": "1"
+        },
+        {
+          "field": "Stepping:",
+          "data": "2"
+        },
+        {
+          "field": "CPU(s) scaling MHz:",
+          "data": "32%"
+        },
+        {
+          "field": "CPU max MHz:",
+          "data": "4900.0000"
+        },
+        {
+          "field": "CPU min MHz:",
+          "data": "800.0000"
+        },
+        {
+          "field": "BogoMIPS:",
+          "data": "4224.00"
+        },
+        {
+          "field": "Flags:",
+          "data": "fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush dts acpi mmx fxsr sse sse2 ss ht tm pbe syscall nx pdpe1gb rdtscp lm constant_tsc art arch_perfmon pebs bts rep_good nopl xtopology nonstop_tsc cpuid aperfmperf tsc_known_freq pni pclmulqdq dtes64 monitor ds_cpl vmx smx est tm2 ssse3 sdbg fma cx16 xtpr pdcm pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand lahf_lm abm 3dnowprefetch cpuid_fault epb ssbd ibrs ibpb stibp ibrs_enhanced tpr_shadow flexpriority ept vpid ept_ad fsgsbase tsc_adjust bmi1 avx2 smep bmi2 erms invpcid rdseed adx smap clflushopt clwb intel_pt sha_ni xsaveopt xsavec xgetbv1 xsaves split_lock_detect user_shstk avx_vnni dtherm ida arat pln pts hwp hwp_notify hwp_act_window hwp_epp hwp_pkg_req hfi vnmi umip pku ospke waitpkg gfni vaes vpclmulqdq rdpid movdiri movdir64b fsrm md_clear serialize pconfig arch_lbr ibt flush_l1d arch_capabilities"
+        },
+        {
+          "field": "Virtualization:",
+          "data": "VT-x"
+        },
+        {
+          "field": "L1d cache:",
+          "data": "512 KiB (12 instances)"
+        },
+        {
+          "field": "L1i cache:",
+          "data": "512 KiB (12 instances)"
+        },
+        {
+          "field": "L2 cache:",
+          "data": "12 MiB (9 instances)"
+        },
+        {
+          "field": "L3 cache:",
+          "data": "25 MiB (1 instance)"
+        },
+        {
+          "field": "NUMA node(s):",
+          "data": "1"
+        },
+        {
+          "field": "NUMA node0 CPU(s):",
+          "data": "0-19"
+        },
+        {
+          "field": "Vulnerability Gather data sampling:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Ghostwrite:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Indirect target selection:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Itlb multihit:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability L1tf:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Mds:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Meltdown:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Mmio stale data:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Old microcode:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Reg file data sampling:",
+          "data": "Mitigation; Clear Register File"
+        },
+        {
+          "field": "Vulnerability Retbleed:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Spec rstack overflow:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Spec store bypass:",
+          "data": "Mitigation; Speculative Store Bypass disabled via prctl"
+        },
+        {
+          "field": "Vulnerability Spectre v1:",
+          "data": "Mitigation; usercopy/swapgs barriers and __user pointer sanitization"
+        },
+        {
+          "field": "Vulnerability Spectre v2:",
+          "data": "Mitigation; Enhanced / Automatic IBRS; IBPB conditional; PBRSB-eIBRS SW sequence; BHI BHI_DIS_S"
+        },
+        {
+          "field": "Vulnerability Srbds:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Tsa:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Tsx async abort:",
+          "data": "Not affected"
+        },
+        {
+          "field": "Vulnerability Vmscape:",
+          "data": "Mitigation; IBPB before exit to userspace"
+        }
+      ]
+    },
+    "clock_resolution_seconds": {
+      "monotonic": 1e-09,
+      "thread_cpu": 1e-09
+    },
+    "affinity": "uncontrolled; concurrent development activity; not a calibrated physical timing guarantee"
+  },
+  "rows": [
+    {
+      "check": [
+        6585206,
+        6575016
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        194707,
+        194691
+      ],
+      "cold_play": [
+        18062,
+        18141
+      ],
+      "cold_play_id": "8b340c49404768198bd84cf666a4d4f1b9f251a231534af659219e7de8b12adb",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        478001,
+        477926
+      ],
+      "evaluator_prepare": [
+        3365,
+        3344
+      ],
+      "evaluator_warm_100000": [
+        7177969,
+        7177726
+      ],
+      "expand": [
+        64327,
+        64275
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        11085746,
+        11085069
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        103863,
+        104102
+      ],
+      "plan_id": "7a060ee909ff2d1a135efee02cacd2699abef62e84549af04d00918ef55effb9",
+      "planning": [
+        77303,
+        77289
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5883284,
+        5881758
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 0,
+      "warm_installed_prepare": [
+        103677,
+        103656
+      ],
+      "warm_play": [
+        8361,
+        8441
+      ],
+      "warm_play_id": "2529eb4c195ac450600f1579110ef009cfd3804914967e564173d485fe5ceab8",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        290850,
+        290775
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5447529,
+        5447162
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        258901,
+        258947
+      ],
+      "cold_play": [
+        31085,
+        31110
+      ],
+      "cold_play_id": "6e6ae6832abf50147b9ec97d808d3e55189e0c5410825ad63fa854b2ba288842",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        494350,
+        494255
+      ],
+      "evaluator_prepare": [
+        2013,
+        1990
+      ],
+      "evaluator_warm_100000": [
+        6762743,
+        6762501
+      ],
+      "expand": [
+        180104,
+        180053
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        10391310,
+        10390670
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        55033,
+        55125
+      ],
+      "plan_id": "864c3e33ca998a7faddb6256f53f462d82805673037a5c0b4e0962fbcb5cd8e2",
+      "planning": [
+        142533,
+        142510
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5183086,
+        5182736
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 0,
+      "warm_installed_prepare": [
+        155139,
+        155080
+      ],
+      "warm_play": [
+        25090,
+        25168
+      ],
+      "warm_play_id": "172bf60fa8c64828ff78b95becf2fea8aebff12327d733e695adc672c82f7322",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        371217,
+        371168
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5240201,
+        5239808
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        772600,
+        772609
+      ],
+      "cold_play": [
+        133128,
+        133166
+      ],
+      "cold_play_id": "ca22e2fe18de2aa1dbb30298c22d6094e722394667af3f4baeb0b0dc987d90d4",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        1241791,
+        1241647
+      ],
+      "evaluator_prepare": [
+        1929,
+        1932
+      ],
+      "evaluator_warm_100000": [
+        6764019,
+        6763782
+      ],
+      "expand": [
+        577447,
+        577323
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        9833904,
+        9833283
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        156787,
+        156950
+      ],
+      "plan_id": "dadb72276485d1e94a5f1b8727c559b2277f534468e05b6237ea0ec98fcf7991",
+      "planning": [
+        460043,
+        459926
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5145141,
+        5144763
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 0,
+      "warm_installed_prepare": [
+        454632,
+        454651
+      ],
+      "warm_play": [
+        126969,
+        126970
+      ],
+      "warm_play_id": "f0663a057e048f69c60a2c4c3650c3fd8e68818cb0b7625b8c115b38d6368a9c",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        921328,
+        921232
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5158701,
+        5158293
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        73600,
+        73617
+      ],
+      "cold_play": [
+        10457,
+        10488
+      ],
+      "cold_play_id": "9f10e181d64458ab17d3359b7126db97c5863157879e0f0e74ee30db5df6dba7",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        258799,
+        258714
+      ],
+      "evaluator_prepare": [
+        1824,
+        1814
+      ],
+      "evaluator_warm_100000": [
+        6742534,
+        6742296
+      ],
+      "expand": [
+        40710,
+        40715
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9786619,
+        9786085
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        30401,
+        30588
+      ],
+      "plan_id": "1bde677e286d815a716d8083906ef58d13ab74377cd0ddd532e5361eeee55129",
+      "planning": [
+        40168,
+        40141
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5075749,
+        5075394
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 1,
+      "warm_installed_prepare": [
+        61236,
+        61268
+      ],
+      "warm_play": [
+        6585,
+        6613
+      ],
+      "warm_play_id": "f15009cea5b554d5f36bb67e0f1403c8ee500d95bc96d5557b68c5e1cf76ebff",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        217564,
+        217520
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5134834,
+        5133970
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        205094,
+        204995
+      ],
+      "cold_play": [
+        37009,
+        37149
+      ],
+      "cold_play_id": "8b80ea044a453eee703d04f56529e7b93aef3e6fe9a70205946726fe5f3c8939",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        466957,
+        466850
+      ],
+      "evaluator_prepare": [
+        1897,
+        1908
+      ],
+      "evaluator_warm_100000": [
+        6725921,
+        6725696
+      ],
+      "expand": [
+        164972,
+        164915
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        9832225,
+        9831681
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        51392,
+        51467
+      ],
+      "plan_id": "a81ef3b57f3379d55da780f707d55b7994a2ec1234fa775192a09e0c7437e159",
+      "planning": [
+        136970,
+        136890
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5079575,
+        5079202
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 1,
+      "warm_installed_prepare": [
+        309246,
+        208622
+      ],
+      "warm_play": [
+        26128,
+        26207
+      ],
+      "warm_play_id": "b99c05f6ac51a6c27a805007a08dd50484f4b1f5e6c7dc915774c140d5e4c550",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        545291,
+        444604
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5372915,
+        5372546
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        742219,
+        742090
+      ],
+      "cold_play": [
+        140403,
+        140569
+      ],
+      "cold_play_id": "3e5ab6ab33c3c345847928963ce9b161f3e8f2226ba3c5f4859ff2a6f2702092",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        1247380,
+        1247246
+      ],
+      "evaluator_prepare": [
+        2963,
+        2972
+      ],
+      "evaluator_warm_100000": [
+        6896854,
+        6896623
+      ],
+      "expand": [
+        615781,
+        615644
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        10428387,
+        10427740
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        162638,
+        162728
+      ],
+      "plan_id": "a294ef0925f2ba1ed6795b3e624dcb528e177bc0b9cbf9256e5b8bf34e9e690d",
+      "planning": [
+        495569,
+        495336
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5264392,
+        5264146
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 1,
+      "warm_installed_prepare": [
+        465406,
+        465355
+      ],
+      "warm_play": [
+        130907,
+        130996
+      ],
+      "warm_play_id": "7e8c02e34cf534461171520ba1ac4ef3facd34654a7e68c64ad13b6ec167aafb",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        957059,
+        956972
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5252074,
+        5251657
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        64470,
+        64480
+      ],
+      "cold_play": [
+        12453,
+        12553
+      ],
+      "cold_play_id": "b9fcdedefffa038b211143675b7214f55d3c0d61964801cc13c4cb1c74e679d8",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        243244,
+        243180
+      ],
+      "evaluator_prepare": [
+        2012,
+        2023
+      ],
+      "evaluator_warm_100000": [
+        6859325,
+        6859096
+      ],
+      "expand": [
+        43570,
+        43535
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        10050224,
+        10049672
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        33592,
+        33780
+      ],
+      "plan_id": "c4316efa0f6f8d22f70b1b456d9302c8bbe7d7f1d00fefc241d6d693587ccda6",
+      "planning": [
+        42246,
+        42191
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5236525,
+        5230766
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 2,
+      "warm_installed_prepare": [
+        53466,
+        53458
+      ],
+      "warm_play": [
+        6516,
+        6583
+      ],
+      "warm_play_id": "e1f31881c024f229e312f45eaa232ee445867b3afbffa5b2c36e3517f3654531",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        221268,
+        221221
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5180274,
+        5175305
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        138934,
+        138866
+      ],
+      "cold_play": [
+        36391,
+        36452
+      ],
+      "cold_play_id": "c0fa34a587f50c0576ae1b4355972c2a8ee148a5a065eeba39237298d0d03dfc",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        370779,
+        370719
+      ],
+      "evaluator_prepare": [
+        1839,
+        1857
+      ],
+      "evaluator_warm_100000": [
+        6739247,
+        6739004
+      ],
+      "expand": [
+        179972,
+        179900
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        9823057,
+        9822493
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        52177,
+        52249
+      ],
+      "plan_id": "0592e12350f6ab05cd780364d34c2dec72f6f43c442e71e7ac96fad1d165f839",
+      "planning": [
+        140702,
+        140654
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5074753,
+        5074403
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 2,
+      "warm_installed_prepare": [
+        128178,
+        128161
+      ],
+      "warm_play": [
+        24925,
+        24980
+      ],
+      "warm_play_id": "6831131ec3e397dc680efc00a83653a801e503c51f5fdfd7f981bfe6dd163052",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        340215,
+        340163
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5253819,
+        5253400
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        435679,
+        435641
+      ],
+      "cold_play": [
+        131095,
+        131250
+      ],
+      "cold_play_id": "6eac698baf3153686e263d1edaba2ac53462ae6395ed0e58997952492b5d3983",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        901252,
+        901165
+      ],
+      "evaluator_prepare": [
+        1953,
+        1960
+      ],
+      "evaluator_warm_100000": [
+        6741438,
+        6741198
+      ],
+      "expand": [
+        579104,
+        578976
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        9898134,
+        9897545
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        161371,
+        161406
+      ],
+      "plan_id": "a79ef696033a081eb79466375fbbc9417c46123e40a1bc01cec0e7d6f409fbba",
+      "planning": [
+        463593,
+        463554
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5078583,
+        5078244
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 2,
+      "warm_installed_prepare": [
+        393365,
+        393393
+      ],
+      "warm_play": [
+        125367,
+        125420
+      ],
+      "warm_play_id": "c1373dfb5fe6e9fe3d3a36e61fafe16d4e6542a137cbd38b7ce09d9588c56179",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        839519,
+        839437
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5062419,
+        5062071
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        82393,
+        82427
+      ],
+      "cold_play": [
+        11770,
+        11788
+      ],
+      "cold_play_id": "99bc6fa5d9703dd62f79578c50ca4a78683a635f5b76fbc5fb69d6598ba59b99",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        260358,
+        260321
+      ],
+      "evaluator_prepare": [
+        1848,
+        1868
+      ],
+      "evaluator_warm_100000": [
+        6724523,
+        6724280
+      ],
+      "expand": [
+        39901,
+        39861
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9829041,
+        9828539
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        31482,
+        31552
+      ],
+      "plan_id": "9d872a1a1187834b36534de6c52645dc228b859eef705fa2e0fec3d8745d9e9d",
+      "planning": [
+        40996,
+        40967
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5090444,
+        5090093
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 3,
+      "warm_installed_prepare": [
+        50443,
+        50416
+      ],
+      "warm_play": [
+        6363,
+        6414
+      ],
+      "warm_play_id": "e803e73115e96c5b75b5644f534364e0cb247b8259537cddab27abba200b1826",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        202994,
+        202948
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5113870,
+        5113457
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        151788,
+        151765
+      ],
+      "cold_play": [
+        36482,
+        36514
+      ],
+      "cold_play_id": "037c513c0950d617706bbc45a8279924f10dc9d52902ec4b74230516bcab51f5",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        392180,
+        392108
+      ],
+      "evaluator_prepare": [
+        1924,
+        1933
+      ],
+      "evaluator_warm_100000": [
+        6788135,
+        6787914
+      ],
+      "expand": [
+        164187,
+        164071
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        9834964,
+        9834399
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        51702,
+        51832
+      ],
+      "plan_id": "e34baae1bd2a18f261a47c3c817432b19500ac9e5fdbec6524b4cafa3d5c1fe8",
+      "planning": [
+        135936,
+        135889
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5118773,
+        5118456
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 3,
+      "warm_installed_prepare": [
+        128893,
+        128875
+      ],
+      "warm_play": [
+        24705,
+        24786
+      ],
+      "warm_play_id": "d9e98ca522635abce6c7280e0b2a9510da8a1f06c6a812ff96ca24dd60ce0c31",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        348310,
+        348270
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5172623,
+        5171869
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        420384,
+        420329
+      ],
+      "cold_play": [
+        131266,
+        131360
+      ],
+      "cold_play_id": "33745fd23575fcb8d74d920c99003386bf75d51d46fbc1022362d8f6a9a376e9",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        908658,
+        908561
+      ],
+      "evaluator_prepare": [
+        1958,
+        1969
+      ],
+      "evaluator_warm_100000": [
+        6754348,
+        6754090
+      ],
+      "expand": [
+        578257,
+        578187
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        9875271,
+        9874717
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        159963,
+        160039
+      ],
+      "plan_id": "8183a74717c0711e1abda23c89331f876ef40f07c2456b421e402d3bbd95bb70",
+      "planning": [
+        459031,
+        458972
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5090678,
+        5080651
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 3,
+      "warm_installed_prepare": [
+        441066,
+        441022
+      ],
+      "warm_play": [
+        123852,
+        123921
+      ],
+      "warm_play_id": "93c7e597f0cbed7acbd4a14ed2d01cb34393cde415cdfd003da3e6cb1aefaeb8",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        906340,
+        906242
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5132214,
+        5131875
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        73793,
+        73837
+      ],
+      "cold_play": [
+        11432,
+        11470
+      ],
+      "cold_play_id": "d050e547260420d3ceadd6e1fdd3e38a274d9370aed6ea9a9496700ccf0e97a5",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        239280,
+        239247
+      ],
+      "evaluator_prepare": [
+        1875,
+        1876
+      ],
+      "evaluator_warm_100000": [
+        6748394,
+        6743531
+      ],
+      "expand": [
+        39810,
+        39794
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9885590,
+        9884985
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        32444,
+        32462
+      ],
+      "plan_id": "800a63ee4d89e811b61c899375b894093384c873b10a9999e4c3099405883d7c",
+      "planning": [
+        42795,
+        42773
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5104980,
+        5104651
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 4,
+      "warm_installed_prepare": [
+        50896,
+        50874
+      ],
+      "warm_play": [
+        6081,
+        6132
+      ],
+      "warm_play_id": "09ad82c416169788e55fd0e735b49b3d6724408ac7f607f9ef85d6279c3a244c",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        202185,
+        202112
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5095081,
+        5094656
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        149745,
+        149709
+      ],
+      "cold_play": [
+        37180,
+        37215
+      ],
+      "cold_play_id": "69cc6fa14180f519cc3c2700b67c2700b764e4ab9d9070349cd57889cab8c2c2",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        386139,
+        386056
+      ],
+      "evaluator_prepare": [
+        2038,
+        2044
+      ],
+      "evaluator_warm_100000": [
+        6893010,
+        6885320
+      ],
+      "expand": [
+        171762,
+        171709
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        10004709,
+        10004122
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        65364,
+        65446
+      ],
+      "plan_id": "9345b1b07e628ce5aca33b39756d2590c28c806efc039a26c9f1e4ad7748c387",
+      "planning": [
+        140294,
+        140209
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5198429,
+        5198077
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 4,
+      "warm_installed_prepare": [
+        127452,
+        127456
+      ],
+      "warm_play": [
+        25491,
+        25531
+      ],
+      "warm_play_id": "d0f6fe66231b417ccd8952a914e16fc1e98f978b6623f7a7f396eda50188797d",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        346647,
+        346582
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5283676,
+        5283243
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        390095,
+        389998
+      ],
+      "cold_play": [
+        130822,
+        130895
+      ],
+      "cold_play_id": "b181f74a33ece48bfa6b350cfe76953b33cef9056697384bf3746c38355dd0ee",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        852053,
+        851977
+      ],
+      "evaluator_prepare": [
+        1897,
+        1905
+      ],
+      "evaluator_warm_100000": [
+        6735833,
+        6731523
+      ],
+      "expand": [
+        601582,
+        601478
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        10065756,
+        10065205
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        154889,
+        155003
+      ],
+      "plan_id": "dc8c0f8de4556b7400e630aa80d1ff8e66326050fb277518b69448f5f26fdce6",
+      "planning": [
+        473736,
+        473600
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5175816,
+        5175491
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 4,
+      "warm_installed_prepare": [
+        395278,
+        395282
+      ],
+      "warm_play": [
+        124161,
+        124229
+      ],
+      "warm_play_id": "0e9cfa2e94275e757e928e1ded56b2577cc569c4706b55e9d26654fe42eeb7d1",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        841115,
+        840991
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5097210,
+        5096860
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        82922,
+        82910
+      ],
+      "cold_play": [
+        12277,
+        12295
+      ],
+      "cold_play_id": "4caaa7628682307129e3e59b7a9d599d5fe903acd68475315542f3c883afc7d1",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        268815,
+        268767
+      ],
+      "evaluator_prepare": [
+        2019,
+        2050
+      ],
+      "evaluator_warm_100000": [
+        6778816,
+        6778572
+      ],
+      "expand": [
+        40684,
+        40680
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9841338,
+        9840732
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        32338,
+        32457
+      ],
+      "plan_id": "1d85b2133f7a1a5a172f3d59a7619acd1cb119746f207f1e6a54196d5215e36c",
+      "planning": [
+        40758,
+        40732
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5243718,
+        5243369
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 5,
+      "warm_installed_prepare": [
+        53046,
+        53027
+      ],
+      "warm_play": [
+        6765,
+        6814
+      ],
+      "warm_play_id": "7f9751ab1d3dbdf9d0a4da2ffc3151f0a567cb2400c9800a0c36ed922afae22a",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        208070,
+        208027
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5360028,
+        5351104
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        161564,
+        161607
+      ],
+      "cold_play": [
+        34871,
+        34961
+      ],
+      "cold_play_id": "8c26c4e4d48e7b9cdf3ab99328913299b3a205bd2d976f8e8d5a6ca0a3a02d4f",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        417571,
+        417524
+      ],
+      "evaluator_prepare": [
+        3047,
+        3052
+      ],
+      "evaluator_warm_100000": [
+        6904889,
+        6904640
+      ],
+      "expand": [
+        181631,
+        181568
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        10444288,
+        10443659
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        51743,
+        51822
+      ],
+      "plan_id": "5d8bd09289d069506a5e8aff40cf0b36d2d45ff4f1c2aa94b71ea381f5617359",
+      "planning": [
+        167445,
+        167393
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5346994,
+        5346613
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 5,
+      "warm_installed_prepare": [
+        133926,
+        133912
+      ],
+      "warm_play": [
+        25773,
+        25819
+      ],
+      "warm_play_id": "4dd122388fab8fdcfcd55f22b1a2243e41a575ef65a2f35d70b9c7124ae3dcad",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        350500,
+        350429
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5306421,
+        5306014
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        397226,
+        397238
+      ],
+      "cold_play": [
+        131071,
+        131203
+      ],
+      "cold_play_id": "eeca99cf3e305aa93da134024f56989c0fd8a77009a70d171a39294d6f4ca195",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        879718,
+        879608
+      ],
+      "evaluator_prepare": [
+        2015,
+        2027
+      ],
+      "evaluator_warm_100000": [
+        6728781,
+        6728540
+      ],
+      "expand": [
+        593518,
+        593456
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        10023496,
+        10022913
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        158232,
+        158278
+      ],
+      "plan_id": "0e1d0ea131fe66b72578ae98cf9ebc0bbbf65ea05a5d8fb11555caa0a5015cf2",
+      "planning": [
+        470767,
+        470610
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5103696,
+        5103397
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 5,
+      "warm_installed_prepare": [
+        394932,
+        394994
+      ],
+      "warm_play": [
+        124269,
+        124265
+      ],
+      "warm_play_id": "42d1cd30746c878d2d598d44e9f06930cc482e7faaa62499a217ceff8a499d95",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        839879,
+        839803
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5092945,
+        5086739
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        86998,
+        86973
+      ],
+      "cold_play": [
+        11515,
+        11583
+      ],
+      "cold_play_id": "1150acd5b342fc297565c6d412a40f36774f83b19c1c442a05a3d76e179e59e4",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        260090,
+        260016
+      ],
+      "evaluator_prepare": [
+        1821,
+        1828
+      ],
+      "evaluator_warm_100000": [
+        6735968,
+        6735717
+      ],
+      "expand": [
+        40238,
+        40179
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9789917,
+        9789380
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        32652,
+        32795
+      ],
+      "plan_id": "b93a79cc2fb88fcd4695748e4682271600371c10d7004b34e0eb2a1bd471bc8f",
+      "planning": [
+        46545,
+        46499
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5091125,
+        5090790
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 6,
+      "warm_installed_prepare": [
+        51665,
+        51610
+      ],
+      "warm_play": [
+        6075,
+        6137
+      ],
+      "warm_play_id": "5b626fce59bb172ce22f94c0b64086cacd68b665618a67cefab14934a70a623b",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        212638,
+        212612
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5076975,
+        5076625
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        142371,
+        142384
+      ],
+      "cold_play": [
+        30891,
+        30996
+      ],
+      "cold_play_id": "e024732da1eb3308196d975f866b8b7b14bd3e27c6b1d19cecfd36baca47c98e",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        376552,
+        376506
+      ],
+      "evaluator_prepare": [
+        2006,
+        2020
+      ],
+      "evaluator_warm_100000": [
+        6736072,
+        6735469
+      ],
+      "expand": [
+        164407,
+        164359
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        9884399,
+        9883865
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        50771,
+        50801
+      ],
+      "plan_id": "b9d0433ef3ec028ab92a0bd8a95c9c0ebe424b1ecce53c2c2f33d966a0c12485",
+      "planning": [
+        136403,
+        136324
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5117760,
+        5117369
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 6,
+      "warm_installed_prepare": [
+        126063,
+        126050
+      ],
+      "warm_play": [
+        25213,
+        25260
+      ],
+      "warm_play_id": "f57f411c2dac130ed2178dd3548ded82356ab9362e3aed00a0edc934089009df",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        344109,
+        344051
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5182721,
+        5182320
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        480570,
+        480698
+      ],
+      "cold_play": [
+        131459,
+        131479
+      ],
+      "cold_play_id": "28304d765229b6f5534bec739a02f5e16f7c9d4f20be5f1294b86dbb1242c77b",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        934479,
+        934380
+      ],
+      "evaluator_prepare": [
+        1917,
+        1929
+      ],
+      "evaluator_warm_100000": [
+        6750424,
+        6750181
+      ],
+      "expand": [
+        581978,
+        581907
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        9884485,
+        9883884
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        151483,
+        151559
+      ],
+      "plan_id": "bf2ff4b2a9b11b8bf468ba707c87f02c5fe96ab7e5248959b40c1ab75521e089",
+      "planning": [
+        460191,
+        460011
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5075631,
+        5075261
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 6,
+      "warm_installed_prepare": [
+        416698,
+        416677
+      ],
+      "warm_play": [
+        128592,
+        128664
+      ],
+      "warm_play_id": "4f2b491dd1ee02f83c92af38ab0111c96eecc5909ec3a980663f1f16faf494fe",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        859986,
+        859893
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5138746,
+        5138337
+      ],
+      "checked_plot_id": "d3be77a9f9457c25f7cd08e6be1a058e64d64efc2f39f11456c3ec475fb5c56c",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        76433,
+        76491
+      ],
+      "cold_play": [
+        10068,
+        10113
+      ],
+      "cold_play_id": "adf5ce49ae80e98627b61529256767a76184dee60359d7009db6da8c1b032a8e",
+      "cold_signs": 15,
+      "cold_total_host_run": [
+        248668,
+        248614
+      ],
+      "evaluator_prepare": [
+        1821,
+        1815
+      ],
+      "evaluator_warm_100000": [
+        6733682,
+        6733453
+      ],
+      "expand": [
+        41545,
+        41522
+      ],
+      "expanded_plot_id": "2e3f7f63d5e15ca0e52d837af5346b81221ebe2af0d6effba4b1b85aa4a12289",
+      "host_offer_setup": [
+        9834132,
+        9833602
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 1,
+      "output": [
+        14,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        31918,
+        32017
+      ],
+      "plan_id": "ae27c0de9600ccc07f1536dfeb46fa1106ab03e7cd50c91bfa1623b35ebbaf5a",
+      "planning": [
+        40530,
+        40518
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5102712,
+        5102358
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "9f45b9857b87676d23e8fcc637fa06495734ce9acc330c7f6e7a7e31177cd01c",
+      "trial": 7,
+      "warm_installed_prepare": [
+        52678,
+        52676
+      ],
+      "warm_play": [
+        6907,
+        6924
+      ],
+      "warm_play_id": "73bb90d161769e8182c3bf481fa453ec8b846bc5c9ca160821f859b0eeb771a9",
+      "warm_signs": 15,
+      "warm_total_host_run": [
+        206065,
+        206029
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5075696,
+        5075373
+      ],
+      "checked_plot_id": "44bbe98a8c2eef5195e1941f28252186275d225da81e40051911b241f2aa449d",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        149142,
+        149083
+      ],
+      "cold_play": [
+        37160,
+        37307
+      ],
+      "cold_play_id": "4c716b4afb82a0ffc763c38aa711285d81424b0a00e114cb7880c89f917a9832",
+      "cold_signs": 85,
+      "cold_total_host_run": [
+        375421,
+        375344
+      ],
+      "evaluator_prepare": [
+        1887,
+        1892
+      ],
+      "evaluator_warm_100000": [
+        6767602,
+        6767359
+      ],
+      "expand": [
+        168857,
+        168782
+      ],
+      "expanded_plot_id": "8f42db3f7defb714185c54ce20d1690fdf640104ce4f9e704e69dd49bfa3057c",
+      "host_offer_setup": [
+        9809398,
+        9808825
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 8,
+      "output": [
+        0,
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        55959,
+        56010
+      ],
+      "plan_id": "d9c784f1e6ab4a77ca229a1a439a041a0292993ee2cf222fecc13c1f714052dd",
+      "planning": [
+        154977,
+        154950
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5085649,
+        5085311
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "f7e02ef0c2bca13e8aca2b41fff8d22dca42a1ff7581b19f8d2013d94c92fe80",
+      "trial": 7,
+      "warm_installed_prepare": [
+        124992,
+        124966
+      ],
+      "warm_play": [
+        24874,
+        24941
+      ],
+      "warm_play_id": "2a279442d67057c6650e588c673be5963089cc58aa7639f600c1b8a6ab6a1ac7",
+      "warm_signs": 85,
+      "warm_total_host_run": [
+        364757,
+        364677
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    },
+    {
+      "check": [
+        5220335,
+        5219855
+      ],
+      "checked_plot_id": "8e6d9ca7dc8c6c3317712419f07a9e94a5a2062fed00771cecee795ddfeb69f8",
+      "clock": "monotonic wall and Linux thread CPU nanoseconds",
+      "cold_installed_prepare": [
+        480763,
+        480870
+      ],
+      "cold_play": [
+        139021,
+        139102
+      ],
+      "cold_play_id": "0489898a4d963b79ebc3ee03f1daf50d0f20b3c2d767d4f42f41d59325bc9f4e",
+      "cold_signs": 325,
+      "cold_total_host_run": [
+        1002449,
+        1002369
+      ],
+      "evaluator_prepare": [
+        3324,
+        3335
+      ],
+      "evaluator_warm_100000": [
+        6894301,
+        6894051
+      ],
+      "expand": [
+        613341,
+        613227
+      ],
+      "expanded_plot_id": "8fae01ff0894c9905ae408bac60bb2f5975d2dd84ae71192da1cc31da78047b1",
+      "host_offer_setup": [
+        10518262,
+        10517504
+      ],
+      "input": [
+        7,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0
+      ],
+      "nodes": 32,
+      "output": [
+        0,
+        0,
+        0,
+        0,
+        7,
+        0,
+        0,
+        0
+      ],
+      "parse": [
+        156428,
+        156557
+      ],
+      "plan_id": "0b939178db65904cd3bafe46405e1662408a7ef274df8538710427b1864ea69e",
+      "planning": [
+        514876,
+        514729
+      ],
+      "providers": [
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ],
+        [
+          "std/kernel-pure-expression@1",
+          "conduit-plot/pure-expression@1"
+        ]
+      ],
+      "queue_byte_capacity": 8,
+      "queue_item_capacity": 1,
+      "reference_source_prepare": [
+        5310137,
+        5309760
+      ],
+      "source": "e60af7aba2fe1cf95ca85eab2594ab012c35022a",
+      "source_document_id": "a9b8dfaba1b9331774b21501527eb65debdbe03e66ddf9ddb408259bc57b9f42",
+      "trial": 7,
+      "warm_installed_prepare": [
+        460363,
+        460517
+      ],
+      "warm_play": [
+        126413,
+        126464
+      ],
+      "warm_play_id": "87efd605ad30093f8a363221bc744917cf4beaea695f327909ef531804f46267",
+      "warm_signs": 325,
+      "warm_total_host_run": [
+        923754,
+        923655
+      ],
+      "warmup": "warm Play follows one measured and correctness-checked cold Play; Back preparation repeats each Play"
+    }
+  ],
+  "summary": [
+    {
+      "nodes": 1,
+      "phases": {
+        "parse": {
+          "wall_ns": {
+            "median": 32391.0,
+            "min": 30401,
+            "max": 103863,
+            "stdev": 25382.541957303758,
+            "samples": [
+              103863,
+              30401,
+              33592,
+              31482,
+              32444,
+              32338,
+              32652,
+              31918
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 32459.5,
+            "min": 30588,
+            "max": 104102,
+            "stdev": 25425.458930750607,
+            "samples": [
+              104102,
+              30588,
+              33780,
+              31552,
+              32462,
+              32457,
+              32795,
+              32017
+            ]
+          }
+        },
+        "check": {
+          "wall_ns": {
+            "median": 5135480.0,
+            "min": 5062419,
+            "max": 6585206,
+            "stdev": 516419.8976618978,
+            "samples": [
+              6585206,
+              5158701,
+              5252074,
+              5062419,
+              5132214,
+              5097210,
+              5092945,
+              5138746
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5135106.0,
+            "min": 5062071,
+            "max": 6575016,
+            "stdev": 513332.2084774008,
+            "samples": [
+              6575016,
+              5158293,
+              5251657,
+              5062071,
+              5131875,
+              5096860,
+              5086739,
+              5138337
+            ]
+          }
+        },
+        "expand": {
+          "wall_ns": {
+            "median": 40697.0,
+            "min": 39810,
+            "max": 64327,
+            "stdev": 8362.713391469131,
+            "samples": [
+              64327,
+              40710,
+              43570,
+              39901,
+              39810,
+              40684,
+              40238,
+              41545
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 40697.5,
+            "min": 39794,
+            "max": 64275,
+            "stdev": 8353.005591445171,
+            "samples": [
+              64275,
+              40715,
+              43535,
+              39861,
+              39794,
+              40680,
+              40179,
+              41522
+            ]
+          }
+        },
+        "host_offer_setup": {
+          "wall_ns": {
+            "median": 9837735.0,
+            "min": 9786619,
+            "max": 11085746,
+            "stdev": 441542.6806153423,
+            "samples": [
+              11085746,
+              9786619,
+              10050224,
+              9829041,
+              9885590,
+              9841338,
+              9789917,
+              9834132
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 9837167.0,
+            "min": 9786085,
+            "max": 11085069,
+            "stdev": 441497.82404123223,
+            "samples": [
+              11085069,
+              9786085,
+              10049672,
+              9828539,
+              9884985,
+              9840732,
+              9789380,
+              9833602
+            ]
+          }
+        },
+        "planning": {
+          "wall_ns": {
+            "median": 41621.0,
+            "min": 40168,
+            "max": 77303,
+            "stdev": 12646.82791326968,
+            "samples": [
+              77303,
+              40168,
+              42246,
+              40996,
+              42795,
+              40758,
+              46545,
+              40530
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 41579.0,
+            "min": 40141,
+            "max": 77289,
+            "stdev": 12651.519600992036,
+            "samples": [
+              77289,
+              40141,
+              42191,
+              40967,
+              42773,
+              40732,
+              46499,
+              40518
+            ]
+          }
+        },
+        "reference_source_prepare": {
+          "wall_ns": {
+            "median": 5103846.0,
+            "min": 5075749,
+            "max": 5883284,
+            "stdev": 272916.01739752287,
+            "samples": [
+              5883284,
+              5075749,
+              5236525,
+              5090444,
+              5104980,
+              5243718,
+              5091125,
+              5102712
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5103504.5,
+            "min": 5075394,
+            "max": 5881758,
+            "stdev": 272495.0532122097,
+            "samples": [
+              5881758,
+              5075394,
+              5230766,
+              5090093,
+              5104651,
+              5243369,
+              5090790,
+              5102358
+            ]
+          }
+        },
+        "evaluator_prepare": {
+          "wall_ns": {
+            "median": 1861.5,
+            "min": 1821,
+            "max": 3365,
+            "stdev": 528.4395998733306,
+            "samples": [
+              3365,
+              1824,
+              2012,
+              1848,
+              1875,
+              2019,
+              1821,
+              1821
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 1872.0,
+            "min": 1814,
+            "max": 3344,
+            "stdev": 520.0040521820135,
+            "samples": [
+              3344,
+              1814,
+              2023,
+              1868,
+              1876,
+              2050,
+              1828,
+              1815
+            ]
+          }
+        },
+        "evaluator_warm_100000": {
+          "wall_ns": {
+            "median": 6745464.0,
+            "min": 6724523,
+            "max": 7177969,
+            "stdev": 153859.30316636458,
+            "samples": [
+              7177969,
+              6742534,
+              6859325,
+              6724523,
+              6748394,
+              6778816,
+              6735968,
+              6733682
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 6742913.5,
+            "min": 6724280,
+            "max": 7177726,
+            "stdev": 154143.22095787365,
+            "samples": [
+              7177726,
+              6742296,
+              6859096,
+              6724280,
+              6743531,
+              6778572,
+              6735717,
+              6733453
+            ]
+          }
+        },
+        "cold_installed_prepare": {
+          "wall_ns": {
+            "median": 79413.0,
+            "min": 64470,
+            "max": 194707,
+            "stdev": 42120.03449666204,
+            "samples": [
+              194707,
+              73600,
+              64470,
+              82393,
+              73793,
+              82922,
+              86998,
+              76433
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 79459.0,
+            "min": 64480,
+            "max": 194691,
+            "stdev": 42106.41314150206,
+            "samples": [
+              194691,
+              73617,
+              64480,
+              82427,
+              73837,
+              82910,
+              86973,
+              76491
+            ]
+          }
+        },
+        "cold_play": {
+          "wall_ns": {
+            "median": 11642.5,
+            "min": 10068,
+            "max": 18062,
+            "stdev": 2485.2955989752436,
+            "samples": [
+              18062,
+              10457,
+              12453,
+              11770,
+              11432,
+              12277,
+              11515,
+              10068
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 11685.5,
+            "min": 10113,
+            "max": 18141,
+            "stdev": 2498.932368461151,
+            "samples": [
+              18141,
+              10488,
+              12553,
+              11788,
+              11470,
+              12295,
+              11583,
+              10113
+            ]
+          }
+        },
+        "warm_installed_prepare": {
+          "wall_ns": {
+            "median": 52862.0,
+            "min": 50443,
+            "max": 103677,
+            "stdev": 18112.805611638414,
+            "samples": [
+              103677,
+              61236,
+              53466,
+              50443,
+              50896,
+              53046,
+              51665,
+              52678
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 52851.5,
+            "min": 50416,
+            "max": 103656,
+            "stdev": 18114.352568671697,
+            "samples": [
+              103656,
+              61268,
+              53458,
+              50416,
+              50874,
+              53027,
+              51610,
+              52676
+            ]
+          }
+        },
+        "warm_play": {
+          "wall_ns": {
+            "median": 6550.5,
+            "min": 6075,
+            "max": 8361,
+            "stdev": 730.9563085438144,
+            "samples": [
+              8361,
+              6585,
+              6516,
+              6363,
+              6081,
+              6765,
+              6075,
+              6907
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 6598.0,
+            "min": 6132,
+            "max": 8441,
+            "stdev": 737.8230043271121,
+            "samples": [
+              8441,
+              6613,
+              6583,
+              6414,
+              6132,
+              6814,
+              6137,
+              6924
+            ]
+          }
+        },
+        "cold_total_host_run": {
+          "wall_ns": {
+            "median": 259444.5,
+            "min": 239280,
+            "max": 478001,
+            "stdev": 79744.9489424834,
+            "samples": [
+              478001,
+              258799,
+              243244,
+              260358,
+              239280,
+              268815,
+              260090,
+              248668
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 259365.0,
+            "min": 239247,
+            "max": 477926,
+            "stdev": 79737.94779945028,
+            "samples": [
+              477926,
+              258714,
+              243180,
+              260321,
+              239247,
+              268767,
+              260016,
+              248614
+            ]
+          }
+        },
+        "warm_total_host_run": {
+          "wall_ns": {
+            "median": 210354.0,
+            "min": 202185,
+            "max": 290850,
+            "stdev": 29336.026377866125,
+            "samples": [
+              290850,
+              217564,
+              221268,
+              202994,
+              202185,
+              208070,
+              212638,
+              206065
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 210319.5,
+            "min": 202112,
+            "max": 290775,
+            "stdev": 29326.788792111947,
+            "samples": [
+              290775,
+              217520,
+              221221,
+              202948,
+              202112,
+              208027,
+              212612,
+              206029
+            ]
+          }
+        }
+      }
+    },
+    {
+      "nodes": 8,
+      "phases": {
+        "parse": {
+          "wall_ns": {
+            "median": 51960.0,
+            "min": 50771,
+            "max": 65364,
+            "stdev": 4846.185066258672,
+            "samples": [
+              55033,
+              51392,
+              52177,
+              51702,
+              65364,
+              51743,
+              50771,
+              55959
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 52040.5,
+            "min": 50801,
+            "max": 65446,
+            "stdev": 4848.115274442814,
+            "samples": [
+              55125,
+              51467,
+              52249,
+              51832,
+              65446,
+              51822,
+              50801,
+              56010
+            ]
+          }
+        },
+        "check": {
+          "wall_ns": {
+            "median": 5124352.0,
+            "min": 5075696,
+            "max": 5447529,
+            "stdev": 140841.65904755544,
+            "samples": [
+              5447529,
+              5134834,
+              5180274,
+              5113870,
+              5095081,
+              5360028,
+              5076975,
+              5075696
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5123713.5,
+            "min": 5075373,
+            "max": 5447162,
+            "stdev": 139407.98644164647,
+            "samples": [
+              5447162,
+              5133970,
+              5175305,
+              5113457,
+              5094656,
+              5351104,
+              5076625,
+              5075373
+            ]
+          }
+        },
+        "expand": {
+          "wall_ns": {
+            "median": 170309.5,
+            "min": 164187,
+            "max": 181631,
+            "stdev": 7559.353694973816,
+            "samples": [
+              180104,
+              164972,
+              179972,
+              164187,
+              171762,
+              181631,
+              164407,
+              168857
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 170245.5,
+            "min": 164071,
+            "max": 181568,
+            "stdev": 7565.40154608937,
+            "samples": [
+              180053,
+              164915,
+              179900,
+              164071,
+              171709,
+              181568,
+              164359,
+              168782
+            ]
+          }
+        },
+        "host_offer_setup": {
+          "wall_ns": {
+            "median": 9859681.5,
+            "min": 9809398,
+            "max": 10444288,
+            "stdev": 263723.41387670854,
+            "samples": [
+              10391310,
+              9832225,
+              9823057,
+              9834964,
+              10004709,
+              10444288,
+              9884399,
+              9809398
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 9859132.0,
+            "min": 9808825,
+            "max": 10443659,
+            "stdev": 263689.12938791607,
+            "samples": [
+              10390670,
+              9831681,
+              9822493,
+              9834399,
+              10004122,
+              10443659,
+              9883865,
+              9808825
+            ]
+          }
+        },
+        "planning": {
+          "wall_ns": {
+            "median": 140498.0,
+            "min": 135936,
+            "max": 167445,
+            "stdev": 11133.994521284803,
+            "samples": [
+              142533,
+              136970,
+              140702,
+              135936,
+              140294,
+              167445,
+              136403,
+              154977
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 140431.5,
+            "min": 135889,
+            "max": 167393,
+            "stdev": 11143.162527981003,
+            "samples": [
+              142510,
+              136890,
+              140654,
+              135889,
+              140209,
+              167393,
+              136324,
+              154950
+            ]
+          }
+        },
+        "reference_source_prepare": {
+          "wall_ns": {
+            "median": 5118266.5,
+            "min": 5074753,
+            "max": 5346994,
+            "stdev": 91823.53000797235,
+            "samples": [
+              5183086,
+              5079575,
+              5074753,
+              5118773,
+              5198429,
+              5346994,
+              5117760,
+              5085649
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5117912.5,
+            "min": 5074403,
+            "max": 5346613,
+            "stdev": 91815.7039469167,
+            "samples": [
+              5182736,
+              5079202,
+              5074403,
+              5118456,
+              5198077,
+              5346613,
+              5117369,
+              5085311
+            ]
+          }
+        },
+        "evaluator_prepare": {
+          "wall_ns": {
+            "median": 1965.0,
+            "min": 1839,
+            "max": 3047,
+            "stdev": 396.4048931152519,
+            "samples": [
+              2013,
+              1897,
+              1839,
+              1924,
+              2038,
+              3047,
+              2006,
+              1887
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 1961.5,
+            "min": 1857,
+            "max": 3052,
+            "stdev": 395.26735978864446,
+            "samples": [
+              1990,
+              1908,
+              1857,
+              1933,
+              2044,
+              3052,
+              2020,
+              1892
+            ]
+          }
+        },
+        "evaluator_warm_100000": {
+          "wall_ns": {
+            "median": 6765172.5,
+            "min": 6725921,
+            "max": 6904889,
+            "stdev": 70354.34892423902,
+            "samples": [
+              6762743,
+              6725921,
+              6739247,
+              6788135,
+              6893010,
+              6904889,
+              6736072,
+              6767602
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 6764930.0,
+            "min": 6725696,
+            "max": 6904640,
+            "stdev": 68860.44634401107,
+            "samples": [
+              6762501,
+              6725696,
+              6739004,
+              6787914,
+              6885320,
+              6904640,
+              6735469,
+              6767359
+            ]
+          }
+        },
+        "cold_installed_prepare": {
+          "wall_ns": {
+            "median": 150766.5,
+            "min": 138934,
+            "max": 258901,
+            "stdev": 41594.7142896701,
+            "samples": [
+              258901,
+              205094,
+              138934,
+              151788,
+              149745,
+              161564,
+              142371,
+              149142
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 150737.0,
+            "min": 138866,
+            "max": 258947,
+            "stdev": 41609.6102360981,
+            "samples": [
+              258947,
+              204995,
+              138866,
+              151765,
+              149709,
+              161607,
+              142384,
+              149083
+            ]
+          }
+        },
+        "cold_play": {
+          "wall_ns": {
+            "median": 36436.5,
+            "min": 30891,
+            "max": 37180,
+            "stdev": 2663.783235362818,
+            "samples": [
+              31085,
+              37009,
+              36391,
+              36482,
+              37180,
+              34871,
+              30891,
+              37160
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 36483.0,
+            "min": 30996,
+            "max": 37307,
+            "stdev": 2673.9446516336125,
+            "samples": [
+              31110,
+              37149,
+              36452,
+              36514,
+              37215,
+              34961,
+              30996,
+              37307
+            ]
+          }
+        },
+        "warm_installed_prepare": {
+          "wall_ns": {
+            "median": 128535.5,
+            "min": 124992,
+            "max": 309246,
+            "stdev": 63391.088538729164,
+            "samples": [
+              155139,
+              309246,
+              128178,
+              128893,
+              127452,
+              133926,
+              126063,
+              124992
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 128518.0,
+            "min": 124966,
+            "max": 208622,
+            "stdev": 28769.599047556134,
+            "samples": [
+              155080,
+              208622,
+              128161,
+              128875,
+              127456,
+              133912,
+              126050,
+              124966
+            ]
+          }
+        },
+        "warm_play": {
+          "wall_ns": {
+            "median": 25151.5,
+            "min": 24705,
+            "max": 26128,
+            "stdev": 488.2240227893046,
+            "samples": [
+              25090,
+              26128,
+              24925,
+              24705,
+              25491,
+              25773,
+              25213,
+              24874
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 25214.0,
+            "min": 24786,
+            "max": 26207,
+            "stdev": 485.3885041902002,
+            "samples": [
+              25168,
+              26207,
+              24980,
+              24786,
+              25531,
+              25819,
+              25260,
+              24941
+            ]
+          }
+        },
+        "cold_total_host_run": {
+          "wall_ns": {
+            "median": 389159.5,
+            "min": 370779,
+            "max": 494350,
+            "stdev": 46531.10261177847,
+            "samples": [
+              494350,
+              466957,
+              370779,
+              392180,
+              386139,
+              417571,
+              376552,
+              375421
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 389082.0,
+            "min": 370719,
+            "max": 494255,
+            "stdev": 46516.8315981277,
+            "samples": [
+              494255,
+              466850,
+              370719,
+              392108,
+              386056,
+              417524,
+              376506,
+              375344
+            ]
+          }
+        },
+        "warm_total_host_run": {
+          "wall_ns": {
+            "median": 349405.0,
+            "min": 340215,
+            "max": 545291,
+            "stdev": 69058.72435781428,
+            "samples": [
+              371217,
+              545291,
+              340215,
+              348310,
+              346647,
+              350500,
+              344109,
+              364757
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 349349.5,
+            "min": 340163,
+            "max": 444604,
+            "stdev": 34329.22913703215,
+            "samples": [
+              371168,
+              444604,
+              340163,
+              348270,
+              346582,
+              350429,
+              344051,
+              364677
+            ]
+          }
+        }
+      }
+    },
+    {
+      "nodes": 32,
+      "phases": {
+        "parse": {
+          "wall_ns": {
+            "median": 157509.5,
+            "min": 151483,
+            "max": 162638,
+            "stdev": 3630.507262372967,
+            "samples": [
+              156787,
+              162638,
+              161371,
+              159963,
+              154889,
+              158232,
+              151483,
+              156428
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 157614.0,
+            "min": 151559,
+            "max": 162728,
+            "stdev": 3616.807273983901,
+            "samples": [
+              156950,
+              162728,
+              161406,
+              160039,
+              155003,
+              158278,
+              151559,
+              156557
+            ]
+          }
+        },
+        "check": {
+          "wall_ns": {
+            "median": 5247010.0,
+            "min": 5172623,
+            "max": 5372915,
+            "stdev": 66328.22024800497,
+            "samples": [
+              5240201,
+              5372915,
+              5253819,
+              5172623,
+              5283676,
+              5306421,
+              5182721,
+              5220335
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5246604.0,
+            "min": 5171869,
+            "max": 5372546,
+            "stdev": 66401.22275431272,
+            "samples": [
+              5239808,
+              5372546,
+              5253400,
+              5171869,
+              5283243,
+              5306014,
+              5182320,
+              5219855
+            ]
+          }
+        },
+        "expand": {
+          "wall_ns": {
+            "median": 587748.0,
+            "min": 577447,
+            "max": 615781,
+            "stdev": 15943.495942143394,
+            "samples": [
+              577447,
+              615781,
+              579104,
+              578257,
+              601582,
+              593518,
+              581978,
+              613341
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 587681.5,
+            "min": 577323,
+            "max": 615644,
+            "stdev": 15933.255014501678,
+            "samples": [
+              577323,
+              615644,
+              578976,
+              578187,
+              601478,
+              593456,
+              581907,
+              613227
+            ]
+          }
+        },
+        "host_offer_setup": {
+          "wall_ns": {
+            "median": 9960815.0,
+            "min": 9833904,
+            "max": 10518262,
+            "stdev": 264317.0947865664,
+            "samples": [
+              9833904,
+              10428387,
+              9898134,
+              9875271,
+              10065756,
+              10023496,
+              9884485,
+              10518262
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 9960229.0,
+            "min": 9833283,
+            "max": 10517504,
+            "stdev": 264265.86508905736,
+            "samples": [
+              9833283,
+              10427740,
+              9897545,
+              9874717,
+              10065205,
+              10022913,
+              9883884,
+              10517504
+            ]
+          }
+        },
+        "planning": {
+          "wall_ns": {
+            "median": 467180.0,
+            "min": 459031,
+            "max": 514876,
+            "stdev": 20213.999242038743,
+            "samples": [
+              460043,
+              495569,
+              463593,
+              459031,
+              473736,
+              470767,
+              460191,
+              514876
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 467082.0,
+            "min": 458972,
+            "max": 514729,
+            "stdev": 20183.62721719902,
+            "samples": [
+              459926,
+              495336,
+              463554,
+              458972,
+              473600,
+              470610,
+              460011,
+              514729
+            ]
+          }
+        },
+        "reference_source_prepare": {
+          "wall_ns": {
+            "median": 5124418.5,
+            "min": 5075631,
+            "max": 5310137,
+            "stdev": 89019.21593156968,
+            "samples": [
+              5145141,
+              5264392,
+              5078583,
+              5090678,
+              5175816,
+              5103696,
+              5075631,
+              5310137
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 5124080.0,
+            "min": 5075261,
+            "max": 5309760,
+            "stdev": 90095.21545634374,
+            "samples": [
+              5144763,
+              5264146,
+              5078244,
+              5080651,
+              5175491,
+              5103397,
+              5075261,
+              5309760
+            ]
+          }
+        },
+        "evaluator_prepare": {
+          "wall_ns": {
+            "median": 1955.5,
+            "min": 1897,
+            "max": 3324,
+            "stdev": 564.274502601096,
+            "samples": [
+              1929,
+              2963,
+              1953,
+              1958,
+              1897,
+              2015,
+              1917,
+              3324
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 1964.5,
+            "min": 1905,
+            "max": 3335,
+            "stdev": 564.9758370307277,
+            "samples": [
+              1932,
+              2972,
+              1960,
+              1969,
+              1905,
+              2027,
+              1929,
+              3335
+            ]
+          }
+        },
+        "evaluator_warm_100000": {
+          "wall_ns": {
+            "median": 6752386.0,
+            "min": 6728781,
+            "max": 6896854,
+            "stdev": 70187.89461306192,
+            "samples": [
+              6764019,
+              6896854,
+              6741438,
+              6754348,
+              6735833,
+              6728781,
+              6750424,
+              6894301
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 6752135.5,
+            "min": 6728540,
+            "max": 6896623,
+            "stdev": 70595.31088232015,
+            "samples": [
+              6763782,
+              6896623,
+              6741198,
+              6754090,
+              6731523,
+              6728540,
+              6750181,
+              6894051
+            ]
+          }
+        },
+        "cold_installed_prepare": {
+          "wall_ns": {
+            "median": 458124.5,
+            "min": 390095,
+            "max": 772600,
+            "stdev": 153557.70749414418,
+            "samples": [
+              772600,
+              742219,
+              435679,
+              420384,
+              390095,
+              397226,
+              480570,
+              480763
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 458169.5,
+            "min": 389998,
+            "max": 772609,
+            "stdev": 153542.71259577206,
+            "samples": [
+              772609,
+              742090,
+              435641,
+              420329,
+              389998,
+              397238,
+              480698,
+              480870
+            ]
+          }
+        },
+        "cold_play": {
+          "wall_ns": {
+            "median": 131362.5,
+            "min": 130822,
+            "max": 140403,
+            "stdev": 3896.4203879055085,
+            "samples": [
+              133128,
+              140403,
+              131095,
+              131266,
+              130822,
+              131071,
+              131459,
+              139021
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 131419.5,
+            "min": 130895,
+            "max": 140569,
+            "stdev": 3911.930907949606,
+            "samples": [
+              133166,
+              140569,
+              131250,
+              131360,
+              130895,
+              131203,
+              131479,
+              139102
+            ]
+          }
+        },
+        "warm_installed_prepare": {
+          "wall_ns": {
+            "median": 428882.0,
+            "min": 393365,
+            "max": 465406,
+            "stdev": 31207.73318082738,
+            "samples": [
+              454632,
+              465406,
+              393365,
+              441066,
+              395278,
+              394932,
+              416698,
+              460363
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 428849.5,
+            "min": 393393,
+            "max": 465355,
+            "stdev": 31208.42823861849,
+            "samples": [
+              454651,
+              465355,
+              393393,
+              441022,
+              395282,
+              394994,
+              416677,
+              460517
+            ]
+          }
+        },
+        "warm_play": {
+          "wall_ns": {
+            "median": 125890.0,
+            "min": 123852,
+            "max": 130907,
+            "stdev": 2464.0096677686033,
+            "samples": [
+              126969,
+              130907,
+              125367,
+              123852,
+              124161,
+              124269,
+              128592,
+              126413
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 125942.0,
+            "min": 123921,
+            "max": 130996,
+            "stdev": 2476.9230588142445,
+            "samples": [
+              126970,
+              130996,
+              125420,
+              123921,
+              124229,
+              124265,
+              128664,
+              126464
+            ]
+          }
+        },
+        "cold_total_host_run": {
+          "wall_ns": {
+            "median": 921568.5,
+            "min": 852053,
+            "max": 1247380,
+            "stdev": 159588.57275327883,
+            "samples": [
+              1241791,
+              1247380,
+              901252,
+              908658,
+              852053,
+              879718,
+              934479,
+              1002449
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 921470.5,
+            "min": 851977,
+            "max": 1247246,
+            "stdev": 159567.91245596207,
+            "samples": [
+              1241647,
+              1247246,
+              901165,
+              908561,
+              851977,
+              879608,
+              934380,
+              1002369
+            ]
+          }
+        },
+        "warm_total_host_run": {
+          "wall_ns": {
+            "median": 883163.0,
+            "min": 839519,
+            "max": 957059,
+            "stdev": 46468.77685069836,
+            "samples": [
+              921328,
+              957059,
+              839519,
+              906340,
+              841115,
+              839879,
+              859986,
+              923754
+            ]
+          },
+          "thread_cpu_ns": {
+            "median": 883067.5,
+            "min": 839437,
+            "max": 956972,
+            "stdev": 46469.05449078835,
+            "samples": [
+              921232,
+              956972,
+              839437,
+              906242,
+              840991,
+              839803,
+              859893,
+              923655
+            ]
+          }
+        }
+      }
+    }
+  ],
+  "scope": "native real reference-back pipelines; single execution thread, excludes compiler from timed phases; cold/warm Back preparation repeated and total Host run separately retained"
+}
