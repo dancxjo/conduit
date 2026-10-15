@@ -83,11 +83,30 @@ pub fn model_infer_contract() -> Result<Kind, String> {
     };
     // Configuration fields need a typed exemplar. The required startup parameter
     // has no default, so authored Source must supply its actual semantic request.
+    let tensor = crate::ModelTensorConstraint::from_parts(
+        vec![conduit_data::TensorElement::F32],
+        vec![crate::ModelAxisConstraint::new(
+            crate::ModelDimensionConstraint::fixed(1)
+                .map_err(|e| format!("signature dimension: {e:?}"))?,
+            conduit_data::TensorAxisRole::Feature,
+        )
+        .map_err(|e| format!("signature axis: {e:?}"))?],
+        4,
+    )
+    .map_err(|e| format!("signature tensor: {e:?}"))?;
+    let input = crate::ModelPortConstraint::from_parts(
+        "input".into(),
+        "data/tensor@1".into(),
+        crate::ModelPortPresence::Required,
+        crate::ModelValueConstraint::tensor(tensor)
+            .map_err(|e| format!("signature value: {e:?}"))?,
+    )
+    .map_err(|e| format!("signature port: {e:?}"))?;
     let exemplar = ModelSignature::from_parts(
         "model/required-signature@1".into(),
         1,
         vec![ModelOperation::Infer],
-        vec![],
+        vec![input],
         vec![],
     )
     .map_err(|e| format!("signature exemplar: {e:?}"))?;
