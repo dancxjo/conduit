@@ -1,0 +1,210 @@
+{
+  "issue": 5749,
+  "state": "validated held preparation; no PR while two owned PRs are active",
+  "source": "b104dce2f5de09a8225ca62c2fab1716e82bfaeb",
+  "accepted_base": "df66968dec9cdf6eddb813857bf617fd4c3326dd",
+  "profile": "audio/one-sided-radix2-full-scale-f64@1",
+  "Audio_tests": 116,
+  "production_kernel_tests": 2,
+  "isolated_pressure_cancel_budget_tests": 2,
+  "exact_host_inventory_tests": 1,
+  "checked_catalog_tests": 1,
+  "public_deterministic_oracle": "PASS; 127 reviewed subjects",
+  "strict_all_target_clippy": "PASS at cbc5536264a14db86a0075fd948bd6c96ad67a94",
+  "workspace_format": "PASS at cbc5536264a14db86a0075fd948bd6c96ad67a94",
+  "changed_implementation_files_identical_to_lint_source": [
+    {
+      "path": "plots/audio-spectrum-analysis/main.conduit",
+      "blob": "f5ab77f6cbc483b67b765347d212b3223216aea8"
+    },
+    {
+      "path": "plots/inventory.toml",
+      "blob": "40ef0b9a4230227f586d0d92be350770a923dd87"
+    },
+    {
+      "path": "semantics/audio/build.rs",
+      "blob": "d7f3b3e4e9cc31f82d7a5b85c1565f5802089c23"
+    },
+    {
+      "path": "semantics/audio/spectral_analysis_types.conduit",
+      "blob": "8acc215e2727a6239f9ce18f66190b3fc9304e10"
+    },
+    {
+      "path": "semantics/audio/src/lib.rs",
+      "blob": "80aad1c9851ab075d82fe44caf64534b95a04e77"
+    },
+    {
+      "path": "semantics/audio/src/spectral_analysis.rs",
+      "blob": "f85a7941769ccd8a1b37fcb8a00b2d99fc16f3bb"
+    },
+    {
+      "path": "semantics/audio/src/spectral_encoding.rs",
+      "blob": "842c5bce712fab6a2d54914cea0778e561316fdf"
+    },
+    {
+      "path": "semantics/audio/src/spectral_fft.rs",
+      "blob": "ccf9b30e2f28f109218e85d8e386ba63d0c73544"
+    },
+    {
+      "path": "semantics/audio/src/spectral_geometry.rs",
+      "blob": "6a9dcdb0d59ca6cca8ca6eb9bb05f28ef7481ee0"
+    },
+    {
+      "path": "semantics/audio/src/spectral_native.rs",
+      "blob": "3a382d49017266383341ca786f2aa6c7d5708e5b"
+    },
+    {
+      "path": "semantics/audio/tests/spectral_analysis.rs",
+      "blob": "08073d9e09f89e2ad670b8b07ccec98f342b5f14"
+    },
+    {
+      "path": "semantics/audio/tests/spectral_observation.rs",
+      "blob": "d93ff1269de0e6c5667723dd760d66670e7b1fa9"
+    },
+    {
+      "path": "semantics/catalog/src/audio_analysis.rs",
+      "blob": "0e1ad093a2f97f5bb29268bbd8aed1ca8e89411b"
+    },
+    {
+      "path": "semantics/catalog/src/audio_spectral_analysis.rs",
+      "blob": "3c638b07b568f831ba50d4f9760c30452c93054d"
+    },
+    {
+      "path": "semantics/catalog/src/lib.rs",
+      "blob": "909377ecebbd56095895060c6dca66f35bb08a35"
+    },
+    {
+      "path": "semantics/catalog/src/palette_metadata.rs",
+      "blob": "316040ec2da47fcef1ddf4c967d122b082a381b2"
+    },
+    {
+      "path": "semantics/catalog/src/sound.rs",
+      "blob": "1754ada554a142231fa76db396759d505027012a"
+    },
+    {
+      "path": "semantics/catalog/src/sound_catalog.rs",
+      "blob": "b2f20117d3ea086773271a523fc80c478b901db4"
+    },
+    {
+      "path": "semantics/catalog/src/sound_inventory.rs",
+      "blob": "ae962aa8e26424ed1aa0f17c032db55069df8ac2"
+    },
+    {
+      "path": "semantics/catalog/src/supported_nucleus.rs",
+      "blob": "707c10344bf52338f37252b937ed6e66f239a636"
+    },
+    {
+      "path": "semantics/catalog/tests/audio_spectral_analysis.rs",
+      "blob": "213bf992e6c803540d9db7f4c2facbab0913387a"
+    },
+    {
+      "path": "targets/std/offers/src/audio_analysis.rs",
+      "blob": "aee6dd33d117c4b28e528322a47b9fe709599297"
+    },
+    {
+      "path": "targets/std/offers/src/audio_spectral_analysis.rs",
+      "blob": "8b81cfba27a7714226c0597ebbca2ae52685d3f0"
+    },
+    {
+      "path": "targets/std/offers/src/lib.rs",
+      "blob": "a4bb1b09261d88c60fd79c4877c22dc9b0979955"
+    },
+    {
+      "path": "targets/std/offers/src/tests.rs",
+      "blob": "3433084b697bb23940c90e7997c4e52f7ef7cdd9"
+    },
+    {
+      "path": "targets/std/src/composition.rs",
+      "blob": "3f0de99a1dee3bb63913db4ff18aa7bdf3b5befd"
+    },
+    {
+      "path": "targets/std/src/composition/math.rs",
+      "blob": "60eec3eef8480baef912cebd65fe3ec5cd5d5dc8"
+    },
+    {
+      "path": "targets/std/src/composition/tests.rs",
+      "blob": "1c876868f03c6acbb4e81379a7928df7770df400"
+    },
+    {
+      "path": "targets/std/src/installed_std.rs",
+      "blob": "d92018b56cfafb43de1197eb8b395cfd585de0b7"
+    },
+    {
+      "path": "targets/std/src/installed_std/audio_spectral_analysis_back.rs",
+      "blob": "da04c8ed58fda08ebf7a2cd29f46e1ca549dd05a"
+    },
+    {
+      "path": "targets/std/src/installed_std/audio_spectral_analysis_back_tests.rs",
+      "blob": "248a5cfcc2d0673a3d8cbfb22015d41c7781ac88"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_kind.rs",
+      "blob": "7e70a2aea02561dd86385f50c0b963d07b0623e0"
+    },
+    {
+      "path": "targets/std/src/installed_std/back_step.rs",
+      "blob": "28ccca26657e959ecfcdd199b13762633d47dd28"
+    },
+    {
+      "path": "targets/std/src/installed_std/catalog.rs",
+      "blob": "83df3d5508a2211ae9adf2c59b5abf4cf977ea08"
+    },
+    {
+      "path": "targets/std/tests/audio_spectral_analysis.rs",
+      "blob": "de0ca0c2766a6ff01a40f21095a49f0cc18b411c"
+    },
+    {
+      "path": "tools/xtask/src/commands/catalog/inventory.rs",
+      "blob": "eb1d8b458a9cf6fa51ceaf9e891923d7b3a7650b"
+    }
+  ],
+  "logs": {
+    "audio-spectrum-current-dev-full-tests.log": {
+      "source": "b104dce2f5de09a8225ca62c2fab1716e82bfaeb",
+      "sha256": "d8da7bd03a8327071010e8daa230b79f43c098e6f1e8a462a93ea9931ec6692f",
+      "status": "PASS"
+    },
+    "audio-spectrum-current-dev-runtime-tests.log": {
+      "source": "b104dce2f5de09a8225ca62c2fab1716e82bfaeb",
+      "sha256": "2ddc31a1937b21658654c3cb631aced002ed196f57d38d3a28f4464d1b5cbc09",
+      "status": "PASS"
+    },
+    "audio-spectrum-current-dev-back-tests.log": {
+      "source": "b104dce2f5de09a8225ca62c2fab1716e82bfaeb",
+      "sha256": "fd216580c10ded3c5e22d0e52f1f74fa448ac0afb105c40e0fc6a4d30a0bb54b",
+      "status": "PASS"
+    },
+    "audio-spectrum-current-dev-inventory-test.log": {
+      "source": "b104dce2f5de09a8225ca62c2fab1716e82bfaeb",
+      "sha256": "4edd848b280c67a3d98bdfb789dd16d845f18a435f236541310b4de1ee5ab5d0",
+      "status": "PASS"
+    },
+    "audio-spectrum-catalog-test.log": {
+      "source": "242cad61d795fe2ffe676498dc8839cae160b464",
+      "sha256": "e15d0b452df7a43f0fd546258fd511ce09d645aab96afcd9cc9ac93a3711238e",
+      "status": "PASS"
+    },
+    "audio-spectrum-public-oracle.log": {
+      "source": "cbc5536264a14db86a0075fd948bd6c96ad67a94",
+      "sha256": "193dcebe977ffaa2a6ea2d3f68823b464ff944cff585cc34fa20450d597d2b14",
+      "status": "PASS"
+    },
+    "audio-spectrum-installed-clippy.log": {
+      "source": "cbc5536264a14db86a0075fd948bd6c96ad67a94",
+      "sha256": "aae1b8e287cdb9d8e46e531ad81a0bdd39864620d7696bf6e560985332bead58",
+      "status": "PASS"
+    },
+    "audio-spectrum-installed-format.log": {
+      "source": "cbc5536264a14db86a0075fd948bd6c96ad67a94",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "status": "PASS"
+    }
+  },
+  "boundaries": [
+    "Approximate f64 digital-full-scale amplitude and mean-square; not watts, PSD or certified real arithmetic",
+    "No original F0 or pitch inference",
+    "Synthetic PCM, checked Source/ordinary planning/production kernel; no physical acquisition or listening receipt",
+    "Source dense frequency axis is exact Quantity geometry; numerical values are separately typed finite observations",
+    "Parent5223 remains open"
+  ]
+}
