@@ -96,5 +96,47 @@
       "blob": "b13e0e004deb3771e329b097292bcc1a79a22b9c",
       "sha256": "3d1229e3d239b50fa86c8f800bd8f2c4a733be641d49917bf252c8c4bdac5e0c"
     }
-  ]
+  ],
+  "standalone_lock_preflight": {
+    "source": "b6980c2666715987841abbff59d79e411a1a4e88",
+    "state": "PASS",
+    "driver": "exact eight Cargo update --locked --workspace checks from xtask standalone_locks.rs",
+    "checks": [
+      {
+        "manifest": "proof/fixtures/native-speech-footprint/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/avr/firmware/promicro-host/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/conduitos/domain/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/c3-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/s3-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/wroom-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
+        "exit_code": 0
+      }
+    ],
+    "log_sha256": "2bf474dd8672960902e0baf70b11e99a5c1d51f9abb6c897e272f127ed21f8fa",
+    "xtask_build_attempt": "local linker failed before executing checks when filesystem filled; inactive compiler metadata reclaimed; direct equivalent checks used without bypassing locks"
+  },
+  "refreshed_accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3"
 }

@@ -45,4 +45,13 @@ flow test and all 60 default Speech library tests pass. This includes legacy and
 resolved-cycle speech parity. Strict focused Audio/std Clippy and pinned workspace
 formatting pass. The evidence file records exact tested files and raw log hashes.
 
+The candidate is refreshed onto accepted `560916ec4f361901e23449f7b44d984dc067c1c3`.
+All 13 tested files remain byte-identical to the measured source above. The
+standalone Speech footprint lock now records the Audio build dependency and its
+Data/Time dependencies without registry version changes. All eight exact Cargo
+lock checks used by the repository preflight pass at
+`b6980c2666715987841abbff59d79e411a1a4e88`. The local xtask build hit a full
+filesystem before reaching those checks; after reclaiming inactive compiler
+metadata, the identical lock-check commands were run directly.
+
 Parent #5217 and composed-synth sibling #5678 remain separate acceptance gates.
