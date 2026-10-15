@@ -511,7 +511,7 @@ pub fn palette_metadata(kind_id: &KindId) -> Option<PaletteMetadata> {
             &["json", "decode", "parse", "protocol"],
             PaletteIconKey::Combine,
         ),
-        _ => return None,
+        _ => return crate::audio_time_analysis::audio_time_analysis_palette_metadata(kind_id),
     };
     Some(metadata)
 }

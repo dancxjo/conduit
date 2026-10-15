@@ -1,0 +1,42 @@
+# Measurements are observations of immutable PCM, never commanded acoustic targets.
+# F64 projections use the declared digital-full-scale reference, not physical watts
+# or joules. The window is rectangular, without padding, resampling or alignment.
+type AudioTimeAnalysisReference =
+    digital_full_scale
+
+type AudioTimeAnalysisWindow =
+    rectangular
+
+# Distinct normalized units, without asserting physical watts or joules.
+type AudioTimeSampleAmplitude = F64 finite
+type AudioTimeAmplitudeMagnitude = F64 finite in 0.0..
+type AudioTimeMeanSquarePower = F64 finite in 0.0..
+type AudioTimeSquareSum = F64 finite in 0.0..
+
+type AudioTimeAnalysisDigest = collection U8 = 32
+
+type AudioTimeAnalysisWaveformPage = sequence AudioTimeSampleAmplitude in 1..=1024
+
+# Two finite pages retain the full admitted 2048-frame PCM block.
+type AudioTimeAnalysisWaveform = sequence AudioTimeAnalysisWaveformPage in 1..=2
+
+type AudioTimeAnalysisObservation = {
+    source_digest: AudioTimeAnalysisDigest
+    clock_id: U64 in 1..=18446744073709551615
+    start_frame: U64
+    sample_rate_hz: U32 in 8000..=192000
+    frames: U16 in 2..=2048
+    reference: AudioTimeAnalysisReference
+    window: AudioTimeAnalysisWindow
+    waveform: AudioTimeAnalysisWaveform
+    square_sum: AudioTimeSquareSum
+    mean_square: AudioTimeMeanSquarePower
+    rms: AudioTimeAmplitudeMagnitude
+    absolute_peak: AudioTimeAmplitudeMagnitude
+    samples_at_or_above_full_scale: U16 in 0..=2048
+    where .start_frame <= 18446744073709551615 - value/u64(.frames)
+    where .samples_at_or_above_full_scale <= .frames
+    where sequence/length(.waveform) == (.frames <= 1024 ? 1 : 2)
+    where sequence/length(sequence/at(.waveform, 0)) == (.frames <= 1024 ? value/u64(.frames) : 1024)
+    where sequence/length(.waveform) == 2 ? sequence/length(sequence/at(.waveform, 1)) == value/u64(.frames) - 1024 : true
+}
