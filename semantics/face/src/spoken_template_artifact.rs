@@ -1,9 +1,6 @@
 //! Inspectable opening-artifact metadata, never template, Plan or effect authority.
-use crate::{
-    Face, FaceUtteranceProvenance, SpokenTemplateWording, MAX_SPOKEN_TEMPLATE_BYTES,
-    SPOKEN_TEMPLATE_LOOKS_SOURCE,
-};
-use alloc::{string::String, vec::Vec};
+use crate::{Face, SpokenTemplateWording, MAX_SPOKEN_TEMPLATE_BYTES, SPOKEN_TEMPLATE_LOOKS_SOURCE};
+use alloc::string::String;
 use conduit_core::PlotIdentity;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
@@ -53,6 +50,7 @@ impl SpokenTemplateOpeningEvidence {
         ) {
             ("spoken/brief@1", 1) => "spoken/brief-template",
             ("spoken/expanded@1", 1) => "spoken/expanded-template",
+            ("spoken/control@1", 1) => "spoken/control-template",
             _ => return Err(Refusal::Source),
         };
         let source_digest: [u8; 32] =
@@ -102,29 +100,19 @@ impl SpokenTemplateOpeningEvidence {
         if wording.utterance_plan_digest != plan.digest {
             return Err(Refusal::Coverage);
         }
-        let mut indices = wording.selected_clause_indices.clone();
-        indices.sort_unstable();
-        if indices.len() != plan.clauses.len()
-            || indices
-                .iter()
-                .enumerate()
-                .any(|(index, selected)| *selected as usize != index)
-            || plan
-                .clauses
-                .iter()
-                .any(|clause| !wording.wording.contains(&clause.text))
-        {
-            return Err(Refusal::Coverage);
-        }
-        let actions: Vec<_> = plan
-            .clauses
-            .iter()
-            .filter_map(|clause| match &clause.provenance {
-                FaceUtteranceProvenance::Action(source) => Some(source.identity().clone()),
-                _ => None,
+        let selected = if entry == "spoken/control-template" {
+            crate::prepare_spoken_control_slots(face, &[]).map_err(|_| Refusal::Coverage)?
+        } else {
+            crate::prepare_spoken_template_slots(face, &[]).map_err(|_| Refusal::Coverage)?
+        };
+        if wording.selected_clause_indices != selected.selected_clause_indices()
+            || wording.selected_action_ids != selected.selected_action_ids()
+            || selected.selected_clause_indices().iter().any(|index| {
+                plan.clauses
+                    .get(*index as usize)
+                    .is_none_or(|clause| !wording.wording.contains(&clause.text))
             })
-            .collect();
-        if wording.selected_action_ids != actions {
+        {
             return Err(Refusal::Coverage);
         }
         if self.opening_wording.is_empty()

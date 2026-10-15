@@ -38,6 +38,8 @@ pub(super) struct OwnerRoute {
 pub(super) struct Snapshot {
     pub face: Face,
     pub route: RemoteOwnerMaskRouteSeal,
+    pub interactions_admitted: bool,
+    pub document_bytes: usize,
 }
 
 impl OwnerRoute {
@@ -153,17 +155,40 @@ impl OwnerRoute {
     }
 
     pub(super) fn refresh(&mut self) -> Result<Snapshot, String> {
+        self.select(None)
+    }
+
+    pub(super) fn select_spoken(
+        &mut self,
+        selection: &conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+    ) -> Result<Snapshot, String> {
+        self.select(Some(selection))
+    }
+
+    fn select(
+        &mut self,
+        selection: Option<
+            &conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+        >,
+    ) -> Result<Snapshot, String> {
         let mut line = self.connection()?;
-        send_return(
-            &mut line,
-            &json!({"schema":"conduit.body/native-owner-return-refresh@1", "token":self.grant.token,
-            "sequence":0, "request":self.request}),
-            MESSAGE,
-        )?;
+        let mut request = json!({"schema":"conduit.body/native-owner-return-refresh@1", "token":self.grant.token,
+            "sequence":0, "request":self.request});
+        if let Some(selection) = selection {
+            request["spoken_selection"] =
+                serde_json::to_value(selection).map_err(|error| error.to_string())?;
+        } else {
+            request["mask"] = json!("terminal");
+        }
+        send_return(&mut line, &request, MESSAGE)?;
         let response = document(&mut line)?;
         if response["schema"] != "conduit.body/native-owner-return-refresh-response@1" {
             return Err("presentation refresh response schema".into());
         }
+        let mut selected = snapshot(response["face"].clone())?;
+        selected.document_bytes = serde_json::to_vec(&response)
+            .map_err(|error| error.to_string())?
+            .len();
         let grant: Grant =
             serde_json::from_value(response["grant"].clone()).map_err(|error| error.to_string())?;
         validate_grant(&grant, &self.request)?;
@@ -172,7 +197,7 @@ impl OwnerRoute {
             .min(Instant::now() + Duration::from_millis(u64::from(grant.remaining_millis)));
         self.grant = grant;
         self.sequence = 1;
-        snapshot(response["face"].clone())
+        Ok(selected)
     }
 
     pub(super) fn action(
@@ -225,16 +250,24 @@ fn validate_grant(grant: &Grant, request: &OwnerFaceSnapshotRequest) -> Result<(
 }
 
 fn snapshot(value: Value) -> Result<Snapshot, String> {
+    let document_bytes = serde_json::to_vec(&value)
+        .map_err(|error| error.to_string())?
+        .len();
     match serde_json::from_value(value).map_err(|error| format!("presentation Face:{error}"))? {
         OwnerFaceSnapshotResponse::Snapshot {
             schema,
             face,
             route: Some(route),
-            interactions_admitted: true,
+            interactions_admitted,
         } if schema == OWNER_FACE_RESPONSE_SCHEMA => Ok(Snapshot {
             face: *face,
             route: *route,
+            interactions_admitted,
+            document_bytes,
         }),
+        OwnerFaceSnapshotResponse::Refused { code, .. } => {
+            Err(format!("presentation Face refused:{code}"))
+        }
         _ => Err("presentation has no admitted current Mask route".into()),
     }
 }
@@ -278,8 +311,8 @@ fn receive<T: for<'de> Deserialize<'de>>(
 }
 fn document(line: &mut SecureWebSocketClientLine) -> Result<Value, String> {
     let mut frame = vec![0; MESSAGE];
-    let mut assembly = conduit_wire::BoundedDocumentAssembly::new(MESSAGE, 16);
-    for index in 0..16 {
+    let mut assembly = conduit_wire::BoundedDocumentAssembly::new(128 * 1024, 32);
+    for index in 0..32 {
         let length = line
             .receive_binary(&mut frame)
             .map_err(|error| format!("presentation document:{error:?}"))?;

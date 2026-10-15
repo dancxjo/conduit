@@ -119,7 +119,39 @@ fn admitted_terminal_controls_the_same_running_thermostat_and_rejects_stale_show
         )
         .unwrap();
     assert_eq!(owner.current_play_id(), Some(&play));
+    let selected = owner
+        .face_wardrobe
+        .as_ref()
+        .unwrap()
+        .control()
+        .selected
+        .as_ref()
+        .unwrap();
+    assert_eq!(
+        selected.route_id,
+        format!("route/{}", route.route_plan_id.as_str())
+    );
+    let prior_control = owner.face_wardrobe.as_ref().unwrap().control().clone();
+    assert!(owner
+        .seal_remote_terminal_mask_route(&receipt, &face_line, &show_line, &show_line, expires,)
+        .is_err());
+    assert_eq!(
+        owner.face_wardrobe.as_ref().unwrap().control(),
+        &prior_control
+    );
     let face = owner.face_snapshot(&request).unwrap();
+    let retained = owner
+        .pending_native_mask
+        .as_ref()
+        .unwrap()
+        .current_witness(
+            &owner.session,
+            &face,
+            crate::durable_host::current_time_millis().unwrap(),
+        )
+        .unwrap()
+        .0;
+    assert_eq!(retained, &route);
     let mut execution = peer.prepare_remote_terminal_mask_execution(&route).unwrap();
     let (release, wait) = std::sync::mpsc::sync_channel(1);
     let output = thread::spawn(move || {
