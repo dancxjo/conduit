@@ -151,3 +151,49 @@ fn saved_language_identity_switches_actual_layout_without_restarting_the_message
     select_language(&mut session, "us");
     assert_eq!(drive(&mut session, Some(press(0x04, 0))), ["zqa"]);
 }
+
+#[test]
+fn reusable_plot_forwards_typed_layout_and_keeps_instances_pending_state_independent() {
+    let source = |base: &str| {
+        format!(
+            r#"plot wrapped_keys {{
+        base = [{{usage:8,shift:false,altgr:false,action:text("{base}")}}]
+        overlay = [{{usage:52,shift:false,altgr:true,action:dead({{spacing:"´",combining:769}})}}]
+        layout = {{layers:[base,overlay],compositions:[]}}
+        editor: reusable_editor(layout=layout)
+    }}
+    plot reusable_editor (
+        layout: KeymapLayout
+    ) {{
+        keyboard: input/keyboard
+        map: input/keymap(layout=layout)
+        message: text/edit(maximum-bytes=256)
+        show: face/text("Wrapped layout")
+        keyboard.key >> map.key
+        map.text >> message.fragment
+        message.current >> show.text
+    }}"#
+        )
+    };
+    let (mut first, _) = TourSession::prepare(
+        "browser/reusable-layout-first",
+        "boot/reusable-layout-first",
+        &source("e"),
+        74,
+    )
+    .unwrap();
+    let (mut second, _) = TourSession::prepare(
+        "browser/reusable-layout-second",
+        "boot/reusable-layout-second",
+        &source("a"),
+        75,
+    )
+    .unwrap();
+    assert_eq!(drive(&mut first, None), [""]);
+    assert_eq!(drive(&mut second, None), [""]);
+    assert!(drive(&mut first, Some(press(52, 0x40))).is_empty());
+    assert_eq!(drive(&mut second, Some(press(8, 0))), ["a"]);
+    assert!(drive(&mut second, Some(press(52, 0x40))).is_empty());
+    assert_eq!(drive(&mut first, Some(press(8, 0))), ["é"]);
+    assert_eq!(drive(&mut second, Some(press(8, 0))), ["aá"]);
+}
