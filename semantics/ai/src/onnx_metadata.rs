@@ -13,6 +13,7 @@ const MAXIMUM_FIELDS: usize = 65_536;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum OnnxMetadataRefusal {
+    InvalidVersion,
     ByteBound,
     Malformed,
     Unsupported,
@@ -65,7 +66,7 @@ pub fn inspect_onnx(bytes: &[u8], expected_sha256: [u8; 32]) -> Result<OnnxMetad
     let mut opsets = Vec::new();
     visit(bytes, |field, value| {
         match field {
-            1 => set(&mut ir, integer(value)?)?,
+            1 => set(&mut ir, version_number(value)?)?,
             7 => set(&mut graph, raw(value)?)?,
             8 => {
                 if opsets.len() == 8 {
@@ -76,7 +77,7 @@ pub fn inspect_onnx(bytes: &[u8], expected_sha256: [u8; 32]) -> Result<OnnxMetad
                 visit(raw(value)?, |f, v| {
                     match f {
                         1 => set(&mut domain, text(v, true)?)?,
-                        2 => set(&mut version, positive(v)?)?,
+                        2 => set(&mut version, version_number(v)?)?,
                         _ => {}
                     }
                     Ok(())
@@ -95,7 +96,7 @@ pub fn inspect_onnx(bytes: &[u8], expected_sha256: [u8; 32]) -> Result<OnnxMetad
     if opsets.is_empty() {
         return Err(Refusal::MissingField);
     }
-    let ir_version = ir.filter(|v| *v > 0).ok_or(Refusal::MissingField)?;
+    let ir_version = ir.ok_or(Refusal::MissingField)?;
     let mut result = OnnxMetadata {
         sha256,
         ir_version,
@@ -258,6 +259,14 @@ fn positive(value: Value<'_>) -> Result<u64, Refusal> {
     let n = integer(value)?;
     if n == 0 {
         Err(Refusal::InvalidDimension)
+    } else {
+        Ok(n)
+    }
+}
+fn version_number(value: Value<'_>) -> Result<u64, Refusal> {
+    let n = integer(value)?;
+    if n == 0 || n > i64::MAX as u64 {
+        Err(Refusal::InvalidVersion)
     } else {
         Ok(n)
     }

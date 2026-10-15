@@ -30,6 +30,9 @@ pub fn port(name: &str, dtype: u64, dimension: Vec<u8>) -> Vec<u8> {
 // Symbol-only consumers use the shared wire builders without this fixture.
 #[allow(dead_code)]
 pub fn model(extra_graph: &[u8]) -> Vec<u8> {
+    model_with_versions(9, 18, extra_graph)
+}
+pub fn model_with_versions(ir: u64, opset: u64, extra_graph: &[u8]) -> Vec<u8> {
     let bias = [1_f32, 2., 3., 4.]
         .into_iter()
         .flat_map(f32::to_le_bytes)
@@ -58,5 +61,5 @@ pub fn model(extra_graph: &[u8]) -> Vec<u8> {
         extra_graph.to_vec(),
     ]
     .concat();
-    [number(1, 9), bytes(8, &number(2, 18)), bytes(7, &graph)].concat()
+    [number(1, ir), bytes(8, &number(2, opset)), bytes(7, &graph)].concat()
 }

@@ -4,7 +4,7 @@ use sha2::{Digest, Sha256};
 
 #[path = "common/onnx_fixture.rs"]
 mod fixture;
-use fixture::{bytes, model, number, port};
+use fixture::{bytes, model, model_with_versions, number, port};
 
 fn inspect(bytes: &[u8]) -> Result<conduit_ai::onnx_metadata::OnnxMetadata, OnnxMetadataRefusal> {
     inspect_onnx(bytes, Sha256::digest(bytes).into())
@@ -75,4 +75,18 @@ fn malformed_shapes_types_and_port_bounds_refuse() {
         .collect::<Vec<_>>();
     assert_eq!(inspect(&model(&many)), Err(OnnxMetadataRefusal::PortBound));
     assert_eq!(inspect(&[58, 255]), Err(OnnxMetadataRefusal::Malformed));
+}
+
+#[test]
+fn ir_and_opset_versions_are_positive_signed_integers() {
+    for version in [0, i64::MAX as u64 + 1, u64::MAX] {
+        assert_eq!(
+            inspect(&model_with_versions(version, 18, &[])),
+            Err(OnnxMetadataRefusal::InvalidVersion)
+        );
+        assert_eq!(
+            inspect(&model_with_versions(9, version, &[])),
+            Err(OnnxMetadataRefusal::InvalidVersion)
+        );
+    }
 }
