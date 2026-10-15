@@ -1,15 +1,11 @@
 {
   "issue": 5555,
-  "state": "validated locally; held for PR slot",
-  "source": "ae7a0eb0db2e88691669f540a1945a29094ae1e7",
-  "base": "4f3ce5e964adca83e60c86127468ba722a910978",
-  "tests": {
-    "passed": 38,
-    "targets": 6,
-    "new_real_plan_tests": 2
-  },
+  "state": "validated held preparation; no PR while two owned PRs are active",
+  "source": "c9e599ef2c4ad85fc1d51c75cda422bbf6a05d71",
+  "base": "df66968dec9cdf6eddb813857bf617fd4c3326dd",
+  "tests": 38,
   "focused_strict_clippy": "PASS",
-  "formatting": "rustfmt and git diff --check PASS",
+  "formatting": "PASS",
   "proof_class": "native checked Source and ordinary verified Plans; modeled cost-source identities and offers",
   "production_changes": false,
   "checks": [
@@ -28,7 +24,8 @@
   ],
   "parent_5230": "open",
   "log_sha256": {
-    "incremental-cold-proof-related.log": "5714cddb088dd06cb95749be323bcc8f523d493e9507928528aa7e9bbeacfedb",
-    "incremental-cold-proof-clippy.log": "c5accd4b6c03917a0b3a2fde5faece8baf5437f22a023b49c3117cdbc10dcef8"
+    "incremental-accepted-observatory-tests.log": "c838e923280dc200df345f88d89797b84ba5614be4294e09bb3e9e70970b52a1",
+    "incremental-accepted-observatory-clippy.log": "acf7e3eba7ac226fd24c65e4eee37b1b7a737f1e7f43ead0209757f62e50aa37",
+    "incremental-accepted-observatory-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
   }
 }

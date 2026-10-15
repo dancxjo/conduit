@@ -25,20 +25,14 @@ capacity. The two retained cache slots bound the candidate envelope. The
 CPU/time or a performance claim. Costs are the same finite millisecond values
 bound through the existing cost evidence/profile path; no opaque host score.
 
-Validation Source: `ae7a0eb0db2e88691669f540a1945a29094ae1e7`. The six focused existing/new test
-targets pass 38 tests, covering incremental cache, real Plans, global hard
-admission, bounded global search, cost selection and capacity-aware cost planning.
-Strict focused Clippy passes with warnings denied. Origin's two 4907
-incremental branches have no planner commits missing from dev; their unique
-non-planner histories remain retained. This proof reuses the accepted owner.
+Validation at `c9e599ef2c4ad85fc1d51c75cda422bbf6a05d71`, based on accepted
+`df66968dec9cdf6eddb813857bf617fd4c3326dd`: 38 tests pass across six focused targets covering
+incremental cache, real Plans, global hard admission, bounded global search,
+cost selection and capacity-aware cost planning. Strict focused Clippy and
+pinned workspace formatting pass. A dedicated build cache and unchanged-source
+mtime refresh exclude relocated-worktree cache reuse.
 
-Proof class: native checked Source and real ordinary planner with modeled offers
-and cost-source identities. No live provider, cryptographic producer-authentication,
+Proof class: native checked Source and the real ordinary planner with an explicit
+cache test adapter, modeled offers and exact cost-source identities. No live
+provider, cryptographic producer authentication, installed runtime replan service,
 physical transport, execution benefit or parent #5230 completion is claimed.
-
-Fresh current-development validation at `275b83e100c7fc27c5c959bc3a0dcb01e891d6e0`, after
-`ac97b99fd9016e5879f9822432fe945ee3c500f0`, passes all 38 tests across six targets, strict
-focused Clippy and pinned workspace formatting. Compiler and semantic inputs
-were refreshed unchanged to prevent shared-target reuse from another checkout.
-The real-Plan conformance file remains byte-identical to the earlier measured
-source; this adds no production cache, scheduler or provider-authentication claim.
