@@ -109,3 +109,27 @@ fn wrong_names_types_rank_dimensions_and_axis_meaning_refuse() {
         assert_eq!(signature.validate_named_inputs(&bundle), Err(expected));
     }
 }
+
+#[test]
+fn public_signature_fields_cannot_bypass_native_root_bounds() {
+    let inputs = NamedTensorBundle::from_values(inputs()).unwrap();
+    for invalid in [
+        {
+            let mut s = fixture::signature();
+            s.compatibility_version = 0;
+            s
+        },
+        {
+            let mut s = fixture::signature();
+            s.identity.clear();
+            s
+        },
+        {
+            let mut s = fixture::signature();
+            s.identity = "x".repeat(129);
+            s
+        },
+    ] {
+        assert_eq!(invalid.validate_named_inputs(&inputs), Err(R::Signature));
+    }
+}
