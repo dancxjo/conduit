@@ -77,7 +77,7 @@ fn candidates() -> Vec<CandidateStructure> {
     (0..2)
         .map(|i| CandidateStructure {
             candidate_id: i.to_string(),
-            semantic_contract_id: plot().checked_plot_id.to_string(),
+            semantic_contract_id: plot().checked_plot_id.as_str().to_owned(),
             implementation_family_id: "flow/pulse@1".into(),
             placement_id: format!("host/{i}"),
             dependencies: dependency_keys(i).into(),
@@ -208,7 +208,7 @@ fn evaluate(
     }
     let (disposition, result_identity) = match ordinary(facts, i) {
         Ok(plan) => {
-            let id = plan.plan_id.to_string();
+            let id = plan.plan_id.as_str().to_owned();
             if let Some(previous) = retained.insert(id.clone(), plan.clone()) {
                 assert_eq!(previous, plan);
             }
