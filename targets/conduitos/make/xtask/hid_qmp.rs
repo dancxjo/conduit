@@ -408,7 +408,7 @@ pub(super) fn wait_for_product_arrival(
     wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(20))
 }
 
-fn wait_for_stage_with_budget(
+pub(super) fn wait_for_stage_with_budget(
     serial_path: &Path,
     child: &mut Child,
     stage: &str,

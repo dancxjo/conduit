@@ -281,3 +281,13 @@ all maximum-size authored configurations fit. The six-layout keyboard proof
 snapshot is approximately 1.3 MB; canonical layout values remain
 bounded by the shared 256 KiB Structured carrier limit and the authored registry
 admits at most eight choices.
+
+Complete typed defaults are retained in Host contracts and selected Plans. Standard
+Host rendezvous frames (including the browser peer), durable admission documents,
+candidate Host advertisements, and local owner Mask route seals admit at most
+2 MiB of encoded data; larger values refuse explicitly. Workbench execution
+proposals have a 2 MiB bound, planning disclosures have a 1 MiB bound, and browser
+Body start reserves 2 MiB plus 64 KiB for framing and observations. Remote
+fragment start has a separate 1 MiB bound. These preparation/control bounds do
+not increase ordinary data-Line limits, ordinary completion limits, or the
+256 KiB Structured value carrier.

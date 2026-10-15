@@ -227,7 +227,13 @@ pub(super) fn boot_until_image_with_cpu(
         if let Some(reason) = product_refusal(&text) {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(refusal("riscv64-product-refused", reason));
+            return Err(refusal(
+                "riscv64-product-refused",
+                format!(
+                    "{reason}; bounded serial suffix:\n{}",
+                    bounded_product_serial_suffix(&text)
+                ),
+            ));
         }
         if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
@@ -263,6 +269,15 @@ fn product_refusal(text: &str) -> Option<&str> {
             line.strip_prefix("CONDUIT_RISCV64_PRODUCT_REFUSAL ")
                 .or_else(|| line.strip_prefix("CONDUIT_RISCV64_DOMAIN_REFUSAL "))
         })
+}
+
+// Leave room for the reason prefix within ConduitosError's 512-byte detail cap.
+fn bounded_product_serial_suffix(text: &str) -> &str {
+    let mut start = text.len().saturating_sub(384);
+    while !text.is_char_boundary(start) {
+        start += 1;
+    }
+    &text[start..]
 }
 
 fn bounded_serial_suffix(text: &str) -> &str {
@@ -395,6 +410,26 @@ mod tests {
                 Some("stopped")
             );
         }
+    }
+
+    #[test]
+    fn product_panic_and_arena_survive_the_global_error_bound() {
+        let terminal = "CONDUIT_RISCV64_PRODUCT_PANIC panicked at alloc.rs:573:9:\n\
+            memory allocation of 1056 bytes failed\n\
+            CONDUIT_RISCV64_PANIC_ARENA peak=8373312 live=8373312 capacity=8388608\n\
+            CONDUIT_RISCV64_PRODUCT_REFUSAL panic\n";
+        let transcript = format!("{}é{terminal}", "firmware\n".repeat(600));
+        let error = refusal(
+            "riscv64-product-refused",
+            format!(
+                "panic; bounded serial suffix:\n{}",
+                bounded_product_serial_suffix(&transcript)
+            ),
+        );
+        assert!(error.detail.len() <= 512);
+        assert!(error.detail.contains("panicked at alloc.rs:573:9"));
+        assert!(error.detail.contains("capacity=8388608"));
+        assert!(error.detail.ends_with("PRODUCT_REFUSAL panic\n"));
     }
 
     #[test]

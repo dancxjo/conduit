@@ -10,6 +10,9 @@ use conduit_wire::{
 use serde::Deserialize;
 use std::cell::RefCell;
 
+// Start carries the exact plan and installed advertisement, including authored defaults.
+const START_CAPACITY: usize = 1024 * 1024;
+// Ordinary session frames, effects and completion payloads retain their existing bound.
 const CAPACITY: usize = 256 * 1024;
 const OK: i32 = 0;
 const EFFECT: i32 = 1;
@@ -23,7 +26,7 @@ const TERMINAL: i32 = 8;
 const REFUSED: i32 = -1;
 
 thread_local! {
-    static INPUT: RefCell<Box<[u8; CAPACITY]>> = RefCell::new(Box::new([0; CAPACITY]));
+    static INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; START_CAPACITY].into_boxed_slice());
     static OUTPUT: RefCell<Vec<u8>> = RefCell::new(Vec::with_capacity(CAPACITY));
     static STATE: RefCell<Option<RemoteAbi>> = const { RefCell::new(None) };
 }
@@ -76,12 +79,16 @@ fn write_json(value: &serde_json::Value) -> Result<(), String> {
     Ok(())
 }
 
-fn input(length: u32) -> Result<Vec<u8>, String> {
+fn input_bounded(length: u32, capacity: usize) -> Result<Vec<u8>, String> {
     let length = usize::try_from(length).map_err(|_| "remote input length overflow")?;
-    if length > CAPACITY {
+    if length > capacity {
         return Err("remote fragment input exceeds its finite bound".into());
     }
     Ok(INPUT.with(|input| input.borrow()[..length].to_vec()))
+}
+
+fn input(length: u32) -> Result<Vec<u8>, String> {
+    input_bounded(length, CAPACITY)
 }
 
 fn with_state(action: impl FnOnce(&mut RemoteAbi) -> Result<i32, String>) -> i32 {
@@ -101,7 +108,7 @@ pub extern "C" fn conduit_browser_remote_input_ptr() -> *mut u8 {
 
 #[no_mangle]
 pub extern "C" fn conduit_browser_remote_input_capacity() -> u32 {
-    CAPACITY as u32
+    START_CAPACITY as u32
 }
 
 #[no_mangle]
@@ -119,7 +126,7 @@ pub extern "C" fn conduit_browser_remote_start(length: u32) -> i32 {
     STATE.with(|state| *state.borrow_mut() = None);
     OUTPUT.with(|output| output.borrow_mut().clear());
     let result = (|| -> Result<(), String> {
-        let mut bytes = input(length)?;
+        let mut bytes = input_bounded(length, START_CAPACITY)?;
         let start: Start = serde_json::from_slice(&bytes)
             .map_err(|error| format!("decode remote fragment start: {error}"))?;
         bytes.fill(0);
@@ -757,6 +764,26 @@ mod tests {
     use conduit_wire::encode_session_frame_into;
 
     #[test]
+    fn startup_envelope_capacity_does_not_expand_ordinary_input_limits() {
+        assert_eq!(
+            conduit_browser_remote_input_capacity() as usize,
+            START_CAPACITY
+        );
+        assert!(input_bounded(START_CAPACITY as u32 + 1, START_CAPACITY).is_err());
+        assert!(input(CAPACITY as u32 + 1).is_err());
+        assert_eq!(
+            input_bounded(CAPACITY as u32 + 1, START_CAPACITY)
+                .unwrap()
+                .len(),
+            CAPACITY + 1
+        );
+        assert_eq!(
+            conduit_browser_remote_start(START_CAPACITY as u32 + 1),
+            REFUSED
+        );
+    }
+
+    #[test]
     fn exact_grant_starts_production_abi_and_projects_first_effect() {
         let (plan, source, _, binding) = crate::plot_runner::remote_execution::tests::fixture();
         let mut hello = vec![0; binding.attachment.limits.maximum_frame_bytes as usize];
@@ -776,6 +803,11 @@ mod tests {
             "observations": observations,
         }))
         .unwrap();
+        assert!(
+            start.len() <= conduit_browser_remote_input_capacity() as usize,
+            "remote grant requires {} bytes",
+            start.len()
+        );
         INPUT.with(|input| input.borrow_mut()[..start.len()].copy_from_slice(&start));
 
         assert_eq!(conduit_browser_remote_start(start.len() as u32), OK);
@@ -892,6 +924,11 @@ mod tests {
             "observations": observations,
         }))
         .unwrap();
+        assert!(
+            start.len() <= conduit_browser_remote_input_capacity() as usize,
+            "remote grant requires {} bytes",
+            start.len()
+        );
         INPUT.with(|input| input.borrow_mut()[..start.len()].copy_from_slice(&start));
         assert_eq!(conduit_browser_remote_start(start.len() as u32), OK);
         let started = OUTPUT

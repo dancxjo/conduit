@@ -1,6 +1,7 @@
 //! Bounded Body start input; execution and completions use the existing slot.
 use super::*;
-const BODY_INPUT_BYTES: usize = 256 * 1024;
+// Match the bounded 2 MiB proposal transfer, with host observations/framing separate.
+const BODY_INPUT_BYTES: usize = 2 * 1024 * 1024 + 64 * 1024;
 thread_local! {
     static BODY_INPUT: RefCell<Box<[u8]>> = RefCell::new(vec![0; BODY_INPUT_BYTES].into_boxed_slice());
 }
@@ -91,6 +92,33 @@ mod tests {
         );
         assert!(conduit_tour_output_len() <= 16 * 1024);
         assert!(SESSION.with(|slot| slot.borrow().is_none()));
+    }
+
+    #[test]
+    fn complete_keymap_body_start_fits_control_input_and_retains_ordinary_completion_bound() {
+        let request = super::super::super::body_start::tests::request_from_sources(&[
+            include_str!("../../../../../plots/desk-telegraph/main.conduit"),
+            include_str!("../../../../../plots/memory-lantern/main.conduit"),
+        ]);
+        let bytes = serde_json::to_vec(&request).unwrap();
+        eprintln!(
+            "measured complete keymap Body start: {} bytes, observations {} bytes",
+            bytes.len(),
+            serde_json::to_vec(&request.observations).unwrap().len()
+        );
+        assert!(bytes.len() > 256 * 1024);
+        assert!(bytes.len() <= conduit_browser_body_input_capacity());
+        assert_eq!(INPUT_BYTES, 8 * 1024);
+        BODY_INPUT.with(|input| input.borrow_mut()[..bytes.len()].copy_from_slice(&bytes));
+        assert_eq!(conduit_browser_body_start(bytes.len()), STATUS_READY);
+        SESSION.with(|slot| {
+            let session = slot.borrow_mut().take().unwrap();
+            assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+        });
+        assert_eq!(
+            conduit_browser_body_start(BODY_INPUT_BYTES + 1),
+            ERROR_INPUT
+        );
     }
 
     #[test]

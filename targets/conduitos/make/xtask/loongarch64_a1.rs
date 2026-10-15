@@ -225,7 +225,13 @@ pub(super) fn boot_until_image(
         if let Some(reason) = product_refusal(&text) {
             let _ = child.kill();
             let _ = child.wait();
-            return Err(refusal("loongarch64-product-refused", reason));
+            return Err(refusal(
+                "loongarch64-product-refused",
+                format!(
+                    "{reason}; bounded serial suffix:\n{}",
+                    bounded_serial_suffix(&text)
+                ),
+            ));
         }
         if text.contains(terminal_prefix) && text.ends_with('\n') {
             child
@@ -259,6 +265,15 @@ fn product_refusal(text: &str) -> Option<&str> {
                         .strip_prefix("CONDUIT_LOONGARCH64_DOMAIN_REFUSAL ")
                 })
         })
+}
+
+fn bounded_serial_suffix(text: &str) -> &str {
+    // Leave room for the reason prefix within ConduitosError's 512-byte detail cap.
+    let mut start = text.len().saturating_sub(384);
+    while !text.is_char_boundary(start) {
+        start += 1;
+    }
+    &text[start..]
 }
 
 pub(super) fn parse(text: &str) -> Result<EntrySign, ConduitosError> {

@@ -103,7 +103,7 @@ pub fn prepare_component_stage_from_offer(
             .insert_structured_type(alias, schema.clone())
             .map_err(|_| MaskOfferError::InvalidPlan)?;
         startup
-            .insert_structured_type(profile.value_kind().as_str(), schema)
+            .ensure_structured_type(profile.value_kind().as_str(), schema)
             .map_err(|_| MaskOfferError::InvalidPlan)?;
     }
     let back = check_syntax_document(&parse_syntax_document(BACK_SOURCE), &startup)

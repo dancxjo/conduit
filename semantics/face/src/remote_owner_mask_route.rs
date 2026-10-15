@@ -24,9 +24,9 @@ use crate::{
 // owner Face document envelope; wire emission remains independently bounded.
 const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 40 * 1024;
 // Preparation hashes the full local inventory but transmits only its digest.
-// Allow the reference Host plus attached providers within the same finite 1 MiB
-// inventory envelope as local Mask sealing; the remote seal remains 40 KiB.
-const MAX_HOST_OFFER_BYTES: usize = 1024 * 1024;
+// Bind any inventory admitted by the shared candidate envelope. The transmitted
+// remote seal remains independently bounded to 40 KiB and carries only a digest.
+const MAX_HOST_OFFER_BYTES: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

@@ -64,6 +64,17 @@ fn exact_proposal_round_trips_without_admission_or_state_mutation() {
     let before = server.encoded_snapshot.clone();
     let biography = server.current_body_evidence().unwrap();
     let planning = server.body_planning.as_ref().unwrap();
+    let measured_proposal = serde_json::to_vec(&ExecutionProposal {
+        schema: "conduit.body/execution-proposal@1",
+        wake: planning.wake(),
+        plan: planning.current_plan(),
+    })
+    .unwrap();
+    eprintln!(
+        "measured Body execution proposal: {} bytes, {} resident Plots",
+        measured_proposal.len(),
+        planning.current_plan().plots.len()
+    );
     let bytes = server.body_execution_proposal().unwrap();
     assert!(bytes.len() <= MAX_PROPOSAL_BYTES);
     let json: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
