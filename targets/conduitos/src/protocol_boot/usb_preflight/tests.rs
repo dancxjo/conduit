@@ -30,8 +30,10 @@ fn request(bytes: &[u8]) -> UsbProtocolBootRequest {
 fn exact_profile_pure_kernel_retires_and_class_package_substitution_refuses() {
     let bytes = package();
     let request = request(&bytes);
+    let class = PreparedProtocolEntry::prepare(&bytes, "class").unwrap();
     let admitted = accept(
         &bytes,
+        &class,
         &request,
         request.preflight.as_ref().unwrap(),
         UsbConfigurationSnapshot::fixture(CONFIG, 67),
@@ -65,6 +67,7 @@ fn exact_profile_pure_kernel_retires_and_class_package_substitution_refuses() {
 fn unsupported_observations_have_no_admitted_class_handoff() {
     let bytes = package();
     let request = request(&bytes);
+    let class = PreparedProtocolEntry::prepare(&bytes, "class").unwrap();
     let mut wrong = CONFIG.to_vec();
     wrong[11] = 2;
     wrong[35] = 2;
@@ -76,6 +79,7 @@ fn unsupported_observations_have_no_admitted_class_handoff() {
     ] {
         let result = accept(
             &bytes,
+            &class,
             &request,
             request.preflight.as_ref().unwrap(),
             UsbConfigurationSnapshot::fixture(
@@ -98,6 +102,7 @@ fn unsupported_observations_have_no_admitted_class_handoff() {
 #[test]
 fn supported_descriptor_with_wrong_root_geometry_retires_false_before_class_handoff() {
     let bytes = package();
+    let class = PreparedProtocolEntry::prepare(&bytes, "class").unwrap();
     for fault in 0..10 {
         let mut request = request(&bytes);
         match fault {
@@ -114,6 +119,7 @@ fn supported_descriptor_with_wrong_root_geometry_retires_false_before_class_hand
         }
         let retired = accept(
             &bytes,
+            &class,
             &request,
             request.preflight.as_ref().unwrap(),
             UsbConfigurationSnapshot::fixture(CONFIG, 67),
@@ -131,5 +137,30 @@ fn supported_descriptor_with_wrong_root_geometry_retires_false_before_class_hand
             retired.validate_class(&class),
             Err("protocol-usb-profile-unsupported")
         );
+    }
+}
+
+#[test]
+fn preflight_rejects_retained_class_from_foreign_package_or_entry() {
+    let bytes = package();
+    let request = request(&bytes);
+    let mut foreign_bytes = bytes.clone();
+    foreign_bytes.push(b' ');
+    for class in [
+        PreparedProtocolEntry::prepare(&foreign_bytes, "class").unwrap(),
+        PreparedProtocolEntry::prepare(&bytes, "cdc-serial-profile-preflight").unwrap(),
+    ] {
+        assert!(matches!(
+            accept(
+                &bytes,
+                &class,
+                &request,
+                request.preflight.as_ref().unwrap(),
+                UsbConfigurationSnapshot::fixture(CONFIG, 67),
+                &"fixture/host".into(),
+                &"fixture/boot".into(),
+            ),
+            Err("protocol-usb-preflight-class-source")
+        ));
     }
 }

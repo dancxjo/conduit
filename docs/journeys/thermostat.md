@@ -1,6 +1,6 @@
 # Control one thermostat across Masks
 
-This is the intended companion to [Keep one Todo list across Masks](todo.md):
+This is the companion to [Keep one Todo list across Masks](todo.md):
 start Living room, change its requested temperature in the browser, join the
 same running thermostat from a terminal, choose Heat and Eco there, and see
 18 °C in the browser. Lull and start again to observe the same Body with a new
@@ -19,10 +19,15 @@ Keep Body management in a separate Body menu or inspection surface. In this
 journey, Off is the thermostat's requested climate-control mode; Lull is an
 explicit later Body-management chapter that stops the Play. Do not make Lull a
 peer of Heat, Cool or Off, or suggest that it preserves session settings. The
-retained failed capture predates this presentation change; fresh complete
-journey captures remain outstanding.
+complete capture opens this menu separately from the requested settings.
 
 ## Current runtime and capture status
+
+The compact terminal view renders primary typed values from their original
+Face contracts. A unique primary Region focuses the application settings;
+Inspect retains the complete Face and Body context. The capture requires actual
+acknowledged terminal frames showing 21 °C, the browser-made 22.5 °C, and Eco's
+18 °C. Canonical state alone is not a substitute for visible terminal readback.
 
 The direct `--owner-show` terminal attaches a provider to the owner's own Host
 and requires a lulled Body. A running thermostat instead uses a separately
@@ -55,9 +60,10 @@ actual Show and foreground receipt. The finite owner return permits four
 actions and four refreshes within sixty seconds. A new encounter needs a fresh
 admission; this command does not silently extend a grant or replay a prior Boot.
 
-No complete thermostat journey packet is checked in or published yet. The
-staged producer below still uses the direct-owner terminal entrance and needs
-peer integration. An explicit checked `spoken/control-template` selects the
+The complete checked-in [capture packet](../../site/evidence/thermostat-journey/manifest.json)
+records browser, terminal and spoken encounters together. The producer below
+joins a fresh installed presentation peer for each attempt. An explicit checked
+`spoken/control-template` selects the
 primary application Region's human text, typed values, actions and temporal
 facts from the original Face. It retains requested settings, available actions
 and equipment caveats while keeping structural metadata and Body context out
@@ -99,11 +105,13 @@ Use the installed executable printed in its installation, with a short private
 state path (the full `control.sock` pathname must fit Linux's 107-byte limit).
 Prepare pinned Chromium using [the browser proof setup](../../proof/browser/README.md).
 
-After the staged producer has been updated for the peer and spoken routes, use:
+Install a second fresh Host from the same release with explicitly selected
+artifact speech equipment and `--no-start`. Pass its state directory too:
 
 ```sh
 cargo xtask prove journey thermostat --capture \
   --state-dir /tmp/conduit-thermostat/state \
+  --peer-state-dir /tmp/conduit-thermostat-peer/state \
   --conduit-bin /absolute/path/to/installed/conduit-linux-x86_64 \
   --handbook-package /absolute/path/to/packaged-handbook \
   --output "$PWD/target/thermostat-journey" \
@@ -122,24 +130,33 @@ Success writes a digest-bound `manifest.json`. Failure retains diagnostics and
 must not be copied into the publication evidence directory. The site renderer
 admits only a validated packet at `site/evidence/thermostat-journey/`; absent
 that packet, it creates neither a thermostat page nor a journey card. The
-browser/terminal packet deliberately declares audio unavailable; it does not
-meet the remaining spoken-Mask acceptance requirement.
+complete packet includes the exact spoken wording, ordered frame receipts,
+original WAV files and a derived concatenation for listening. Publication rejects
+dirty capture tools, mixed source versions and partial encounters.
 
-## Acceptance still needed
+## Recorded encounter and limits
 
-- Capture admission and acknowledged terminal and spoken Masks together with the
-  browser encounter, without stopping the thermostat scan.
-- Read browser-made settings in that terminal, apply Heat/Eco through its typed
-  actions, and observe 18 °C in the browser with unchanged Body/Plan/Play.
-- Refuse stale browser and terminal Shows without changing requested settings.
-- Retain the live spoken Mask's exact presentation Plan, selected provider,
-  current reading and correlated artifact receipts in the complete packet.
-  A file artifact and actual speaker delivery remain different proof classes.
-- Lull and return to the same Body, showing session reset honestly rather than
-  claiming Todo-style checkpoint recovery.
-- Capture fresh complete evidence; render and visually verify desktop/mobile
-  pages, verify local links, and pass the repository publication gates before
-  describing the journey as publicly available.
+The complete packet comes from clean source
+`ef64e8241f63c86dcf52fb3094e2cc74ce2fa37a`. The installed owner and peer,
+browser runtime, Handbook UI and capture tool all name that exact source.
+It retains 21 files totalling 27,335,447 bytes, including three acknowledged
+terminal frames at 21 °C, 22.5 °C and 18 °C and nine spoken output frames.
+The combined WAV is an ordered concatenation of those original PCM frames,
+with no new runtime Play or speaker-delivery claim.
+
+The browser and two installed Linux Hosts ran on one physical machine with
+pinned non-loopback TLS. Browser edits, stale terminal refusal, accepted Heat
+and Eco actions, the spoken reading and browser return kept the same Body,
+Plan and Play. A stale browser Show also refused without changing settings.
+Closing the peer left the scan running. Lull withdrew the thermostat controls;
+a new Play on the same Body restored the authored 21 °C initial state.
+
+The site renderer verifies source ancestry and retained packet integrity before
+including the page and catalogue card. Its page checks cover desktop/mobile
+layout, images, recording availability, navigation and expanded source details.
+These retained observations document one local run; they do not establish
+new execution, protected release acceptance, physical speaker delivery or
+human listening.
 
 No sensor or HVAC equipment is connected by this journey. Target temperature,
 mode, fan and preset describe requested settings. Sensor availability and

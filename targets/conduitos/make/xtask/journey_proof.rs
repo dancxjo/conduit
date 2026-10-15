@@ -72,7 +72,7 @@ pub(super) fn execute_supplied(
             "-cpu",
             "max",
             "-m",
-            "64M",
+            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
             "-smp",
             "1",
             "-display",
