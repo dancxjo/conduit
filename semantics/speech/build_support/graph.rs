@@ -189,6 +189,13 @@ pub fn symbol(name: &str) -> String {
             }
         })
         .collect();
+    // Generic argument punctuation can end or repeat separators. Normalize the
+    // Rust spelling before appending private step suffixes; Source IDs stay exact.
+    result = result
+        .split('_')
+        .filter(|part| !part.is_empty())
+        .collect::<Vec<_>>()
+        .join("_");
     if result.as_bytes().first().is_some_and(u8::is_ascii_digit) {
         result.insert_str(0, "plot_");
     }

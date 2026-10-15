@@ -247,7 +247,12 @@ fn main() {
         include_str!("context_match.conduit")
     );
     let source = format!("{}\n{}", source, include_str!("pitch_projection.conduit"));
-    let source = format!("{}\n{}", conduit_audio::PERIODIC_FLOW_SOURCE, source);
+    let source = format!(
+        "{}\n{}\n{}",
+        conduit_audio::PERIODIC_FLOW_SOURCE,
+        conduit_audio::RESONATOR_RECURRENCE_SOURCE,
+        source
+    );
     let syntax = parse_syntax_document(&source);
     assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
     let checked =
