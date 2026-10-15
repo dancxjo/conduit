@@ -41,3 +41,9 @@ Refreshed development validation at
 `mathematical_value_bindings`. Strict Clippy for the joined conformance test and
 pinned workspace formatting pass. The two joined test bodies remain byte-identical
 to their prior validated Source. This refresh adds no production code.
+
+A fresh rebuild at `16401cb5d3f15199add2e154d592528e368c221c`, after accepted development
+`ac97b99fd9016e5879f9822432fe945ee3c500f0`, passes the same nine tests, strict focused
+Clippy and pinned workspace formatting. Tracked compiler/semantic input mtimes
+were refreshed without changing bytes to exclude relocated-worktree Cargo
+cache reuse. No production implementation was added by this refresh.
