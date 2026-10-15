@@ -5,6 +5,7 @@ use alloc::vec::Vec;
 
 mod codec;
 mod enclosure;
+mod trigonometry;
 pub use codec::MathematicalValueView;
 pub use enclosure::*;
 
@@ -27,6 +28,7 @@ pub enum MathematicalValueRefusal {
     UnsupportedVersion,
     NegativeRadicand,
     UnsupportedDomainProof,
+    TrigonometricPole,
 }
 impl From<ExactNumericRefusal> for MathematicalValueRefusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -54,6 +56,10 @@ pub struct MathematicalNodeId {
 pub enum MathematicalNode {
     Rational(ExactRational),
     Pi,
+    /// Exact functions of a canonical turn coordinate; not scalar radians.
+    SineTurns(MathematicalNodeId),
+    CosineTurns(MathematicalNodeId),
+    TangentTurns(MathematicalNodeId),
     /// Exact constructor for 2π; it normalizes into the canonical product.
     Tau,
     Negate(MathematicalNodeId),
@@ -67,7 +73,11 @@ impl MathematicalNode {
     pub(super) fn references(self) -> [Option<MathematicalNodeId>; 2] {
         match self {
             Self::Rational(_) | Self::Pi | Self::Tau => [None, None],
-            Self::Negate(a) | Self::PrincipalSquareRoot(a) => [Some(a), None],
+            Self::Negate(a)
+            | Self::PrincipalSquareRoot(a)
+            | Self::SineTurns(a)
+            | Self::CosineTurns(a)
+            | Self::TangentTurns(a) => [Some(a), None],
             Self::Add(a, b) | Self::Subtract(a, b) | Self::Multiply(a, b) | Self::Divide(a, b) => {
                 [Some(a), Some(b)]
             }
@@ -79,6 +89,9 @@ impl MathematicalNode {
             Self::Rational(_) => 0,
             Self::Pi => 1,
             Self::Tau => 8,
+            Self::SineTurns(_) => 9,
+            Self::CosineTurns(_) => 10,
+            Self::TangentTurns(_) => 11,
             Self::Negate(_) => 2,
             Self::PrincipalSquareRoot(_) => 3,
             Self::Add(..) => 4,
@@ -98,6 +111,9 @@ impl MathematicalNode {
         match self {
             Self::Rational(_) | Self::Pi | Self::Tau => self,
             Self::Negate(a) => Self::Negate(ids[a.index as usize]),
+            Self::SineTurns(a) => Self::SineTurns(ids[a.index as usize]),
+            Self::CosineTurns(a) => Self::CosineTurns(ids[a.index as usize]),
+            Self::TangentTurns(a) => Self::TangentTurns(ids[a.index as usize]),
             Self::PrincipalSquareRoot(a) => Self::PrincipalSquareRoot(ids[a.index as usize]),
             Self::Add(a, b) => Self::Add(ids[a.index as usize], ids[b.index as usize]),
             Self::Subtract(a, b) => Self::Subtract(ids[a.index as usize], ids[b.index as usize]),
@@ -136,6 +152,7 @@ impl MathematicalValueBuilder {
         for id in node.references().into_iter().flatten() {
             self.node(id)?;
         }
+        let node = self.reduce_trigonometric_argument(node, work)?;
         let node = self.normalize(node, work)?;
         if let Some(index) = self.nodes.iter().position(|existing| *existing == node) {
             return Ok(MathematicalNodeId {
@@ -185,6 +202,15 @@ impl MathematicalValueBuilder {
     ) -> Result<MathematicalNode, MathematicalValueRefusal> {
         use MathematicalNode as N;
         match node {
+            N::SineTurns(a) | N::CosineTurns(a) | N::TangentTurns(a) => {
+                if let Some(q) = self.rational(a) {
+                    if let Some(value) = trigonometry::cardinal(node, q, work)? {
+                        return Ok(N::Rational(value));
+                    }
+                } else if matches!(node, N::TangentTurns(_)) {
+                    return Err(MathematicalValueRefusal::UnsupportedDomainProof);
+                }
+            }
             N::Negate(a) => {
                 if let Some(q) = self.rational(a) {
                     return Ok(N::Rational(q.negated()));
