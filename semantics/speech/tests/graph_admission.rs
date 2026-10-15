@@ -89,7 +89,7 @@ fn generic_context_carriers_expand_to_closed_exact_expression_graphs() {
     let lowered = graph::function("concrete", &plot, &[]).unwrap();
     assert_eq!(
         graph::symbol("speech/carry[item=value/i32]"),
-        "speech_carry_item_value_i32_"
+        "speech_carry_item_value_i32"
     );
     assert_eq!(lowered.programs.len(), 1);
     assert_eq!(lowered.graph.len(), 1);
@@ -134,4 +134,14 @@ fn large_context_selectors_keep_normal_compiler_sharing() {
         expand_canonical_plot_for_authoring(&checked, "large", &ProfileCatalog::new()).unwrap();
     let lowered = graph::function("large", &plot, &[]).unwrap();
     assert_eq!(lowered.source.matches("#[inline(always)]").count(), 1);
+}
+
+#[test]
+fn generic_graph_symbols_have_valid_private_step_names() {
+    let name = graph::symbol("speech/carry[item=value/i32]");
+    let lowered = graph::function(&name, &graph(), &[]).unwrap();
+    assert!(lowered
+        .source
+        .contains("pub fn speech_carry_item_value_i32_step_0("));
+    assert!(!lowered.source.contains("__step_"));
 }
