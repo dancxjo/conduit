@@ -1,0 +1,9 @@
+# A two-feature affine model; resource and provider selection belong to preparation.
+plot linear-model (
+    >> inputs: NamedTensorBundle
+    outputs: NamedTensorBundle >>
+) {
+    model: model/infer(signature = { identity: "test/linear-model@1", compatibility_version: 1, operations: [infer(empty)], inputs: [{ identity: "input", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 2 }) }], maximum_bytes: 8 } }) }], outputs: [{ identity: "output", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 2 }) }], maximum_bytes: 8 } }) }] })
+    inputs >> model.inputs
+    model.outputs >> outputs
+}.

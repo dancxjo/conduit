@@ -343,6 +343,7 @@ const FACTORIES: &[&BackFactory] = &[
     &NAVIGATION_CONTROL_FACTORY,
     &EXACT_VECTOR_SEARCH_FACTORY,
     &super::model_work_back::FACTORY,
+    &super::model_infer_back::FACTORY,
     &HNSW_FACTORY,
     &MATH_CLAMP_FACTORY,
     &MATH_SCALE_FACTORY,

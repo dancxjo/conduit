@@ -47,7 +47,12 @@ pub(super) fn execute(
     adapter: Option<&mut dyn HostedModelWorkAdapter>,
     output: &mut Vec<u8>,
 ) -> Result<Completion, String> {
-    super::model_work_back::validate(placement)?;
+    if placement.implementation_id.as_str() == crate::hosted_model_infer::MODEL_INFER_IMPLEMENTATION
+    {
+        super::model_infer_back::validate(placement)?;
+    } else {
+        super::model_work_back::validate(placement)?;
+    }
     let Some(adapter) = adapter else {
         return Ok(Completion::Refused);
     };
