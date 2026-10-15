@@ -121,6 +121,9 @@ try {
         assert.equal(await content.locator('.journey-step').count(), 8, "Thermostat needs every observed chapter");
         assert.equal(await content.locator('#speech audio').count(), 1, "Thermostat needs its actual recorded output");
         await decodeImages(content.locator('img'));
+        assert.equal(await content.locator('#inspect img').getAttribute('src'), 'capture/thermostat-after-terminal.png',
+          'Browser return must show the captured terminal result');
+        assert.equal(await content.locator('#inspect img').getAttribute('alt'), 'Browser observes the terminal’s Heat and Eco request');
         const recording = await content.locator('#speech audio').getAttribute('src');
         const response = await context.request.head(new URL(recording, page.url()).href);
         assert(response.ok() && Number(response.headers()['content-length']) > 44, "Thermostat recording is absent");
