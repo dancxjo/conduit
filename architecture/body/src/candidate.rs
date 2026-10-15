@@ -24,7 +24,7 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// admitted source-configured component Mask Back, saved-choice operation,
 /// and independently selected continuous PCM playback Back.
 /// The encoded advertisement byte bound remains independent.
-pub const MAX_CANDIDATE_CAPABILITIES: usize = 136;
+pub const MAX_CANDIDATE_CAPABILITIES: usize = 137;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;
 
 #[derive(Debug, Copy, Clone, PartialEq, Eq, Serialize, Deserialize)]
