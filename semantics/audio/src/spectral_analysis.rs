@@ -105,7 +105,7 @@ impl PreparedPcmSpectrum<'_> {
     }
     pub fn bins(&self) -> impl ExactSizeIterator<Item = PcmSpectralBin> + '_ {
         let n = self.values.len();
-        (0..=n / 2).map(move |index| {
+        (0..n / 2 + 1).map(move |index| {
             let value = self.values[index];
             let square = value.real * value.real + value.imaginary * value.imaginary;
             let sided = if index == 0 || index == n / 2 {

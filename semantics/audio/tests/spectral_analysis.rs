@@ -120,7 +120,7 @@ fn sine_noise_and_impulse_match_independent_direct_dft_for_both_windows() {
 }
 #[test]
 fn frequency_coordinates_are_exact_quantities_including_fractional_hertz() {
-    let bytes = frame(&vec![0.0; 1024], 44100, 900);
+    let bytes = frame(&[0.0; 1024], 44100, 900);
     let mut workspace = PcmSpectralWorkspace::default();
     let out = workspace
         .analyze(&bytes, 55, 44100, 0, 1024, PcmSpectralWindow::Rectangular)
@@ -262,8 +262,7 @@ fn scratch_reuse_is_reset_equivalent_and_no_analysis_or_bin_iteration_allocates(
         });
         assert_eq!(allocations, 0);
         assert!(total.is_finite());
-        let expected: PcmSpectralWorkspace = PcmSpectralWorkspace::default();
-        let mut expected = expected;
+        let mut expected = PcmSpectralWorkspace::default();
         let fresh = expected
             .analyze(&bytes, 55, 192000, 0, n, PcmSpectralWindow::PeriodicHann)
             .unwrap();
