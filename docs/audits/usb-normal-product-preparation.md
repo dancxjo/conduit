@@ -36,3 +36,28 @@ BOT matrix passed normal bounded reads and six other transfer/fault cases,
 but STALL terminal propagation failed with a Host-call refusal. Two external
 cancellation cases passed; their verifier explicitly does not establish a
 late native controller completion. #5586 and parent #5253 remain open.
+
+## Ordinary product boot verification
+
+Candidate CI run `38693431965`, PC target job `116287711163`, exposed a
+second integration gap: the ordinary product verifier still launched 64 MiB
+while the image correctly required its declared 256 MiB arena. The retained
+serial Sign refused `runtime-arena-unavailable`; this was not an observation
+timeout or transient runner failure.
+
+All normal PC image entrances now use the shared 512 MiB emulator setting:
+two-boot verification, interactive journey, visible demo, front-door proof,
+repeated keyboard proof and Crèche-spore acceptance. The normal large-arena
+Boot Sign identifies that configuration. Dedicated small proof profiles retain
+their own settings. Product boot QMP uses a short temporary socket, so longer
+workspace paths do not prevent the emulator from starting.
+
+At source `85094419d8e52a160ed4c4318619215dea5754f1`, the canonical product
+rebuilt, two independent normal boots produced fresh Host/Boot identities,
+and the twelve-step actual QMP keyboard journey passed. The observed Sign
+reports the 256 MiB arena and 512 MiB normal-product emulator profile. Fresh
+CDC success and mismatched-Root refusal cases also passed at this source.
+The arena test, four demo tests and three product-boot tests passed, as did
+strict all-target xtask Clippy. Exact identities, current guest receipts and
+hashes are in [evidence/usb-normal-product-pc-boot.json](evidence/usb-normal-product-pc-boot.json).
+The earlier source-pinned observations above remain historical facts.
