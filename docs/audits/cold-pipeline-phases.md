@@ -67,3 +67,27 @@ is preserved; the separate refresh receipt is
 
 These remain uncontrolled native wall medians; raw thread-CPU samples and
 dispersion are separate. They do not establish a causal scheduler speedup.
+
+
+## Four-shape current-dev capture
+
+Clean source `9dca714b28a544dea9eac02af55e92c7184553dc`, based on accepted
+scheduler differential merge `dd3d6fc67932e7c144c5facd7c606497b86c5f54`, adds the
+three-Gear case while retaining the original 1/8/32 cases. Both release tests
+passed; independent verification retained all 32 raw trials, exact providers,
+Source/Plan/Play identities, typed outputs, queue bounds and matching cold/warm
+Sign counts. Strict release benchmark Clippy passed with warnings denied.
+
+| Gears | Cold Play wall / CPU, µs | Warm Play wall / CPU, µs | Warm complete Host call wall / CPU, µs |
+| ---: | ---: | ---: | ---: |
+| 1 | 10.412 / 10.442 | 6.512 / 6.566 | 208.133 / 208.103 |
+| 3 | 16.895 / 16.968 | 11.223 / 11.249 | 247.617 / 247.582 |
+| 8 | 30.406 / 30.465 | 24.622 / 24.676 | 343.774 / 343.743 |
+| 32 | 123.485 / 123.543 | 116.814 / 116.812 | 870.380 / 870.302 |
+
+[evidence/cold-pipeline-four-shape-samples.json](evidence/cold-pipeline-four-shape-samples.json)
+retains each phase and trial separately. Earlier captures remain intact.
+These are reference-expression Back chains, with one doubling expression per
+Gear; they do not measure the scalar-tape Back, Boolean shapes or a causal
+scheduler speedup. Wall and Linux thread-CPU clocks stay separate; affinity and
+background load remain uncontrolled. Compiler time is outside the timed phases.
