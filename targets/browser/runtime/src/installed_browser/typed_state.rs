@@ -63,12 +63,28 @@ fn offer(value: &StructuredInfoValue) -> Result<CapabilityOffer, String> {
     })
     .map_err(|error| format!("typed State retention: {error:?}"))
 }
+// A maximum retention horizon does not describe every installed lifecycle.
+// Reject unsupported authored durations before offering this Play-only Back,
+// including when a different Play cell shares the same initializer identity.
+fn validate_offered_lifetime(configuration: &[ConfigurationEntry]) -> Result<(), String> {
+    let mut durations = configuration
+        .iter()
+        .filter(|entry| entry.key == "retained-duration");
+    match (durations.next(), durations.next()) {
+        (None, None) => Ok(()), // Plain State construction defaults to Play.
+        (Some(entry), None)
+            if matches!(&entry.value, ConfigurationValue::Text(value) if value == "play") => Ok(()),
+        _ => Err("browser typed State requires this Play; authored Step, Wake, Boot, and Body lifetimes have no installed realization".into()),
+    }
+}
+
 pub(crate) fn offer_for_expanded(
     gear: &conduit_plot::CheckedGear,
 ) -> Result<Option<CapabilityOffer>, String> {
     if gear.kind_id.as_str() != STATE_VALUE_KIND {
         return Ok(None);
     }
+    validate_offered_lifetime(&gear.configuration)?;
     offer(&initial(&gear.configuration)?).map(Some)
 }
 enum Validator {
@@ -101,16 +117,7 @@ fn prepare(
     {
         return Err("typed State differs from the installed Play contract".into());
     }
-    let duration = placement
-        .configuration
-        .iter()
-        .find(|entry| entry.key == "retained-duration")
-        .map(|entry| &entry.value);
-    if duration.is_some_and(
-        |duration| !matches!(duration, ConfigurationValue::Text(value) if value == "play"),
-    ) {
-        return Err("browser typed State supports at most this Play".into());
-    }
+    validate_offered_lifetime(&placement.configuration)?;
     let maximum = placement
         .configuration
         .iter()
@@ -191,6 +198,7 @@ pub(crate) fn offer_for_placement(gear: &PlannedGear) -> Result<Option<Capabilit
     if gear.kind_id.as_str() != STATE_VALUE_KIND {
         return Ok(None);
     }
+    validate_offered_lifetime(&gear.configuration)?;
     offer(&initial(&gear.configuration)?).map(Some)
 }
 
@@ -270,3 +278,6 @@ pub(crate) fn validate_partition(
     }
     Ok(())
 }
+
+#[cfg(test)]
+mod tests;
