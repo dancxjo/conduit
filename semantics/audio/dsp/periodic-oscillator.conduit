@@ -1,0 +1,82 @@
+# Public preparation checks request domains before division. Projection/state
+# candidates are never silently cast to refined Native snapshots.
+type AudioPeriodicCheckedRequest = {
+    request: AudioPeriodicRequest
+    valid: Boolean
+}
+plot dsp/oscillator-project-value (
+    >> value: AudioPeriodicCheckedRequest
+    result: AudioPeriodicProjectionCandidate >>
+) = ({request: .request, period_q8: .valid ? value/i128(.request.frequency.value.denominator) * value/i128(.request.basis.sample_rate_hz) * 256 / value/i128(.request.frequency.value.numerator_hz) : 0, period_remainder: .valid ? (value/i128(.request.frequency.value.denominator) * value/i128(.request.basis.sample_rate_hz) * 256) % value/i128(.request.frequency.value.numerator_hz) : 0, amplitude_q15: .valid ? value/i128(.request.amplitude.numerator) * 32768 / value/i128(.request.amplitude.denominator) : 0, amplitude_remainder: .valid ? (value/i128(.request.amplitude.numerator) * 32768) % value/i128(.request.amplitude.denominator) : 0})
+
+# The checked request predicate is separately reusable; this direct gate uses
+# the same predicate through ordinary paired data, never a host assertion.
+plot dsp/oscillator-project (
+    >> request: AudioPeriodicRequest
+    result: AudioPeriodicProjectionCandidate >>
+) {
+    gate: dsp/oscillator-check-request()
+    project: dsp/oscillator-project-value()
+    request >> gate.value
+    gate.result >> project.value
+    project.result >> result
+}.
+
+plot dsp/oscillator-start-value (
+    >> value: AudioPeriodicCheckedProjection
+    result: AudioPeriodicStartOutcome >>
+) = (!.valid_request ? AudioPeriodicStartOutcome.invalid_request : !.valid ? AudioPeriodicStartOutcome.invalid_projection : .projection.period_q8 < 2048 || .projection.period_q8 > 131072 ? AudioPeriodicStartOutcome.unsupported_frequency : .projection.amplitude_q15 < 0 || .projection.amplitude_q15 > 65536 || value/i128(.projection.request.amplitude.numerator) > value/i128(.projection.request.amplitude.denominator) * 2 ? AudioPeriodicStartOutcome.unsupported_amplitude : AudioPeriodicStartOutcome.started({profile: {projection: .projection}, initial_phase_q8: (((value/i128(.projection.request.phase.numerator_turns) % value/i128(.projection.request.phase.denominator) + value/i128(.projection.request.phase.denominator)) % value/i128(.projection.request.phase.denominator)) * .projection.period_q8) / value/i128(.projection.request.phase.denominator), phase_remainder: (((value/i128(.projection.request.phase.numerator_turns) % value/i128(.projection.request.phase.denominator) + value/i128(.projection.request.phase.denominator)) % value/i128(.projection.request.phase.denominator)) * .projection.period_q8) % value/i128(.projection.request.phase.denominator), phase_q8: (((value/i128(.projection.request.phase.numerator_turns) % value/i128(.projection.request.phase.denominator) + value/i128(.projection.request.phase.denominator)) % value/i128(.projection.request.phase.denominator)) * .projection.period_q8) / value/i128(.projection.request.phase.denominator), emitted: 0, remaining: .projection.request.frames}))
+
+type AudioPeriodicCheckedProjection = {
+    projection: AudioPeriodicProjectionCandidate
+    valid_request: Boolean
+    valid: Boolean
+}
+plot dsp/oscillator-start (
+    >> projection: AudioPeriodicProjectionCandidate
+    result: AudioPeriodicStartOutcome >>
+) {
+    gate: dsp/oscillator-check-projection()
+    start: dsp/oscillator-start-value()
+    projection >> gate.value
+    gate.result >> start.value
+    start.result >> result
+}.
+
+plot dsp/oscillator-prepare (
+    >> request: AudioPeriodicRequest
+    result: AudioPeriodicStartOutcome >>
+) {
+    project: dsp/oscillator-project()
+    start: dsp/oscillator-start()
+    request >> project.request
+    project.result >> start.projection
+    start.result >> result
+}.
+
+plot dsp/oscillator-carry (
+    >> value: AudioPeriodicCheckedStep
+    result: AudioPeriodicCarry >>
+) = ({source: {phase_q8: .valid ? .value.cursor.phase_q8 : 0, open_q8: .valid ? (.value.cursor.profile.projection.period_q8 * 3 / 4 / 256) * 256 : 1536}, context: .})
+
+plot dsp/oscillator-finish (
+    >> value: AudioPeriodicFlow
+    result: AudioPeriodicOutcome >>
+) = (!.input.context.valid ? AudioPeriodicOutcome.invalid_cursor : .input.context.value.cancelled ? AudioPeriodicOutcome.cancelled(.input.context.value.cursor) : .input.context.value.cursor.remaining == 0 ? AudioPeriodicOutcome.exhausted(.input.context.value.cursor) : AudioPeriodicOutcome.advanced({cursor: {profile: .input.context.value.cursor.profile, initial_phase_q8: .input.context.value.cursor.initial_phase_q8, phase_remainder: .input.context.value.cursor.phase_remainder, phase_q8: (.input.context.value.cursor.phase_q8 + 256) % .input.context.value.cursor.profile.projection.period_q8, emitted: .input.context.value.cursor.emitted + 1, remaining: .input.context.value.cursor.remaining - 1}, sample: (.current - .previous) * .input.context.value.cursor.profile.projection.amplitude_q15 / 32768}))
+
+plot dsp/oscillator-step (
+    >> value: AudioPeriodicStepInput
+    result: AudioPeriodicOutcome >>
+) {
+    check: dsp/oscillator-check-step()
+    carry: dsp/oscillator-carry()
+    phase: dsp/periodic-phase-pair(item = AudioPeriodicCarry, output = AudioPeriodicPhase)
+    flow: dsp/cubic-flow-pair(item = AudioPeriodicPhase, output = AudioPeriodicFlow)
+    finish: dsp/oscillator-finish()
+    value >> check.value
+    check.result >> carry.value
+    carry.result >> phase.value
+    phase.result >> flow.value
+    flow.result >> finish.value
+    finish.result >> result
+}.

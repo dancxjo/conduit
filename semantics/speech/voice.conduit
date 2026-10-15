@@ -374,8 +374,8 @@ plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
 ) {
-    phase: speech/subframe-source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
-    flow: speech/source-flow(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
+    phase: dsp/periodic-phase-pair(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    flow: dsp/cubic-flow-pair(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
     mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
     finish: speech/frame-source-result
     value >> ({source: {phase_q8: .cycle.mode is profile ? .state.phase * 256 : .cycle.phase_q8, period_q8: .cycle.mode is profile ? .period * 256 : .cycle.period_q8, open_q8: .cycle.mode is profile ? (.period * 3 / 4) * 256 : (.cycle.period_q8 * 3 / 4 / 256) * 256, noise: (.state.noise * 25173 + 13849) % 65536, voiced: .target.voiced, frication: .target.frication}, context: .}) >> phase.value
