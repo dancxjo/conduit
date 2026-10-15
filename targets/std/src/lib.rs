@@ -376,7 +376,12 @@ pub struct SignalReceipt {
     pub level: bool,
 }
 
+mod kernel_timing;
+pub use kernel_timing::KernelTimingPhase;
 pub trait TimerAdapter {
+    /// Optional phase observation; default adapters introduce no measurement.
+    fn observe_kernel_phase(&mut self, _phase: KernelTimingPhase) {}
+
     fn wait(&mut self, duration: Duration);
 
     /// An exact sample on an identified provider basis. Adapters that only
