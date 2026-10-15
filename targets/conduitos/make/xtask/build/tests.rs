@@ -11,6 +11,10 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
             include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
             256 * 1024 * 1024,
         ),
+        (
+            include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
+            256 * 1024 * 1024,
+        ),
     ] {
         let profile = check_host_configuration(
             parse_host_configuration_conduit(source).unwrap(),
@@ -38,11 +42,11 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
 }
 
 #[test]
-fn headless_make_retains_its_static_arena_ceiling() {
+fn zero_heap_make_uses_its_static_arena_ceiling() {
     let packages = conduit_workspace_make::package_set();
     let profile = check_host_configuration(
         parse_host_configuration_conduit(include_str!(
-            "../../../profiles/conduitos-aarch64-virt.host.conduit"
+            "../../../profiles/conduitos-riscv64-virt.host.conduit"
         ))
         .unwrap(),
         &conduit_workspace_make::catalog(),
