@@ -21,7 +21,8 @@ pub const MAX_CANDIDATE_RESOURCES: usize = 32;
 /// its separately admitted DOM Mask Back, and the four exact quantity conversion
 /// and comparison roles, standalone Unit/Quantity Dimension introspection,
 /// the portable Thermostat transition and bounded scan, and the separately
-/// admitted source-configured component Mask Back and saved-choice operation.
+/// admitted source-configured component Mask Back, saved-choice operation,
+/// and independently selected continuous PCM playback Back.
 /// The encoded advertisement byte bound remains independent.
 pub const MAX_CANDIDATE_CAPABILITIES: usize = 136;
 pub const MAX_CANDIDATE_PLANNER_CAPABILITIES: usize = 8;

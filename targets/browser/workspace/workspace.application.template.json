@@ -532,8 +532,8 @@
           "specifier": "./application-graph-canvas.mjs"
         },
         {
-          "role": "application-theme",
-          "specifier": "./application-theme.mjs"
+          "role": "application-look",
+          "specifier": "./application-look.mjs"
         }
       ]
     },
@@ -545,10 +545,10 @@
       "dependencies": []
     },
     {
-      "role": "application-theme",
+      "role": "application-look",
       "kind": "module",
-      "path": "application-theme.mjs",
-      "maximum_bytes": 8192,
+      "path": "application-look.mjs",
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {

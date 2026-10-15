@@ -9,14 +9,20 @@ import { mkdir, readFile, writeFile } from 'node:fs/promises';
 import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
+import { parseCaptureJSON } from './exact-capture-json.mjs';
+import { startPresentationPeer } from './thermostat-presentation-peer.mjs';
+import { completeEncounter, captureOwnerViewport } from './thermostat-complete-encounter.mjs';
 
-const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg] = process.argv.slice(2);
+const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg, journeyArg, peerStateArg, invitationArg] = process.argv.slice(2);
 assert.ok(playwrightArg, 'usage: thermostat-owner-browser.mjs OWNER-CWD INSTALLED-BIN STATE HANDBOOK NEW-OUTPUT PINNED-PLAYWRIGHT');
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
 const state = path.resolve(ownerCwd, stateArg);
 const handbook = path.resolve(handbookArg);
 const output = path.resolve(outputArg);
+const journeyMode = journeyArg === 'journey';
+let journey = null;
+let staleView, stale;
 assert.equal(existsSync(output), false, 'evidence directory must be new');
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary);
@@ -47,7 +53,7 @@ const { chromium } = await import(pathToFileURL(playwrightArg));
 const owner = args => {
   const result = spawnSync(binary, args, { cwd: ownerCwd, encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024 });
   assert.equal(result.status, 0, result.stderr);
-  return JSON.parse(result.stdout);
+  return parseCaptureJSON(result.stdout);
 };
 const ownerFace = () => {
   const result = owner(['body', 'face', '--state-dir', state, '--json']);
@@ -57,11 +63,15 @@ const ownerStatus = () => owner(['body', 'status', '--state-dir', state, '--json
 const before = ownerFace();
 const bodyId = before.face.basis.body_id;
 await mkdir(output, { mode: 0o700 });
-let server, browser, page;
+let server, browser, page, presentationPeer;
 const errors = [];
 const revisions = [];
 let runBasis;
 try {
+  if (journeyMode) {
+    assert.ok(peerStateArg && invitationArg, 'complete journey requires a fresh peer and private routed invitation');
+    presentationPeer = await startPresentationPeer(path.resolve(peerStateArg), path.resolve(invitationArg), ownerCwd, output);
+  }
   server = await startStaticProduct(handbook);
   browser = await chromium.launch({ headless: true });
   const context = await browser.newContext({ viewport: { width: 1280, height: 1000 } });
@@ -197,12 +207,22 @@ try {
     .text.includes('Sensor unavailable'));
   assert.ok(initialView.subjects.some(subject => subject.role === 'Region'
     && subject.text.includes('Requested settings; equipment operation is unconfirmed.')));
-  await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-desktop.png'), animations: 'disabled' });
+  if (journeyMode) await captureOwnerViewport(page, path.join(output, 'thermostat-desktop.png'));
+  else await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-desktop.png'), animations: 'disabled' });
+  if (journeyMode) {
+    journey = await completeEncounter({ page, peer: presentationPeer, peerState: path.resolve(peerStateArg), state, output, owner, ownerFace, ownerStatus,
+      currentView, refresh, observe, targetWording, action, raise, wardrobe,
+      browserHostId: identity.hostId, bodyId, runBasis });
+    staleView = journey.before_terminal.view;
+    stale = journey.browser_stale;
+    currentWardrobe = journey.final_wardrobe;
+  } else {
   await action(raise(), 'raise-keyboard', true);
   await targetWording('21.5 °C');
   await action(raise(), 'raise-to-22');
   await action(raise(), 'raise-to-22.5');
   await targetWording('22.5 °C');
+  if (journeyMode) await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-raised.png'), animations: 'disabled' });
   await action(lower(), 'lower');
   for (const family of [
     ['Mode', ['Heat', 'Cool', 'Auto', 'Off']],
@@ -219,11 +239,11 @@ try {
   await action(page.getByRole('group', { name: 'Mode', exact: true }).getByRole('radio', { name: 'Cool', exact: true }), 'cool-preset-recalculation');
   await targetWording('24 °C');
   await action(page.getByRole('group', { name: 'Mode', exact: true }).getByRole('radio', { name: 'Off', exact: true }), 'off-preset-recalculation');
-  const staleView = await currentView();
+  staleView = await currentView();
   const staleAction = staleView.actions.find(candidate => candidate.name === 'Lower target by 0.5°C');
   await action(raise(), 'advance-before-stale');
   const beforeStale = ownerFace();
-  const stale = await page.evaluate(async ({ view, action }) => {
+  stale = await page.evaluate(async ({ view, action }) => {
     try {
       const result = await globalThis.__thermostatProofSession.submitOwnerFaceInteraction({
         view, actionId: action.identity, target: action.target, arguments: [], sequence: 9999,
@@ -255,16 +275,20 @@ try {
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-mobile.png'), animations: 'disabled' });
   await page.locator('conduit-owner-face').screenshot({ path: path.join(output, 'thermostat-mobile-component.png'), animations: 'disabled' });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  }
   assert.deepEqual(errors, []);
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
-    schema: 'conduit.proof/thermostat-owner-browser@1', ...sourceRecord,
+    schema: journeyMode ? 'conduit.proof/thermostat-owner-browser@2' : 'conduit.proof/thermostat-owner-browser@1', ...sourceRecord,
     proof_class: 'live-local-installed-owner-browser', body_id: bodyId,
     body_plan_id: runBasis.plan_id, body_play_id: runBasis.active_play_id,
+    owner_host_id: installed.host_id,
+    presentation_peer_host_id: presentationPeer?.hostId ?? null,
     browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    route, wardrobe: currentWardrobe, revisions, stale_show: { prior: staleView, ...stale },
+    route, wardrobe: currentWardrobe, revisions, journey, stale_show: { prior: staleView, ...stale },
     same_page_reencounter: true, reload_rejoin: false, physical_sensor_or_equipment: false,
-    screenshots: ['thermostat-desktop.png', 'thermostat-mobile.png', 'thermostat-mobile-component.png'],
-  }, null, 2)}\n`);
+    screenshot_scope: journeyMode ? 'actual browser viewport with the owner Face scrolled into view' : 'owner Face elements',
+    screenshots: journeyMode ? ['thermostat-desktop.png', 'thermostat-raised.png', 'thermostat-mobile.png', 'thermostat-after-terminal.png', 'thermostat-body-menu.png', 'thermostat-lulled.png', 'thermostat-restarted.png'] : ['thermostat-desktop.png', 'thermostat-mobile.png', 'thermostat-mobile-component.png'],
+  })}\n`);
   console.log(`Thermostat owner browser proof passed: ${output}`);
 } catch (error) {
   const diagnostics = [writeFile(path.join(output, 'failure.json'), `${JSON.stringify({ error: String(error), ...sourceRecord, page_errors: errors, revisions }, null, 2)}\n`)];
@@ -275,5 +299,5 @@ try {
   }
   await Promise.allSettled(diagnostics);
   throw error;
-} finally { await browser?.close(); server?.child.kill(); }
+} finally { await presentationPeer?.abort(); await browser?.close(); server?.child.kill(); }
 function currentFailureFace(page) { return page.evaluate(() => globalThis.__conduitOwnerParticipation?.face()); }

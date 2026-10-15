@@ -23,10 +23,13 @@ use crate::{
 // carrier identities exceed 32 KiB. Keep preparation finite below the 60 KiB
 // owner Face document envelope; wire emission remains independently bounded.
 const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 40 * 1024;
+mod profile;
+pub use profile::RemoteMaskRouteProfile;
 // Preparation hashes the full local inventory but transmits only its digest.
 // Bind any inventory admitted by the shared candidate envelope. The transmitted
 // remote seal remains independently bounded to 40 KiB and carries only a digest.
 const MAX_HOST_OFFER_BYTES: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
+// Native and hosted route seals retain separate finite encoding limits.
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]
@@ -74,6 +77,8 @@ impl RemoteMaskHostBasis {
 #[serde(deny_unknown_fields)]
 pub struct RemoteOwnerMaskRouteSeal {
     pub route_plan_id: PlanId,
+    #[serde(default, skip_serializing_if = "RemoteMaskRouteProfile::is_native")]
+    pub profile: RemoteMaskRouteProfile,
     pub body_id: BodyId,
     pub workload_revision: u64,
     pub face_id: FaceContentId,
@@ -104,6 +109,7 @@ pub enum RemoteOwnerMaskRouteError {
     ReturnExceedsLine,
     ReturnExceedsFore,
     SealCapacityExceeded,
+    SealEncodingCapacityExceeded { bytes: usize, maximum: usize },
     InvalidSeal,
     StaleBody,
     StaleFace,
@@ -161,6 +167,7 @@ impl RemoteOwnerMaskRouteSeal {
             face_line,
             return_line,
             None,
+            RemoteMaskRouteProfile::Native,
         )
     }
 
@@ -185,6 +192,7 @@ impl RemoteOwnerMaskRouteSeal {
             face_line,
             return_line,
             Some(interaction_line),
+            RemoteMaskRouteProfile::Native,
         )
     }
 
@@ -198,6 +206,7 @@ impl RemoteOwnerMaskRouteSeal {
         face_line: &LineOffer,
         return_line: &LineOffer,
         interaction_line: Option<&LineOffer>,
+        profile: RemoteMaskRouteProfile,
     ) -> Result<Self, RemoteOwnerMaskRouteError> {
         let body = &session.evidence().body;
         face.validate()
@@ -238,6 +247,7 @@ impl RemoteOwnerMaskRouteSeal {
         }
         let mut seal = Self {
             route_plan_id: PlanId::from("unsealed"),
+            profile,
             body_id: body.body_id.clone(),
             workload_revision: body.workload_revision,
             face_id: face.identity.clone(),

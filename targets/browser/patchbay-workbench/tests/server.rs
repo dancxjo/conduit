@@ -412,7 +412,7 @@ fn product_serves_one_canonical_bounded_webrtc_client_module_graph() {
         ),
         ("/assets/application-face.mjs", "createApplicationFaceHost"),
         ("/assets/product-masthead.mjs", "createProductMasthead"),
-        ("/assets/application-theme.mjs", "applicationThemeLimits"),
+        ("/assets/application-look.mjs", "applicationLookLimits"),
         (
             "/assets/body-webrtc-sessions.mjs",
             "class BodyWebRtcSessions",
@@ -530,7 +530,7 @@ fn html_theme_sheet_maps_the_shared_identity_and_every_bounded_token() {
     assert!(response.contains("Content-Type: text/css; charset=utf-8"));
     let body = response.split("\r\n\r\n").nth(1).unwrap();
     assert!(body.len() <= conduit_browser_patchbay_workbench::MAX_THEME_CSS_BYTES);
-    assert!(body.contains("--conduit-theme-identity:\"conduit.face/phosphor@1\""));
+    assert!(body.contains("--conduit-look-identity:\"conduit.look/phosphor@1\""));
     assert!(!body.contains("--patchbay-"));
     for (token, color) in [
         ("background", "#05070B"),

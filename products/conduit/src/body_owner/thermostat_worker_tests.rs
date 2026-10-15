@@ -218,3 +218,7 @@ fn installed_thermostat_terminal_drain_observes_final_fore() {
     assert!(owner.thermostat_live.is_none());
     std::fs::remove_dir_all(root).unwrap();
 }
+
+#[cfg(unix)]
+#[path = "thermostat_remote_terminal_tests.rs"]
+mod remote_terminal;

@@ -351,7 +351,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (!audio) throw new Error("audio cue slot not acquired");
       return audio.perform(effect, signal);
     }
-    if (effect.effect_kind === "audio-capture" || effect.effect_kind === "pcm-playback") {
+    if (effect.effect_kind === "audio-capture" || effect.effect_kind === "pcm-playback" || effect.effect_kind === "pcm-playback-drain") {
       if (!pcmAudio) throw new Error("browser PCM audio slot not acquired");
       return pcmAudio.perform(effect, signal);
     }

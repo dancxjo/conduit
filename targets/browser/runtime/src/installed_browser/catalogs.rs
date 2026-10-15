@@ -88,6 +88,7 @@ fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, Strin
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_audio_continuous_play_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
     conduit_plot::quantity_conversion::install(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_normalized_quantity_catalog(&mut startup, &mut profile)?;
@@ -210,6 +211,10 @@ pub(crate) fn offers_for_expanded_pure_expressions(
 ) -> Result<Vec<CapabilityOffer>, String> {
     let mut offers = Vec::new();
     for gear in &expanded.gears {
+        if let Some(offer) = super::typed_state::offer_for_expanded(gear)? {
+            offers.push(offer);
+            continue;
+        }
         if !matches!(
             gear.kind_contract_revision.as_str(),
             conduit_plot::PURE_EXPRESSION_REVISION | conduit_plot::PURE_FILTER_REVISION

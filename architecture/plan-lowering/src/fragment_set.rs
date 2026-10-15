@@ -6,7 +6,7 @@ use crate::lowering::{
     KernelStorageProfile, LoweredPlanFragment, LoweringError,
 };
 use alloc::vec::Vec;
-use conduit_core::{Plan, PlanFragment, PortDirection};
+use conduit_core::{Plan, PlanFragment, PortDirection, StateLifetime};
 use conduit_kernel::{CordEndpoint, RemoteEndpointId, SignExpectationTarget};
 
 #[derive(Clone, Copy, Debug)]
@@ -44,6 +44,8 @@ pub struct FragmentSetCapacityDeficit {
 pub struct LoweredFragmentSet {
     /// Numeric IDs are global to this set; string identities remain original.
     pub partitions: Vec<LoweredPlanFragment>,
+    /// Distinct fresh State cells admitted by the selected storage profile.
+    pub state_slots: u16,
     pub nodes: u16,
     pub cords: u16,
     pub queue_slots: u16,
@@ -61,7 +63,7 @@ pub fn lower_local_fragment_set(
     profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
-    lower_local_fragment_set_with(fragments, bounds, |_, fragment| {
+    lower_local_fragment_set_with(fragments, profile, bounds, |_, fragment| {
         lower_plan_fragment_for_profile(fragment, profile)
     })
 }
@@ -82,13 +84,14 @@ pub fn lower_local_fragment_set_from_plans(
                 .ok_or(FragmentSetError::Fragment(LoweringError::InvalidFragment))
         })
         .collect::<Result<Vec<_>, _>>()?;
-    lower_local_fragment_set_with(&fragments, bounds, |index, fragment| {
+    lower_local_fragment_set_with(&fragments, profile, bounds, |index, fragment| {
         lower_plan_fragment_for_profile_from_plan(plans[index], &fragment.fragment_id, profile)
     })
 }
 
 fn lower_local_fragment_set_with(
     fragments: &[&PlanFragment],
+    profile: KernelStorageProfile,
     bounds: FragmentSetBounds,
     mut lower: impl FnMut(usize, &PlanFragment) -> Result<LoweredPlanFragment, LoweringError>,
 ) -> Result<LoweredFragmentSet, FragmentSetError> {
@@ -102,6 +105,7 @@ fn lower_local_fragment_set_with(
     }
     let mut result = LoweredFragmentSet {
         partitions: Vec::with_capacity(fragments.len()),
+        state_slots: 0,
         nodes: 0,
         cords: 0,
         queue_slots: 0,
@@ -133,9 +137,25 @@ fn lower_local_fragment_set_with(
         {
             return Err(FragmentSetError::RemoteUnsupported);
         }
-        if !lowered.states.is_empty() {
+        if lowered.states.iter().any(|state| {
+            state.contract.retained.is_some()
+                || !matches!(
+                    state.contract.lifetime,
+                    StateLifetime::Step | StateLifetime::Play
+                )
+        }) {
             return Err(FragmentSetError::StateUnsupported);
         }
+        // Each partition is individually admitted by the profile above. The
+        // same selected cell table must also contain their combined fresh State.
+        let next_state_slots = bounded(
+            "state-slots",
+            result.state_slots,
+            count("state-slots", lowered.states.len())?,
+            profile
+                .state_storage()
+                .map_or(0, |(instances, _)| instances),
+        )?;
         if !lowered.fusions.is_empty() {
             return Err(FragmentSetError::FusionUnsupported);
         }
@@ -210,12 +230,13 @@ fn lower_local_fragment_set_with(
             &mut lowered,
             result.nodes,
             result.cords,
-            result.queue_slots,
+            (result.queue_slots, result.state_slots),
             route_targets,
             sign_expectations,
             fore_endpoints,
         )?;
         result.partitions.push(lowered);
+        result.state_slots = next_state_slots;
         result.nodes = next_nodes;
         result.cords = next_cords;
         result.queue_slots = next_slots;
@@ -283,7 +304,7 @@ fn reindex(
     part: &mut LoweredPlanFragment,
     nodes: u16,
     cords: u16,
-    slots: u16,
+    slots: (u16, u16),
     targets: u16,
     signs: u16,
     fore_offset: u16,
@@ -312,7 +333,7 @@ fn reindex(
             .find(|fore| fore.cord == local_cord && fore.direction == PortDirection::Output)
             .map(|fore| fore.endpoint);
         cord.spec.cord.0 = add("cord-index", cord.spec.cord.0, cords)?;
-        cord.spec.slot_start = add("queue-slot-index", cord.spec.slot_start, slots)?;
+        cord.spec.slot_start = add("queue-slot-index", cord.spec.slot_start, slots.0)?;
         endpoint(&mut cord.spec.source, nodes, fore_offset, input_fore)?;
         endpoint(&mut cord.spec.sink, nodes, fore_offset, output_fore)?;
     }
@@ -328,6 +349,10 @@ fn reindex(
             target.cord.0 = add("cord-index", target.cord.0, cords)?;
             endpoint(&mut target.sink, nodes, fore_offset, output_fore)?;
         }
+    }
+    for state in &mut part.states {
+        state.slot = add("state-slot-index", state.slot, slots.1)?;
+        state.node.0 = add("node-index", state.node.0, nodes)?;
     }
     for call in &mut part.host_calls {
         call.node.0 = add("node-index", call.node.0, nodes)?;

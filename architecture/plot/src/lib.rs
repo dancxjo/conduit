@@ -33,6 +33,7 @@ mod expression_prepared;
 mod expression_program;
 mod expression_program_decode;
 mod expression_proof;
+mod expression_quantity;
 mod expression_semantic_call;
 mod functional_front;
 mod glyph_notation;

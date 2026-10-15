@@ -8,6 +8,7 @@ pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
     &crate::installed_browser::thermostat_scan_offer::INSTALLATION,
     &crate::installed_browser::audio_io::CAPTURE,
     &crate::installed_browser::audio_io::PLAYBACK,
+    &crate::installed_browser::audio_io::CONTINUOUS_PLAYBACK,
     &crate::installed_browser::audio_gain::INSTALLATION,
     &crate::installed_browser::audio_tone::INSTALLATION,
     &crate::installed_browser::distance_frequency::INSTALLATION,

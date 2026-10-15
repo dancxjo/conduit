@@ -219,7 +219,7 @@ export async function startOwnerParticipation(application, root) {
     if (!participation || wardrobeBusy || report !== wardrobeReport) return;
     wardrobeBusy = true; wardrobeRefresh.disabled = true;
     for (const button of wardrobeRows.querySelectorAll('button')) button.disabled = true;
-    wardrobeStatus.textContent = `Asking the owner to ${verb} this Mask while the Body is at rest…`;
+    wardrobeStatus.textContent = `Asking the owner to ${verb} this Mask on this Body…`;
     try {
       const current = await participation.changeOwnerWardrobe(report, routeId, verb);
       wardrobeReport = current.raw;

@@ -112,3 +112,10 @@ pub use generated::{
     LanguageLexicalConsumerBasis, LanguageLexicalConsumerFeatureMatch,
     LanguageLexicalConsumerInventory, LanguageLexicalConsumerVarietyMatch,
 };
+
+mod parser_revision;
+pub use generated::LanguageParserRevisionRebaseRequest;
+pub use parser_revision::*;
+
+pub use generated::{LanguageParserBeamCommitRequest, LanguageParserBeamCommitResult};
+pub const PARSER_BEAM_COMMIT_SOURCE: &str = include_str!("../parser_beam_commit.conduit");

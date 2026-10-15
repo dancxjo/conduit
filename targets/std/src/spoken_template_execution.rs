@@ -95,6 +95,7 @@ impl StdHost {
         let expected_namespace = match reading.receipt().template_identity.as_str() {
             "spoken/brief@1" => "owner_spoken_brief_template_mask",
             "spoken/expanded@1" => "owner_spoken_expanded_template_mask",
+            "spoken/control@1" => "owner_spoken_control_template_mask",
             _ => return Err("unknown privately selected template".into()),
         };
         if preparation.face != *face

@@ -435,6 +435,11 @@ pub(crate) enum BodyCommand {
         /// Attach this terminal to the owner Host for an acknowledged Show and typed action.
         #[arg(long)]
         owner_show: bool,
+        /// Join this fresh installed presentation Host through a pinned owner invitation.
+        #[arg(long, conflicts_with = "owner_show")]
+        invitation: Option<PathBuf>,
+        #[arg(long, requires = "invitation")]
+        authorize_join: bool,
     },
     /// Issue one bounded invitation from the body owned by this installed host.
     Invite {
