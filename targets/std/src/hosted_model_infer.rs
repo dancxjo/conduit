@@ -288,7 +288,7 @@ pub fn prepare_linear_model(
         .iter_mut()
         .zip(model.bytes().as_chunks::<4>().0)
     {
-        *value = f32::from_le_bytes(bytes.try_into().expect("four-byte chunk"));
+        *value = f32::from_le_bytes(*bytes);
         if !value.is_finite() {
             return Err("non-finite reference-linear coefficient".into());
         }
