@@ -28,6 +28,8 @@ mod parsec_instruction_effect;
 pub(crate) mod planning;
 #[path = "terminal_mask_execution/play.rs"]
 mod play;
+#[path = "terminal_mask_execution/remote.rs"]
+mod remote;
 #[cfg(test)]
 #[path = "terminal_mask_execution/tests.rs"]
 mod tests;
@@ -55,6 +57,7 @@ pub struct HostedTerminalMaskExecution {
     host: HostAdvertisement,
     planned: PlannedMaskPlot,
     read_only: bool,
+    remote_face: Option<remote::RemoteFaceBasis>,
     next_sequence: u64,
     scope_end: Option<u64>,
     body_scope: Option<(conduit_body::BodyPlan, conduit_body::BodyPlayIdentity)>,
@@ -145,6 +148,7 @@ impl HostedTerminalMaskExecution {
             planned,
             host: host.clone(),
             read_only,
+            remote_face: None,
             next_sequence: 0,
             scope_end: None,
             body_scope: None,
@@ -185,6 +189,9 @@ impl TerminalMaskExecution for HostedTerminalMaskExecution {
             return Err(error("terminal Mask already has a pending Play"));
         }
         face.validate().map_err(debug_error)?;
+        if let Some(basis) = &self.remote_face {
+            basis.validate(face)?;
+        }
         let bytes = serde_json::to_vec(face).map_err(debug_error)?;
         if bytes.len() > MAX_TERMINAL_VALUE_BYTES as usize {
             return Err(TerminalError::DocumentPressure);
