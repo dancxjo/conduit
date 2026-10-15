@@ -43,8 +43,17 @@ passed; catalog Source conformance passed; two production-kernel tests passed
 across sine/impulse/silence and invalid clock/rate/nonfinite/short/discontinuous
 cases. Actual selected implementation, Plan/Play correlation, mandatory Signs,
 canonical output custody and unchanged value-store capacity are asserted.
-Strict affected Clippy and the documented xtask command are still pending;
-this draft audit does not claim their success.
+Strict all-target Clippy for Audio, semantic Catalog, std offers and std Host
+passed with warnings denied. The documented xtask command passed both public
+Source checking and its declared production-kernel oracle. Its wrapper report
+retains Source/checked identities; its Plan/Play fields are null, so actual
+Plan/Play custody is proved by the linked kernel test assertions.
+
+The public entrance initially refused the added specimen because the inventory
+contained 125 reviewed subjects with a bound of 124. The bound now admits
+exactly 125. This is explicit membership, without a generic discovery fallback.
+Later ownership, test-assertion and inventory edits leave the measured runtime
+files byte-identical to the Source named above.
 
 This is native synthetic-PCM and production-kernel conformance. Device capture,
 physical playback, perception/listening, cross-block watch gaps/pressure,
