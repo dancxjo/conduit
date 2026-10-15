@@ -1,7 +1,8 @@
 //! Planner refusal proof; no fused execution or runtime speed claim.
 use conduit_core::*;
 use conduit_planner::{
-    select_fusion_candidate, CandidatePlacementDisposition, FusionPlanningInputs,
+    select_fusion_candidate, CandidatePlacementDisposition, FusionBoundary, FusionCandidate,
+    FusionPlanningInputs,
 };
 mod common;
 #[path = "common/fusion_fixture.rs"]
@@ -9,16 +10,25 @@ mod fixture;
 use fixture::*;
 
 fn rejected(f: &Fixture, offer: conduit_planner::FusionRealizationOffer) -> String {
+    rejected_with_boundaries(f, offer, &candidates(f), &[])
+}
+
+fn rejected_with_boundaries(
+    f: &Fixture,
+    offer: conduit_planner::FusionRealizationOffer,
+    choices: &[FusionCandidate],
+    boundaries: &[FusionBoundary],
+) -> String {
     let selection = select_fusion_candidate(
         &f.plot,
         &f.hosts,
-        &candidates(f),
+        choices,
         &basis(f, 2),
         FusionPlanningInputs {
             semantic_kinds: &f.semantic_kinds,
             offers: &[offer],
             observations: &[fusion_observation(1)],
-            boundaries: &[],
+            boundaries,
             line_offers: std::slice::from_ref(&f.line),
         },
     )
@@ -106,5 +116,48 @@ fn each_required_runtime_preservation_and_finite_envelope_fails_closed() {
         }
         let offered = offer(&f);
         assert!(rejected(&f, offered).contains("InvalidFiniteEnvelope"));
+    }
+}
+
+#[test]
+fn resource_and_authority_back_requirements_cannot_be_erased() {
+    let f = fixture();
+    let mut resource = offer(&f);
+    resource.resource_requirements.push(ResourceRequirement {
+        class_id: ResourceClassId::from("test/resource"),
+        units: 1,
+        protected_role: None,
+        compute: None,
+        content: None,
+    });
+    assert!(rejected(&f, resource).contains("BackResource"));
+    let mut authority = offer(&f);
+    authority.authority_requirements.push(AuthorityRequirement {
+        contract_id: AuthorityContractId::from("test/authority"),
+        host_call_contract_id: HostCallContractId::from("test/host-call"),
+        subject_kind: kind_id("test/subject"),
+    });
+    assert!(rejected(&f, authority).contains("BackAuthority"));
+}
+
+#[test]
+fn cross_host_and_required_observation_boundaries_have_named_refusals() {
+    let f = fixture();
+    let mut choices = candidates(&f);
+    choices[1].realization = choices[2].realization.clone();
+    choices[1].realization.candidate_id = choices[1].candidate_id.clone();
+    assert!(rejected_with_boundaries(&f, offer(&f), &choices, &[])
+        .contains("not all local on the offered Host"));
+    for requires_observation in [true, false] {
+        let boundary = FusionBoundary {
+            source_gear_id: GearId::from("fusion/transform"),
+            sink_gear_id: GearId::from("fusion/analysis"),
+            requires_observation,
+            requires_authority: !requires_observation,
+        };
+        assert!(
+            rejected_with_boundaries(&f, offer(&f), &candidates(&f), &[boundary])
+                .contains("required observation or authority boundary forbids fusion")
+        );
     }
 }
