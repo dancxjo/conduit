@@ -204,24 +204,38 @@ pub(super) fn serve(
         line.set_read_timeout(Some(left.min(Duration::from_secs(5))))
             .map_err(|error| format!("bound native return read: {error:?}"))?;
         let document = receive_document::<serde_json::Value>(&mut line, &mut frame, &mut assembled);
-        if document
+        let schema = document
             .as_ref()
             .ok()
             .and_then(|value| value.get("schema"))
-            .and_then(serde_json::Value::as_str)
-            == Some(component_selection::SCHEMA)
-        {
+            .and_then(serde_json::Value::as_str);
+        if matches!(
+            schema,
+            Some(component_selection::SCHEMA | refresh::REFRESH_SCHEMA)
+        ) {
             if refreshes >= MAX_FACE_REFRESHES {
                 break;
             }
-            match component_selection::serve(
-                &mut line,
-                listener,
-                state_dir,
-                &grant,
-                sequence,
-                document.map_err(|_| "native component frame unavailable")?,
-            )? {
+            let gate = if schema == Some(refresh::REFRESH_SCHEMA) {
+                refresh::serve(
+                    &mut line,
+                    listener,
+                    state_dir,
+                    &grant,
+                    sequence,
+                    document.map_err(|_| "native refresh frame unavailable")?,
+                )?
+            } else {
+                component_selection::serve(
+                    &mut line,
+                    listener,
+                    state_dir,
+                    &grant,
+                    sequence,
+                    document.map_err(|_| "native component frame unavailable")?,
+                )?
+            };
+            match gate {
                 show_ack::ShowGate::Refreshed(next) => {
                     grant = *next;
                     refreshes += 1;

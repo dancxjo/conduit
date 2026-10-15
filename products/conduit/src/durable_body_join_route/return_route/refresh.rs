@@ -53,7 +53,7 @@ pub(super) fn serve(
             code: "face-unavailable".into(),
         });
     let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { face, .. }
-        if crate::durable_host_control::has_native_return_route_intent(face))
+        if old.mask == MaskSelection::Terminal || crate::durable_host_control::has_native_return_route_intent(face))
     {
         let grant = old.replacement(next_sequence)?;
         Some(grant)

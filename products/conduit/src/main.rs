@@ -302,9 +302,15 @@ fn main() {
             command: Some(cli::BodyCommand::Lull { state_dir }),
         }) => durable_host_control::lull_owned_body(&state_dir),
         Some(cli::Command::Body {
-            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show }),
+            command: Some(cli::BodyCommand::Terminal { state_dir, owner_show, invitation, authorize_join }),
         }) => {
-            if owner_show {
+            if let Some(invitation) = invitation {
+                #[cfg(unix)]
+                { durable_host::presentation::run(&state_dir, &invitation, authorize_join,
+                    &mut io::stdin().lock(), &mut io::stdout().lock()) }
+                #[cfg(not(unix))]
+                { let _ = (invitation, authorize_join); Err("presentation terminal requires a local Unix Host".into()) }
+            } else if owner_show {
                 #[cfg(unix)]
                 {
                     body_terminal_owner::run(

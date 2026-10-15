@@ -137,6 +137,10 @@ pub(crate) struct DurableHostTruth {
     pub(crate) advertisement: HostAdvertisement,
 }
 
+#[cfg(unix)]
+#[path = "durable_host_control/presentation_host.rs"]
+mod presentation_host;
+
 pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
@@ -201,7 +205,7 @@ impl DurableHostRuntime {
         self.cancellation_signal = Some(state_dir.join("remote-cancellation.signal"));
     }
 
-    fn truth(&self) -> DurableHostTruth {
+    pub(crate) fn truth(&self) -> DurableHostTruth {
         DurableHostTruth {
             target_id: self.target_id.clone(),
             image_content_digest: self.image_content_digest.clone(),

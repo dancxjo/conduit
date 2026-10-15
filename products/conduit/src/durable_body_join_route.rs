@@ -330,7 +330,7 @@ fn route_server_identity(url: &str) -> Result<String, String> {
     Ok(identity.into())
 }
 
-fn route_address(url: &str) -> Result<SocketAddr, String> {
+pub(super) fn route_address(url: &str) -> Result<SocketAddr, String> {
     let authority = url
         .strip_prefix("wss://")
         .and_then(|remainder| remainder.split('/').next())
