@@ -14,6 +14,8 @@ pub fn install_sound_catalogs(
     for (contract, revision) in sound_contracts_with_revisions() {
         if contract.kind_id.as_str() == super::AUDIO_TIME_ANALYSIS_KIND {
             super::install_audio_time_analysis_catalog(startup, profile)?;
+        } else if contract.kind_id.as_str() == super::AUDIO_SPECTRAL_ANALYSIS_KIND {
+            super::install_audio_spectral_analysis_catalog(startup, profile)?;
         } else if contract.kind_id.as_str() == super::AUDIO_TONE_KIND {
             install_semantic_contract(startup, profile, super::audio_tone_semantic_contract())?;
         } else if contract.kind_id.as_str() == super::AUDIO_CONTINUOUS_TONE_KIND {
