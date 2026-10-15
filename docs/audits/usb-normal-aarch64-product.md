@@ -41,3 +41,28 @@ arena increases the normal AArch64 memory requirement; no automatic growth,
 new provider, retry or class policy is added. Parent #5253 remains open for its
 current full Integration and stable-publication gates. The queued #5586 STALL
 repair and #5867 preparation work retain their own acceptance.
+
+## Accepted-base product refresh and cross-architecture joins
+
+At `e564c88a5aa5cab4d8e33f82d9eb14542557a513`, after accepted PC preparation,
+the canonical AArch64 product rebuilt and two ordinary boots emitted distinct
+Host/Boot identities. The front-door presentation retains absent Body identity;
+that presentation is separate from the selected USB Root's real Plan/Play.
+Fresh CDC success and mismatched-Root refusal both pass.
+
+The canonical PC product then built on that same source revision. The exact
+same checked package succeeds with sixteen TX/RX pairs on each architecture;
+the same mismatched Root refuses with zero class controls/transfers on both.
+Each native Play retains zero allocation/reallocation counters. Physical
+compatibility remains unverified.
+
+The retained correlation audit joins package, class Source/checked/expanded,
+controller PCI/BAR and attachment port/slot/epoch, selected Base/provider/resource,
+Host/Boot, static Plan, and distinct Body Plan/Play identities. It verifies raw
+serial hashes without text newline normalization. The offline checker at
+`targets/conduitos/proof/tools/check_cdc_product_correlations.py` accepts four
+retained receipt directories, expected source and a fresh output path. Three
+altered identity records were refused even after their transcript hashes were
+recomputed; these are offline verifier tests, not new native provider refusals.
+Exact receipts and tool hashes are in the evidence file. The earlier source-pinned
+proofs remain intact. Parent #5253's integration and publication gates remain open.
