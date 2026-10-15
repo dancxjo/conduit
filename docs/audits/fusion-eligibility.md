@@ -35,3 +35,11 @@ Code source `e8e4ee28aa7481f973cf96f36258af6c4b1e350e` passed 318 tests across
 test is ignored. The [evidence receipt](evidence/fusion-eligibility.json) retains
 commands, source-file and log hashes. Later documentation commits are not the
 measured source.
+
+
+The proof was repeated after the accepted timing-marker merge, at clean source
+`c6471d60f5c1d45c7a6925af4ae21292f3c7ff3d` based on dev
+`b7033a4ce9b08813a024e08b00cb14f8f0ef7535`. All 318 tests and strict all-target
+Clippy pass again; the one existing manual timing test remains ignored. The
+[current-base receipt](evidence/fusion-eligibility-phase-dev.json) preserves
+separate source/log custody, while the earlier proof remains intact.
