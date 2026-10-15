@@ -3,7 +3,7 @@ use super::waiting_tests::queued;
 use super::*;
 use crate::shared_pool_runtime::*;
 
-fn policy_pool(
+pub(super) fn policy_pool(
     plan: &Plan,
     now: conduit_core::MonotonicInstant,
     policy: PoolWaitingPolicy,
@@ -28,10 +28,26 @@ fn policy_pool(
     .unwrap();
     pool
 }
-fn attempt(
+pub(super) fn attempt(
     pool: &mut HostedSharedPool<2, 256, 4>,
     plan: &Plan,
     hosts: &[conduit_core::HostAdvertisement],
+) -> QueuedCostAdmission {
+    attempt_current(
+        pool,
+        plan,
+        hosts,
+        &[
+            observation(0, PoolRealizationHealth::Ready, 1),
+            observation(1, PoolRealizationHealth::Ready, 1),
+        ],
+    )
+}
+pub(super) fn attempt_current(
+    pool: &mut HostedSharedPool<2, 256, 4>,
+    plan: &Plan,
+    hosts: &[conduit_core::HostAdvertisement],
+    current: &[PoolRealizationObservation],
 ) -> QueuedCostAdmission {
     let now = instant(&hosts[0], 15);
     let operation = pool
@@ -41,10 +57,6 @@ fn attempt(
         .operation
         .clone();
     let costs = costs_with_condition(plan, hosts, &operation, None);
-    let current = vec![
-        observation(0, PoolRealizationHealth::Ready, 1),
-        observation(1, PoolRealizationHealth::Ready, 1),
-    ];
     let clocks = hosts.iter().map(|h| instant(h, 15)).collect::<Vec<_>>();
     let revisions = [revision()];
     let evaluations = hosts
@@ -59,7 +71,7 @@ fn attempt(
         .collect::<Vec<_>>();
     pool.admit_next_waiting_with_costs(
         &now,
-        &current,
+        current,
         format!("queue/{operation:?}").as_str().into(),
         &costs,
         &evaluations,
