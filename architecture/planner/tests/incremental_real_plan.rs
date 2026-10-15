@@ -1,4 +1,4 @@
-//! Cache/cold equivalence for actual ordinary Plans; modeled signed cost facts.
+//! Cache/cold equivalence for actual ordinary Plans and modeled cost-source identities.
 mod common;
 use conduit_core::*;
 use conduit_planner::{resource_cost::*, *};
@@ -45,18 +45,27 @@ fn host(f: &Facts, i: usize) -> HostAdvertisement {
     }
     host
 }
+fn dependency_keys(i: usize) -> [PlanningFactKey; 4] {
+    [
+        key(FactDomain::Offer, i),
+        key(FactDomain::Resource, i),
+        key(FactDomain::Authority, i),
+        PlanningFactKey::exact(FactDomain::Resource, format!("cost/host/{i}")),
+    ]
+}
 fn snapshots(f: &Facts) -> Vec<PlanningFact> {
     let hosts = [host(f, 0), host(f, 1)];
     let mut facts = Vec::new();
     for (i, host) in hosts.iter().enumerate() {
-        for (domain, content) in [
-            (FactDomain::Offer, serde_json::to_string(host).unwrap()),
-            (FactDomain::Resource, f.capacity[i].to_string()),
-            (FactDomain::Authority, f.denied[i].to_string()),
-            (FactDomain::Policy, f.milliseconds[i].to_string()),
-        ] {
+        let contents = [
+            serde_json::to_string(host).unwrap(),
+            f.capacity[i].to_string(),
+            f.denied[i].to_string(),
+            f.milliseconds[i].to_string(),
+        ];
+        for (key, content) in dependency_keys(i).into_iter().zip(contents) {
             facts.push(PlanningFact {
-                key: key(domain, i),
+                key,
                 generation: 1,
                 content_identity: format!("{:x}", Sha256::digest(content.as_bytes())),
             });
@@ -71,14 +80,7 @@ fn candidates() -> Vec<CandidateStructure> {
             semantic_contract_id: plot().checked_plot_id.to_string(),
             implementation_family_id: "flow/pulse@1".into(),
             placement_id: format!("host/{i}"),
-            dependencies: [
-                FactDomain::Offer,
-                FactDomain::Resource,
-                FactDomain::Authority,
-                FactDomain::Policy,
-            ]
-            .map(|d| key(d, i))
-            .into(),
+            dependencies: dependency_keys(i).into(),
         })
         .collect()
 }
