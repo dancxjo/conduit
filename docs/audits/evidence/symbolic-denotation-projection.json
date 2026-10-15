@@ -1,0 +1,14 @@
+{
+  "issue": 5733,
+  "state": "validated locally; held for PR slot",
+  "source": "0f41e7c4021b878f4227d7bbca319543c2966300",
+  "base": "15cad8d58e0acfbb81ee83cf4f313f5015418ff0",
+  "related_tests": 8,
+  "new_joined_tests": 2,
+  "focused_strict_clippy": "PASS",
+  "production_code_changed": false,
+  "proof_class": "checked Source + native prepared/reference expressions + certified Core numeric preparation",
+  "source_boundary": "exact graphs imported via accepted Core constructors; compound-symbol literal syntax and dynamic arithmetic remain unsupported",
+  "parent": 5392,
+  "parent_state": "open"
+}
