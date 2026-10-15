@@ -2186,6 +2186,8 @@ dependencies = [
  "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
+ "conduit-process",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",
  "serde",

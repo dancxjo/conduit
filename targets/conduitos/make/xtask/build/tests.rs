@@ -16,10 +16,6 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
             conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
         ),
         (
-            include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
-            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
-        ),
-        (
             include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
             conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
         ),
@@ -29,6 +25,10 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
         ),
         (
             include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
+            256 * 1024 * 1024,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
             256 * 1024 * 1024,
         ),
     ] {

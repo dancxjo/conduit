@@ -113,3 +113,21 @@ mod control_trajectories;
 pub use control_trajectories::*;
 
 pub use generated::AudioControlDomainMatch;
+
+mod time_analysis;
+pub use time_analysis::*;
+
+pub use generated::{
+    AudioTimeAnalysisDigest, AudioTimeAnalysisObservation, AudioTimeAnalysisReference,
+    AudioTimeAnalysisWaveform, AudioTimeAnalysisWaveformPage, AudioTimeAnalysisWindow,
+};
+
+mod time_analysis_native;
+
+mod time_analysis_encoding;
+pub use time_analysis_encoding::*;
+
+pub use generated::{
+    AudioTimeAmplitudeMagnitude, AudioTimeMeanSquarePower, AudioTimeSampleAmplitude,
+    AudioTimeSquareSum,
+};

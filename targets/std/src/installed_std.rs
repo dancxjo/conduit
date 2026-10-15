@@ -3,6 +3,7 @@ mod alife_backs;
 mod alife_host;
 mod audio_play_back;
 mod audio_stream_budget;
+mod audio_time_analysis_back;
 mod audio_tone_back;
 mod back;
 mod back_capacity;

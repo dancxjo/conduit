@@ -153,8 +153,8 @@ fn checked_in_configurations_cover_every_catalog_target_with_exact_provenance() 
         ),
         (
             "targets/conduitos/profiles/conduitos-aarch64-virt.host.conduit",
-            "sha256:60b3bb7bcbdf3095541a14551aacbd4a8b7c17c6958e65515b7ea6eebfc02dc2",
-            "sha256:3957f9f67a2bed442cfb7ad8323d51246f9643867fe5c4053f24d93e536a3c79",
+            "sha256:19a7cdcadd4372e51ef3ec477159b18d66dc70011fac2df78c5f077690635cd5",
+            "sha256:7041516dd03cffea8701c7bd6b3651d2cd585e8950b22f36fc4a8dfd066a1aef",
         ),
         (
             "targets/conduitos/profiles/conduitos-native.host.conduit",
