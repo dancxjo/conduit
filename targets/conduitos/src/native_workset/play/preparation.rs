@@ -84,7 +84,7 @@ pub(super) fn prepare(
                     }),
                 ),
                 crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => {
-                    // This Back has no selected-layout Host operation. Refuse a
+                    // This Back has no selected-layout Host Call. Refuse a
                     // wired selection rather than silently keep the startup layout.
                     if fragment.connections.iter().any(|cord| {
                         cord.sink_placement_id == placement.placement_id

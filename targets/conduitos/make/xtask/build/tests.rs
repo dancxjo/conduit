@@ -60,18 +60,18 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
 }
 
 #[test]
-fn headless_make_retains_its_static_arena_ceiling() {
+fn zero_heap_make_retains_its_static_arena_ceiling() {
     let packages = conduit_workspace_make::package_set();
-    let profile = check_host_configuration(
-        parse_host_configuration_conduit(include_str!(
-            "../../../profiles/conduitos-aarch64-virt.host.conduit"
-        ))
-        .unwrap(),
-        &conduit_workspace_make::catalog(),
-        &packages,
-    )
-    .unwrap()
-    .into_profile();
+    let mut configuration = parse_host_configuration_conduit(include_str!(
+        "../../../profiles/conduitos-aarch64-virt.host.conduit"
+    ))
+    .unwrap();
+    // Exercise the zero-heap fallback independently of product heap budgets.
+    configuration.limits.heap_arena_bytes = 0;
+    let profile =
+        check_host_configuration(configuration, &conduit_workspace_make::catalog(), &packages)
+            .unwrap()
+            .into_profile();
     let (checked, _) = build_default_host_image(
         profile,
         &conduit_workspace_make::catalog(),
