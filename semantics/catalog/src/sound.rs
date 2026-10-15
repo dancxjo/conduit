@@ -376,7 +376,7 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 12] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 13] {
     [
         (
             crate::audio_time_analysis_contract(),
