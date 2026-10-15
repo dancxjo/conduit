@@ -334,7 +334,7 @@ fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
     let tensor = ModelTensorConstraint::from_parts(
         vec![TensorElement::F32],
         vec![ModelAxisConstraint::new(
-            ModelDimensionConstraint::bounded(1, 4).unwrap(),
+            ModelDimensionConstraint::bounded(4, 1).unwrap(),
             TensorAxisRole::Feature,
         )
         .unwrap()],
