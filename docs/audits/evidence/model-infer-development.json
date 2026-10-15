@@ -1,0 +1,76 @@
+{
+  "source": "68ef71fbccc7c2342ec28e2d9909aba5086d7cc0",
+  "proof_class": "development actual authored reference-linear multi-input/output Source/Plan/Play via installed production Kernel HostCall",
+  "checks": [
+    {
+      "log": "work/onnx-model-numerical-multi-io-tests.log",
+      "sha256": "993cf77d9eec19662b7591d27673a02a144ba2ba19f6202c13083f93986d44d1",
+      "passed": 8
+    },
+    {
+      "log": "work/onnx-model-infer-burn-compatibility-tests.log",
+      "sha256": "c93a68733c610e275ecca1d7e438c8b4accf673702a29a1bb86e76d09f2fe5fd",
+      "passed": 3,
+      "description": "existing numerical Burn host and both actual model-authoring Source/Plan/Play journeys"
+    },
+    {
+      "log": "work/onnx-model-multi-io-clippy.log",
+      "sha256": "6fd36e3ffc8930969d1eabd7789b386c41b308f30ff907528121e75dff7ce383",
+      "result": "PASS",
+      "description": "strict std Host lib plus model_infer_plot and model_compute_host with burn-model enabled"
+    }
+  ],
+  "numerical_contract": {
+    "semantic_input_order": [
+      "left",
+      "right"
+    ],
+    "delivered_bundle_order": [
+      "right",
+      "left"
+    ],
+    "values_by_name": {
+      "left": 2,
+      "right": 3
+    },
+    "model_weights": [
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -1
+      ]
+    ],
+    "model_bias": [
+      1,
+      4
+    ],
+    "expected_named_outputs": {
+      "upper": 5,
+      "lower": 1
+    },
+    "coefficient_custody": "six little-endian F32 coefficients read from one SHA-verified admitted immutable resource"
+  },
+  "observed": [
+    "actual authored named ports and typed signature",
+    "normal planner exact property and resource selection",
+    "one actual Kernel HostCall requested/completed per positive journey",
+    "fixed Kernel value-store capacities",
+    "provider ineligibility/memory and bounded dynamic output refusal before advertisement",
+    "old canonical one-port linear invocation still passes"
+  ],
+  "limits": [
+    "reference-linear CPU profile, not ONNX/ORT execution",
+    "runtime codec/provider allocations not yet bounded by the capacity assertion",
+    "cancellation/timeout/provider loss and full workspace validation remain"
+  ],
+  "remaining": [
+    "retained ONNX metadata/sidecar must reach actual model execution",
+    "cancel/timeout/provider-loss distinct outcomes for new Fore",
+    "runtime storage admission proof",
+    "workspace validation and current-dev refresh"
+  ],
+  "passed_focused_tests": 11
+}
