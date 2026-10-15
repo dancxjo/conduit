@@ -258,10 +258,10 @@ pub fn install_input_semantic_catalogs(
                     value.canonical_value(),
                 )
                 .map_err(|error| alloc::format!("checked keymap default: {error:?}"))?;
-                startup.insert_structured_default(
+                startup.insert_owned_structured_default(
                     contract.kind_id.as_str(),
                     &field.key,
-                    &checked,
+                    checked,
                 )?;
             }
         }

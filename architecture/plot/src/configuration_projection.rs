@@ -51,7 +51,7 @@ pub(crate) fn install_structured_defaults(
         if parameter.default.is_some() {
             startup.structured_defaults.insert(
                 (signature.kind.clone(), parameter.name.clone()),
-                crate::CanonicalStructuredStartupValue::from_checked_value(&value),
+                crate::CanonicalStructuredStartupValue::from_owned_checked_value(value),
             );
         }
     }

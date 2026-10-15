@@ -3,6 +3,39 @@ use super::*;
 use conduit_core::StructuredInfoValueShape;
 
 impl CanonicalStructuredStartupValue {
+    /// Move an admitted Core value into the identical startup representation.
+    /// This avoids retaining a second recursive Type/value tree during installation.
+    pub fn from_owned_checked_value(value: StructuredInfoValue) -> Self {
+        use conduit_core::OwnedStructuredInfoValueShape as Shape;
+        let (value_type, shape) = value.into_parts();
+        let node = match shape {
+            Shape::Leaf(canonical) => CanonicalStructuredStartupNode::Literal { canonical },
+            Shape::Collection(values) => CanonicalStructuredStartupNode::Collection(
+                values
+                    .into_iter()
+                    .map(Self::from_owned_checked_value)
+                    .collect(),
+            ),
+            Shape::Record(fields) => CanonicalStructuredStartupNode::Record(
+                fields
+                    .into_iter()
+                    .map(|field| {
+                        let (name, value) = field.into_parts();
+                        CanonicalStructuredStartupField {
+                            name,
+                            value: Self::from_owned_checked_value(value),
+                        }
+                    })
+                    .collect(),
+            ),
+            Shape::Variant { tag, payload } => CanonicalStructuredStartupNode::Variant {
+                tag,
+                payload: Box::new(Self::from_owned_checked_value(*payload)),
+            },
+        };
+        Self { value_type, node }
+    }
+
     /// Converts an already constructed, bounded Core value without reparsing
     /// Source or inferring a different nominal Type from its representation.
     pub fn from_checked_value(value: &StructuredInfoValue) -> Self {

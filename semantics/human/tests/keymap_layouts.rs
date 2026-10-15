@@ -558,3 +558,69 @@ fn generated_type_only_blobs_preserve_the_exact_authored_value_types() {
     let choices = StructuredInfoValue::from_canonical_bytes(DEFAULT_KEYMAP_CHOICES_BYTES).unwrap();
     assert_eq!(&choices_type(), choices.value_type());
 }
+
+#[test]
+fn consuming_full_authored_registry_preserves_exact_startup_ir_and_catalog_defaults() {
+    use conduit_human::{choices_type, DEFAULT_KEYMAP_CHOICES_BYTES};
+    use conduit_plot::CanonicalStructuredStartupValue;
+    let value = StructuredInfoValue::from_canonical_bytes(DEFAULT_KEYMAP_CHOICES_BYTES).unwrap();
+    let borrowed = CanonicalStructuredStartupValue::from_checked_value(&value);
+    let owned = CanonicalStructuredStartupValue::from_owned_checked_value(value);
+    assert_eq!(owned, borrowed);
+    assert_eq!(owned.value_type(), &choices_type());
+    assert_eq!(owned.canonical_identity(), borrowed.canonical_identity());
+    assert_eq!(
+        owned.try_concrete().unwrap().canonical_bytes().unwrap(),
+        DEFAULT_KEYMAP_CHOICES_BYTES
+    );
+    assert_eq!(owned.try_concrete(), borrowed.try_concrete());
+
+    let mut borrowing_catalog = StartupCatalog::new();
+    borrowing_catalog
+        .insert_structured_type("Choices", choices_type())
+        .unwrap();
+    borrowing_catalog
+        .insert(KindSignature {
+            kind: "test/authored-choices".into(),
+            startup_parameters: vec![StartupParameterSignature {
+                name: "choices".into(),
+                value_type: "Choices".into(),
+                default: Some("<checked>".into()),
+            }],
+        })
+        .unwrap();
+    let mut consuming_catalog = borrowing_catalog.clone();
+    let value = StructuredInfoValue::from_canonical_bytes(DEFAULT_KEYMAP_CHOICES_BYTES).unwrap();
+    borrowing_catalog
+        .insert_structured_default("test/authored-choices", "choices", &value)
+        .unwrap();
+    consuming_catalog
+        .insert_owned_structured_default("test/authored-choices", "choices", value)
+        .unwrap();
+    assert_eq!(consuming_catalog, borrowing_catalog);
+    // Shared admission must preserve wrong-Type, missing-parameter, and duplicate refusals.
+    for (kind, parameter) in [
+        ("test/authored-choices", "choices"),
+        ("test/authored-choices", "missing"),
+        ("missing", "choices"),
+    ] {
+        let invalid = conduit_human::default_keymap_value();
+        let borrowed_error = borrowing_catalog
+            .insert_structured_default(kind, parameter, &invalid)
+            .unwrap_err();
+        let owned_error = consuming_catalog
+            .insert_owned_structured_default(kind, parameter, invalid)
+            .unwrap_err();
+        assert_eq!(owned_error, borrowed_error);
+        assert_eq!(consuming_catalog, borrowing_catalog);
+    }
+    let duplicate = owned.try_concrete().unwrap();
+    let borrowed_error = borrowing_catalog
+        .insert_structured_default("test/authored-choices", "choices", &duplicate)
+        .unwrap_err();
+    let owned_error = consuming_catalog
+        .insert_owned_structured_default("test/authored-choices", "choices", duplicate)
+        .unwrap_err();
+    assert_eq!(owned_error, borrowed_error);
+    assert_eq!(consuming_catalog, borrowing_catalog);
+}

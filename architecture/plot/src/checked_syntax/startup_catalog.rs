@@ -73,6 +73,35 @@ impl StartupCatalog {
         parameter: &str,
         value: &conduit_core::StructuredInfoValue,
     ) -> Result<(), String> {
+        let key = self.structured_default_key(kind, parameter, value.value_type())?;
+        self.structured_defaults.insert(
+            key,
+            crate::CanonicalStructuredStartupValue::from_checked_value(value),
+        );
+        Ok(())
+    }
+
+    /// Install a checked default by transferring its recursive Type/value storage.
+    pub fn insert_owned_structured_default(
+        &mut self,
+        kind: &str,
+        parameter: &str,
+        value: conduit_core::StructuredInfoValue,
+    ) -> Result<(), String> {
+        let key = self.structured_default_key(kind, parameter, value.value_type())?;
+        self.structured_defaults.insert(
+            key,
+            crate::CanonicalStructuredStartupValue::from_owned_checked_value(value),
+        );
+        Ok(())
+    }
+
+    fn structured_default_key(
+        &self,
+        kind: &str,
+        parameter: &str,
+        value_type: &conduit_core::StructuredInfoType,
+    ) -> Result<(String, String), String> {
         let signature = self
             .kinds
             .get(kind)
@@ -87,8 +116,7 @@ impl StartupCatalog {
         }
         let expected = crate::value_type::checked_value_kind(&parameter_signature.value_type, self)
             .map_err(|error| format!("typed default parameter has no exact type: {error:?}"))?;
-        if value
-            .value_type()
+        if value_type
             .profile()
             .map_err(|error| format!("typed default has no profile: {error:?}"))?
             .value_kind()
@@ -100,11 +128,7 @@ impl StartupCatalog {
         if self.structured_defaults.contains_key(&key) {
             return Err("duplicate typed startup default".into());
         }
-        self.structured_defaults.insert(
-            key,
-            crate::CanonicalStructuredStartupValue::from_checked_value(value),
-        );
-        Ok(())
+        Ok(key)
     }
 
     pub(crate) fn get(&self, kind: &str) -> Option<&KindSignature> {
