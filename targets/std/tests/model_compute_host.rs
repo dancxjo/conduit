@@ -82,7 +82,7 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/reference-linear".into(),
-            element: TensorElement::F32,
+            elements: vec![TensorElement::F32],
             rank: 1,
             model_bytes: 64,
             working_memory_bytes: 64,
@@ -175,5 +175,30 @@ fn wrong_loaded_model_and_known_resource_mismatch_refuse_before_compute() {
     assert_eq!(
         linear.execute(oversized),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
+    );
+}
+
+#[test]
+fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
+    let artifact = [44; 32];
+    let mut host = ReferenceModelComputeAdapter::new(offer(), runtime("reference")).unwrap();
+    host.load(artifact, 64).unwrap();
+    let mut wrong_type = invocation(artifact, [2., 3.]);
+    let bytes = 2_f64.to_le_bytes();
+    wrong_type.input.element = TensorElement::F64;
+    wrong_type.input.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+    wrong_type.input.content_digest = tensor_content_digest(&bytes);
+    wrong_type.input.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    assert_eq!(
+        host.execute(wrong_type),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedElement)
+    );
+    let mut wrong_rank = invocation(artifact, [2., 3.]);
+    wrong_rank.input.dimensions = BoundedSequence::try_from_iter([1, 2]).unwrap();
+    let axis = wrong_rank.input.axes[0].clone();
+    wrong_rank.input.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
+    assert_eq!(
+        host.execute(wrong_rank),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape)
     );
 }

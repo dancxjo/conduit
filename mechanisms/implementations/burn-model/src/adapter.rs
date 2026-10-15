@@ -271,7 +271,7 @@ impl<D: BurnModelDefinition> BurnAdapter<D> {
         ModelComputeRequirement {
             operation,
             model_format: self.context.artifact.format_profile.clone(),
-            element: TensorElement::F32,
+            elements: vec![TensorElement::F32],
             rank: limits.maximum_rank,
             model_bytes: self.descriptor.resources.model_bytes,
             working_memory_bytes: self

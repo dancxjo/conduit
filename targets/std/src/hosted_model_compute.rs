@@ -207,6 +207,16 @@ fn validate_invocation(
         return Err(ModelComputeRefusal::ProviderUnavailable);
     }
     offer.admits(&invocation.requirement)?;
+    if !invocation
+        .requirement
+        .elements
+        .contains(&invocation.input.element)
+    {
+        return Err(ModelComputeRefusal::UnsupportedElement);
+    }
+    if invocation.input.dimensions.len() > usize::from(invocation.requirement.rank) {
+        return Err(ModelComputeRefusal::UnsupportedShape);
+    }
     invocation
         .input
         .validate()

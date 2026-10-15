@@ -63,7 +63,7 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/burn-safetensors@1".into(),
-            element: conduit_data::TensorElement::F32,
+            elements: vec![conduit_data::TensorElement::F32],
             rank: 2,
             model_bytes: 4096,
             working_memory_bytes: 86016,
