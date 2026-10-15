@@ -294,19 +294,20 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
     let empty = BTreeMap::new();
     let no_structured = BTreeMap::new();
     let no_numeric = BTreeSet::new();
-    let kinds = BTreeMap::from([("math/sin".into(), pure_kind("math/sin"))]);
+    // Use a fixture-owned name: math/sin now owns the typed Angle contract.
+    let kinds = BTreeMap::from([("fixture/pure".into(), pure_kind("fixture/pure"))]);
     let pure_context = context(&input, &empty, &no_structured, &empty, &no_numeric, &kinds);
     assert_eq!(
-        check_expression(&expression("math/sin(.)"), &pure_context)
+        check_expression(&expression("fixture/pure(.)"), &pure_context)
             .unwrap()
             .value_type,
         input
     );
 
-    let mut effectful = pure_kind("math/sin");
+    let mut effectful = pure_kind("fixture/pure");
     effectful.semantic_laws[0] =
         KindSemanticLaw::ExternalEffects(ExternalEffectBehavior::Observable);
-    let effectful = BTreeMap::from([("math/sin".into(), effectful)]);
+    let effectful = BTreeMap::from([("fixture/pure".into(), effectful)]);
     let context = context(
         &input,
         &empty,
@@ -315,7 +316,7 @@ fn reviewed_pure_semantic_kind_call_uses_its_exact_front() {
         &no_numeric,
         &effectful,
     );
-    assert!(check_expression(&expression("math/sin(.)"), &context).is_err());
+    assert!(check_expression(&expression("fixture/pure(.)"), &context).is_err());
 }
 
 #[test]
