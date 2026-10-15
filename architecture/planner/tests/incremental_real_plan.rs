@@ -160,7 +160,7 @@ fn ordinary(facts: &Facts, i: usize) -> Result<Plan, String> {
     }];
     let mut observations = common::resource_observations(&hosts);
     for observation in &mut observations {
-        observation.unreserved_units = facts.capacity[i];
+        observation.unreserved_units = observation.unreserved_units.min(facts.capacity[i]);
     }
     let timed: Vec<_> = observations
         .iter()
