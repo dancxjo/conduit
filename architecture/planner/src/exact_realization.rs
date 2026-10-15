@@ -24,7 +24,13 @@ where
                 None
             }
         })
+        .take(conduit_core::MAXIMUM_REALIZATION_PROPERTIES + 1)
         .collect::<Vec<_>>();
+    if requirements.len() > conduit_core::MAXIMUM_REALIZATION_PROPERTIES {
+        return Err(PlannerError::PlannerLimitExceeded(
+            "exact realization requirement bound".into(),
+        ));
+    }
     if requirements.is_empty() {
         return Ok(candidates);
     }

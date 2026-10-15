@@ -80,7 +80,7 @@ fn authored_model_signature_selects_only_the_exact_concrete_realization() {
         plan.fragments[0].placements[0].artifact_id.as_str(),
         "fixture/zzz-current@1"
     );
-    verify_plan(&plan).unwrap();
+    assert!(verify_plan(&plan));
 }
 
 #[test]
