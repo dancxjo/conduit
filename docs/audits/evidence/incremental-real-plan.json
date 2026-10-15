@@ -1,0 +1,31 @@
+{
+  "issue": 5555,
+  "state": "validated for review",
+  "source": "9cccd5f2c41acec2cdc39927663bf412b4811ee1",
+  "base": "9780308650e454a091edaac55a05f38f97ed77e9",
+  "tests": 38,
+  "focused_strict_clippy": "PASS",
+  "formatting": "PASS",
+  "proof_class": "native checked Source and ordinary verified Plans; modeled cost-source identities and offers",
+  "production_changes": false,
+  "checks": [
+    "actual cache and cold candidate dispositions/selection agree",
+    "only affected candidates invalidated",
+    "same-generation content changes invalidate",
+    "cost-driven distinct Plan identity",
+    "old complete Plan evidence preserved and verified",
+    "all-candidate refusal and recovery"
+  ],
+  "not_claimed": [
+    "automatic global incremental planner installation",
+    "live provider facts",
+    "cryptographic producer authentication",
+    "physical performance or parent5230 completion"
+  ],
+  "parent_5230": "open",
+  "log_sha256": {
+    "incremental-accepted-spectrum-tests.log": "bd434a85473753229eb3db7a425fbe1215a0189abaaccd63d6c63d192ef75f03",
+    "incremental-accepted-spectrum-clippy.log": "1fc5412bc4da81c439d01a465aaeb8633d66dcf9036f9f2a77618277f91aa9c6",
+    "incremental-accepted-spectrum-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
+}
