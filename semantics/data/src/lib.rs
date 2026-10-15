@@ -59,6 +59,7 @@ mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
 mod named_tensor;
+mod named_tensor_catalog;
 mod sampled_signal;
 mod scalar_comparison;
 mod scientific_alignment;
@@ -72,6 +73,7 @@ mod tensor;
 mod tensor_catalog;
 mod tensor_codec;
 pub use named_tensor::*;
+pub use named_tensor_catalog::install_named_tensor_type;
 
 pub use data_catalog::*;
 pub use data_generation::*;

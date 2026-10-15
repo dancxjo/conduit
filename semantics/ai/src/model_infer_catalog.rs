@@ -173,14 +173,8 @@ pub fn install_model_infer_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    startup.ensure_structured_type(
-        "ModelSignature",
-        ModelSignature::semantic_type().map_err(|e| format!("signature Type: {e:?}"))?,
-    )?;
-    startup.ensure_structured_type(
-        "NamedTensorBundle",
-        NamedTensorBundle::semantic_type().map_err(|e| format!("tensor bundle Type: {e:?}"))?,
-    )?;
+    crate::model_infer_types::install_signature_type(startup)?;
+    conduit_data::install_named_tensor_type(startup)?;
     let kind = model_infer_contract()?;
     startup.insert(KindSignature {
         kind: MODEL_INFER_KIND.into(),
