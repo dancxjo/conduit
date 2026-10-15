@@ -1,0 +1,334 @@
+{
+  "source": "29f2607a6a4dded27bf88bfc6c44bcedefcf9f9b",
+  "status": "PASS:38hostedtests+strictClippy+canonicalPCproductbuild+10freshBOTcases",
+  "tests": {
+    "protocol_host_calls": 7,
+    "arch::usb_xhci::native_host": 31
+  },
+  "excluded_command": "arch::usb_xhci::usb_native_host selected zero tests and is not counted",
+  "test_binary_sha256": "20e7e54ad297e94327f291f66a2031300002e2996a940fab87a4d372f9495b83",
+  "logs": {
+    "work/usb-stall-recovery-clippy.log": "6e183317a9d8d7151a69a40d56b3f8eebf3823fe211489d33668a39c84599e54",
+    "work/usb-stall-protocol_host_calls-tests.log": "1779390819abeae2ece90b355f345d60a418eb0c0fec2303f10e3bdc8ab1529f",
+    "work/usb-stall-native-host-corrected-tests.log": "ab002fd61006e8a5b017aec6cb73e2e7eff91d48a64befd6d2def19d80c1c6f4"
+  },
+  "proof_class": "hosted native event-ring/MMIO tests and actual dispatcher/kernel guard tests; no freshguestclaim yet",
+  "product_pipeline": 5263,
+  "branch": "codex/usb-stall-recovery",
+  "changed_file": "targets/conduitos/src/protocol_host_calls/subordinate.rs",
+  "before_fix_guest_failure": "outputs/usb-bot-current-lifecycle-validation.json",
+  "current_guest": {
+    "results": [
+      {
+        "mode": "stall-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true
+      }
+    ],
+    "receipt": {
+      "aarch64_firmware_sha256": null,
+      "architecture": "x86_64",
+      "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-recovery/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+      "fixture_input": {
+        "command": null,
+        "injected": false,
+        "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+        "maximum_reports": 0,
+        "requested": false
+      },
+      "image_sha256": "fd7529ef8b0dd3b437ac95b04c5369636acf5dce091913fd62decd24b925c17b",
+      "maximum_transcript_bytes": 2097152,
+      "outcome": "play-retired",
+      "physical_compatibility": "unverified",
+      "proof_class": "freestanding-emulator",
+      "qemu_profile": "q35-single-cpu-512m-headless",
+      "schema": "conduit.conduitos/protocol-run-receipt@1",
+      "serial_sha256": "3a3cbf4e1b80ea160e5fa9c7508f4afddf3f277aa58a46eee27d6090cc447f41",
+      "usb_devices": [],
+      "usb_storage_fixture": null
+    },
+    "build_record": {
+      "schema": "conduit.conduitos.build/v2",
+      "artifact_role": "product-host",
+      "base_commit": "29f2607a6a4dded27bf88bfc6c44bcedefcf9f9b",
+      "architecture": "x86_64",
+      "rust_target": "x86_64-unknown-none",
+      "limine_crate": "0.5.0",
+      "elf_sha256": "bffd0d241ac014f4e2df1689bdce96feae98e042b53f3e04c20060a819df0039"
+    },
+    "proof_class": "freestanding-emulator; physical compatibility unverified",
+    "files": {
+      "results.json": "bab4c74d9e334b0daac38b4934db9ecc7330c713080305a817f06198d97b9598",
+      "stall-in-decoded.log": "b44caa936da9a550eb39e9951fd2849303f8de0cb5811c6911c89f0d57bd0264",
+      "run-stall-in/receipt.json": "ee5876a7a4cb29b963b5b4707af1e5afdc4a7ad608cde52ccd7829cdb7d3150e",
+      "run-stall-in/serial.log": "3a3cbf4e1b80ea160e5fa9c7508f4afddf3f277aa58a46eee27d6090cc447f41",
+      "device-stall-in/wire.jsonl": "fc5aead975cf0f86920a20c13113ca6f0dcc74886ac08f8f2b84a564a65ea028"
+    }
+  },
+  "next_matrix_cell": 5299,
+  "matrix": {
+    "stall": [
+      {
+        "result": {
+          "mode": "stall-in",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "stalled",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-stall-in/serial.log": "3a3cbf4e1b80ea160e5fa9c7508f4afddf3f277aa58a46eee27d6090cc447f41",
+          "run-stall-in/receipt.json": "ee5876a7a4cb29b963b5b4707af1e5afdc4a7ad608cde52ccd7829cdb7d3150e",
+          "device-stall-in/wire.jsonl": "fc5aead975cf0f86920a20c13113ca6f0dcc74886ac08f8f2b84a564a65ea028",
+          "stall-in-decoded.log": "b44caa936da9a550eb39e9951fd2849303f8de0cb5811c6911c89f0d57bd0264"
+        }
+      }
+    ],
+    "transfer": [
+      {
+        "result": {
+          "mode": "none",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "proof_class": "emulated-native-block-read",
+          "blocks": 16,
+          "bytes_per_block": 512,
+          "ordered_unique_ordinals": true,
+          "retired": true
+        },
+        "files": {
+          "run-none/serial.log": "36c49ff383997d7a0ba63603ff91a863687133571189fceed7d8ff8fbea6ea43",
+          "run-none/receipt.json": "10ba0f4c89f8c0f778ab4ffa55c602f86dba367d72c117981ac67204b09c05c7",
+          "device-none/wire.jsonl": "c5cb405da3feccee53a159d27ceb18b3152f257e44837582f44576953a916a83",
+          "none-decoded.log": "45b64643c46cb8cd81cf07ccbaae8e7efdc75ff0ee2890078d32c7a17a5bed4a"
+        }
+      },
+      {
+        "result": {
+          "mode": "disconnect-in",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "provider-lost",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-disconnect-in/serial.log": "14a297ca886def2d3686dc7c4d7c1208fe6c868d56d19050b239405820614a62",
+          "run-disconnect-in/receipt.json": "4202db47a52e3b4d61ebf4db8f150bb5feb474f29444720abd88b9ea7c9f7aad",
+          "device-disconnect-in/wire.jsonl": "b21e8f42dc15f25e2d14f9886ea1f0e6d2e69e318f3ba9ff90fff0f8a7d1f357",
+          "disconnect-in-decoded.log": "a26f628b21e861ce220a0b0650fc87a66463bc2a54669a48102dc97a096c6b2b"
+        }
+      },
+      {
+        "result": {
+          "mode": "stale-tag",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-stale-tag/serial.log": "92cf9cc0f54bd1600346be2f6ae84cde740d1fdd22b1de571037b5156f5cab70",
+          "run-stale-tag/receipt.json": "8839643bcc105a9ff427a667378bad34ea65d97c7425b922d0779de15c16dcc7",
+          "device-stale-tag/wire.jsonl": "a72e6514f7e22ec7c3138e2c11f7049ff30b3781ca36fe54d4729f8340aba2f8",
+          "stale-tag-decoded.log": "072b373991c157b604853b16355160c81379bf7c2e345d2b7901b3499cdd6f6a"
+        }
+      },
+      {
+        "result": {
+          "mode": "bad-residue",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-bad-residue/serial.log": "d5122f8d7f5eb36dff168f9da8353fb3cc8e7a2049a3f5a5ee4885ce4c930004",
+          "run-bad-residue/receipt.json": "af3ec4a137581fed3a5f751094d2d82169674025d6e8ca7ae84d3dc466f4330d",
+          "device-bad-residue/wire.jsonl": "8e5e116a3065a6d02fe46c36849797cc60902a1c2a4b70d3b62bb9114e726354",
+          "bad-residue-decoded.log": "072b373991c157b604853b16355160c81379bf7c2e345d2b7901b3499cdd6f6a"
+        }
+      },
+      {
+        "result": {
+          "mode": "command-failed",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-command-failed/serial.log": "6d5159f5d8d8b6e029801398e9c30ae1272014048aea37af1e6cd669952d100f",
+          "run-command-failed/receipt.json": "f6c59f5dd7151e20d3ea19d1fbed756779003eceb6a812a89737936b216651d3",
+          "device-command-failed/wire.jsonl": "9f92116b9675005be17a0ab176b67da3aee96f80d714335922f8003033f6dd8b",
+          "command-failed-decoded.log": "072b373991c157b604853b16355160c81379bf7c2e345d2b7901b3499cdd6f6a"
+        }
+      },
+      {
+        "result": {
+          "mode": "phase-error",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-phase-error/serial.log": "e5c1ffb9511a4d1742d6b04455520739cc8338715ad85dc74dd9d0f3087cdb6f",
+          "run-phase-error/receipt.json": "fff147ed750180947c74a9790ae894a09acb3d954daf73e8b13a4941ba4955a4",
+          "device-phase-error/wire.jsonl": "5ac2b27b90d0f18564b1ca919de80900659e792e8df5531f4d955132f65b4fa5",
+          "phase-error-decoded.log": "072b373991c157b604853b16355160c81379bf7c2e345d2b7901b3499cdd6f6a"
+        }
+      },
+      {
+        "result": {
+          "mode": "short-in",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "files": {
+          "run-short-in/serial.log": "9e9f23eaf35ab2786743ab29567ed23c35196bf2252c9ec9afa83468e3648bd2",
+          "run-short-in/receipt.json": "d709adb3c6b504768025c57a15a510b8ef50cf9b13b48016cbafd9d327e96b34",
+          "device-short-in/wire.jsonl": "c2039f98ba69cd55b72135a3a6dd2fe843ba8ea90de66d290f6247ccdf341f93",
+          "short-in-decoded.log": "072b373991c157b604853b16355160c81379bf7c2e345d2b7901b3499cdd6f6a"
+        }
+      }
+    ],
+    "cancel": [
+      {
+        "result": {
+          "mode": "hold-in",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "root_outcome": "protocol-step-budget-exhausted",
+          "block_outputs": 0,
+          "original_cancel_id": 518930432,
+          "device_response_after_cancel_status": 1,
+          "late_native_completion_proven": false
+        },
+        "files": {
+          "run-hold-in/serial.log": "dcb1cbe4f245c76045e638512e5240951126df695e164b7039770c33c7178d45",
+          "run-hold-in/receipt.json": "9f6cff95635063126cbdb37660083e8dcc90c223dfa5236261604738f780cd85",
+          "device-hold-in/wire.jsonl": "fe6ceace48ce37e4b80751c87eafc98f2dceaf4a0fa9320b515a19c866e3adf8",
+          "hold-in-decoded.log": "a126880a95120b6fb41b715505abfc62963410aae9980c11aa7dd6e77ec7fa53"
+        }
+      },
+      {
+        "result": {
+          "mode": "late-after-cancel",
+          "runner_exit": 0,
+          "decoder_exit": 0,
+          "native_tags": [
+            1
+          ],
+          "passed": true
+        },
+        "decoded": {
+          "root_outcome": "protocol-step-budget-exhausted",
+          "block_outputs": 0,
+          "original_cancel_id": 518930432,
+          "device_response_after_cancel_status": 0,
+          "late_native_completion_proven": false
+        },
+        "files": {
+          "run-late-after-cancel/serial.log": "526a033b58d5c98fab950e5760fb990323e8d8379fae4975fc9e441215b8dd94",
+          "run-late-after-cancel/receipt.json": "2e198464ecf4a7accc67f5b2f59259af9c9ebd68fc08e25178f93e9d72c0c1d6",
+          "device-late-after-cancel/wire.jsonl": "2bf038b64748f29762fd9e54354027975d1490e8b024973a271cf2e28cbdb75c",
+          "late-after-cancel-decoded.log": "535dda6e71878d349449e7edbc88eb2c5b02cccb2fa7383a1ac2972081f63385"
+        }
+      }
+    ]
+  },
+  "all_10_cases_zero_play_allocations_and_reallocations": true,
+  "late_native_completion_proven_by_external_reply": false,
+  "physical_compatibility": "unverified",
+  "proof_boundary": "hosted native syntheticMMIO/events + actualfreestandingQEMUproduct; no physicaldeviceclaim; #5587/#5253currentfullintegrationandpublicationgatesremain",
+  "completed_pipeline": 5299
+}
