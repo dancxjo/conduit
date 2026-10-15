@@ -1,5 +1,5 @@
-// Synthetic metadata uses the pinned ONNX protobuf field numbers. No downloaded
-// weights, provider library or network access participates in these tests.
+// A local Add graph uses the pinned ONNX protobuf field numbers and four inline
+// bias values. No downloaded weights or provider library participates here.
 fn varint(mut n: u64) -> Vec<u8> {
     let mut out = Vec::new();
     loop {
@@ -30,8 +30,28 @@ pub fn port(name: &str, dtype: u64, dimension: Vec<u8>) -> Vec<u8> {
 // Symbol-only consumers use the shared wire builders without this fixture.
 #[allow(dead_code)]
 pub fn model(extra_graph: &[u8]) -> Vec<u8> {
+    let bias = [1_f32, 2., 3., 4.]
+        .into_iter()
+        .flat_map(f32::to_le_bytes)
+        .collect::<Vec<_>>();
+    let initializer = [
+        number(1, 4),
+        number(2, 1),
+        bytes(8, b"bias"),
+        bytes(9, &bias),
+    ]
+    .concat();
+    let node = [
+        bytes(1, b"scale"),
+        bytes(1, b"bias"),
+        bytes(2, b"result"),
+        bytes(4, b"Add"),
+    ]
+    .concat();
     let graph = [
+        bytes(1, &node),
         bytes(2, b"tiny-mixed-input"),
+        bytes(5, &initializer),
         bytes(11, &port("tokens", 7, bytes(2, b"sequence"))),
         bytes(11, &port("scale", 1, number(1, 1))),
         bytes(12, &port("result", 1, number(1, 4))),

@@ -64,8 +64,10 @@ realization admission and a genuine execution Back remain unfinished.
 
 Focused native tests cover metadata and sidecar binding, wrong identities,
 counts, names, rank, dtype, static dimensions, malformed wire data and external
-data refusal. The synthetic metadata fixture deliberately tests metadata only;
-it is not an executable model or an inference proof.
+data refusal. The main imported fixture contains one Add node and four locally
+authored inline bias values; these tests inspect its metadata without executing
+it. Separate symbolic-shape fixtures test only metadata. None is an inference
+proof.
 
 Issue #5691 remains unfinished: exact Source → Plan → Play evidence is still
 required. Genuine model-compute Back
