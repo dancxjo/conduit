@@ -10,11 +10,6 @@ use super::{hid_qmp, journey_records, qmp, ConduitosError};
 // Keep every observation finite, but allow a runnable guest one baseline
 // five-second window per contending VM before declaring its exact record absent.
 const RECORD_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
-// Cold lifecycle preparation checks and identifies all four selected source
-// Plots. Exact Candidate guest replays needed 24.6s for birth, 19.2s for
-// Wake and 28.4s for Plan; use the same finite 60s envelope as cold arrival.
-// Ordinary input/result records retain their separate 20s observation window.
-const COLD_PREPARATION_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub(super) fn key_pair(
     qmp: &mut UnixStream,
@@ -168,7 +163,7 @@ fn wait_for_record_inner(
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
     let timeout = match status {
-        "born-lulled" | "awake" | "planned" => COLD_PREPARATION_WAIT_TIMEOUT,
+        "born-lulled" | "awake" | "planned" => hid_qmp::COLD_PREPARATION_WAIT_TIMEOUT,
         _ => RECORD_WAIT_TIMEOUT,
     };
     let deadline = std::time::Instant::now() + timeout;

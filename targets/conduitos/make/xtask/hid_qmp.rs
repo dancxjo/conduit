@@ -12,6 +12,11 @@ use std::{
 pub(super) use super::qmp::connect;
 use super::{qmp, ConduitosError};
 
+// Source catalog and Mask preparation share one finite cold-start envelope.
+// Candidate arrival missed 20s; its exact kernel arrived locally in 17.8s,
+// while later cold lifecycle preparation required up to 28.4s.
+pub(super) const COLD_PREPARATION_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[derive(Clone, Copy)]
 pub(super) enum RescueNearMiss {
     ControlDelete,
@@ -405,7 +410,13 @@ pub(super) fn wait_for_product_arrival(
     stage: &str,
     reason: &'static str,
 ) -> Result<(), ConduitosError> {
-    wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(20))
+    wait_for_stage_with_budget(
+        serial_path,
+        child,
+        stage,
+        reason,
+        COLD_PREPARATION_WAIT_TIMEOUT,
+    )
 }
 
 pub(super) fn wait_for_stage_with_budget(
