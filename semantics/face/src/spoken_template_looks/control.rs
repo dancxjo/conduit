@@ -3,7 +3,8 @@ use super::*;
 use crate::{Face, FaceDisclosureLevel, FaceRelationshipKind, FaceRole, FaceUtteranceProvenance};
 use alloc::{collections::BTreeSet, vec};
 
-/// Retain every clause belonging to the primary Region's Contains subtree.
+/// Read the primary Region's human text, typed values, actions and temporal facts.
+/// Structural roles, containment, disclosure and implementation counters stay inspectable in Face.
 /// The original Face, identity and full utterance digest remain authoritative.
 pub fn prepare_spoken_control_slots(
     face: &Face,
@@ -71,28 +72,21 @@ pub fn prepare_spoken_control_slots(
             .iter()
             .any(|action| action.identity == id && scope.contains(action.target.as_str()))
     };
-    let mut groups: [Vec<(u32, &str)>; 6] = core::array::from_fn(|_| vec![]);
+    let mut groups: [Vec<(u32, String)>; 6] = core::array::from_fn(|_| vec![]);
     let mut actions = Vec::new();
     for (index, clause) in plan.clauses.iter().enumerate() {
         let included = match &clause.provenance {
-            FaceUtteranceProvenance::Subject(source) => scope.contains(source.identity().as_str()),
-            FaceUtteranceProvenance::Relationship(source) => face
-                .relationships
-                .get(*source.index() as usize)
-                .is_some_and(|item| {
-                    scope.contains(item.source.as_str()) && scope.contains(item.target.as_str())
-                }),
+            FaceUtteranceProvenance::Subject(source) => source.identity() == &root.identity,
             FaceUtteranceProvenance::Property(source) => face
                 .properties
                 .get(*source.index() as usize)
-                .is_some_and(|item| scope.contains(item.subject.as_str())),
-            FaceUtteranceProvenance::Composition(source) => face
-                .composition
-                .iter()
-                .find(|item| item.identity == *source.identity())
                 .is_some_and(|item| {
-                    scope.contains(item.source.as_str()) && scope.contains(item.target.as_str())
+                    scope.contains(item.subject.as_str())
+                        && matches!(item.value, crate::FacePropertyValue::TypedValue { .. })
                 }),
+            FaceUtteranceProvenance::Relationship(_) | FaceUtteranceProvenance::Composition(_) => {
+                false
+            }
             FaceUtteranceProvenance::Text(source) => face
                 .text
                 .get(*source.index() as usize)
@@ -101,10 +95,7 @@ pub fn prepare_spoken_control_slots(
             FaceUtteranceProvenance::ActionArgument(source) => {
                 action_in_scope(source.action_identity())
             }
-            FaceUtteranceProvenance::Disclosure(source) => face
-                .disclosures
-                .get(*source.index() as usize)
-                .is_some_and(|item| scope.contains(item.subject.as_str())),
+            FaceUtteranceProvenance::Disclosure(_) => false,
             FaceUtteranceProvenance::TemporalFact(source) => face
                 .temporal_facts
                 .get(*source.index() as usize)
@@ -131,14 +122,50 @@ pub fn prepare_spoken_control_slots(
             FaceUtteranceProvenance::ActionArgument(_) => 5,
             _ => 1,
         };
-        groups[slot].push((index as u32, clause.text.as_str()));
+        // Labels come from this exact Face, never a second settings reducer.
+        let label = match &clause.provenance {
+            FaceUtteranceProvenance::Text(source) => face
+                .text
+                .get(*source.index() as usize)
+                .filter(|item| item.subject != root.identity)
+                .and_then(|item| {
+                    face.subjects
+                        .iter()
+                        .find(|subject| subject.identity == item.subject)
+                })
+                .map(|subject| subject.name.as_str()),
+            FaceUtteranceProvenance::Action(source) => face
+                .actions
+                .iter()
+                .find(|action| action.identity == *source.identity())
+                .and_then(|action| {
+                    face.relationships.iter().find(|relation| {
+                        relation.kind == FaceRelationshipKind::Contains
+                            && relation.target == action.target
+                            && relation.source != root.identity
+                            && scope.contains(relation.source.as_str())
+                    })
+                })
+                .and_then(|relation| {
+                    face.subjects
+                        .iter()
+                        .find(|subject| subject.identity == relation.source)
+                })
+                .map(|subject| subject.name.as_str()),
+            _ => None,
+        };
+        let words = label.map_or_else(
+            || clause.text.clone(),
+            |label| alloc::format!("{label}: {}", clause.text),
+        );
+        groups[slot].push((index as u32, words));
     }
     let mut values: [String; 6] = core::array::from_fn(|_| String::new());
     let mut indices = Vec::new();
     for (index, group) in groups.iter().enumerate() {
         values[index] = group
             .iter()
-            .map(|(_, words)| *words)
+            .map(|(_, words)| words.as_str())
             .collect::<Vec<_>>()
             .join(" ");
         if values[index].len() > MAX_SPOKEN_TEMPLATE_SLOT_BYTES {

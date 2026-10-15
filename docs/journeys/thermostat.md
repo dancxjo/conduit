@@ -58,9 +58,10 @@ admission; this command does not silently extend a grant or replay a prior Boot.
 No complete thermostat journey packet is checked in or published yet. The
 staged producer below still uses the direct-owner terminal entrance and needs
 peer integration. An explicit checked `spoken/control-template` selects the
-primary application Region and every clause in its Contains subtree from the
-original Face. It retains requested settings, typed values, available actions,
-and equipment caveats while keeping Body context outside this scoped reading.
+primary application Region's human text, typed values, actions and temporal
+facts from the original Face. It retains requested settings, available actions
+and equipment caveats while keeping structural metadata and Body context out
+of the reading. Labels are read directly from that same Face.
 The full-Face Brief and Expanded selections retain their existing contracts.
 
 With explicitly installed artifact speech equipment, enter `read settings` on
@@ -72,13 +73,13 @@ actions does not admit an interaction Line or authorize speech actions.
 
 A local development run used fresh installed owner and peer Hosts on one
 physical machine. Heat and Eco changed the same running thermostat; the spoken
-reading completed in 27 artifact frames, and the peer returned to the terminal
+reading completed in 9 artifact frames, and the peer returned to the terminal
 with the same Body, Plan and Play. Closing the peer left the scan running.
 This proves current owner-correlated artifact generation, not speaker playback
 or listening. A speech refusal is not a successful spoken encounter.
 
 The hosted presentation profile admits a 64 KiB route binding and a 128 KiB
-control document. One observed reading required 47,568 and 69,006 bytes,
+control document. One observed reading required 47,568 and 69,002 bytes,
 respectively. The native profile retains its 40 KiB binding and 64 KiB document;
 physical native frames retain their existing bound. Actual Face and Show values
 must still fit the separately admitted 64 KiB hosted Mask Lines. Changing an

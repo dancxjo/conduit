@@ -280,6 +280,11 @@ fn one_primary_control_region_preserves_every_clause_and_refuses_ambiguous_title
             level: FaceDisclosureLevel::Context,
         },
     ];
+    face.properties.push(crate::FaceProperty {
+        subject: "control".into(),
+        name: "internal-revision".into(),
+        value: crate::FacePropertyValue::Count(7),
+    });
     let face = face
         .clone()
         .with_interaction_context(face.interaction_context.clone())
@@ -312,6 +317,12 @@ fn one_primary_control_region_preserves_every_clause_and_refuses_ambiguous_title
     );
     assert!(wording.selected_clause_indices.len() < plan.clauses.len());
     assert!(!wording.wording.contains("Overview context"));
+    assert!(!wording.wording.contains("internal-revision"));
+    assert!(!wording.wording.contains(" contains "));
+    assert!(!wording.wording.contains("Primary content:"));
+    assert!(wording
+        .wording
+        .contains("Requested settings: Heat requested; equipment activity unconfirmed."));
     assert!(wording
         .wording
         .contains("Heat requested; equipment activity unconfirmed."));
@@ -347,7 +358,7 @@ fn one_primary_control_region_preserves_every_clause_and_refuses_ambiguous_title
 
 #[test]
 #[ignore = "requires an actual retained control Face; no runtime or audio claim"]
-fn actual_control_face_retains_all_application_facts_in_checked_summary() {
+fn actual_control_face_retains_human_settings_and_actions_in_checked_summary() {
     let path = std::path::PathBuf::from(std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_FACE").unwrap());
     let record: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
     let face: Face = serde_json::from_value(record.get("face").unwrap_or(&record).clone()).unwrap();
