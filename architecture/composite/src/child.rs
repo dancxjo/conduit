@@ -345,10 +345,6 @@ impl ChildKernel {
         Ok(())
     }
 
-    pub(crate) fn sign_log_snapshot(&self) -> HostedSignLog {
-        self.scheduler.signs().clone()
-    }
-
     pub(crate) fn signs(&self) -> Vec<KernelEvent> {
         self.scheduler.signs().events().collect()
     }

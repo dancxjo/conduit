@@ -343,15 +343,6 @@ impl KernelCompositeHost {
         &self.cancellation_failures
     }
 
-    /// Allocating lossless Sign snapshot outside sealed Play, including remote
-    /// lifecycle identities, storage counters and explicit retention gaps.
-    pub fn sign_log_snapshots(&self) -> BTreeMap<HostId, conduit_kernel::HostedSignLog> {
-        self.children
-            .iter()
-            .map(|(child, kernel)| (child.clone(), kernel.sign_log_snapshot()))
-            .collect()
-    }
-
     /// Allocating face snapshot, outside sealed Play.
     pub fn signs(&self) -> BTreeMap<HostId, Vec<KernelEvent>> {
         self.children

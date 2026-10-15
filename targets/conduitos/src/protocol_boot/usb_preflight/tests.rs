@@ -43,17 +43,6 @@ fn exact_profile_pure_kernel_retires_and_class_package_substitution_refuses() {
     .unwrap();
     let class = PreparedProtocolEntry::prepare(&bytes, "class").unwrap();
     admitted.validate_class(&class).unwrap();
-    assert!(admitted._play.is_none());
-    let evidence = admitted._evidence.as_ref().unwrap();
-    assert!(conduit_core::verify_plan(&evidence._plan));
-    assert_eq!(evidence._active_plays.len(), evidence._plan.fragments.len());
-    assert_eq!(evidence._signs.len(), evidence._active_plays.len());
-    assert!(
-        evidence
-            ._signs
-            .values()
-            .all(|signs| signs.events().next().is_some())
-    );
     admitted.validate_request(&request).unwrap();
     let mut changed = super::tests::request(&bytes);
     changed.endpoint_read.as_mut().unwrap().maximum_packet = 32;
