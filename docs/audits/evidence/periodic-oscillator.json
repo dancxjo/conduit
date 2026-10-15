@@ -138,5 +138,139 @@
     "log_sha256": "2bf474dd8672960902e0baf70b11e99a5c1d51f9abb6c897e272f127ed21f8fa",
     "xtask_build_attempt": "local linker failed before executing checks when filesystem filled; inactive compiler metadata reclaimed; direct equivalent checks used without bypassing locks"
   },
-  "refreshed_accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3"
+  "refreshed_accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3",
+  "original_proof_label": "Historical 68-test source-bound proof retained unchanged; see conditional_validation_repair for latest validation",
+  "latest_proof_source": "34d97d2881cd3f26593cccb89a4ba4aca306f00b",
+  "latest_total_tests": 70,
+  "conditional_validation_repair": {
+    "issue": 5676,
+    "tested_source": "34d97d2881cd3f26593cccb89a4ba4aca306f00b",
+    "state": "PASS",
+    "proof_class": "local native checked Source and normal installed Host Plan/Play; no physical claim",
+    "tests": 70,
+    "checks": [
+      {
+        "log": "periodic-conditional-validation-final-tests.log",
+        "sha256": "1eb7042eefb533c7947815c399dca9777515edc8cd58e60dea5e8e8e7f33cc4f",
+        "tests": 8,
+        "state": "PASS"
+      },
+      {
+        "log": "periodic-conditional-normal-tests.log",
+        "sha256": "05695f40285be5da2f225680c5531c5ee4d408cce355718a3e7f251849fbcec8",
+        "tests": 1,
+        "state": "PASS"
+      },
+      {
+        "log": "periodic-conditional-speech-tests.log",
+        "sha256": "69752c3124deb155d477257de90fc6af53218b048b6474bd8329f6eaec6ca967",
+        "tests": 60,
+        "state": "PASS"
+      },
+      {
+        "log": "periodic-conditional-shared-flow-tests.log",
+        "sha256": "6ded0aa4e34dfb9a4098e6fd45124a5cb23d659dc94afc183ff0fa10e873a769",
+        "tests": 1,
+        "state": "PASS"
+      },
+      {
+        "log": "periodic-conditional-focused-clippy.log",
+        "sha256": "874804249768573ccbed316c41587d7ed0b39b4b932f60ec59ba2fef54c5bdb1",
+        "state": "PASS"
+      },
+      {
+        "log": "periodic-conditional-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "state": "PASS"
+      }
+    ],
+    "tested_files": [
+      {
+        "path": "architecture/plot/tests/periodic_flow.rs",
+        "sha256": "714b0a0f32ee3d7da8579d711ba478c698bf3ba310ea75ede22834b49bf875dd",
+        "blob": "0c9ce3141d0d0d7398d164b00f41b01a4ecaa657"
+      },
+      {
+        "path": "proof/fixtures/native-speech-footprint/Cargo.lock",
+        "sha256": "291c718dc3c0582ecd8cc4122b9f380a60b3e2de2a3976876bfc2ba287b7c54f",
+        "blob": "175845c44bbf400aad79bd9eeb09adde81fd2fb7"
+      },
+      {
+        "path": "semantics/audio/build.rs",
+        "sha256": "2579873a9442a6c0b70b32b3e01e81682e9fef364b02c6b79f08d20d4c3baba6",
+        "blob": "4cbaba500d592b78a6d3bee1f7b039d819c42fbe"
+      },
+      {
+        "path": "semantics/audio/build_support/periodic.rs",
+        "sha256": "a949d3df7e6f0134c8ef31139150762668c75e0988d81c4b212d10e1c57d8c02",
+        "blob": "8d388349c113337099f9b3ea370becdf688e64eb"
+      },
+      {
+        "path": "semantics/audio/dsp/periodic-flow.conduit",
+        "sha256": "738e977c1ea30901bfc4f0999402eaa63860ec9b7806047428f08ff52e35ba21",
+        "blob": "765996dc039beb15745a915540e4a31c77d152d0"
+      },
+      {
+        "path": "semantics/audio/dsp/periodic-oscillator.conduit",
+        "sha256": "f897d9cd4b72206876d6317c3d6521dd3013f7693b1faf8d7ea2a7e88d44139d",
+        "blob": "c9f67028d1442fa6d5c0702319c65e37dfa7a37f"
+      },
+      {
+        "path": "semantics/audio/dsp/periodic-types.conduit",
+        "sha256": "5a016d6f01e97bd4b52f12de52084d30bcb952722543ba205cfcefa6434ef4b6",
+        "blob": "a327531a4cefab7aa13731323a7cc9ce10a571dc"
+      },
+      {
+        "path": "semantics/audio/src/lib.rs",
+        "sha256": "c676fce1c131bead8f9037fc035f83a25264225b618ad05cd05b106869793330",
+        "blob": "028700cdb9ae08f1dc156379185ceecf3cda421f"
+      },
+      {
+        "path": "semantics/audio/tests/common/periodic.rs",
+        "sha256": "8716491d4dcc610297cddc507e742a4f26849436ba2ece396aaa61d8fb596542",
+        "blob": "78c157838f97478b4069cd7ba82e5769e6f165c4"
+      },
+      {
+        "path": "semantics/audio/tests/periodic_oscillator.rs",
+        "sha256": "d6c27f1927dd6cdbfa580a6695339764356099cbadab8fc957f4ba7e859b365d",
+        "blob": "ed62a65059b5aa98bdab5b31a6bb55681a2e5781"
+      },
+      {
+        "path": "semantics/audio/tests/periodic_validation_guards.rs",
+        "sha256": "13b187e971ac01fb55e680aa286c00f96da6ab6ec3755534e1f67515391ad727",
+        "blob": "47e5cb6d63ed12bb75dac46b65c78df2e00aa21a"
+      },
+      {
+        "path": "semantics/speech/Cargo.toml",
+        "sha256": "b47c91b235caf9fadc640780174989da3f7f1e8742895fe0f6cb77bacc833b9d",
+        "blob": "a23e5cf90ba91011280f299ff77426d283901380"
+      },
+      {
+        "path": "semantics/speech/build.rs",
+        "sha256": "ecb39e3af8160ccc296463be47a1465c7602f42113460761c51f0d9c59a6f430",
+        "blob": "3cf19923237bf5d9584bec9eaf5897d90bd9e8fd"
+      },
+      {
+        "path": "semantics/speech/glottal.conduit",
+        "sha256": "326f44dfc4240d5c93e8ebaca749e9f1edc4239de24b965b8ed7d3282bbfe40e",
+        "blob": "dad23ee24ed39660f17f1c23631720f5fc704ea2"
+      },
+      {
+        "path": "semantics/speech/voice.conduit",
+        "sha256": "7ee445276c3f66f5931dc19bd91aeeea06deed005dfd2efb6c44d3762c6219a8",
+        "blob": "7e372bb8f71a42ede67f89198a6556edf6e4c610"
+      },
+      {
+        "path": "targets/std/tests/periodic_oscillator.rs",
+        "sha256": "3d1229e3d239b50fa86c8f800bd8f2c4a733be641d49917bf252c8c4bdac5e0c",
+        "blob": "b13e0e004deb3771e329b097292bcc1a79a22b9c"
+      }
+    ],
+    "failure_before_repair": {
+      "log": "periodic-eager-validation-reproduction.log",
+      "sha256": "360bfceda100efd9e5f3602ef74a959134203dfdf021c3ed1e6a70ecab7e8ce6",
+      "result": "Arithmetic refusal while evaluating a later cursor law after a failed projection"
+    },
+    "change": "explicit conditional branches gate projection laws and each later cursor law; portable Boolean operands are eager; Core semantics unchanged"
+  }
 }

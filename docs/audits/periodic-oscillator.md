@@ -46,7 +46,8 @@ resolved-cycle speech parity. Strict focused Audio/std Clippy and pinned workspa
 formatting pass. The evidence file records exact tested files and raw log hashes.
 
 The candidate is refreshed onto accepted `560916ec4f361901e23449f7b44d984dc067c1c3`.
-All 13 tested files remain byte-identical to the measured source above. The
+At the `ca36129fd05528c9268ddf95ee0a6f28ff4c4bea` refresh, all 13 tested files
+were byte-identical to the measured source above. The
 standalone Speech footprint lock now records the Audio build dependency and its
 Data/Time dependencies without registry version changes. All eight exact Cargo
 lock checks used by the repository preflight pass at
@@ -55,3 +56,18 @@ filesystem before reaching those checks; after reclaiming inactive compiler
 metadata, the identical lock-check commands were run directly.
 
 Parent #5217 and composed-synth sibling #5678 remain separate acceptance gates.
+
+A later hostile-input regression exposed an eager portable Boolean guard: after
+rejecting a forged period, a later cursor law could still evaluate unsafe modulus
+or multiplication and return generic Arithmetic instead of invalid_cursor.
+Projection and staged cursor validation now use explicit conditional branches.
+Malformed zero-frequency/denominator requests also return invalid_request before
+projection divisions. Core Boolean semantics and numerical recurrence are unchanged.
+
+The repair is validated at `34d97d2881cd3f26593cccb89a4ba4aca306f00b`: eight oscillator contract/guard
+tests, one normal installed-host Plan/Play test, one shared-flow test and all 60
+Speech library tests pass (70 total), together with strict Audio/std Clippy and
+formatting. The original 68-test receipt remains pinned to its original source;
+the new evidence section records the repair source, complete current file hashes,
+and raw log hashes. Test support is shared in a small fixture module, with hostile
+validation cases split into their own integration target.
