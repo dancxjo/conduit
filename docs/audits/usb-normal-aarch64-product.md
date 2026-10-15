@@ -39,8 +39,8 @@ not relabeled as the refreshed source above.
 Proof class is freestanding emulator, not physical compatibility. The larger
 arena increases the normal AArch64 memory requirement; no automatic growth,
 new provider, retry or class policy is added. Parent #5253 remains open for its
-current full Integration and stable-publication gates. The queued #5586 STALL
-repair and #5867 preparation work retain their own acceptance.
+current full Integration and stable-publication gates. The accepted #5586 STALL
+repair (#5873) and #5867 PC preparation retain their own source-pinned proof.
 
 ## Accepted-base product refresh and cross-architecture joins
 
