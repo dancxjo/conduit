@@ -7,7 +7,7 @@ const ci = readFileSync('.github/workflows/ci.yml', 'utf8');
 const candidate = readFileSync('.github/workflows/candidate.yml', 'utf8');
 const integration = readFileSync('.github/workflows/integration.yml', 'utf8');
 function job(source, name) {
-  return source.split(`\n  ${name}:\n`)[1]?.split(/\n  [a-z]+:\n/)[0];
+  return source.split(`\n  ${name}:\n`)[1]?.split(/\n  [A-Za-z_][A-Za-z0-9_-]*:\n/)[0];
 }
 
 test('independent proof starts after preflight and preserves complete aggregation', () => {
