@@ -3,43 +3,7 @@ plot tiny-model (
     >> inputs: NamedTensorBundle
     outputs: NamedTensorBundle >>
 ) {
-    model: model/infer(signature = {
-        identity: "test/non-speech-model@1",
-        compatibility_version: 1,
-        operations: [infer(empty)],
-        inputs: [
-            {
-                identity: "identifiers",
-                semantic_kind: "data/tensor@1",
-                presence: required(empty),
-                value: tensor({ constraint: {
-                    elements: [i64(empty)],
-                    axes: [{ role: feature(empty), dimension: bounded({ minimum: 1, maximum: 32 }) }],
-                    maximum_bytes: 4096
-                } })
-            },
-            {
-                identity: "gain",
-                semantic_kind: "data/tensor@1",
-                presence: required(empty),
-                value: tensor({ constraint: {
-                    elements: [f32(empty)],
-                    axes: [{ role: feature(empty), dimension: fixed({ value: 1 }) }],
-                    maximum_bytes: 4096
-                } })
-            }
-        ],
-        outputs: [{
-            identity: "prediction",
-            semantic_kind: "data/tensor@1",
-            presence: required(empty),
-            value: tensor({ constraint: {
-                elements: [f32(empty)],
-                axes: [{ role: feature(empty), dimension: fixed({ value: 4 }) }],
-                maximum_bytes: 4096
-            } })
-        }]
-    })
+    model: model/infer(signature = { identity: "test/non-speech-model@1", compatibility_version: 1, operations: [infer(empty)], inputs: [ { identity: "identifiers", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [i64(empty)], axes: [{ role: feature(empty), dimension: bounded({ minimum: 1, maximum: 32 }) }], maximum_bytes: 4096 } }) }, { identity: "gain", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 1 }) }], maximum_bytes: 4096 } }) } ], outputs: [{ identity: "prediction", semantic_kind: "data/tensor@1", presence: required(empty), value: tensor({ constraint: { elements: [f32(empty)], axes: [{ role: feature(empty), dimension: fixed({ value: 4 }) }], maximum_bytes: 4096 } }) }] })
     inputs >> model.inputs
     model.outputs >> outputs
 }.
