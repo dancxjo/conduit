@@ -1,0 +1,147 @@
+{
+  "issue": 5532,
+  "tested_source": "30e588b0fc350e8047bd175013104490a4688b86",
+  "accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3",
+  "scope": "typed Angle exact denotation; native hosted Plan/Play, not browser/WASM execution",
+  "tests_passed": 45,
+  "proof": [
+    {
+      "file": "typed-angle-final-core-regressions.log",
+      "sha256": "c60ac0d518d9f5400256335689dc62fba43bf4859b8ae9fb75574b678da2f08e",
+      "test_counts": [
+        7,
+        8,
+        6
+      ],
+      "outcome": "PASS"
+    },
+    {
+      "file": "typed-angle-final-plot-regressions.log",
+      "sha256": "ad8c2ca4151b554858084d45be7f4c815174b1b78a688d6ab6ec20670d1e97be",
+      "test_counts": [
+        6,
+        6,
+        11
+      ],
+      "outcome": "PASS"
+    },
+    {
+      "file": "typed-angle-final-installed-regression.log",
+      "sha256": "a1128ecc9d8605c33f489054644fe925fa1f20a8f6363ae1a3b2a4741e8b18dc",
+      "test_counts": [
+        1
+      ],
+      "outcome": "PASS"
+    },
+    {
+      "file": "typed-angle-final-focused-clippy.log",
+      "sha256": "9bd6eeaec4383de7efedfb01436f872203fa1e10b5a60fd5a74f142de083e104",
+      "test_counts": [],
+      "outcome": "PASS"
+    },
+    {
+      "file": "typed-angle-final-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "test_counts": [],
+      "outcome": "PASS"
+    }
+  ],
+  "code_files": [
+    {
+      "path": "architecture/core/src/exact_numeric.rs",
+      "sha256": "d13e5402cf6bc4d0c755cbfe189936db26307f5543036cff96a2c4d0555fe128"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/rational.rs",
+      "sha256": "27d422826c7a973b83c030eec9bd47d5a0932d70a304f7f4b46cc118433ae0ad"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/rational/periodic.rs",
+      "sha256": "6018b87aaa38b44753b0d0e04504428b3b3acfebbe28ed6f2d45a25de4b795b4"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/symbolic.rs",
+      "sha256": "e46c865f94a66510c55b2c621d4445f0b9ac4f1fe5e8fd8d3caeb421e4e9889e"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/symbolic/codec.rs",
+      "sha256": "29af44bd36fba42ed581d437e12b36e967b7d7aacea5271e668af40b68096b44"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/symbolic/enclosure.rs",
+      "sha256": "528819cb4a31c7430a8287f31905631e363653ee3962541a0e4700edd48d0b19"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/symbolic/trigonometry.rs",
+      "sha256": "55ab4842082878765839878e8ed8c436a2abb8c6ed13c822de2a82b74b8e8cb4"
+    },
+    {
+      "path": "architecture/core/src/exact_numeric/trigonometry.rs",
+      "sha256": "0fd74d49305913e71ef8ab7df7008a72014e302664e606d760e47e0db18fac41"
+    },
+    {
+      "path": "architecture/core/tests/mathematical_trigonometry.rs",
+      "sha256": "8abd594e6f0f50ff248aff75e09cff53e531740d97fd3a7f826898b48b43d445"
+    },
+    {
+      "path": "architecture/plot/src/expression_evaluate.rs",
+      "sha256": "423552d008f49dbb4ba6b2647392dd5c79e9f81bc7f6ead8ef1025ed097acf2b"
+    },
+    {
+      "path": "architecture/plot/src/expression_evaluate/intrinsic.rs",
+      "sha256": "cdfd20a7d1120055ed4c4b810f1cb04dda959f34da70d12a607647f1d74df9ea"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared.rs",
+      "sha256": "065b0668ebb179b110956aac532129a412de9e35dfade605b80f19cc4f2b6cb2"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared/evaluate.rs",
+      "sha256": "ea571e4ca1b03a59196c12406ce1a9813692269e8884bce1c61d39758d1a1e91"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared/prepare.rs",
+      "sha256": "eeae4944037c3091081788d176913b4a31cb05d8a77864e7808906d15b8e8d6e"
+    },
+    {
+      "path": "architecture/plot/src/expression_prepared/trigonometry.rs",
+      "sha256": "7b54a647cda56af2ab21e0605f2925bc29697b6191728d9b42bca4f983d25557"
+    },
+    {
+      "path": "architecture/plot/src/expression_semantic_call.rs",
+      "sha256": "2cf225d29a664553d0390f463b740ab3ba5cba262f49d8e6c26b86ca8f270e6c"
+    },
+    {
+      "path": "architecture/plot/src/expression_trigonometry.rs",
+      "sha256": "8085a22b18c31e623001b8685605a1e432f924b1f2929c398e1d37ef55342a1a"
+    },
+    {
+      "path": "architecture/plot/src/lib.rs",
+      "sha256": "e495db9455a3a3b2b71d543a59d5fbe1388dfbe038283cb71a3776ea9a2b87ee"
+    },
+    {
+      "path": "architecture/plot/tests/angle_trigonometry.rs",
+      "sha256": "a423f4d2567c7be9dab1e9a81b491317e893e8c1c35a29c51c4f41bb7d2795ec"
+    },
+    {
+      "path": "targets/browser/runtime/src/installed_browser/pure_expression.rs",
+      "sha256": "f9d72dc2cb3d77eaf42cca49c13b6d136bb6d2093f2c50267b176e956cf06ddf"
+    },
+    {
+      "path": "targets/std/src/installed_std/pure_expression_back.rs",
+      "sha256": "72cf373e16e286a8f1f1609042b3cc572119973bd138cae921dc422c8c1fec6b"
+    },
+    {
+      "path": "targets/std/tests/angle_trigonometry.rs",
+      "sha256": "d4d3bb7a941cf7ae32aca010301531e944c3cfe513bc418bf3a73e6504e193e5"
+    }
+  ],
+  "clippy_source": "0df8fff6ec",
+  "refresh": "only planner proof additions; all angle code unchanged",
+  "limitations": [
+    "Non-cardinal numeric enclosure explicitly unsupported",
+    "pi radian coordinate transport #5735 separate",
+    "inverse functions #5734 separate",
+    "parent5392 remains open"
+  ]
+}
