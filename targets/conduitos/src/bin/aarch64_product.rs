@@ -228,6 +228,26 @@ fn refuse(reason: &str) -> ! {
 }
 
 #[panic_handler]
-fn panic(_info: &PanicInfo<'_>) -> ! {
+fn panic(info: &PanicInfo<'_>) -> ! {
+    use core::fmt::Write;
+    arch::disable_interrupts();
+    let mut diagnostic = conduitos::sign_format::FixedText::new();
+    if let Some(location) = info.location() {
+        let _ = writeln!(
+            diagnostic,
+            "CONDUIT_PANIC_LOCATION {}:{}:{}",
+            location.file(),
+            location.line(),
+            location.column()
+        );
+    }
+    let _ = writeln!(diagnostic, "CONDUIT_PANIC_DETAIL {}", info.message());
+    let _ = writeln!(
+        diagnostic,
+        "CONDUIT_PANIC_ARENA live={} capacity={}",
+        BOOT_ARENA.live_bytes(),
+        BOOT_ARENA.capacity()
+    );
+    arch::present(diagnostic.as_bytes());
     refuse("panic")
 }
