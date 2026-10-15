@@ -1,0 +1,43 @@
+{
+  "issue": 5543,
+  "measured_source": "c6471d60f5c1d45c7a6925af4ae21292f3c7ff3d",
+  "base": "b7033a4ce9b08813a024e08b00cb14f8f0ef7535",
+  "proof_class": "native checked Source, production planner and Plan lowering; no Play/performance/physical proof",
+  "passed": 318,
+  "failed": 0,
+  "ignored": 1,
+  "ignored_test": "measure_connected_placement_processing: pre-existing manual timing capture",
+  "targets": 76,
+  "strict_all_target_clippy": "PASS",
+  "commands": [
+    "cargo test --locked -p conduit-planner",
+    "cargo clippy --locked -p conduit-planner --all-targets -- -D warnings"
+  ],
+  "logs": {
+    "fusion-planner-phase-dev-tests.log": {
+      "sha256": "004769255df55cfe3cbb122179c4cf42f7566c217bceb78c036f67dfd0acab10",
+      "bytes": 43817
+    },
+    "fusion-planner-phase-dev-clippy.log": {
+      "sha256": "1b06c206522a9ad6653edd56b1bb9e19254f4cd592480fbc8b10cbddc2b994e9",
+      "bytes": 60
+    }
+  },
+  "source_files_sha256": {
+    "architecture/planner/tests/common/fusion_fixture.rs": "518a2e0aa9a732e905ce11355a7290f283cfce32b119eccf03057f3258dad178",
+    "architecture/planner/tests/fusion_eligibility.rs": "d927da23dbc373e965d19abfe1f7b600e28185b086cce5235ebbad9d2ce48ef5",
+    "architecture/planner/tests/fusion_line_cost.rs": "cc5670c0b4b8aa98ae33e6f5446371c1ea2c9d2b2ae01d6c5347f39fcc349271",
+    "architecture/planner/tests/fusion_scaling.rs": "3af4e6988f6dee8be83dde4e4b47262aedff8d2748cf8250179e8964a871e23c"
+  },
+  "scaling": {
+    "depths": [
+      1,
+      8,
+      32
+    ],
+    "singleton": "ordinary unfused realization",
+    "32": "16 clamp and 16 scale, existing max16 each",
+    "negative": "32 clamp instances refuse existing max16"
+  },
+  "parent_5397": "remains open; fused Play, observable checkpoints, stress, performance and target proof belong to sibling deliveries"
+}
