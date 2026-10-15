@@ -131,3 +131,22 @@ pub use generated::{
     AudioTimeAmplitudeMagnitude, AudioTimeMeanSquarePower, AudioTimeSampleAmplitude,
     AudioTimeSquareSum,
 };
+
+mod spectral_analysis;
+mod spectral_fft;
+pub use spectral_analysis::*;
+
+pub use generated::{
+    AudioSpectrumAmplitude, AudioSpectrumAmplitudes, AudioSpectrumBinRequest, AudioSpectrumDigest,
+    AudioSpectrumEstimator, AudioSpectrumMeanSquare, AudioSpectrumMeanSquares,
+    AudioSpectrumObservation, AudioSpectrumReference, AudioSpectrumWindow,
+};
+
+mod spectral_geometry;
+pub use spectral_geometry::*;
+
+mod spectral_native;
+pub use spectral_native::*;
+
+mod spectral_encoding;
+pub use spectral_encoding::*;

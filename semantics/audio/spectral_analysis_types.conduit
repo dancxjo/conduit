@@ -1,0 +1,57 @@
+# Dense real-input spectra: bin ordinal k denotes 0Hz + k * bin_spacing.
+# Quantities retain the checked physical Frequency dimension. Numeric magnitudes
+# use the digital-full-scale reference, not acoustic watts, SPL, PSD or F0 truth.
+type AudioSpectrumReference =
+    digital_full_scale
+type AudioSpectrumWindow =
+    rectangular
+    | periodic_hann
+type AudioSpectrumEstimator =
+    radix2_f64
+type AudioSpectrumAmplitude = F64 finite in 0.0..
+type AudioSpectrumMeanSquare = F64 finite in 0.0..
+type AudioSpectrumAmplitudes = sequence AudioSpectrumAmplitude in 9..=513
+type AudioSpectrumMeanSquares = sequence AudioSpectrumMeanSquare in 9..=513
+type AudioSpectrumDigest = collection U8 = 32
+
+type AudioSpectrumObservation = {
+    source_digest: AudioSpectrumDigest
+    clock_id: U64 in 1..=18446744073709551615
+    source_start_frame: U64
+    source_frames: U16 in 16..=2048
+    window_start_frame: U64
+    window_frames: U16 in 16..=1024
+    window_index: U16 in 0..=15
+    stride_frames: U16 in 1..=2048
+    sample_rate: Frequency
+    first_bin_frequency: Frequency
+    bin_spacing: Frequency
+    window: AudioSpectrumWindow
+    estimator: AudioSpectrumEstimator
+    reference: AudioSpectrumReference
+    peak_amplitudes: AudioSpectrumAmplitudes
+    mean_square: AudioSpectrumMeanSquares
+    where .window_frames == 16 || .window_frames == 32 || .window_frames == 64 || .window_frames == 128 || .window_frames == 256 || .window_frames == 512 || .window_frames == 1024
+    where .source_frames >= .window_frames
+    where (.source_frames - .window_frames) / .stride_frames + 1 <= 16
+    where .window_index < (.source_frames - .window_frames) / .stride_frames + 1
+    where .source_start_frame <= 18446744073709551615 - value/u64(.source_frames)
+    where .window_start_frame == .source_start_frame + value/u64(.window_index) * value/u64(.stride_frames)
+    where .sample_rate >= 8000Hz && .sample_rate <= 192000Hz
+    where .first_bin_frequency == 0Hz
+    where .bin_spacing == .sample_rate / (.window_frames == 16 ? 16.0 : .window_frames == 32 ? 32.0 : .window_frames == 64 ? 64.0 : .window_frames == 128 ? 128.0 : .window_frames == 256 ? 256.0 : .window_frames == 512 ? 512.0 : 1024.0)
+    where sequence/length(.peak_amplitudes) == value/u64(.window_frames) / 2 + 1
+    where sequence/length(.mean_square) == sequence/length(.peak_amplitudes)
+}
+
+type AudioSpectrumBinRequest = {
+    spectrum: AudioSpectrumObservation
+    index: Scalar
+    where .index >= 0.0 && .index <= 512.0
+    where .index % 1.0 == 0.0
+    where .index <= (.spectrum.sample_rate / .spectrum.bin_spacing) / 2.0
+}
+plot audio/spectrum-bin-frequency (
+    >> request: AudioSpectrumBinRequest
+    frequency: Frequency >>
+) = (.spectrum.first_bin_frequency + .index * .spectrum.bin_spacing)
