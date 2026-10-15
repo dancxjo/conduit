@@ -39,6 +39,7 @@ fn explicit_startup_values_apply_the_owner_range_and_invariant() {
         let error = check_syntax_document(&parse_syntax_document(&source(value)), &startup)
             .err()
             .expect("retained Native law must refuse");
+        assert_eq!(error.code, "CND-FRM-058");
         assert!(
             error.message.contains("native startup Type refinement"),
             "{}: {}",

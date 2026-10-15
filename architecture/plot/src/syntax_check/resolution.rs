@@ -199,9 +199,7 @@ impl<'a> Resolver<'a> {
                 self.catalog,
                 expression.span,
             )
-            .map_err(|diagnostic| {
-                SyntaxCheckError::StructuredExpression(diagnostic.message, Some(diagnostic.span))
-            })?;
+            .map_err(SyntaxCheckError::NativeRefinement)?;
             return Ok(CanonicalStartupValue::Structured(checked));
         }
         let negative_integer = matches!(
