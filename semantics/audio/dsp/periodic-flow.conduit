@@ -1,0 +1,9 @@
+# Integer cubic pulse-flow samples at two Q8 coordinates.
+# The opaque input is carried unchanged; no speech or device policy is inspected.
+# Coordinates outside the open phase return zero before polynomial arithmetic.
+plot dsp/cubic-flow-pair (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: .input, current: .current <= 0 || .current >= 256 ? 0 : .current * .current * (256 - .current) / 256, previous: .previous <= 0 || .previous >= 256 ? 0 : .previous * .previous * (256 - .previous) / 256})

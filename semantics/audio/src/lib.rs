@@ -131,3 +131,6 @@ pub use generated::{
     AudioTimeAmplitudeMagnitude, AudioTimeMeanSquarePower, AudioTimeSampleAmplitude,
     AudioTimeSquareSum,
 };
+
+/// Shared portable integer pulse-flow law; opaque context is preserved.
+pub const PERIODIC_FLOW_SOURCE: &str = include_str!("../dsp/periodic-flow.conduit");
