@@ -36,9 +36,13 @@ operations. Correlation is descriptive agreement, not a probability. Uncertain r
 Silence/DC unknown-with-reason, other unknown and uncertain remain distinct from a definite periodic result.
 
 Window support is [start_frame, start_frame+frames) on the retained clock and
-rate. Its end is the earliest availability coordinate. Observing identical sample
+rate. Complete-block validation makes the source block end the earliest media
+availability coordinate, even when the selected window ends earlier. Source
+start/count and this exact availability coordinate are retained separately;
+this is not a wall-clock compute-time or physical arrival-time claim. Observing identical sample
 windows in differently sized enclosing PCM blocks gives identical estimates and
-intervals but intentionally different source-content digests. This preserves
+intervals but intentionally different source-content digests and, when their
+block ends differ, different availability coordinates. This preserves
 custody rather than silently equating physically different input values.
 
 The checked output carries a parts-per-million correlation projection. The

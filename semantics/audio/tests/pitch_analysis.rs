@@ -123,6 +123,22 @@ fn window_coordinates_are_independent_of_enclosing_block() {
         .observe(&slice, 55, 16000, 0, 1024, 8, 256)
         .unwrap();
     assert_eq!(a.interval, b.interval);
+    assert_eq!(
+        (
+            a.source_start_frame,
+            a.source_frames,
+            a.source_available_frame
+        ),
+        (100, 1536, 1636)
+    );
+    assert_eq!(
+        (
+            b.source_start_frame,
+            b.source_frames,
+            b.source_available_frame
+        ),
+        (356, 1024, 1380)
+    );
     assert_eq!(a.estimate, b.estimate);
     // Different physical source blocks deliberately retain different custody.
     assert_ne!(a.source_digest, b.source_digest);
@@ -301,4 +317,38 @@ fn confidence_reuses_generic_score_without_inventing_calibration_or_claim_truth(
         .unwrap()
         .periodicity_score()
         .is_none());
+}
+
+#[test]
+fn block_availability_is_exact_across_rates_and_forged_geometry_refuses() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    for rate in [8000, 16000, 48000, 192000] {
+        let bytes = frame(&signal(1536, 40.0, 0.5, 0.0), rate, 100);
+        let profile = PcmPitchProfile::new(55, rate, 1536, 256, 1024, 8, 256).unwrap();
+        let observed = profile
+            .observe(&mut PcmPitchWorkspace::default(), &bytes)
+            .unwrap();
+        assert_eq!(observed.interval.start_frame, 356);
+        assert_eq!(observed.interval.sample_rate_hz, rate);
+        assert_eq!(observed.source_available_frame, 1636);
+        assert_eq!(
+            observed.source_available_frame - observed.interval.start_frame,
+            1280
+        );
+        let mut encoder = PreparedPcmPitchObservationEncoder::prepare(profile).unwrap();
+        let native = AudioPitchObservation::decode(encoder.encode(&bytes).unwrap()).unwrap();
+        assert_eq!(*native.source_start_frame(), 100);
+        assert_eq!(*native.source_frames(), 1536);
+        assert_eq!(*native.source_available_frame(), 1636);
+        let mut forged = observed;
+        forged.source_available_frame = 0;
+        assert!(forged.prepare_native().is_err());
+        let mut forged = observed;
+        forged.source_frames = 64;
+        forged.source_available_frame = 164;
+        assert!(forged.prepare_native().is_err());
+        let mut forged = observed;
+        forged.source_start_frame = u64::MAX;
+        assert!(forged.prepare_native().is_err());
+    }
 }

@@ -20,6 +20,8 @@ struct PitchSlot {
     other: usize,
     confidence: usize,
     start: usize,
+    source_start: usize,
+    available: usize,
     digest: [usize; 32],
 }
 impl PitchSlot {
@@ -50,6 +52,8 @@ impl PitchSlot {
         let other = field("competing_lag", "value/u16")?;
         let confidence = field("correlation_ppm", "value/u32")?;
         let start = field("window_start_frame", "value/u64")?;
+        let source_start = field("source_start_frame", "value/u64")?;
+        let available = field("source_available_frame", "value/u64")?;
         let digest_view = view
             .record_field("source_digest")
             .map_err(R::Structured)?
@@ -71,10 +75,16 @@ impl PitchSlot {
             other,
             confidence,
             start,
+            source_start,
+            available,
             digest,
         })
     }
     fn update(&mut self, observation: PcmPitchObservation) {
+        self.output[self.source_start..self.source_start + 8]
+            .copy_from_slice(&observation.source_start_frame.to_le_bytes());
+        self.output[self.available..self.available + 8]
+            .copy_from_slice(&observation.source_available_frame.to_le_bytes());
         let (first, other, confidence) = match observation.estimate {
             PcmPitchEstimate::Periodic {
                 lag_frames,

@@ -183,6 +183,11 @@ fn ordinary_source_plan_play_emits_four_observation_states_with_exact_custody() 
     for (index, (observation, state)) in actual.iter().zip(states).enumerate() {
         use conduit_core::projection::*;
         assert_eq!(*observation.state(), state);
+        assert_eq!(*observation.source_start_frame(), 123 + index as u64 * 1024);
+        assert_eq!(
+            *observation.source_available_frame(),
+            123 + (index as u64 + 1) * 1024
+        );
         let domain = PcmPitchEvidence::bind(profile, &inputs[index].bytes, observation).unwrap();
         let facts = domain.facts();
         let native = domain.native();

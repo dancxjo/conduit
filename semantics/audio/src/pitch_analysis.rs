@@ -30,14 +30,17 @@ pub enum PcmPitchEstimate {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub struct PcmPitchObservation {
     pub interval: PcmAnalysisInterval,
+    pub source_start_frame: u64,
+    pub source_frames: u16,
+    pub source_available_frame: u64,
     pub source_digest: [u8; 32],
     pub minimum_lag: u16,
     pub maximum_lag: u16,
     pub estimate: PcmPitchEstimate,
 }
 
-/// The window end is the earliest availability timestamp. The complete support
-/// is retained as exact sample coordinates; there is no hidden block history.
+/// Complete-block validation makes source end the earliest media availability
+/// coordinate. Window support remains separate; there is no hidden history.
 /// Arrays are caller-owned, fixed capacity, and reused without allocation.
 pub struct PcmPitchWorkspace {
     samples: [f64; PCM_PITCH_MAXIMUM_FRAMES],
@@ -77,6 +80,13 @@ impl PcmPitchWorkspace {
         let input =
             PreparedPcmTimeAnalysis::prepare(encoded, clock_id, sample_rate_hz, offset, frames)
                 .map_err(PcmPitchRefusal::Input)?;
+        let source = input.source_interval();
+        let source_available_frame = source
+            .start_frame
+            .checked_add(u64::from(source.frames))
+            .ok_or(PcmPitchRefusal::Input(
+                PcmTimeAnalysisRefusal::FrameIndexOverflow,
+            ))?;
         let mean = input.waveform().sum::<f64>() / n as f64;
         let mut energy = 0.0;
         for (slot, sample) in self.samples[..n].iter_mut().zip(input.waveform()) {
@@ -107,6 +117,9 @@ impl PcmPitchWorkspace {
         };
         Ok(PcmPitchObservation {
             interval: input.interval(),
+            source_start_frame: source.start_frame,
+            source_frames: source.frames,
+            source_available_frame,
             source_digest: input.source_digest(),
             minimum_lag,
             maximum_lag,
