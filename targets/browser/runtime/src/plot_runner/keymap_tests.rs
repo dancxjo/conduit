@@ -105,11 +105,11 @@ fn source_composes_reusable_layers_and_passes_exact_layout_to_browser_keymap() {
 fn select_language(session: &mut TourSession, identity: &str) {
     for _ in 0..crate::installed_browser::BROWSER_ROUTE_SLOTS {
         let _ = session.poll_effect().unwrap();
-        let pending = (0..session.pending.len()).find_map(|index| {
-            match session.project_pending_effect(index).unwrap() {
-                TourHostEffect::ApplicationEvent(effect) if effect.choice.is_some() => Some(index),
-                _ => None,
-            }
+        let pending = (0..session.pending.len()).find(|&index| {
+            matches!(
+                session.project_pending_effect(index).unwrap(),
+                TourHostEffect::ApplicationEvent(effect) if effect.choice.is_some()
+            )
         });
         if let Some(index) = pending {
             let request = session.pending[index].request;
