@@ -49,7 +49,7 @@ fn invalid_expression_uses_phosphor_and_user_requirements_remain_authoritative()
     .unwrap();
     assert_eq!(
         admitted.expression.identity,
-        CONDUIT_APPLICATION_THEME.identity
+        PHOSPHOR_LOOK_ID
     );
     assert_eq!(admitted.expression.text_scale_percent, 150);
     assert!(admitted.platform_forced_colors);

@@ -65,3 +65,32 @@ fn unknown_facet_request_is_bounded_and_explicit() {
     assert!(LookFacetRequest::unsupported(String::new()).is_err());
     assert!(LookFacetRequest::unsupported("x".repeat(65)).is_err());
 }
+
+#[test]
+fn canonical_phosphor_assets_are_typed_and_self_consistent() {
+    let look = phosphor_look().unwrap();
+    assert_eq!(look.identity(), PHOSPHOR_LOOK_ID);
+    let LookVisualFacetOption::Some(visual) = look.visual() else {
+        panic!("visual facet")
+    };
+    assert_eq!(visual.expression().identity(), look.identity());
+    assert_eq!(visual.tokens().background().packed_rgb(), 0x05_07_0b);
+    assert_eq!(*visual.tokens().type_body_px(), 16);
+    assert_eq!(*visual.tokens().focus_width_px(), 3);
+    let bytes = look.clone().encode().unwrap();
+    assert!(
+        bytes.len() <= 65536,
+        "actual canonical Look bytes {}",
+        bytes.len()
+    );
+    assert_eq!(LookInfo::decode(&bytes).unwrap(), look);
+    let retired_hex =
+        include_str!("../../../proof/conformance/face-look/retired-application-theme-v2.hex")
+            .trim();
+    let retired: Vec<_> = retired_hex
+        .as_bytes()
+        .chunks_exact(2)
+        .map(|p| u8::from_str_radix(core::str::from_utf8(p).unwrap(), 16).unwrap())
+        .collect();
+    assert!(LookInfo::decode(&retired).is_err());
+}

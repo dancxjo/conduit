@@ -5,8 +5,8 @@ const REQUIRED_EXPORTS = [
   "conduit_browser_face_nucleus_run",
   "conduit_browser_face_nucleus_application_view_ptr",
   "conduit_browser_face_nucleus_application_view_len",
-  "conduit_browser_face_nucleus_application_theme_ptr",
-  "conduit_browser_face_nucleus_application_theme_len",
+  "conduit_browser_face_nucleus_look_ptr",
+  "conduit_browser_face_nucleus_look_len",
   "conduit_browser_face_nucleus_graphics_ptr",
   "conduit_browser_face_nucleus_graphics_len",
   "conduit_browser_face_nucleus_layout_ptr",
@@ -124,16 +124,16 @@ export function manifestFaceNucleus(api, root) {
     "conduit_browser_face_nucleus_structured_ptr",
     "conduit_browser_face_nucleus_structured_len",
   ));
-  const applicationTheme = bytes(
+  const applicationLook = bytes(
     api,
-    "conduit_browser_face_nucleus_application_theme_ptr",
-    "conduit_browser_face_nucleus_application_theme_len",
+    "conduit_browser_face_nucleus_look_ptr",
+    "conduit_browser_face_nucleus_look_len",
   );
   const application = manifestApplicationView(bytes(
     api,
     "conduit_browser_face_nucleus_application_view_ptr",
     "conduit_browser_face_nucleus_application_view_len",
-  ), root, { theme: applicationTheme });
+  ), root, { look: applicationLook });
 
   const applicationShell = root.firstElementChild;
   root.dataset.viewport = `${layout.viewport.width}x${layout.viewport.height}`;
@@ -166,5 +166,5 @@ export function manifestFaceNucleus(api, root) {
   structuredFace.dataset.quantity = String(structured.quantity);
   structuredFace.setAttribute("aria-label", "Education feedback structured information");
   applicationShell.append(structuredFace);
-  return Object.freeze({ layout, graphics, text, structured, application, applicationTheme });
+  return Object.freeze({ layout, graphics, text, structured, application, applicationLook });
 }

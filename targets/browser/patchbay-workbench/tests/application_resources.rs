@@ -75,7 +75,7 @@ fn every_admitted_resource_has_exact_staged_and_http_bytes_and_media_type() {
             "{path}"
         );
         let expected = match entry["source"].as_str().unwrap() {
-            "generated:theme" => conduit_browser_patchbay_workbench::application_theme_css(),
+            "generated:theme" => conduit_browser_patchbay_workbench::application_look_css(),
             "supplied:runtime" => runtime.to_vec(),
             source => std::fs::read(root.join(source)).unwrap(),
         };

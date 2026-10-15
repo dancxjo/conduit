@@ -16,7 +16,7 @@ test("portable face nucleus executes in WASM and manifests in Chromium", async (
   await expect(page.locator("#nucleus [data-graphics-kind=icon]")).toHaveAttribute("role", "img");
   await expect(page.locator("#nucleus [data-face-kind=text]")).toHaveText("STRASSE");
   await expect(page.locator("#nucleus [data-application-component=shell]")).toHaveCount(1);
-  await expect(page.locator("#nucleus")).toHaveAttribute("data-application-theme", "conduit.face/phosphor@1");
+  await expect(page.locator("#nucleus")).toHaveAttribute("data-application-look", "conduit.look/phosphor@1");
   await expect(page.locator("#nucleus")).toHaveCSS("font-size", "16px");
   await expect(page.locator("#nucleus")).toHaveCSS("line-height", "24px");
   const themedButton = page.locator("#nucleus [data-application-component=button]");
@@ -45,7 +45,7 @@ test("portable face nucleus executes in WASM and manifests in Chromium", async (
     },
     application: {
       revision: 1,
-      theme: "conduit.face/phosphor@1",
+      theme: "conduit.look/phosphor@1",
       heading: "Browser Host face",
       evidenceIdentity: "sign-nucleus-1",
       evidenceProvenance: "plan-nucleus-1/play-nucleus-1",
@@ -191,11 +191,35 @@ test("one finite theme mechanism preserves contrast and responsive layout across
   await expect(page.locator("#result")).toHaveText("ok");
   for (const product of ["tour", "creche", "patchbay"]) {
     const root = page.locator(`[data-conduit-product="${product}"]`);
-    await expect(root).toHaveAttribute("data-application-theme", "conduit.face/phosphor@1");
+    await expect(root).toHaveAttribute("data-application-look", "conduit.look/phosphor@1");
     await expect(root.locator('[data-application-component="panel"]')).toHaveCSS("border-radius", "9px");
     await expect(root.locator('[data-application-component="panel"]')).toHaveCSS("border-color", "rgb(244, 196, 0)");
     await expect(root.locator('[data-application-component="grid"]')).toHaveCSS("grid-template-columns", /\d+px/);
     expect(await root.evaluate((element) => getComputedStyle(element).getPropertyValue("--conduit-structure-secondary").trim()))
       .toBe("#f4c400");
   }
+});
+
+
+test("generic no-Look encounter clears prior owned paint without changing meaning", async ({ page }) => {
+  await page.goto("/proof/browser/face-nucleus.test.html");
+  await expect(page.locator("#result")).toHaveText("ok");
+  const result = await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import("/targets/browser/host/assets/application-face.mjs");
+    const hex = await fetch("/proof/conformance/face-look/phosphor-look-v1.hex").then(response => response.text());
+    const look = Uint8Array.from(hex.replace(/\s/gu, "").match(/../gu), byte => Number.parseInt(byte, 16));
+    const root = document.createElement("section"); document.body.append(root);
+    const view = encodeApplicationView({ revision: 1, actions: [], nodes: [
+      { parent: null, component: "panel", action: null, key: "look-proof", text: "unchanged meaning" },
+    ] });
+    manifestApplicationView(view, root, { look });
+    const before = root.textContent;
+    root.style.setProperty("--renderer-private-sentinel", "kept");
+    manifestApplicationView(view, root);
+    return { before, after: root.textContent, look: root.dataset.applicationLook ?? null,
+      background: root.style.getPropertyValue("--conduit-background"),
+      sentinel: root.style.getPropertyValue("--renderer-private-sentinel") };
+  });
+  expect(result.before).toBe(result.after);
+  expect(result).toMatchObject({ look: null, background: "", sentinel: "kept" });
 });
