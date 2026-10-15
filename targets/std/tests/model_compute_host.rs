@@ -218,3 +218,47 @@ fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape)
     );
 }
+
+#[test]
+fn named_mixed_bundle_preserves_custody_and_refusal_releases_the_session() {
+    let artifact = [44; 32];
+    let mut capabilities = offer();
+    capabilities.supported_elements.push(TensorElement::I64);
+    capabilities.limits.maximum_input_bytes = 16;
+    capabilities.limits.maximum_output_bytes = 16;
+    capabilities.limits.maximum_queue_bytes = 16;
+    let mut host = ReferenceModelComputeAdapter::new(capabilities, runtime("reference")).unwrap();
+    host.load(artifact, 64).unwrap();
+    let mut request = invocation(artifact, [2., 3.]);
+    let bytes = 7_i64.to_le_bytes();
+    let mut token = input([0., 0.]);
+    token.element = TensorElement::I64;
+    token.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+    token.content_digest = tensor_content_digest(&bytes);
+    token.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    request.inputs = NamedTensorBundle::from_values(vec![
+        NamedTensor {
+            name: "scale".into(),
+            value: input([2., 3.]),
+        },
+        NamedTensor {
+            name: "tokens".into(),
+            value: token,
+        },
+    ])
+    .unwrap();
+    request.requirement.elements.push(TensorElement::I64);
+    request.requirement.input_bytes = 16;
+    request.requirement.output_bytes = 8;
+    assert_eq!(
+        host.execute(request.clone()),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
+    );
+    request.requirement.output_bytes = 16;
+    let expected = request.inputs.clone();
+    let ModelComputeAdapterTerminal::Produced(result) = host.execute(request) else {
+        panic!("a refused output must leave the admitted session available");
+    };
+    assert_eq!(result.outputs, expected);
+    assert_eq!(result.inputs_identity, expected.semantic_digest().unwrap());
+}
