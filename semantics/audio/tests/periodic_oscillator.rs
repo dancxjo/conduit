@@ -374,6 +374,8 @@ fn forged_cursor_phase_and_budget_refuse_before_step() {
         (1, 0, 0, 0, 2),
         (0, 0, 0, 0, 4),
         (65537, 0, 0, 0, 0),
+        (0, i128::MIN, 0, 0, 3),
+        (0, i128::MAX, 0, 0, 3),
     ] {
         let forged = AudioPeriodicCursorCandidate::new(
             emitted,
@@ -397,4 +399,75 @@ fn forged_cursor_phase_and_budget_refuse_before_step() {
             ));
         }
     }
+}
+
+#[test]
+fn projection_forgery_refuses_and_maximum_budget_stops_exactly() {
+    let mut start = Pipeline::new(
+        "dsp/oscillator-start",
+        AudioPeriodicProjectionCandidate::semantic_type().unwrap(),
+    );
+    let req = request(125, 1, 0, 1, 0, 1, 65536);
+    for (amplitude, amplitude_remainder, period, period_remainder) in [
+        (1, 0, 16384, 0),
+        (0, 1, 16384, 0),
+        (0, 0, 16385, 0),
+        (0, 0, 16384, 1),
+    ] {
+        let projection = AudioPeriodicProjectionCandidate::new(
+            amplitude,
+            amplitude_remainder,
+            period,
+            period_remainder,
+            req.clone(),
+        )
+        .unwrap();
+        assert!(matches!(
+            AudioPeriodicStartOutcome::decode(&start.run(projection.encode().unwrap())).unwrap(),
+            AudioPeriodicStartOutcome::InvalidProjection
+        ));
+    }
+    let projection = AudioPeriodicProjectionCandidate::new(0, 0, 16384, 0, req).unwrap();
+    let initial = started(&start.run(projection.encode().unwrap()));
+    let cursor = AudioPeriodicCursorCandidate::new(
+        65535,
+        0,
+        (65535 * 256) % 16384,
+        0,
+        initial.profile().clone(),
+        1,
+    )
+    .unwrap();
+    let mut step = Pipeline::new(
+        "dsp/oscillator-step",
+        AudioPeriodicStepInput::semantic_type().unwrap(),
+    );
+    let bytes = step.run(
+        AudioPeriodicStepInput::new(false, cursor)
+            .unwrap()
+            .encode()
+            .unwrap(),
+    );
+    let AudioPeriodicOutcome::Advanced(value) = AudioPeriodicOutcome::decode(&bytes).unwrap()
+    else {
+        panic!("last frame")
+    };
+    assert_eq!(
+        (
+            *value.sample(),
+            *value.cursor().emitted(),
+            *value.cursor().remaining()
+        ),
+        (0, 65536, 0)
+    );
+    let bytes = step.run(
+        AudioPeriodicStepInput::new(false, value.cursor().clone())
+            .unwrap()
+            .encode()
+            .unwrap(),
+    );
+    assert!(matches!(
+        AudioPeriodicOutcome::decode(&bytes).unwrap(),
+        AudioPeriodicOutcome::Exhausted(_)
+    ));
 }
