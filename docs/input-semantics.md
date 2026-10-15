@@ -196,6 +196,14 @@ The configuration defaults to false for ordinary text Faces. A presenter that
 cannot realize this requested insertion cue must refuse it explicitly; native
 serial-only text presentation accepts the default and refuses the opt-in.
 
+The native graphical renderer does not yet implement this insertion cue or the
+saved-choice control. The full Memory Lantern form therefore has no native
+graphical parity claim; `keyboard-only.conduit` exercises its portable keyboard
+behavior. Native layout and focus work is tracked in
+[#5357](https://github.com/dancxjo/conduit/issues/5357), and shared visual Look
+migration in [#5627](https://github.com/dancxjo/conduit/issues/5627). Browser CSS
+is a host realization, not a stylesheet to execute in ConduitOS.
+
 ## Language presets
 
 Six authored presets are available: US International with AltGr dead keys,
