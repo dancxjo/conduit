@@ -127,6 +127,15 @@ fn playback_offer_for(continuous: bool) -> CapabilityOffer {
         },
         vec![
             HostCallRequirement {
+                contract_id: HostCallContractId::from(DRAIN_OPERATION),
+                // Drain targets the same selected audio output authority; its
+                // request body is empty because it carries no additional PCM.
+                target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: 0,
+            },
+            HostCallRequirement {
                 contract_id: HostCallContractId::from(PLAY_OPERATION),
                 target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
                 maximum_in_flight: 1,
@@ -134,24 +143,17 @@ fn playback_offer_for(continuous: bool) -> CapabilityOffer {
                     + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
                 maximum_output_bytes: 0,
             },
-            HostCallRequirement {
-                contract_id: HostCallContractId::from(DRAIN_OPERATION),
-                target_kind: None,
-                maximum_in_flight: 1,
-                maximum_input_bytes: 0,
-                maximum_output_bytes: 0,
-            },
         ],
         vec![resource_requirement(PLAY_RESOURCE, 1)],
         vec![
             AuthorityRequirement {
                 contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
+                host_call_contract_id: HostCallContractId::from(DRAIN_OPERATION),
                 subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
             },
             AuthorityRequirement {
                 contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
-                host_call_contract_id: HostCallContractId::from(DRAIN_OPERATION),
+                host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
                 subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
             },
         ],
@@ -332,7 +334,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
             )
             .expect("validated PCM fits the playback operation");
             io.consume(PortId(0)).expect("present PCM frame");
-            io.request_host_call(request, HostCallId(0), input)
+            io.request_host_call(request, HostCallId(1), input)
                 .expect("browser playback Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
@@ -343,7 +345,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
             let request = RequestId(self.next);
             io.request_host_call(
                 request,
-                HostCallId(1),
+                HostCallId(0),
                 BoundedValueRef::new(self.drain, 0).expect("empty PCM drain request"),
             )
             .expect("PCM drain Host Call");
