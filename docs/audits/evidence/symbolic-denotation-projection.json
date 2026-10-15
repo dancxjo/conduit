@@ -1,14 +1,20 @@
 {
   "issue": 5733,
-  "state": "validated locally; held for PR slot",
-  "source": "0f41e7c4021b878f4227d7bbca319543c2966300",
-  "base": "15cad8d58e0acfbb81ee83cf4f313f5015418ff0",
-  "related_tests": 8,
+  "state": "validated on current development; awaiting candidate acceptance",
+  "source": "45ead84b493fc764235a9ff87311283551406806",
+  "base": "df66968dec9cdf6eddb813857bf617fd4c3326dd",
+  "related_tests": 9,
   "new_joined_tests": 2,
   "focused_strict_clippy": "PASS",
   "production_code_changed": false,
   "proof_class": "checked Source + native prepared/reference expressions + certified Core numeric preparation",
   "source_boundary": "exact graphs imported via accepted Core constructors; compound-symbol literal syntax and dynamic arithmetic remain unsupported",
   "parent": 5392,
-  "parent_state": "open"
+  "parent_state": "open",
+  "pinned_workspace_format": "PASS",
+  "logs_sha256": {
+    "symbolic-accepted-observatory-related-tests.log": "5decf89526da442b8f3d7a0022f78ca602b2383d8bfceb21d4a1c981db463d8d",
+    "symbolic-accepted-observatory-clippy.log": "da542879ca6a138bc9c1a25e262f59be92f9db609a60ebe5b33cefb334c0894f",
+    "symbolic-accepted-observatory-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  }
 }

@@ -34,16 +34,9 @@ a new runtime, general algebraic normalization or ordinary-kernel/device proof.
 The eligible fixed-width scalar paths are untouched. Parent #5392 keeps all its
 broader cross-projection and runtime requirements.
 
-Refreshed development validation at
-`1d5df127e0658c0a96e21e21112b93534e035fea`, based on accepted development
-`ce03de610633c26a804d42bfc14e515db94fdc09`: nine tests pass across
+Current-development validation at `45ead84b493fc764235a9ff87311283551406806`, based on accepted
+`df66968dec9cdf6eddb813857bf617fd4c3326dd`: nine tests pass across
 `symbolic_denotation_projection`, `mathematical_value_transport` and
-`mathematical_value_bindings`. Strict Clippy for the joined conformance test and
-pinned workspace formatting pass. The two joined test bodies remain byte-identical
-to their prior validated Source. This refresh adds no production code.
-
-A fresh rebuild at `16401cb5d3f15199add2e154d592528e368c221c`, after accepted development
-`ac97b99fd9016e5879f9822432fe945ee3c500f0`, passes the same nine tests, strict focused
-Clippy and pinned workspace formatting. Tracked compiler/semantic input mtimes
-were refreshed without changing bytes to exclude relocated-worktree Cargo
-cache reuse. No production implementation was added by this refresh.
+`mathematical_value_bindings`. Strict focused Clippy and pinned workspace
+formatting pass. A dedicated build cache and unchanged-source mtime refresh
+exclude relocated-worktree cache reuse. This change adds no production code.
