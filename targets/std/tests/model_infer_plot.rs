@@ -350,11 +350,30 @@ fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
         )
         .unwrap()
     };
+    let input = ModelPortConstraint::from_parts(
+        "input".into(),
+        "data/tensor@1".into(),
+        ModelPortPresence::Required,
+        ModelValueConstraint::tensor(
+            ModelTensorConstraint::from_parts(
+                vec![TensorElement::F32],
+                vec![ModelAxisConstraint::new(
+                    ModelDimensionConstraint::fixed(2).unwrap(),
+                    TensorAxisRole::Feature,
+                )
+                .unwrap()],
+                8,
+            )
+            .unwrap(),
+        )
+        .unwrap(),
+    )
+    .unwrap();
     let signature = ModelSignature::from_parts(
         "test/dynamic-output@1".into(),
         1,
         vec![ModelOperation::Infer],
-        vec![port("input")],
+        vec![input],
         vec![port("output")],
     )
     .unwrap();
