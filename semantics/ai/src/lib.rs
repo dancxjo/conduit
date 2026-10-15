@@ -133,6 +133,8 @@ pub use model_text::*;
 mod model_signature;
 pub use model_signature::*;
 mod model_artifact;
+pub mod onnx_metadata;
+mod onnx_wire;
 pub use model_artifact::*;
 mod learned_lifecycle;
 pub use learned_lifecycle::*;
