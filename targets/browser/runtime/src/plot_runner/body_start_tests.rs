@@ -73,7 +73,7 @@ fn ordinary_five_plot_body_is_not_confined_to_the_single_plot_gear_table() {
         .sum::<usize>();
     assert!(placements > crate::installed_browser::MAXIMUM_BROWSER_PLOT_GEARS);
     assert!(placements <= crate::installed_browser::MAXIMUM_BROWSER_GEARS);
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert_eq!(session.fragments.len(), 5);
     assert_eq!(started.play.wake_id, started.wake_at_start.wake_id);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
