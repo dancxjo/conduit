@@ -1,0 +1,119 @@
+{
+  "schema": "conduit.thermostat-journey/capture@2",
+  "capture_entrance": "cargo xtask prove journey thermostat --capture",
+  "capture_tool_commit": "ef64e8241f63c86dcf52fb3094e2cc74ce2fa37a",
+  "capture_tool_dirty": false,
+  "source_commit": "ef64e8241f63c86dcf52fb3094e2cc74ce2fa37a",
+  "source_relation": "exact-source",
+  "body_id": "28304c413736074a225519134768d8c19520191c9a35184c41d9042533809ab7",
+  "body_plan_id": "body-plan/sha256:e5abedae37ac7a848608e57f624b053edaa3d9c4d5894b63f7cf3ddeedd51669",
+  "body_play_id": "body-play/sha256:a2aefb0a07a4d5b694bba1d2c4fa1ed3d759c5fac027ff0d7ffde7f56d56b2ff",
+  "result": "browser-terminal-spoken-complete",
+  "files": [
+    {
+      "path": "capture/receipt.json",
+      "bytes": 2235517,
+      "sha256": "2a18c3f2117f54d94157a009801876ae510f7192e2051de5feaef559c4e841bb"
+    },
+    {
+      "path": "capture/spoken-00.wav",
+      "bytes": 1242560,
+      "sha256": "28d13e3b62aa9ce4d864aac0c4aaa55f86a21204d5cb404ce2cc18b107c6abc3"
+    },
+    {
+      "path": "capture/spoken-01.wav",
+      "bytes": 1386136,
+      "sha256": "dd5f99aadcfe27aa1528ef29f47e126870af0e38051d9ba01ef0f4168f341096"
+    },
+    {
+      "path": "capture/spoken-02.wav",
+      "bytes": 1326220,
+      "sha256": "cb1a16ad0e3e4d873ec9d58f23802f6d0f7b397f6a97285b5c5ba5e5dd700e66"
+    },
+    {
+      "path": "capture/spoken-03.wav",
+      "bytes": 1263816,
+      "sha256": "24f6ef7eb9317a4c1c91f6a37c33dce9791a3e5fbd324bf2405358432bd106c6"
+    },
+    {
+      "path": "capture/spoken-04.wav",
+      "bytes": 1488312,
+      "sha256": "f1dede0cf839e9d74bf719475b0098583d53b020f639d96c9047e30274a65402"
+    },
+    {
+      "path": "capture/spoken-05.wav",
+      "bytes": 1510288,
+      "sha256": "7118865d61657a5b11b7cefe66c1fa4cc74788465247abeca0daa0624f43c489"
+    },
+    {
+      "path": "capture/spoken-06.wav",
+      "bytes": 1476572,
+      "sha256": "01291ddd7d8952415681e0d3a27d313cdc45f10615bf3aef8d6e5abca792cba8"
+    },
+    {
+      "path": "capture/spoken-07.wav",
+      "bytes": 1603572,
+      "sha256": "5967c1e7d10c2cd60cdece69326a1e4d07f704f740caffede2c6bac38a1165a7"
+    },
+    {
+      "path": "capture/spoken-08.wav",
+      "bytes": 960724,
+      "sha256": "cc3872300eec2f3fcd0426fb2adb1ec3f7e7104c2ee1aadfcadb742d529296dd"
+    },
+    {
+      "path": "capture/spoken-reading.wav",
+      "bytes": 12257848,
+      "sha256": "d07f645aae137044cf5cbf1d405f7921443d225e8e891c57f123460db3aa120c"
+    },
+    {
+      "path": "capture/terminal.input",
+      "bytes": 136,
+      "sha256": "dfc7f381092d5780361f306b1388570b87926f3e27e7774046edc7bcea35e96e"
+    },
+    {
+      "path": "capture/terminal.stderr",
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "path": "capture/terminal.txt",
+      "bytes": 117559,
+      "sha256": "2a69a162b0c1ac8a01d7af97cc232c6e48edb76f1640b8899daed6cdf403e7a1"
+    },
+    {
+      "path": "capture/thermostat-after-terminal.png",
+      "bytes": 76777,
+      "sha256": "686f9928021f01c9362dbfff28179c2dca4d207d3ee5c433230cbfa6575c1665"
+    },
+    {
+      "path": "capture/thermostat-body-menu.png",
+      "bytes": 58963,
+      "sha256": "49592056efa6c04754cbdd3fd1ef027c8211b0af02a8bcbbe7d0eb7d80b9dd48"
+    },
+    {
+      "path": "capture/thermostat-desktop.png",
+      "bytes": 75359,
+      "sha256": "c2508a9146795cca5027a410e9d7afa62fb5064451f8497a13395deb453acd4c"
+    },
+    {
+      "path": "capture/thermostat-lulled.png",
+      "bytes": 60331,
+      "sha256": "808f516a85218fb063168339a5cc700e6e533d4473a710f9dce1d1a9dbcee1ba"
+    },
+    {
+      "path": "capture/thermostat-mobile.png",
+      "bytes": 43546,
+      "sha256": "c21ad77f00d62f7cf9f7e30e85e4b357b4bc46359054abde05e09aee002a33c2"
+    },
+    {
+      "path": "capture/thermostat-raised.png",
+      "bytes": 75852,
+      "sha256": "00f1136b02de47be8902a6121f33771afa09408e61d2be637730b4f855b45253"
+    },
+    {
+      "path": "capture/thermostat-restarted.png",
+      "bytes": 75359,
+      "sha256": "c2508a9146795cca5027a410e9d7afa62fb5064451f8497a13395deb453acd4c"
+    }
+  ]
+}

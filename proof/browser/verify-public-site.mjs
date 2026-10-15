@@ -127,6 +127,7 @@ try {
         assert.equal(response.headers()['content-type'], 'audio/wav');
         assert((await content.innerText()).includes('Settings are session-local.'), "Thermostat must disclose session reset");
         assert((await content.innerText()).includes('No physical sensor, heating or cooling is confirmed.'), "Thermostat must disclose equipment limits");
+        await content.getByText('Source, receipts and limits', { exact: true }).click();
       }
       if (id === "field-station") {
         const text = (await page.locator("main").innerText()).replace(/\s+/g, " ");

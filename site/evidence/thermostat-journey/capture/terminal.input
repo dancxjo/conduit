@@ -1,0 +1,9 @@
+show
+evidence
+action thermostat.mode.heat
+evidence
+action thermostat.mode.heat
+action thermostat.preset.eco
+read settings
+evidence
+quit
