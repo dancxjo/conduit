@@ -24,11 +24,15 @@ impl TimerAdapter for NoTimer {
     }
 }
 fn checked_plan() -> (StdHost, conduit_core::Plan) {
+    checked_plan_for(include_str!(
+        "../../../plots/audio-pitch-analysis/main.conduit"
+    ))
+}
+fn checked_plan_for(source: &str) -> (StdHost, conduit_core::Plan) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_audio_pitch_analysis_catalog(&mut startup, &mut profile)
         .unwrap();
-    let source = include_str!("../../../plots/audio-pitch-analysis/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "measure", &profile).unwrap();
     let host = StdHost::new();
@@ -276,4 +280,86 @@ fn normal_kernel_refuses_malformed_whole_input_before_output() {
         assert!(result.is_err());
         assert!(output.0.is_empty());
     }
+}
+
+// Accepted Audio-owned authored-generation fixture, separate from the installed
+// measurement path. This does not claim a complete streaming synth composition.
+#[path = "../../../semantics/audio/tests/common/periodic.rs"]
+mod oscillator_fixture;
+#[test]
+fn accepted_authored_oscillator_samples_feed_the_same_normal_measurement_kind() {
+    use oscillator_fixture::{request, started, Pipeline};
+    let mut prepare = Pipeline::new(
+        "dsp/oscillator-prepare",
+        AudioPeriodicRequest::semantic_type().unwrap(),
+    );
+    let mut step = Pipeline::new(
+        "dsp/oscillator-step",
+        AudioPeriodicStepInput::semantic_type().unwrap(),
+    );
+    let mut cursor = started(&prepare.run(request(1000, 1, 0, 1, 1, 1, 64).encode().unwrap()));
+    assert_eq!(*cursor.profile().projection().period_q8(), 8 * 256);
+    let mut samples = Vec::with_capacity(64);
+    for _ in 0..64 {
+        let bytes = step.run(
+            AudioPeriodicStepInput::new(false, cursor)
+                .unwrap()
+                .encode()
+                .unwrap(),
+        );
+        let AudioPeriodicOutcome::Advanced(value) = AudioPeriodicOutcome::decode(&bytes).unwrap()
+        else {
+            panic!("bounded authored sample");
+        };
+        let sample = i32::try_from(*value.sample()).unwrap();
+        assert!((-32768..=32767).contains(&sample));
+        // Explicit fixture conversion: one unscaled cubic-difference integer
+        // becomes 1/32768 digital full scale. This dyadic map is exact in f32.
+        samples.push(sample as f32 / 32768.0);
+        cursor = value.cursor().clone();
+    }
+    let source = include_str!("../../../plots/audio-pitch-analysis/main.conduit")
+        .replace("clock-id = 7", "clock-id = 1")
+        .replace("source-frames = 1024", "source-frames = 64")
+        .replace("window-frames = 1024", "window-frames = 64")
+        .replace("minimum-lag = 8", "minimum-lag = 2")
+        .replace("maximum-lag = 256", "maximum-lag = 16");
+    let (mut host, plan) = checked_plan_for(&source);
+    let bytes = PcmFrameHeader::new(
+        PcmSampleRepresentation::Float32LittleEndian,
+        8000,
+        PcmChannelLayout::Mono,
+        64,
+        1,
+        0,
+        false,
+    )
+    .unwrap()
+    .encode_frame(
+        &samples
+            .iter()
+            .flat_map(|x| x.to_le_bytes())
+            .collect::<Vec<_>>(),
+    )
+    .unwrap();
+    let mut output = Output::default();
+    let report = host
+        .run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "pcm".into(),
+                track: ConnectionTrack::Payload,
+                bytes,
+            }],
+            &mut output,
+            &mut Vec::new(),
+            &mut NoTimer,
+        )
+        .unwrap();
+    assert_eq!(output.0.len(), 1);
+    let observed = AudioPitchObservation::decode(&output.0[0]).unwrap();
+    assert_eq!(*observed.state(), AudioPitchState::Periodic);
+    assert_eq!(*observed.candidate_lag(), 8);
+    assert_eq!(*observed.window_start_frame(), 0);
+    assert_eq!(report.kernel.unwrap().active_play.plan_id, plan.plan_id);
 }

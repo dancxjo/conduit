@@ -8,9 +8,10 @@ interval owner. Nothing resamples, pads, aligns or retains hidden block history.
 The caller supplies a 64..2048-frame window and inclusive lag range 2..512.
 Three complete maximum-lag periods must fit. The workspace contains 2048 f64
 samples and 514 f64 correlations; a call performs at most 513*2048 sample-pair
-iterations. Construction and reuse allocate nothing. Installed-host work/fuel,
-pressure, cancellation and typed output admission remain required before issue
-#5686 can close; this portable implementation alone is not normal Play proof.
+iterations. Construction and reuse allocate nothing. The installed std Back admits one window per immutable PCM block and 1..64
+blocks per Play. Pressure preserves input and budget before analysis; publishing
+one observation consumes one block. Cancellation and closing input add no
+observation. Final combined-source proof and candidate CI remain closure gates.
 
 The finite f64 algorithm subtracts the window mean, then measures normalized
 cross-correlation with separate overlap energies. Centered mean-square at or
@@ -44,10 +45,21 @@ The checked output carries a parts-per-million correlation projection. The
 `periodicity_score` adapter reuses the generic #4950 score contract with an
 explicit estimator/scale and no invented calibration or semantic claim. Actual
 Plan/Play Signs establish emission separately. The score does not establish
-physical pitch, original speech intent or perception. Generic #4952 fidelity
-report integration remains a separate development gate before closure.
+physical pitch, original speech intent or perception. The #4952 fidelity binding checks the complete actual emitted observation
+against the retained PCM/profile pair during preparation. It retains the
+observation as native evidence and declares waveform reduction as cardinality
+loss; strict consumers reject it. The normal Host proof correlates the report
+with the actual selected Plan/Host/Boot/Back/artifact and completed attempt.
+The report itself does not attest execution; kernel evidence remains separate.
 
 Prepared encoding retains four valid canonical state shapes and writes only
 admitted numeric cells. The immutable profile fixes source block size, window
 offset/length, clock/rate and lag limits. One window is observed per input block;
 no cross-block raw history, stitch, padding or inferred resampling is hidden.
+
+A separate hosted measurement fixture consumes samples produced by the accepted
+Audio-owned authored oscillator preparation/step programs. It declares an exact
+fixture conversion of one unscaled cubic-difference sample to 1/32768 digital
+full scale, then measures those PCM bytes through the same normal measurement
+Kind. This proves generated-signal reuse, not a complete #5682 streaming synth,
+physical playback or subjective voice quality.
