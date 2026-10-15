@@ -201,9 +201,10 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         self.next_request = next;
         let mut requirement = self.requirement.clone();
         requirement.input_bytes = bytes;
-        let Ok(inputs_identity) = inputs.semantic_digest() else {
-            return ModelWorkTerminal::MalformedInput;
-        };
+        // Native decoding and signature validation above establish these exact
+        // canonical bytes. Hash the admitted encoding without cloning and
+        // rebuilding the same typed value solely to serialize it again.
+        let inputs_identity = semantic_digest(conduit_data::NAMED_TENSOR_BUNDLE_INFO_ID, input);
         let terminal = self.adapter.execute(ModelComputeInvocation {
             request_identity: identity,
             artifact_identity: self.model.artifact().content_identity(),

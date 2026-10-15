@@ -32,6 +32,11 @@ fn mixed_tensor_bundle_round_trips_names_types_shapes_and_content() {
     ];
     let bundle = NamedTensorBundle::from_values(values.clone()).unwrap();
     assert_eq!(bundle.tensor_bytes(), Ok(20));
+    let canonical = bundle.clone().encode().unwrap();
+    assert_eq!(
+        conduit_core::semantic_digest(conduit_data::NAMED_TENSOR_BUNDLE_INFO_ID, &canonical),
+        bundle.semantic_digest().unwrap(),
+    );
     let structured = bundle.clone().into_structured().unwrap();
     assert_eq!(
         NamedTensorBundle::from_structured(structured).unwrap(),
