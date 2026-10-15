@@ -194,6 +194,14 @@ impl<'a> Resolver<'a> {
                     Some(expression.span),
                 ));
             }
+            crate::native_type::validate_concrete_value_type(
+                &checked,
+                self.catalog,
+                expression.span,
+            )
+            .map_err(|diagnostic| {
+                SyntaxCheckError::StructuredExpression(diagnostic.message, Some(diagnostic.span))
+            })?;
             return Ok(CanonicalStartupValue::Structured(checked));
         }
         let negative_integer = matches!(

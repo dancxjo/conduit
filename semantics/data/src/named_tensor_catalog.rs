@@ -1,8 +1,6 @@
 //! Import the owner's complete checked Type, including refinement laws.
 use alloc::{format, string::String};
-use conduit_plot::{
-    check_syntax_document, parse_syntax_document, rust_binding::NativeRustBinding, StartupCatalog,
-};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 
 pub fn install_named_tensor_type(startup: &mut StartupCatalog) -> Result<(), String> {
     let mut owner = StartupCatalog::new();

@@ -1,8 +1,6 @@
 //! Preserve the existing model signature's Source refinements at the Fore.
 use alloc::{format, string::String};
-use conduit_plot::{
-    check_syntax_document, parse_syntax_document, rust_binding::NativeRustBinding, StartupCatalog,
-};
+use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 
 pub(crate) fn install_signature_type(startup: &mut StartupCatalog) -> Result<(), String> {
     let mut owner = StartupCatalog::new();

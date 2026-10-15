@@ -165,3 +165,26 @@ pub(crate) fn validate_concrete_value(
             )
         })
 }
+
+/// Startup expressions may name an imported Type through any exact alias.
+/// Select retained laws by the checked representation, not alias spelling.
+pub(crate) fn validate_concrete_value_type(
+    value: &crate::CanonicalStructuredStartupValue,
+    catalog: &StartupCatalog,
+    span: crate::Span,
+) -> Result<(), SyntaxCheckDiagnostic> {
+    let Some((contracts, invariants)) = catalog.native_laws_for(value.value_type()) else {
+        return Ok(());
+    };
+    let Some(concrete) = value.try_concrete() else {
+        return Ok(());
+    };
+    crate::rust_binding::validate_native_contracts(&concrete, contracts)
+        .and_then(|()| crate::rust_binding::validate_native_invariants(&concrete, invariants))
+        .map_err(|error| {
+            super::diagnostic(
+                span,
+                alloc::format!("native startup Type refinement refuses this value: {error:?}"),
+            )
+        })
+}
