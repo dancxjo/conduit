@@ -60,6 +60,27 @@ pub(super) fn offer_pair(
     (face, returned)
 }
 
+/// The hosted presentation peer accepts complete 64 KiB messages. The native
+/// guest's smaller wire frames remain a separate profile in `offer_pair`.
+pub(super) fn offer_terminal(
+    owner: &HostAdvertisement,
+    peer: &PortableAdmissionReceipt,
+    binding_reference: &str,
+) -> (LineOffer, LineOffer, LineOffer) {
+    let (mut face, mut show) = offer_pair(owner, peer, binding_reference);
+    let mut interaction = line(
+        "interaction",
+        binding_reference,
+        peer.credential.credential_id.as_str(),
+        &peer.host_advertisement,
+        owner,
+    );
+    for line in [&mut face, &mut show, &mut interaction] {
+        line.binding.limits.maximum_frame_bytes = 64 * 1024;
+    }
+    (face, show, interaction)
+}
+
 fn line(
     direction: &str,
     binding_reference: &str,
@@ -169,5 +190,16 @@ mod tests {
         assert_eq!(face.binding.limits.maximum_payload_bytes, 64 * 1024);
         assert_eq!(returned.binding.limits.maximum_frame_bytes, 8192 - 14);
         assert_eq!(returned.binding.limits.maximum_payload_bytes, 64 * 1024);
+        let (terminal_face, terminal_show, interaction) =
+            offer_terminal(&owner, &receipt, "pinned/grant/0");
+        assert_ne!(interaction.line_id, terminal_face.line_id);
+        assert_ne!(interaction.line_id, terminal_show.line_id);
+        assert_eq!(interaction.binding.source.host_id, guest.host_id);
+        assert_eq!(interaction.binding.sink.host_id, owner.host_id);
+        for line in [terminal_face, terminal_show, interaction] {
+            assert!(line.validate_sign_identity());
+            assert_eq!(line.binding.limits.maximum_frame_bytes, 64 * 1024);
+            assert_eq!(line.contract.security, LineSecurity::AuthenticatedEncrypted);
+        }
     }
 }

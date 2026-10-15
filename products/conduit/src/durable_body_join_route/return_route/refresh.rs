@@ -53,7 +53,7 @@ pub(super) fn serve(
             code: "face-unavailable".into(),
         });
     let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { face, .. }
-        if crate::durable_host_control::has_native_return_route_intent(face))
+        if old.mask == MaskSelection::Terminal || crate::durable_host_control::has_native_return_route_intent(face))
     {
         let grant = old.replacement(next_sequence)?;
         Some(grant)
@@ -65,19 +65,7 @@ pub(super) fn serve(
     {
         crate::durable_host_control::local_face_snapshot(state_dir)
             .and_then(|(_, owner_offer)| {
-                let binding = super::super::native_lines::binding_reference(
-                    listener,
-                    &grant.binding_reference(0),
-                );
-                let (face_line, return_line) =
-                    super::super::native_lines::offer_pair(&owner_offer, &old.receipt, &binding);
-                crate::durable_host_control::select_native_mask_route(
-                    state_dir,
-                    old.receipt.clone(),
-                    face_line,
-                    return_line,
-                    grant.expires_at_millis(),
-                )
+                grant.seal_mask_route(listener, state_dir, &owner_offer, 0)
             })
             .map(|selected| {
                 *route = Some(Box::new(selected));
