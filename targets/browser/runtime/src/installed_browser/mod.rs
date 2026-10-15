@@ -7,7 +7,6 @@ pub(crate) mod audio_tone;
 mod back;
 pub(crate) mod body_startup;
 mod button_indicator;
-mod current_sample;
 mod deadline;
 mod debounce;
 mod delay;

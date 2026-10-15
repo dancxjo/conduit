@@ -367,24 +367,23 @@ pub(super) fn reviewed_browser_host_with_inventory(
         } else {
             Vec::new()
         };
-        // Dynamic expressions, State, and sampling can occur in a local Plot. Inspect the entire
+        // Expressions and retained State can occur in a local Plot. Inspect the entire
         // checked document before deciding whether expansion is necessary.
         // Most shelf entries contain none: avoid constructing every Back and
         // expanding those documents on each durable Body transition.
         let has_dynamic_gears = entry.checked.plots.iter().any(|plot| {
-            plot.gears.iter().any(|gear| {
-                gear.retained.is_some()
-                    || gear.kind == conduit_core::STATE_VALUE_KIND
-                    || gear.kind == conduit_semantic_catalog::CURRENT_SAMPLE_KIND
-            }) || plot.cords.iter().any(|cord| {
-                cord.stages.iter().any(|stage| {
-                    matches!(
-                        stage,
-                        conduit_plot::CheckedCordStage::PureExpression { .. }
-                            | conduit_plot::CheckedCordStage::When { .. }
-                    )
+            plot.gears
+                .iter()
+                .any(|gear| gear.retained.is_some() || gear.kind == conduit_core::STATE_VALUE_KIND)
+                || plot.cords.iter().any(|cord| {
+                    cord.stages.iter().any(|stage| {
+                        matches!(
+                            stage,
+                            conduit_plot::CheckedCordStage::PureExpression { .. }
+                                | conduit_plot::CheckedCordStage::When { .. }
+                        )
+                    })
                 })
-            })
         });
         if has_dynamic_gears {
             let backs = crate::installed_browser::backs(startup, &profile)?;

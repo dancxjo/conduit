@@ -87,7 +87,6 @@ fn build_catalogs_for_face(face: FaceProfile) -> Result<InstalledCatalogs, Strin
     conduit_semantic_catalog::install_math_catalogs(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_mapping_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_pitch_tone_catalog(&mut startup, &mut profile)?;
-    super::current_sample::install_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_audio_continuous_play_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_quantity_info_catalog(&mut startup, &mut profile)?;
     conduit_plot::quantity_conversion::install(&mut startup, &mut profile)?;
@@ -213,10 +212,6 @@ pub(crate) fn offers_for_expanded_pure_expressions(
     for gear in &expanded.gears {
         if let Some(offer) = super::typed_state::offer_for_expanded(gear)? {
             offers.push(offer);
-            continue;
-        }
-        if gear.kind_id.as_str() == conduit_semantic_catalog::CURRENT_SAMPLE_KIND {
-            offers.push(super::current_sample::offer_for_expanded(gear)?);
             continue;
         }
         if !matches!(

@@ -360,47 +360,4 @@ impl PreparedAudioTone {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn admitted_renderer_keeps_phase_and_frame_continuity_in_hosted_pcm_storage() {
-        let mut renderer = PreparedAudioTone {
-            increment: None,
-            phase: 0,
-            start_frame: 0,
-        };
-        renderer
-            .update(&Quantity::new(440, Unit::Hertz).encode())
-            .unwrap();
-        let first = renderer.render().unwrap();
-        let second = renderer.render().unwrap();
-        let (first_header, first_payload) = PcmFrameHeader::decode_frame(&first).unwrap();
-        let (second_header, second_payload) = PcmFrameHeader::decode_frame(&second).unwrap();
-
-        assert_eq!(first_header.frame_count, FRAMES);
-        assert_eq!(first_header.start_frame, 0);
-        assert_eq!(second_header.start_frame, u64::from(FRAMES));
-        assert_eq!(first_payload.len(), usize::from(FRAMES) * 2);
-        assert_eq!(second_payload.len(), usize::from(FRAMES) * 2);
-        assert_ne!(first_payload, second_payload);
-    }
-    #[test]
-    fn theremin_renderer_accepts_precise_controller_pitch_at_the_phase_projection() {
-        let frequency = Quantity::parse_plot_literal("1556.29595Hz").unwrap();
-        let expected =
-            ((155_629_595u128 * (1u128 << 32)) / (100_000 * u128::from(SAMPLE_RATE))) as u32;
-        assert_eq!(phase_increment(frequency), Some(expected));
-        let mut renderer = PreparedAudioTone {
-            increment: None,
-            phase: 0,
-            start_frame: 0,
-        };
-        renderer.update(&frequency.encode()).unwrap();
-        renderer.render().unwrap();
-        renderer.render().unwrap();
-        assert_eq!(renderer.start_frame, 2 * u64::from(FRAMES));
-        assert!(phase_increment(Quantity::new(19, Unit::Hertz)).is_none());
-        assert!(phase_increment(Quantity::new(20_001, Unit::Hertz)).is_none());
-    }
-}
+mod tests;

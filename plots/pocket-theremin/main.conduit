@@ -12,21 +12,16 @@ plot pocket-theremin (
     >> pitch-distance: Distance
     >> volume: Scalar
     >> cadence: value/tick@1...
-    sampling-failed: conduit/terminal-info@1 >>
     audio: audio/pcm-frames@1...| >>
 ) {
     pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    sample: current/sample
     tone: audio/continuous-tone
     gain: audio/apply-gain
 
     pitch-distance >> pitch.distance
     pitch.frequency >> frequency
-    frequency >> sample.current
-    cadence >> sample.trigger
-    sample.value >> tone.frequency
-    sample.value! >> sampling-failed
+    frequency >> tone.frequency
     cadence >> tone.cadence
     tone.audio >> gain.source-audio
     volume >> gain.amplitude
@@ -40,9 +35,7 @@ plot theremin-distance (
 
 # A controller binding, not another Theremin. It adapts a normalized two-axis
 # surface to the canonical Plot and selects browser audio playback.
-plot phone-two-axis-controller (
-    sampling-failed: conduit/terminal-info@1 >>
-) {
+plot phone-two-axis-controller {
     controller: input/pointer-source
     x-normalize: math/normalized-ratio-scalar
     y-normalize: math/normalized-ratio-scalar
@@ -58,5 +51,4 @@ plot phone-two-axis-controller (
     y-normalize.out >> instrument.volume
     cadence.tick >> instrument.cadence
     instrument.audio >> play.audio
-    instrument.sampling-failed >> sampling-failed
 }

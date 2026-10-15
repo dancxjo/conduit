@@ -34,7 +34,7 @@ pub const AUDIO_CONTINUOUS_PLAY_REVISION: &str = "conduit.std/audio-continuous-p
 pub const AUDIO_TONE_KIND: &str = "audio/tone";
 pub const AUDIO_TONE_REVISION: &str = "conduit.std/audio-tone@1";
 pub const AUDIO_CONTINUOUS_TONE_KIND: &str = "audio/continuous-tone";
-pub const AUDIO_CONTINUOUS_TONE_REVISION: &str = "conduit.std/audio-continuous-tone@1";
+pub const AUDIO_CONTINUOUS_TONE_REVISION: &str = "conduit.std/audio-continuous-tone@2";
 pub const AUDIO_GAIN_KIND: &str = "audio/apply-gain";
 pub const AUDIO_GAIN_REVISION: &str = "conduit.std/audio-apply-gain@1";
 // One block spans 41.7 ms at 48 kHz. A 40 ms admitted cadence can therefore
@@ -293,8 +293,7 @@ pub fn audio_continuous_tone_contract() -> StandardKindContract {
     let mut contract = audio_tone_contract();
     contract.kind_id = kind_id(AUDIO_CONTINUOUS_TONE_KIND);
     contract.plain_name = "Generate continuous tone blocks".into();
-    contract.summary = "Transform sampled Frequency controls into overlapping bounded PCM blocks for continuous playback.".into();
-    contract.inputs[0].temporal = PortTemporal::Value;
+    contract.summary = "Retain current Frequency controls and render one bounded phase-continuous PCM block on each cadence tick.".into();
     contract.inputs.insert(
         1,
         PortDescriptor {

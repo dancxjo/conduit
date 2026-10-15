@@ -81,21 +81,16 @@ plot pocket-theremin (
     >> pitch-distance: Distance
     >> volume: Scalar
     >> cadence: value/tick@1...
-    sampling-failed: conduit/terminal-info@1 >>
     audio: audio/pcm-frames@1...| >>
 ) {
     pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    sample: current/sample
     tone: audio/continuous-tone
     gain: audio/apply-gain
 
     pitch-distance >> pitch.distance
     pitch.frequency >> frequency
-    frequency >> sample.current
-    cadence >> sample.trigger
-    sample.value >> tone.frequency
-    sample.value! >> sampling-failed
+    frequency >> tone.frequency
     cadence >> tone.cadence
     tone.audio >> gain.source-audio
     volume >> gain.amplitude
@@ -111,7 +106,9 @@ completion and is inappropriate for this continuously played instrument.
 
 `keep` retains the current pitch for this play, starting at 440 Hz. Every
 cadence tick samples that pitch and requests the next phase-continuous PCM
-block, even when the hand stays still. The second control changes volume.
+block, even when the hand stays still. The tone reads the retained Current frequency
+on that cadence; its faults keep their declared abnormal propagation. The
+second control changes volume.
 The controller binding supplies a 40 ms cadence and selects
 `audio/continuous-play`. Playback remains externally driven until Stop or input
 closure, with at most two queued PCM blocks and the Host acoustic gain cap.

@@ -285,6 +285,17 @@ fn catalog_plot_plan(
     let expanded =
         conduit_plot::expand_canonical_plot_with_backs(&document, &plot.name, &profile, &backs)
             .map_err(|error| format!("Workspace expansion refused: {error:?}"))?;
+    for offer in
+        crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(&expanded)?
+    {
+        if !hosts[local]
+            .capabilities
+            .iter()
+            .any(|current| current.capability_id == offer.capability_id)
+        {
+            hosts.to_mut()[local].capabilities.push(offer);
+        }
+    }
     let placements = conduit_planner::default_expanded_placements(&expanded, &hosts)
         .map_err(|error| error.to_string())?;
     super::review::queue_plan::plan(

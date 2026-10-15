@@ -62,21 +62,16 @@ plot pocket-theremin (
     >> pitch-distance: Distance
     >> volume: Scalar
     >> cadence: value/tick@1...
-    sampling-failed: conduit/terminal-info@1 >>
     audio: audio/pcm-frames@1...| >>
 ) {
     pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    sample: current/sample
     tone: audio/continuous-tone
     gain: audio/apply-gain
 
     pitch-distance >> pitch.distance
     pitch.frequency >> frequency
-    frequency >> sample.current
-    cadence >> sample.trigger
-    sample.value >> tone.frequency
-    sample.value! >> sampling-failed
+    frequency >> tone.frequency
     cadence >> tone.cadence
     tone.audio >> gain.source-audio
     volume >> gain.amplitude
