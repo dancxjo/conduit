@@ -21,7 +21,13 @@ pub(super) fn prepared(
     discovery: &RetiredUsbDiscovery,
     observation: &ValuePayload,
 ) -> Result<(), &'static str> {
-    let plan = &discovery._play.kernel().definition().internal_plan;
+    let plan = &discovery
+        ._play
+        .as_ref()
+        .ok_or("protocol-usb-preflight-state")?
+        .kernel()
+        .definition()
+        .internal_plan;
     let mut text = crate::sign_format::FixedText::new();
     writeln!(text, "CONDUIT_USB_PREFLIGHT_PLAN source={} checked={} expanded={} plan={} class_source={} class_checked={}",
         plan.source_document_id.as_str(), plan.checked_plot_id.as_str(), plan.expanded_plot_id.as_str(),

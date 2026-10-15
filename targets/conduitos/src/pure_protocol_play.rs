@@ -5,7 +5,7 @@ use crate::{
     protocol_operations::ProtocolOperations, pure_protocol_owner::PureProtocolOwner,
     structured_selector_host_call::SelectorOperationFactory,
 };
-use alloc::vec::Vec;
+use alloc::{collections::BTreeMap, vec::Vec};
 use conduit_composite::{
     KernelCompositeDefinition, KernelCompositeHost, KernelCompositeSignStorage,
     KernelCompositeStatus, KernelCompositeTerminal, KernelOperationRegistry,
@@ -21,7 +21,15 @@ pub struct PreparedPureProtocolPlay {
     kernel: KernelCompositeHost,
     owners: Vec<(NodeId, PureProtocolOwner)>,
     identity: PreparationHostIdentity,
+    completed: bool,
 }
+/// Complete retained facts of a finished pure Play; execution storage is separate.
+pub(crate) struct RetiredPureProtocolEvidence {
+    pub(crate) _plan: Plan,
+    pub(crate) _active_plays: BTreeMap<HostId, ActivePlayId>,
+    pub(crate) _signs: BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>>,
+}
+
 impl PreparedPureProtocolPlay {
     pub(crate) fn prepare(
         definition: KernelCompositeDefinition,
@@ -138,6 +146,23 @@ impl PreparedPureProtocolPlay {
             kernel,
             owners,
             identity,
+            completed: false,
+        })
+    }
+
+    /// Allocating read-only snapshot after Complete, outside sealed Play.
+    /// The caller can then release finished queues and computation owners while
+    /// retaining the original Plan, actual Play identities and complete Signs.
+    pub(crate) fn retired_evidence(
+        &self,
+    ) -> Result<RetiredPureProtocolEvidence, ProtocolCallRefusal> {
+        if !self.completed {
+            return Err(ProtocolCallRefusal::InvalidPlan);
+        }
+        Ok(RetiredPureProtocolEvidence {
+            _plan: self.kernel.definition().internal_plan.clone(),
+            _active_plays: self.kernel.active_plays().clone(),
+            _signs: self.kernel.signs(),
         })
     }
 
@@ -227,6 +252,7 @@ impl PreparedPureProtocolPlay {
                 }
             }
         }
+        self.completed = status == KernelCompositeStatus::Complete;
         Ok(status)
     }
 
@@ -273,6 +299,7 @@ impl PreparedPureProtocolPlay {
             .map_err(ProtocolCallRefusal::Kernel)
     }
     pub fn cancel(&mut self) -> Result<(), ProtocolCallRefusal> {
+        self.completed = false;
         let cancelled = self.kernel.cancel().map_err(ProtocolCallRefusal::Kernel);
         for (node, owner) in &mut self.owners {
             owner.cancel(*node, HostCallId(0))?;

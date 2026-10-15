@@ -21,8 +21,10 @@ pub(super) struct RetiredUsbDiscovery {
     root_digest: [u8; 32],
     root_bytes: Vec<u8>,
     class_resident: conduit_body::ResidentPlot,
-    // Retain the exact pure Plan/Play and complete Sign, not just a verdict.
-    _play: crate::pure_protocol_play::PreparedPureProtocolPlay,
+    // Finished execution storage is released only after retaining the exact
+    // pure Plan, actual Play identities and complete Sign history.
+    _play: Option<crate::pure_protocol_play::PreparedPureProtocolPlay>,
+    _evidence: Option<crate::pure_protocol_play::RetiredPureProtocolEvidence>,
 }
 impl RetiredUsbDiscovery {
     pub(super) fn supported(&self) -> bool {
@@ -145,7 +147,8 @@ pub(super) fn accept(
         value_kind: output.value_kind.clone(),
         encoded: Vec::with_capacity(64),
     };
-    // Every retained allocation precedes pure Play, including negative history.
+    // Runtime execution storage is reserved before pure Play. Its final read-only
+    // evidence snapshot is taken after Complete, outside sealed execution.
     let mut retained = Box::new(RetiredUsbDiscovery {
         snapshot,
         package_digest,
@@ -153,10 +156,14 @@ pub(super) fn accept(
         root_bytes,
         class_resident,
         verdict: DiscoveryVerdict::Unsupported,
-        _play: play,
+        _play: Some(play),
+        _evidence: None,
     });
     trace::prepared(&retained, &value)?;
-    let play = &mut retained._play;
+    let play = retained
+        ._play
+        .as_mut()
+        .ok_or("protocol-usb-preflight-state")?;
     let mut verdict = None;
     let mut closed = false;
     play.start().map_err(|_| "protocol-usb-preflight-start")?;
@@ -202,6 +209,11 @@ pub(super) fn accept(
                 Some(false) => DiscoveryVerdict::Unsupported,
                 None => return Err("protocol-usb-preflight-no-verdict"),
             };
+            let evidence = play
+                .retired_evidence()
+                .map_err(|_| "protocol-usb-preflight-evidence")?;
+            retained._evidence = Some(evidence);
+            retained._play = None;
             trace::retired(&retained.verdict)?;
             return Ok(retained);
         }
