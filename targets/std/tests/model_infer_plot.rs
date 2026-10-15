@@ -282,3 +282,49 @@ fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
         .collect::<Vec<_>>();
     assert_eq!(values, [5., 1.]);
 }
+
+#[test]
+fn preparation_refuses_ineligible_compute_and_output_below_signature_maximum() {
+    let mut startup = StartupCatalog::new();
+    let mut profile = ProfileCatalog::new();
+    install_model_infer_catalog(&mut startup, &mut profile).unwrap();
+    let checked = check_syntax_document(
+        &parse_syntax_document(include_str!("fixtures/model-linear.conduit")),
+        &startup,
+    )
+    .map_err(|e| format!("{}: {}", e.code, e.message))
+    .unwrap();
+    let authored = expand_canonical_plot_for_authoring(&checked, "linear-model", &profile).unwrap();
+    let signature = configured_model_signature(&authored.expanded.gears[0].configuration).unwrap();
+    let mut scarce = offer();
+    scarce.limits.maximum_working_memory_bytes = 32;
+    let error = prepare_linear_model(
+        model(signature.clone()),
+        scarce,
+        runtime("linear"),
+        requirement(),
+    )
+    .err()
+    .expect("insufficient memory must refuse before advertisement");
+    assert!(error.contains("ResourceBoundExceeded"), "{error}");
+    let mut wrong_dtype = offer();
+    wrong_dtype.supported_elements = vec![TensorElement::F64];
+    let error = prepare_linear_model(
+        model(signature.clone()),
+        wrong_dtype,
+        runtime("linear"),
+        requirement(),
+    )
+    .err()
+    .expect("ineligible provider must refuse before advertisement");
+    assert!(error.contains("UnsupportedElement"), "{error}");
+    let mut short = requirement();
+    short.output_bytes = 4;
+    let error = prepare_linear_model(model(signature), offer(), runtime("linear"), short)
+        .err()
+        .expect("all declared output bytes must be admitted before advertisement");
+    assert!(
+        error.contains("signature exceeds admitted tensor bytes"),
+        "{error}"
+    );
+}
