@@ -39,8 +39,12 @@ Five actual Chromium/WASM/DOM tests passed during development, including keyboar
 revision behavior, semantic links, product contrast/reflow and no-Look clearing.
 Canonical wire refusal tests passed four Node cases. Existing packaging/CSP/graph
 checks and native Patchbay consumer tests also passed during development.
-Final clean-source build and consumer lint receipts are recorded separately when
-complete. Native tests, browser execution and physical/human proof remain distinct.
+A fresh release WASM build passed, followed by all five Chromium tests.
+Strict browser Host/runtime/Patchbay consumer Clippy also passed. Exact source,
+artifact and log hashes are retained in
+[evidence/look-contract-validation.json](evidence/look-contract-validation.json).
+The current-dev refresh adds accepted parser guards; it does not relabel these
+measured Look captures. Native tests, browser execution and physical/human proof remain distinct.
 
 This does not close #5368, #5377 or #5627, admit Todo #5659's missing prerequisites,
 or establish spoken/generative output. Source grammar, real application/body
