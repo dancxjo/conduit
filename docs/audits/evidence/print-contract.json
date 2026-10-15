@@ -1,0 +1,62 @@
+{
+  "issue": 5556,
+  "base": "55f4b0fa2198bbc90ce1dc028e59583d5956bfeb",
+  "production_source": "2ca604151fa5c664b53b70d1f5d43e492cc55f7b",
+  "public_test_source": "8b3fe4d719b81fd5cd92bc2701603260e0abab1f",
+  "production_delta_between_sources": "empty for owning production and Plot files",
+  "proof_class": "checked native Source/Plan, typed protocol simulator and actual public checker/default Host metadata; no physical printer or installed print Back",
+  "tests": {
+    "process_passed": 12,
+    "catalog_passed": 256,
+    "public_product_passed": 1,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 34
+  },
+  "strict_clippy": {
+    "process_catalog_all_targets": "PASS",
+    "conduit_xtask_binaries": "PASS",
+    "public_product_test": "PASS"
+  },
+  "public_checker": "exit 0, empty JSON diagnostics",
+  "default_host": "no print/submit offer; ordinary planning returns UnknownCapability",
+  "bounds": {
+    "identity_utf8_bytes": 128,
+    "copies": [
+      1,
+      100
+    ],
+    "document_bytes": 16777216,
+    "document_items": 1000,
+    "wire_bytes": 8192,
+    "support_media": 4,
+    "support_colors": 2,
+    "support_sides": 3
+  },
+  "terminal_truth": "queued/dispatched/ACK/completed/failed/cancelled/uncertain distinct; post-dispatch unknown ACK/loss/cancel remains uncertain; known provider job identity retained; no automatic retry",
+  "format": {
+    "rust": "PASS",
+    "plot": "PASS",
+    "standalone_type_file": "same CND-FRM-019 baseline failure as existing process/types.conduit; native checking/generation PASS; original schema retained"
+  },
+  "excluded_probe": "normal run refused unbound root ports; not used as missing-Back evidence",
+  "logs_sha256": {
+    "work/print-contract-process-all-tests.log": "d7eefce15089ecefce1ce1ca9f935f3c647895449c485a234480924b0d7dc1c7",
+    "work/print-contract-catalog-all-tests.log": "3ed4f5271df1dfae35f48383438e525de0ac06bc0423960de3a980bcd494a057",
+    "work/print-contract-semantic-clippy.log": "f3f807b13c3ebcd897aca3ce7c43772b0bb6e0cdea2c346568d4c4c342720460",
+    "work/print-contract-public-consumer-clippy.log": "b6277c561766b9e52b11b9898148ab9faa4f61a07672eac2840460a3f0f54d16",
+    "work/print-contract-public-entry-tests.log": "0383be5a26dcb326b402e33788b9c946453b70945e595d58c8152697c414f7ad",
+    "work/print-contract-public-test-clippy.log": "1bfb4666a866236c24fe857727666600b11d853eac21d175ee1386d4c3bf986e",
+    "work/print-contract-public-check.log": "d4f61f61437849ed54976e7ef1806667df664a27d4c0da7e8dfe18f52fb9851f",
+    "work/print-contract-public-check.json": "37517e5f3dc66819f61f5a7bb8ace1921282415f10551d2defa5c3eb0985b570",
+    "work/print-contract-plot-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "work/print-existing-source-format.log": "98d62314ece77d1130ea23e68bb30017d40bc65b8d625f0bc7b56ad1419c015a",
+    "work/print-contract-source-format.log": "943fd69152d2238d34dfe9306ef9bf37d04e070be5944951cb3545a4c3de0c30"
+  },
+  "parents_remain_open": [
+    5229,
+    5557,
+    5558,
+    5559
+  ]
+}

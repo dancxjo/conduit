@@ -4,6 +4,7 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=print.conduit");
     let mut catalog = StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
@@ -14,7 +15,9 @@ fn main() {
         )
         .expect("resource references are one exact portable leaf");
     let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("types.conduit")),
+        &parse_syntax_document(
+            &[include_str!("types.conduit"), include_str!("print.conduit")].join("\n"),
+        ),
         &catalog,
     )
     .expect("process semantic Types must check");
