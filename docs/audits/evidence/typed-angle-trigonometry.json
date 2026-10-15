@@ -143,5 +143,29 @@
     "pi radian coordinate transport #5735 separate",
     "inverse functions #5734 separate",
     "parent5392 remains open"
-  ]
+  ],
+  "generic_kind_fixture_repair": {
+    "reason": "the generic semantic-kind fixture borrowed math/sin for a Scalar stub; canonical math/sin now correctly requires Angle",
+    "change": "fixture uses fixture/pure; generic exact-front and external-effect refusal assertions retained",
+    "runtime_code_unchanged_from": "e9ee569dd597a99c324f7d79ea72355b392ee209",
+    "tests": 18,
+    "checks": [
+      {
+        "log": "typed-angle-fixture-repair-tests.log",
+        "sha256": "5355f1194de6bb2438993d45478c8b4ec97e73a2c8dee997aff37a8f9e2dd63b",
+        "state": "PASS"
+      },
+      {
+        "log": "typed-angle-fixture-repair-clippy.log",
+        "sha256": "92189431f3eecec4291380c351b94c266549b06c7a7c786f77b3bcfc93b08ff6",
+        "state": "PASS"
+      },
+      {
+        "log": "typed-angle-fixture-repair-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "state": "PASS"
+      }
+    ],
+    "fixture_sha256": "9bc26100d2c9ad14249da087c99eaa60ba794f482461e5f01ff70358b019a6dd"
+  }
 }

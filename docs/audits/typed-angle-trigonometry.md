@@ -30,3 +30,10 @@ Proof targets are Core mathematical_trigonometry, Plot angle_trigonometry,
 and std-host angle_trigonometry. Final source identities and command outcomes
 are recorded separately after validation. Earlier numerical transport and
 quantity arithmetic regressions are also retained in the local evidence.
+
+The generic semantic-kind conformance fixture uses `fixture/pure`, avoiding the
+canonical `math/sin` name now owned by the Angle contract. Its exact-front and
+effectful-kind refusal checks remain intact. All 12 generic-expression tests and
+six Angle tests pass after that fixture correction, with strict focused Plot
+Clippy and formatting. Runtime code and all original source-bound proof files
+remain unchanged; the additional evidence retains the new raw log hashes.
