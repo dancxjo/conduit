@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -13,6 +14,7 @@ test.beforeAll(async ({}, testInfo) => {
 });
 
 test("a Workspace Body continues through the browser SDK without a Patchbay page runtime", async ({ page }) => {
+  test.setTimeout(BROWSER_COLD_PREPARATION_MS + 30_000);
   const journey = await openExternalBody(page, {
     friendlyName: "SDK Workbench",
     titles: ["Button Across the Room", "Clock", "Desk Telegraph"],

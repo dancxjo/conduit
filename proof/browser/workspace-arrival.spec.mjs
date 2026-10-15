@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { readFileSync } from "node:fs";
 import { startStaticProduct } from "./static-product-server.mjs";
@@ -20,6 +21,7 @@ function selectedSource(bundled, names) {
 }
 
 test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload preserves the body", async ({ page }, testInfo) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await page.goto(entrance.url);
   const birth = page.locator(".body-birth-runner");
@@ -62,7 +64,7 @@ test("Birth hands off to a Lulled Body; Wake starts listening Plots and reload p
   await page.getByRole("navigation", { name: "Your plots" }).getByRole("button", { name: "Desk Telegraph", exact: true }).click();
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   await expect(page.locator("#surface-title")).toHaveText("Desk Telegraph");
   const restored = await identity();
   expect(restored.body_id).toBe(first.body_id);
@@ -296,7 +298,7 @@ test("first-wake audio stays silent after reload of the same body with a fresh B
 
 test("removing the default cue survives reload and a later first-wake installation stays silent", async ({ page }) => {
   // This journey completes several wake/lull cycles, real audio and a persisted reload.
-  test.setTimeout(60_000);
+  test.setTimeout(60_000 + BROWSER_COLD_PREPARATION_MS);
   await observeRealAudio(page);
   await page.goto(entrance.url);
   await page.getByRole('checkbox', { name: 'Tutorial', exact: true }).uncheck();
@@ -322,7 +324,7 @@ test("removing the default cue survives reload and a later first-wake installati
   expect(await page.evaluate(() => globalThis.__cueAudio.starts.length)).toBe(1);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  await waitForWorkspacePreparation(page);
   const restored = await page.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(restored.body_id).toBe(original.body_id);
   expect(restored.boot_id).not.toBe(original.boot_id);

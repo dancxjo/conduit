@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { mkdtemp, symlink, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -14,6 +15,7 @@ test.beforeEach(async () => { entrance = await startStaticProduct(root, "/condui
 test.afterEach(() => entrance?.child.kill());
 
 test("Workspace returns a retained Body to its Plots without a parallel application", async ({ page, context }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(new URL("workspace/", entrance.url).href);
   await page.getByRole("button", { name: "Birth Body", exact: true }).click();
   await page.getByRole("button", { name: "wake body", exact: true }).click();
@@ -24,7 +26,7 @@ test("Workspace returns a retained Body to its Plots without a parallel applicat
   await returnedWorkspace.goto(new URL("workspace/", entrance.url).href);
   await page.close();
   await returnedWorkspace.reload();
-  await expect(returnedWorkspace.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(returnedWorkspace);
   const returned = await returnedWorkspace.evaluate(() => globalThis.__conduitWorkspace.current());
   expect(returned.body_id).toBe(first.body_id);
   expect(returned.host_id).toBe(first.host_id);
