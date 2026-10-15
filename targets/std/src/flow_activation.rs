@@ -20,6 +20,7 @@ pub use parsec_input_instruction_plan::{
     required_parsec_input_instruction_offer, ParsecInputInstructionSourcePlan,
 };
 mod spoken_template_plan;
+pub(crate) use spoken_template_plan::prepare_wording_for_offer;
 pub use spoken_template_plan::{required_spoken_template_offers, SpokenTemplateSourcePlan};
 mod pure_parsec_scan;
 pub use parsec_combine::{

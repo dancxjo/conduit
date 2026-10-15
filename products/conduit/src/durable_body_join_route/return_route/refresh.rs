@@ -16,6 +16,11 @@ struct Refresh {
     token: [u8; 32],
     sequence: u8,
     request: OwnerFaceSnapshotRequest,
+    #[serde(default)]
+    mask: Option<MaskSelection>,
+    #[serde(default)]
+    spoken_selection:
+        Option<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
 }
 
 #[derive(Serialize)]
@@ -39,6 +44,8 @@ pub(super) fn serve(
         || request.sequence != 0
         || current_time_millis()? >= old.expires_at_millis
         || !old.matches_request(request.token, &request.request)
+        || (request.mask.is_some() && request.spoken_selection.is_some())
+        || (request.spoken_selection.is_some() && old.mask != MaskSelection::Terminal)
     {
         return Err("native Face refresh grant or basis invalid".into());
     }
@@ -55,11 +62,19 @@ pub(super) fn serve(
     let mut next = if matches!(&face, OwnerFaceSnapshotResponse::Snapshot { face, .. }
         if old.mask == MaskSelection::Terminal || crate::durable_host_control::has_native_return_route_intent(face))
     {
-        let grant = old.replacement(next_sequence)?;
+        let mut grant = old.replacement(next_sequence)?;
+        if let Some(mask) = request.mask {
+            grant.mask = mask;
+            grant.spoken_selection = None;
+        }
+        if let Some(selection) = request.spoken_selection {
+            grant.spoken_selection = Some(selection);
+        }
         Some(grant)
     } else {
         None
     };
+    let mut refusal = None;
     let selected = if let (Some(grant), OwnerFaceSnapshotResponse::Snapshot { route, .. }) =
         (next.as_ref(), &mut face)
     {
@@ -70,16 +85,28 @@ pub(super) fn serve(
             .map(|selected| {
                 *route = Some(Box::new(selected));
             })
+            .map_err(|error| {
+                refusal = Some(error);
+            })
             .is_ok()
     } else {
         false
     };
+    if let Some(code) = refusal {
+        face = OwnerFaceSnapshotResponse::Refused {
+            schema: OWNER_FACE_RESPONSE_SCHEMA.into(),
+            code: code.chars().take(256).collect(),
+        };
+    }
     if let OwnerFaceSnapshotResponse::Snapshot {
         interactions_admitted,
         ..
     } = &mut face
     {
-        *interactions_admitted = selected;
+        *interactions_admitted = selected
+            && next
+                .as_ref()
+                .is_some_and(|grant| grant.spoken_selection.is_none());
     }
     if !selected {
         next = None;
@@ -89,14 +116,24 @@ pub(super) fn serve(
         face,
         grant: next.clone(),
     };
+    let hosted = old.mask == MaskSelection::Terminal;
+    let maximum = if hosted {
+        super::super::response_document::MAX_HOSTED_OWNER_DOCUMENT_BYTES
+    } else {
+        super::super::response_document::MAX_OWNER_DOCUMENT_BYTES
+    };
     if serde_json::to_vec(&response)
         .map_err(|error| format!("encode native Face refresh: {error}"))?
         .len()
-        > super::super::response_document::MAX_OWNER_DOCUMENT_BYTES
+        > maximum
     {
         return Err("native Face refresh response pressure".into());
     }
-    super::super::response_document::send(line, &response)?;
+    if hosted {
+        super::super::response_document::send_hosted(line, &response)?;
+    } else {
+        super::super::response_document::send(line, &response)?;
+    }
     Ok(match next {
         Some(grant) => show_ack::ShowGate::Refreshed(Box::new(grant)),
         None => show_ack::ShowGate::Stopped,

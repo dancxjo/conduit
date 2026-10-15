@@ -25,7 +25,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     std::fs::write(snapshot_path, snapshot.encode()?)?;
     std::fs::write(
         theme_path,
-        conduit_browser_patchbay_workbench::application_theme_css(),
+        conduit_browser_patchbay_workbench::application_look_css(),
     )?;
     if let Some((runtime, destination)) = package {
         conduit_browser_patchbay_workbench::application_resources::stage(

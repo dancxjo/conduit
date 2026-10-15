@@ -17,6 +17,19 @@ impl Grant {
             listener,
             &self.binding_reference(sequence),
         );
+        if let Some(selection) = &self.spoken_selection {
+            let (face, show, _) =
+                super::super::native_lines::offer_terminal(owner, &self.receipt, &binding);
+            return crate::durable_host_control::select_native_mask_route(
+                state_dir,
+                self.receipt.clone(),
+                face,
+                show,
+                None,
+                Some(selection.clone()),
+                self.expires_at_millis,
+            );
+        }
         let (face, show, interaction) = match self.mask {
             MaskSelection::Native => {
                 let (face, show) =
@@ -35,6 +48,7 @@ impl Grant {
             face,
             show,
             interaction,
+            None,
             self.expires_at_millis,
         )
     }

@@ -1,4 +1,4 @@
-//! Partition the existing exact aural plan, never a second Todo fact/count reducer.
+//! Partition the existing exact aural plan, never a second application fact reducer.
 use super::*;
 use crate::{Face, FaceDisclosureLevel, FaceRole, FaceUtteranceProvenance};
 use alloc::vec;
@@ -10,6 +10,16 @@ pub struct SpokenTemplateSlots {
     pub(super) values: [String; 6],
     pub(super) indices: Vec<u32>,
     pub(super) actions: Vec<String>,
+    pub(super) control: bool,
+}
+
+impl SpokenTemplateSlots {
+    pub(crate) fn selected_clause_indices(&self) -> &[u32] {
+        &self.indices
+    }
+    pub(crate) fn selected_action_ids(&self) -> &[String] {
+        &self.actions
+    }
 }
 
 /// `selected_text_indices` are Face.text indices supplied by the existing outline,
@@ -124,5 +134,6 @@ pub fn prepare_spoken_template_slots(
         values,
         indices,
         actions,
+        control: false,
     })
 }

@@ -192,6 +192,7 @@ fn grant_is_bearer_bound_to_exact_credential_and_current_boot_claim() {
         expires_at_millis: 60_000,
         receipt: receipt(),
         mask: MaskSelection::Native,
+        spoken_selection: None,
     };
     assert!(grant.matches_request([7; 32], &request()));
     assert!(!grant.matches_request([8; 32], &request()));

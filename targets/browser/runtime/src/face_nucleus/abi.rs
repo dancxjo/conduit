@@ -1,13 +1,13 @@
 use super::execute_browser_nucleus;
 use conduit_face::{
-    MAX_APPLICATION_THEME_BYTES, MAX_APPLICATION_VIEW_BYTES, MAX_GRAPHICS_SCENE_BYTES,
-    MAX_LAYOUT_FRAME_BYTES,
+    MAX_APPLICATION_VIEW_BYTES, MAX_GRAPHICS_SCENE_BYTES, MAX_LAYOUT_FRAME_BYTES, MAX_LOOK_BYTES,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 use std::cell::RefCell;
 
 struct BrowserNucleusBuffers {
-    application_theme: [u8; MAX_APPLICATION_THEME_BYTES],
-    application_theme_len: usize,
+    look: [u8; MAX_LOOK_BYTES],
+    look_len: usize,
     application_view: [u8; MAX_APPLICATION_VIEW_BYTES],
     application_view_len: usize,
     graphics: [u8; MAX_GRAPHICS_SCENE_BYTES],
@@ -28,13 +28,16 @@ thread_local! {
 pub extern "C" fn conduit_browser_face_nucleus_run() -> i32 {
     match execute_browser_nucleus() {
         Ok(proof) => {
-            let encoded_application_theme = match conduit_face::CONDUIT_APPLICATION_THEME.encode() {
+            let encoded_look = match conduit_face::phosphor_look().and_then(|value| value.encode())
+            {
                 Ok(encoded) => encoded,
                 Err(_) => return -1,
             };
-            let mut application_theme = [0; MAX_APPLICATION_THEME_BYTES];
-            application_theme[..encoded_application_theme.len()]
-                .copy_from_slice(&encoded_application_theme);
+            if encoded_look.len() > MAX_LOOK_BYTES {
+                return -1;
+            }
+            let mut look = [0; MAX_LOOK_BYTES];
+            look[..encoded_look.len()].copy_from_slice(&encoded_look);
             let encoded_application_view = match proof.application_view.encode() {
                 Ok(encoded) => encoded,
                 Err(_) => return -1,
@@ -47,8 +50,8 @@ pub extern "C" fn conduit_browser_face_nucleus_run() -> i32 {
             let (structured, structured_len) = encode_structured(&proof.structured);
             BROWSER_NUCLEUS.with(|slot| {
                 *slot.borrow_mut() = Some(BrowserNucleusBuffers {
-                    application_theme,
-                    application_theme_len: encoded_application_theme.len(),
+                    look,
+                    look_len: encoded_look.len(),
                     application_view,
                     application_view_len: encoded_application_view.len(),
                     graphics: proof.graphics.encode(),
@@ -68,21 +71,17 @@ pub extern "C" fn conduit_browser_face_nucleus_run() -> i32 {
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_browser_face_nucleus_application_theme_ptr() -> usize {
+pub extern "C" fn conduit_browser_face_nucleus_look_ptr() -> usize {
     BROWSER_NUCLEUS.with(|slot| {
         slot.borrow()
             .as_ref()
-            .map_or(0, |proof| proof.application_theme.as_ptr() as usize)
+            .map_or(0, |proof| proof.look.as_ptr() as usize)
     })
 }
 
 #[no_mangle]
-pub extern "C" fn conduit_browser_face_nucleus_application_theme_len() -> usize {
-    BROWSER_NUCLEUS.with(|slot| {
-        slot.borrow()
-            .as_ref()
-            .map_or(0, |proof| proof.application_theme_len)
-    })
+pub extern "C" fn conduit_browser_face_nucleus_look_len() -> usize {
+    BROWSER_NUCLEUS.with(|slot| slot.borrow().as_ref().map_or(0, |proof| proof.look_len))
 }
 
 #[no_mangle]

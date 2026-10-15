@@ -41,6 +41,19 @@ pub fn install_audio_play_catalog(
     )
 }
 
+/// Install externally driven playback without a cumulative duration quota.
+pub fn install_audio_continuous_play_catalog(
+    startup: &mut conduit_plot::StartupCatalog,
+    profile: &mut conduit_plot::ProfileCatalog,
+) -> Result<(), String> {
+    install_contract(
+        startup,
+        profile,
+        super::audio_continuous_play_contract(),
+        super::AUDIO_CONTINUOUS_PLAY_REVISION,
+    )
+}
+
 /// Install only the portable `audio/tone` transform contract.
 ///
 /// Hosts that cannot realize tone synthesis still need this semantic contract

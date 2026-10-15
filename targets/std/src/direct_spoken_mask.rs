@@ -44,109 +44,141 @@ impl crate::StdHost {
             .map_err(|error| format!("prepare direct Face: {error:?}"))?;
         // Refuse an oversized reading before sealing an advertised route.
         crate::direct_spoken_mask_runtime::prepare_wording_items(face)?;
-        let mut startup = StartupCatalog::new();
-        let mut profiles = ProfileCatalog::new();
-        conduit_face::install_mask_plot_value_aliases(&mut startup)?;
-        conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
-        conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
-        conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
-        conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
-        conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
-        let checked = check_syntax_document(&parse_syntax_document(&source(plot_name)), &startup)
-            .map_err(|error| format!("check direct spoken Mask: {error:?}"))?;
-        let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
-            .map_err(|error| format!("expand direct spoken Mask: {error:?}"))?;
-        let mask = MaskPlot::admit(&authoring)
-            .map_err(|error| format!("admit direct spoken Mask: {error:?}"))?;
-        let hosts = [self.advertisement().clone()];
-        let placements = default_expanded_placements(&authoring.expanded, &hosts)
-            .map_err(|error| format!("place direct spoken Mask: {error:?}"))?;
-        let face_bytes = u32::try_from(
-            serde_json::to_vec(face)
-                .map_err(|error| format!("encode direct spoken Face: {error}"))?
-                .len(),
-        )
-        .map_err(|_| "direct spoken Face exceeds one Cord".to_string())?;
-        let face_connection_limits: BTreeMap<_, _> = authoring
-            .expanded
-            .connections
-            .iter()
-            .filter(|connection| connection.value_kind.as_str() == conduit_face::FACE_VALUE_KIND)
-            .map(|connection| {
-                (
-                    (
-                        connection.source_gear_id.clone(),
-                        connection.source_port_id.clone(),
-                        connection.sink_gear_id.clone(),
-                        connection.sink_port_id.clone(),
-                    ),
-                    ConnectionQueueLimits {
-                        item_capacity: 1,
-                        byte_capacity: face_bytes,
-                    },
-                )
-            })
-            .collect();
-        if face_connection_limits.len() != 2 {
-            return Err("direct spoken Mask needs its two exact Face Cords".into());
-        }
-        let boundary_limits = authoring
-            .front
-            .inputs()
-            .iter()
-            .map(|port| (PortDirection::Input, port))
-            .chain(
-                authoring
-                    .front
-                    .outputs()
-                    .iter()
-                    .map(|port| (PortDirection::Output, port)),
-            )
-            .map(|(direction, port)| {
-                (
-                    ForeBoundaryKey {
-                        direction,
-                        front_port_id: port.port_id.clone(),
-                        track: ConnectionTrack::Payload,
-                    },
-                    ConnectionQueueLimits {
-                        item_capacity: 1,
-                        byte_capacity: 524_288,
-                    },
-                )
-            })
-            .collect();
         let authority_grants = vec![
             self.spoken_mask_artifact_authority_grant("grant/owner-direct-speech/artifact")?,
             self.streaming_speech_authority_grant()?,
         ];
-        let plan = plan_expanded_authoring_with_connection_limits(
-            &authoring,
-            &hosts,
-            &placements,
-            &[BaseImplementationId::from("conduit.base/local@1")],
-            PlanningOptions {
-                connection_bases: &BTreeMap::new(),
-                line_candidates: &BTreeMap::new(),
-                connection_item_capacity: 1,
-                connection_byte_capacity: 16_384,
-                authority_grants: &authority_grants,
-                protected_resource_grants: &[],
-                line_offers: &[],
-            },
-            &face_connection_limits,
-            &boundary_limits,
-        )
-        .map_err(|error| format!("plan direct spoken Mask: {error:?}"))?;
-        let planned_mask = PlannedMaskPlot::admit(&mask, &plan)
-            .map_err(|error| format!("seal direct spoken Mask: {error:?}"))?;
-        Ok(PreparedDirectSpokenMask {
-            plan,
-            mask,
-            planned_mask,
-            authority_grants,
-        })
+        plan_for_offer(face, self.advertisement(), plot_name, authority_grants)
     }
+}
+
+/// Reproduce the exact ordinary Plan from an observed offer and disclosed grants.
+/// This validates planning eligibility; it creates neither admission nor effects.
+pub(crate) fn plan_for_offer(
+    face: &Face,
+    host: &conduit_core::HostAdvertisement,
+    plot_name: &str,
+    authority_grants: Vec<AuthorityGrant>,
+) -> Result<PreparedDirectSpokenMask, String> {
+    face.validate()
+        .map_err(|error| format!("prepare direct Face: {error:?}"))?;
+    let (authoring, mask) = checked_source(plot_name)?;
+    let hosts = [host.clone()];
+    let placements = default_expanded_placements(&authoring.expanded, &hosts)
+        .map_err(|error| format!("place direct spoken Mask: {error:?}"))?;
+    let face_bytes = u32::try_from(
+        serde_json::to_vec(face)
+            .map_err(|error| format!("encode direct spoken Face: {error}"))?
+            .len(),
+    )
+    .map_err(|_| "direct spoken Face exceeds one Cord".to_string())?;
+    // The hosted control reading uses the existing 64 KiB logical carrier.
+    // Its actual Face and artifact Show are independently checked at emission.
+    // Larger general-purpose readers keep their separately admitted profile.
+    let boundary_bytes = if plot_name == "owner_spoken_control_template_mask" {
+        64 * 1024
+    } else {
+        524_288
+    };
+    if face_bytes > boundary_bytes {
+        return Err("direct spoken Face exceeds admitted Fore bound".into());
+    }
+    let face_connection_limits: BTreeMap<_, _> = authoring
+        .expanded
+        .connections
+        .iter()
+        .filter(|connection| connection.value_kind.as_str() == conduit_face::FACE_VALUE_KIND)
+        .map(|connection| {
+            (
+                (
+                    connection.source_gear_id.clone(),
+                    connection.source_port_id.clone(),
+                    connection.sink_gear_id.clone(),
+                    connection.sink_port_id.clone(),
+                ),
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: face_bytes,
+                },
+            )
+        })
+        .collect();
+    if face_connection_limits.len() != 2 {
+        return Err("direct spoken Mask needs its two exact Face Cords".into());
+    }
+    let boundary_limits = authoring
+        .front
+        .inputs()
+        .iter()
+        .map(|port| (PortDirection::Input, port))
+        .chain(
+            authoring
+                .front
+                .outputs()
+                .iter()
+                .map(|port| (PortDirection::Output, port)),
+        )
+        .map(|(direction, port)| {
+            (
+                ForeBoundaryKey {
+                    direction,
+                    front_port_id: port.port_id.clone(),
+                    track: ConnectionTrack::Payload,
+                },
+                ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: boundary_bytes,
+                },
+            )
+        })
+        .collect();
+    let plan = plan_expanded_authoring_with_connection_limits(
+        &authoring,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 16_384,
+            authority_grants: &authority_grants,
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &face_connection_limits,
+        &boundary_limits,
+    )
+    .map_err(|error| format!("plan direct spoken Mask: {error:?}"))?;
+    let planned_mask = PlannedMaskPlot::admit(&mask, &plan)
+        .map_err(|error| format!("seal direct spoken Mask: {error:?}"))?;
+    Ok(PreparedDirectSpokenMask {
+        plan,
+        mask,
+        planned_mask,
+        authority_grants,
+    })
+}
+
+/// Reproduce source and graph custody without creating a Host or granting effects.
+pub(crate) fn checked_source(
+    plot_name: &str,
+) -> Result<(conduit_plot::ExpandedAuthoringPlot, MaskPlot), String> {
+    let mut startup = StartupCatalog::new();
+    let mut profiles = ProfileCatalog::new();
+    conduit_face::install_mask_plot_value_aliases(&mut startup)?;
+    conduit_face::install_mask_mechanism_catalog(&mut startup, &mut profiles)?;
+    conduit_face::install_spoken_mask_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_synthesis_catalog(&mut startup, &mut profiles)?;
+    conduit_tongues::install_speech_commit_catalog(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profiles)?;
+    let checked = check_syntax_document(&parse_syntax_document(&source(plot_name)), &startup)
+        .map_err(|error| format!("check direct spoken Mask: {error:?}"))?;
+    let authoring = expand_canonical_plot_for_authoring(&checked, plot_name, &profiles)
+        .map_err(|error| format!("expand direct spoken Mask: {error:?}"))?;
+    let mask = MaskPlot::admit(&authoring)
+        .map_err(|error| format!("admit direct spoken Mask: {error:?}"))?;
+    Ok((authoring, mask))
 }
 
 /// A finite direct route. The wording Back streams one exact Face-derived

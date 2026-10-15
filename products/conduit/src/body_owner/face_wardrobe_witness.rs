@@ -61,7 +61,9 @@ impl Owner {
             }
         } else if matches!(
             seal.planned_mask.mask.plot_name.as_str(),
-            "owner_spoken_brief_template_mask" | "owner_spoken_expanded_template_mask"
+            "owner_spoken_brief_template_mask"
+                | "owner_spoken_expanded_template_mask"
+                | "owner_spoken_control_template_mask"
         ) {
             return Ok(None);
         }

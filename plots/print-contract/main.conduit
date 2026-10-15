@@ -1,0 +1,20 @@
+# Requests contain only bounded document Resource references and print meaning.
+# The Host independently admits each document and provider; no device URI.
+plot print-contract (
+    >> mono: PrintRequest
+    mono-result: PrintLifecycle >>
+    >> color: PrintRequest
+    color-result: PrintLifecycle >>
+    >> unsupported-media: PrintRequest
+    unsupported-result: PrintLifecycle >>
+) {
+    mono-submit: print/submit
+    color-submit: print/submit
+    unsupported-submit: print/submit
+    mono >> mono-submit.request
+    mono-submit.lifecycle >> mono-result
+    color >> color-submit.request
+    color-submit.lifecycle >> color-result
+    unsupported-media >> unsupported-submit.request
+    unsupported-submit.lifecycle >> unsupported-result
+}

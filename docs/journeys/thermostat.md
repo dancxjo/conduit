@@ -57,9 +57,33 @@ admission; this command does not silently extend a grant or replay a prior Boot.
 
 No complete thermostat journey packet is checked in or published yet. The
 staged producer below still uses the direct-owner terminal entrance and needs
-peer integration. Selected spoken output for the actual running thermostat Face
-also remains outstanding; a standalone kernel-to-WAV provider test is only an
-equipment prerequisite. A speech refusal is not a successful spoken encounter.
+peer integration. An explicit checked `spoken/control-template` selects the
+primary application Region's human text, typed values, actions and temporal
+facts from the original Face. It retains requested settings, available actions
+and equipment caveats while keeping structural metadata and Body context out
+of the reading. Labels are read directly from that same Face.
+The full-Face Brief and Expanded selections retain their existing contracts.
+
+With explicitly installed artifact speech equipment, enter `read settings` on
+the peer. It requests the checked Control Mask for its exact current Face,
+produces the reading through ordinary kernel Plays and WAV acknowledgements,
+and returns to the terminal. `evidence` then includes the spoken route, source
+Face, ordered frame receipts, provider identity and artifact hashes. Narrating
+actions does not admit an interaction Line or authorize speech actions.
+
+A local development run used fresh installed owner and peer Hosts on one
+physical machine. Heat and Eco changed the same running thermostat; the spoken
+reading completed in 9 artifact frames, and the peer returned to the terminal
+with the same Body, Plan and Play. Closing the peer left the scan running.
+This proves current owner-correlated artifact generation, not speaker playback
+or listening. A speech refusal is not a successful spoken encounter.
+
+The hosted presentation profile admits a 64 KiB route binding and a 128 KiB
+control document. One observed reading required 47,568 and 69,002 bytes,
+respectively. The native profile retains its 40 KiB binding and 64 KiB document;
+physical native frames retain their existing bound. Actual Face and Show values
+must still fit the separately admitted 64 KiB hosted Mask Lines. Changing an
+encoding profile invalidates its seal rather than conferring new authority.
 
 Do not restart the thermostat to make a terminal edit look like a same-Play
 interaction, or substitute the browser-local Handbook thermostat: it is a
@@ -103,12 +127,13 @@ meet the remaining spoken-Mask acceptance requirement.
 
 ## Acceptance still needed
 
-- Admit and acknowledge a terminal Mask without stopping the thermostat scan.
+- Capture admission and acknowledged terminal and spoken Masks together with the
+  browser encounter, without stopping the thermostat scan.
 - Read browser-made settings in that terminal, apply Heat/Eco through its typed
   actions, and observe 18 °C in the browser with unchanged Body/Plan/Play.
 - Refuse stale browser and terminal Shows without changing requested settings.
-- Admit the spoken Mask under an exact presentation Plan and selected provider;
-  capture a concise current thermostat reading with correlated output receipts.
+- Retain the live spoken Mask's exact presentation Plan, selected provider,
+  current reading and correlated artifact receipts in the complete packet.
   A file artifact and actual speaker delivery remain different proof classes.
 - Lull and return to the same Body, showing session reset honestly rather than
   claiming Todo-style checkpoint recovery.
