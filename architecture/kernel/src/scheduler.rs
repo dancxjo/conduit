@@ -23,6 +23,8 @@ mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod host_call_settlement;
+#[cfg(feature = "linear-ready-reference-test")]
+mod ready_reference;
 mod ready_set;
 mod remote_fanout;
 mod retirement;
@@ -1804,16 +1806,18 @@ where
     }
 
     pub fn has_ready_work(&self) -> bool {
-        self.ready.round_robin(0, self.active_nodes).any(|node| {
-            let waiting_for_host_completion =
-                self.pending_host_calls.iter().flatten().any(|pending| {
-                    usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                });
-            self.ready.contains(node)
-                && !self.completed[node]
-                && (!waiting_for_host_completion
-                    || self.drivers[node].accepts_input_while_host_call_pending())
-        })
+        self.ready
+            .scheduler_candidates(0, self.active_nodes)
+            .any(|node| {
+                let waiting_for_host_completion =
+                    self.pending_host_calls.iter().flatten().any(|pending| {
+                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
+                    });
+                self.ready.contains(node)
+                    && !self.completed[node]
+                    && (!waiting_for_host_completion
+                        || self.drivers[node].accepts_input_while_host_call_pending())
+            })
     }
 
     pub fn next_host_cancellation(&mut self) -> Option<HostCallCancellation> {
@@ -1898,7 +1902,9 @@ where
     }
 
     fn next_ready(&mut self) -> Option<usize> {
-        let mut candidates = self.ready.round_robin(self.cursor, self.active_nodes);
+        let mut candidates = self
+            .ready
+            .scheduler_candidates(self.cursor, self.active_nodes);
         loop {
             let node = candidates.next();
             #[cfg(test)]
