@@ -10,13 +10,15 @@ import path from 'node:path';
 import { pathToFileURL } from 'node:url';
 import { startStaticProduct } from './static-product-server.mjs';
 
-const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg] = process.argv.slice(2);
+const [ownerCwdArg, binaryArg, stateArg, handbookArg, outputArg, playwrightArg, journeyArg] = process.argv.slice(2);
 assert.ok(playwrightArg, 'usage: thermostat-owner-browser.mjs OWNER-CWD INSTALLED-BIN STATE HANDBOOK NEW-OUTPUT PINNED-PLAYWRIGHT');
 const ownerCwd = path.resolve(ownerCwdArg);
 const binary = path.resolve(ownerCwd, binaryArg);
 const state = path.resolve(ownerCwd, stateArg);
 const handbook = path.resolve(handbookArg);
 const output = path.resolve(outputArg);
+const journeyMode = journeyArg === 'journey';
+let journey = null;
 assert.equal(existsSync(output), false, 'evidence directory must be new');
 const installed = JSON.parse(await readFile(path.join(state, 'installation.json')));
 assert.equal(path.resolve(ownerCwd, installed.product_executable), binary);
@@ -203,6 +205,7 @@ try {
   await action(raise(), 'raise-to-22');
   await action(raise(), 'raise-to-22.5');
   await targetWording('22.5 °C');
+  if (journeyMode) await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-raised.png'), animations: 'disabled' });
   await action(lower(), 'lower');
   for (const family of [
     ['Mode', ['Heat', 'Cool', 'Auto', 'Off']],
@@ -255,13 +258,81 @@ try {
   await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-mobile.png'), animations: 'disabled' });
   await page.locator('conduit-owner-face').screenshot({ path: path.join(output, 'thermostat-mobile-component.png'), animations: 'disabled' });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  if (journeyMode) {
+    const beforeTerminal = await observe('journey-browser-before-terminal');
+    const input = 'wardrobe wear\nwardrobe prefer\nshow\nevidence\naction thermostat.mode.heat\nshow\naction thermostat.preset.eco\nshow\nevidence\nquit\n';
+    const terminal = spawnSync(binary, ['body', 'terminal', '--owner-show', '--state-dir', state],
+      { cwd: ownerCwd, encoding: 'utf8', input, timeout: 30_000, maxBuffer: 1024 * 1024 });
+    await writeFile(path.join(output, 'terminal.input'), input);
+    await writeFile(path.join(output, 'terminal.txt'), terminal.stdout ?? '');
+    await writeFile(path.join(output, 'terminal.stderr'), terminal.stderr ?? '');
+    assert.equal(terminal.status, 0, terminal.stderr);
+    assert.ok(!terminal.stdout.includes('Action refused:'), 'terminal settings must be accepted');
+    const terminalEvidence = terminal.stdout.split(/\r?\n/).filter(line => line.startsWith('Owner terminal evidence '))
+      .map(line => JSON.parse(line.slice('Owner terminal evidence '.length)));
+    assert.equal(terminalEvidence.length, 2);
+    for (const evidence of terminalEvidence) {
+      assert.equal(evidence.body_id, bodyId);
+      assert.equal(evidence.show_state, 'available');
+      assert.equal(evidence.owner_selected_show_current, true);
+    }
+    // A stale browser Show cannot overwrite the terminal's committed settings.
+    const terminalStale = await page.evaluate(async view => {
+      const action = view.actions.find(action => action.name === 'Raise target by 0.5°C');
+      try { return await globalThis.__thermostatProofSession.submitOwnerFaceInteraction({
+        view, actionId: action.identity, target: action.target, arguments: [], sequence: 10000 }); }
+      catch (error) { return { accepted: false, refusal: error.message }; }
+    }, beforeTerminal.view);
+    assert.equal(terminalStale.accepted, false);
+    await page.getByRole('button', { name: 'Inspect current wardrobe', exact: true }).click();
+    await page.waitForFunction(() => !document.querySelector('[data-owner-wardrobe-refresh]').disabled);
+    currentWardrobe = await wardrobe();
+    const prefer = page.getByRole('button', { name: `Prefer only ${route.mask_name}`, exact: true });
+    await prefer.click();
+    await page.waitForFunction(id => {
+      try { return JSON.parse(document.querySelector('[data-owner-wardrobe-evidence]').textContent).selected.route_id === id
+        && !document.querySelector('[data-owner-wardrobe-refresh]').disabled; } catch { return false; }
+    }, route.route_id);
+    await refresh();
+    await targetWording('18 °C');
+    const afterTerminal = await observe('journey-browser-after-terminal');
+    await page.setViewportSize({ width: 1280, height: 1000 });
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-after-terminal.png'), animations: 'disabled' });
+    const speech = spawnSync(binary, ['body', 'spoken-mask', '--state-dir', state, 'admit'],
+      { cwd: ownerCwd, encoding: 'utf8', timeout: 15_000, maxBuffer: 1024 * 1024 });
+    await writeFile(path.join(output, 'speech-refusal.txt'), `${speech.stdout ?? ''}${speech.stderr ?? ''}`);
+    assert.notEqual(speech.status, 0, 'running thermostat must not claim idle audio admission');
+    assert.deepEqual(ownerFace().face.properties, afterTerminal.owner.face.properties);
+    owner(['body', 'lull', '--state-dir', state]);
+    await refresh();
+    const lulled = { owner: ownerFace(), status: ownerStatus(), view: await currentView() };
+    assert.equal(lulled.status.realization.play.active_play_id, null);
+    assert.ok(!lulled.owner.face.actions.some(action => action.identity.startsWith('thermostat.')));
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-lulled.png'), animations: 'disabled' });
+    owner(['body', 'start', '--state-dir', state, '--maximum-millis', '900000']);
+    const restartDeadline = Date.now() + 15_000;
+    while (!ownerStatus().realization?.play?.active_play_id) {
+      assert.ok(Date.now() < restartDeadline);
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+    await refresh();
+    await targetWording('21 °C');
+    const restarted = { owner: ownerFace(), status: ownerStatus(), view: await currentView() };
+    assert.equal(restarted.status.biography.body_id, bodyId);
+    assert.notEqual(restarted.status.realization.play.active_play_id, runBasis.active_play_id);
+    await page.locator('[data-owner-face]').screenshot({ path: path.join(output, 'thermostat-restarted.png'), animations: 'disabled' });
+    journey = { before_terminal: beforeTerminal, terminal_evidence: terminalEvidence,
+      terminal_stale: terminalStale, after_terminal: afterTerminal, speech: { accepted: false, exit_code: speech.status,
+        scope: 'admission-refused-during-running-scan', transcript: 'speech-refusal.txt' }, lulled, restarted };
+    owner(['body', 'lull', '--state-dir', state]);
+  }
   assert.deepEqual(errors, []);
   await writeFile(path.join(output, 'receipt.json'), `${JSON.stringify({
     schema: 'conduit.proof/thermostat-owner-browser@1', ...sourceRecord,
     proof_class: 'live-local-installed-owner-browser', body_id: bodyId,
     body_plan_id: runBasis.plan_id, body_play_id: runBasis.active_play_id,
     browser_host_id: identity.hostId, browser_boot_id: identity.bootId,
-    route, wardrobe: currentWardrobe, revisions, stale_show: { prior: staleView, ...stale },
+    route, wardrobe: currentWardrobe, revisions, journey, stale_show: { prior: staleView, ...stale },
     same_page_reencounter: true, reload_rejoin: false, physical_sensor_or_equipment: false,
     screenshots: ['thermostat-desktop.png', 'thermostat-mobile.png', 'thermostat-mobile-component.png'],
   }, null, 2)}\n`);
