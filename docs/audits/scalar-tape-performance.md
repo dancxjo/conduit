@@ -23,3 +23,24 @@ Validation also passed all 116 existing installed-host regression tests with the
 no-op default timing observer; strict library/benchmark Clippy denied warnings.
 The archived samples retain their measured Source, independent of this report
 commit or later dependency refreshes.
+
+## Refresh on accepted packed-kernel dev
+
+The benchmark passed again at clean measurement Source
+`cab3664eb8b3d9b5a6d81e680aaae7ecb885f0af`, refreshed onto accepted dev
+`9219d3cdf56cdf83db28a1e82d3bcc3a8cf8a01b`. All 128 product/micro rows and
+eight-trial summaries are retained separately in
+`evidence/scalar-tape-performance-packed-samples.json`. Earlier measurements
+above retain their original Source and are not relabeled.
+
+| Additions | Reference warm ns/value | Tape warm ns/value | Reference Play µs | Tape Play µs |
+|---|---:|---:|---:|---:|
+| 1 | 74.57 | 89.04 | 12.39 | 11.41 |
+| 3 | 177.73 | 143.29 | 13.44 | 12.50 |
+| 8 | 424.67 | 277.36 | 15.17 | 11.87 |
+| 32 | 1634.16 | 941.60 | 16.29 | 14.06 |
+
+The one-addition tape still loses in the warmed evaluator loop. Actual Play
+medians in this capture favor tape, but those small differences remain noisy
+and include coordination/validation work. This refresh does not isolate a
+causal scheduler speedup; background activity and affinity remain uncontrolled.
