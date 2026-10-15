@@ -26,6 +26,7 @@ mod storage_bound;
 mod structured;
 mod structured_contract;
 mod text_material;
+mod trigonometry;
 use primitive::{
     decode_bool, evaluate_binary, evaluate_unary, kind_name, leaf_info_kind, leaf_kind,
     PrimitiveValue,
@@ -89,6 +90,11 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    Trigonometry {
+        function: conduit_core::AngleTrigonometricFunction,
+        argument: Box<PreparedNode>,
+        output: Vec<u8>,
+    },
     QuantityBinary {
         operator: BinaryOperator,
         left: Box<PreparedNode>,

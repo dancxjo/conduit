@@ -35,6 +35,7 @@ mod expression_program_decode;
 mod expression_proof;
 mod expression_quantity;
 mod expression_semantic_call;
+mod expression_trigonometry;
 mod functional_front;
 mod glyph_notation;
 #[cfg(test)]

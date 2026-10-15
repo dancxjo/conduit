@@ -8,6 +8,16 @@ pub(super) fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::Trigonometry {
+            function,
+            argument,
+            output,
+        } => {
+            let value = evaluate_node(argument, input, input_kind)?;
+            let length =
+                crate::expression_trigonometry::encode(*function, value.as_slice(), output)?;
+            PrimitiveValue::borrowed(expected, &output[..length])?
+        }
         PreparedOperation::QuantityBinary {
             operator,
             left,
