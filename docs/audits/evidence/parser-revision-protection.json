@@ -1,0 +1,61 @@
+{
+  "issue": 5753,
+  "measured_source": "1b763d11fc85bdb24deef358386b66b402133a7c",
+  "proof_class": "native in-process actual kernel Plan/Play using existing ConduitOS expression adapters",
+  "tests_passed": 89,
+  "tests_failed": 0,
+  "targets": 33,
+  "strict_all_target_clippy": "PASS",
+  "logs": {
+    "parser-revision-final-all-tests.log": {
+      "sha256": "a35341930ba8becf61b752cbff276f0eb3afa453c1cff2e8a6e7a6fb93dc2e84",
+      "bytes": 16775
+    },
+    "parser-revision-final-clippy.log": {
+      "sha256": "75bc33881a36a565d432e5f9a68c85f278ed1c04b71685e5b2f107e71b721ab6",
+      "bytes": 2557
+    },
+    "parser-stability-regression-before.log": {
+      "sha256": "efba15af457bc8893b24f10cb40f8d74771c685a87675820f542b6ebdb67f3af",
+      "bytes": 963
+    },
+    "parser-stability-regression-after.log": {
+      "sha256": "9485e44aff6689a3933c91eea1c74146deee776958491c1b157f304b5be8e3f1",
+      "bytes": 2860
+    }
+  },
+  "source_files_sha256": {
+    "semantics/language/build.rs": "2e536670d129e395f0516504141af2778c4a14869d544fc50adba9d6b66351c3",
+    "semantics/language/parser_beam_commit.conduit": "7e72d348ce8459878f85b9ae56bcc0cfc6ff93cbd81ec22c1086a476d42d6a2f",
+    "semantics/language/parser_revision_rebase.conduit": "2ce50b6d4651b7ff22f9b2c77ebc2ea91ede6911250fb41dc81a7155ad0ad06f",
+    "semantics/language/src/catalog.rs": "d9639546c0759958c56fbea476105e7b597282ee3e7cd329951984cdfc24eaad",
+    "semantics/language/src/lib.rs": "2c03a9a7451b2613bdaaf8882dacdb40e4bfacb4e0b00b879b070dc788d8cf70",
+    "semantics/language/src/parser_revision.rs": "d9cb324fb1aefae54a9ad14aa730a0490f8f180f672eb6119b93a88db8542984",
+    "semantics/language/tests/common/parser_revision_fixture.rs": "5c32311a89cf7735cc7d9f7a319a32f5b29e85a3a16404541268f94ab8e4111a",
+    "semantics/language/tests/parser_beam_commit.rs": "7b4086a8934dfecb0f5c29bf133e2e954e1365092eaabb84e242278342cda5b9",
+    "semantics/language/tests/parser_revision_bounds.rs": "76b33af117873d40ce41652aeca31a8e8e7ac8d61835e1f020600f96f12f71f1",
+    "semantics/language/tests/parser_revision_protection.rs": "6e0d1187642c7d09814ed110e031247b435fbdfc96339315aa9bb4767d840eff"
+  },
+  "commands": [
+    "cargo test --locked -p conduit-language -- --test-threads=1",
+    "cargo clippy --locked -p conduit-language --all-targets -- -D warnings"
+  ],
+  "coverage": [
+    "partial-prefix competing legal hypotheses",
+    "deterministic rank/prune and tie",
+    "committed dependent and head correspondence",
+    "commit then text revision then Source rebase then legal transition",
+    "full-stable-prefix agreement regression",
+    "named pressure/cancellation/frontier refusals",
+    "four-token and 65536-byte request bounds"
+  ],
+  "limits": [
+    "no learned accuracy claim",
+    "no live editor transport claim",
+    "no guest or physical target execution claim"
+  ],
+  "origin_reuse": {
+    "head": "798b3e5d6ab94ac89855f15b6ce02c67c8dabccf",
+    "disposition": "retain; substantial unique work remains"
+  }
+}

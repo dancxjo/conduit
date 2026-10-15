@@ -14,6 +14,8 @@ fn main() {
     println!("cargo:rerun-if-changed=lexical_consumer.conduit");
     println!("cargo:rerun-if-changed=parser.conduit");
     println!("cargo:rerun-if-changed=parser_available.conduit");
+    println!("cargo:rerun-if-changed=parser_revision_rebase.conduit");
+    println!("cargo:rerun-if-changed=parser_beam_commit.conduit");
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
@@ -30,6 +32,8 @@ fn main() {
         include_str!("parser.conduit"),
         include_str!("parser_beam.conduit"),
         include_str!("parser_available.conduit"),
+        include_str!("parser_revision_rebase.conduit"),
+        include_str!("parser_beam_commit.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
     ]
