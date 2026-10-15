@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 125
+maximum_plots = 126
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -67,6 +67,12 @@ title = "Bench Telemetry"
 entry = "bench-telemetry"
 deterministic = { package = "conduit-data", test = "measurement_processing_reuse", case = "bench_consumes_the_exact_little_seismograph_plot_back_without_copying_source" }
 browser_safe_not_applicable = "the reusable plot Back is browser-installed, but Bench device acquisition and face remain separate unfinished Plots"
+[[plots]]
+slug = "audio-time-analysis"
+title = "PCM Time Analysis"
+entry = "measure"
+deterministic = { package = "conduit-std-host", test = "audio_time_analysis", case = "ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel" }
+browser_safe_not_applicable = "portable PCM observation Types are shared; the browser has no admitted audio/measure-time Back"
 [[plots]]
 slug = "model-authoring"
 title = "Model Authoring"

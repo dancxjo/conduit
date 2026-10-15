@@ -1,0 +1,9 @@
+# One logical PCM timebase. No device, provider, filesystem or playback facts.
+plot measure (
+    >> pcm: PcmFrames...|
+    observation: AudioTimeAnalysisObservation...| >>
+) {
+    analyzer: audio/measure-time(clock-id = 7, sample-rate-hz = 8000, offset = 0, frames = 4, maximum-blocks = 1)
+    pcm >> analyzer.pcm
+    analyzer.observation >> observation
+}.
