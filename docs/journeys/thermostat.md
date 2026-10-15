@@ -6,6 +6,21 @@ same running thermostat from a terminal, choose Heat and Eco there, and see
 18 °C in the browser. Lull and start again to observe the same Body with a new
 Play and the authored 21 °C initial state.
 
+## Keep the thermostat encounter focused
+
+The primary thermostat view should foreground its requested temperature, mode,
+fan and preset, with sensor availability and equipment confirmation alongside
+those settings. The generic Body Face currently contributes Lull, Body overview,
+Plots library and inspection controls to the same rendered surface. Those are
+Body-management actions, not thermostat settings.
+
+Keep Body management in a separate Body menu or inspection surface. In this
+journey, Off is the thermostat's requested climate-control mode; Lull is an
+explicit later Body-management chapter that stops the Play. Do not make Lull a
+peer of Heat, Cool or Off, or suggest that it preserves session settings. The
+current captures still show the generic renderer; a focused presentation and
+its accessibility verification remain part of the unfinished journey work.
+
 ## Current capture blocker
 
 There is no complete captured thermostat journey checked in or published by
