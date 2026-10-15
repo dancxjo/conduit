@@ -110,10 +110,10 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   expect(restored.initial_plots).toEqual(initial.initial_plots);
 });
 
-test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }) => {
+test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }, testInfo) => {
   await page.addInitScript(() => {
     const NativeAudioContext = window.AudioContext;
-    globalThis.__thereminAudio = { blocks: [], starts: [] };
+    globalThis.__thereminAudio = { blocks: [], starts: [], pcm: [] };
     window.AudioContext = class extends NativeAudioContext {
       createBuffer(channels, frames, sampleRate) {
         globalThis.__thereminAudio.blocks.push({ channels, frames, sampleRate });
@@ -122,6 +122,9 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
       createBufferSource() {
         const source = super.createBufferSource();
         const start = source.start.bind(source);
+        const connect = source.connect.bind(source);
+        let outputGain;
+        source.connect = target => { outputGain = target.gain; return connect(target); };
         source.start = when => {
           const samples = source.buffer.getChannelData(0);
           let peak = 0, crossings = 0;
@@ -129,7 +132,10 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
             peak = Math.max(peak, Math.abs(samples[index]));
             if (index > 0 && samples[index - 1] <= 0 && samples[index] > 0) crossings += 1;
           }
-          globalThis.__thereminAudio.starts.push({ when, peak, crossings });
+          globalThis.__thereminAudio.starts.push({ when, peak, crossings, duration: source.buffer.duration, scheduledAt: source.context.currentTime });
+          if (globalThis.__thereminAudio.pcm.length < 120) {
+            globalThis.__thereminAudio.pcm.push(Array.from(samples, value => value * outputGain.value));
+          }
           return start(when);
         };
         return source;
@@ -156,6 +162,9 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await page.mouse.move(bounds.x + bounds.width * 0.15, bounds.y + bounds.height * 0.85);
   await page.mouse.down();
   await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
+  // Hold the pointer still: cadence must keep producing audio without new input.
+  const stationaryStart = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(stationaryStart + 20);
   const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
   await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.crossings <= 10), highPitchEnd)).toBe(true);
@@ -163,6 +172,13 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   const loudPeak = await page.evaluate(({ start, end }) => Math.max(...globalThis.__thereminAudio.starts.slice(start + 1, end).map(block => block.peak)), { start: highPitchEnd, end: loudEnd });
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.15, { steps: 8 });
   await expect.poll(() => page.evaluate(({ end, threshold }) => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.peak < threshold), { end: loudEnd, threshold: loudPeak * 0.4 })).toBe(true);
+  // Scheduling is contiguous and bounded while a stationary hand sustains tone.
+  const sustained = await page.evaluate(({ start, end }) => globalThis.__thereminAudio.starts.slice(start + 1, end), { start: stationaryStart, end: highPitchEnd });
+  expect(sustained.length).toBeGreaterThanOrEqual(20);
+  for (let index = 1; index < sustained.length; index += 1) {
+    expect(sustained[index].when).toBeCloseTo(sustained[index - 1].when + sustained[index - 1].duration, 8);
+    expect(sustained[index].when - sustained[index].scheduledAt).toBeLessThanOrEqual(sustained[index].duration * 2);
+  }
   const audio = await page.evaluate(() => globalThis.__thereminAudio);
   expect(audio.blocks.every(block => block.channels === 1 && block.frames === 2000 && block.sampleRate === 48000)).toBe(true);
   expect(audio.starts[1].when).toBeGreaterThanOrEqual(audio.starts[0].when);
@@ -172,7 +188,18 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   expect(audio.starts.slice(highPitchEnd + 1, loudEnd).some(block => block.crossings <= 10)).toBe(true);
   const quietPeak = Math.min(...audio.starts.slice(loudEnd + 1).map(block => block.peak));
   expect(quietPeak).toBeLessThan(loudPeak * 0.4);
+  const pcm = await page.evaluate(() => globalThis.__thereminAudio.pcm.flat());
+  const wav = Buffer.alloc(44 + pcm.length * 2);
+  wav.write("RIFF", 0); wav.writeUInt32LE(wav.length - 8, 4); wav.write("WAVEfmt ", 8);
+  wav.writeUInt32LE(16, 16); wav.writeUInt16LE(1, 20); wav.writeUInt16LE(1, 22);
+  wav.writeUInt32LE(48000, 24); wav.writeUInt32LE(96000, 28);
+  wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36);
+  wav.writeUInt32LE(pcm.length * 2, 40);
+  pcm.forEach((value, index) => wav.writeInt16LE(Math.round(Math.max(-1, Math.min(1, value)) * 32767), 44 + index * 2));
+  await testInfo.attach("pocket-theremin.wav", { body: wav, contentType: "audio/wav" });
   await page.mouse.up();
+  await page.getByRole("button", { name: "lull body", exact: true }).click();
+  await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
 });
 
 test("the reviewed shelf reveals conversation Plots without pretending this browser can run them", async ({ page }) => {

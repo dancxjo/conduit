@@ -6,6 +6,7 @@ use super::{
 use core::cmp::Ordering;
 
 mod binary64;
+mod decimal;
 
 pub const EXACT_RATIONAL_ID: &str = "numeric/exact-rational@1";
 

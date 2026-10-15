@@ -45,28 +45,55 @@ preserves the physical threshold. Units give the comparison its meaning.
 The [Pocket Theremin](https://github.com/dancxjo/conduit/blob/dev/plots/pocket-theremin/main.conduit)
 illustrates mapping one dimension into another explicitly. This domain example
 requires its reviewed catalog; it is not a standalone installed-CLI example.
-The invocation below uses the current single-line argument layout:
+The pitch relationship is expressed with ordinary quantity arithmetic:
 
 ```conduit
-plot pocket-theremin (
+# The pitch law is ordinary Conduitese. Convert distance to a dimensionless
+# number of centimetres, then lower pitch by 55 Hz per centimetre. Clamping is
+# explicit; unit conversion and arithmetic never silently round.
+plot theremin-pitch (
     >> distance: Distance
+    frequency: Frequency >>
+) = (distance <= 0cm ? 1760Hz : distance >= 30cm ? 110Hz : 1760Hz - (distance / 1cm) * 55Hz)
+
+# The one canonical Theremin. Both controls describe portable meaning. Hosts
+# own acquisition, cadence, and playback; this Plot owns the instrument law.
+plot pocket-theremin (
+    >> pitch-distance: Distance
+    >> volume: Scalar
+    >> cadence: value/tick@1...
+    sampling-failed: conduit/terminal-info@1 >>
     audio: audio/pcm-frames@1...| >>
 ) {
-    map: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)
+    pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    tone: audio/tone
+    sample: current/sample
+    tone: audio/continuous-tone
+    gain: audio/apply-gain
 
-    distance >> map.distance
-    map.frequency >> frequency
-    frequency >> tone.frequency
-    tone.audio >> audio
-}.
+    pitch-distance >> pitch.distance
+    pitch.frequency >> frequency
+    frequency >> sample.current
+    cadence >> sample.trigger
+    sample.value >> tone.frequency
+    sample.value! >> sampling-failed
+    cadence >> tone.cadence
+    tone.audio >> gain.source-audio
+    volume >> gain.amplitude
+    gain.audio >> audio
+}
 ```
 
-Moving within a 30-centimetre range controls a 220–880 Hz tone. `keep` retains
-the current pitch, beginning at 440 Hz. The map's checked Fore explicitly
-relates distance and frequency; unit conversion alone cannot turn metres into
-hertz. Audio-device selection belongs to realization.
+The named expression input `distance` is evaluated for each arriving reading.
+It does not determine how long the instrument runs. `keep` holds pitch for the
+play, while every cadence tick samples it and renders another phase-continuous
+PCM block. Stationary input therefore sustains the tone; `volume` controls its
+amplitude. The controller supplies the cadence and the Host enforces output
+limits. Arithmetic retains units and refuses inexact carrier projections.
+
+Moving away across the 30-centimetre range lowers pitch from 1760 Hz to 110 Hz.
+The expression declares that relationship explicitly; unit conversion alone
+cannot turn metres into hertz. Audio-device selection belongs to realization.
 
 ## Convert explicitly and retain the result
 

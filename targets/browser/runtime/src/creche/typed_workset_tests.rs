@@ -12,7 +12,7 @@ fn bundle() -> String {
 }
 
 #[test]
-fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
+fn canonical_theremin_uses_installed_play_state_and_sampling_backs() {
     let source = serde_json::json!({
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [{
@@ -25,9 +25,6 @@ fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
     .to_string();
     let inventory = initial_plots::reviewed_inventory(&source).unwrap();
     assert_eq!(inventory.plots.len(), 1);
-    assert!(!inventory.plots[0]
-        .required_kinds
-        .contains(&"state/latest".to_owned()));
     assert!(inventory.plots[0]
         .required_kinds
         .contains(&"audio/continuous-tone".to_owned()));
@@ -41,10 +38,32 @@ fn canonical_theremin_checks_without_inventing_a_browser_state_back() {
         .capabilities
         .iter()
         .any(|offer| offer.kind_id.as_str() == "state/latest"));
+    for kind in [
+        conduit_core::STATE_VALUE_KIND,
+        conduit_semantic_catalog::CURRENT_SAMPLE_KIND,
+    ] {
+        assert!(
+            host.capabilities
+                .iter()
+                .any(|offer| offer.kind_id.as_str() == kind),
+            "{kind}"
+        );
+    }
 }
 
 #[test]
 fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
+    let document = conduit_plot::parse_syntax_document(include_str!(
+        "../../../../../plots/pocket-theremin/main.conduit"
+    ));
+    for name in ["pocket-theremin", "phone-two-axis-controller"] {
+        let plot = document
+            .plots
+            .iter()
+            .find(|plot| plot.name.text == name)
+            .unwrap();
+        assert_eq!(plot.completion, conduit_plot::PlotCompletionPolicy::Live);
+    }
     let source = serde_json::json!({
         "schema": "conduit.creche/reviewed-plot-bundle@2",
         "plots": [{
@@ -59,8 +78,7 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
     let required = &inventory.plots[0].required_kinds;
     for kind in [
         "input/pointer-source",
-        "math/map-normalized-distance",
-        "audio/play",
+        "audio/continuous-play",
         "pocket-theremin",
     ] {
         assert!(required.iter().any(|required| required == kind), "{kind}");
@@ -75,7 +93,6 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
         "browser/plot-pointer-source@1",
         "browser/kernel-audio-tone@1",
         "browser/kernel-audio-apply-gain@1",
-        "browser/kernel-map-distance-frequency@1",
     ] {
         assert!(
             host.capabilities
@@ -84,6 +101,9 @@ fn phone_theremin_checks_with_exact_two_axis_browser_realizations() {
             "{implementation}"
         );
     }
+    assert!(!required.iter().any(
+        |kind| kind == "math/map-distance-frequency" || kind == "math/map-normalized-distance"
+    ));
     let gain = host
         .capabilities
         .iter()

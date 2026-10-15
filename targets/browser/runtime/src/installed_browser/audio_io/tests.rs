@@ -119,6 +119,8 @@ fn playback_validates_pcm_before_request_and_completes_after_closure() {
     let input = value(1, frame.len());
     let mut operation = PlaybackBack {
         budget: PlaybackBudget::new(3072, 16384).unwrap(),
+        drain: value(2, 0),
+        draining: false,
         next: 0,
         pending: None,
     };
@@ -145,6 +147,16 @@ fn playback_validates_pcm_before_request_and_completes_after_closure() {
     let mut closed = StepIo::test_frame([None], [true], [None], None, 4);
     assert_eq!(
         operation.step(&mut closed, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        closed.test_host_request().map(|request| request.0),
+        Some(RequestId(1))
+    );
+    let mut drained =
+        StepIo::test_frame([None], [true], [None], Some((RequestId(1), completion)), 4);
+    assert_eq!(
+        operation.step(&mut drained, &StepInputBytes::test_frame([None], None)),
         StepOutcome::Complete
     );
 }
@@ -165,6 +177,8 @@ fn playback_refuses_excess_work_before_requesting_a_platform_effect() {
     .unwrap();
     let mut operation = PlaybackBack {
         budget: PlaybackBudget::new(1, 1).unwrap(),
+        drain: value(2, 0),
+        draining: false,
         next: 0,
         pending: None,
     };
