@@ -258,31 +258,6 @@ pub fn prepare_linear_model(
     {
         return Err("unsupported reference-linear model artifact".into());
     }
-    let signature = model.signature();
-    for (ports, name) in [
-        (signature.inputs.get().as_slice(), "input"),
-        (signature.outputs.get().as_slice(), "output"),
-    ] {
-        let [port] = ports else {
-            return Err("reference-linear requires one input and output".into());
-        };
-        let conduit_ai::ModelValueConstraint::Tensor(value) = &port.value else {
-            return Err("reference-linear requires tensor ports".into());
-        };
-        let constraint = value.constraint();
-        let [axis] = constraint.axes.get().as_slice() else {
-            return Err("reference-linear requires rank one".into());
-        };
-        if port.identity.get() != name
-            || port.presence != conduit_ai::ModelPortPresence::Required
-            || constraint.elements.get().as_slice() != [conduit_data::TensorElement::F32]
-            || axis.role != conduit_data::TensorAxisRole::Feature
-            || !matches!(&axis.dimension, conduit_ai::ModelDimensionConstraint::Fixed(v) if *v.value() == 2)
-            || constraint.maximum_bytes != 8
-        {
-            return Err("unsupported reference-linear semantic signature".into());
-        }
-    }
     let mut coefficients = [0_f32; 6];
     for (value, bytes) in coefficients
         .iter_mut()
@@ -303,6 +278,8 @@ pub fn prepare_linear_model(
         ],
         [coefficients[4], coefficients[5]],
     )
-    .map_err(|e| format!("reference-linear preparation: {e:?}"))?;
+    .map_err(|e| format!("reference-linear preparation: {e:?}"))?
+    .with_signature(model.signature())
+    .map_err(|e| format!("reference-linear signature: {e:?}"))?;
     PreparedModelInfer::prepare(model, adapter, requirement, artifact)
 }

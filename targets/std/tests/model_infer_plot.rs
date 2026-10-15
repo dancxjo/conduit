@@ -172,12 +172,11 @@ fn requirement() -> ModelComputeRequirement {
         requires_checkpoint_write: false,
     }
 }
-#[test]
-fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
+fn run_source_model(source: &str, input_bundle: NamedTensorBundle) -> Outputs {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     install_model_infer_catalog(&mut startup, &mut profile).unwrap();
-    let syntax = parse_syntax_document(include_str!("fixtures/model-linear.conduit"));
+    let syntax = parse_syntax_document(source);
     let checked = check_syntax_document(&syntax, &startup)
         .map_err(|e| format!("{}: {}", e.code, e.message))
         .unwrap();
@@ -242,7 +241,7 @@ fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
             &[ExternalForeInput {
                 front_port_id: "inputs".into(),
                 track: ConnectionTrack::Payload,
-                bytes: bundle(input([2., 3.])).encode().unwrap(),
+                bytes: input_bundle.encode().unwrap(),
             }],
             &mut outputs,
             &mut Vec::new(),
@@ -270,6 +269,15 @@ fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
         kernel.value_allocation_capacity_after
     );
     assert_eq!(outputs.0.len(), 1);
+    outputs
+}
+
+#[test]
+fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
+    let outputs = run_source_model(
+        include_str!("fixtures/model-linear.conduit"),
+        bundle(input([2., 3.])),
+    );
     let output = &outputs.0[0].get()[0];
     assert_eq!(output.name, "output");
     let TensorBacking::Inline(bytes) = &output.value.backing else {
@@ -396,4 +404,45 @@ fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
         error.contains("signature exceeds admitted tensor bytes"),
         "{error}"
     );
+}
+
+#[test]
+fn source_named_multi_io_is_numerical_and_independent_of_bundle_order() {
+    let scalar = |value: f32| {
+        let mut tensor = input([value, 0.]);
+        let bytes = value.to_le_bytes();
+        tensor.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+        tensor.content_digest = tensor_content_digest(&bytes);
+        tensor.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+        tensor
+    };
+    let inputs = NamedTensorBundle::from_values(vec![
+        NamedTensor {
+            name: "right".into(),
+            value: scalar(3.),
+        },
+        NamedTensor {
+            name: "left".into(),
+            value: scalar(2.),
+        },
+    ])
+    .unwrap();
+    let outputs = run_source_model(include_str!("fixtures/model-multi-linear.conduit"), inputs);
+    assert_eq!(outputs.0[0].get().len(), 2);
+    let values = outputs.0[0]
+        .get()
+        .iter()
+        .map(|named| {
+            assert_eq!(named.value.element, TensorElement::F32);
+            assert_eq!(named.value.dimensions.as_slice(), [1]);
+            let TensorBacking::Inline(bytes) = &named.value.backing else {
+                panic!("inline scalar");
+            };
+            (
+                named.name.as_str(),
+                f32::from_le_bytes(bytes.as_slice().try_into().unwrap()),
+            )
+        })
+        .collect::<BTreeMap<_, _>>();
+    assert_eq!(values, BTreeMap::from([("upper", 5.), ("lower", 1.)]));
 }

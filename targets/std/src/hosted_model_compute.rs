@@ -63,6 +63,8 @@ pub struct LinearF32ModelAdapter {
     session: ModelComputeSession,
     weights: [[f32; 2]; 2],
     bias: [f32; 2],
+    inputs: Vec<(String, usize)>,
+    outputs: Vec<(String, usize)>,
 }
 
 impl ReferenceModelComputeAdapter {
@@ -88,8 +90,63 @@ impl LinearF32ModelAdapter {
             session,
             weights,
             bias,
+            inputs: vec![("input".into(), 2)],
+            outputs: vec![("output".into(), 2)],
         })
     }
+}
+
+impl LinearF32ModelAdapter {
+    /// Port order belongs to the admitted semantic signature; bundle order does
+    /// not change which feature enters each matrix column or leaves each row.
+    pub fn with_signature(
+        mut self,
+        signature: &conduit_ai::ModelSignature,
+    ) -> Result<Self, ModelComputeRefusal> {
+        signature
+            .validate()
+            .map_err(|_| ModelComputeRefusal::UnsupportedShape)?;
+        self.inputs = linear_ports(signature.inputs.get().as_slice())?;
+        self.outputs = linear_ports(signature.outputs.get().as_slice())?;
+        Ok(self)
+    }
+}
+fn linear_ports(
+    ports: &[conduit_ai::ModelPortConstraint],
+) -> Result<Vec<(String, usize)>, ModelComputeRefusal> {
+    let mut result = Vec::with_capacity(2);
+    let mut total = 0_usize;
+    for port in ports {
+        let conduit_ai::ModelValueConstraint::Tensor(value) = &port.value else {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        };
+        let tensor = value.constraint();
+        let [axis] = tensor.axes.get().as_slice() else {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        };
+        let conduit_ai::ModelDimensionConstraint::Fixed(width) = &axis.dimension else {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        };
+        let width =
+            usize::try_from(*width.value()).map_err(|_| ModelComputeRefusal::UnsupportedShape)?;
+        if !(1..=2).contains(&width)
+            || port.presence != conduit_ai::ModelPortPresence::Required
+            || tensor.elements.get().as_slice() != [TensorElement::F32]
+            || axis.role != conduit_data::TensorAxisRole::Feature
+            || tensor.maximum_bytes != (width * 4) as u64
+        {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        }
+        total += width;
+        if total > 2 {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        }
+        result.push((port.identity.get().clone(), width));
+    }
+    if total != 2 {
+        return Err(ModelComputeRefusal::UnsupportedShape);
+    }
+    Ok(result)
 }
 
 impl ModelComputeAdapter for ReferenceModelComputeAdapter {
@@ -151,22 +208,35 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             Ok(value) => value,
             Err(error) => return ModelComputeAdapterTerminal::Refused(error),
         };
-        let inputs = invocation.inputs.get().as_slice();
-        if inputs.len() != 1 || inputs[0].name != "input" {
+        if invocation.inputs.get().len() != self.inputs.len() {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
-        let input = &inputs[0].value;
-        if input.element != TensorElement::F32 || input.dimensions.as_slice() != [2] {
-            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        let mut values = [0_f32; 2];
+        let mut offset = 0;
+        for (name, width) in &self.inputs {
+            let Some(named) = invocation.inputs.get().iter().find(|v| &v.name == name) else {
+                return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+            };
+            let input = &named.value;
+            if input.element != TensorElement::F32
+                || input.dimensions.as_slice() != [*width as u64]
+                || input
+                    .axes
+                    .iter()
+                    .any(|axis| axis.role != conduit_data::TensorAxisRole::Feature)
+            {
+                return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+            }
+            let TensorBacking::Inline(bytes) = &input.backing else {
+                return ModelComputeAdapterTerminal::Refused(
+                    ModelComputeRefusal::UnsupportedFormat,
+                );
+            };
+            for bytes in bytes.as_slice().as_chunks::<4>().0 {
+                values[offset] = f32::from_le_bytes(*bytes);
+                offset += 1;
+            }
         }
-        let TensorBacking::Inline(bytes) = &input.backing else {
-            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedFormat);
-        };
-        let bytes = bytes.as_slice();
-        let values = [
-            f32::from_le_bytes(bytes[0..4].try_into().unwrap()),
-            f32::from_le_bytes(bytes[4..8].try_into().unwrap()),
-        ];
         if let Err(error) = self.session.begin(&invocation.requirement, 0) {
             return ModelComputeAdapterTerminal::Refused(error);
         }
@@ -174,23 +244,39 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             self.weights[0][0] * values[0] + self.weights[0][1] * values[1] + self.bias[0],
             self.weights[1][0] * values[0] + self.weights[1][1] * values[1] + self.bias[1],
         ];
-        let output_bytes = result
-            .into_iter()
-            .flat_map(f32::to_le_bytes)
-            .collect::<Vec<_>>();
-        let output = TensorValue {
-            element: TensorElement::F32,
-            dimensions: input.dimensions.clone(),
-            axes: input.axes.clone(),
-            content_digest: tensor_content_digest(&output_bytes),
-            backing: TensorBacking::Inline(
-                BoundedBytes::new(&output_bytes).expect("two f32 values fit the tensor bound"),
-            ),
-        };
-        let outputs = match NamedTensorBundle::from_values(vec![NamedTensor {
-            name: "output".into(),
-            value: output,
-        }]) {
+        let mut named_outputs = Vec::with_capacity(self.outputs.len());
+        let mut offset = 0;
+        for (name, width) in &self.outputs {
+            let output_bytes = result[offset..offset + width]
+                .iter()
+                .flat_map(|v| v.to_le_bytes())
+                .collect::<Vec<_>>();
+            offset += width;
+            let output = TensorValue {
+                element: TensorElement::F32,
+                dimensions: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
+                    *width as u64
+                ])
+                .expect("one dimension"),
+                axes: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
+                    conduit_data::TensorAxis {
+                        role: conduit_data::TensorAxisRole::Feature,
+                        identity: None,
+                        unit: None,
+                    },
+                ])
+                .expect("one axis"),
+                content_digest: tensor_content_digest(&output_bytes),
+                backing: TensorBacking::Inline(
+                    BoundedBytes::new(&output_bytes).expect("two f32 values fit"),
+                ),
+            };
+            named_outputs.push(NamedTensor {
+                name: name.clone(),
+                value: output,
+            });
+        }
+        let outputs = match NamedTensorBundle::from_values(named_outputs) {
             Ok(value)
                 if value
                     .tensor_bytes()
