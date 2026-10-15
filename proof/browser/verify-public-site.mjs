@@ -55,6 +55,8 @@ try {
   if (existsSync(path.join(siteRoot, "journeys/current/one-body-five-masks/index.html"))) {
     routes.push(["one-body", new URL("journeys/current/one-body-five-masks/", server.url).href]);
   }
+  const thermostatIncluded = existsSync(path.join(siteRoot, "journeys/current/thermostat/index.html"));
+  if (thermostatIncluded) routes.push(["thermostat", new URL("journeys/current/thermostat/", server.url).href]);
   const oneBodyManifestPath = path.join(siteRoot, "journeys/current/one-body-five-masks/manifest.json");
   const oneBodyDevelopment = existsSync(oneBodyManifestPath)
     && JSON.parse(readFileSync(oneBodyManifestPath, "utf8")).result === "diagnostic-incomplete";
@@ -107,6 +109,24 @@ try {
         assert.equal(await page.locator("#life-label").innerText(), "Generation 32");
         await decodeImages(page.locator("#life-frame"));
         assert((await page.locator("#life-frame").getAttribute("src")).endsWith("t032.png"));
+      }
+      if (id === "journeys" && thermostatIncluded) {
+        const card = page.locator('.journey-card').filter({ hasText: 'Control one thermostat across Masks' });
+        assert.equal(await card.count(), 1, "Thermostat journey needs one catalogue card");
+        assert((await card.innerText()).includes("spoken"), "Thermostat card must describe its spoken encounter");
+        assert.equal(await card.getByRole('link').getAttribute('href'), 'current/thermostat/');
+      }
+      if (id === "thermostat") {
+        const content = page.locator('main.thermostat-journey');
+        assert.equal(await content.locator('.journey-step').count(), 8, "Thermostat needs every observed chapter");
+        assert.equal(await content.locator('#speech audio').count(), 1, "Thermostat needs its actual recorded output");
+        await decodeImages(content.locator('img'));
+        const recording = await content.locator('#speech audio').getAttribute('src');
+        const response = await context.request.head(new URL(recording, page.url()).href);
+        assert(response.ok() && Number(response.headers()['content-length']) > 44, "Thermostat recording is absent");
+        assert.equal(response.headers()['content-type'], 'audio/wav');
+        assert((await content.innerText()).includes('Settings are session-local.'), "Thermostat must disclose session reset");
+        assert((await content.innerText()).includes('No physical sensor, heating or cooling is confirmed.'), "Thermostat must disclose equipment limits");
       }
       if (id === "field-station") {
         const text = (await page.locator("main").innerText()).replace(/\s+/g, " ");
@@ -188,7 +208,7 @@ try {
         report.checkedLinks.push({ path: link.pathname, status: result.status() });
       }
       let screenshot;
-      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life"].includes(id)) {
+      if (["home", "journeys", "field-station", "handbook", "workspace", "three-bodies", "little-life", "thermostat"].includes(id)) {
         screenshot = `${layout}-${id}.png`;
         await page.screenshot({ path: path.join(output, screenshot), fullPage: true });
       }
