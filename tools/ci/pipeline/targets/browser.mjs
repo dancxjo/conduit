@@ -58,7 +58,7 @@ export function browser(directory) {
   const handbookBefore = inventory('target/handbook-static');
   const clockBefore = inventory('target/handbook-static-second');
   command('node', ['--test',
-    'tools/ci/thermostat-journey.spec.mjs',
+    'tools/ci/thermostat-journey.spec.mjs', 'tools/ci/exact-capture-json.spec.mjs',
     ...readdirSync('targets/browser/sdk').filter(name => name.endsWith('.test.mjs')).map(name => `targets/browser/sdk/${name}`),
     'targets/browser/tools/static-application-csp.test.mjs',
     'proof/browser/application-graph-canvas.test.mjs', ...[

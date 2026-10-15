@@ -212,6 +212,7 @@ macro_rules! installed_step_dispatch {
 
 installed_step_dispatch!(
     DistanceFrequency,
+    AudioTimeAnalysis,
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech,
     WhisperSpeech,

@@ -48,6 +48,7 @@ export async function completeEncounter({ page, peer, peerState, state, output, 
   // Retain a real active terminal Show before the browser changes its Face.
   await peer.command('show');
   const first = await peer.evidence();
+  assert.ok(peer.frame().includes('Target temperature: 21 °C'));
   const terminalBefore = ownerFace();
   assert.equal(first.terminal.face_id, terminalBefore.face.identity);
   assert.equal(first.terminal.body_id, bodyId);
@@ -68,10 +69,14 @@ export async function completeEncounter({ page, peer, peerState, state, output, 
   assert.equal(staleResponse.accepted, false, 'the prior terminal Show must reach an owner refusal');
   const afterStale = ownerFace();
   assert.deepEqual(afterStale.face.properties, beforeStale.face.properties);
+  const refreshed = await peer.evidence();
+  assert.equal(refreshed.terminal.face_id, afterStale.face.identity);
+  assert.ok(peer.frame().includes('Target temperature: 22.5 °C'));
   await peer.command('action thermostat.mode.heat');
   assert.equal(peer.actions().at(-1).accepted, true);
   await peer.command('action thermostat.preset.eco');
   assert.equal(peer.actions().at(-1).accepted, true);
+  assert.ok(peer.frame().includes('Target temperature: 18 °C'));
   const eco = ownerFace();
   const speechStarted = Date.now();
   await peer.command('read settings');
@@ -134,7 +139,7 @@ export async function completeEncounter({ page, peer, peerState, state, output, 
   assert.notEqual(restarted.status.realization.play.active_play_id, runBasis.active_play_id);
   await screenshot('thermostat-restarted.png');
   owner(['body', 'lull', '--state-dir', state]);
-  return { before_terminal: beforeTerminal, terminal_evidence: [first.terminal, final.terminal],
+  return { before_terminal: beforeTerminal, terminal_evidence: [first.terminal, refreshed.terminal, final.terminal],
     terminal_before: terminalBefore, terminal_stale: { ...staleResponse, before: beforeStale, after: afterStale },
     terminal_actions: actions, after_terminal: afterTerminal, after_peer_closed: afterClose,
     speech: { accepted: true, elapsed_millis: speechMillis, evidence: final.spoken,
