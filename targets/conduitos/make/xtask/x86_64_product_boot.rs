@@ -54,7 +54,8 @@ fn boot_once(
 ) -> Result<serde_json::Value, ConduitosError> {
     let paths = Paths::new(ConduitosArch::X86_64)?;
     let serial_path = paths.target.join("profile-built-boot.log");
-    let socket = paths.target.join("profile-built-boot.qmp");
+    let socket =
+        std::env::temp_dir().join(format!("conduit-product-boot-{}.sock", std::process::id()));
     let _ = fs::remove_file(&serial_path);
     let _ = fs::remove_file(&socket);
     let serial = format!("file:{}", serial_path.to_string_lossy());
@@ -69,7 +70,7 @@ fn boot_once(
             "-cpu",
             "max",
             "-m",
-            "64M",
+            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
             "-smp",
             "1",
             "-display",
