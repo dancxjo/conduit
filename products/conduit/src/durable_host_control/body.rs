@@ -2,6 +2,8 @@
 //! The service holds `body-owner.lock` for its lifetime, so these operations
 //! are the only live writer of its biography and invitation authority.
 
+#[path = "body/native_mask_route.rs"]
+mod native_mask_route;
 #[cfg(unix)]
 use super::read_secret;
 use super::DurableHostRuntime;
@@ -457,19 +459,6 @@ impl DurableHostRuntime {
         Ok((face, owner.host.advertisement().clone()))
     }
 
-    pub(super) fn owned_body_native_mask_route(
-        &mut self,
-        receipt: &PortableAdmissionReceipt,
-        face_line: &conduit_core::LineOffer,
-        return_line: &conduit_core::LineOffer,
-        expires_at_millis: u64,
-    ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
-        let HostSource::Body { owner, .. } = &mut self.host else {
-            return Err("installed Host does not own a live Body session".into());
-        };
-        owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
-    }
-
     pub(super) fn owned_body_native_component_mask(
         &mut self,
         request: &OwnerFaceSnapshotRequest,
@@ -682,6 +671,10 @@ pub(crate) fn select_native_mask_route(
     receipt: PortableAdmissionReceipt,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
+    terminal_interaction_line: Option<conduit_core::LineOffer>,
+    spoken_selection: Option<
+        conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+    >,
     expires_at_millis: u64,
 ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     match call(
@@ -692,6 +685,8 @@ pub(crate) fn select_native_mask_route(
             receipt: Box::new(receipt),
             face_line: Box::new(face_line),
             return_line: Box::new(return_line),
+            terminal_interaction_line: terminal_interaction_line.map(Box::new),
+            spoken_selection: spoken_selection.map(Box::new),
             expires_at_millis,
         },
     )? {
@@ -731,6 +726,10 @@ pub(crate) fn select_native_mask_route(
     _receipt: PortableAdmissionReceipt,
     _face_line: conduit_core::LineOffer,
     _return_line: conduit_core::LineOffer,
+    _terminal_interaction_line: Option<conduit_core::LineOffer>,
+    _spoken_selection: Option<
+        conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection,
+    >,
     _expires_at_millis: u64,
 ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())

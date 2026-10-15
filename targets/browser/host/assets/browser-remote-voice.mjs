@@ -98,7 +98,7 @@ export function acquireBrowserRemoteVoice({
         throw new Error("browser remote voice effect identity mismatch");
       }
       const expected = effect.effect_kind === "audio-capture" ? PCM_CAPTURE_RESOURCE
-        : effect.effect_kind === "pcm-playback" ? PCM_PLAY_RESOURCE : null;
+        : (effect.effect_kind === "pcm-playback" || effect.effect_kind === "pcm-playback-drain") ? PCM_PLAY_RESOURCE : null;
       if (!expected || placements.get(effect.placement_id) !== expected) {
         throw new Error("browser remote voice effect differs from its planned resource");
       }

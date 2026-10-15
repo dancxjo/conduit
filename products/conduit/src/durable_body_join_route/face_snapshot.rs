@@ -25,7 +25,7 @@ pub(super) fn serve_optional_face_snapshot(
         }
         Err(error) => return Err(format!("receive owner Face request: {error:?}")),
     };
-    let (request, return_requested) = return_route::decode_face_request(&bytes[..length])?;
+    let (request, return_requested, mask) = return_route::decode_face_request(&bytes[..length])?;
     let credential = &receipt.credential;
     if !request.has_exact_basis()
         || request.credential_id != credential.credential_id.as_str()
@@ -55,9 +55,9 @@ pub(super) fn serve_optional_face_snapshot(
         });
     let mut grant = if return_requested
         && matches!(&response, OwnerFaceSnapshotResponse::Snapshot { face, .. }
-            if crate::durable_host_control::has_native_return_route_intent(face))
+            if mask == return_route::MaskSelection::Terminal || crate::durable_host_control::has_native_return_route_intent(face))
     {
-        Some(return_route::Grant::issue(receipt)?)
+        Some(return_route::Grant::issue(receipt, mask)?)
     } else {
         None
     };
@@ -65,19 +65,7 @@ pub(super) fn serve_optional_face_snapshot(
         (grant.as_ref(), &mut response)
     {
         let result = crate::durable_host_control::local_face_snapshot(state_dir).and_then(
-            |(_, owner_offer)| {
-                let binding =
-                    native_lines::binding_reference(listener, &grant.binding_reference(0));
-                let (face_line, return_line) =
-                    native_lines::offer_pair(&owner_offer, receipt, &binding);
-                crate::durable_host_control::select_native_mask_route(
-                    state_dir,
-                    receipt.clone(),
-                    face_line,
-                    return_line,
-                    grant.expires_at_millis(),
-                )
-            },
+            |(_, owner_offer)| grant.seal_mask_route(listener, state_dir, &owner_offer, 0),
         );
         match result {
             Ok(selected) => {

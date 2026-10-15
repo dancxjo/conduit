@@ -137,6 +137,10 @@ pub(crate) struct DurableHostTruth {
     pub(crate) advertisement: HostAdvertisement,
 }
 
+#[cfg(unix)]
+#[path = "durable_host_control/presentation_host.rs"]
+mod presentation_host;
+
 pub(crate) struct DurableHostRuntime {
     target_id: String,
     image_content_digest: String,
@@ -201,7 +205,7 @@ impl DurableHostRuntime {
         self.cancellation_signal = Some(state_dir.join("remote-cancellation.signal"));
     }
 
-    fn truth(&self) -> DurableHostTruth {
+    pub(crate) fn truth(&self) -> DurableHostTruth {
         DurableHostTruth {
             target_id: self.target_id.clone(),
             image_content_digest: self.image_content_digest.clone(),
@@ -1124,6 +1128,12 @@ enum Request {
         receipt: Box<PortableAdmissionReceipt>,
         face_line: Box<LineOffer>,
         return_line: Box<LineOffer>,
+        #[serde(default)]
+        terminal_interaction_line: Option<Box<LineOffer>>,
+        #[serde(default)]
+        spoken_selection: Option<
+            Box<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
+        >,
         expires_at_millis: u64,
     },
     BodyNativeComponentMask {
@@ -2220,10 +2230,19 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             receipt,
             face_line,
             return_line,
+            terminal_interaction_line,
+            spoken_selection,
             expires_at_millis,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_native_mask_route(&receipt, &face_line, &return_line, expires_at_millis)
+            .owned_body_native_mask_route(
+                &receipt,
+                &face_line,
+                &return_line,
+                terminal_interaction_line.as_deref(),
+                spoken_selection.as_deref(),
+                expires_at_millis,
+            )
             .map(|route| Response::BodyNativeMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),

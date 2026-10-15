@@ -37,6 +37,7 @@ pub use server::{PatchbayHtmlServer, ServerError, MAX_HTTP_REQUEST_BYTES, MAX_TH
 pub use snapshot::{SnapshotError, MAX_SNAPSHOT_BYTES, SNAPSHOT_SCHEMA};
 pub use transport_types::*;
 
-pub fn application_theme_css() -> Vec<u8> {
-    theme::render_theme_css(&conduit_face::CONDUIT_APPLICATION_THEME)
+pub fn application_look_css() -> Vec<u8> {
+    let look = conduit_face::phosphor_look().expect("checked built-in Look data");
+    theme::render_look_css(&look).expect("built-in Look has a visual facet")
 }

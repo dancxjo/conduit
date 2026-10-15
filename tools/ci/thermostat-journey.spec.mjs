@@ -1,11 +1,12 @@
 // Documentary integrity tests only; fixtures do not establish live Mask support.
 import assert from 'node:assert/strict';
+import { execFileSync } from 'node:child_process';
 import { createHash } from 'node:crypto';
-import { mkdtempSync, mkdirSync, rmSync, writeFileSync } from 'node:fs';
+import { mkdtempSync, mkdirSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import os from 'node:os';
 import path from 'node:path';
 import test from 'node:test';
-import { validateThermostatJourney } from './pipeline/thermostat-journey.mjs';
+import { renderThermostatJourney, validateThermostatJourney } from './pipeline/thermostat-journey.mjs';
 const hash = bytes => createHash('sha256').update(bytes).digest('hex');
 function packet() {
   const root = mkdtempSync(path.join(os.tmpdir(), 'thermostat-documentary-test-'));
@@ -70,4 +71,22 @@ test('refuses traversal even with a valid external file digest', () => {
     writeFileSync(path.join(p.root, 'manifest.json'), JSON.stringify(p.manifest));
     assert.throws(() => validateThermostatJourney(p.root), /unsafe or duplicate/);
   } finally { rmSync(p.root, { recursive: true }); }
+});
+
+
+test('current thermostat publication uses the canonical Look stylesheet hook', () => {
+  const p = packet();
+  try {
+    const revision = execFileSync('git', ['rev-parse', 'HEAD'], { encoding: 'utf8' }).trim();
+    p.manifest.source_commit = revision;
+    p.receipt.owner_source_commit = revision;
+    p.seal();
+    const output = path.join(p.root, 'publication');
+    const css = readFileSync('targets/browser/host/assets/conduit.css', 'utf8');
+    renderThermostatJourney(p.root, output, revision, css, '');
+    const html = readFileSync(path.join(output, 'index.html'), 'utf8');
+    assert.ok(html.includes('data-application-look="conduit.look/phosphor@1"'));
+    assert.ok(html.includes(':where([data-application-look])'));
+    assert.ok(!html.includes('data-application-theme='));
+  } finally { rmSync(p.root, { recursive: true, force: true }); }
 });

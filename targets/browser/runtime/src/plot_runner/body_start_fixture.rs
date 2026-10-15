@@ -35,6 +35,11 @@ pub(in crate::plot_runner) fn request_from_sources(sources: &[&str]) -> BodyStar
                 conduit_plot::expand_canonical_plot_for_authoring(&checked, &entry, &catalog)
                     .unwrap();
             let plot = &authoring.expanded;
+            let mut hosts = hosts.clone();
+            hosts[0].capabilities.extend(
+                crate::installed_browser::catalogs::offers_for_expanded_pure_expressions(plot)
+                    .unwrap(),
+            );
             let placements = default_expanded_placements(plot, &hosts).unwrap();
             conduit_planner::plan_expanded_authoring_with_activations(
                 &checked,

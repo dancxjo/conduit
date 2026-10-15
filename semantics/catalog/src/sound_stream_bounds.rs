@@ -32,6 +32,24 @@ pub fn audio_play_contract() -> StandardKindContract {
     contract
 }
 
+/// An externally driven playback sink with finite per-block work and queue
+/// storage. Duration belongs to its input stream, not a cumulative audio quota.
+pub fn audio_continuous_play_contract() -> StandardKindContract {
+    let mut contract = sink(
+        AUDIO_CONTINUOUS_PLAY_KIND,
+        "Play continuous audio",
+        "Play externally supplied bounded PCM blocks until input closure or cancellation; drain on normal closure and release immediately on cancellation.",
+        vec![port("audio", AUDIO_PCM_INFO_ID, PortDirection::Input)],
+        CapabilityLimits {
+            max_active_instances: 1,
+            max_queue_items: 2,
+            max_queue_bytes: 2 * (conduit_audio::MAXIMUM_PCM_FRAME_BYTES + PCM_FRAME_HEADER_ENCODED_LEN as u32),
+        },
+    );
+    contract.inputs[0].temporal = PortTemporal::Flow { closes: true };
+    contract
+}
+
 pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
     let mut configuration = vec![
         u64_configuration(AUDIO_CONVERT_OUTPUT_RATE_KEY, 48_000, 8_000, 192_000),
@@ -56,5 +74,40 @@ pub fn audio_convert_pcm_profile_contract() -> StandardKindContract {
         browser_manifestation_honest: false,
         pico_manifestation_honest: false,
         example: "convert: audio/convert-pcm-profile(output-sample-rate-hz = 48000, output-channel-layout = \"stereo-left-right\")".to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn continuous_playback_separates_stream_lifetime_from_finite_queue_work() {
+        let contract = audio_continuous_play_contract();
+        assert!(contract.configuration.is_empty());
+        assert_eq!(
+            contract.inputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
+        assert_eq!(contract.limits.max_queue_items, 2);
+        assert_eq!(contract.limits.max_active_instances, 1);
+        assert_eq!(
+            contract.limits.max_queue_bytes,
+            2 * (conduit_audio::MAXIMUM_PCM_FRAME_BYTES + PCM_FRAME_HEADER_ENCODED_LEN as u32)
+        );
+        let semantics = stream_semantics(AUDIO_CONTINUOUS_PLAY_KIND).unwrap();
+        assert_eq!(
+            semantics.pressure,
+            PressureDisposition::WaitWithoutConsumption
+        );
+        assert_eq!(
+            semantics.cancellation,
+            CancellationDisposition::CancelAndReleaseFiniteState
+        );
+        assert_eq!(
+            semantics.terminal,
+            SoundTerminalBehavior::DrainsAdmittedOutputThenCompletes
+        );
+        assert_eq!(audio_play_contract().configuration.len(), 2);
     }
 }

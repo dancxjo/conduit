@@ -76,14 +76,41 @@ evidence bound to the actual acknowledged Show. They do not enter Face identity.
 Focus, scroll and decorative motion may remain Mask-local; they cannot dispatch
 new domain actions. Optional detail must remain genuinely reachable.
 
-## Compatibility
+## Canonical Look and retirement
 
-Preserve `ApplicationTheme`, `APPLICATION_THEME_VERSION = 2` and
-`conduit.face/phosphor@1`. Existing finite bytes remain a compatibility
-carrier. Their responsive breakpoint/grid-min fields do not give a new Look
-unbounded layout authority: the configured structural recipe/Mask must own and
-admit layout selection and reflow. The new visual admission does not reinterpret
-old bytes as certified expression or remove existing contrast/focus safeguards.
+`LookInfo`, checked from `semantics/face/look.conduit`, is the finite common
+contract with separately typed optional visual, spoken and generative facets.
+The built-in Phosphor resource has identity `conduit.look/phosphor@1` and version
+1. The visual facet carries bounded RGB/metric tokens and a checked expression;
+structural breakpoint/grid selection stays with the component/Mask.
+
+The former `ApplicationTheme` binary versions and Phosphor identities are
+retired. There is no old reader or alias. Canonical admission rejects retired
+identities; the browser binding requires the exact Native type profile and
+reports a canonical-Look-required refusal for legacy bytes. A retained negative
+fixture was checked against the old encoder before its removal.
+
+Native CSS preparation and the browser nucleus consume the same canonical data.
+The JavaScript binding decodes the existing Native structured encoding, with a
+Rust conformance test pinning its complete type profile, Source digest and
+actual Phosphor value. It does not define another Look wire. Unsupported or
+absent facets cannot be reported as rendered. User accessibility and actual
+Host constraints continue to outrank author expression; acknowledgement remains
+with the selected Mask's actual Show, separately from data admission.
+
+Facet selection is explicit: unknown requests return `Unsupported`; a missing
+facet returns `Absent` even when the Host lacks that modality; an existing facet
+on an unsupported Host returns `HostUnavailable`; only an existing supported
+facet returns `Selected`. This is data availability, not a provider acquisition
+or an acknowledged output. Spoken and generative facets are bounded policy data;
+they do not yet configure a speech or generative provider.
+
+Visual precedence reuses existing admission: user constraints and hard Host
+limits outrank the requested expression. Successful fallback retains both the
+requested Look and the selected canonical Phosphor resource. An impossible
+user/Host constraint combination refuses. Generic no-Look browser realization
+clears only paint properties owned by the previous Look and its metadata, while
+preserving Face meaning and unrelated renderer properties.
 
 ## Required proof
 

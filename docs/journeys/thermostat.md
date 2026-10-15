@@ -22,27 +22,73 @@ peer of Heat, Cool or Off, or suggest that it preserves session settings. The
 retained failed capture predates this presentation change; fresh complete
 journey captures remain outstanding.
 
-## Current capture blocker
+## Current runtime and capture status
 
-There is no complete captured thermostat journey checked in or published by
-this change. The live capture reached the browser controls and finite bounds,
-then the installed Owner refused terminal attachment with
-`terminal-route-requires-lulled-body`. The generic terminal route currently
-requires a lulled Body for attachment, refresh, wardrobe and retirement. Todo
-can remain idle between committed edits; Thermostat owns a continuous scan.
+The direct `--owner-show` terminal attaches a provider to the owner's own Host
+and requires a lulled Body. A running thermostat instead uses a separately
+installed presentation Host. Its real terminal provider is attached before
+signed admission, and the owner selects its exact terminal Mask Plan and three
+directional Lines. Typed actions return through the existing thermostat worker.
 
-Selected audio also requires an idle installed Owner. The mechanical spoken
-reader's deterministic thermostat test does not establish live selected audio
-while the scan runs. A speech refusal is a diagnostic chapter, not a successful
-spoken encounter. Full Todo parity requires a separately reviewed runtime
-change admitting these presentation effects without replacing the thermostat
-Play, inventing a second thermostat state, or changing offers beneath its Plan.
+A development live run has verified fresh installed owner and peer processes,
+pinned TLS admission, actual terminal write/flush acknowledgement, Heat and Eco,
+and unchanged Body/Plan/Play. Closing the terminal leaves the thermostat running.
+The same path also passes with an explicitly selected artifact speech provider
+attached before admission. This is a same-computer, distinct-Host proof, not a
+claim of separate physical computers, equipment control or automatic failover.
+
+While the owner is still lulled, issue its normal routed invitation with an
+explicit non-loopback endpoint and selected TLS certificate. Install a fresh
+presentation Host with `--no-start`; it must not own or have joined another Body.
+Use that peer's installed executable:
+
+```sh
+PEER_CONDUIT=/absolute/path/to/peer-installed/conduit-linux-x86_64
+"$PEER_CONDUIT" body terminal --state-dir /tmp/thermostat-peer \
+  --invitation /absolute/path/to/owner-invitation.json --authorize-join
+```
+
+Start the thermostat through its owner, then enter `show` on the peer to refresh
+its Face. `actions` lists the current choices; `action thermostat.mode.heat` and
+`action thermostat.preset.eco` return typed settings. `evidence` reports the
+actual Show and foreground receipt. The finite owner return permits four
+actions and four refreshes within sixty seconds. A new encounter needs a fresh
+admission; this command does not silently extend a grant or replay a prior Boot.
+
+No complete thermostat journey packet is checked in or published yet. The
+staged producer below still uses the direct-owner terminal entrance and needs
+peer integration. An explicit checked `spoken/control-template` selects the
+primary application Region's human text, typed values, actions and temporal
+facts from the original Face. It retains requested settings, available actions
+and equipment caveats while keeping structural metadata and Body context out
+of the reading. Labels are read directly from that same Face.
+The full-Face Brief and Expanded selections retain their existing contracts.
+
+With explicitly installed artifact speech equipment, enter `read settings` on
+the peer. It requests the checked Control Mask for its exact current Face,
+produces the reading through ordinary kernel Plays and WAV acknowledgements,
+and returns to the terminal. `evidence` then includes the spoken route, source
+Face, ordered frame receipts, provider identity and artifact hashes. Narrating
+actions does not admit an interaction Line or authorize speech actions.
+
+A local development run used fresh installed owner and peer Hosts on one
+physical machine. Heat and Eco changed the same running thermostat; the spoken
+reading completed in 9 artifact frames, and the peer returned to the terminal
+with the same Body, Plan and Play. Closing the peer left the scan running.
+This proves current owner-correlated artifact generation, not speaker playback
+or listening. A speech refusal is not a successful spoken encounter.
+
+The hosted presentation profile admits a 64 KiB route binding and a 128 KiB
+control document. One observed reading required 47,568 and 69,002 bytes,
+respectively. The native profile retains its 40 KiB binding and 64 KiB document;
+physical native frames retain their existing bound. Actual Face and Show values
+must still fit the separately admitted 64 KiB hosted Mask Lines. Changing an
+encoding profile invalidates its seal rather than conferring new authority.
 
 Do not restart the thermostat to make a terminal edit look like a same-Play
-interaction. Do not substitute the browser-local Handbook thermostat: it is a
-separate Body. Preserve the original failed run before attempting another
-capture. A new proof attempt needs a fresh private installed Host and a new
-output directory.
+interaction, or substitute the browser-local Handbook thermostat: it is a
+separate Body. Each capture attempt needs fresh private installed Hosts and a
+new output directory.
 
 ## Capture entrance
 
@@ -53,7 +99,7 @@ Use the installed executable printed in its installation, with a short private
 state path (the full `control.sock` pathname must fit Linux's 107-byte limit).
 Prepare pinned Chromium using [the browser proof setup](../../proof/browser/README.md).
 
-Once the runtime prerequisite is satisfied, run:
+After the staged producer has been updated for the peer and spoken routes, use:
 
 ```sh
 cargo xtask prove journey thermostat --capture \
@@ -81,12 +127,13 @@ meet the remaining spoken-Mask acceptance requirement.
 
 ## Acceptance still needed
 
-- Admit and acknowledge a terminal Mask without stopping the thermostat scan.
+- Capture admission and acknowledged terminal and spoken Masks together with the
+  browser encounter, without stopping the thermostat scan.
 - Read browser-made settings in that terminal, apply Heat/Eco through its typed
   actions, and observe 18 °C in the browser with unchanged Body/Plan/Play.
 - Refuse stale browser and terminal Shows without changing requested settings.
-- Admit the spoken Mask under an exact presentation Plan and selected provider;
-  capture a concise current thermostat reading with correlated output receipts.
+- Retain the live spoken Mask's exact presentation Plan, selected provider,
+  current reading and correlated artifact receipts in the complete packet.
   A file artifact and actual speaker delivery remain different proof classes.
 - Lull and return to the same Body, showing session reset honestly rather than
   claiming Todo-style checkpoint recovery.

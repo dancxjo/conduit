@@ -1,0 +1,79 @@
+# Portable finite print meaning. Device names, paths and transport endpoints
+# belong to selected Host resources and never appear here.
+type PrintIdentity = Text <= 128B not in [""]
+type PrintDocument = ResourceRef
+
+type PrintMedia =
+    a4
+    | letter
+    | legal
+    | a3
+
+type PrintColor =
+    monochrome
+    | color
+
+type PrintSides =
+    one_sided
+    | duplex_long_edge
+    | duplex_short_edge
+
+type PrintAttributes = {
+    media: PrintMedia
+    color: PrintColor
+    sides: PrintSides
+    copies: U16 in 1..=100
+}
+
+type PrintRequest = {
+    job_id: PrintIdentity
+    document: PrintDocument
+    attributes: PrintAttributes
+}
+
+# Exact facts of one selected provider, not a printer-selection policy.
+type PrintMediaSupport = sequence PrintMedia <= 4
+type PrintColorSupport = sequence PrintColor <= 2
+type PrintSidesSupport = sequence PrintSides <= 3
+type PrintSupport = {
+    media: PrintMediaSupport
+    colors: PrintColorSupport
+    sides: PrintSidesSupport
+    maximum_copies: U16 in 1..=100
+}
+
+type PrintOperation = {
+    job_id: PrintIdentity
+    attempt_id: PrintIdentity
+}
+
+type PrintAcknowledgement = {
+    operation: PrintOperation
+    provider_job_id: PrintIdentity
+}
+
+type PrintFailure =
+    unavailable_before_dispatch
+    | rejected_before_dispatch
+    | provider_reported_failure
+
+type PrintUncertainty =
+    acknowledgement_unknown
+    | provider_lost_after_dispatch
+    | cancellation_after_dispatch
+
+type PrintLifecycle =
+    queued PrintOperation
+    | dispatched PrintOperation
+    | acknowledged PrintAcknowledgement
+    | completed PrintAcknowledgement
+    | failed {
+        operation: PrintOperation
+        reason: PrintFailure
+    }
+    | cancelled PrintOperation
+    | uncertain {
+        operation: PrintOperation
+        provider_job_id: PrintIdentity?
+        reason: PrintUncertainty
+    }
