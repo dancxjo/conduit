@@ -9,7 +9,7 @@ cancellation. It returns an advanced cursor/sample, unchanged cancelled or
 exhausted cursor, invalid-cursor refusal or overflow refusal.
 
 The `polynomial_q30_to_q14_v1` profile supports rates 8000..192000 Hz, center/rate
-from 1/128 through 63/128, bandwidth/rate from 1/256 through 1/8, and 1..65536
+from 1/128 through 63/128, bandwidth from 10 Hz through rate/8, and 1..65536
 frames. Original fractions, anchor, generation and profile remain in the cursor.
 The public step has no retuning/interpolation port: changed controls start with
 preparation/reset. Checkpoints are explicit state, not authenticated execution
@@ -51,7 +51,16 @@ allocation/reallocation and stable capacity. Separate installed-host proof uses
 ordinary Source/Plan/Play and finite queues; retain its actual source-bound
 result separately from portable expression conformance.
 
-The shared recurrence preserves compact-voice operation ordering and I32 overflow
-behavior. The wider filter profile does not silently widen Speech arithmetic.
-Generic speech extraction/parity and whole-parent acceptance remain required
-before claiming completion of the relevant DSP issues.
+The standalone Speech helper and all three actual voice-frame filters now use
+the identical shared recurrence, with Speech-owned excitation choices and limits.
+I32 operation ordering and overflow remain unchanged; the wider Audio profile
+does not silently widen Speech arithmetic. All 60 Speech library tests pass,
+including whole-frame comparison with the frozen pre-extraction scalar equation.
+Accepted-source validation and whole-parent acceptance remain separate gates.
+
+The independent projection corpus also salvages the applicable center/bandwidth
+reference vectors from `78c38a383f4a3c6c910275f5e66e652f7744a33c`
+(`recovery/5278-before-audio-split-20261008`). The former Q20 integer-Hz profile
+and allocating execution wrapper are not replayed or relabeled as this profile.
+Low bandwidths such as 80 Hz at 48 kHz remain usable; original fractions are
+retained, and stability/headroom still gate actual state advancement.

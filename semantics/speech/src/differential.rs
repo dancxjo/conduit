@@ -63,7 +63,7 @@ fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
             speech_limit(value)
         );
     }
-    let resonance = program("speech_resonator");
+    let (resonance, resonance_result) = crate::prosody_parity::graph("speech_resonator");
     for (drive, b, c, y1, y2) in [
         (1000, 16300, -12000, 500, -200),
         (i32::MAX, 1, 1, 0, 0),
@@ -71,13 +71,11 @@ fn compiled_integer_operations_match_checked_overflow_and_boundary_behavior() {
         (0, 0, i32::MIN, 0, -1),
     ] {
         let bytes = record(
-            &resonance,
+            &resonance[0].1,
             &[("drive", drive), ("b", b), ("c", c), ("y1", y1), ("y2", y2)],
         );
         assert_eq!(
-            resonance
-                .evaluate(&bytes)
-                .ok()
+            crate::prosody_parity::evaluate(&resonance, resonance_result, &bytes)
                 .map(|out| i32::from_le_bytes(out.try_into().unwrap())),
             speech_resonator(ResonatorInput {
                 drive,

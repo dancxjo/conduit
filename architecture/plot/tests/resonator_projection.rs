@@ -20,7 +20,7 @@ fn actual_checked_source_projects_fractional_controls_and_retains_originals_with
         .collect::<Vec<_>>();
     let mut cases = vec![
         ((1000, 1), (100, 1), 8000),
-        ((440, 1), (240, 1), 48000),
+        ((440, 1), (80, 1), 48000),
         ((44101, 7), (64003, 11), 96000),
         ((189000, 2), (750, 1), 192000),
         (
@@ -33,6 +33,17 @@ fn actual_checked_source_projects_fractional_controls_and_retains_originals_with
         for center in [1, 32, 63] {
             for bandwidth in [1, 16, 32] {
                 cases.push(((rate * center, 128), (rate * bandwidth, 256), rate));
+            }
+        }
+    }
+    // Salvaged reference vectors from recovery/5278-before-audio-split at
+    // 78c38a383f4a3c6c910275f5e66e652f7744a33c, Speech resonator projection tests.
+    // Keep this profile's declared center range; do not relabel the old Q20 profile.
+    for rate in [8000,16000,48000] {
+        for center in [1,50,270,400,730,870,1090,1500,1700,2240,2290,2440,2500,2600,3010,rate*9/20] {
+            if center*128 < rate {continue;}
+            for bandwidth in [10,80,100,140,rate/8] {
+                cases.push(((center,1),(bandwidth,1),rate));
             }
         }
     }
