@@ -44,3 +44,9 @@ interval, calibrated regression threshold, physical device, browser performance,
 or parent #5395 completion follows. CI artifact retention is fourteen days;
 failed or missing capture is unavailable evidence, even though it cannot block
 merging. See the worker README for the reproducible command and exact boundaries.
+
+The publication refresh onto accepted `dev`
+`ca95917e93c9f6f822a31cdd0304d3f5712ee838` preserves the measured report code,
+xtask entrance and CI job unchanged. The original capture remains attributed to
+its measured Source above; later accepted parser guards and timing markers do
+not retroactively change that identity.
