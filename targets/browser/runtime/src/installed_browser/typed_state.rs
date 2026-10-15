@@ -179,3 +179,94 @@ impl<const PORTS: usize> StepBack<PORTS> for TypedState {
 fn unreachable_offer() -> CapabilityOffer {
     panic!("typed State offers require checked source")
 }
+
+/// Explicit fresh Play cell storage; retained cells across Plays remain refused.
+pub(crate) fn storage_profile() -> conduit_plan_lowering::lowering::KernelStorageProfile {
+    conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
+        .with_state_storage(super::MAXIMUM_BROWSER_GEARS as u16, MAXIMUM as u32)
+        .expect("nonzero bounded browser State storage")
+}
+
+pub(crate) fn offer_for_placement(gear: &PlannedGear) -> Result<Option<CapabilityOffer>, String> {
+    if gear.kind_id.as_str() != STATE_VALUE_KIND {
+        return Ok(None);
+    }
+    offer(&initial(&gear.configuration)?).map(Some)
+}
+
+/// Consume every planned cell through the selected exact Play-lived State Back.
+pub(crate) fn validate_partition(
+    fragment: &PlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<(), String> {
+    if fragment.states.len() != lowered.states.len() {
+        return Err("browser State lowering omitted a planned boundary".into());
+    }
+    for state in &fragment.states {
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.gear_id == state.gear_id)
+            .ok_or("browser State has no selected placement")?;
+        let numeric = lowered
+            .states
+            .iter()
+            .find(|cell| cell.contract == *state)
+            .ok_or("browser State has no exact lowered cell")?;
+        let node = lowered
+            .nodes
+            .iter()
+            .find(|node| node.placement_id == gear.placement_id)
+            .ok_or("browser State has no exact lowered node")?;
+        let maximum = gear
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "maximum-bytes")
+            .map(|entry| &entry.value);
+        if gear.kind_id.as_str() != STATE_VALUE_KIND
+            || gear.implementation_id.as_str() != IMPLEMENTATION
+            || state.state_id.as_str() != gear.gear_id.as_str()
+            || state.lifetime != StateLifetime::Play
+            || state.retained.is_some()
+            || state.continuation != StateContinuation::ExternallyBounded
+            || maximum
+                != Some(&ConfigurationValue::U64(u64::from(
+                    state.maximum_value_bytes,
+                )))
+            || state.maximum_value_bytes == 0
+            || state.maximum_value_bytes > MAXIMUM as u32
+            || gear.outputs.first().map(|port| &port.value_kind) != Some(&state.value_kind)
+            || numeric.node != node.node
+            || numeric.next != PortId(0)
+            || numeric.current != PortId(0)
+        {
+            return Err("browser State differs from the exact fresh Play installation".into());
+        }
+        let value = initial(&gear.configuration)?;
+        let expected = match value.shape() {
+            StructuredInfoValueShape::Leaf(bytes) => bytes.to_vec(),
+            _ => value
+                .canonical_bytes()
+                .map_err(|error| format!("State initializer: {error:?}"))?,
+        };
+        if state.initial_value.as_deref() != Some(expected.as_slice()) {
+            return Err("browser State initializer differs from its planned boundary".into());
+        }
+    }
+    for gear in fragment
+        .placements
+        .iter()
+        .filter(|gear| gear.implementation_id.as_str() == IMPLEMENTATION)
+    {
+        if fragment
+            .states
+            .iter()
+            .filter(|state| state.gear_id == gear.gear_id)
+            .count()
+            != 1
+        {
+            return Err("browser typed State requires one exact planned Play boundary".into());
+        }
+    }
+    Ok(())
+}

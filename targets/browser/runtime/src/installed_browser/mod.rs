@@ -12,7 +12,7 @@ mod debounce;
 mod delay;
 mod deterministic_garden_source;
 mod distance_frequency;
-mod typed_state;
+pub(crate) mod typed_state;
 pub(crate) use conduit_browser_mask_offer as dom_mask;
 mod face;
 mod factory;

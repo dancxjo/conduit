@@ -36,7 +36,9 @@ use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
     HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
 };
-use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+#[cfg(test)]
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::{lower_plan_fragment_for_profile, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
     BrowserBack,
@@ -168,8 +170,11 @@ pub(super) enum DriveStatus {
 pub(super) fn prepare(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, PendingHostEffect), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, false)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
@@ -190,8 +195,11 @@ pub(super) fn prepare(
 pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, LoweredPlanFragment), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))

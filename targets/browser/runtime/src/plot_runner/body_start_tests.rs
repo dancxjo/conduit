@@ -459,3 +459,23 @@ fn missing_and_stale_observations_or_workload_refuse_before_body_start() {
     changed.plan.workload_revision += 1;
     assert!(prepare(changed).err().unwrap().contains("StaleWorkload"));
 }
+
+#[test]
+fn two_play_scoped_frequency_cells_install_in_one_body_and_cancel() {
+    let first = "plot first {\n frequency: keep Frequency(440Hz) for this play\n tone: audio/continuous-tone\n frequency >> tone.frequency\n}\n";
+    let second = "plot second {\n frequency: keep Frequency(660Hz) for this play\n tone: audio/continuous-tone\n frequency >> tone.frequency\n}\n";
+    let request = request_from_sources(&[first, second]);
+    assert_eq!(
+        request
+            .plan
+            .plots
+            .iter()
+            .flat_map(|plot| &plot.plan.fragments)
+            .flat_map(|part| &part.states)
+            .count(),
+        2
+    );
+    let (mut session, started) = prepare(request).unwrap();
+    assert_eq!(session.active_play_id, started.play.active_play_id);
+    assert_eq!(session.cancel().unwrap().disposition, "cancelled");
+}
