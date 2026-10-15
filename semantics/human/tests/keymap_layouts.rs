@@ -574,6 +574,13 @@ fn consuming_full_authored_registry_preserves_exact_startup_ir_and_catalog_defau
         DEFAULT_KEYMAP_CHOICES_BYTES
     );
     assert_eq!(owned.try_concrete(), borrowed.try_concrete());
+    let consumed = owned.clone().into_concrete().unwrap();
+    assert_eq!(consumed.value_type(), owned.value_type());
+    assert_eq!(
+        consumed.canonical_bytes().unwrap(),
+        DEFAULT_KEYMAP_CHOICES_BYTES
+    );
+    assert_eq!(Some(consumed), owned.try_concrete());
 
     let mut borrowing_catalog = StartupCatalog::new();
     borrowing_catalog
@@ -598,6 +605,22 @@ fn consuming_full_authored_registry_preserves_exact_startup_ir_and_catalog_defau
         .insert_owned_structured_default("test/authored-choices", "choices", value)
         .unwrap();
     assert_eq!(consuming_catalog, borrowing_catalog);
+    // Defaults materialize only when invoked, retaining the original checked IR.
+    let syntax = parse_syntax_document("plot lazy_default {\n value: test/authored-choices\n}\n");
+    for catalog in [&borrowing_catalog, &consuming_catalog] {
+        let checked = check_syntax_document(&syntax, catalog).unwrap();
+        let CanonicalStartupValue::Structured(resolved) =
+            &checked.plots[0].gears[0].startup_bindings[0].value
+        else {
+            panic!("typed default")
+        };
+        assert_eq!(resolved, &borrowed);
+        assert_eq!(resolved.canonical_identity(), borrowed.canonical_identity());
+        assert_eq!(
+            resolved.try_concrete().unwrap().canonical_bytes().unwrap(),
+            DEFAULT_KEYMAP_CHOICES_BYTES
+        );
+    }
     // Shared admission must preserve wrong-Type, missing-parameter, and duplicate refusals.
     for (kind, parameter) in [
         ("test/authored-choices", "choices"),

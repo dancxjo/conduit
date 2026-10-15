@@ -1,4 +1,6 @@
 //! Installed checking-time Kind, Type and authoring contracts.
+mod stored_default;
+pub(crate) use stored_default::StoredStructuredDefault;
 mod type_catalog;
 mod typed_literal;
 use super::{CheckedNativeType, KindSignature, NativeTypeSourceOrigin, NativeTypeValueContract};
@@ -14,8 +16,7 @@ pub struct StartupCatalog {
     pub(crate) literal_owners:
         BTreeMap<String, crate::glyph_notation::compiled::InstalledLiteralOwner>,
     kinds: BTreeMap<String, KindSignature>,
-    pub(crate) structured_defaults:
-        BTreeMap<(String, String), crate::CanonicalStructuredStartupValue>,
+    pub(crate) structured_defaults: BTreeMap<(String, String), StoredStructuredDefault>,
     pub(crate) prepared_source_values:
         BTreeMap<(usize, usize), (crate::Expression, crate::CanonicalStructuredStartupValue)>,
     // Populated only by document-scoped receipt admission; never an ambient alias.
@@ -74,14 +75,13 @@ impl StartupCatalog {
         value: &conduit_core::StructuredInfoValue,
     ) -> Result<(), String> {
         let key = self.structured_default_key(kind, parameter, value.value_type())?;
-        self.structured_defaults.insert(
-            key,
-            crate::CanonicalStructuredStartupValue::from_checked_value(value),
-        );
+        let stored = StoredStructuredDefault::from_checked_value(value)
+            .map_err(|error| format!("typed default canonical encoding failed: {error:?}"))?;
+        self.structured_defaults.insert(key, stored);
         Ok(())
     }
 
-    /// Install a checked default by transferring its recursive Type/value storage.
+    /// Install a checked default as bounded canonical bytes, releasing its value tree.
     pub fn insert_owned_structured_default(
         &mut self,
         kind: &str,
@@ -89,10 +89,10 @@ impl StartupCatalog {
         value: conduit_core::StructuredInfoValue,
     ) -> Result<(), String> {
         let key = self.structured_default_key(kind, parameter, value.value_type())?;
-        self.structured_defaults.insert(
-            key,
-            crate::CanonicalStructuredStartupValue::from_owned_checked_value(value),
-        );
+        let stored = StoredStructuredDefault::from_checked_value(&value)
+            .map_err(|error| format!("typed default canonical encoding failed: {error:?}"))?;
+        drop(value);
+        self.structured_defaults.insert(key, stored);
         Ok(())
     }
 

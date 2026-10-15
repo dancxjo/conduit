@@ -49,10 +49,17 @@ pub(crate) fn install_structured_defaults(
         };
         startup.ensure_structured_type(parameter.value_type.clone(), value.value_type().clone())?;
         if parameter.default.is_some() {
-            startup.structured_defaults.insert(
-                (signature.kind.clone(), parameter.name.clone()),
-                crate::CanonicalStructuredStartupValue::from_owned_checked_value(value),
-            );
+            let stored = crate::checked_syntax::StoredStructuredDefault::from_checked_value(&value)
+                .map_err(|error| {
+                    format!(
+                        "invalid structured default encoding '{}': {error:?}",
+                        field.key
+                    )
+                })?;
+            drop(value);
+            startup
+                .structured_defaults
+                .insert((signature.kind.clone(), parameter.name.clone()), stored);
         }
     }
     Ok(())
