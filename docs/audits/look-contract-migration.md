@@ -63,3 +63,9 @@ Five current publication entry points now emit `data-application-look` with
 Node tests passed; a one-worker, zero-retry Chromium test of the actual current
 landing page and shared CSS passed, including its painted background and type
 size. Historical retained capture files keep their recorded identities.
+
+The refresh onto accepted `15cad8d58e0acfbb81ee83cf4f313f5015418ff0`
+also migrates the newly added thermostat publication hook to canonical Look.
+Its actual documentary renderer and the selected preflight suite pass all 225
+Node tests. The fixture tests documentary integrity and styling integration;
+it does not create a new thermostat capture or live-Mask support claim.
