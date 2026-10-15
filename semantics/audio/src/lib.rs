@@ -147,3 +147,21 @@ pub use generated::{AudioPeriodicCursorCandidate, AudioPeriodicProjectionCandida
 /// Executable predicates derived from the same Source snapshot laws.
 pub const PERIODIC_VALIDATION_SOURCE: &str =
     include_str!(concat!(env!("OUT_DIR"), "/periodic-validators.conduit"));
+mod spectral_analysis;
+mod spectral_fft;
+pub use spectral_analysis::*;
+
+pub use generated::{
+    AudioSpectrumAmplitude, AudioSpectrumAmplitudes, AudioSpectrumBinRequest, AudioSpectrumDigest,
+    AudioSpectrumEstimator, AudioSpectrumMeanSquare, AudioSpectrumMeanSquares,
+    AudioSpectrumObservation, AudioSpectrumReference, AudioSpectrumWindow,
+};
+
+mod spectral_geometry;
+pub use spectral_geometry::*;
+
+mod spectral_native;
+pub use spectral_native::*;
+
+mod spectral_encoding;
+pub use spectral_encoding::*;

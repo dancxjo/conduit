@@ -102,6 +102,7 @@ pub(super) enum InstalledBack {
     NativeSpeech(Box<conduit_speech::kernel::NativeSpeechBack>),
     DistanceFrequency(DistanceFrequencyBack),
     AudioTimeAnalysis(super::audio_time_analysis_back::AudioTimeAnalysisBack),
+    AudioSpectralAnalysis(super::audio_spectral_analysis_back::AudioSpectralAnalysisBack),
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech(super::recorded_speech_back::RecordedSpeechBack),
     WhisperSpeech(super::whisper_speech_back::WhisperSpeechBack),
