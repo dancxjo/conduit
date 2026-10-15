@@ -125,6 +125,7 @@ fn incompatible_dimensions_and_affine_points_are_rejected_before_play() {
         ("Distance", "Scalar", "value / 1Hz"),
         ("Temperature", "Temperature", "value * 2"),
         ("Distance", "Distance", "value * 1cm"),
+        ("U8", "Frequency", "value * 1Hz"),
     ] {
         let source =
             format!("plot invalid (\n >> value: {input}\n result: {output} >>\n) = ({body})\n");
@@ -259,4 +260,92 @@ fn projected_quantities_infer_ratios_and_nested_scaling_without_literal_hints() 
         conduit_core::FREQUENCY_INFO_ID
     )
     .is_err());
+}
+
+#[test]
+fn scalar_literal_can_scale_a_quantity_input_without_an_implicit_integer_coercion() {
+    parity(
+        &expression("Frequency", "Frequency", "2 * value"),
+        &quantity("440Hz"),
+        &quantity("880Hz"),
+    );
+}
+
+#[test]
+fn long_integer_and_quantity_ratio_sums_infer_without_replaying_successful_subtrees() {
+    use std::collections::{BTreeMap, BTreeSet};
+    let scalar = CheckedExpressionType::semantic(conduit_core::SCALAR_INFO_ID);
+    let empty = BTreeMap::new();
+    let structures = BTreeMap::new();
+    let numeric = BTreeSet::new();
+    let kinds = BTreeMap::new();
+    // Catalog-provided exact literal typing makes even a context-free integer
+    // subtree infer successfully. Eager Quantity-context probing used to infer
+    // and then replay that entire successful subtree at every parent sum.
+    let literals = BTreeMap::from([("1".to_string(), scalar.clone())]);
+    for (input, term, nodes_per_term) in [
+        (conduit_core::DISTANCE_INFO_ID, "1", 1),
+        (conduit_core::SCALAR_INFO_ID, "1cm / 1cm", 3),
+    ] {
+        let input = CheckedExpressionType::semantic(input);
+        let body = vec![term; 64].join(" + ");
+        let syntax = parse_syntax_document(&format!(
+            "plot long (\n >> value: Distance\n result: Scalar >>\n) = ({body})\n"
+        ));
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let expression = &syntax.plots[0]
+            .expression_body
+            .as_ref()
+            .unwrap()
+            .expression
+            .syntax;
+        let context = ExpressionTypeContext {
+            glyph_values: None,
+            input: &input,
+            immutable_values: &empty,
+            structured_types: &structures,
+            literal_types: &literals,
+            numeric_types: &numeric,
+            semantic_kinds: &kinds,
+        };
+        let checked = check_expression(expression, &context).unwrap();
+        assert_eq!(checked.value_type, scalar);
+        assert_eq!(checked.node_types.len(), 64 * nodes_per_term + 63);
+    }
+}
+
+#[test]
+fn long_scalar_sums_on_either_side_of_quantity_scaling_receive_scalar_context() {
+    use std::collections::{BTreeMap, BTreeSet};
+    let sum = vec!["1"; 32].join(" + ");
+    let input = CheckedExpressionType::semantic(conduit_core::FREQUENCY_INFO_ID);
+    let empty = BTreeMap::new();
+    let structures = BTreeMap::new();
+    let numeric = BTreeSet::new();
+    let kinds = BTreeMap::new();
+    for body in [format!(". * ({sum})"), format!("({sum}) * .")] {
+        let syntax = parse_syntax_document(&format!(
+            "plot scale (\n >> value: Frequency\n result: Frequency >>\n) = ({body})\n"
+        ));
+        assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
+        let expression = &syntax.plots[0]
+            .expression_body
+            .as_ref()
+            .unwrap()
+            .expression
+            .syntax;
+        let context = ExpressionTypeContext {
+            glyph_values: None,
+            input: &input,
+            immutable_values: &empty,
+            structured_types: &structures,
+            literal_types: &empty,
+            numeric_types: &numeric,
+            semantic_kinds: &kinds,
+        };
+        let checked = check_expression(expression, &context).unwrap();
+        assert_eq!(checked.value_type, input);
+        let program = PortableExpressionProgram::from_checked(&checked).unwrap();
+        parity(&program, &quantity("440Hz"), &quantity("14080Hz"));
+    }
 }

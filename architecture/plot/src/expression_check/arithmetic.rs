@@ -57,77 +57,68 @@ pub(super) fn binary(
         )?;
         return Ok(expected);
     }
+    let quantity_arithmetic = matches!(
+        operator,
+        BinaryOperator::Add
+            | BinaryOperator::Subtract
+            | BinaryOperator::Multiply
+            | BinaryOperator::Divide
+            | BinaryOperator::Remainder
+    );
     let checkpoint = node_types.len();
-    if (is_quantity(context.input)
-        || expected.is_some_and(is_quantity)
-        || physical_literal(left)
-        || physical_literal(right))
-        && matches!(
-            operator,
-            BinaryOperator::Add
-                | BinaryOperator::Subtract
-                | BinaryOperator::Multiply
-                | BinaryOperator::Divide
-                | BinaryOperator::Remainder
-        )
-    {
-        let left_type = infer_speculative(left, None, context, node_types);
-        let right_type = infer_speculative(right, None, context, node_types);
-        let scalar = CheckedExpressionType::semantic(conduit_core::SCALAR_INFO_ID);
-        let left_type = left_type.or_else(|| {
-            right_type
-                .as_ref()
-                .filter(|ty| is_quantity(ty))
-                .and_then(|_| infer_speculative(left, Some(&scalar), context, node_types))
-        });
-        let right_type = right_type.or_else(|| {
-            left_type
-                .as_ref()
-                .filter(|ty| is_quantity(ty))
-                .and_then(|_| infer_speculative(right, Some(&scalar), context, node_types))
-        });
-        if let (Some(left_type), Some(right_type)) = (left_type, right_type) {
-            if let Some(result) = quantity_result(operator, &left_type, &right_type, span) {
-                return result;
-            }
-        }
-        node_types.truncate(checkpoint);
-    }
-    let left_type = match infer(left, expected, context, node_types) {
-        Ok(value_type) => value_type,
+    let scalar = CheckedExpressionType::semantic(conduit_core::SCALAR_INFO_ID);
+    // Infer each operand once on the successful path. A surrounding Quantity
+    // input/result says nothing about the arithmetic in this subtree.
+    let (left_type, inferred_right) = match infer(left, expected, context, node_types) {
+        Ok(value_type) => (value_type, None),
         Err(left_error) => {
             node_types.truncate(checkpoint);
-            match infer(right, expected, context, node_types) {
-                Ok(right_type) => {
-                    infer(left, Some(&right_type), context, node_types).map_err(|_| left_error)?
-                }
-                Err(_) => return Err(left_error),
+            // A physical literal can establish its own type when the result's
+            // context (for example Scalar for a ratio) is not its operand type.
+            let natural_left = if quantity_arithmetic && expected.is_some() {
+                infer_speculative(left, None, context, node_types)
+            } else {
+                None
+            };
+            if let Some(value_type) = natural_left {
+                (value_type, None)
+            } else {
+                let right_type = infer_speculative(right, expected, context, node_types)
+                    .or_else(|| {
+                        if quantity_arithmetic && expected.is_some() {
+                            infer_speculative(right, None, context, node_types)
+                        } else {
+                            None
+                        }
+                    })
+                    .ok_or(left_error.clone())?;
+                let left_expected =
+                    if operator == BinaryOperator::Multiply && is_quantity(&right_type) {
+                        &scalar
+                    } else {
+                        &right_type
+                    };
+                let left_type = infer(left, Some(left_expected), context, node_types)
+                    .map_err(|_| left_error)?;
+                // Reuse the successful right inference, rather than replaying
+                // an arbitrarily large right subtree after contextual typing.
+                (left_type, Some(right_type))
             }
         }
     };
-    let right_type = if is_quantity(&left_type)
-        && matches!(
-            operator,
-            BinaryOperator::Add
-                | BinaryOperator::Subtract
-                | BinaryOperator::Multiply
-                | BinaryOperator::Divide
-                | BinaryOperator::Remainder
-        ) {
-        // A projection can reveal quantity meaning even when neither the input
-        // record nor the expected result is itself a quantity. Only a proven
-        // quantity operand enables this fallback; integer trees stay single-pass.
-        infer_speculative(right, None, context, node_types)
-            .or_else(|| {
-                infer_speculative(
-                    right,
-                    Some(&CheckedExpressionType::semantic(
-                        conduit_core::SCALAR_INFO_ID,
-                    )),
-                    context,
-                    node_types,
-                )
-            })
+    let right_type = if let Some(right_type) = inferred_right {
+        right_type
+    } else if is_quantity(&left_type) && quantity_arithmetic {
+        let right_expected =
+            if matches!(operator, BinaryOperator::Multiply | BinaryOperator::Divide) {
+                &scalar
+            } else {
+                &left_type
+            };
+        // Scaling first gives a constant scalar subtree its required context.
+        // A genuine mismatch may instead reveal a typed quantity for a ratio.
+        infer_speculative(right, Some(right_expected), context, node_types)
+            .or_else(|| infer_speculative(right, None, context, node_types))
             .ok_or_else(|| {
                 diagnostic(
                     right.span(),
@@ -135,7 +126,15 @@ pub(super) fn binary(
                 )
             })?
     } else {
-        infer(right, Some(&left_type), context, node_types)?
+        let checkpoint = node_types.len();
+        match infer(right, Some(&left_type), context, node_types) {
+            Ok(value_type) => value_type,
+            Err(error) if operator == BinaryOperator::Multiply && left_type == scalar => {
+                node_types.truncate(checkpoint);
+                infer(right, None, context, node_types).map_err(|_| error)?
+            }
+            Err(error) => return Err(error),
+        }
     };
     if let Some(result) = quantity_result(operator, &left_type, &right_type, span) {
         return result;
@@ -239,17 +238,4 @@ fn infer_speculative(
         nodes.truncate(checkpoint);
     }
     result.ok()
-}
-
-fn physical_literal(syntax: &ExpressionSyntax) -> bool {
-    match syntax {
-        ExpressionSyntax::Atomic(value) => {
-            conduit_core::Quantity::parse_plot_literal(&value.text).is_ok()
-        }
-        ExpressionSyntax::Binary { left, right, .. } => {
-            physical_literal(left) || physical_literal(right)
-        }
-        ExpressionSyntax::Unary { operand, .. } => physical_literal(operand),
-        _ => false,
-    }
 }
