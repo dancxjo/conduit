@@ -1,25 +1,12 @@
 use conduit_ai::ModelTensorIoRefusal as R;
-use conduit_data::{
-    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorAxis, TensorAxisRole,
-    TensorBacking, TensorElement, TensorValue,
-};
-use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_data::{NamedTensor, NamedTensorBundle, TensorAxis, TensorAxisRole, TensorElement};
+use conduit_plot::rust_binding::BoundedSequence;
 #[path = "common/model_signature_fixture.rs"]
 mod fixture;
 
-fn tensor(name: &str, element: TensorElement, bytes: &[u8]) -> NamedTensor {
-    NamedTensor {
-        name: name.into(),
-        value: TensorValue {
-            element,
-            dimensions: BoundedSequence::try_from_iter([bytes.len() as u64 / element.byte_width()])
-                .unwrap(),
-            axes: BoundedSequence::try_from_iter([axis()]).unwrap(),
-            content_digest: tensor_content_digest(bytes),
-            backing: TensorBacking::Inline(BoundedBytes::new(bytes).unwrap()),
-        },
-    }
-}
+#[path = "common/named_tensor_fixture.rs"]
+mod value_fixture;
+use value_fixture::tensor;
 fn axis() -> TensorAxis {
     TensorAxis {
         role: TensorAxisRole::Feature,

@@ -139,6 +139,7 @@ mod model_artifact;
 pub mod model_infer_catalog;
 mod model_infer_types;
 pub mod onnx_metadata;
+pub mod onnx_tensor_io;
 mod onnx_wire;
 pub use model_artifact::*;
 mod learned_lifecycle;

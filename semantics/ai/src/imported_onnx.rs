@@ -47,6 +47,7 @@ pub enum ImportedOnnxRefusal {
 pub struct ImportedOnnxResource {
     resource: AdmittedModelResource,
     metadata: OnnxMetadata,
+    sidecar: OnnxSidecar,
     sidecar_identity: [u8; 32],
 }
 
@@ -99,6 +100,7 @@ impl ImportedOnnxResource {
         Ok(Self {
             resource,
             metadata,
+            sidecar: sidecar.clone(),
             sidecar_identity,
         })
     }
@@ -108,6 +110,9 @@ impl ImportedOnnxResource {
     }
     pub fn metadata(&self) -> &OnnxMetadata {
         &self.metadata
+    }
+    pub fn sidecar(&self) -> &OnnxSidecar {
+        &self.sidecar
     }
     pub fn sidecar_identity(&self) -> [u8; 32] {
         self.sidecar_identity
