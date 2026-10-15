@@ -1,37 +1,42 @@
 //! Finite CSS transport for the shared Patchbay theme.
 
-use conduit_face::{ApplicationTheme, ThemeColor};
+use conduit_face::{LookFacetAvailability, LookInfo, LookVisualFacetOption, ThemeColor};
 
-pub(crate) fn render_theme_css(theme: &ApplicationTheme) -> Vec<u8> {
-    format!(
-        ":root{{--conduit-theme-identity:\"{}\";--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
-        theme.identity,
-        css_color(theme.background),
-        css_color(theme.surface),
-        css_color(theme.structure_primary),
-        css_color(theme.structure_secondary),
-        css_color(theme.text_primary),
-        css_color(theme.text_secondary),
-        css_color(theme.emphasis),
-        css_color(theme.focus),
-        css_color(theme.warning),
-        css_color(theme.failure),
-        css_color(theme.success),
-        css_color(theme.muted),
-        theme.type_body_px,
-        theme.type_small_px,
-        theme.line_height_percent,
-        theme.space_unit_px,
-        theme.space_control_inline_px,
-        theme.space_control_block_px,
-        theme.space_panel_px,
-        theme.radius_control_px,
-        theme.radius_panel_px,
-        theme.focus_width_px,
-        theme.responsive_breakpoint_px,
-        theme.responsive_grid_min_px,
+pub(crate) fn render_look_css(look: &LookInfo) -> Result<Vec<u8>, LookFacetAvailability> {
+    let LookVisualFacetOption::Some(visual) = look.visual() else {
+        return Err(LookFacetAvailability::Absent);
+    };
+    let tokens = visual.tokens();
+    let identity = serde_json::to_string(look.identity()).expect("finite Look identity serializes");
+    Ok(format!(
+        ":root{{--conduit-look-identity:{};--conduit-background:{};--conduit-surface:{};--conduit-structure-primary:{};--conduit-structure-secondary:{};--conduit-text-primary:{};--conduit-text-secondary:{};--conduit-emphasis:{};--conduit-focus:{};--conduit-warning:{};--conduit-failure:{};--conduit-success:{};--conduit-muted:{};--conduit-type-body:{}px;--conduit-type-small:{}px;--conduit-line-height:{}%;--conduit-space-unit:{}px;--conduit-space-control-inline:{}px;--conduit-space-control-block:{}px;--conduit-space-panel:{}px;--conduit-radius-control:{}px;--conduit-radius-panel:{}px;--conduit-focus-width:{}px;--conduit-responsive-breakpoint:{}px;--conduit-responsive-grid-min:{}px;}}\n",
+        identity,
+        css_color(*tokens.background()),
+        css_color(*tokens.surface()),
+        css_color(*tokens.structure_primary()),
+        css_color(*tokens.structure_secondary()),
+        css_color(*tokens.text_primary()),
+        css_color(*tokens.text_secondary()),
+        css_color(*tokens.emphasis()),
+        css_color(*tokens.focus()),
+        css_color(*tokens.warning()),
+        css_color(*tokens.failure()),
+        css_color(*tokens.success()),
+        css_color(*tokens.muted()),
+        tokens.type_body_px(),
+        tokens.type_small_px(),
+        tokens.line_height_percent(),
+        tokens.space_unit_px(),
+        tokens.space_control_inline_px(),
+        tokens.space_control_block_px(),
+        tokens.space_panel_px(),
+        tokens.radius_control_px(),
+        tokens.radius_panel_px(),
+        tokens.focus_width_px(),
+        720, // Structural Mask reflow, not a Look token.
+        260, // Structural Mask grid minimum.
     )
-    .into_bytes()
+    .into_bytes())
 }
 
 fn css_color(color: ThemeColor) -> String {

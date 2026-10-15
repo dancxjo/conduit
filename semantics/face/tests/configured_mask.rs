@@ -7,7 +7,7 @@ use conduit_planner::*;
 use conduit_plot::*;
 use std::collections::BTreeMap;
 
-const VALUE: &str = "{density: compact(empty), identity: \"conduit.face/phosphor@1\", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, version: 1}";
+const VALUE: &str = "{density: compact(empty), identity: \"conduit.look/phosphor@1\", motion: none(empty), palette: phosphor(empty), text_scale_percent: 100, version: 1}";
 
 fn port(
     name: &str,

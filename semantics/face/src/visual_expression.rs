@@ -1,7 +1,7 @@
 //! Finite visual expression, independent of semantic slots and component layout.
 //!
 //! This is the first visual admission seam, not the common multimodal Look
-//! declaration language. Historical ApplicationTheme version-2 bytes stay intact.
+//! declaration language. Canonical Look admission owns retired-wire refusal.
 use alloc::string::{String, ToString};
 use serde::{Deserialize, Serialize};
 
@@ -42,7 +42,7 @@ impl VisualExpression {
     pub fn phosphor() -> Self {
         Self {
             version: VISUAL_EXPRESSION_VERSION,
-            identity: crate::CONDUIT_APPLICATION_THEME.identity.to_string(),
+            identity: crate::PHOSPHOR_LOOK_ID.to_string(),
             density: VisualDensity::Compact,
             palette: VisualPalette::Phosphor,
             text_scale_percent: 100,
@@ -53,7 +53,13 @@ impl VisualExpression {
         if self.version != VISUAL_EXPRESSION_VERSION {
             return Err(VisualExpressionRefusal::Version);
         }
-        if self.identity.is_empty() || self.identity.len() > MAX_VISUAL_EXPRESSION_ID_BYTES {
+        if self.identity.is_empty()
+            || self.identity.len() > MAX_VISUAL_EXPRESSION_ID_BYTES
+            || matches!(
+                self.identity.as_str(),
+                "conduit.face/phosphor@1" | "conduit.presentation/phosphor@1"
+            )
+        {
             return Err(VisualExpressionRefusal::Identity);
         }
         if !(100..=200).contains(&self.text_scale_percent) {

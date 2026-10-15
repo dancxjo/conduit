@@ -1,5 +1,5 @@
 import { decodeGraphCanvas, renderGraphCanvas } from "./application-graph-canvas.mjs";
-import { applicationThemeLimits, decodeTheme } from "./application-theme.mjs";
+import { applicationLookLimits, decodeVisualLook } from "./application-look.mjs";
 
 const VERSION = 10;
 const RETIRED_VERSION = 9;
@@ -97,8 +97,10 @@ function validSameSiteLink(value) {
     && !/[\u0000-\u0020\u007f\\]/u.test(value);
 }
 
-export function decodeApplicationTheme(input) {
-  return decodeTheme(input, refuse);
+const appliedLookProperties = new WeakMap();
+
+export function decodeApplicationLook(input) {
+  return decodeVisualLook(input, refuse);
 }
 
 export function decodeApplicationView(input) {
@@ -354,7 +356,7 @@ export function manifestApplicationView(input, root, options = {}) {
       start: active.selectionStart ?? 0, end: active.selectionEnd ?? 0, direction: active.selectionDirection ?? "none",
     } : null,
   } : null;
-  const theme = options.theme ? decodeApplicationTheme(options.theme) : null;
+  const theme = options.look ? decodeApplicationLook(options.look) : null;
   const capacity = options.eventCapacity ?? MAX_EVENT_QUEUE;
   const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_EVENT_QUEUE) refuse("queue-pressure");
@@ -563,11 +565,18 @@ export function manifestApplicationView(input, root, options = {}) {
   root.replaceChildren(fragment);
   restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
+  for (const role of appliedLookProperties.get(root) ?? []) {
+    root.style.removeProperty(`--conduit-${role}`);
+  }
   if (theme) {
-    root.dataset.applicationTheme = theme.identity;
+    appliedLookProperties.set(root, Object.keys(theme.tokens));
+    root.dataset.applicationLook = theme.identity;
     for (const [role, value] of Object.entries(theme.tokens)) {
       root.style.setProperty(`--conduit-${role}`, value);
     }
+  } else {
+    appliedLookProperties.delete(root);
+    delete root.dataset.applicationLook;
   }
   return Object.freeze({
     view,
@@ -609,7 +618,7 @@ export function createApplicationFaceHost(scope = document) {
         eventCapacity: options.eventCapacity,
         eventByteCapacity: options.eventByteCapacity,
         choiceScope,
-        theme: options.theme,
+        look: options.look,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {
             refusals.set(slot, "stale-revision");
@@ -639,7 +648,7 @@ export function createApplicationFaceHost(scope = document) {
 
 export const applicationFaceLimits = Object.freeze({
   version: VERSION, retiredVersion: RETIRED_VERSION,
-  themeVersion: applicationThemeLimits.version, retiredThemeVersion: applicationThemeLimits.retiredVersion,
+  lookVersion: applicationLookLimits.version, lookBytes: applicationLookLimits.bytes,
   bytes: MAX_BYTES, nodes: MAX_NODES, depth: MAX_DEPTH, textBytes: MAX_TEXT_BYTES,
   actions: MAX_ACTIONS, resources: 0, controlValueBytes: MAX_CONTROL_VALUE_BYTES,
   eventBytes: MAX_EVENT_BYTES, eventQueue: MAX_EVENT_QUEUE, eventQueueBytes: MAX_EVENT_QUEUE_BYTES,

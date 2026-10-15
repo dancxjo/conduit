@@ -1,76 +1,56 @@
 use conduit_core::CharacteristicId;
-use conduit_face::{ThemeColor, CONDUIT_APPLICATION_THEME};
+use conduit_face::{
+    phosphor_look, LookVisualFacetOption, LookVisualTokensInfo, ThemeColor, MAX_LOOK_BYTES,
+};
 use conduit_planner::{
     dos_shell_style, PlannerFactRef, PlannerFactValue, PlannerPreference, FACE_PALETTE_CLASS,
 };
+use conduit_plot::rust_binding::NativeRustBinding;
 
-#[test]
-fn phosphor_theme_is_fixed_bounded_and_matches_the_shared_palette() {
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.identity,
-        "conduit.face/phosphor@1"
-    );
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.background.packed_rgb(),
-        0x0005_070B
-    );
-    assert_eq!(CONDUIT_APPLICATION_THEME.surface.packed_rgb(), 0x0009_0D16);
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.structure_primary.packed_rgb(),
-        0x000D_D8F6
-    );
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.structure_secondary.packed_rgb(),
-        0x000A_1F87
-    );
-    assert_eq!(CONDUIT_APPLICATION_THEME.emphasis.packed_rgb(), 0x00E9_A325);
-    assert_eq!(CONDUIT_APPLICATION_THEME.focus.packed_rgb(), 0x00F4_C400);
-    assert!(core::mem::size_of_val(&CONDUIT_APPLICATION_THEME) <= 96);
+fn phosphor_tokens() -> LookVisualTokensInfo {
+    let look = phosphor_look().unwrap();
+    let LookVisualFacetOption::Some(visual) = look.visual() else {
+        panic!("Phosphor requires visual tokens")
+    };
+    visual.tokens().clone()
 }
-
+#[test]
+fn phosphor_look_is_fixed_bounded_and_matches_the_shared_palette() {
+    let look = phosphor_look().unwrap();
+    assert_eq!(look.identity(), "conduit.look/phosphor@1");
+    assert!(look.encode().unwrap().len() <= MAX_LOOK_BYTES);
+    let tokens = phosphor_tokens();
+    assert_eq!(tokens.background().packed_rgb(), 0x0005_070B);
+    assert_eq!(tokens.surface().packed_rgb(), 0x0009_0D16);
+    assert_eq!(tokens.structure_primary().packed_rgb(), 0x000D_D8F6);
+    assert_eq!(tokens.structure_secondary().packed_rgb(), 0x000A_1F87);
+    assert_eq!(tokens.emphasis().packed_rgb(), 0x00E9_A325);
+    assert_eq!(tokens.focus().packed_rgb(), 0x00F4_C400);
+}
 #[test]
 fn ordinary_text_and_focus_have_readable_contrast_without_glow() {
-    assert!(
-        contrast(
-            CONDUIT_APPLICATION_THEME.text_primary,
-            CONDUIT_APPLICATION_THEME.background
-        ) >= 4.5
-    );
-    assert!(
-        contrast(
-            CONDUIT_APPLICATION_THEME.emphasis,
-            CONDUIT_APPLICATION_THEME.background
-        ) >= 4.5
-    );
-    assert!(
-        contrast(
-            CONDUIT_APPLICATION_THEME.focus,
-            CONDUIT_APPLICATION_THEME.background
-        ) >= 7.0
-    );
+    let tokens = phosphor_tokens();
+    assert!(contrast(*tokens.text_primary(), *tokens.background()) >= 4.5);
+    assert!(contrast(*tokens.emphasis(), *tokens.background()) >= 4.5);
+    assert!(contrast(*tokens.focus(), *tokens.background()) >= 7.0);
 }
-
 #[test]
 fn deuteranopia_simulation_keeps_focus_and_emphasis_distinct_from_the_field() {
-    let background = simulate_deuteranopia(CONDUIT_APPLICATION_THEME.background);
-    let focus = simulate_deuteranopia(CONDUIT_APPLICATION_THEME.focus);
-    let emphasis = simulate_deuteranopia(CONDUIT_APPLICATION_THEME.emphasis);
+    let tokens = phosphor_tokens();
+    let background = simulate_deuteranopia(*tokens.background());
+    let focus = simulate_deuteranopia(*tokens.focus());
+    let emphasis = simulate_deuteranopia(*tokens.emphasis());
     assert!(contrast(focus, background) >= 7.0);
     assert!(contrast(emphasis, background) >= 4.5);
     assert!(color_distance(focus, background) >= 180);
 }
-
 #[test]
 fn phosphor_decoration_is_a_truthful_realization_of_the_dos_shell_palette_preference() {
+    let look = phosphor_look().unwrap();
+    assert_eq!(look.identity(), "conduit.look/phosphor@1");
     let style = dos_shell_style();
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.identity,
-        "conduit.face/phosphor@1"
-    );
     assert!(style.preferences.contains(&PlannerPreference::PreferEqual {
-        fact: PlannerFactRef::RealizationCharacteristic(
-            CharacteristicId::from(FACE_PALETTE_CLASS,)
-        ),
+        fact: PlannerFactRef::RealizationCharacteristic(CharacteristicId::from(FACE_PALETTE_CLASS)),
         value: PlannerFactValue::Category("phosphor-cyan-amber".into()),
     }));
 }
