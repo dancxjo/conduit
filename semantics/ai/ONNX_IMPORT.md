@@ -59,8 +59,17 @@ imports checked Source refinement metadata. A compiler regression additionally
 checks those refinements on explicit concrete startup expressions, including
 shape-only aliases. A tiny non-speech authored Source checks and expands to one
 opaque model Gear. It contains no provider, artifact path or device selection.
-The catalog is not yet installed in the stock Host catalog; matching model
-realization admission and a genuine execution Back remain unfinished.
+Normal planner candidate admission now matches the exact typed semantic
+signature property. Planning fixtures select the matching Back/artifact,
+refuse missing or stale properties and verify the sealed Plan. These fixtures
+execute no inference. The catalog is not yet installed in the stock Host
+catalog; genuine model compute/resource admission and an execution Back remain
+unfinished.
+
+`ModelComputeRequirement` now declares a finite dtype set, and an offer must
+support every required input/output dtype. Existing callers use this field;
+the invocation payload still needs migration from its old single tensor onto
+the canonical named bundle before ordinary model execution is delivered.
 
 Focused native tests cover metadata and sidecar binding, wrong identities,
 counts, names, rank, dtype, static dimensions, malformed wire data and external
