@@ -411,6 +411,21 @@ fn preset(bytes: &[u8]) -> PreparedKeymap {
     PreparedKeymap::new(&config).unwrap()
 }
 #[test]
+fn plain_us_iso_extra_key_retains_the_xkb_pc105_levels() {
+    let mut us = preset(conduit_human::US_KEYMAP_BYTES);
+    for (usage, mods, text) in [
+        (100, 0, "<"),
+        (100, SHIFT, ">"),
+        (100, ALTGR, "|"),
+        (100, ALTGR | SHIFT, "¦"),
+        (49, 0, "\\"),
+        (49, SHIFT, "|"),
+    ] {
+        assert_eq!(apply(&mut us, usage, mods), Some(text.into()));
+    }
+}
+
+#[test]
 fn authored_language_presets_pin_physical_positions_and_native_dead_keys() {
     use conduit_human::{
         FRENCH_KEYMAP_BYTES, GERMAN_KEYMAP_BYTES, SPANISH_KEYMAP_BYTES, UK_KEYMAP_BYTES,

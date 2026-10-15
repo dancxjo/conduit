@@ -84,7 +84,8 @@ which extends `us(intl)`. It keeps ordinary ASCII punctuation literal and places
 dead keys on Right Alt. The checked Conduitese source holds all four levels:
 plain, Shift, AltGr, and AltGr+Shift. Left and right Shift select the same level.
 A third authored layer defines lock and numeric keypad behavior; the independent
-plain US layout has its ASCII layer and the same keypad/lock layer.
+plain US layout has its ASCII layer and the same keypad/lock layer. Its ISO extra
+key follows XKB `pc105`: `<`, `>`, `|`, and `¦` across the four levels.
 
 | Physical key | Plain | Shift | AltGr | AltGr+Shift |
 |---|---|---|---|---|

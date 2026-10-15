@@ -85,6 +85,32 @@ test("the six authored keyboard languages change physical mappings and restore a
   const language = page.getByRole("combobox", { name: "Keyboard language", exact: true });
   await expect(language.locator("option")).toHaveCount(6);
   await expect(language).toHaveValue("us-intl");
+  await language.selectOption("us");
+  await expect(page.locator("[data-saved-choice-status]")).toHaveText("Saved in this browser — English — US");
+  await page.locator("#surface").focus();
+  // The pinned Playwright key table omits the ISO key; send physical input through Chromium.
+  const chromium = await page.context().newCDPSession(page);
+  async function isoBackslash(shift = false, alt = false) {
+    if (alt) await page.keyboard.down("AltRight");
+    if (shift) await page.keyboard.down("ShiftLeft");
+    const key = { code: "IntlBackslash", key: shift ? ">" : "<", windowsVirtualKeyCode: 226,
+      modifiers: (alt ? 1 : 0) | (shift ? 8 : 0) };
+    await chromium.send("Input.dispatchKeyEvent", { type: "rawKeyDown", ...key });
+    await chromium.send("Input.dispatchKeyEvent", { type: "keyUp", ...key });
+    if (shift) await page.keyboard.up("ShiftLeft");
+    if (alt) await page.keyboard.up("AltRight");
+  }
+  await isoBackslash();
+  await isoBackslash(true);
+  await isoBackslash(false, true);
+  await isoBackslash(true, true);
+  await expect(page.locator("#message [data-text-value]")).toHaveText("<>|¦");
+  await page.keyboard.press("Backslash");
+  await page.keyboard.press("Shift+Backslash");
+  await expect(page.locator("#message [data-text-value]")).toHaveText("<>|¦\\|");
+  for (let index = 0; index < 6; ++index) await page.keyboard.press("Backspace");
+  await expect(page.locator("#message [data-text-value]")).toHaveText("");
+  await chromium.detach();
   await page.keyboard.press("CapsLock");
   await language.selectOption("german");
   await expect(page.locator("[data-saved-choice-status]")).toContainText("Saved in this browser");
