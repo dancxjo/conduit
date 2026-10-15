@@ -5,6 +5,7 @@ use std::{env, fs, path::PathBuf};
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
     println!("cargo:rerun-if-changed=time_analysis_types.conduit");
+    println!("cargo:rerun-if-changed=spectral_analysis_types.conduit");
     println!("cargo:rerun-if-changed=exact_control_types.conduit");
     println!("cargo:rerun-if-changed=trajectory_types.conduit");
     println!("cargo:rerun-if-changed=rate_types.conduit");
@@ -13,13 +14,14 @@ fn main() {
     println!("cargo:rerun-if-changed=rate_projection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     let type_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("trajectory_types.conduit"),
         include_str!("rate_types.conduit"),
         include_str!("decibel_types.conduit"),
         include_str!("exact_control_types.conduit"),
-        include_str!("time_analysis_types.conduit")
+        include_str!("time_analysis_types.conduit"),
+        include_str!("spectral_analysis_types.conduit")
     );
     let checked =
         check_syntax_document(&parse_syntax_document(&type_source), &StartupCatalog::new())

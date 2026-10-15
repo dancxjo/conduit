@@ -207,7 +207,7 @@ fn boot_aarch64_product(
             // retains its older CPU independently of this product profile.
             "neoverse-n2",
             "-m",
-            "256M",
+            "512M",
             "-smp",
             "1",
             "-display",
