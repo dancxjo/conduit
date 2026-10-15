@@ -8,7 +8,7 @@ use conduit_burn_model::{
 };
 
 /// Prepared immutable inference checkpoint. Training remains on the adapter's
-/// existing TrainingSession boundary; this single-tensor interface offers inference.
+/// existing TrainingSession boundary; inference uses canonical named tensors.
 pub struct HostedBurnModelComputeAdapter<D: BurnModelDefinition> {
     adapter: InferenceBurnAdapter<D>,
     offer: ModelComputeOffer,
@@ -19,11 +19,6 @@ impl<D: BurnModelDefinition> HostedBurnModelComputeAdapter<D> {
         Self::from_inference(adapter.into_inference()?)
     }
     pub fn from_inference(adapter: InferenceBurnAdapter<D>) -> Result<Self, Error> {
-        if adapter.signature().inputs.get().len() != 1
-            || adapter.signature().outputs.get().len() != 1
-        {
-            return Err(Error::InvalidDescriptor);
-        }
         let mut offer = adapter.offer().clone();
         if !offer
             .supported_operations
@@ -42,6 +37,9 @@ impl<D: BurnModelDefinition> HostedBurnModelComputeAdapter<D> {
     }
     pub fn cancellation(&self) -> Cancellation {
         self.cancellation.clone()
+    }
+    pub fn signature(&self) -> &conduit_ai::ModelSignature {
+        self.adapter.signature()
     }
     pub fn checkpoint_identity(&self) -> [u8; 32] {
         self.adapter
@@ -88,39 +86,98 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
                 _ => ModelComputeRefusal::ResourceBoundExceeded,
             });
         }
-        if invocation.input.dimensions.len() != invocation.requirement.rank as usize {
+        if self
+            .adapter
+            .signature()
+            .validate_named_inputs(&invocation.inputs)
+            .is_err()
+        {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
-        if invocation
-            .input
-            .axes
-            .iter()
-            .zip(invocation.input.dimensions.iter())
-            .any(|(axis, dimension)| {
-                axis.role == conduit_data::TensorAxisRole::Batch
-                    && *dimension > u64::from(invocation.requirement.batch_items)
-            })
-        {
+        if invocation.inputs.get().iter().any(|input| {
+            !invocation
+                .requirement
+                .elements
+                .contains(&input.value.element)
+                || input.value.dimensions.len() > usize::from(invocation.requirement.rank)
+                || input
+                    .value
+                    .axes
+                    .iter()
+                    .zip(input.value.dimensions.iter())
+                    .any(|(axis, n)| {
+                        axis.role == conduit_data::TensorAxisRole::Batch
+                            && *n > u64::from(invocation.requirement.batch_items)
+                    })
+        }) {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        }
+        if invocation.inputs.tensor_bytes().ok() != Some(invocation.requirement.input_bytes) {
             return ModelComputeAdapterTerminal::Refused(
                 ModelComputeRefusal::ResourceBoundExceeded,
             );
         }
-        if invocation.input.byte_count().ok() != Some(invocation.requirement.input_bytes) {
-            return ModelComputeAdapterTerminal::Refused(
-                ModelComputeRefusal::ResourceBoundExceeded,
-            );
-        }
-        let input_identity = invocation.input.content_digest;
-        match self
+        let Ok(inputs_identity) = invocation.inputs.semantic_digest() else {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        };
+        let inputs = self
             .adapter
-            .infer_cancellable(&[invocation.input], &self.cancellation)
-        {
-            Ok(mut outputs) if outputs.len() == 1 => {
-                let output = outputs.remove(0);
-                if output
-                    .byte_count()
-                    .ok()
-                    .is_none_or(|bytes| bytes > invocation.requirement.output_bytes)
+            .signature()
+            .inputs
+            .get()
+            .iter()
+            .map(|port| {
+                invocation
+                    .inputs
+                    .get()
+                    .iter()
+                    .find(|value| &value.name == port.identity.get())
+                    .map(|value| value.value.clone())
+            })
+            .collect::<Option<Vec<_>>>();
+        let Some(inputs) = inputs else {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        };
+        match self.adapter.infer_cancellable(&inputs, &self.cancellation) {
+            Ok(values) => {
+                let ports = self.adapter.signature().outputs.get().as_slice();
+                if values.len() != ports.len() {
+                    return ModelComputeAdapterTerminal::Refused(
+                        ModelComputeRefusal::UnsupportedShape,
+                    );
+                }
+                let outputs = conduit_data::NamedTensorBundle::from_values(
+                    ports
+                        .iter()
+                        .zip(values)
+                        .map(|(port, value)| conduit_data::NamedTensor {
+                            name: port.identity.get().clone(),
+                            value,
+                        })
+                        .collect(),
+                );
+                let Ok(outputs) = outputs else {
+                    return ModelComputeAdapterTerminal::Refused(
+                        ModelComputeRefusal::UnsupportedShape,
+                    );
+                };
+                if self
+                    .adapter
+                    .signature()
+                    .validate_named_outputs(&outputs)
+                    .is_err()
+                    || outputs.get().iter().any(|output| {
+                        !invocation
+                            .requirement
+                            .elements
+                            .contains(&output.value.element)
+                            || output.value.dimensions.len()
+                                > usize::from(invocation.requirement.rank)
+                    })
+                    || outputs
+                        .tensor_bytes()
+                        .ok()
+                        .is_none_or(|n| n > invocation.requirement.output_bytes)
                 {
                     return ModelComputeAdapterTerminal::Refused(
                         ModelComputeRefusal::ResourceBoundExceeded,
@@ -130,8 +187,8 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
                     request_identity: invocation.request_identity,
                     artifact_identity: invocation.artifact_identity,
                     checkpoint_identity: invocation.checkpoint_identity,
-                    input_identity,
-                    output,
+                    inputs_identity,
+                    outputs,
                     consumed_work_units: self.adapter.admitted_inference_work(),
                     runtime: self.adapter.runtime().clone(),
                 }))

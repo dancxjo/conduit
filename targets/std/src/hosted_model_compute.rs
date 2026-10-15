@@ -4,7 +4,10 @@ use conduit_ai::{
     ModelComputeOffer, ModelComputeRefusal, ModelComputeRequirement, ModelComputeRuntimeIdentity,
     ModelComputeSession,
 };
-use conduit_data::{tensor_content_digest, TensorBacking, TensorElement, TensorValue};
+use conduit_data::{
+    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorBacking, TensorElement,
+    TensorValue,
+};
 use conduit_plot::rust_binding::BoundedBytes;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -13,7 +16,7 @@ pub struct ModelComputeInvocation {
     pub artifact_identity: [u8; 32],
     pub checkpoint_identity: Option<[u8; 32]>,
     pub requirement: ModelComputeRequirement,
-    pub input: TensorValue,
+    pub inputs: NamedTensorBundle,
 }
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -21,8 +24,8 @@ pub struct ModelComputeExecution {
     pub request_identity: [u8; 32],
     pub artifact_identity: [u8; 32],
     pub checkpoint_identity: Option<[u8; 32]>,
-    pub input_identity: [u8; 32],
-    pub output: TensorValue,
+    pub inputs_identity: [u8; 32],
+    pub outputs: NamedTensorBundle,
     pub consumed_work_units: u64,
     pub runtime: ModelComputeRuntimeIdentity,
 }
@@ -104,15 +107,25 @@ impl ModelComputeAdapter for ReferenceModelComputeAdapter {
         if let Err(error) = self.session.begin(&invocation.requirement, 0) {
             return ModelComputeAdapterTerminal::Refused(error);
         }
-        let output = invocation.input.clone();
+        let outputs = invocation.inputs.clone();
+        if outputs
+            .tensor_bytes()
+            .ok()
+            .is_none_or(|n| n > invocation.requirement.output_bytes)
+        {
+            let _ = self.session.finish();
+            return ModelComputeAdapterTerminal::Refused(
+                ModelComputeRefusal::ResourceBoundExceeded,
+            );
+        }
         let runtime = self.session.runtime().clone();
         let _ = self.session.finish();
         ModelComputeAdapterTerminal::Produced(Box::new(ModelComputeExecution {
             request_identity: invocation.request_identity,
             artifact_identity: invocation.artifact_identity,
             checkpoint_identity: None,
-            input_identity: input,
-            output,
+            inputs_identity: input,
+            outputs,
             consumed_work_units: 1,
             runtime,
         }))
@@ -134,16 +147,19 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
         load(&mut self.session, identity, bytes)
     }
     fn execute(&mut self, invocation: ModelComputeInvocation) -> ModelComputeAdapterTerminal {
-        let input_identity = match validate_invocation(&self.offer, &self.session, &invocation) {
+        let inputs_identity = match validate_invocation(&self.offer, &self.session, &invocation) {
             Ok(value) => value,
             Err(error) => return ModelComputeAdapterTerminal::Refused(error),
         };
-        if invocation.input.element != TensorElement::F32
-            || invocation.input.dimensions.as_slice() != [2]
-        {
+        let inputs = invocation.inputs.get().as_slice();
+        if inputs.len() != 1 || inputs[0].name != "input" {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
-        let TensorBacking::Inline(bytes) = &invocation.input.backing else {
+        let input = &inputs[0].value;
+        if input.element != TensorElement::F32 || input.dimensions.as_slice() != [2] {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        }
+        let TensorBacking::Inline(bytes) = &input.backing else {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedFormat);
         };
         let bytes = bytes.as_slice();
@@ -164,12 +180,31 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             .collect::<Vec<_>>();
         let output = TensorValue {
             element: TensorElement::F32,
-            dimensions: invocation.input.dimensions.clone(),
-            axes: invocation.input.axes.clone(),
+            dimensions: input.dimensions.clone(),
+            axes: input.axes.clone(),
             content_digest: tensor_content_digest(&output_bytes),
             backing: TensorBacking::Inline(
                 BoundedBytes::new(&output_bytes).expect("two f32 values fit the tensor bound"),
             ),
+        };
+        let outputs = match NamedTensorBundle::from_values(vec![NamedTensor {
+            name: "output".into(),
+            value: output,
+        }]) {
+            Ok(value)
+                if value
+                    .tensor_bytes()
+                    .ok()
+                    .is_some_and(|n| n <= invocation.requirement.output_bytes) =>
+            {
+                value
+            }
+            _ => {
+                let _ = self.session.finish();
+                return ModelComputeAdapterTerminal::Refused(
+                    ModelComputeRefusal::ResourceBoundExceeded,
+                );
+            }
         };
         let runtime = self.session.runtime().clone();
         let _ = self.session.finish();
@@ -177,8 +212,8 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
             request_identity: invocation.request_identity,
             artifact_identity: invocation.artifact_identity,
             checkpoint_identity: None,
-            input_identity,
-            output,
+            inputs_identity,
+            outputs,
             consumed_work_units: 8,
             runtime,
         }))
@@ -207,29 +242,29 @@ fn validate_invocation(
         return Err(ModelComputeRefusal::ProviderUnavailable);
     }
     offer.admits(&invocation.requirement)?;
-    if !invocation
-        .requirement
-        .elements
-        .contains(&invocation.input.element)
-    {
-        return Err(ModelComputeRefusal::UnsupportedElement);
-    }
-    if invocation.input.dimensions.len() > usize::from(invocation.requirement.rank) {
-        return Err(ModelComputeRefusal::UnsupportedShape);
-    }
     invocation
-        .input
+        .inputs
         .validate()
         .map_err(|_| ModelComputeRefusal::UnsupportedShape)?;
-    if invocation
-        .input
-        .byte_count()
-        .map_err(|_| ModelComputeRefusal::UnsupportedShape)?
-        != invocation.requirement.input_bytes
-    {
+    for input in invocation.inputs.get().iter() {
+        if !invocation
+            .requirement
+            .elements
+            .contains(&input.value.element)
+        {
+            return Err(ModelComputeRefusal::UnsupportedElement);
+        }
+        if input.value.dimensions.len() > usize::from(invocation.requirement.rank) {
+            return Err(ModelComputeRefusal::UnsupportedShape);
+        }
+    }
+    if invocation.inputs.tensor_bytes().ok() != Some(invocation.requirement.input_bytes) {
         return Err(ModelComputeRefusal::ResourceBoundExceeded);
     }
-    Ok(invocation.input.content_digest)
+    invocation
+        .inputs
+        .semantic_digest()
+        .map_err(|_| ModelComputeRefusal::UnsupportedShape)
 }
 fn load(
     session: &mut ModelComputeSession,

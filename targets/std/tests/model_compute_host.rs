@@ -1,7 +1,8 @@
 use conduit_ai::*;
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::{
-    tensor_content_digest, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorValue,
+    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorAxis, TensorAxisRole,
+    TensorBacking, TensorElement, TensorValue,
 };
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
 use conduit_std_host::hosted_model_compute::{
@@ -74,6 +75,14 @@ fn input(values: [f32; 2]) -> TensorValue {
     }
 }
 
+fn bundle(value: TensorValue) -> NamedTensorBundle {
+    NamedTensorBundle::from_values(vec![NamedTensor {
+        name: "input".into(),
+        value,
+    }])
+    .unwrap()
+}
+
 fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
     ModelComputeInvocation {
         request_identity: [31; 32],
@@ -100,7 +109,7 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
             requires_checkpoint_load: false,
             requires_checkpoint_write: false,
         },
-        input: input(values),
+        inputs: bundle(input(values)),
     }
 }
 
@@ -125,7 +134,7 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     else {
         panic!("reference adapter must produce")
     };
-    assert_eq!(values(&reference_result.output), [2.0, 3.0]);
+    assert_eq!(values(&reference_result.outputs.get()[0].value), [2.0, 3.0]);
     assert_eq!(reference_result.artifact_identity, artifact);
     assert_ne!(
         reference_result.runtime.adapter_artifact_identity,
@@ -150,9 +159,12 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     else {
         panic!("real linear model must produce")
     };
-    assert_eq!(values(&result.output), [5.0, 1.0]);
+    assert_eq!(values(&result.outputs.get()[0].value), [5.0, 1.0]);
     assert_eq!(result.consumed_work_units, 8);
-    assert_eq!(result.input_identity, input([2.0, 3.0]).content_digest);
+    assert_eq!(
+        result.inputs_identity,
+        bundle(input([2.0, 3.0])).semantic_digest().unwrap()
+    );
     assert_eq!(result.runtime.adapter_artifact_identity, "adapter/linear/1");
 }
 
@@ -184,19 +196,23 @@ fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
     let mut host = ReferenceModelComputeAdapter::new(offer(), runtime("reference")).unwrap();
     host.load(artifact, 64).unwrap();
     let mut wrong_type = invocation(artifact, [2., 3.]);
+    let mut wrong_type_value = input([2., 3.]);
     let bytes = 2_f64.to_le_bytes();
-    wrong_type.input.element = TensorElement::F64;
-    wrong_type.input.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
-    wrong_type.input.content_digest = tensor_content_digest(&bytes);
-    wrong_type.input.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    wrong_type_value.element = TensorElement::F64;
+    wrong_type_value.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+    wrong_type_value.content_digest = tensor_content_digest(&bytes);
+    wrong_type_value.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    wrong_type.inputs = bundle(wrong_type_value);
     assert_eq!(
         host.execute(wrong_type),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedElement)
     );
     let mut wrong_rank = invocation(artifact, [2., 3.]);
-    wrong_rank.input.dimensions = BoundedSequence::try_from_iter([1, 2]).unwrap();
-    let axis = wrong_rank.input.axes[0].clone();
-    wrong_rank.input.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
+    let mut wrong_rank_value = input([2., 3.]);
+    wrong_rank_value.dimensions = BoundedSequence::try_from_iter([1, 2]).unwrap();
+    let axis = wrong_rank_value.axes[0].clone();
+    wrong_rank_value.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
+    wrong_rank.inputs = bundle(wrong_rank_value);
     assert_eq!(
         host.execute(wrong_rank),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape)

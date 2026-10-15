@@ -59,7 +59,11 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
         request_identity: [31; 32],
         artifact_identity: artifact,
         checkpoint_identity: Some(checkpoint_id),
-        input: batch.inputs[0].clone(),
+        inputs: conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
+            name: host.signature().inputs.get()[0].identity.get().clone(),
+            value: batch.inputs[0].clone(),
+        }])
+        .unwrap(),
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/burn-safetensors@1".into(),
@@ -117,7 +121,7 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
         panic!("exact checkpoint should produce");
     };
     assert_eq!(output.checkpoint_identity, Some(checkpoint_id));
-    assert_eq!(output.output, expected);
+    assert_eq!(output.outputs.get()[0].value, expected);
     assert_eq!(output.runtime.device_evidence, "burn/flex-cpu");
     assert_eq!(output.consumed_work_units, 1000);
     host.unload().unwrap();
