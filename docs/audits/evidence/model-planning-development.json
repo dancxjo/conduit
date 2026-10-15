@@ -175,5 +175,16 @@
     "tool_session": 22923,
     "log": "work/onnx-dtype-burn-host-check.log",
     "source": "4c042ee9afeda867ee8245910ec55546f1986fda"
+  },
+  "optional_host_followup": {
+    "source": "4c042ee9afeda867ee8245910ec55546f1986fda",
+    "state": "PASS",
+    "proof_class": "typecheck only; no Burn numerical execution claim",
+    "command": "cargo +1.98.1 check --locked -p conduit-std-host --features burn-model --test burn_model_host",
+    "log": "work/onnx-dtype-burn-host-check.log",
+    "content": {
+      "sha256": "985e8baf7a1153f11a2fe2e7b1ea9be628bea2f313ad99f6fdfcba32338646b9",
+      "bytes": 17391
+    }
   }
 }
