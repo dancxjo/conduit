@@ -132,6 +132,7 @@ mod model_text;
 pub use model_text::*;
 mod model_signature;
 pub use model_signature::*;
+pub mod imported_onnx;
 mod model_artifact;
 pub mod onnx_metadata;
 mod onnx_wire;
