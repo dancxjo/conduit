@@ -129,3 +129,41 @@ fn characterize_actual_model_play_allocation_requests() {
     assert_eq!(output.get()[0].name, "output");
     println!("model_play_allocation_requests={{\"calls\":{},\"requested_bytes_sum\":{},\"output_bytes\":{}}}", probe.calls, probe.requested, sink.length);
 }
+
+fn measured<T>(name: &str, operation: impl FnOnce() -> T) -> T {
+    CALLS.with(|v| v.set(0));
+    REQUESTED.with(|v| v.set(0));
+    ENABLED.with(|v| v.set(true));
+    let result = operation();
+    ENABLED.with(|v| v.set(false));
+    let calls = CALLS.with(Cell::get);
+    let requested = REQUESTED.with(Cell::get);
+    println!("model_codec_allocation_requests={{\"operation\":\"{name}\",\"calls\":{calls},\"requested_bytes_sum\":{requested}}}");
+    result
+}
+
+#[test]
+fn characterize_named_tensor_codec_owners() {
+    let value = bundle(input([2., 3.]));
+    let _schema = measured("native_schema", NamedTensorBundle::semantic_type).unwrap();
+    let owned = value.clone();
+    let encoded = measured("native_encode", || owned.encode()).unwrap();
+    let decoded = measured("native_decode", || NamedTensorBundle::decode(&encoded)).unwrap();
+    assert_eq!(decoded, value);
+    let _digest = measured("semantic_digest", || value.semantic_digest()).unwrap();
+    measured("bundle_validate", || value.validate()).unwrap();
+    assert_eq!(
+        measured("tensor_bytes", || value.tensor_bytes()).unwrap(),
+        8
+    );
+    let owned = value.clone();
+    let _structured = measured("into_structured", || owned.into_structured()).unwrap();
+    let values = value.get().iter().cloned().collect();
+    assert_eq!(
+        measured("bundle_constructor", || NamedTensorBundle::from_values(
+            values
+        ))
+        .unwrap(),
+        value
+    );
+}
