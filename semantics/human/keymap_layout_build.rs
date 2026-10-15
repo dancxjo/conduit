@@ -61,6 +61,17 @@ pub fn generate() {
         let bytes = concrete
             .canonical_bytes()
             .expect("layout fits finite canonical encoding");
+        if prefix == "DEFAULT" {
+            let type_bytes = concrete
+                .value_type()
+                .canonical_bytes()
+                .expect("checked finite layout Type");
+            writeln!(
+                generated,
+                "pub const KEYMAP_LAYOUT_TYPE_BYTES: &[u8] = &{type_bytes:?};"
+            )
+            .unwrap();
+        }
         let authored = syntax
             .plots
             .iter()
@@ -111,6 +122,15 @@ pub fn generate() {
     else {
         panic!("typed layout choices")
     };
+    let type_bytes = value
+        .value_type()
+        .canonical_bytes()
+        .expect("checked finite choices Type");
+    writeln!(
+        generated,
+        "pub const KEYMAP_CHOICES_TYPE_BYTES: &[u8] = &{type_bytes:?};"
+    )
+    .unwrap();
     let bytes = value
         .try_concrete()
         .expect("concrete choices")

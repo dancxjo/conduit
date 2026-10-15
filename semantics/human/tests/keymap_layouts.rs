@@ -550,3 +550,11 @@ fn authored_registry_links_six_unique_named_layout_values() {
     assert!(DEFAULT_KEYMAP_CHOICES_LITERAL.contains("US International"));
     assert!(KEYMAP_CHOICES_SOURCE.contains("type KeymapChoices"));
 }
+
+#[test]
+fn generated_type_only_blobs_preserve_the_exact_authored_value_types() {
+    use conduit_human::{choices_type, default_keymap_value, DEFAULT_KEYMAP_CHOICES_BYTES};
+    assert_eq!(&keymap_layout_type(), default_keymap_value().value_type());
+    let choices = StructuredInfoValue::from_canonical_bytes(DEFAULT_KEYMAP_CHOICES_BYTES).unwrap();
+    assert_eq!(&choices_type(), choices.value_type());
+}

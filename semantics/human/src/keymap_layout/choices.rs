@@ -2,10 +2,8 @@
 use super::*;
 
 pub fn choices_type() -> StructuredInfoType {
-    StructuredInfoValue::from_canonical_bytes(DEFAULT_KEYMAP_CHOICES_BYTES)
-        .expect("checked authored choices")
-        .value_type()
-        .clone()
+    StructuredInfoType::from_canonical_bytes(KEYMAP_CHOICES_TYPE_BYTES)
+        .expect("checked authored choices Type")
 }
 pub fn default_choices_configuration() -> StructuredConfigurationValue {
     StructuredConfigurationValue::new(

@@ -21,7 +21,8 @@ pub fn default_keymap_value() -> StructuredInfoValue {
         .expect("checked authored default keymap")
 }
 pub fn keymap_layout_type() -> StructuredInfoType {
-    default_keymap_value().value_type().clone()
+    StructuredInfoType::from_canonical_bytes(KEYMAP_LAYOUT_TYPE_BYTES)
+        .expect("checked authored keymap Type")
 }
 pub fn default_keymap_configuration() -> StructuredConfigurationValue {
     StructuredConfigurationValue::new(

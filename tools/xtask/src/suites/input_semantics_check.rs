@@ -56,6 +56,7 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
             "-p",
             "conduit-patchbay-workbench",
             "input_semantic_controls",
+            "--lib",
         ],
     ),
     Step::new(
@@ -67,13 +68,20 @@ pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
             "-p",
             "conduitos",
             "keyboard_bridge::tests::usb_bridge_matches_every_shared_peer_conformance_value",
+            "--lib",
         ],
     ),
     Step::new(
         "check.input-semantics.native-peer",
-        "test native physical-key mapping, shared semantics, planning, and finite failures",
+        "test ConduitOS keyboard Plan admission and finite native refusals",
         "cargo",
-        &["test", "-p", "patchbay-native", "portable_keyboard_tests"],
+        &[
+            "test",
+            "-p",
+            "conduitos",
+            "keyboard_text_plan::tests",
+            "--lib",
+        ],
     ),
     Step::typed(
         "check.input-semantics.thumb",

@@ -375,5 +375,14 @@ fn panic(info: &PanicInfo<'_>) -> ! {
     arch::disable_interrupts();
     arch::present(b"CONDUIT_IA32_PRODUCT_PANIC ");
     let _ = core::fmt::Write::write_fmt(&mut DiagnosticWriter, format_args!("{info}\n"));
+    let _ = core::fmt::Write::write_fmt(
+        &mut DiagnosticWriter,
+        format_args!(
+            "CONDUIT_IA32_PANIC_ARENA peak={} live={} capacity={}\n",
+            BOOT_ARENA.used(),
+            BOOT_ARENA.live_bytes(),
+            BOOT_ARENA.capacity()
+        ),
+    );
     refuse("panic")
 }
