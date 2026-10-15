@@ -10,11 +10,11 @@ use super::{hid_qmp, journey_records, qmp, ConduitosError};
 // Keep every observation finite, but allow a runnable guest one baseline
 // five-second window per contending VM before declaring its exact record absent.
 const RECORD_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
-// Cold birth checks and identifies all four selected source Plots before it
-// publishes Born. The exact Candidate kernel needed 26.6s in an uncontended
-// single-CPU QEMU replay; give this preparation stage the same finite 60s
-// budget as cold product arrival. Ordinary lifecycle records retain 20s.
-const BIRTH_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+// Cold lifecycle preparation checks and identifies all four selected source
+// Plots. Exact Candidate guest replays needed 24.6s for birth, 19.2s for
+// Wake and 28.4s for Plan; use the same finite 60s envelope as cold arrival.
+// Ordinary input/result records retain their separate 20s observation window.
+const COLD_PREPARATION_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub(super) fn key_pair(
     qmp: &mut UnixStream,
@@ -167,10 +167,9 @@ fn wait_for_record_inner(
     stop_on_timeout: bool,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
-    let timeout = if status == "born-lulled" {
-        BIRTH_WAIT_TIMEOUT
-    } else {
-        RECORD_WAIT_TIMEOUT
+    let timeout = match status {
+        "born-lulled" | "awake" | "planned" => COLD_PREPARATION_WAIT_TIMEOUT,
+        _ => RECORD_WAIT_TIMEOUT,
     };
     let deadline = std::time::Instant::now() + timeout;
     loop {
@@ -249,7 +248,7 @@ mod tests {
             .arg("60")
             .spawn()
             .unwrap();
-        let result = wait_status_retaining_guest(&serial, &mut guest, "planned");
+        let result = wait_status_retaining_guest(&serial, &mut guest, "stopped");
         let guest_state = guest.try_wait();
         let _ = guest.kill();
         let reaped = guest.wait();
