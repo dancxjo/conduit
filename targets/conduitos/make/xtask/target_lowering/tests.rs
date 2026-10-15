@@ -412,7 +412,10 @@ fn usb_configuration_proof_owns_its_finite_profile_and_requires_keyboard_closure
     let ordinary = manifest(include_str!(
         "../../../proof/profiles/conduitos-proof.profile.json"
     ));
-    assert_eq!(ordinary.bounds.heap_arena_bytes, 16 * 1024 * 1024);
+    assert_eq!(
+        ordinary.bounds.heap_arena_bytes,
+        conduitos::make::NATIVE_PREPARATION_ARENA_BYTES
+    );
     assert!(!lower(&ordinary)
         .unwrap()
         .cargo_features

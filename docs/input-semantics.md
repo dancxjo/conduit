@@ -270,7 +270,13 @@ and one in-flight Host Call per gear.
 Native Observatory JSON exports retain the complete typed Offer and Plan under a
 2 MiB encoded-output bound; larger snapshots refuse export explicitly. This
 preparation/export retention budget is separate from connection storage and uses
-the boot arena (minimum 8 MiB, or 16 MiB with the native compositor). The six-layout
-keyboard proof snapshot is approximately 1.3 MB; canonical layout values remain
+the boot arena. Published native product and ordinary keyboard proof profiles
+explicitly admit a 32 MiB preparation heap, independently of their 8 MiB static
+budget. After eliminating whole-tree copies, the IA32 emulator product measured
+18,278,752 bytes at peak and 117,440 bytes live after preparation under both UEFI
+and legacy BIOS; 8 MiB and 16 MiB diagnostic heaps exhausted their finite arenas.
+These are emulator measurements, not physical-device proof or a guarantee that
+all maximum-size authored configurations fit. The six-layout keyboard proof
+snapshot is approximately 1.3 MB; canonical layout values remain
 bounded by the shared 256 KiB Structured carrier limit and the authored registry
 admits at most eight choices.

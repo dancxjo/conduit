@@ -5,7 +5,27 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
     for (source, expected) in [
         (
             include_str!("../../../profiles/conduitos-native.host.conduit"),
-            16 * 1024 * 1024,
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-x86_64-pc.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-aarch64-virt.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-riscv64-virt.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        ),
+        (
+            include_str!("../../../profiles/conduitos-loongarch64-virt.host.conduit"),
+            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
         ),
         (
             include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),
@@ -30,6 +50,8 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
         )
         .unwrap();
         assert_eq!(runtime_arena_ceiling(&checked.manifest), expected);
+        assert_eq!(checked.manifest.bounds.heap_arena_bytes, expected);
+        assert_eq!(checked.manifest.bounds.static_memory_bytes, 8 * 1024 * 1024);
         assert_ne!(
             runtime_arena_ceiling(&checked.manifest),
             checked.manifest.bounds.static_memory_bytes

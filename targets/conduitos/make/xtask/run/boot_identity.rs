@@ -54,7 +54,7 @@ mod tests {
     }
     #[test]
     fn boot_profiles_require_their_exact_emulator_and_arena_bounds() {
-        let ordinary_arena = 16 * 1024 * 1024;
+        let ordinary_arena = conduitos::make::NATIVE_PREPARATION_ARENA_BYTES;
         let configuration_arena = conduitos::make::USB_CONFIGURATION_ARENA_BYTES;
         let configuration_profile = conduitos::make::USB_CONFIGURATION_QEMU_PROFILE;
         for (profile, arena) in [
