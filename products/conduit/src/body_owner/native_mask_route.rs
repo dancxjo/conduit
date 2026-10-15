@@ -9,6 +9,18 @@ use conduit_body::{
 };
 use conduit_core::{HostAdvertisement, LineAvailability, LineOffer};
 use conduit_face::{Face, MaskShow, OwnerFaceSnapshotRequest, RemoteOwnerMaskRouteSeal};
+use conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection;
+
+enum SelectedRemoteMask<'a> {
+    Native(
+        Option<(
+            conduit_face::ComponentMaskLook,
+            conduit_face::TodoComponentRecipe,
+        )>,
+    ),
+    Terminal(&'a LineOffer),
+    Spoken(&'a RemoteSpokenTemplateSelection),
+}
 
 #[derive(Clone)]
 pub(super) struct NativeMaskRoute {
@@ -21,6 +33,7 @@ pub(super) struct NativeMaskRoute {
     face_line: LineOffer,
     return_line: LineOffer,
     interaction_line: Option<LineOffer>,
+    read_only: bool,
     seal: RemoteOwnerMaskRouteSeal,
     acknowledged_show: Option<MaskShow>,
     expires_at_millis: u64,
@@ -89,13 +102,12 @@ impl Owner {
             .as_ref()
             .filter(|route| route.credential == receipt.credential)
             .and_then(|route| route.component_selection);
-        self.seal_native_mask_route_with_component(
+        self.seal_native_mask_route_with_selection(
             receipt,
             face_line,
             return_line,
             expires_at_millis,
-            selection,
-            None,
+            SelectedRemoteMask::Native(selection),
         )
     }
 
@@ -113,13 +125,12 @@ impl Owner {
         let previous_route = self.pending_native_mask.clone();
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
-            .seal_native_mask_route_with_component(
+            .seal_native_mask_route_with_selection(
                 receipt,
                 face_line,
                 return_line,
                 expires_at_millis,
-                None,
-                Some(interaction_line),
+                SelectedRemoteMask::Terminal(interaction_line),
             )
             .and_then(|seal| {
                 self.select_component_face_route(&seal)?;
@@ -132,18 +143,48 @@ impl Owner {
         result
     }
 
-    fn seal_native_mask_route_with_component(
+    pub(crate) fn seal_remote_spoken_mask_route(
         &mut self,
         receipt: &PortableAdmissionReceipt,
         face_line: &LineOffer,
         return_line: &LineOffer,
         expires_at_millis: u64,
-        component_selection: Option<(
-            conduit_face::ComponentMaskLook,
-            conduit_face::TodoComponentRecipe,
-        )>,
-        interaction_line: Option<&LineOffer>,
+        selection: &RemoteSpokenTemplateSelection,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        let previous_route = self.pending_native_mask.clone();
+        let previous_wardrobe = self.face_wardrobe.clone();
+        let result = self
+            .seal_native_mask_route_with_selection(
+                receipt,
+                face_line,
+                return_line,
+                expires_at_millis,
+                SelectedRemoteMask::Spoken(selection),
+            )
+            .and_then(|seal| {
+                self.select_component_face_route(&seal)?;
+                Ok(seal)
+            });
+        if result.is_err() {
+            self.pending_native_mask = previous_route;
+            self.face_wardrobe = previous_wardrobe;
+        }
+        result
+    }
+
+    fn seal_native_mask_route_with_selection(
+        &mut self,
+        receipt: &PortableAdmissionReceipt,
+        face_line: &LineOffer,
+        return_line: &LineOffer,
+        expires_at_millis: u64,
+        selection: SelectedRemoteMask<'_>,
+    ) -> Result<RemoteOwnerMaskRouteSeal, String> {
+        let (component_selection, interaction_line, spoken) = match selection {
+            SelectedRemoteMask::Native(component) => (component, None, None),
+            SelectedRemoteMask::Terminal(line) => (None, Some(line), None),
+            SelectedRemoteMask::Spoken(selection) => (None, None, Some(selection)),
+        };
         if super::super::super::current_time_millis()? >= expires_at_millis {
             return Err("native-mask-return-expired".into());
         }
@@ -164,7 +205,7 @@ impl Owner {
                 .rev()
                 .any(|admitted| admitted.credential == *credential)
         });
-        if interaction_line.is_some() {
+        if interaction_line.is_some() || spoken.is_some() {
             let digest = super::super::super::digest(
                 &serde_json::to_vec(native_offer).map_err(|error| error.to_string())?,
             );
@@ -190,7 +231,17 @@ impl Owner {
         // attached browser route in the same new-Face Plan only after its
         // actual carrier and Lines have been revalidated and resealed.
         self.refresh_browser_mask_route_for_current_face()?;
-        let planned = if let Some(interaction_line) = interaction_line {
+        let face = self.local_face_snapshot()?;
+        let planned = if let Some(selection) = spoken {
+            super::remote_spoken_route::plan(
+                native_offer,
+                self.host.advertisement(),
+                &face,
+                face_line,
+                return_line,
+                selection,
+            )?
+        } else if let Some(interaction_line) = interaction_line {
             super::remote_terminal_route::plan(
                 native_offer,
                 self.host.advertisement(),
@@ -215,7 +266,6 @@ impl Owner {
             .map_err(|error| format!("native-mask-plan-refused:{error:?}"))?
             .planned_mask
         };
-        let face = self.local_face_snapshot()?;
         let seal = if let Some(interaction_line) = interaction_line {
             RemoteOwnerMaskRouteSeal::seal_current_with_interaction(
                 &self.session,
@@ -226,6 +276,16 @@ impl Owner {
                 face_line,
                 return_line,
                 interaction_line,
+            )
+        } else if spoken.is_some() {
+            RemoteOwnerMaskRouteSeal::seal_current_hosted_presentation(
+                &self.session,
+                &face,
+                self.host.advertisement(),
+                native_offer,
+                &planned,
+                face_line,
+                return_line,
             )
         } else {
             RemoteOwnerMaskRouteSeal::seal_current(
@@ -246,6 +306,7 @@ impl Owner {
             face_line: face_line.clone(),
             return_line: return_line.clone(),
             interaction_line: interaction_line.cloned(),
+            read_only: spoken.is_some(),
             seal: seal.clone(),
             acknowledged_show: None,
             expires_at_millis,
@@ -277,13 +338,12 @@ impl Owner {
         }
         let previous_wardrobe = self.face_wardrobe.clone();
         let result = self
-            .seal_native_mask_route_with_component(
+            .seal_native_mask_route_with_selection(
                 receipt,
                 &previous_route.face_line,
                 &previous_route.return_line,
                 previous_route.expires_at_millis,
-                Some((look, recipe)),
-                None,
+                SelectedRemoteMask::Native(Some((look, recipe))),
             )
             .and_then(|route| {
                 self.select_component_face_route(&route)?;
@@ -344,6 +404,9 @@ impl Owner {
             .pending_native_mask
             .as_ref()
             .ok_or("native-mask-route-not-selected")?;
+        if route.read_only {
+            return Err("native-mask-has-no-interaction-authority".into());
+        }
         if route.interaction_line.is_some() {
             let bytes = serde_json::to_vec(interaction)
                 .map_err(|error| format!("native-mask-interaction-encoding:{error}"))?;

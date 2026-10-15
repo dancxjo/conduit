@@ -123,6 +123,23 @@ fn prove_templates(complete: bool, looks: &[DirectSpokenTemplateLook]) {
         )
         .unwrap();
         assert_eq!(reproduced.planned_mask, selected.mask().planned_mask);
+        let proposal = selected.remote_selection().unwrap();
+        assert_eq!(
+            proposal
+                .validate_for_offer(&face, host.advertisement())
+                .unwrap(),
+            reproduced.planned_mask
+        );
+        let mut wrong_plan = proposal.clone();
+        wrong_plan.plan.plan_id = "fixture/forged-spoken-plan".into();
+        assert!(wrong_plan
+            .validate_for_offer(&face, host.advertisement())
+            .is_err());
+        let mut stale_proposal = proposal;
+        stale_proposal.face_revision += 1;
+        assert!(stale_proposal
+            .validate_for_offer(&face, host.advertisement())
+            .is_err());
         assert!(plan_template_for_offer(&face, host.advertisement(), look, vec![]).is_err());
         assert!(mask_plans.insert(selected.mask().plan.plan_id.clone()));
         eprintln!(

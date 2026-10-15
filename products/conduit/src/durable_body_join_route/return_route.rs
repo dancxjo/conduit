@@ -59,6 +59,9 @@ pub(super) struct Grant {
     receipt: PortableAdmissionReceipt,
     #[serde(skip)]
     mask: MaskSelection,
+    #[serde(skip)]
+    spoken_selection:
+        Option<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
 }
 
 impl Grant {
@@ -84,6 +87,7 @@ impl Grant {
             expires_at_millis: now + remaining,
             receipt: receipt.clone(),
             mask,
+            spoken_selection: None,
         })
     }
 
@@ -109,6 +113,7 @@ impl Grant {
             return Err("native return replacement expired or sequence invalid".into());
         }
         let mut grant = Self::issue(&self.receipt, self.mask)?;
+        grant.spoken_selection = self.spoken_selection.clone();
         grant.expires_at_millis = self.expires_at_millis;
         grant.remaining_millis = self
             .expires_at_millis

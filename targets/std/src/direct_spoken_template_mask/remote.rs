@@ -3,7 +3,51 @@ use super::*;
 use conduit_core::{seal_plan_with_activation_entries, PlotIdentity};
 use conduit_face::{PlannedMaskPlot, RemoteOwnerMaskRouteSeal};
 
+/// A finite planning proposal, never evidence of effect authority or delivery.
+/// The owner reproduces this Plan against the offer observed at signed admission;
+/// the executing peer separately rechecks its actual private equipment grants.
+#[derive(Clone, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
+#[serde(deny_unknown_fields)]
+pub struct RemoteSpokenTemplateSelection {
+    pub look: DirectSpokenTemplateLook,
+    pub face_id: String,
+    pub face_revision: u64,
+    pub plan: conduit_core::Plan,
+    pub authority_grants: Vec<conduit_core::AuthorityGrant>,
+}
+
+impl RemoteSpokenTemplateSelection {
+    pub fn validate_for_offer(
+        &self,
+        face: &Face,
+        offer: &conduit_core::HostAdvertisement,
+    ) -> Result<PlannedMaskPlot, String> {
+        if self.face_id != face.identity.as_str() || self.face_revision != face.revision {
+            return Err("remote spoken selection has stale Face".into());
+        }
+        let expected =
+            super::plan_template_for_offer(face, offer, self.look, self.authority_grants.clone())?;
+        if expected.plan != self.plan {
+            return Err("remote spoken selection differs from the reproduced checked Plan".into());
+        }
+        Ok(expected.planned_mask)
+    }
+}
+
 impl PreparedDirectSpokenTemplateMask {
+    pub fn remote_selection(&self) -> Result<RemoteSpokenTemplateSelection, String> {
+        if self.remote_route.is_some() {
+            return Err("remote spoken selection already has an owner route".into());
+        }
+        Ok(RemoteSpokenTemplateSelection {
+            look: self.look,
+            face_id: self.reading.receipt().source_face_identity.clone(),
+            face_revision: self.reading.receipt().source_face_revision,
+            plan: self.mask.plan.clone(),
+            authority_grants: self.mask.authority_grants.clone(),
+        })
+    }
+
     /// The caller authenticates the owner and retains the actual carrier grant.
     /// This binds only its exact Plan; a serialized seal alone is not admission.
     pub fn with_remote_route(

@@ -6,6 +6,7 @@ use crate::{
 use conduit_face::{Face, SpokenTemplateWording};
 #[path = "direct_spoken_template_mask/remote.rs"]
 mod remote;
+pub use remote::RemoteSpokenTemplateSelection;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq, serde::Serialize, serde::Deserialize)]
 pub enum DirectSpokenTemplateLook {

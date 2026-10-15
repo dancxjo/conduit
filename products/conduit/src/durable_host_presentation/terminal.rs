@@ -1,5 +1,7 @@
 //! An explicit installed peer supplies real terminal effects for the remote Body.
 use super::PresentationHost;
+#[path = "speech.rs"]
+mod speech;
 #[path = "wire.rs"]
 mod wire;
 use conduit_face::{Face, MaskShow};
@@ -49,6 +51,7 @@ pub(crate) fn run(
     let mut shown = present(&mut peer, &mut foreground, output, snapshot)?;
     owner.acknowledge(&shown.show)?;
     report(output)?;
+    let mut last_spoken = None;
     loop {
         let mut bytes = Vec::new();
         let length = (&mut *input)
@@ -79,7 +82,30 @@ pub(crate) fn run(
                 evidence["frame_sha256"] = serde_json::json!(shown.effect.frame_sha256);
                 evidence["show_sha256"] = serde_json::json!(shown.effect.show_sha256);
                 writeln!(output, "Peer terminal evidence {evidence}").map_err(io_error)?;
+                if let Some(summary) = &last_spoken {
+                    writeln!(
+                        output,
+                        "Peer spoken evidence {}",
+                        serde_json::to_string(summary).map_err(|error| error.to_string())?
+                    )
+                    .map_err(io_error)?;
+                }
                 output.flush().map_err(io_error)?;
+            }
+            "read settings" => {
+                if shown.execution.has_pending_play() {
+                    shown.execution.close_without_input().map_err(debug_error)?;
+                }
+                let summary = speech::read(&mut peer, &mut owner, &shown.face)?;
+                let snapshot = owner.refresh()?;
+                if snapshot.face != shown.face {
+                    return Err("thermostat Face changed during the spoken reading".into());
+                }
+                last_spoken = Some(summary);
+                writeln!(output, "Settings audio artifacts are ready.").map_err(io_error)?;
+                shown = present(&mut peer, &mut foreground, output, snapshot)?;
+                owner.acknowledge(&shown.show)?;
+                report(output)?;
             }
             "show" | "refresh" => {
                 if shown.execution.has_pending_play() {
@@ -122,7 +148,7 @@ pub(crate) fn run(
                     owner.acknowledge(&shown.show)?;
                     report(output)?;
                 } else {
-                    writeln!(output, "Enter actions, action <identity> [value], apply <value>, show, evidence, or quit.").map_err(io_error)?;
+                    writeln!(output, "Enter actions, action <identity> [value], apply <value>, show, read settings, evidence, or quit.").map_err(io_error)?;
                 }
             }
         }
@@ -135,6 +161,9 @@ fn present(
     output: &mut impl Write,
     snapshot: wire::Snapshot,
 ) -> Result<Shown, String> {
+    if !snapshot.interactions_admitted {
+        return Err("terminal snapshot has no interaction authority".into());
+    }
     let host = peer.runtime.presentation_host_mut()?;
     let mut execution = host.prepare_remote_terminal_mask_execution(&snapshot.route)?;
     let (show, effect) = std::thread::scope(|scope| {
@@ -158,7 +187,7 @@ fn present(
 fn report(output: &mut impl Write) -> Result<(), String> {
     writeln!(
         output,
-        "\nTerminal ready. Enter actions, action <identity> [value], show, evidence, or quit."
+        "\nTerminal ready. Enter actions, action <identity> [value], show, read settings, evidence, or quit."
     )
     .map_err(io_error)?;
     output.flush().map_err(io_error)
