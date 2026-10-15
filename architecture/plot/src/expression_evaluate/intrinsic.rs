@@ -6,6 +6,27 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if let Some(function) = crate::expression_trigonometry::function(kind) {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        let angle = StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::ANGLE_INFO_ID))
+            .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        let target =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::MATHEMATICAL_VALUE_ID))
+                .map_err(|_| PortableExpressionEvaluationRefusal::InvalidProgram)?;
+        if argument.value_type != angle || expected != &target {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        }
+        let mut encoded = alloc::vec![0;crate::expression_trigonometry::MAXIMUM_ENCODED_BYTES];
+        let length =
+            crate::expression_trigonometry::encode(function, &argument.encoded, &mut encoded)?;
+        encoded.truncate(length);
+        return Ok(Value {
+            value_type: target,
+            encoded,
+        });
+    }
     if kind == "text/material" {
         let [argument] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);

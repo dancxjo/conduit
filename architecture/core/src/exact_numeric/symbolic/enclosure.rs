@@ -22,6 +22,7 @@ pub enum MathematicalEnclosureRefusal {
     ScratchStorageLimit,
     RetainedStorageLimit,
     InvalidExpression,
+    UnsupportedTrigonometricEnclosure,
 }
 impl From<ExactNumericRefusal> for MathematicalEnclosureRefusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -105,6 +106,9 @@ impl PreparedMathematicalEnclosure {
                         )?;
                         maximum_used_constant_terms = maximum_used_constant_terms.max(terms);
                         interval
+                    }
+                    Node::SineTurns(_) | Node::CosineTurns(_) | Node::TangentTurns(_) => {
+                        return Err(R::UnsupportedTrigonometricEnclosure)
                     }
                     Node::Tau => return Err(R::InvalidExpression), // Canonical construction expands 2π.
                     Node::Negate(a) => get(a)?.negated(),

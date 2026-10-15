@@ -32,6 +32,17 @@ pub(super) fn encode(value: &MathematicalValue, output: &mut [u8]) -> Result<usi
                 bytes[0] = 1;
                 1
             }
+            MathematicalNode::SineTurns(a)
+            | MathematicalNode::CosineTurns(a)
+            | MathematicalNode::TangentTurns(a) => {
+                let tag = match node {
+                    MathematicalNode::SineTurns(_) => 9,
+                    MathematicalNode::CosineTurns(_) => 10,
+                    _ => 11,
+                };
+                bytes[..2].copy_from_slice(&[tag, a.index]);
+                2
+            }
             MathematicalNode::Negate(a) => {
                 bytes[..2].copy_from_slice(&[2, a.index]);
                 2
@@ -118,7 +129,7 @@ impl<'a> MathematicalValueView<'a> {
                     3 + usize::from(u16::from_le_bytes([b[0], b[1]]))
                 }
                 1 => 1,
-                2 | 3 => 2,
+                2 | 3 | 9..=11 => 2,
                 4..=7 => 3,
                 _ => return Err(R::NonCanonicalEncoding),
             };
@@ -206,6 +217,17 @@ impl<'a> MathematicalValueView<'a> {
     ) -> Result<(), R> {
         use MathematicalNode as N;
         match node {
+            N::SineTurns(a) | N::CosineTurns(a) | N::TangentTurns(a) => {
+                if let Some(q) = self.rational_node(a, work)? {
+                    if q.reduced_turn(work)? != q
+                        || super::trigonometry::cardinal(node, q, work)?.is_some()
+                    {
+                        return Err(R::NonCanonicalEncoding);
+                    }
+                } else if matches!(node, N::TangentTurns(_)) {
+                    return Err(R::UnsupportedDomainProof);
+                }
+            }
             N::Negate(a) if self.rational_node(a, work)?.is_some() => {
                 return Err(R::NonCanonicalEncoding)
             }
@@ -261,6 +283,9 @@ impl<'a> MathematicalValueView<'a> {
         Ok(match bytes[0] {
             0 => MathematicalNode::Rational(ExactRational::decode(&bytes[3..], work)?),
             1 => MathematicalNode::Pi,
+            9 => MathematicalNode::SineTurns(self.reference(bytes[1])?),
+            10 => MathematicalNode::CosineTurns(self.reference(bytes[1])?),
+            11 => MathematicalNode::TangentTurns(self.reference(bytes[1])?),
             2 => MathematicalNode::Negate(self.reference(bytes[1])?),
             3 => MathematicalNode::PrincipalSquareRoot(self.reference(bytes[1])?),
             4 => MathematicalNode::Add(self.reference(bytes[1])?, self.reference(bytes[2])?),
