@@ -1,4 +1,5 @@
-//! Composed borrowed idle observation. Association/receipt ownership is separate.
+//! Original obligation checks and halted-queue retirement before settlement.
+//! Borrowed idle observation remains read-only; associations own their receipts.
 use super::*;
 
 impl<P: I2cProvider> PreparedProtocolCalls<P> {
@@ -9,15 +10,18 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
         &self,
         kernel: &KernelCompositeHost,
     ) -> Result<(), ProtocolCallRefusal> {
-        self.validate_usb_subordinate_settlement(kernel, false)
-            .map(|_| ())
+        self.validate_usb_subordinate_obligations(kernel)?;
+        self.usb_duplex
+            .as_ref()
+            .ok_or(ProtocolCallRefusal::Unsupported)?
+            .validate_settlement_idle()
+            .map_err(ProtocolCallRefusal::UsbProtocol)
     }
 
-    pub(super) fn validate_usb_subordinate_settlement(
+    fn validate_usb_subordinate_obligations(
         &self,
         kernel: &KernelCompositeHost,
-        allow_stopped: bool,
-    ) -> Result<bool, ProtocolCallRefusal> {
+    ) -> Result<(), ProtocolCallRefusal> {
         if kernel.definition().internal_plan.plan_id != self.plan_id {
             return Err(ProtocolCallRefusal::InvalidPlan);
         }
@@ -46,6 +50,27 @@ impl<P: I2cProvider> PreparedProtocolCalls<P> {
             .map_err(ProtocolCallRefusal::Kernel)?
         {
             return Err(ProtocolCallRefusal::Unsupported);
+        }
+        Ok(())
+    }
+
+    pub(super) fn validate_usb_subordinate_settlement(
+        &mut self,
+        kernel: &KernelCompositeHost,
+        allow_stopped: bool,
+    ) -> Result<bool, ProtocolCallRefusal> {
+        self.validate_usb_subordinate_obligations(kernel)?;
+        let host = self
+            .usb_duplex
+            .as_mut()
+            .ok_or(ProtocolCallRefusal::Unsupported)?;
+        if allow_stopped {
+            // SAFETY: all original subordinate Kernel obligations and dispatcher
+            // tokens retired above. An exact Reset Endpoint acknowledgement
+            // already retired the halted TD; this only positions its empty ring.
+            // It neither retries a transfer nor declares semantic success.
+            unsafe { host.prepare_endpoint_recovery() }
+                .map_err(ProtocolCallRefusal::UsbProtocol)?;
         }
         match host.validate_settlement_idle() {
             Ok(()) => Ok(false),
