@@ -16,6 +16,7 @@ use conduit_kernel::{
 };
 
 pub(crate) const CAPTURE_IMPLEMENTATION: &str = "browser/pcm-push-to-talk@1";
+pub(crate) const CONTINUOUS_PLAY_IMPLEMENTATION: &str = "browser/webaudio-continuous-pcm@1";
 pub(crate) const PLAY_IMPLEMENTATION: &str = "browser/webaudio-safe-pcm@2";
 const PROFILE: &str = "browser/pcm-human-audio@1";
 // Playback preserves mixed integer PCM rates, with exact reduced-rational
@@ -25,6 +26,7 @@ const PLAY_PROFILE: &str = "browser/pcm-playback-rational128@2";
 const PLAY_ARTIFACT: &str = "conduit-browser-runtime/pcm-playback-rational128@2";
 const ARTIFACT: &str = "conduit-browser-runtime/pcm-human-audio@1";
 pub(crate) const CAPTURE_OPERATION: &str = "conduit.host/browser-pcm-push-to-talk@1";
+pub(crate) const DRAIN_OPERATION: &str = "conduit.host/browser-pcm-playback-drain@1";
 pub(crate) const PLAY_OPERATION: &str = "conduit.host/browser-safe-pcm-playback@1";
 pub(crate) const CAPTURE_RESOURCE: &str = "conduit.resource/browser-microphone-turn@1";
 pub(crate) const PLAY_RESOURCE: &str = "conduit.resource/browser-audio-output@1";
@@ -47,6 +49,13 @@ pub(crate) static CAPTURE: BrowserInstallation = BrowserInstallation {
 pub(crate) static PLAYBACK: BrowserInstallation = BrowserInstallation {
     implementation_id: PLAY_IMPLEMENTATION,
     offer: playback_offer,
+    prepare: prepare_playback,
+    perform: None,
+};
+
+pub(crate) static CONTINUOUS_PLAYBACK: BrowserInstallation = BrowserInstallation {
+    implementation_id: CONTINUOUS_PLAY_IMPLEMENTATION,
+    offer: continuous_playback_offer,
     prepare: prepare_playback,
     perform: None,
 };
@@ -82,30 +91,72 @@ pub(crate) fn capture_offer() -> CapabilityOffer {
 }
 
 pub(crate) fn playback_offer() -> CapabilityOffer {
-    let contract = conduit_semantic_catalog::audio_play_contract();
+    playback_offer_for(false)
+}
+
+pub(crate) fn continuous_playback_offer() -> CapabilityOffer {
+    playback_offer_for(true)
+}
+
+fn playback_offer_for(continuous: bool) -> CapabilityOffer {
+    let (contract, revision, implementation, profile, artifact) = if continuous {
+        (
+            conduit_semantic_catalog::audio_continuous_play_contract(),
+            conduit_semantic_catalog::AUDIO_CONTINUOUS_PLAY_REVISION,
+            CONTINUOUS_PLAY_IMPLEMENTATION,
+            "browser/pcm-continuous-bounded-queue@1",
+            "conduit-browser-runtime/pcm-continuous-bounded-queue@1",
+        )
+    } else {
+        (
+            conduit_semantic_catalog::audio_play_contract(),
+            conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+            PLAY_IMPLEMENTATION,
+            PLAY_PROFILE,
+            PLAY_ARTIFACT,
+        )
+    };
     let mut offer = conduit_semantic_catalog::realization_offer(
         contract,
-        conduit_semantic_catalog::AUDIO_PLAY_REVISION,
+        revision,
         conduit_semantic_catalog::RealizationOfferIdentity {
-            capability: PLAY_IMPLEMENTATION,
-            execution_profile: PLAY_PROFILE,
-            implementation: PLAY_IMPLEMENTATION,
-            artifact: PLAY_ARTIFACT,
+            capability: implementation,
+            execution_profile: profile,
+            implementation,
+            artifact,
         },
-        vec![HostCallRequirement {
-            contract_id: HostCallContractId::from(PLAY_OPERATION),
-            target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
-            maximum_in_flight: 1,
-            maximum_input_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
-                + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
-            maximum_output_bytes: 0,
-        }],
+        vec![
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(DRAIN_OPERATION),
+                // Drain targets the same selected audio output authority; its
+                // request body is empty because it carries no additional PCM.
+                target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: 0,
+                maximum_output_bytes: 0,
+            },
+            HostCallRequirement {
+                contract_id: HostCallContractId::from(PLAY_OPERATION),
+                target_kind: Some(kind_id(conduit_audio::AUDIO_PCM_INFO_ID)),
+                maximum_in_flight: 1,
+                maximum_input_bytes: conduit_audio::MAXIMUM_PCM_FRAME_BYTES
+                    + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32,
+                maximum_output_bytes: 0,
+            },
+        ],
         vec![resource_requirement(PLAY_RESOURCE, 1)],
-        vec![AuthorityRequirement {
-            contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
-            host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
-            subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
-        }],
+        vec![
+            AuthorityRequirement {
+                contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
+                host_call_contract_id: HostCallContractId::from(DRAIN_OPERATION),
+                subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
+            },
+            AuthorityRequirement {
+                contract_id: AuthorityContractId::from(PLAY_AUTHORITY),
+                host_call_contract_id: HostCallContractId::from(PLAY_OPERATION),
+                subject_kind: kind_id(conduit_audio::AUDIO_PCM_INFO_ID),
+            },
+        ],
     );
     // The advertised browser profile admits this exact value-store queue bound.
     // Keep installation validation aligned with the offer selected by planning.
@@ -131,12 +182,21 @@ fn prepare_capture(
 
 fn prepare_playback(
     placement: &PlannedGear,
-    _values: &mut conduit_kernel::HostedValueStore,
+    values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<BrowserBack, String> {
-    validate_placement(placement, &playback_offer())?;
+    let offer = if placement.implementation_id.as_str() == CONTINUOUS_PLAY_IMPLEMENTATION {
+        continuous_playback_offer()
+    } else {
+        playback_offer()
+    };
+    validate_placement(placement, &offer)?;
     let budget = PlaybackBudget::from_placement(placement)?;
     Ok(BrowserBack::installed_step(PlaybackBack {
         budget,
+        drain: values
+            .store(&[])
+            .map_err(|error| format!("store PCM drain request: {error:?}"))?,
+        draining: false,
         next: 0,
         pending: None,
     }))
@@ -211,6 +271,8 @@ impl<const PORTS: usize> StepBack<PORTS> for CaptureBack {
 
 struct PlaybackBack {
     budget: PlaybackBudget,
+    drain: ValueRef,
+    draining: bool,
     next: u32,
     pending: Option<RequestId>,
 }
@@ -238,7 +300,11 @@ impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
                 .expect("observed browser playback completion");
             self.pending = None;
             self.next = next;
-            return StepOutcome::Progress;
+            return if self.draining {
+                StepOutcome::Complete
+            } else {
+                StepOutcome::Progress
+            };
         }
         if let Some(value) = io.input(PortId(0)) {
             if self.pending.is_some() {
@@ -268,7 +334,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
             )
             .expect("validated PCM fits the playback operation");
             io.consume(PortId(0)).expect("present PCM frame");
-            io.request_host_call(request, HostCallId(0), input)
+            io.request_host_call(request, HostCallId(1), input)
                 .expect("browser playback Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
@@ -276,7 +342,16 @@ impl<const PORTS: usize> StepBack<PORTS> for PlaybackBack {
         if io.input_closed(PortId(0)) && self.pending.is_none() {
             io.consume_closed(PortId(0))
                 .expect("observed PCM input closure");
-            return StepOutcome::Complete;
+            let request = RequestId(self.next);
+            io.request_host_call(
+                request,
+                HostCallId(0),
+                BoundedValueRef::new(self.drain, 0).expect("empty PCM drain request"),
+            )
+            .expect("PCM drain Host Call");
+            self.pending = Some(request);
+            self.draining = true;
+            return StepOutcome::Progress;
         }
         StepOutcome::Await
     }

@@ -82,6 +82,9 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
     {
         return Err("browser partitions do not match their original Plans".into());
     }
+    for (fragment, lowered) in partitions {
+        crate::installed_browser::typed_state::validate_partition(fragment, lowered)?;
+    }
     let active_nodes = partitions
         .iter()
         .map(|(_, part)| part.nodes.len())

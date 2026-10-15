@@ -1130,6 +1130,10 @@ enum Request {
         return_line: Box<LineOffer>,
         #[serde(default)]
         terminal_interaction_line: Option<Box<LineOffer>>,
+        #[serde(default)]
+        spoken_selection: Option<
+            Box<conduit_std_host::direct_spoken_template_mask::RemoteSpokenTemplateSelection>,
+        >,
         expires_at_millis: u64,
     },
     BodyNativeComponentMask {
@@ -2227,6 +2231,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             face_line,
             return_line,
             terminal_interaction_line,
+            spoken_selection,
             expires_at_millis,
             ..
         } if protocol == PROTOCOL => runtime
@@ -2235,6 +2240,7 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
                 &face_line,
                 &return_line,
                 terminal_interaction_line.as_deref(),
+                spoken_selection.as_deref(),
                 expires_at_millis,
             )
             .map(|route| Response::BodyNativeMaskRoute {

@@ -55,6 +55,8 @@ mod face_wardrobe_runtime;
 mod face_wardrobe_witness;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
+#[path = "remote_spoken_route.rs"]
+mod remote_spoken_route;
 #[path = "remote_terminal_route.rs"]
 mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]

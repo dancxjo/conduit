@@ -116,7 +116,7 @@ impl RemoteOwnerMaskRouteSeal {
         Ok(())
     }
 
-    pub(super) fn bind_identity(&self) -> Result<PlanId, RemoteOwnerMaskRouteError> {
+    pub(super) fn encoded_basis(&self) -> Result<alloc::vec::Vec<u8>, RemoteOwnerMaskRouteError> {
         let basis = (
             "conduit.face/remote-owner-mask-route@1",
             &self.body_id,
@@ -130,17 +130,31 @@ impl RemoteOwnerMaskRouteSeal {
             &self.face_line,
             &self.return_line,
         );
-        let bytes = match &self.interaction_line {
-            Some(interaction_line) => serde_json::to_vec(&(
+        let bytes = match (&self.interaction_line, self.profile) {
+            (_, RemoteMaskRouteProfile::HostedPresentation) => serde_json::to_vec(&(
+                "conduit.face/remote-owner-hosted-mask-route@1",
+                &basis,
+                &self.interaction_line,
+            )),
+            (Some(interaction_line), RemoteMaskRouteProfile::Native) => serde_json::to_vec(&(
                 "conduit.face/remote-owner-mask-route-with-interaction@1",
                 &basis,
                 interaction_line,
             )),
-            None => serde_json::to_vec(&basis),
+            (None, RemoteMaskRouteProfile::Native) => serde_json::to_vec(&basis),
         }
         .map_err(|_| RemoteOwnerMaskRouteError::InvalidSeal)?;
-        if bytes.len() > MAX_REMOTE_ROUTE_SEAL_BYTES {
-            return Err(RemoteOwnerMaskRouteError::SealCapacityExceeded);
+        Ok(bytes)
+    }
+
+    pub(super) fn bind_identity(&self) -> Result<PlanId, RemoteOwnerMaskRouteError> {
+        let bytes = self.encoded_basis()?;
+        let maximum = self.profile.maximum_bytes();
+        if bytes.len() > maximum {
+            return Err(RemoteOwnerMaskRouteError::SealEncodingCapacityExceeded {
+                bytes: bytes.len(),
+                maximum,
+            });
         }
         let digest = Sha256::digest(&bytes);
         Ok(PlanId::from(format!(

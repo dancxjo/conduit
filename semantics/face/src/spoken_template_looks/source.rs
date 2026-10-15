@@ -29,6 +29,7 @@ pub fn prepare_checked_spoken_template(
     let identity = match name {
         "spoken/brief-template" => "spoken/brief@1",
         "spoken/expanded-template" => "spoken/expanded@1",
+        "spoken/control-template" => "spoken/control@1",
         _ => return Err(SpokenTemplateRefusal::Source),
     };
     let checked = check_syntax_document(
@@ -128,6 +129,7 @@ pub(crate) fn expected_spoken_template_wording(
     let identity = match entry {
         "spoken/brief-template" => "spoken/brief@1",
         "spoken/expanded-template" => "spoken/expanded@1",
+        "spoken/control-template" => "spoken/control@1",
         _ => return Err(SpokenTemplateRefusal::Source),
     };
     let checked = check_syntax_document(
@@ -148,7 +150,11 @@ pub(crate) fn expected_spoken_template_wording(
     };
     let program = PortableExpressionProgram::from_canonical_hex(encoded)
         .map_err(|_| SpokenTemplateRefusal::Shape)?;
-    let slots = prepare_spoken_template_slots(face, &[])?;
+    let slots = if entry == "spoken/control-template" {
+        prepare_spoken_control_slots(face, &[])?
+    } else {
+        prepare_spoken_template_slots(face, &[])?
+    };
     render_program(&program, identity, face, &slots)
 }
 
@@ -158,6 +164,9 @@ fn render_program(
     face: &Face,
     slots: &SpokenTemplateSlots,
 ) -> Result<(Vec<String>, String), SpokenTemplateRefusal> {
+    if slots.control != (expected_identity == "spoken/control@1") {
+        return Err(SpokenTemplateRefusal::Selection);
+    }
     if slots.face_id != face.identity.as_str() || slots.revision != face.revision {
         return Err(SpokenTemplateRefusal::StaleFace);
     }

@@ -406,12 +406,22 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                         object.insert("effect_kind".into(), "audio-capture".into());
                     }
                     BrowserHostEffect::PcmPlayback { frame } => {
-                        object.insert("effect_kind".into(), "pcm-playback".into());
+                        object.insert(
+                            "effect_kind".into(),
+                            if frame.is_some() {
+                                "pcm-playback"
+                            } else {
+                                "pcm-playback-drain"
+                            }
+                            .into(),
+                        );
                         object.insert(
                             "maximum_gain_millionths".into(),
                             crate::installed_browser::audio_io::MAXIMUM_SAFE_GAIN_MILLIONTHS.into(),
                         );
-                        object.insert("frame_hex".into(), hex_bytes(frame).into());
+                        if let Some(frame) = frame {
+                            object.insert("frame_hex".into(), hex_bytes(frame).into());
+                        }
                     }
                     BrowserHostEffect::PitchTone { hertz } => {
                         object.insert("effect_kind".into(), "pitch-tone".into());
