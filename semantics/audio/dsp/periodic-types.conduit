@@ -1,0 +1,117 @@
+# Amplitude is relative to this same unscaled cubic pulse profile, not SPL.
+type AudioPeriodicReference =
+    unscaled_cubic_flow
+
+type AudioPeriodicRequest = {
+    basis: AudioSampleRateBasis
+    frequency: AudioFrequencyControl
+    phase: AudioPhaseReference
+    amplitude: AudioRelativeAmplitude
+    reference: AudioPeriodicReference
+    frames: U32 in 1..=65536
+    where .frames >= 1 && .frames <= 65536
+    where .frequency.value.numerator_hz > 0 && .frequency.value.denominator > 0
+    where .phase.denominator > 0 && .phase.at.denominator > 0
+    where .amplitude.denominator > 0
+    where .basis.sample_rate_hz >= 8000 && .basis.sample_rate_hz <= 192000
+    where .basis.anchor == .frequency.anchor
+    where .phase.anchor == .frequency.anchor
+}
+# Exact wide arithmetic precedes admission to the finite realization profile.
+# The largest product is U64_MAX * 192000 * 256, safely inside signed I128.
+type AudioPeriodicProjection = {
+    request: AudioPeriodicRequest
+    period_q8: I128
+    period_remainder: I128
+    amplitude_q15: I128
+    amplitude_remainder: I128
+    where .period_q8 == value/i128(.request.frequency.value.denominator) * value/i128(.request.basis.sample_rate_hz) * 256 / value/i128(.request.frequency.value.numerator_hz)
+    where .period_remainder == (value/i128(.request.frequency.value.denominator) * value/i128(.request.basis.sample_rate_hz) * 256) % value/i128(.request.frequency.value.numerator_hz)
+    where .amplitude_q15 == value/i128(.request.amplitude.numerator) * 32768 / value/i128(.request.amplitude.denominator)
+    where .amplitude_remainder == (value/i128(.request.amplitude.numerator) * 32768) % value/i128(.request.amplitude.denominator)
+}
+type AudioPeriodicProfile = {
+    projection: AudioPeriodicProjection
+    where .projection.period_q8 >= 2048 && .projection.period_q8 <= 131072
+    where .projection.amplitude_q15 >= 0 && .projection.amplitude_q15 <= 65536
+    where value/i128(.projection.request.amplitude.numerator) <= value/i128(.projection.request.amplitude.denominator) * 2
+}
+# Phase normalization is realization only: whole authored turns remain in request.
+# Cursor laws prevent phase jumps and budget changes after a canonical reload.
+type AudioPeriodicCursor = {
+    profile: AudioPeriodicProfile
+    initial_phase_q8: I128
+    phase_remainder: I128
+    phase_q8: I128
+    emitted: U32 in 0..=65536
+    remaining: U32 in 0..=65536
+    where .initial_phase_q8 == (((value/i128(.profile.projection.request.phase.numerator_turns) % value/i128(.profile.projection.request.phase.denominator) + value/i128(.profile.projection.request.phase.denominator)) % value/i128(.profile.projection.request.phase.denominator)) * .profile.projection.period_q8) / value/i128(.profile.projection.request.phase.denominator)
+    where .phase_remainder == (((value/i128(.profile.projection.request.phase.numerator_turns) % value/i128(.profile.projection.request.phase.denominator) + value/i128(.profile.projection.request.phase.denominator)) % value/i128(.profile.projection.request.phase.denominator)) * .profile.projection.period_q8) % value/i128(.profile.projection.request.phase.denominator)
+    where .phase_q8 == (.initial_phase_q8 + value/i128(.emitted) * 256) % .profile.projection.period_q8
+    where value/i128(.emitted) + value/i128(.remaining) == value/i128(.profile.projection.request.frames)
+}
+# Candidate carriers are checked by Source before use; they claim no refinement.
+type AudioPeriodicProjectionCandidate = {
+    request: AudioPeriodicRequest
+    period_q8: I128
+    period_remainder: I128
+    amplitude_q15: I128
+    amplitude_remainder: I128
+}
+type AudioPeriodicProfileCandidate = {
+    projection: AudioPeriodicProjectionCandidate
+}
+type AudioPeriodicCursorCandidate = {
+    profile: AudioPeriodicProfileCandidate
+    initial_phase_q8: I128
+    phase_remainder: I128
+    phase_q8: I128
+    emitted: U32
+    remaining: U32
+}
+type AudioPeriodicStartOutcome =
+    started AudioPeriodicCursorCandidate
+    | invalid_request
+    | invalid_projection
+    | unsupported_frequency
+    | unsupported_amplitude
+
+type AudioPeriodicStepInput = {
+    cursor: AudioPeriodicCursorCandidate
+    cancelled: Boolean
+}
+type AudioPeriodicCheckedStep = {
+    value: AudioPeriodicStepInput
+    valid: Boolean
+}
+type AudioPeriodicPulse = {
+    phase_q8: I128
+    open_q8: I128
+}
+type AudioPeriodicCarry = {
+    source: AudioPeriodicPulse
+    context: AudioPeriodicCheckedStep
+}
+type AudioPeriodicPhase = {
+    input: AudioPeriodicCarry
+    current: I128
+    previous: I128
+}
+type AudioPeriodicFlow = {
+    input: AudioPeriodicCarry
+    current: I128
+    previous: I128
+}
+type AudioPeriodicAdvanced = {
+    cursor: AudioPeriodicCursor
+    sample: I128 in -32768..=32767
+}
+type AudioPeriodicAdvancedCandidate = {
+    cursor: AudioPeriodicCursorCandidate
+    sample: I128
+}
+type AudioPeriodicOutcome =
+    advanced AudioPeriodicAdvancedCandidate
+    | invalid_cursor
+    | exhausted AudioPeriodicCursorCandidate
+    | cancelled AudioPeriodicCursorCandidate
