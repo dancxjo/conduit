@@ -72,6 +72,13 @@ mod generated {
     }
 }
 pub use generated::{
+    LookFacetAvailability, LookFacetRequest, LookGenerativeFacetInfo, LookGenerativeFacetOption,
+    LookGenerativeRegister, LookInfo, LookSpokenDelivery, LookSpokenFacetInfo,
+    LookSpokenFacetOption, LookVerbosity, LookVisualFacetInfo, LookVisualFacetOption,
+    LookVisualTokensInfo,
+};
+
+pub use generated::{
     ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
     ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
     ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity,
@@ -110,7 +117,6 @@ pub use generated::{
 };
 
 mod application_event;
-mod application_theme;
 mod application_view;
 mod aural;
 mod bitmap;
@@ -142,6 +148,8 @@ mod interaction_ledger;
 mod layout;
 mod linear;
 mod linear_navigation;
+mod look;
+mod look_selection;
 mod manifestation;
 mod manifestation_set;
 #[cfg(feature = "plot-catalog")]
@@ -177,7 +185,6 @@ mod temporal_wording;
 mod visual_expression;
 
 pub use application_event::*;
-pub use application_theme::*;
 pub use application_view::*;
 pub use aural::*;
 pub use bitmap::*;
@@ -204,6 +211,8 @@ pub use interaction_ledger::*;
 pub use layout::*;
 pub use linear::*;
 pub use linear_navigation::*;
+pub use look::*;
+pub use look_selection::*;
 pub use manifestation::*;
 pub use manifestation_set::*;
 #[cfg(feature = "plot-catalog")]
