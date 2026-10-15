@@ -123,3 +123,6 @@ pub use generated::{
 };
 
 mod time_analysis_native;
+
+mod time_analysis_encoding;
+pub use time_analysis_encoding::*;

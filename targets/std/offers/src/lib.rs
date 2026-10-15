@@ -290,6 +290,7 @@ pub fn supported_nucleus_offers() -> Vec<CapabilityOffer> {
         math_deadband_offer(),
         quantity_map_offer(),
         distance_frequency_map_offer(),
+        audio_time_analysis_offer(),
         quantity_info_offer(),
         layout_viewport_offer(),
         layout_inset_offer(),
@@ -604,3 +605,6 @@ mod tests {
         );
     }
 }
+
+mod audio_time_analysis;
+pub use audio_time_analysis::*;
