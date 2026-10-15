@@ -284,7 +284,10 @@ pub fn prepare_linear_model(
         }
     }
     let mut coefficients = [0_f32; 6];
-    for (value, bytes) in coefficients.iter_mut().zip(model.bytes().chunks_exact(4)) {
+    for (value, bytes) in coefficients
+        .iter_mut()
+        .zip(model.bytes().as_chunks::<4>().0)
+    {
         *value = f32::from_le_bytes(bytes.try_into().expect("four-byte chunk"));
         if !value.is_finite() {
             return Err("non-finite reference-linear coefficient".into());
