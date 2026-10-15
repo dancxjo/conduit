@@ -1,6 +1,6 @@
 {
   "issue": 5677,
-  "state": "LOCAL DEVELOPMENT PROOF PASS; accepted dependency refresh/CI/merge pending; no PR",
+  "state": "LOCAL DEVELOPMENT PROOF PASS, refreshed onto accepted dependencies; PR candidate CI/merge pending",
   "source": "7e0774f69fcfaee9195882ef779b2101cc24395d",
   "accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3",
   "tests": {
@@ -223,5 +223,158 @@
   "pending": [
     "refresh onto accepted5676 dependency while retaining both shared Source imports",
     "CI candidate and accepted-file verification before issue closure"
-  ]
+  ],
+  "accepted_dependency_refresh": {
+    "source": "45b172d6ffdb861c73f7c7332dde4b33bb9aa5ea",
+    "accepted_dependency_base": "ddfd0b3795391c7ad7431180efcede3d759cd6c5",
+    "tests": 76,
+    "runtime_tests": 69,
+    "graph_tests": 7,
+    "checks": [
+      {
+        "path": "work/resonator-accepted-dependencies-source-tests.log",
+        "sha256": "d366ba61378ebf3fee031b22b9c293496e0321ac78261127b446442c34687110",
+        "tests": 8,
+        "state": "PASS"
+      },
+      {
+        "path": "work/resonator-accepted-dependencies-normal-tests.log",
+        "sha256": "5185db2b19cef66b9c05dad299969e2480afdd7d2fc56cc79fc917874e7b41d0",
+        "tests": 1,
+        "state": "PASS"
+      },
+      {
+        "path": "work/resonator-accepted-dependencies-speech-tests.log",
+        "sha256": "4a09d94bd2abdc5f2ca7dda903ab40d50f711b023f2f278da265b4c2ce2351e8",
+        "tests": 60,
+        "state": "PASS"
+      },
+      {
+        "path": "work/resonator-accepted-dependencies-graph-tests.log",
+        "sha256": "9d72d4e386d92b44648a7e89da17204dd2188eb7203c8c4396b17ad57a35f7d3",
+        "tests": 7,
+        "state": "PASS"
+      },
+      {
+        "path": "work/resonator-accepted-dependencies-clippy.log",
+        "sha256": "f652a67d6cc010d49efe4c78434fab76b52680089175c36a55408fb793e7c765",
+        "tests": 0,
+        "state": "PASS"
+      },
+      {
+        "path": "work/resonator-accepted-dependencies-format.log",
+        "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "tests": 0,
+        "state": "PASS"
+      }
+    ],
+    "tested_files": [
+      {
+        "path": "architecture/plot/tests/common/resonator.rs",
+        "sha256": "7001eff2bea5490fdfc02487d55ce25951990d9b59b08c708564a2c4ccb192f5",
+        "blob": "a6f147db38b67a7db7dc691d4f3c6b2133eda56e"
+      },
+      {
+        "path": "architecture/plot/tests/resonator_projection.rs",
+        "sha256": "68d9b4508c0b19868fb469318e7292c328026d301411340737bb0457422b8aba",
+        "blob": "1a6667f5218d13ab194eea4d7fe1241363704010"
+      },
+      {
+        "path": "architecture/plot/tests/resonator_recurrence.rs",
+        "sha256": "6b55db26e603366f43d1f2c7c6a54d01a570bfb1572573fd2c216f273b29cbf9",
+        "blob": "1335e584a5c111b922b742f7c99a13334549a8af"
+      },
+      {
+        "path": "architecture/plot/tests/resonator_state.rs",
+        "sha256": "3e84de884aafc2ad7e9ab523751bb256640755cca0df138f75e95430a768f3b4",
+        "blob": "55860aff549c1dfe1dd8c732cd65979c3ecd72d1"
+      },
+      {
+        "path": "semantics/audio/dsp/resonator-projection.conduit",
+        "sha256": "962ba86755f42f93d840159c6f422e3adc318723f97a64b68456bf99a6c273d0",
+        "blob": "91f31e700c374448fc42299d3c385227b893d5e6"
+      },
+      {
+        "path": "semantics/audio/dsp/resonator-recurrence.conduit",
+        "sha256": "2d3707f326e049dba27188f7bf2b38a37c1ad604a890d3d3cb3c01a564921486",
+        "blob": "2eaa1cecbe05153c970cf798dd376ff016881822"
+      },
+      {
+        "path": "semantics/audio/dsp/resonator-types.conduit",
+        "sha256": "07b40bbacab720b03282c2079d0b089c0ab465ef508ce3778f7040cee9d1bf8b",
+        "blob": "18d6d85af9e28c07e8a99170e8770504998b40be"
+      },
+      {
+        "path": "semantics/audio/dsp/resonator.conduit",
+        "sha256": "014c88828ac43afb558d5327f2c2b8b1faa626e4a3878a7e1656109f738c69cb",
+        "blob": "bd834d185e9c637e9830ed5844c333c3faf079e8"
+      },
+      {
+        "path": "semantics/audio/src/lib.rs",
+        "sha256": "f9e824e8a2a69796cf450bcfeb2ad97bf6bbfdbeb9c07f6acd6a8eb14967292b",
+        "blob": "d8ad243b5a2f3ca90cdcf3b1be6442b4e507742b"
+      },
+      {
+        "path": "semantics/speech/build.rs",
+        "sha256": "baeddf1732d4a58c1f3da92ea2dcb81acea8c5a3deda461002142d6e90e608e6",
+        "blob": "b06fac95a3a89eb56d3c2a066286240bb77e336a"
+      },
+      {
+        "path": "semantics/speech/build_support/graph.rs",
+        "sha256": "5532d9b3d952eed168a12a0f511d4f23f1ad5a4672f8d18165c764d2feee1356",
+        "blob": "b3f70d9c0ddb9faeb973336953e42cd778d399bf"
+      },
+      {
+        "path": "semantics/speech/src/connection_parity.rs",
+        "sha256": "92e49540fb56a82747b992d3c48a8740d0e2f1dd0b011d63fd9e6305b10b6ee8",
+        "blob": "497dc4d035331aaaa23e65f780834770c5791dcb"
+      },
+      {
+        "path": "semantics/speech/src/differential.rs",
+        "sha256": "03d04df0f1df015edce718575b55ab223e3ecc0b9ce173a7b46b845a66f2bb23",
+        "blob": "5f0751decc7db256915f775d64dfaca5d6765ce7"
+      },
+      {
+        "path": "semantics/speech/src/frame_parity.rs",
+        "sha256": "d2bc85ad6576460572b2d880ac68b32d3bf8abd9fd1b371909e9265f1e51b7ce",
+        "blob": "dabb89f25f7084dc77d4e8c80cfd48bf1d6699e2"
+      },
+      {
+        "path": "semantics/speech/src/onset_parity.rs",
+        "sha256": "cafce8a253e8e89f16c22618cb16048e0159466e569d582e2631aca348039b0f",
+        "blob": "91744699394e5f9ff142b718f489efe2a1992232"
+      },
+      {
+        "path": "semantics/speech/src/prosody_parity.rs",
+        "sha256": "89ae049a0a6b13d342c3d49bce63994bc207308db4d9da93661c8be25adac83e",
+        "blob": "7181e3dc2e302d29ab38759e5d577d3482ceac10"
+      },
+      {
+        "path": "semantics/speech/src/resonator_reference.rs",
+        "sha256": "ce09027f02082ee52b5324a32741ea8655ab881c3fcad4f80197f94721b4ad29",
+        "blob": "946751c0869970f5811ec6ff1b8690fcbc4f067b"
+      },
+      {
+        "path": "semantics/speech/src/trajectory_parity.rs",
+        "sha256": "85e86e1c6d9e62c03fa1823eb8fdbe5ec965d488587a185bb1be598f102de9a5",
+        "blob": "507f68057b89ac7eb9ae7a6ad69f3bfcd08f6547"
+      },
+      {
+        "path": "semantics/speech/tests/graph_admission.rs",
+        "sha256": "c0769e57c75f09d1b9dc934f936eb73135884f6ce6e028098274656938482698",
+        "blob": "1773b29ec1deb4fc9b12fd218832a6066e279d9e"
+      },
+      {
+        "path": "semantics/speech/voice.conduit",
+        "sha256": "3aa4182a692b9a215d6074a6dd3c9d54ab7d2cd68fed7ca0c03552649a20cd9a",
+        "blob": "27d6223250aad1bce77ab5e5ea7ffbefa7fecec3"
+      },
+      {
+        "path": "targets/std/tests/resonator.rs",
+        "sha256": "d9de6f13a066d158b5256d341f5196022b913eb5e1781ab3513ede34259bfeeb",
+        "blob": "ada150bdd99a1d3709c10f4227a143d1e289e9b9"
+      }
+    ],
+    "scope": "Same resonator profile plus accepted oscillator and typed Angle dependencies; Speech Source includes both shared cubic-flow and recurrence definitions. CI and merge remain separate gates."
+  }
 }
