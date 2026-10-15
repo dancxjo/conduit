@@ -64,6 +64,7 @@ pub(super) fn catalogs(
     )?;
     conduit_data::install_measurement_plot_source_catalog(&mut startup, &mut profile)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profile)?;
+    conduit_semantic_catalog::install_print_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_typed_record_catalogs(&mut startup, &mut profile)?;
     conduit_net::install_ordered_record_queue_catalog(&mut startup, &mut profile)?;
