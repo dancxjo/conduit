@@ -186,8 +186,12 @@ fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
     let adapter =
         prepare_linear_model(model(signature), offer(), runtime("linear"), requirement()).unwrap();
     let mut host = StdHost::new_with_model_work(
-        StdHostConfig::default(),
-        StdHostComposition::default(),
+        StdHostConfig {
+            host_id: "model-infer-host".into(),
+            boot_id: "model-infer-boot".into(),
+            offer_generation: OfferGeneration(1),
+        },
+        StdHostComposition::minimal(),
         Box::new(adapter),
     )
     .unwrap();
