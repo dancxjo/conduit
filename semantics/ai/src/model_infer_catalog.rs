@@ -153,10 +153,10 @@ pub fn model_infer_contract() -> Result<Kind, String> {
         }],
         semantic_laws: vec![
             KindSemanticLaw::ValueContracts(contracts),
-            KindSemanticLaw::RealizationRequirement {
+            KindSemanticLaw::ExactRealizationProperty(ExactRealizationProperty {
                 property_profile: signature_profile,
                 configuration_key: "signature".into(),
-            },
+            }),
         ],
         limits: CapabilityLimits {
             max_active_instances: 1,

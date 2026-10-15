@@ -66,6 +66,11 @@ pub(super) fn push_semantic_contract(
     push_u32(canonical, contract.laws.len() as u32);
     for law in &contract.laws {
         match law {
+            Law::ExactRealizationProperty(value) => {
+                canonical.push(19);
+                push_string(canonical, value.property_profile.as_str());
+                push_string(canonical, &value.configuration_key);
+            }
             Law::RealizationRequirement {
                 property_profile,
                 configuration_key,

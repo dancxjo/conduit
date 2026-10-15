@@ -16,6 +16,7 @@ pub fn semantic_work_facts(kind: &Kind) -> Result<PureExpressionFacts, PureExpre
     for law in &kind.semantic_laws {
         match law {
             KindSemanticLaw::RealizationRequirement { .. } => {}
+            KindSemanticLaw::ExactRealizationProperty(_) => {}
             KindSemanticLaw::Terminal(_) => {}
             KindSemanticLaw::TerminalTransduction(_) => {}
             KindSemanticLaw::ResourcePorts(_) => {}
