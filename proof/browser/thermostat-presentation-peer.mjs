@@ -66,6 +66,12 @@ export async function startPresentationPeer(state, invitation, cwd, output) {
       return { terminal: lines('Peer terminal evidence ').at(-1),
         spoken: spoken ? lines('Peer spoken evidence ').at(-1) : null };
     },
+    frame() {
+      const start = stdout.lastIndexOf('\x1b[2J\x1b[H');
+      const end = stdout.indexOf('\nTerminal ready.', start);
+      assert.ok(start >= 0 && end > start, 'current acknowledged terminal frame is absent');
+      return stdout.slice(start, end);
+    },
     actions: () => lines('Peer terminal action '),
     async close() {
       send('quit');

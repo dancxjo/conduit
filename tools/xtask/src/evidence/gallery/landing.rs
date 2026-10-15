@@ -91,7 +91,7 @@ pub(super) fn write_root_index(
         ""
     };
     let thermostat = if root.join("current/thermostat/index.html").is_file() {
-        "<article class=\"journey-card\"><p class=\"eyebrow\">One thermostat Body · browser and terminal</p><h2>Control one thermostat across Masks</h2><p>Adjust a temperature request in the browser, change it from a terminal, then return to the same Body. The captured page explains session resets and the unavailable audio route.</p><a href=\"current/thermostat/\">Follow the Thermostat journey</a></article>"
+        "<article class=\"journey-card\"><p class=\"eyebrow\">One thermostat Body · browser, terminal and spoken</p><h2>Control one thermostat across Masks</h2><p>Adjust a temperature request in the browser, change it from a terminal, then return to the same Body. Hear the recorded settings, then see how Lull and a new Play reset session settings. Sensor and equipment limits stay explicit.</p><a href=\"current/thermostat/\">Follow the Thermostat journey</a></article>"
     } else {
         ""
     };

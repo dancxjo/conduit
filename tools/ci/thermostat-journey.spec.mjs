@@ -21,14 +21,17 @@ function packet() {
   wav.writeUInt32LE(192000, 28); wav.writeUInt16LE(4, 32); wav.writeUInt16LE(16, 34);
   wav.write('data', 36); wav.writeUInt32LE(4, 40);
   const words = Buffer.from('Settings.');
+  const terminalFrame = index => Buffer.from(`\x1b[2J\x1b[HTarget temperature: ${['21', '22.5', '18'][index]} °C\n`);
   const frameFile = { frame_index: 0, path: 'capture/spoken-00.wav', bytes: wav.length, sha256: hash(wav) };
   const receipt = { schema: 'conduit.proof/thermostat-owner-browser@2', owner_source_commit: 'a'.repeat(40),
     browser_runtime_source_commit: 'a'.repeat(40), handbook_ui_source_commit: 'a'.repeat(40), handbook_ui_source_clean: true,
     source_relation: 'exact-source', owner_host_id: 'host/owner', presentation_peer_host_id: 'host/peer', browser_host_id: 'host/browser',
     body_id: 'body/test', body_plan_id: 'plan/test', body_play_id: 'play/test', physical_sensor_or_equipment: false,
     revisions: [observation('21 °C')], stale_show: { accepted: false }, journey: {
-      terminal_evidence: Array.from({ length: 2 }, () => ({ body_id: 'body/test', host_id: 'host/peer', face_id: 'face/test', show_state: 'available', owner_selected_show_current: true })),
-      terminal_before: { face: { identity: 'face/test' } }, before_terminal: observation('22.5 °C'), terminal_stale: { accepted: false, code: 'stale-face-or-show', before: { face: { properties: [] } }, after: { face: { properties: [] } } },
+      terminal_evidence: Array.from({ length: 3 }, (_, index) => ({ schema: 'conduit.body/terminal-show-evidence@1', body_id: 'body/test', host_id: 'host/peer', boot_id: 'boot/test', face_id: 'face/test', show_state: 'available',
+        show_id: `show/test/${index}`, route_plan_id: `route/test/${index}`, mask_plan_id: `mask/plan/${index}`, mask_play_id: `mask/play/${index}`,
+        bytes_written: terminalFrame(index).length, frame_sha256: [...createHash('sha256').update(terminalFrame(index)).digest()], show_sha256: [...createHash('sha256').update(`show/test/${index}`).digest()] })),
+      terminal_before: { face: { identity: 'face/test' } }, before_terminal: observation('22.5 °C'), terminal_stale: { accepted: false, code: 'stale-face-or-show', before: { face: { properties: [] } }, after: { face: { identity: 'face/test', properties: [] } } },
       browser_stale: { accepted: false, before: { face: { properties: [] } }, after: { face: { properties: [] } } }, terminal_actions: [{ accepted: false }, { accepted: true }, { accepted: true }],
       after_peer_closed: { biography: { body_id: 'body/test' }, realization: { plan: { plan_id: 'plan/test' }, play: { active_play_id: 'play/test' } } }, after_terminal: observation('18 °C'),
       speech: { before: { face: { identity: 'face/test', properties: [] } }, after: { face: { identity: 'face/test', properties: [] } }, accepted: true, speaker_delivery: false, human_listening: false,
@@ -52,6 +55,12 @@ function packet() {
   ]);
   const manifest = { schema: 'conduit.thermostat-journey/capture@2', result: 'browser-terminal-spoken-complete',
     source_commit: 'a'.repeat(40), capture_tool_commit: 'a'.repeat(40), capture_tool_dirty: false, source_relation: 'exact-source', body_id: 'body/test', body_plan_id: 'plan/test', body_play_id: 'play/test', files: [] };
+  function rebuildTerminal() {
+    files.set('terminal.txt', Buffer.concat(receipt.journey.terminal_evidence.map((evidence, index) => Buffer.concat([
+      terminalFrame(index), Buffer.from('\nTerminal ready.\nPeer terminal evidence ' + JSON.stringify(evidence) + '\n'),
+    ]))));
+  }
+  rebuildTerminal();
   function seal() {
     files.set('receipt.json', Buffer.from(JSON.stringify(receipt)));
     manifest.files = [...files].map(([name, bytes]) => {
@@ -61,13 +70,25 @@ function packet() {
     writeFileSync(path.join(root, 'manifest.json'), JSON.stringify(manifest));
   }
   seal();
-  return { root, receipt, manifest, files, seal };
+  return { root, receipt, manifest, files, seal, rebuildTerminal };
 }
 for (const [name, mutate, expected] of [
   ['changed Body in a re-sealed observation', p => { p.receipt.revisions[0].view.body_id = 'body/other'; }, /changed Body or Play/],
   ['changed original Play', p => { p.receipt.revisions[0].retained_body_execution.active_play_id = 'play/other'; }, /changed Body or Play/],
   ['same Play claimed after Lull', p => { p.receipt.journey.restarted.status.realization.play.active_play_id = 'play/test'; }, /lifecycle/],
   ['accepted stale action', p => { p.receipt.journey.terminal_stale.accepted = true; }, /stale-Show/],
+  ['forged terminal Show digest in resealed transcript', p => { p.receipt.journey.terminal_evidence[0].show_sha256[0] ^= 1; p.rebuildTerminal(); }, /terminal Show digest/],
+  ['forged terminal frame digest in resealed transcript', p => { p.receipt.journey.terminal_evidence[0].frame_sha256[0] ^= 1; p.rebuildTerminal(); }, /terminal frame digest/],
+  ['legacy owner flag without peer receipts', p => { delete p.receipt.journey.terminal_evidence[0].frame_sha256; p.receipt.journey.terminal_evidence[0].owner_selected_show_current = true; p.rebuildTerminal(); }, /terminal frame digest/],
+  ['missing terminal owner acknowledgement', p => { p.files.set('terminal.txt', Buffer.from(p.files.get('terminal.txt').toString().replace('Terminal ready.', 'Not acknowledged.'))); }, /terminal owner acknowledgement/],
+  ['wrong typed target with resealed frame and receipt', p => {
+    const report = p.receipt.journey.terminal_evidence[1];
+    const prior = JSON.stringify(report);
+    const frame = Buffer.from('\x1b[2J\x1b[HTarget temperature: 21.5 °C\n');
+    report.frame_sha256 = [...createHash('sha256').update(frame).digest()];
+    const text = p.files.get('terminal.txt').toString().replace('Target temperature: 22.5 °C', 'Target temperature: 21.5 °C').replace(prior, JSON.stringify(report));
+    p.files.set('terminal.txt', Buffer.from(text));
+  }, /terminal typed target readback/],
   ['missing speech', p => { p.receipt.journey.speech.accepted = false; }, /spoken encounter/],
   ['wrong spoken Host', p => { p.receipt.journey.speech.evidence.execution.frames[0].host_id = 'host/other'; }, /strictly equal/],
   ['wrong spoken Show', p => { p.receipt.journey.speech.evidence.execution.frames[0].source_show_id = 'show/other'; }, /strictly equal/],
