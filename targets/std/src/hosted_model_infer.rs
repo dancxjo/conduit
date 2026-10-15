@@ -159,13 +159,17 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         if self.cancelled {
             return ModelWorkTerminal::Cancelled;
         }
+        let [configuration] = placement.configuration.as_slice() else {
+            return ModelWorkTerminal::Refused;
+        };
+        let ConfigurationValue::Structured(signature) = &configuration.value else {
+            return ModelWorkTerminal::Refused;
+        };
         if placement.capability_id != self.capability.capability_id
             || placement.artifact_id != self.capability.implementation.artifact_id
             || placement.implementation_id.as_str() != MODEL_INFER_IMPLEMENTATION
-            || conduit_ai::model_infer_catalog::configured_model_signature(&placement.configuration)
-                .ok()
-                .as_ref()
-                != Some(self.model.signature())
+            || configuration.key != "signature"
+            || self.capability.realization_properties.first() != Some(signature)
         {
             return ModelWorkTerminal::Refused;
         }

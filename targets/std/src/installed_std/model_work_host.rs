@@ -49,10 +49,11 @@ pub(super) fn execute(
     adapter: Option<&mut dyn HostedModelWorkAdapter>,
     output: &mut Vec<u8>,
 ) -> Result<Completion, String> {
-    if placement.implementation_id.as_str() == crate::hosted_model_infer::MODEL_INFER_IMPLEMENTATION
+    // Inference's complete Kind/schema is validated by its Back factory before
+    // Play. Compare the retained offer here; rebuilding its Native schema per
+    // call would allocate during execution without adding a new authority check.
+    if placement.implementation_id.as_str() != crate::hosted_model_infer::MODEL_INFER_IMPLEMENTATION
     {
-        super::model_infer_back::validate(placement)?;
-    } else {
         super::model_work_back::validate(placement)?;
     }
     let Some(adapter) = adapter else {
@@ -61,6 +62,11 @@ pub(super) fn execute(
     let offer = adapter.capability_offer();
     if offer.capability_id != placement.capability_id
         || offer.kind_id != placement.kind_id
+        || offer.kind_contract_revision != placement.kind_contract_revision
+        || offer.inputs != placement.inputs
+        || offer.outputs != placement.outputs
+        || offer.host_calls != placement.host_calls
+        || offer.limits != placement.limits
         || offer.implementation.implementation_id != placement.implementation_id
         || offer.implementation.artifact_id != placement.artifact_id
         || offer.implementation.execution_profile_id != placement.execution_profile_id
