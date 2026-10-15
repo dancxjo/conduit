@@ -248,8 +248,8 @@ fn sample(nodes: usize, trial: usize, print: bool) {
     }
 }
 #[test]
-fn checked_pipeline_has_exact_one_eight_thirty_two_gears_and_outputs() {
-    for n in [1, 8, 32] {
+fn checked_pipeline_has_exact_one_three_eight_thirty_two_gears_and_outputs() {
+    for n in [1, 3, 8, 32] {
         sample(n, 0, false);
     }
 }
@@ -257,7 +257,7 @@ fn checked_pipeline_has_exact_one_eight_thirty_two_gears_and_outputs() {
 #[ignore = "manual optimized phase samples; report only, no latency threshold"]
 fn measure_cold_and_warm_pipeline_phases() {
     for trial in 0..8 {
-        for nodes in [1, 8, 32] {
+        for nodes in [1, 3, 8, 32] {
             sample(nodes, trial, true);
         }
     }
