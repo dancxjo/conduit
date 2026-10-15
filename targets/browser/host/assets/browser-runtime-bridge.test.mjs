@@ -6,7 +6,7 @@ const ABI = new TextEncoder().encode("conduit.browser/runtime-abi");
 
 function runtime({ revision = 1, identity = ABI, inputCapacity = 64, inputPointer = 0, outputCapacity = 1024, outputPointer = 0 } = {}) {
   const extent = (pointer, capacity) => Number.isSafeInteger(pointer) && Number.isSafeInteger(capacity)
-    && pointer >= 0 && capacity >= 0 && pointer + capacity <= 16 * 1024 * 1024
+    && pointer >= 0 && capacity >= 0 && pointer + capacity <= 64 * 1024 * 1024
     ? pointer + capacity : 0;
   const requiredBytes = Math.max(1024 + identity.length, extent(inputPointer, inputCapacity), extent(outputPointer, outputCapacity));
   const memory = new WebAssembly.Memory({ initial: Math.ceil(requiredBytes / (64 * 1024)) });
@@ -231,9 +231,9 @@ test("workspace binary request preserves opaque non-UTF-8 output", () => {
 });
 
 test("workspace request admits a bounded whole-Body snapshot larger than one operation", () => {
-  const outputCapacity = 16 * 128 * 1024 + 256 * 1024;
+  const outputCapacity = 16 * 2 * 1024 * 1024 + 256 * 1024;
   const api = runtime({ outputCapacity });
-  const expected = { schema: "conduit.workspace/proof@1", retained: "x".repeat(256 * 1024) };
+  const expected = { schema: "conduit.workspace/proof@1", retained: "x".repeat(2 * 1024 * 1024 + 256 * 1024) };
   api.conduit_workspace_request = () => {
     api.setWorkspaceOutput(new TextEncoder().encode(JSON.stringify(expected)));
     return 0;

@@ -13,7 +13,7 @@ const PLOT_OUTPUT_MAX = 1024 * 1024;
 // Part in addition to its ordinary state. Keep this fixed ceiling aligned with
 // the runtime's exported capacity instead of applying the smaller per-operation
 // ceiling to a whole-Body snapshot.
-const WORKSPACE_OUTPUT_MAX = 16 * 128 * 1024 + 256 * 1024;
+const WORKSPACE_OUTPUT_MAX = 16 * 2 * 1024 * 1024 + 256 * 1024;
 
 function exported(api, name, context) {
   const value = api?.[name];

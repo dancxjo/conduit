@@ -31,5 +31,5 @@ test("Workspace returns a retained Body to its Plots without a parallel applicat
   expect(returned.boot_id).not.toBe(first.boot_id);
   expect(returned.active_play_id).not.toBe(first.active_play_id);
   await returnedWorkspace.keyboard.press("r");
-  await expect(returnedWorkspace.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: r");
+  await expect(returnedWorkspace.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
 });

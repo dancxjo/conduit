@@ -101,7 +101,7 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.locator("#plot-input").focus();
   await page.keyboard.press("r");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: r");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
@@ -268,7 +268,7 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: a");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("a");
   expect((await current(page)).body_id).toBe(initial.body_id);
 });
 

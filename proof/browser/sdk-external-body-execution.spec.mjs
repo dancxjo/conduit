@@ -113,6 +113,9 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     await post(page, api("body-host-offer-evidence"), observed.offer);
     const requirements = await get(page, api("body-planning-requirements"));
     const executable = await page.evaluate(() => globalThis.__conduitSdkParticipation.executionCapabilities());
+    expect(executable).toHaveLength(121);
+    expect(executable).toContain("browser/kernel-saved-choice@1");
+    expect(executable).toContain("browser/webaudio-continuous-pcm@1");
     for (const identity of [
       "browser/exact-quantity-conversion@1", "browser/exact-temperature-difference-conversion@1",
       "browser/exact-quantity-comparison@1", "browser/exact-temperature-difference-comparison@1",

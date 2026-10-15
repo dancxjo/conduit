@@ -1,6 +1,6 @@
 import { acquireBrowserBodyHost } from "../../../targets/browser/host/assets/browser-body-host.mjs";
 
-export function openWorkspacePlay({ host, session, source, planningLines, inputTarget, outputRoot, foregroundPlot, onState,
+export function openWorkspacePlay({ host, session, storage, source, planningLines, inputTarget, outputRoot, foregroundPlot, onState,
   faceRootFor, onApplicationEvent,
   onTutorialPresenterRequest,
   prepareExternal = async () => null, acquireBody = acquireBrowserBodyHost }) {
@@ -40,7 +40,7 @@ export function openWorkspacePlay({ host, session, source, planningLines, inputT
         external = await prepareExternal(proposal);
         adapter = acquireBody({ api: host.runtime, hostId: host.hostId, bootId: host.bootId, proposal,
           inputTarget, outputRoot, foregroundPlot, faceRootFor, onApplicationEvent,
-          onTutorialPresenterRequest,
+          onTutorialPresenterRequest, storage,
           externallyManagedPlanIds: external ? [external.planId] : [] });
         started = adapter.start(1);
         await session.started(started);
