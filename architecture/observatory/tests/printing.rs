@@ -261,7 +261,7 @@ fn ordinary_snapshot_text_report_presents_typed_print_delivery_uncertainty() {
     let artifact = evidence(event);
     let (plan, advertisement) = arrangement();
     assert_eq!(Some(&plan), artifact.plan.as_ref());
-    let snapshot = ObservatorySnapshot {
+    let mut snapshot = ObservatorySnapshot {
         schema: SNAPSHOT_SCHEMA.into(),
         hosts: vec![HostReport {
             advertisement,
@@ -290,4 +290,13 @@ fn ordinary_snapshot_text_report_presents_typed_print_delivery_uncertainty() {
     assert!(text.contains("AcknowledgementUnknown"));
     assert!(text.contains("fixture/print-protocol@1"));
     assert_eq!(serde_json::to_vec(&snapshot).unwrap(), before);
+    snapshot.historical_observations = core::mem::take(&mut snapshot.observations);
+    let historical = render_text_report(&build_report(&snapshot).unwrap());
+    assert!(historical.contains("history=historical\nPrint: delivery uncertain"));
+    assert!(!historical.contains("history=current\nPrint:"));
+    // A generic terminal Sign supplies no printer acceptance or delivery evidence.
+    snapshot.historical_observations[0].kind = ObservationKind::PlanCompleted;
+    let report = build_report(&snapshot).unwrap();
+    assert!(report.print_events.is_empty());
+    assert!(render_text_report(&report).contains("PlanCompleted"));
 }
