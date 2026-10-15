@@ -328,3 +328,51 @@ fn preparation_refuses_ineligible_compute_and_output_below_signature_maximum() {
         "{error}"
     );
 }
+
+#[test]
+fn bounded_dynamic_output_must_fit_compute_admission_before_load() {
+    let tensor = ModelTensorConstraint::from_parts(
+        vec![TensorElement::F32],
+        vec![ModelAxisConstraint::new(
+            ModelDimensionConstraint::bounded(1, 4).unwrap(),
+            TensorAxisRole::Feature,
+        )
+        .unwrap()],
+        16,
+    )
+    .unwrap();
+    let port = |name: &str| {
+        ModelPortConstraint::from_parts(
+            name.into(),
+            "data/tensor@1".into(),
+            ModelPortPresence::Required,
+            ModelValueConstraint::tensor(tensor.clone()).unwrap(),
+        )
+        .unwrap()
+    };
+    let signature = ModelSignature::from_parts(
+        "test/dynamic-output@1".into(),
+        1,
+        vec![ModelOperation::Infer],
+        vec![port("input")],
+        vec![port("output")],
+    )
+    .unwrap();
+    let adapter = conduit_std_host::hosted_model_compute::ReferenceModelComputeAdapter::new(
+        offer(),
+        runtime("reference"),
+    )
+    .unwrap();
+    let error = conduit_std_host::hosted_model_infer::PreparedModelInfer::prepare(
+        model(signature),
+        adapter,
+        requirement(),
+        "adapter/reference/1".into(),
+    )
+    .err()
+    .expect("finite dynamic maxima must be covered before model load");
+    assert!(
+        error.contains("signature exceeds admitted tensor bytes"),
+        "{error}"
+    );
+}
