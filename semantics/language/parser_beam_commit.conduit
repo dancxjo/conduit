@@ -1,0 +1,71 @@
+# Four admitted hypotheses, with scores supplied as bounded proposals.
+# Source consensus and the stable frontier gate semantic commitment. Neither
+# cancellation nor pressure mutates any candidate or frontier.
+type LanguageParserBeamCommitRequest = {
+ beam: LanguageParserAdmittedBeam
+ frontier: LanguageParserRawFrontier
+ through: U64 in 0..=4
+ cancelled: Boolean
+ pressure: Boolean
+}
+type LanguageParserBeamCommitDecision = {
+ basis: LanguageParserBasis
+ beam: LanguageParserBeam
+ frontier: LanguageParserRawFrontier
+ through: U64
+ accepted: Boolean
+ refusal: LanguageParserFrontierRefusal
+}
+type LanguageParserBeamCommitResult = {
+ candidate0: LanguageParserRawHypothesis
+ candidate1: LanguageParserRawHypothesis
+ candidate2: LanguageParserRawHypothesis
+ candidate3: LanguageParserRawHypothesis
+ frontier: LanguageParserRawFrontier
+ accepted: Boolean
+ refusal: LanguageParserFrontierRefusal
+}
+# Representation adapter only: admitted inputs become raw proposals for the
+# unchanged checked policy. Raw intermediate values are not admitted facts.
+type LanguageParserRawBeamCommitRequest = {
+ basis: LanguageParserBasis
+ beam: LanguageParserBeam
+ frontier: LanguageParserRawFrontier
+ through: U64
+ cancelled: Boolean
+ pressure: Boolean
+}
+plot language-parser-beam-commit-proposal (
+ input: LanguageParserBeamCommitRequest...| <= 65536B >> output: LanguageParserRawBeamCommitRequest...|
+) = { basis: .beam.basis, beam: { candidate0: { state: { basis: .beam.candidate0.state.basis, token_count: .beam.candidate0.state.token_count, unread: .beam.candidate0.state.unread, depth: .beam.candidate0.state.depth, stack: .beam.candidate0.state.stack, heads: .beam.candidate0.state.heads, relation0: .beam.candidate0.state.relation0, relation1: .beam.candidate0.state.relation1, relation2: .beam.candidate0.state.relation2, relation3: .beam.candidate0.state.relation3, committed: .beam.candidate0.state.committed }, identity: .beam.candidate0.identity, score: .beam.candidate0.score, active: .beam.candidate0.active }, candidate1: { state: { basis: .beam.candidate1.state.basis, token_count: .beam.candidate1.state.token_count, unread: .beam.candidate1.state.unread, depth: .beam.candidate1.state.depth, stack: .beam.candidate1.state.stack, heads: .beam.candidate1.state.heads, relation0: .beam.candidate1.state.relation0, relation1: .beam.candidate1.state.relation1, relation2: .beam.candidate1.state.relation2, relation3: .beam.candidate1.state.relation3, committed: .beam.candidate1.state.committed }, identity: .beam.candidate1.identity, score: .beam.candidate1.score, active: .beam.candidate1.active }, candidate2: { state: { basis: .beam.candidate2.state.basis, token_count: .beam.candidate2.state.token_count, unread: .beam.candidate2.state.unread, depth: .beam.candidate2.state.depth, stack: .beam.candidate2.state.stack, heads: .beam.candidate2.state.heads, relation0: .beam.candidate2.state.relation0, relation1: .beam.candidate2.state.relation1, relation2: .beam.candidate2.state.relation2, relation3: .beam.candidate2.state.relation3, committed: .beam.candidate2.state.committed }, identity: .beam.candidate2.identity, score: .beam.candidate2.score, active: .beam.candidate2.active }, candidate3: { state: { basis: .beam.candidate3.state.basis, token_count: .beam.candidate3.state.token_count, unread: .beam.candidate3.state.unread, depth: .beam.candidate3.state.depth, stack: .beam.candidate3.state.stack, heads: .beam.candidate3.state.heads, relation0: .beam.candidate3.state.relation0, relation1: .beam.candidate3.state.relation1, relation2: .beam.candidate3.state.relation2, relation3: .beam.candidate3.state.relation3, committed: .beam.candidate3.state.committed }, identity: .beam.candidate3.identity, score: .beam.candidate3.score, active: .beam.candidate3.active } }, frontier: .frontier, through: .through, cancelled: .cancelled, pressure: .pressure }
+type LanguageParserBeamCommitCheck = {
+ request: LanguageParserRawBeamCommitRequest
+ frontier_valid: Boolean
+ agrees: Boolean
+}
+plot language-parser-beam-commit-start (
+ input: LanguageParserRawBeamCommitRequest...| >> output: LanguageParserBeamCommitCheck...|
+) = { request: ., frontier_valid: ((.frontier.stable <= 4 && (.frontier.committed <= .frontier.stable && (!.beam.candidate0.active || .frontier.stable <= .beam.candidate0.state.unread))) && ((!.beam.candidate1.active || .frontier.stable <= .beam.candidate1.state.unread) && ((!.beam.candidate2.active || .frontier.stable <= .beam.candidate2.state.unread) && (!.beam.candidate3.active || .frontier.stable <= .beam.candidate3.state.unread)))), agrees: .beam.candidate0.active }
+plot language-parser-beam-commit-check-0 (
+ input: LanguageParserBeamCommitCheck...| >> output: LanguageParserBeamCommitCheck...|
+) = { request: .request, frontier_valid: .frontier_valid, agrees: (.agrees && (.request.frontier.stable <= 0 || ((.request.beam.candidate0.state.heads.0 < 5 && (!.request.beam.candidate1.active || (.request.beam.candidate1.state.heads.0 == .request.beam.candidate0.state.heads.0 && .request.beam.candidate1.state.relation0 == .request.beam.candidate0.state.relation0))) && ((!.request.beam.candidate2.active || (.request.beam.candidate2.state.heads.0 == .request.beam.candidate0.state.heads.0 && .request.beam.candidate2.state.relation0 == .request.beam.candidate0.state.relation0)) && (!.request.beam.candidate3.active || (.request.beam.candidate3.state.heads.0 == .request.beam.candidate0.state.heads.0 && .request.beam.candidate3.state.relation0 == .request.beam.candidate0.state.relation0)))))) }
+plot language-parser-beam-commit-check-1 (
+ input: LanguageParserBeamCommitCheck...| >> output: LanguageParserBeamCommitCheck...|
+) = { request: .request, frontier_valid: .frontier_valid, agrees: (.agrees && (.request.frontier.stable <= 1 || ((.request.beam.candidate0.state.heads.1 < 5 && (!.request.beam.candidate1.active || (.request.beam.candidate1.state.heads.1 == .request.beam.candidate0.state.heads.1 && .request.beam.candidate1.state.relation1 == .request.beam.candidate0.state.relation1))) && ((!.request.beam.candidate2.active || (.request.beam.candidate2.state.heads.1 == .request.beam.candidate0.state.heads.1 && .request.beam.candidate2.state.relation1 == .request.beam.candidate0.state.relation1)) && (!.request.beam.candidate3.active || (.request.beam.candidate3.state.heads.1 == .request.beam.candidate0.state.heads.1 && .request.beam.candidate3.state.relation1 == .request.beam.candidate0.state.relation1)))))) }
+plot language-parser-beam-commit-check-2 (
+ input: LanguageParserBeamCommitCheck...| >> output: LanguageParserBeamCommitCheck...|
+) = { request: .request, frontier_valid: .frontier_valid, agrees: (.agrees && (.request.frontier.stable <= 2 || ((.request.beam.candidate0.state.heads.2 < 5 && (!.request.beam.candidate1.active || (.request.beam.candidate1.state.heads.2 == .request.beam.candidate0.state.heads.2 && .request.beam.candidate1.state.relation2 == .request.beam.candidate0.state.relation2))) && ((!.request.beam.candidate2.active || (.request.beam.candidate2.state.heads.2 == .request.beam.candidate0.state.heads.2 && .request.beam.candidate2.state.relation2 == .request.beam.candidate0.state.relation2)) && (!.request.beam.candidate3.active || (.request.beam.candidate3.state.heads.2 == .request.beam.candidate0.state.heads.2 && .request.beam.candidate3.state.relation2 == .request.beam.candidate0.state.relation2)))))) }
+plot language-parser-beam-commit-check-3 (
+ input: LanguageParserBeamCommitCheck...| >> output: LanguageParserBeamCommitCheck...|
+) = { request: .request, frontier_valid: .frontier_valid, agrees: (.agrees && (.request.frontier.stable <= 3 || ((.request.beam.candidate0.state.heads.3 < 5 && (!.request.beam.candidate1.active || (.request.beam.candidate1.state.heads.3 == .request.beam.candidate0.state.heads.3 && .request.beam.candidate1.state.relation3 == .request.beam.candidate0.state.relation3))) && ((!.request.beam.candidate2.active || (.request.beam.candidate2.state.heads.3 == .request.beam.candidate0.state.heads.3 && .request.beam.candidate2.state.relation3 == .request.beam.candidate0.state.relation3)) && (!.request.beam.candidate3.active || (.request.beam.candidate3.state.heads.3 == .request.beam.candidate0.state.heads.3 && .request.beam.candidate3.state.relation3 == .request.beam.candidate0.state.relation3)))))) }
+plot language-parser-beam-commit-decision (
+ input: LanguageParserBeamCommitCheck...| >> output: LanguageParserBeamCommitDecision...|
+) = { basis: .request.basis, beam: .request.beam, frontier: .request.frontier, through: .request.through, accepted: ((!.request.cancelled && (!.request.pressure && .frontier_valid)) && (((.request.frontier.basis == .request.basis) && (((!.request.beam.candidate0.active || .request.beam.candidate0.state.committed == .request.frontier.committed) && (!.request.beam.candidate1.active || .request.beam.candidate1.state.committed == .request.frontier.committed)) && ((!.request.beam.candidate2.active || .request.beam.candidate2.state.committed == .request.frontier.committed) && (!.request.beam.candidate3.active || .request.beam.candidate3.state.committed == .request.frontier.committed)))) && ((.request.through >= .request.frontier.committed && .request.through <= .request.frontier.stable) && .agrees))), refusal: (.request.cancelled ? cancelled(empty) : (.request.pressure ? pressure(empty) : (!.frontier_valid ? invalid_frontier(empty) : (!(.request.frontier.basis == .request.basis) ? wrong_basis(empty) : (!(((!.request.beam.candidate0.active || .request.beam.candidate0.state.committed == .request.frontier.committed) && (!.request.beam.candidate1.active || .request.beam.candidate1.state.committed == .request.frontier.committed)) && ((!.request.beam.candidate2.active || .request.beam.candidate2.state.committed == .request.frontier.committed) && (!.request.beam.candidate3.active || .request.beam.candidate3.state.committed == .request.frontier.committed))) ? invalid_frontier(empty) : (!(.request.through >= .request.frontier.committed && .request.through <= .request.frontier.stable) ? beyond_stable(empty) : (!.agrees ? not_agreed(empty) : none(empty)))))))) }
+plot language-parser-beam-commit-apply (
+ input: LanguageParserBeamCommitDecision...| >> output: LanguageParserBeamCommitResult...|
+) = {  candidate0: { state: { basis: .beam.candidate0.state.basis, token_count: .beam.candidate0.state.token_count, unread: .beam.candidate0.state.unread, depth: .beam.candidate0.state.depth, stack: .beam.candidate0.state.stack, heads: .beam.candidate0.state.heads, relation0: .beam.candidate0.state.relation0, relation1: .beam.candidate0.state.relation1, relation2: .beam.candidate0.state.relation2, relation3: .beam.candidate0.state.relation3, committed: (.accepted && .beam.candidate0.active ? .through : .beam.candidate0.state.committed) }, identity: .beam.candidate0.identity, score: .beam.candidate0.score, active: .beam.candidate0.active },  candidate1: { state: { basis: .beam.candidate1.state.basis, token_count: .beam.candidate1.state.token_count, unread: .beam.candidate1.state.unread, depth: .beam.candidate1.state.depth, stack: .beam.candidate1.state.stack, heads: .beam.candidate1.state.heads, relation0: .beam.candidate1.state.relation0, relation1: .beam.candidate1.state.relation1, relation2: .beam.candidate1.state.relation2, relation3: .beam.candidate1.state.relation3, committed: (.accepted && .beam.candidate1.active ? .through : .beam.candidate1.state.committed) }, identity: .beam.candidate1.identity, score: .beam.candidate1.score, active: .beam.candidate1.active },  candidate2: { state: { basis: .beam.candidate2.state.basis, token_count: .beam.candidate2.state.token_count, unread: .beam.candidate2.state.unread, depth: .beam.candidate2.state.depth, stack: .beam.candidate2.state.stack, heads: .beam.candidate2.state.heads, relation0: .beam.candidate2.state.relation0, relation1: .beam.candidate2.state.relation1, relation2: .beam.candidate2.state.relation2, relation3: .beam.candidate2.state.relation3, committed: (.accepted && .beam.candidate2.active ? .through : .beam.candidate2.state.committed) }, identity: .beam.candidate2.identity, score: .beam.candidate2.score, active: .beam.candidate2.active },  candidate3: { state: { basis: .beam.candidate3.state.basis, token_count: .beam.candidate3.state.token_count, unread: .beam.candidate3.state.unread, depth: .beam.candidate3.state.depth, stack: .beam.candidate3.state.stack, heads: .beam.candidate3.state.heads, relation0: .beam.candidate3.state.relation0, relation1: .beam.candidate3.state.relation1, relation2: .beam.candidate3.state.relation2, relation3: .beam.candidate3.state.relation3, committed: (.accepted && .beam.candidate3.active ? .through : .beam.candidate3.state.committed) }, identity: .beam.candidate3.identity, score: .beam.candidate3.score, active: .beam.candidate3.active },  frontier: { basis: .frontier.basis, stable: .frontier.stable, committed: (.accepted ? .through : .frontier.committed) },  accepted: .accepted,  refusal: .refusal }
+plot language-parser-beam-commit (
+ input: LanguageParserBeamCommitRequest...| <= 65536B >> output: LanguageParserBeamCommitResult...|
+) {
+ input >> language-parser-beam-commit-proposal() >> language-parser-beam-commit-start() >> language-parser-beam-commit-check-0() >> language-parser-beam-commit-check-1() >> language-parser-beam-commit-check-2() >> language-parser-beam-commit-check-3() >> language-parser-beam-commit-decision() >> language-parser-beam-commit-apply() >> output
+}
