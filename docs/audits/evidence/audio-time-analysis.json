@@ -1,0 +1,19 @@
+{
+  "issue": 5685,
+  "state": "draft; not published",
+  "source": "58055651eceb96c1a00160f28120eceb1ae1d34f",
+  "tests": {
+    "audio": 103,
+    "audio_nonempty_targets": 24,
+    "catalog": 1,
+    "production_kernel": 2
+  },
+  "proof_class": "native synthetic PCM; actual ordinary checked Plot/Plan/std Back/production kernel; no device/listening claim",
+  "allocation_evidence": "zero allocations and reallocations during analysis and Native patching at2/1024/1025/2048; exact generated-binding parity",
+  "pending": [
+    "strict affected all-target Clippy52784",
+    "documented xtask selected proof23512"
+  ],
+  "parent": 5223,
+  "parent_state": "open"
+}
