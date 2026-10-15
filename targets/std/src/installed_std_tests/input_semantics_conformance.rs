@@ -137,7 +137,7 @@ fn unsupported_layout_and_cross_plane_wiring_refuse_before_play() {
 #[test]
 fn stdout_caret_request_is_refused_before_text_effects_and_default_false_executes() {
     for enabled in [false, true] {
-        let source = format!("plot stdout_cue {{\n show: face/text(\"Cue\", insertion-caret = {enabled})\n \"hello\" >> show.text\n}}\n");
+        let source = format!("plot stdout_cue {{\n show: face/text(\"Cue\", insertion-caret = {enabled})\n \"cue\" >> show.text\n}}\n");
         let (mut host, fragment) = plan(&source);
         let mut output = Vec::new();
         let mut timer = RecordingTimer { waits: Vec::new() };
@@ -150,7 +150,7 @@ fn stdout_caret_request_is_refused_before_text_effects_and_default_false_execute
             assert!(!output.contains("FACE-TEXT"), "{output}");
         } else {
             assert!(result.is_ok());
-            assert!(output.contains("hello\n"), "{output}");
+            assert!(output.contains("cue\n"), "{output}");
         }
     }
 }

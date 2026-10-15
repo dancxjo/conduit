@@ -188,8 +188,8 @@ name = "conduit-alife"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-plot",
  "conduit-face",
+ "conduit-plot",
  "conduit-time",
  "sha2",
 ]
@@ -239,9 +239,9 @@ dependencies = [
  "conduit-ai",
  "conduit-body",
  "conduit-core",
+ "conduit-face",
  "conduit-net",
  "conduit-plot",
- "conduit-face",
  "conduit-text",
  "serde",
  "serde-json-core",
@@ -322,6 +322,21 @@ dependencies = [
 ]
 
 [[package]]
+name = "conduit-face"
+version = "0.1.0"
+dependencies = [
+ "conduit-body",
+ "conduit-core",
+ "conduit-human",
+ "conduit-planner",
+ "conduit-plot",
+ "conduit-time",
+ "serde",
+ "serde_json",
+ "sha2",
+]
+
+[[package]]
 name = "conduit-host-esp32-make"
 version = "0.1.0"
 dependencies = [
@@ -336,8 +351,8 @@ name = "conduit-host-make"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-plot",
  "conduit-face",
+ "conduit-plot",
  "conduit-semantic-catalog",
  "serde",
  "serde_json",
@@ -353,6 +368,7 @@ dependencies = [
  "conduit-plot",
  "serde",
  "sha2",
+ "unicode-normalization",
 ]
 
 [[package]]
@@ -416,21 +432,6 @@ dependencies = [
 ]
 
 [[package]]
-name = "conduit-face"
-version = "0.1.0"
-dependencies = [
- "conduit-body",
- "conduit-core",
- "conduit-human",
- "conduit-planner",
- "conduit-plot",
- "conduit-time",
- "serde",
- "serde_json",
- "sha2",
-]
-
-[[package]]
 name = "conduit-process"
 version = "0.1.0"
 dependencies = [
@@ -451,8 +452,8 @@ name = "conduit-robotics"
 version = "0.1.0"
 dependencies = [
  "conduit-core",
- "conduit-plot",
  "conduit-face",
+ "conduit-plot",
 ]
 
 [[package]]
@@ -464,11 +465,11 @@ dependencies = [
  "conduit-core",
  "conduit-data",
  "conduit-education",
+ "conduit-face",
  "conduit-human",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-face",
  "conduit-process",
  "conduit-purpose",
  "conduit-robotics",
@@ -512,12 +513,12 @@ dependencies = [
  "conduit-chat",
  "conduit-core",
  "conduit-data",
+ "conduit-face",
  "conduit-human",
  "conduit-language",
  "conduit-midi",
  "conduit-net",
  "conduit-plot",
- "conduit-face",
  "conduit-robotics",
  "conduit-semantic-catalog",
  "conduit-signal",
@@ -2547,6 +2548,12 @@ dependencies = [
 ]
 
 [[package]]
+name = "tinyvec"
+version = "1.13.3"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "fd3ca314f692efd6c868f8408f53fe444634a845f96c028b97d35f6a1f79f0ee"
+
+[[package]]
 name = "toml"
 version = "0.8.23"
 source = "registry+https://github.com/rust-lang/crates.io-index"
@@ -2733,6 +2740,15 @@ name = "unicode-ident"
 version = "1.0.26"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "d245f478577f809a851594d02313b640fb437e0bb33866753cff937863096954"
+
+[[package]]
+name = "unicode-normalization"
+version = "0.1.25"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "5fd4f6878c9cb28d874b009da9e8d183b5abc80117c40bbd187a1fde336be6e8"
+dependencies = [
+ "tinyvec",
+]
 
 [[package]]
 name = "unicode-segmentation"
