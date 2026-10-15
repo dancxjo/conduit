@@ -72,6 +72,13 @@ mod generated {
     }
 }
 pub use generated::{
+    LookFacetAvailability, LookFacetRequest, LookGenerativeFacetInfo,
+    LookGenerativeFacetOption, LookGenerativeRegister, LookInfo, LookSpokenDelivery,
+    LookSpokenFacetInfo, LookSpokenFacetOption, LookVerbosity, LookVisualFacetInfo,
+    LookVisualFacetOption, LookVisualTokensInfo,
+};
+
+pub use generated::{
     ActionInputBindingProposalInfo, AdmittedNavigationDestination, ApplicationAction,
     ApplicationComponent, ApplicationComponentForm, ApplicationEventKind, ApplicationEventKindForm,
     ApplicationNodeState, ApplicationNodeStateForm, ApplicationViewRefusal, ChoiceMultiplicity,
