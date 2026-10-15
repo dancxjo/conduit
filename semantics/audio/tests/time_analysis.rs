@@ -172,3 +172,68 @@ fn maximum_window_and_maximum_finite_float_stay_bounded() {
         2048
     );
 }
+
+#[test]
+fn checked_native_observation_retains_all_pages_and_exact_custody() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    for count in [2, 1024, 1025, 2048] {
+        let values: Vec<_> = (0..count)
+            .map(|i| if i % 2 == 0 { 0.5 } else { -0.5 })
+            .collect();
+        let encoded = frame(&values, 42, 900);
+        let analysis =
+            PreparedPcmTimeAnalysis::prepare(&encoded, 42, 8000, 0, count as u16).unwrap();
+        let observation = analysis.native_observation().unwrap();
+        assert_eq!(*observation.frames(), count as u16);
+        assert_eq!(*observation.clock_id(), 42);
+        assert_eq!(*observation.start_frame(), 900);
+        assert_eq!(observation.mean_square().value(), 0.25);
+        assert_eq!(observation.rms().value(), 0.5);
+        assert_eq!(observation.source_digest().get(), &analysis.source_digest());
+        let waveform: Vec<_> = observation
+            .waveform()
+            .get()
+            .as_slice()
+            .iter()
+            .flat_map(|page| page.get().as_slice().iter().map(|v| v.value()))
+            .collect();
+        assert_eq!(
+            waveform,
+            values.into_iter().map(f64::from).collect::<Vec<_>>()
+        );
+        let bytes = observation.clone().encode().unwrap();
+        assert!(bytes.len() <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
+        assert_eq!(
+            AudioTimeAnalysisObservation::decode(&bytes).unwrap(),
+            observation
+        );
+    }
+}
+
+#[test]
+fn checked_native_statistics_refuse_nonfinite_negative_and_wrong_window_count() {
+    use conduit_core::IeeeF64;
+    let encoded = frame(&[0., 1.], 1, 0);
+    let observed = PreparedPcmTimeAnalysis::prepare(&encoded, 1, 8000, 0, 2)
+        .unwrap()
+        .native_observation()
+        .unwrap();
+    for (bad, frames) in [(-1.0, 2), (f64::NAN, 2), (f64::INFINITY, 2), (0.5, 3)] {
+        assert!(AudioTimeAnalysisObservation::new(
+            *observed.absolute_peak(),
+            *observed.clock_id(),
+            frames,
+            IeeeF64::from_value(bad),
+            *observed.reference(),
+            *observed.rms(),
+            *observed.sample_rate_hz(),
+            *observed.samples_at_or_above_full_scale(),
+            observed.source_digest().clone(),
+            *observed.square_sum(),
+            *observed.start_frame(),
+            observed.waveform().clone(),
+            *observed.window(),
+        )
+        .is_err());
+    }
+}

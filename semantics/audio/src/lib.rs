@@ -116,3 +116,10 @@ pub use generated::AudioControlDomainMatch;
 
 mod time_analysis;
 pub use time_analysis::*;
+
+pub use generated::{
+    AudioTimeAnalysisDigest, AudioTimeAnalysisObservation, AudioTimeAnalysisReference,
+    AudioTimeAnalysisWaveform, AudioTimeAnalysisWaveformPage, AudioTimeAnalysisWindow,
+};
+
+mod time_analysis_native;
