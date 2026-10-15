@@ -10,6 +10,11 @@ use super::{hid_qmp, journey_records, qmp, ConduitosError};
 // Keep every observation finite, but allow a runnable guest one baseline
 // five-second window per contending VM before declaring its exact record absent.
 const RECORD_WAIT_TIMEOUT: Duration = Duration::from_secs(20);
+// Cold birth checks and identifies all four selected source Plots before it
+// publishes Born. The exact Candidate kernel needed 26.6s in an uncontended
+// single-CPU QEMU replay; give this preparation stage the same finite 60s
+// budget as cold product arrival. Ordinary lifecycle records retain 20s.
+const BIRTH_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
 
 pub(super) fn key_pair(
     qmp: &mut UnixStream,
@@ -162,7 +167,12 @@ fn wait_for_record_inner(
     stop_on_timeout: bool,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + RECORD_WAIT_TIMEOUT;
+    let timeout = if status == "born-lulled" {
+        BIRTH_WAIT_TIMEOUT
+    } else {
+        RECORD_WAIT_TIMEOUT
+    };
+    let deadline = std::time::Instant::now() + timeout;
     loop {
         let bytes = fs::read(serial).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
