@@ -177,3 +177,21 @@ test('application controls remain primary while Body management is disclosed sep
   await element.getByRole('button', { name: 'Lull', exact: true }).click();
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: scoped, action: scoped.actions[0], arguments: [] }]);
 });
+
+test('a Body without primary application content keeps its arrival controls visible', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const idle = { ...view,
+    subjects: [{ ...view.subjects[0], identity: 'fixture/body', name: 'Living room', role: 'Body' }],
+    actions: [{ ...view.actions[0], identity: 'fixture/wake', target: 'fixture/body', name: 'Wake' }],
+  };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    element.show(view, { invoke: async () => {} });
+    document.body.append(element);
+  }, idle);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('button', { name: 'Wake', exact: true })).toBeVisible();
+  await expect(element.locator('[data-body-menu]')).toHaveCount(0);
+});
