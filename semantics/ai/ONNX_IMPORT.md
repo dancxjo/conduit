@@ -24,8 +24,10 @@ match exactly, every mapping is unique within its direction, and every port is
 required. A matched port has one exact dtype, rank and finite dimension envelope.
 Fixed graph dimensions require that exact dimension in the semantic signature;
 symbolic dimensions use its finite bounds. Repeated symbols require consistent
-bounds across inputs and outputs. This checks envelopes; invocation-time symbol
-equality still needs validation against actual tensor dimensions.
+bounds across inputs and outputs. `validate_named_inputs` and
+`validate_named_outputs` additionally check actual dimensions against the
+semantic signature and require shared symbols to have one actual size across
+the corresponding input/output values. These are preparation validators.
 
 Preparation accepts at most 16 MiB of graph bytes, eight operator-set imports,
 32 total input/output ports, eight dimensions per port and 128 UTF-8 bytes per
@@ -44,13 +46,29 @@ opened, including otherwise valid relative paths.
 
 ## Proof boundary
 
+Data owns one bounded `NamedTensorBundle` over existing `TensorValue` values.
+Names, dtypes, dimensions, axis roles and content/resource descriptors retain
+their existing owners. Model signature validation matches semantic port names;
+sidecars translate those names to checkpoint-local graph names. Canonical Native
+encoding retains the bundle order and is subject to Core's 262,144-byte encoded
+value bound, independently of the model file byte bound.
+
+The development `model/infer` Fore uses this carrier in both directions and a
+required typed semantic `ModelSignature` startup parameter. The owner catalog
+imports checked Source refinement metadata. A compiler regression additionally
+checks those refinements on explicit concrete startup expressions, including
+shape-only aliases. A tiny non-speech authored Source checks and expands to one
+opaque model Gear. It contains no provider, artifact path or device selection.
+The catalog is not yet installed in the stock Host catalog; matching model
+realization admission and a genuine execution Back remain unfinished.
+
 Focused native tests cover metadata and sidecar binding, wrong identities,
 counts, names, rank, dtype, static dimensions, malformed wire data and external
 data refusal. The synthetic metadata fixture deliberately tests metadata only;
 it is not an executable model or an inference proof.
 
-Issue #5691 remains unfinished: ordinary Source typing and exact
-Source → Plan → Play evidence are still required. Genuine model-compute Back
+Issue #5691 remains unfinished: exact Source → Plan → Play evidence is still
+required. Genuine model-compute Back
 selection is tracked in #5692, canonical named tensor invocation migration and
 numerical multi-input/output execution in #5693, and actual ORT realization in
 #5220. No current helper result establishes those capabilities.

@@ -27,6 +27,8 @@ pub fn port(name: &str, dtype: u64, dimension: Vec<u8>) -> Vec<u8> {
     let tensor = [number(1, dtype), bytes(2, &shape)].concat();
     [bytes(1, name.as_bytes()), bytes(2, &bytes(1, &tensor))].concat()
 }
+// Symbol-only consumers use the shared wire builders without this fixture.
+#[allow(dead_code)]
 pub fn model(extra_graph: &[u8]) -> Vec<u8> {
     let graph = [
         bytes(2, b"tiny-mixed-input"),
