@@ -89,7 +89,9 @@ fn canonical_phosphor_assets_are_typed_and_self_consistent() {
             .trim();
     let retired: Vec<_> = retired_hex
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|p| u8::from_str_radix(core::str::from_utf8(p).unwrap(), 16).unwrap())
         .collect();
     assert!(LookInfo::decode(&retired).is_err());
