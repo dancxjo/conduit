@@ -15,7 +15,9 @@ fn browser_profile_matches_checked_source_and_native_type_exactly() {
         .unwrap();
     let bytes: Vec<_> = hex
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|pair| u8::from_str_radix(core::str::from_utf8(pair).unwrap(), 16).unwrap())
         .collect();
     assert_eq!(
@@ -41,7 +43,9 @@ fn browser_profile_matches_checked_source_and_native_type_exactly() {
         .collect::<String>();
     let golden: Vec<_> = golden
         .as_bytes()
-        .chunks_exact(2)
+        .as_chunks::<2>()
+        .0
+        .iter()
         .map(|p| u8::from_str_radix(core::str::from_utf8(p).unwrap(), 16).unwrap())
         .collect();
     assert_eq!(value.clone().encode().unwrap(), golden);
