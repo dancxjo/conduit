@@ -132,6 +132,8 @@ mod model_text;
 pub use model_text::*;
 mod model_signature;
 pub use model_signature::*;
+mod model_tensor_io;
+pub use model_tensor_io::*;
 pub mod imported_onnx;
 mod model_artifact;
 pub mod onnx_metadata;
