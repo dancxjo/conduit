@@ -196,3 +196,21 @@ fn declared_rational_turn_unit_retains_non_decimal_angle_denotation() {
     let expected = builder.finish(sine, &mut work).unwrap();
     assert_eq!(V::decode(actual, &mut work).unwrap(), expected);
 }
+
+#[test]
+fn known_constant_poles_refuse_during_preparation_before_any_play() {
+    let value = program("math/tan(0.25turn)");
+    assert!(matches!(
+        PreparedPortableExpressionEvaluator::new(&value),
+        Err(PortableExpressionEvaluationRefusal::AngleTrigonometry(
+            Domain::Denotation(MathematicalValueRefusal::TrigonometricPole)
+        ))
+    ));
+    let value = program("math/sin(1rad)");
+    assert!(matches!(
+        PreparedPortableExpressionEvaluator::new(&value),
+        Err(PortableExpressionEvaluationRefusal::AngleTrigonometry(
+            Domain::Coordinate(_)
+        ))
+    ));
+}

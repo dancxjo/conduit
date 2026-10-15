@@ -199,3 +199,37 @@ fn admitted_storage_writer_matches_prepared_denotation_and_refuses_bounds() {
     assert!(write(F::Sine, source, &mut [0; 1], &mut work()).is_err());
     assert!(write(F::Sine, source, &mut output, &mut Work::new(0)).is_err());
 }
+
+#[test]
+fn borrowed_codec_rejects_noncanonical_trig_graphs_and_self_references() {
+    fn raw(q: Q, tag: u8) -> Vec<u8> {
+        let mut rational = vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES];
+        let length = q.encode(&mut rational).unwrap();
+        rational.truncate(length);
+        let mut output = vec![1, 1, 2, 0];
+        output.extend_from_slice(&(length as u16).to_le_bytes());
+        output.extend_from_slice(&rational);
+        output.extend_from_slice(&[tag, 0]);
+        output
+    }
+    let mut bytes = raw(Q::ratio(1, 7, &mut work()).unwrap(), 9);
+    assert!(View::decode(&bytes, &mut work()).is_ok());
+    *bytes.last_mut().unwrap() = 1;
+    assert!(matches!(
+        View::decode(&bytes, &mut work()),
+        Err(R::InvalidReference)
+    ));
+    for (q, tag) in [
+        (Q::ratio(1, 4, &mut work()).unwrap(), 9),
+        (Q::ratio(8, 7, &mut work()).unwrap(), 10),
+    ] {
+        assert!(matches!(
+            View::decode(&raw(q, tag), &mut work()),
+            Err(R::NonCanonicalEncoding)
+        ));
+    }
+    assert!(matches!(
+        View::decode(&raw(Q::ratio(1, 4, &mut work()).unwrap(), 11), &mut work()),
+        Err(R::TrigonometricPole)
+    ));
+}

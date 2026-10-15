@@ -212,6 +212,20 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
+        // 8/9 are existing filter failures above. Keep the new Angle domain
+        // causes separate rather than flattening an undefined pole to arithmetic.
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleTrigonometry(reason) => {
+            match reason {
+                conduit_core::AngleTrigonometryRefusal::NotAngle => 10,
+                conduit_core::AngleTrigonometryRefusal::UnsupportedRole => 11,
+                conduit_core::AngleTrigonometryRefusal::SourceEvidence(_) => 12,
+                conduit_core::AngleTrigonometryRefusal::Coordinate(_) => 13,
+                conduit_core::AngleTrigonometryRefusal::Denotation(
+                    conduit_core::MathematicalValueRefusal::TrigonometricPole,
+                ) => 14,
+                conduit_core::AngleTrigonometryRefusal::Denotation(_) => 15,
+            }
+        }
     }
 }
 
