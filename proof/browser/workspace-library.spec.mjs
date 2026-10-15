@@ -1,4 +1,5 @@
 import { expect, test } from "@playwright/test";
+import { writeFile } from "node:fs/promises";
 import { startStaticProduct } from "./static-product-server.mjs";
 
 let entrance, pageErrors;
@@ -162,7 +163,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   expect(bounds.y + bounds.height * 0.85).toBeLessThan(viewport.height);
   await page.mouse.move(bounds.x + bounds.width * 0.15, bounds.y + bounds.height * 0.85);
   await page.mouse.down();
-  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(48);
   // Hold the pointer still: cadence must keep producing audio without new input.
   const stationaryStart = await page.evaluate(() => { globalThis.__thereminAudio.captureEnabled = false; return globalThis.__thereminAudio.starts.length; });
   // Exceed the former 30-second playback quota with no further input.
@@ -171,10 +172,12 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
   await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.crossings <= 10), highPitchEnd)).toBe(true);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(highPitchEnd + 24);
   const loudEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   const loudPeak = await page.evaluate(({ start, end }) => Math.max(...globalThis.__thereminAudio.starts.slice(start + 1, end).map(block => block.peak)), { start: highPitchEnd, end: loudEnd });
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.15, { steps: 8 });
   await expect.poll(() => page.evaluate(({ end, threshold }) => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.peak < threshold), { end: loudEnd, threshold: loudPeak * 0.4 })).toBe(true);
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(loudEnd + 24);
   // Scheduling is contiguous and bounded while a stationary hand sustains tone.
   const sustained = await page.evaluate(({ start, end }) => globalThis.__thereminAudio.starts.slice(start + 1, end), { start: stationaryStart, end: highPitchEnd });
   expect(sustained.length).toBeGreaterThanOrEqual(750);
@@ -199,7 +202,9 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   wav.writeUInt16LE(2, 32); wav.writeUInt16LE(16, 34); wav.write("data", 36);
   wav.writeUInt32LE(pcm.length * 2, 40);
   pcm.forEach((value, index) => wav.writeInt16LE(Math.round(Math.max(-1, Math.min(1, value)) * 32767), 44 + index * 2));
-  await testInfo.attach("pocket-theremin.wav", { body: wav, contentType: "audio/wav" });
+  const recording = testInfo.outputPath("pocket-theremin.wav");
+  await writeFile(recording, wav);
+  await testInfo.attach("pocket-theremin.wav", { path: recording, contentType: "audio/wav" });
   await page.mouse.up();
   await page.getByRole("button", { name: "lull body", exact: true }).click();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
