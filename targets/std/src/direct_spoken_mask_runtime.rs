@@ -131,6 +131,7 @@ impl DirectSpokenMaskPreparation {
                 let expected = match evidence.wording.template_identity.as_str() {
                     "spoken/brief@1" => "owner_spoken_brief_template_mask",
                     "spoken/expanded@1" => "owner_spoken_expanded_template_mask",
+                    "spoken/control@1" => "owner_spoken_control_template_mask",
                     _ => return Err("unknown checked spoken template selection".into()),
                 };
                 if name != expected {
@@ -144,7 +145,9 @@ impl DirectSpokenMaskPreparation {
                 if self.template_mask.is_none()
                     && !matches!(
                         name,
-                        "owner_spoken_brief_template_mask" | "owner_spoken_expanded_template_mask"
+                        "owner_spoken_brief_template_mask"
+                            | "owner_spoken_expanded_template_mask"
+                            | "owner_spoken_control_template_mask"
                     ) =>
             {
                 Ok(())

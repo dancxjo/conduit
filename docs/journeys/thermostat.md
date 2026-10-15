@@ -57,9 +57,18 @@ admission; this command does not silently extend a grant or replay a prior Boot.
 
 No complete thermostat journey packet is checked in or published yet. The
 staged producer below still uses the direct-owner terminal entrance and needs
-peer integration. Selected spoken output for the actual running thermostat Face
-also remains outstanding; a standalone kernel-to-WAV provider test is only an
-equipment prerequisite. A speech refusal is not a successful spoken encounter.
+peer integration. An explicit checked `spoken/control-template` selects the
+primary application Region and every clause in its Contains subtree from the
+original Face. It retains requested settings, typed values, available actions,
+and equipment caveats while keeping Body context outside this scoped reading.
+The full-Face Brief and Expanded selections retain their existing contracts.
+
+A real-provider test has completed this Control reading from a retained actual
+thermostat Face through ordinary kernel Plays and WAV acknowledgements. This
+proves artifact generation for that retained Face, not current owner delivery,
+speaker playback, or listening. Selecting and acknowledging this spoken Mask
+through the live peer route remains outstanding. A speech refusal is not a
+successful spoken encounter.
 
 Do not restart the thermostat to make a terminal edit look like a same-Play
 interaction, or substitute the browser-local Handbook thermostat: it is a

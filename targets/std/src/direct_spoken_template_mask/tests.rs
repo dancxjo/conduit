@@ -16,16 +16,34 @@ impl ExternalForeOutputAdapter for Capture {
 #[test]
 #[ignore = "requires real eSpeak, native coverage, artifact directory and actual retained Face"]
 fn native_provider_acknowledges_both_template_openings_on_the_same_actual_face() {
-    prove_templates(false);
+    prove_templates(
+        false,
+        &[
+            DirectSpokenTemplateLook::Brief,
+            DirectSpokenTemplateLook::Expanded,
+        ],
+    );
 }
 
 #[test]
 #[ignore = "requires real eSpeak, native coverage, artifact directory and actual retained Face"]
 fn native_provider_completes_both_templates_on_the_same_actual_face() {
-    prove_templates(true);
+    prove_templates(
+        true,
+        &[
+            DirectSpokenTemplateLook::Brief,
+            DirectSpokenTemplateLook::Expanded,
+        ],
+    );
 }
 
-fn prove_templates(complete: bool) {
+#[test]
+#[ignore = "requires real selected eSpeak, native coverage, artifact directory and actual retained control Face"]
+fn native_provider_completes_control_template_on_actual_retained_face() {
+    prove_templates(true, &[DirectSpokenTemplateLook::Control]);
+}
+
+fn prove_templates(complete: bool, looks: &[DirectSpokenTemplateLook]) {
     let face_path =
         std::path::PathBuf::from(std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_FACE").unwrap());
     let coverage_path = std::path::PathBuf::from(
@@ -51,7 +69,9 @@ fn prove_templates(complete: bool) {
     };
     let engine = std::fs::canonicalize("/usr/lib/x86_64-linux-gnu/libespeak-ng.so.1").unwrap();
     let discovery = crate::hosted_speech_synthesis::EspeakDiscovery::inspect(
-        Path::new("/usr/bin/espeak-ng"),
+        &std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_PROVIDER")
+            .map(std::path::PathBuf::from)
+            .unwrap_or_else(|| "/usr/bin/espeak-ng".into()),
         Path::new("/usr/lib/x86_64-linux-gnu/espeak-ng-data"),
         "en-us",
         &[engine],
@@ -91,17 +111,29 @@ fn prove_templates(complete: bool) {
     let mut evidence = Vec::new();
     let mut mask_plans = std::collections::BTreeSet::new();
     let mut mask_plays = std::collections::BTreeSet::new();
-    for (index, look) in [
-        DirectSpokenTemplateLook::Brief,
-        DirectSpokenTemplateLook::Expanded,
-    ]
-    .into_iter()
-    .enumerate()
-    {
+    for (index, look) in looks.iter().copied().enumerate() {
         let selected = host
             .prepare_direct_spoken_template_mask(&face, look)
             .unwrap();
+        let reproduced = plan_template_for_offer(
+            &face,
+            host.advertisement(),
+            look,
+            selected.mask().authority_grants.clone(),
+        )
+        .unwrap();
+        assert_eq!(reproduced.planned_mask, selected.mask().planned_mask);
+        assert!(plan_template_for_offer(&face, host.advertisement(), look, vec![]).is_err());
         assert!(mask_plans.insert(selected.mask().plan.plan_id.clone()));
+        eprintln!(
+            "actual checked {:?}: Face {} bytes, Plan {} bytes, {} wording bytes",
+            look,
+            serde_json::to_vec(&face).unwrap().len(),
+            serde_json::to_vec(&selected.mask().planned_mask)
+                .unwrap()
+                .len(),
+            selected.wording().wording.len()
+        );
         let expected = selected.wording().clone();
         let opening = selected.opening_wording().to_owned();
         let front = face
@@ -184,6 +216,16 @@ fn prove_templates(complete: bool) {
             assert_eq!(session.template(), &expected);
             assert!(session.finish().is_err());
             let show = session.show().clone();
+            if look == DirectSpokenTemplateLook::Control {
+                assert!(serde_json::to_vec(&show).unwrap().len() <= 64 * 1024);
+                assert!(show
+                    .planned_mask
+                    .plan
+                    .fragments
+                    .iter()
+                    .flat_map(|fragment| &fragment.fore_ports)
+                    .all(|fore| fore.byte_capacity <= 64 * 1024));
+            }
             while !session.complete() {
                 let before = session.completed_count();
                 let execution = session
@@ -263,7 +305,7 @@ fn prove_templates(complete: bool) {
             "wav_bytes":wav.len(),"remaining_frames":reading.frames_count()-1}),
         );
     }
-    assert_eq!(mask_plans.len(), 2);
+    assert_eq!(mask_plans.len(), looks.len());
     let path = artifacts.join(if complete {
         "complete-evidence.json"
     } else {
@@ -278,7 +320,86 @@ fn prove_templates(complete: bool) {
     }
     let file = options.open(path).unwrap();
     serde_json::to_writer_pretty(file, &serde_json::json!({
-        "proof_class":if complete {"real native speech provider; same actual retained Face and Host; two complete ordered template artifact scripts"} else {"real native speech provider; actual retained Face; two template opening artifacts only"},
+        "proof_class":if complete {"real native speech provider; actual retained Face and Host; complete selected template artifact scripts"} else {"real native speech provider; actual retained Face; selected template opening artifacts only"},
         "complete_template_audio":complete,"speaker_delivery":false,"openings":evidence,
     })).unwrap();
+}
+
+#[test]
+fn control_wording_keeps_real_provider_admission_separate_from_fixture_equipment() {
+    // Deterministic speech equipment fixture: planning only, no provider/audio claim.
+    let root = tempfile::tempdir().unwrap();
+    let mut host = StdHost::new_with_composition(
+        crate::StdHostConfig {
+            host_id: "fixture/control-plan".into(),
+            boot_id: "fixture/control-plan/boot".into(),
+            offer_generation: OfferGeneration(1),
+        },
+        crate::StdHostComposition::minimal(),
+    );
+    let artifact = crate::hosted_wav_artifact::WavArtifactSelection::new(
+        root.path().join("unused.wav"),
+        host.advertisement().boot_id.clone(),
+        host.advertisement().offer_generation,
+    )
+    .unwrap();
+    host.attach_deterministic_speech_and_wav_artifact(artifact)
+        .unwrap();
+    let face = Face::new(
+        1,
+        conduit_face::FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![
+            conduit_face::FaceSubject {
+                identity: "control".into(),
+                role: FaceRole::Region,
+                name: "Room".into(),
+            },
+            conduit_face::FaceSubject {
+                identity: "status".into(),
+                role: FaceRole::Status,
+                name: "Settings".into(),
+            },
+        ],
+        vec![conduit_face::FaceRelationship {
+            source: "control".into(),
+            target: "status".into(),
+            kind: conduit_face::FaceRelationshipKind::Contains,
+        }],
+        vec![],
+        vec![conduit_face::FaceText {
+            subject: "status".into(),
+            text: "Heat requested; equipment activity unconfirmed.".into(),
+        }],
+    )
+    .unwrap();
+    let wording = host
+        .prepare_spoken_template_wording(&face, DirectSpokenTemplateLook::Control.entry())
+        .unwrap();
+    assert_eq!(wording.template_identity, "spoken/control@1");
+    assert!(wording.wording.contains("equipment activity unconfirmed"));
+    assert!(host
+        .prepare_direct_spoken_template_mask(&face, DirectSpokenTemplateLook::Control)
+        .is_err());
+    assert!(plan_template_for_offer(
+        &face,
+        host.advertisement(),
+        DirectSpokenTemplateLook::Control,
+        vec![]
+    )
+    .is_err());
+    let mut wrong_face = face.clone();
+    wrong_face.subjects[0].role = FaceRole::Collection;
+    assert!(host
+        .prepare_spoken_template_wording(&wrong_face, DirectSpokenTemplateLook::Control.entry())
+        .is_err());
+    assert!(std::fs::read_dir(root.path()).unwrap().next().is_none());
 }

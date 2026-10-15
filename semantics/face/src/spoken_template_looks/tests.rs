@@ -113,7 +113,7 @@ fn two_template_sources_have_distinct_checked_plots_and_exact_selected_plans() {
 }
 
 #[test]
-#[ignore = "requires explicit actual retained Todo Face; never manufactures owner state"]
+#[ignore = "requires explicit actual retained Face; never manufactures owner state"]
 fn actual_retained_face_preserves_essential_clauses_in_both_checked_looks() {
     let path = std::path::PathBuf::from(
         std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_FACE").expect("actual retained Face path"),
@@ -223,4 +223,174 @@ fn actual_retained_face_preserves_essential_clauses_in_both_checked_looks() {
             Err(SpokenTemplateRefusal::Disclosure)
         ));
     }
+}
+
+#[test]
+fn one_primary_control_region_preserves_every_clause_and_refuses_ambiguous_titles() {
+    // Pure Face contract fixture: no Body admission, runtime, audio or equipment claim.
+    use crate::{FaceBasis, FaceDisclosure, FaceDisclosureLevel, FaceRole, FaceSubject, FaceText};
+    let mut face = Face::new(
+        1,
+        FaceBasis {
+            body_id: None,
+            wake_id: None,
+            source_document_id: None,
+            checked_plot_id: None,
+            expanded_plot_id: None,
+            plan_id: None,
+            active_play_id: None,
+            sign_ids: vec![],
+        },
+        vec![
+            FaceSubject {
+                identity: "control".into(),
+                role: FaceRole::Region,
+                name: "Room control".into(),
+            },
+            FaceSubject {
+                identity: "overview".into(),
+                role: FaceRole::Region,
+                name: "Overview context".into(),
+            },
+            FaceSubject {
+                identity: "status".into(),
+                role: FaceRole::Status,
+                name: "Requested settings".into(),
+            },
+        ],
+        vec![crate::FaceRelationship {
+            source: "control".into(),
+            target: "status".into(),
+            kind: crate::FaceRelationshipKind::Contains,
+        }],
+        vec![],
+        vec![FaceText {
+            subject: "status".into(),
+            text: "Heat requested; equipment activity unconfirmed.".into(),
+        }],
+    )
+    .unwrap();
+    face.disclosures = vec![
+        FaceDisclosure {
+            subject: "control".into(),
+            level: FaceDisclosureLevel::Primary,
+        },
+        FaceDisclosure {
+            subject: "overview".into(),
+            level: FaceDisclosureLevel::Context,
+        },
+    ];
+    let face = face
+        .clone()
+        .with_interaction_context(face.interaction_context.clone())
+        .unwrap();
+    let plan = crate::plan_face_utterances(&face).unwrap();
+    let slots = prepare_spoken_control_slots(&face, &[]).unwrap();
+    let wording = producer("spoken/control-template")
+        .evaluate(&face, &slots)
+        .unwrap();
+    let evidence = crate::SpokenTemplateOpeningEvidence {
+        opening_wording: "Current settings:".into(),
+        frame_count: 8,
+        wording: wording.clone(),
+    };
+    evidence.validate(&face).unwrap();
+    let mut omitted = evidence.clone();
+    omitted.wording.selected_clause_indices.pop();
+    assert_eq!(
+        omitted.validate(&face),
+        Err(crate::SpokenTemplateOpeningRefusal::Coverage)
+    );
+    let mut extra = evidence.clone();
+    extra
+        .wording
+        .selected_clause_indices
+        .push(plan.clauses.len() as u32);
+    assert_eq!(
+        extra.validate(&face),
+        Err(crate::SpokenTemplateOpeningRefusal::Coverage)
+    );
+    assert!(wording.selected_clause_indices.len() < plan.clauses.len());
+    assert!(!wording.wording.contains("Overview context"));
+    assert!(wording
+        .wording
+        .contains("Heat requested; equipment activity unconfirmed."));
+    for index in &wording.selected_clause_indices {
+        assert!(wording
+            .wording
+            .contains(&plan.clauses[*index as usize].text));
+    }
+    assert!(producer("spoken/brief-template")
+        .evaluate(&face, &slots)
+        .is_err());
+    let mut ambiguous = face.clone();
+    ambiguous.disclosures[1].level = FaceDisclosureLevel::Primary;
+    let ambiguous = ambiguous
+        .clone()
+        .with_interaction_context(ambiguous.interaction_context.clone())
+        .unwrap();
+    assert!(matches!(
+        prepare_spoken_control_slots(&ambiguous, &[]),
+        Err(SpokenTemplateRefusal::Selection)
+    ));
+    let mut missing = face.clone();
+    missing.text.clear();
+    let missing = missing
+        .clone()
+        .with_interaction_context(missing.interaction_context.clone())
+        .unwrap();
+    assert!(matches!(
+        prepare_spoken_control_slots(&missing, &[]),
+        Err(SpokenTemplateRefusal::MissingEssential)
+    ));
+}
+
+#[test]
+#[ignore = "requires an actual retained control Face; no runtime or audio claim"]
+fn actual_control_face_retains_all_application_facts_in_checked_summary() {
+    let path = std::path::PathBuf::from(std::env::var_os("CONDUIT_SPOKEN_TEMPLATE_FACE").unwrap());
+    let record: serde_json::Value = serde_json::from_slice(&std::fs::read(path).unwrap()).unwrap();
+    let face: Face = serde_json::from_value(record.get("face").unwrap_or(&record).clone()).unwrap();
+    let original = face.clone();
+    let slots = prepare_spoken_control_slots(&face, &[]).unwrap();
+    let wording = producer("spoken/control-template")
+        .evaluate(&face, &slots)
+        .unwrap();
+    assert!(producer("spoken/brief-template")
+        .evaluate(&face, &slots)
+        .is_err());
+    let plan = crate::plan_face_utterances(&face).unwrap();
+    let evidence = crate::SpokenTemplateOpeningEvidence {
+        opening_wording: "Current settings:".into(),
+        frame_count: 8,
+        wording: wording.clone(),
+    };
+    evidence.validate(&face).unwrap();
+    let mut omitted = evidence.clone();
+    omitted.wording.selected_clause_indices.pop();
+    assert_eq!(
+        omitted.validate(&face),
+        Err(crate::SpokenTemplateOpeningRefusal::Coverage)
+    );
+    let mut extra = evidence.clone();
+    extra
+        .wording
+        .selected_clause_indices
+        .push(plan.clauses.len() as u32);
+    assert_eq!(
+        extra.validate(&face),
+        Err(crate::SpokenTemplateOpeningRefusal::Coverage)
+    );
+    assert!(wording.selected_clause_indices.len() < plan.clauses.len());
+    for index in &wording.selected_clause_indices {
+        assert!(wording
+            .wording
+            .contains(&plan.clauses[*index as usize].text));
+    }
+    assert_eq!(face, original);
+    std::eprintln!(
+        "retained control summary: {} clauses, {} bytes",
+        wording.selected_clause_indices.len(),
+        wording.wording.len()
+    );
 }
