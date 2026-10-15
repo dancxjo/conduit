@@ -8,7 +8,7 @@ pub(in crate::plot_runner) use fixture::{request, request_from_sources};
 fn checked_tutorial_plot_projects_current_body_truth_inside_its_admitted_play() {
     let request = request_from_sources(&[include_str!("../../../../../plots/tour/main.conduit")]);
     let body_id = request.plan.body_id.clone();
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     let mut progress = started.progress;
     let effect = loop {
         let TourProgress::Effect(effect) = progress else {
@@ -87,7 +87,7 @@ fn living_button_keeps_the_completed_clock_and_telegraph_in_one_body_play() {
         include_str!("../../../../../plots/desk-telegraph/main.conduit"),
     ]);
     let original = request.plan.clone();
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     let mut progress = started.progress;
     let mut transitions = 0_u64;
@@ -219,7 +219,7 @@ fn canonical_firefly_and_unrelated_text_remain_in_one_body_play_until_stop() {
         "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(original.plots.len(), 2);
 
@@ -281,7 +281,7 @@ fn canonical_signal_garden_and_unrelated_text_complete_in_one_body_play() {
         "plot unrelated {\n message: text/literal(\"unrelated workload\")\n show: face/text(\"Message\")\n message >> show\n}.\n",
     ]);
     let original = request.plan.clone();
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(original.plots.len(), 2);
 
@@ -378,7 +378,7 @@ fn unchanged_canonical_clock_uses_installed_browser_tick_face() {
 fn exact_body_starts_one_existing_browser_session_and_preserves_partition_identity() {
     let request = request();
     let original = request.plan.clone();
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert!(started.play.validate_for(&original));
     assert_eq!(session.active_play_id, started.play.active_play_id);
     assert_eq!(
@@ -462,8 +462,8 @@ fn missing_and_stale_observations_or_workload_refuse_before_body_start() {
 
 #[test]
 fn two_play_scoped_frequency_cells_install_in_one_body_and_cancel() {
-    let first = "plot first {\n frequency: keep Frequency(440Hz) for this play\n tone: audio/continuous-tone\n frequency >> tone.frequency\n}\n";
-    let second = "plot second {\n frequency: keep Frequency(660Hz) for this play\n tone: audio/continuous-tone\n frequency >> tone.frequency\n}\n";
+    let first = "plot first {\n frequency: keep Frequency(440Hz) for this play\n tone: audio/continuous-tone\n cadence: time/every(freq = 40ms)\n cadence.tick >> tone.cadence\n frequency >> tone.frequency\n}\n";
+    let second = "plot second {\n frequency: keep Frequency(660Hz) for this play\n tone: audio/continuous-tone\n cadence: time/every(freq = 40ms)\n cadence.tick >> tone.cadence\n frequency >> tone.frequency\n}\n";
     let request = request_from_sources(&[first, second]);
     assert_eq!(
         request
@@ -475,7 +475,7 @@ fn two_play_scoped_frequency_cells_install_in_one_body_and_cancel() {
             .count(),
         2
     );
-    let (mut session, started) = prepare(request).unwrap();
+    let (session, started) = prepare(request).unwrap();
     assert_eq!(session.active_play_id, started.play.active_play_id);
     assert_eq!(session.cancel().unwrap().disposition, "cancelled");
 }
