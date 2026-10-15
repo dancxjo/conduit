@@ -42,3 +42,26 @@ impl PcmPitchObservation {
         )
     }
 }
+
+impl AudioPitchObservation {
+    /// Descriptive agreement on this exact estimator/scale. This score creates
+    /// no Claim, calibration, linguistic truth, authority or execution evidence.
+    pub fn periodicity_score(&self) -> Option<conduit_core::claims::ClaimScore<'static>> {
+        use conduit_core::claims::{ClaimScore, ClaimText};
+        if *self.state() != AudioPitchState::Periodic {
+            return None;
+        }
+        let text = |value| ClaimText::new(value).expect("bounded static pitch score identity");
+        Some(
+            ClaimScore::new(
+                text("centered-normalized-correlation-ppm@1"),
+                None,
+                text(crate::PCM_PITCH_PROFILE),
+                0,
+                1_000_000,
+                i64::from(*self.correlation_ppm().get()),
+            )
+            .expect("checked pitch correlation fits its declared score scale"),
+        )
+    }
+}

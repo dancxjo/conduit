@@ -5,8 +5,8 @@ use sha2::{Digest, Sha256};
 use super::CatalogError;
 
 pub const SCHEMA: &str = "conduit.std/supported-nucleus-inventory@1";
-// The supported nucleus plus Patchbay faces contains 66 exact entries.
-pub const MAXIMUM_ENTRIES: usize = 66;
+// The supported nucleus plus Patchbay faces contains 67 exact entries.
+pub const MAXIMUM_ENTRIES: usize = 67;
 
 #[derive(Clone, Serialize)]
 pub struct InventoryEntry {

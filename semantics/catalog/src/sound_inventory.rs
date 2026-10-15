@@ -1,6 +1,6 @@
 //! Ordered sound contract inventory.
 use super::*;
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 14] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 15] {
     [
         (
             crate::audio_time_analysis_contract(),
@@ -9,6 +9,10 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (
             crate::audio_spectral_analysis_contract(),
             crate::AUDIO_SPECTRAL_ANALYSIS_REVISION,
+        ),
+        (
+            crate::audio_pitch_analysis_contract(),
+            crate::AUDIO_PITCH_ANALYSIS_REVISION,
         ),
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),

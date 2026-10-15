@@ -11,6 +11,7 @@ pub enum PcmPitchRefusal {
     Input(PcmTimeAnalysisRefusal),
     UnsupportedWindow,
     InvalidLagRange,
+    WrongSourceFrames,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq)]

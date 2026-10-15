@@ -39,3 +39,15 @@ rate. Its end is the earliest availability coordinate. Observing identical sampl
 windows in differently sized enclosing PCM blocks gives identical estimates and
 intervals but intentionally different source-content digests. This preserves
 custody rather than silently equating physically different input values.
+
+The checked output carries a parts-per-million correlation projection. The
+`periodicity_score` adapter reuses the generic #4950 score contract with an
+explicit estimator/scale and no invented calibration or semantic claim. Actual
+Plan/Play Signs establish emission separately. The score does not establish
+physical pitch, original speech intent or perception. Generic #4952 fidelity
+report integration remains a separate development gate before closure.
+
+Prepared encoding retains four valid canonical state shapes and writes only
+admitted numeric cells. The immutable profile fixes source block size, window
+offset/length, clock/rate and lag limits. One window is observed per input block;
+no cross-block raw history, stitch, padding or inferred resampling is hidden.

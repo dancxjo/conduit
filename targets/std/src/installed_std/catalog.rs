@@ -2,6 +2,7 @@
 
 use super::address_detect_back::FACTORY as ADDRESS_DETECT_FACTORY;
 use super::alife_backs::{LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_FACE_FACTORY};
+use super::audio_pitch_analysis_back::FACTORY as AUDIO_PITCH_ANALYSIS_FACTORY;
 use super::audio_play_back::AUDIO_PLAY_FACTORY;
 use super::audio_spectral_analysis_back::FACTORY as AUDIO_SPECTRAL_ANALYSIS_FACTORY;
 use super::audio_time_analysis_back::FACTORY as AUDIO_TIME_ANALYSIS_FACTORY;
@@ -209,6 +210,7 @@ const FACTORIES: &[&BackFactory] = &[
     &DISTANCE_FREQUENCY_FACTORY,
     &AUDIO_TIME_ANALYSIS_FACTORY,
     &AUDIO_SPECTRAL_ANALYSIS_FACTORY,
+    &AUDIO_PITCH_ANALYSIS_FACTORY,
     &AUDIO_TONE_FACTORY,
     &super::native_speech_back::FACTORY,
     &super::ipa_constructor_back::PHONE,

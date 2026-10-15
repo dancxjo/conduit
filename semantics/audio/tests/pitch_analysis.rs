@@ -33,33 +33,10 @@ unsafe impl GlobalAlloc for Counted {
 }
 #[global_allocator]
 static ALLOCATOR: Counted = Counted;
-fn frame(samples: &[f32], rate: u32, start: u64) -> Vec<u8> {
-    PcmFrameHeader::new(
-        PcmSampleRepresentation::Float32LittleEndian,
-        rate,
-        PcmChannelLayout::Mono,
-        samples.len() as u16,
-        55,
-        start,
-        false,
-    )
-    .unwrap()
-    .encode_frame(
-        &samples
-            .iter()
-            .flat_map(|x| x.to_le_bytes())
-            .collect::<Vec<_>>(),
-    )
-    .unwrap()
-}
-fn signal(n: usize, period: f64, fundamental: f64, harmonic: f64) -> Vec<f32> {
-    (0..n)
-        .map(|i| {
-            let phase = std::f64::consts::TAU * i as f64 / period;
-            (fundamental * phase.sin() + harmonic * (2.0 * phase).sin()) as f32
-        })
-        .collect()
-}
+#[path = "common/pitch_signal.rs"]
+mod pitch_signal;
+use pitch_signal::*;
+
 #[test]
 fn known_period_has_exact_rate_and_window_custody() {
     let samples = signal(1024, 40.0, 0.5, 0.0);
@@ -215,4 +192,113 @@ fn checked_native_observation_retains_custody_and_declared_confidence_projection
         correlation: 1.0,
     };
     assert!(forged.prepare_native().is_err());
+}
+
+#[test]
+fn prepared_encoder_matches_checked_native_for_every_state_without_allocation() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    let profile = PcmPitchProfile::new(55, 16000, 1024, 0, 1024, 8, 256).unwrap();
+    let mut encoder = PreparedPcmPitchObservationEncoder::prepare(profile).unwrap();
+    let mut seed = 42u32;
+    let noise: Vec<f32> = (0..1024)
+        .map(|_| {
+            seed = seed.wrapping_mul(1664525).wrapping_add(1013904223);
+            (seed >> 16) as f32 / 65536.0 - 0.5
+        })
+        .collect();
+    let cases = [
+        vec![0.0; 1024],
+        noise,
+        signal(1024, 80.0, 0.01, 0.5),
+        signal(1024, 40.0, 0.5, 0.0),
+    ];
+    let expected_states = [
+        AudioPitchState::InsufficientEnergy,
+        AudioPitchState::Unknown,
+        AudioPitchState::Uncertain,
+        AudioPitchState::Periodic,
+    ];
+    let maximum = encoder.maximum_encoded_len();
+    for (i, (samples, state)) in cases.iter().zip(expected_states).enumerate() {
+        let bytes = frame(samples, 16000, 1000 + i as u64 * 1024);
+        let expected = profile
+            .observe(&mut PcmPitchWorkspace::default(), &bytes)
+            .unwrap()
+            .prepare_native()
+            .unwrap();
+        ALLOCATIONS.with(|c| c.set((true, 0)));
+        let result = encoder.encode(&bytes);
+        let count = ALLOCATIONS.with(|c| {
+            let (_, n) = c.get();
+            c.set((false, n));
+            n
+        });
+        let encoded = result.unwrap();
+        assert_eq!(count, 0);
+        assert_eq!(encoded, expected.encode().unwrap());
+        let decoded = AudioPitchObservation::decode(encoded).unwrap();
+        assert_eq!(*decoded.state(), state);
+        assert_eq!(encoder.maximum_encoded_len(), maximum);
+    }
+    let retained = encoder.encoded().to_vec();
+    let malformed = frame(&vec![0.0; 512], 16000, 0);
+    assert!(matches!(
+        encoder.encode(&malformed),
+        Err(PcmPitchEncodingRefusal::Analysis(
+            PcmPitchRefusal::WrongSourceFrames
+        ))
+    ));
+    assert_eq!(encoder.encoded(), retained);
+}
+
+#[test]
+fn prepared_profile_admits_one_lag_and_explicit_in_block_window() {
+    let profile = PcmPitchProfile::new(55, 16000, 1536, 256, 1024, 40, 40).unwrap();
+    let bytes = frame(&signal(1536, 40.0, 0.5, 0.0), 16000, 1000);
+    let mut encoder = PreparedPcmPitchObservationEncoder::prepare(profile).unwrap();
+    assert!(!encoder.encode(&bytes).unwrap().is_empty());
+    let observation = profile
+        .observe(&mut PcmPitchWorkspace::default(), &bytes)
+        .unwrap();
+    assert_eq!(observation.interval.start_frame, 1256);
+    assert!(matches!(
+        observation.estimate,
+        PcmPitchEstimate::Periodic { lag_frames: 40, .. }
+    ));
+    assert!(PcmPitchProfile::new(55, 16000, 1024, 1000, 1024, 8, 256).is_err());
+    assert!(PcmPitchProfile::new(0, 16000, 1024, 0, 1024, 8, 256).is_err());
+}
+
+#[test]
+fn confidence_reuses_generic_score_without_inventing_calibration_or_claim_truth() {
+    use conduit_core::claims::{ClaimScore, ClaimText};
+    let profile = PcmPitchProfile::new(55, 16000, 1024, 0, 1024, 8, 256).unwrap();
+    let bytes = frame(&signal(1024, 40.0, 0.5, 0.0), 16000, 0);
+    let native = profile
+        .observe(&mut PcmPitchWorkspace::default(), &bytes)
+        .unwrap()
+        .prepare_native()
+        .unwrap();
+    let score = native.periodicity_score().unwrap();
+    assert_eq!(score.value(), i64::from(*native.correlation_ppm().get()));
+    assert_eq!(score.calibration(), None);
+    assert_eq!(score.producer().as_str(), PCM_PITCH_PROFILE);
+    let unrelated = ClaimScore::new(
+        ClaimText::new("centered-normalized-correlation-ppm@1").unwrap(),
+        None,
+        ClaimText::new("fixture/other-estimator@1").unwrap(),
+        0,
+        1000000,
+        score.value(),
+    )
+    .unwrap();
+    assert!(score.compare(&unrelated).is_err());
+    let bytes = frame(&vec![0.0; 1024], 16000, 0);
+    assert!(profile
+        .observe(&mut PcmPitchWorkspace::default(), &bytes)
+        .unwrap()
+        .prepare_native()
+        .unwrap()
+        .periodicity_score()
+        .is_none());
 }
