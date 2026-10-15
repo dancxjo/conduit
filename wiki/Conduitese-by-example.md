@@ -67,27 +67,60 @@ The editor exposes current text. The plot does not own a window, DOM node, termi
 Current tree: [plots/pocket-theremin/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/pocket-theremin/main.conduit)
 
 ```conduit
-plot pocket-theremin (
+# The pitch law is ordinary Conduitese. Convert distance to a dimensionless
+# number of centimetres, then lower pitch by 55 Hz per centimetre. Clamping is
+# explicit; unit conversion and arithmetic never silently round.
+plot theremin-pitch (
     >> distance: Distance
+    frequency: Frequency >>
+) = (distance <= 0cm ? 1760Hz : distance >= 30cm ? 110Hz : 1760Hz - (distance / 1cm) * 55Hz)
+
+# The one canonical Theremin. Both controls describe portable meaning. Hosts
+# own acquisition, cadence, and playback; this Plot owns the instrument law.
+plot pocket-theremin (
+    >> pitch-distance: Distance
+    >> volume: Scalar
+    >> cadence: value/tick@1...
     audio: audio/pcm-frames@1...| >>
 ) {
-    map: math/map-distance-frequency(source-minimum = 0cm, source-maximum = 30cm, target-minimum = 220Hz, target-maximum = 880Hz)
+    pitch: theremin-pitch
     frequency: keep Frequency(440Hz) for this play
-    tone: audio/tone
+    tone: audio/continuous-tone
+    gain: audio/apply-gain
 
-    distance >> map.distance
-    map.frequency >> frequency
+    pitch-distance >> pitch.distance
+    pitch.frequency >> frequency
     frequency >> tone.frequency
-    tone.audio >> audio
-}.
+    cadence >> tone.cadence
+    tone.audio >> gain.source-audio
+    volume >> gain.amplitude
+    gain.audio >> audio
+}
 ```
 
-The units are semantic. The `keep` is current frequency state. Browser audio, hosted audio, or a future native realization can sit behind the same meaning.
-This excerpt normalizes the invocation layout; its mapping/audio Kinds require
-the domain's catalog. [[The quantity tutorial|Units-and-quantities]] starts with
-standalone examples checkable in the installed CLI.
+The pitch law is visible Conduitese: each centimetre lowers pitch by 55 Hz,
+clamped to 110–1760 Hz. An expression plot can use its declared input name;
+`distance` denotes the value arriving at that input. The instrument ends with
+`}`, keeping its live completion policy. A trailing `}.` would declare semantic
+completion and is inappropriate for this continuously played instrument.
 
-The `@1` catalog spelling in some current-tree examples is implementation/migration history, not a reason to invent new version-suffix syntax in authored canon.
+`keep` retains the current pitch for this play, starting at 440 Hz. Every
+cadence tick samples that pitch and requests the next phase-continuous PCM
+block, even when the hand stays still. The tone reads the retained Current frequency
+on that cadence; its faults keep their declared abnormal propagation. The
+second control changes volume.
+The controller binding supplies a 40 ms cadence and selects
+`audio/continuous-play`. Playback remains externally driven until Stop or input
+closure, with at most two queued PCM blocks and the Host acoustic gain cap.
+The finite `audio/play` contract retains its lifetime quotas. Stop cancels queued
+audio and ends the play and its retained state.
+
+Quantity addition/subtraction, same-family ratios, and Scalar scaling are
+checked ordinary expressions. Ratios must fit Scalar's exact millionth carrier;
+unrepresentable results refuse instead of silently rounding. Dividing by `1cm`
+keeps this law exact for the controller's admitted values.
+[[The quantity tutorial|Units-and-quantities]] also has standalone conversion
+examples checkable in the installed CLI.
 
 ## Button across the room: meaning without transport
 

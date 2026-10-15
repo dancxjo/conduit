@@ -81,11 +81,14 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
   isCurrent = () => true, onWaiting = () => {}, bridge = null, signal, admittedInput = null }) {
   if (!bridge) throw new Error("browser runtime bridge is required");
   const effects = new Map();
+  const playbackControllers = new Map();
   let wake = null;
   let progress = initialProgress;
   const current = () => !signal?.aborted && isCurrent();
   const retire = () => {
     for (const pending of effects.values()) pending.controller.abort();
+    for (const controllers of playbackControllers.values()) for (const controller of controllers) controller.abort();
+    playbackControllers.clear();
     wake?.();
     wake = null;
   };
@@ -119,6 +122,12 @@ export async function drainBrowserEffects({ api, initialProgress, readOutput, pe
         }
         const pending = { key, effect, ready: false, controller: new AbortController() };
         effects.set(key, pending);
+        if (effect.effect_kind === "pcm-playback") {
+          const controllers = playbackControllers.get(effect.placement_id) ?? [];
+          controllers.push(pending.controller);
+          if (controllers.length > 2) controllers.shift();
+          playbackControllers.set(effect.placement_id, controllers);
+        }
         const settle = (result) => {
           Object.assign(pending, result, { ready: true });
           wake?.();

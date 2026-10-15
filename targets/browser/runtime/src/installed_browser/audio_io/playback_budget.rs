@@ -1,16 +1,27 @@
-//! Exact, finite mixed-rate work accounting for the rational128 playback profile.
+//! Finite mixed-rate lifetime accounting and externally driven per-block playback.
 use conduit_audio::PcmFrameHeader;
 use conduit_core::{ConfigurationValue, PlannedGear};
 use conduit_kernel::{Failure, FailureCode};
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub(super) struct PlaybackBudget {
+    continuous: bool,
     remaining_blocks: u32,
     numerator: u128,
     denominator: u128,
 }
 impl PlaybackBudget {
     pub(super) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
+        if placement.implementation_id.as_str() == super::CONTINUOUS_PLAY_IMPLEMENTATION {
+            let offer = super::continuous_playback_offer();
+            if !placement.configuration.is_empty()
+                || placement.semantic_contract != offer.semantic_contract
+                || placement.limits != offer.limits
+            {
+                return Err("continuous playback contract differs from its exact offer".into());
+            }
+            return Ok(Self::continuous());
+        }
         let offer = super::playback_offer();
         if placement.configuration.len() != 2
             || placement.semantic_contract != offer.semantic_contract
@@ -44,12 +55,26 @@ impl PlaybackBudget {
         }
         let divisor = gcd(u128::from(millis), 1000);
         Ok(Self {
+            continuous: false,
             remaining_blocks: blocks,
             numerator: u128::from(millis) / divisor,
             denominator: 1000 / divisor,
         })
     }
+    // Every frame is independently validated and bounded by PlaybackBack.
+    // No duration/rate rational or lifetime work counter is accumulated.
+    pub(super) fn continuous() -> Self {
+        Self {
+            continuous: true,
+            remaining_blocks: 0,
+            numerator: 0,
+            denominator: 1,
+        }
+    }
     pub(super) fn charge(&mut self, frame: &PcmFrameHeader) -> Result<(), Failure> {
+        if self.continuous {
+            return Ok(());
+        }
         let exhausted = Failure {
             code: FailureCode::WorkBudgetExhausted,
             detail: 9,
@@ -146,6 +171,28 @@ mod tests {
         )
         .unwrap()
     }
+    #[test]
+    fn continuous_playback_has_no_cumulative_duration_or_block_quota() {
+        let mut continuous = PlaybackBudget::continuous();
+        let before = continuous;
+        let mut finite = PlaybackBudget::new(32768, 30000).unwrap();
+        let block = frame(48000, 2000);
+        for _ in 0..720 {
+            // Exactly thirty seconds.
+            continuous.charge(&block).unwrap();
+            finite.charge(&block).unwrap();
+        }
+        assert_eq!(
+            finite.charge(&block).unwrap_err().code,
+            FailureCode::WorkBudgetExhausted
+        );
+        for _ in 0..40_000 {
+            // Beyond both former lifetime bounds.
+            continuous.charge(&block).unwrap();
+        }
+        assert_eq!(continuous, before);
+    }
+
     #[test]
     fn mixed_common_rates_have_an_exact_boundary_independent_of_clock_position() {
         let mut budget = PlaybackBudget::new(32768, 30000).unwrap();

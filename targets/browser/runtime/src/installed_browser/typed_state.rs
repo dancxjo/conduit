@@ -1,0 +1,283 @@
+//! Exact Play-lived State installation over the shared kernel State Back.
+use super::{
+    factory::{validate_placement, BrowserInstallation},
+    BrowserBack,
+};
+use conduit_core::*;
+use conduit_kernel::{
+    scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
+    state_delay::{back::StateBack, StateDelay},
+    Failure, FailureCode, PortId,
+};
+const MAXIMUM: usize = super::MAXIMUM_BROWSER_VALUE_BYTES;
+pub(crate) const IMPLEMENTATION: &str = "browser/kernel-typed-state@1";
+const PROFILE: &str = "browser/typed-state-play-4096@1";
+const ARTIFACT: &str = "conduit-kernel/state-delay@1";
+pub(super) static INSTALLATION: BrowserInstallation = BrowserInstallation {
+    implementation_id: IMPLEMENTATION,
+    offer: unreachable_offer,
+    prepare,
+    perform: None,
+};
+fn initial(configuration: &[ConfigurationEntry]) -> Result<StructuredInfoValue, String> {
+    let Some(ConfigurationValue::Structured(value)) = configuration
+        .iter()
+        .find(|entry| entry.key == "initial")
+        .map(|entry| &entry.value)
+    else {
+        return Err("typed State requires exact initialization".into());
+    };
+    StructuredInfoValue::from_canonical_bytes(value.canonical_value())
+        .map_err(|error| format!("typed State initialization: {error:?}"))
+}
+fn offer(value: &StructuredInfoValue) -> Result<CapabilityOffer, String> {
+    let mut contract = conduit_semantic_catalog::state_value::state_value_semantic_contract(
+        "",
+        value.value_type(),
+        value,
+    )?;
+    contract.limits.max_queue_bytes = MAXIMUM as u32;
+    contract.shorthand = Some((port_id("next"), port_id("current")));
+    let digest = value
+        .semantic_digest()
+        .map_err(|error| format!("typed State identity: {error:?}"))?;
+    let identity = digest
+        .iter()
+        .map(|byte| format!("{byte:02x}"))
+        .collect::<String>();
+    BackOfferBuilder::new(
+        contract,
+        Back {
+            capability_id: format!("browser/typed-state/{identity}").into(),
+            execution_profile_id: PROFILE.into(),
+            implementation_id: IMPLEMENTATION.into(),
+            artifact_id: ARTIFACT.into(),
+            host_calls: vec![],
+            resource_requirements: vec![],
+            authority_requirements: vec![],
+        },
+    )
+    .build()
+    .with_state_retention(StateRetentionSupport {
+        maximum_lifetime: StateLifetime::Play,
+    })
+    .map_err(|error| format!("typed State retention: {error:?}"))
+}
+// A maximum retention horizon does not describe every installed lifecycle.
+// Reject unsupported authored durations before offering this Play-only Back,
+// including when a different Play cell shares the same initializer identity.
+fn validate_offered_lifetime(configuration: &[ConfigurationEntry]) -> Result<(), String> {
+    let mut durations = configuration
+        .iter()
+        .filter(|entry| entry.key == "retained-duration");
+    match (durations.next(), durations.next()) {
+        (None, None) => Ok(()), // Plain State construction defaults to Play.
+        (Some(entry), None)
+            if matches!(&entry.value, ConfigurationValue::Text(value) if value == "play") => Ok(()),
+        _ => Err("browser typed State requires this Play; authored Step, Wake, Boot, and Body lifetimes have no installed realization".into()),
+    }
+}
+
+pub(crate) fn offer_for_expanded(
+    gear: &conduit_plot::CheckedGear,
+) -> Result<Option<CapabilityOffer>, String> {
+    if gear.kind_id.as_str() != STATE_VALUE_KIND {
+        return Ok(None);
+    }
+    validate_offered_lifetime(&gear.configuration)?;
+    offer(&initial(&gear.configuration)?).map(Some)
+}
+enum Validator {
+    Primitive(KindId),
+    Structured(PreparedStructuredValueValidator),
+}
+struct TypedState {
+    back: StateBack<MAXIMUM>,
+    validator: Validator,
+}
+impl Validator {
+    fn validate(&self, value: &[u8]) -> bool {
+        match self {
+            Self::Primitive(kind) => validate_primitive_info(kind.as_str(), value).is_ok(),
+            Self::Structured(validator) => validator.validate(value).is_ok(),
+        }
+    }
+}
+fn prepare(
+    placement: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<BrowserBack, String> {
+    let value = initial(&placement.configuration)?;
+    let exact = offer(&value)?;
+    validate_placement(placement, &exact)?;
+    if placement.semantic_contract != exact.semantic_contract
+        || !placement.resources.is_empty()
+        || !placement.authority.is_empty()
+        || !placement.pool_references.is_empty()
+    {
+        return Err("typed State differs from the installed Play contract".into());
+    }
+    validate_offered_lifetime(&placement.configuration)?;
+    let maximum = placement
+        .configuration
+        .iter()
+        .find(|entry| entry.key == "maximum-bytes")
+        .map(|entry| &entry.value);
+    let maximum = match maximum {
+        Some(ConfigurationValue::U64(value)) => {
+            usize::try_from(*value).map_err(|_| "typed State bound overflows")?
+        }
+        None => MAXIMUM,
+        _ => return Err("typed State bound is malformed".into()),
+    };
+    if maximum == 0 || maximum > MAXIMUM {
+        return Err("typed State exceeds installed storage".into());
+    }
+    let (bytes, validator) = match (value.value_type().shape(), value.shape()) {
+        (StructuredInfoTypeShape::Leaf(kind), StructuredInfoValueShape::Leaf(bytes)) => {
+            (bytes.to_vec(), Validator::Primitive(kind.clone()))
+        }
+        _ => (
+            value
+                .canonical_bytes()
+                .map_err(|error| format!("typed State bytes: {error:?}"))?,
+            Validator::Structured(
+                PreparedStructuredValueValidator::new(value.value_type(), maximum)
+                    .map_err(|error| format!("typed State validator: {error:?}"))?,
+            ),
+        ),
+    };
+    if !validator.validate(&bytes) {
+        return Err("typed State initial value is invalid".into());
+    }
+    // The slot is local to this independently installed State Back; planned Gear
+    // identity remains owned by the ordinary scheduler and its State boundary.
+    let state = StateDelay::externally_continued(0, maximum, &bytes)
+        .map_err(|error| format!("typed State storage: {error:?}"))?;
+    let back = StateBack::new_prepared(state, PortId(0), PortId(0))
+        .map_err(|error| format!("typed State Back: {error:?}"))?;
+    Ok(BrowserBack::installed_step(TypedState { back, validator }))
+}
+impl<const PORTS: usize> StepBack<PORTS> for TypedState {
+    fn step(&mut self, io: &mut StepIo<PORTS>, bytes: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if io.input(PortId(0)).is_some()
+            && !bytes
+                .input(PortId(0))
+                .is_some_and(|value| self.validator.validate(value))
+        {
+            <StateBack<MAXIMUM> as StepBack<PORTS>>::cancel(&mut self.back);
+            return StepOutcome::Fail(Failure {
+                code: FailureCode::InvalidInput,
+                detail: 9,
+            });
+        }
+        self.back.step(io, bytes)
+    }
+    fn step_committed(&mut self) {
+        <StateBack<MAXIMUM> as StepBack<PORTS>>::step_committed(&mut self.back);
+    }
+    fn prepared_output(&self, port: PortId) -> Option<&[u8]> {
+        <StateBack<MAXIMUM> as StepBack<PORTS>>::prepared_output(&self.back, port)
+    }
+    fn cancel(&mut self) {
+        <StateBack<MAXIMUM> as StepBack<PORTS>>::cancel(&mut self.back);
+    }
+}
+fn unreachable_offer() -> CapabilityOffer {
+    panic!("typed State offers require checked source")
+}
+
+/// Explicit fresh Play cell storage; retained cells across Plays remain refused.
+pub(crate) fn storage_profile() -> conduit_plan_lowering::lowering::KernelStorageProfile {
+    conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE
+        .with_state_storage(super::MAXIMUM_BROWSER_GEARS as u16, MAXIMUM as u32)
+        .expect("nonzero bounded browser State storage")
+}
+
+pub(crate) fn offer_for_placement(gear: &PlannedGear) -> Result<Option<CapabilityOffer>, String> {
+    if gear.kind_id.as_str() != STATE_VALUE_KIND {
+        return Ok(None);
+    }
+    validate_offered_lifetime(&gear.configuration)?;
+    offer(&initial(&gear.configuration)?).map(Some)
+}
+
+/// Consume every planned cell through the selected exact Play-lived State Back.
+pub(crate) fn validate_partition(
+    fragment: &PlanFragment,
+    lowered: &conduit_plan_lowering::lowering::LoweredPlanFragment,
+) -> Result<(), String> {
+    if fragment.states.len() != lowered.states.len() {
+        return Err("browser State lowering omitted a planned boundary".into());
+    }
+    for state in &fragment.states {
+        let gear = fragment
+            .placements
+            .iter()
+            .find(|gear| gear.gear_id == state.gear_id)
+            .ok_or("browser State has no selected placement")?;
+        let numeric = lowered
+            .states
+            .iter()
+            .find(|cell| cell.contract == *state)
+            .ok_or("browser State has no exact lowered cell")?;
+        let node = lowered
+            .nodes
+            .iter()
+            .find(|node| node.placement_id == gear.placement_id)
+            .ok_or("browser State has no exact lowered node")?;
+        let maximum = gear
+            .configuration
+            .iter()
+            .find(|entry| entry.key == "maximum-bytes")
+            .map(|entry| &entry.value);
+        if gear.kind_id.as_str() != STATE_VALUE_KIND
+            || gear.implementation_id.as_str() != IMPLEMENTATION
+            || state.state_id.as_str() != gear.gear_id.as_str()
+            || state.lifetime != StateLifetime::Play
+            || state.retained.is_some()
+            || state.continuation != StateContinuation::ExternallyBounded
+            || maximum
+                != Some(&ConfigurationValue::U64(u64::from(
+                    state.maximum_value_bytes,
+                )))
+            || state.maximum_value_bytes == 0
+            || state.maximum_value_bytes > MAXIMUM as u32
+            || gear.outputs.first().map(|port| &port.value_kind) != Some(&state.value_kind)
+            || numeric.node != node.node
+            || numeric.next != PortId(0)
+            || numeric.current != PortId(0)
+        {
+            return Err("browser State differs from the exact fresh Play installation".into());
+        }
+        let value = initial(&gear.configuration)?;
+        let expected = match value.shape() {
+            StructuredInfoValueShape::Leaf(bytes) => bytes.to_vec(),
+            _ => value
+                .canonical_bytes()
+                .map_err(|error| format!("State initializer: {error:?}"))?,
+        };
+        if state.initial_value.as_deref() != Some(expected.as_slice()) {
+            return Err("browser State initializer differs from its planned boundary".into());
+        }
+    }
+    for gear in fragment
+        .placements
+        .iter()
+        .filter(|gear| gear.implementation_id.as_str() == IMPLEMENTATION)
+    {
+        if fragment
+            .states
+            .iter()
+            .filter(|state| state.gear_id == gear.gear_id)
+            .count()
+            != 1
+        {
+            return Err("browser typed State requires one exact planned Play boundary".into());
+        }
+    }
+    Ok(())
+}
+
+#[cfg(test)]
+mod tests;

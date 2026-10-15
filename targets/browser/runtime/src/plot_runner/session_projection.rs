@@ -43,7 +43,11 @@ impl TourSession {
             engine::BrowserHostEffect::PcmPlayback { frame } => Ok(TourHostEffect::AudioIo(
                 Box::new(protocol::TourAudioIoEffect {
                     schema: "conduit.browser/pcm-audio-effect@1",
-                    effect_kind: "pcm-playback",
+                    effect_kind: if frame.is_some() {
+                        "pcm-playback"
+                    } else {
+                        "pcm-playback-drain"
+                    },
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -58,7 +62,7 @@ impl TourSession {
                     maximum_gain_millionths: Some(
                         crate::installed_browser::audio_io::MAXIMUM_SAFE_GAIN_MILLIONTHS,
                     ),
-                    frame_hex: Some(hex_bytes(frame)),
+                    frame_hex: frame.as_ref().map(|frame| hex_bytes(frame)),
                     source_interaction: self.source_interaction.clone(),
                 }),
             )),

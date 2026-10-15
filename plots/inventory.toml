@@ -346,7 +346,7 @@ title = "Pocket Theremin"
 entry = "phone-two-axis-controller"
 initial_body_order = 11
 initial_body_face_profile = 1
-deterministic = { package = "conduit-browser-runtime", test = "lib", case = "phone_theremin_checks_with_exact_two_axis_browser_realizations" }
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "creche::typed_workset_tests::phone_theremin_checks_with_exact_two_axis_browser_realizations" }
 browser_safe = { spec = "proof/browser/workspace-library.spec.mjs", case = "Pocket Theremin plays continuous two-axis PCM on the browser host" }
 [[plots]]
 slug = "pool-webchat"
