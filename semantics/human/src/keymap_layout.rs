@@ -38,7 +38,7 @@ pub fn default_keymap_configuration() -> StructuredConfigurationValue {
 #[derive(Clone, Copy)]
 struct Text {
     bytes: [u8; 8],
-    len: usize,
+    len: u8,
 }
 impl Text {
     fn new(value: &str) -> Result<Self, String> {
@@ -49,11 +49,11 @@ impl Text {
         bytes[..value.len()].copy_from_slice(value.as_bytes());
         Ok(Self {
             bytes,
-            len: value.len(),
+            len: value.len() as u8,
         })
     }
     fn as_str(&self) -> &str {
-        core::str::from_utf8(&self.bytes[..self.len]).expect("prepared UTF-8")
+        core::str::from_utf8(&self.bytes[..usize::from(self.len)]).expect("prepared UTF-8")
     }
 }
 #[derive(Clone, Copy)]
@@ -463,3 +463,18 @@ fn text(value: &StructuredInfoValue) -> Result<&str, String> {
 
 mod choices;
 pub use choices::*;
+
+#[cfg(test)]
+mod representation_tests {
+    use super::Text;
+
+    #[test]
+    fn admitted_utf8_text_uses_nine_bytes_without_pointer_sized_length_padding() {
+        assert_eq!(core::mem::size_of::<Text>(), 9);
+        for text in ["", "abcdefgh", "🦀🦀"] {
+            assert_eq!(Text::new(text).unwrap().as_str(), text);
+        }
+        assert!(Text::new("abcdefghi").is_err());
+        assert!(Text::new("🦀🦀x").is_err());
+    }
+}

@@ -161,18 +161,20 @@ impl TextDomain {
         self.space.frame().command = 5;
         Ok(())
     }
-    pub fn intermediate(&mut self, output: &mut [u8; 4]) -> Result<usize, DomainRefusal> {
+    pub fn intermediate(&mut self, output: &mut [u8]) -> Result<usize, DomainRefusal> {
         let frame = self.space.frame();
         let length = frame.intermediate_length as usize;
         let edit_refused = frame.command == 7 && frame.status == 2 && frame.output_length == 0;
         if self.quarantined
             || !matches!(frame.command, 5 | 7)
             || (frame.status != 0 && !edit_refused)
-            || length > 4
+            || length > frame.intermediate.len()
+            || length > output.len()
         {
             return Err(DomainRefusal::InvalidMemory);
         }
-        output[..length].copy_from_slice(&frame.intermediate[..length]);
+        frame::copy_intermediate(&frame.intermediate, frame.intermediate_length, output)
+            .ok_or(DomainRefusal::InvalidMemory)?;
         self.cost.copied_bytes += length as u64;
         self.cost.shared_peak_bytes = self.cost.shared_peak_bytes.max(
             frame.input_length.min(TEXT_CAPACITY as u32)
