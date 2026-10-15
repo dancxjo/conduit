@@ -42,9 +42,9 @@ impl StepBack<1> for Sink {
         self.staged = false;
     }
 }
-fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
+fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bool) {
     let prepare = Instant::now();
-    let mut routes = FixedRoutes::<32, 1>::new(1);
+    let mut routes = FixedRoutes::<N, 1>::new(1);
     routes.seal().unwrap();
     let specs = core::array::from_fn(|i| NodeSpec {
         input_cords: [if i < active {
@@ -72,28 +72,27 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
         }
     });
     let drivers = core::array::from_fn(|i| Sink {
-        expected: i as u8 + 1,
+        expected: (i % 251) as u8 + 1,
         received: 0,
         staged: false,
     });
-    let signs = FixedSignLog::<1024>::new_with_remote_storage(
-        (1024 * core::mem::size_of::<crate::KernelEvent>()) as u32,
-        1024,
-        crate::remote_sign_storage_bytes(1024).unwrap(),
+    let signs = FixedSignLog::<4096>::new_with_remote_storage(
+        (4096 * core::mem::size_of::<crate::KernelEvent>()) as u32,
+        4096,
+        crate::remote_sign_storage_bytes(4096).unwrap(),
     )
     .unwrap();
-    let mut scheduler =
-        FixedScheduler::<_, _, _, 32, 32, 1, 32, 32, 1, 0, 1>::new_with_active_counts(
-            active,
-            active,
-            specs,
-            cords,
-            routes,
-            drivers,
-            FixedValueStore::<32, 1>::new(32).unwrap(),
-            signs,
-        )
-        .unwrap();
+    let mut scheduler = FixedScheduler::<_, _, _, N, N, 1, N, N, 1, 0, 1>::new_with_active_counts(
+        active,
+        active,
+        specs,
+        cords,
+        routes,
+        drivers,
+        FixedValueStore::<N, 1>::new(u32::try_from(N).unwrap()).unwrap(),
+        signs,
+    )
+    .unwrap();
     let prepare_ns = prepare.elapsed().as_nanos();
     // Warm startup through real Await steps; no ready flag is changed directly.
     for _ in 0..active {
@@ -111,7 +110,7 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
                         RemoteEndpointId(node as u16),
                         CordId(node as u16),
                         0,
-                        &[node as u8 + 1]
+                        &[(node % 251) as u8 + 1]
                     )
                     .unwrap(),
                 RemoteIngressOutcome::Accepted { sequence: 0 }
@@ -122,7 +121,7 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
                         RemoteEndpointId(node as u16),
                         CordId(node as u16),
                         1,
-                        &[node as u8 + 1]
+                        &[(node % 251) as u8 + 1]
                     )
                     .unwrap(),
                 RemoteIngressOutcome::Full { sequence: 1 }
@@ -134,13 +133,15 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
     let before_bytes = scheduler.signs.used_bytes();
     let start = Instant::now();
     let mut steps = 0;
-    let mut order = [u16::MAX; 64];
+    let mut order = [u16::MAX; N];
     loop {
         match scheduler.step().unwrap() {
             SchedulerStatus::Progress { node } => {
-                order[steps] = node.0;
+                if steps < active {
+                    order[steps] = node.0;
+                }
                 steps += 1;
-                assert!(steps <= 64);
+                assert!(steps <= 2 * active);
             }
             SchedulerStatus::Idle => break,
             other => panic!("unexpected measured scheduler status {other:?}"),
@@ -150,10 +151,15 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
     let counts = scheduler.scan_counts.get();
     let ready = if sparse { 1 } else { active };
     assert_eq!(steps, 2 * ready);
-    assert_eq!(counts.next_ready_nodes, steps as u64);
-    assert!(counts.next_ready_nodes < 3 * active as u64);
-    if sparse && active >= 8 {
-        assert!(counts.ready_bytes + counts.next_ready_nodes < 3 * active as u64);
+    if cfg!(feature = "linear-ready-reference-test") {
+        assert_eq!(counts.next_ready_nodes, 3 * active as u64);
+        assert_eq!(counts.ready_bytes, 0);
+    } else {
+        assert_eq!(counts.next_ready_nodes, steps as u64);
+        assert!(counts.next_ready_nodes < 3 * active as u64);
+        if sparse && active >= 8 {
+            assert!(counts.ready_bytes + counts.next_ready_nodes < 3 * active as u64);
+        }
     }
     assert_eq!(counts.pending_slots, counts.next_ready_nodes);
     assert_eq!(counts.context_pending_slots, steps as u64);
@@ -174,6 +180,26 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
     assert_eq!(scheduler.values.used_items(), 0);
     assert_eq!(scheduler.values.used_bytes(), 0);
     if print {
+        let events = std::format!(
+            "{:?}",
+            scheduler.signs.events().collect::<std::vec::Vec<_>>()
+        );
+        let remote = std::format!(
+            "{:?}",
+            scheduler
+                .signs
+                .remote_entries
+                .iter()
+                .flatten()
+                .collect::<std::vec::Vec<_>>()
+        );
+        let received = (0..active)
+            .map(|n| scheduler.drivers[n].received)
+            .collect::<std::vec::Vec<_>>();
+        let readiness = (0..active)
+            .map(|n| scheduler.ready.contains(n))
+            .collect::<std::vec::Vec<_>>();
+        std::println!("SCHEDULER_REPLAY_ROW {{\"capacity\":{N},\"active\":{active},\"sparse\":{sparse},\"trial\":{trial},\"legacy\":{},\"kernel_bytes\":{},\"events\":{events:?},\"remote\":{remote:?},\"received\":{received:?},\"readiness\":{readiness:?},\"value_items\":{},\"value_bytes\":{},\"terminal\":\"Idle\"}}", cfg!(feature = "linear-ready-reference-test"), core::mem::size_of_val(&scheduler), scheduler.values.used_items(), scheduler.values.used_bytes());
         std::println!("SCHEDULER_SCAN_ROW {{\"active_nodes\":{active},\"active_cords\":{active},\"ready_inputs\":{ready},\"sparse\":{sparse},\"trial\":{trial},\"prepare_ns\":{prepare_ns},\"step_ns\":{step_ns},\"steps\":{steps},\"ready_nodes_scanned\":{},\"ready_bytes_scanned\":{},\"pending_slots_scanned\":{},\"signs\":{},\"sign_bytes\":{},\"context_pending_slots\":{},\"input_ports_checked\":{},\"cords_scanned\":{},\"queue_peeks\":{},\"queue_pressure_refused\":true}}",counts.next_ready_nodes,counts.ready_bytes,counts.pending_slots,scheduler.signs.len()-before_signs,scheduler.signs.used_bytes()-before_bytes,counts.context_pending_slots,counts.input_ports,counts.cord_scans,counts.queue_peeks);
     }
 }
@@ -181,7 +207,7 @@ fn specimen(active: usize, sparse: bool, trial: usize, print: bool) {
 fn loaded_and_sparse_scan_counts_preserve_fairness_and_pressure() {
     for active in [1, 8, 32] {
         for sparse in [false, true] {
-            specimen(active, sparse, 0, false);
+            specimen::<32>(active, sparse, 0, false);
         }
     }
 }
@@ -191,8 +217,42 @@ fn characterize_loaded_and_sparse_fixed_scheduler_scans() {
     for trial in 0..8 {
         for active in [1, 8, 32] {
             for sparse in [false, true] {
-                specimen(active, sparse, trial, true);
+                specimen::<32>(active, sparse, trial, true);
             }
         }
     }
+}
+
+#[test]
+fn large_sparse_and_loaded_pressure_preserve_outputs_and_readiness() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            for sparse in [false, true] {
+                specimen::<256>(256, sparse, 0, false);
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+#[test]
+#[ignore = "manual deterministic replay and timing; diagnostic fixed stack, no SMP claim"]
+fn capture_small_and_large_selector_replay() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            for trial in 0..8 {
+                for sparse in [false, true] {
+                    specimen::<1>(1, sparse, trial, true);
+                    specimen::<8>(8, sparse, trial, true);
+                    specimen::<32>(32, sparse, trial, true);
+                    specimen::<256>(256, sparse, trial, true);
+                }
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
 }

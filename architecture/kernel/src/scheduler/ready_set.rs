@@ -25,6 +25,7 @@ impl<const N: usize> ReadySet<N> {
     pub(super) fn contains(&self, node: usize) -> bool {
         self.bytes[node / 8] & (1 << (node % 8)) != 0
     }
+    #[cfg(any(test, not(feature = "linear-ready-reference-test")))]
     fn next_between(&self, mut start: usize, end: usize) -> (Option<usize>, usize) {
         let mut probes = 0;
         while start < end {
@@ -39,6 +40,19 @@ impl<const N: usize> ReadySet<N> {
         }
         (None, probes)
     }
+    #[cfg(feature = "linear-ready-reference-test")]
+    pub(super) fn scheduler_candidates(
+        &self,
+        cursor: usize,
+        active: usize,
+    ) -> super::ready_reference::LinearCandidates {
+        super::ready_reference::LinearCandidates::new(cursor, active)
+    }
+    #[cfg(not(feature = "linear-ready-reference-test"))]
+    pub(super) fn scheduler_candidates(&self, cursor: usize, active: usize) -> ReadyNodes<'_, N> {
+        self.round_robin(cursor, active)
+    }
+    #[cfg(any(test, not(feature = "linear-ready-reference-test")))]
     pub(super) fn round_robin(&self, cursor: usize, active: usize) -> ReadyNodes<'_, N> {
         ReadyNodes {
             ready: self,
@@ -51,6 +65,7 @@ impl<const N: usize> ReadySet<N> {
         }
     }
 }
+#[cfg(any(test, not(feature = "linear-ready-reference-test")))]
 pub(super) struct ReadyNodes<'a, const N: usize> {
     ready: &'a ReadySet<N>,
     cursor: usize,
@@ -60,12 +75,15 @@ pub(super) struct ReadyNodes<'a, const N: usize> {
     #[cfg(test)]
     byte_probes: usize,
 }
+#[cfg(any(test, not(feature = "linear-ready-reference-test")))]
 impl<const N: usize> ReadyNodes<'_, N> {
     #[cfg(test)]
+    #[cfg(not(feature = "linear-ready-reference-test"))]
     pub(super) fn take_byte_probes(&mut self) -> usize {
         core::mem::take(&mut self.byte_probes)
     }
 }
+#[cfg(any(test, not(feature = "linear-ready-reference-test")))]
 impl<const N: usize> Iterator for ReadyNodes<'_, N> {
     type Item = usize;
     fn next(&mut self) -> Option<usize> {
