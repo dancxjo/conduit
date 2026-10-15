@@ -5,7 +5,8 @@ use conduit_ai::model_infer_catalog::*;
 use conduit_ai::*;
 use conduit_core::*;
 use conduit_data::{
-    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorBacking, TensorElement,
+    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorAxisRole, TensorBacking,
+    TensorElement,
 };
 use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_plot::{
