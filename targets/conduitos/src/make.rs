@@ -2,6 +2,9 @@
 
 pub const MAKE_SCHEMA: &str = "conduit.conduitos/make-record@1";
 pub const MAX_ID_BYTES: usize = 160;
+/// Emulator RAM for the canonical normal PC product preparation budget.
+pub const PC_PRODUCT_QEMU_MEMORY: &str = "512M";
+pub const PC_PRODUCT_QEMU_PROFILE: &str = "q35-single-cpu-512m-normal-product";
 pub const IMPL_TIME_TICK: u16 = 1 << 0;
 pub const IMPL_TICK_FACE: u16 = 1 << 1;
 pub const IMPL_TEXT_LITERAL: u16 = 1 << 2;

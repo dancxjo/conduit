@@ -15,8 +15,8 @@ use std::{
     time::{Duration, Instant},
 };
 
-const PRODUCT_EMULATOR_PROFILE: &str = "q35-single-cpu-128m-headless-xhci-usb-kbd";
-const PRODUCT_GUEST_MEMORY_MIB: u64 = 128;
+const PRODUCT_EMULATOR_PROFILE: &str = conduitos::make::PC_PRODUCT_QEMU_PROFILE;
+const PRODUCT_GUEST_MEMORY_MIB: u64 = 512;
 const PRODUCT_GUEST_MEMORY_BYTES: u64 = PRODUCT_GUEST_MEMORY_MIB * 1024 * 1024;
 
 pub(super) fn boot_twice(

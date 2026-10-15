@@ -78,9 +78,15 @@ pub fn accepted(
     offer_generation: u64,
 ) -> Result<FixedText, fmt::Error> {
     let mut output = FixedText::new();
+    let qemu_profile =
+        if make.proof_instrumentation == 0 && make.runtime_arena_ceiling > 64 * 1024 * 1024 {
+            crate::make::PC_PRODUCT_QEMU_PROFILE
+        } else {
+            BOOT_QEMU_PROFILE
+        };
     write!(
         output,
-        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"{BOOT_QEMU_PROFILE}\",\"host_id\":\"",
+        "CONDUIT_BOOT_SIGN {{\"schema\":\"{BOOT_SIGN_SCHEMA}\",\"status\":\"accepted\",\"arch\":\"{}\",\"firmware\":\"{}\",\"profile_id\":\"{}\",\"build_id\":\"{}\",\"image_binding\":\"{}\",\"offer_generation\":{},\"limine\":\"12.5.2\",\"qemu_profile\":\"{qemu_profile}\",\"host_id\":\"",
         crate::arch::ARCHITECTURE,
         record.firmware.as_str(),
         make.profile_id,

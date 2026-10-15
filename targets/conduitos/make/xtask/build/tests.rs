@@ -5,7 +5,7 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
     for (source, expected) in [
         (
             include_str!("../../../profiles/conduitos-native.host.conduit"),
-            conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+            256 * 1024 * 1024,
         ),
         (
             include_str!("../../../profiles/conduitos-ia32-pc.host.conduit"),
