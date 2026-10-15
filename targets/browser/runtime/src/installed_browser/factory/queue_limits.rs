@@ -14,6 +14,9 @@ pub(super) fn apply(offer: &mut CapabilityOffer, implementation: &str) {
             "browser/unit-dimension@1" | "browser/quantity-dimension@1" => {
                 conduit_core::DIMENSION_ENCODED_LEN as u32
             }
+            "browser/retained-application@1" | "browser/application-view-face@1" => {
+                conduit_face::MAX_APPLICATION_VIEW_BYTES as u32
+            }
             "browser/bounded-stroke-capture@1" => {
                 browser::stroke_capture::MAXIMUM_PATH_BYTES as u32
             }

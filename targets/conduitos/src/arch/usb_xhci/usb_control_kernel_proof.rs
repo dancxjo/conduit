@@ -159,7 +159,15 @@ pub fn run(
                     .map_err(|_| "usb-control-proof-dispatch")?;
                 let result = owner
                     .execute(invocation.node, invocation.call, invocation.request, bytes)
-                    .map_err(|_| "usb-control-proof-native-transfer")?;
+                    .map_err(|error| {
+                        let mut refusal = FixedText::new();
+                        let _ = writeln!(
+                            refusal,
+                            "CONDUIT_USB_KERNEL_REFUSAL phase=native-transfer sequence={sequence} error={error:?}"
+                        );
+                        early_write(refusal.as_bytes());
+                        "usb-control-proof-native-transfer"
+                    })?;
                 if result != expected {
                     return Err("usb-control-proof-native-result");
                 }

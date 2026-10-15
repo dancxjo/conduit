@@ -6,7 +6,7 @@ mod standing_tests;
 
 use alloc::boxed::Box;
 use conduit_core::PlanFragment;
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
+use conduit_human::{KeyEvent, PreparedKeymap};
 use conduit_kernel::{
     BoundedValueRef, Failure, FailureCode, FixedHostCallBindings, FixedRoutes, FixedSignLog,
     FixedValueStore, HostCallDisposition, HostCallOutcome, KernelEvent, NodeId, SignSink, ValueRef,
@@ -52,7 +52,7 @@ type Scheduler = FixedScheduler<
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub struct FaceFragment {
-    bytes: [u8; 4],
+    bytes: [u8; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3],
     len: u8,
 }
 
@@ -62,10 +62,12 @@ impl FaceFragment {
     }
 
     fn from_bytes(bytes: &[u8]) -> Result<Self, PreparationError> {
-        if bytes.len() > 4 || core::str::from_utf8(bytes).is_err() {
+        if bytes.len() > conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3
+            || core::str::from_utf8(bytes).is_err()
+        {
             return Err(PreparationError::KernelRejected);
         }
-        let mut value = [0; 4];
+        let mut value = [0; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES * 3];
         value[..bytes.len()].copy_from_slice(bytes);
         Ok(Self {
             bytes: value,
@@ -89,7 +91,7 @@ pub struct KeyboardTextKernel {
     keymap_node: NodeId,
     upper_node: NodeId,
     face_node: NodeId,
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
 }
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
@@ -172,20 +174,15 @@ impl KeyboardTextKernel {
         let input = self.scheduler.host_value(request.input.value)?;
         let event = KeyEvent::decode(input).map_err(|_| SchedulerError::InvalidHostCallAccess)?;
         let output = match self.keymap.apply(event) {
-            KeymapDisposition::Text(fragment) => Some(fragment),
-            KeymapDisposition::NoText | KeymapDisposition::Cancelled => None,
-            KeymapDisposition::Refused(_) => {
+            Ok(Some(fragment)) => Some(fragment),
+            Ok(None) => None,
+            Err(_) => {
                 return self.complete_failed(request, FailureCode::InvalidInput, 72);
             }
         };
         match output {
             Some(fragment) => {
-                let mut utf8 = [0; 4];
-                self.complete_with_output(
-                    request,
-                    self.keymap_node,
-                    fragment.encode_utf8(&mut utf8),
-                )
+                self.complete_with_output(request, self.keymap_node, fragment.as_slice())
             }
             None => self.complete_without_output(request, self.keymap_node),
         }

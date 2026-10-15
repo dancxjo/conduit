@@ -48,7 +48,7 @@ test("resident Patchbay inspects and begins an exact edit in one browser Body Pl
   const patchbay = visiblePlotOutput(page);
   await expect(patchbay).toContainText("Active plots on this body");
   await patchbay.getByRole("button", { name: "Memory Lantern", exact: true }).click();
-  await expect(patchbay).toContainText("memory_lantern");
+  await expect(patchbay).toContainText("Memory Lantern");
   await expect(patchbay).toContainText("Body Plan");
   await page.getByRole("button", { name: "Inspect next", exact: true }).click();
   await page.getByRole("button", { name: "Edit current", exact: true }).click();

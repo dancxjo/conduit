@@ -54,9 +54,9 @@ setBrowserSdkErrors({ PlanRefusalError, ResourceLossError, InvalidLifecycleError
 
 /** Validate the finite installed-executor disclosure without acquiring a Body. */
 export function checkedBrowserExecutionCapabilities(value) {
-  // Includes two Dimension projections and two Thermostat installations;
-  // distinct from the membership advertisement envelope.
-  const maximumExecutionCapabilities = 120;
+  // Includes saved choice and continuous PCM alongside the existing installations;
+  // the 121 executors are distinct from the 137-offer membership advertisement.
+  const maximumExecutionCapabilities = 121;
   if (value?.schema !== "conduit.browser/body-capabilities@1"
       || !Array.isArray(value.capability_ids)
       || value.capability_ids.length > maximumExecutionCapabilities

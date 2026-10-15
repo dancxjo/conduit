@@ -19,7 +19,7 @@ const NEGATIVE_CASES: [&str; 17] = [
     "artifact-build-mismatch",
     "resource-capacity-exhausted",
     "malformed-key-event-refused-before-text-upper",
-    "invalid-unicode-entry-resets-without-text",
+    "legacy-conduit-intl-unicode-entry-resets-without-text",
     "cord-item-pressure-is-finite",
     "cord-byte-underprovision-refuses-before-play",
     "face-base-unavailable-is-realization-failure",
@@ -27,7 +27,7 @@ const NEGATIVE_CASES: [&str; 17] = [
     "source-failure-distinct-from-cancellation",
     "cancellation-terminal-without-late-output",
     "device-loss-distinct-from-closure",
-    "omitted-layout-is-conduit-intl-not-host-locale",
+    "omitted-layout-is-authored-us-intl-not-host-locale",
     "synthetic-key-event-cannot-satisfy-freestanding-emulator-proof",
 ];
 

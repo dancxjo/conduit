@@ -1,4 +1,6 @@
 //! Installed checking-time Kind, Type and authoring contracts.
+mod stored_default;
+pub(crate) use stored_default::StoredStructuredDefault;
 mod type_catalog;
 mod typed_literal;
 use super::{CheckedNativeType, KindSignature, NativeTypeSourceOrigin, NativeTypeValueContract};
@@ -14,6 +16,7 @@ pub struct StartupCatalog {
     pub(crate) literal_owners:
         BTreeMap<String, crate::glyph_notation::compiled::InstalledLiteralOwner>,
     kinds: BTreeMap<String, KindSignature>,
+    pub(crate) structured_defaults: BTreeMap<(String, String), StoredStructuredDefault>,
     pub(crate) prepared_source_values:
         BTreeMap<(usize, usize), (crate::Expression, crate::CanonicalStructuredStartupValue)>,
     // Populated only by document-scoped receipt admission; never an ambient alias.
@@ -61,6 +64,71 @@ impl StartupCatalog {
         }
         self.kinds.insert(signature.kind.clone(), signature);
         Ok(())
+    }
+
+    /// Install an already checked default without rendering or reparsing Source.
+    /// The declared startup parameter must admit the exact structured type.
+    pub fn insert_structured_default(
+        &mut self,
+        kind: &str,
+        parameter: &str,
+        value: &conduit_core::StructuredInfoValue,
+    ) -> Result<(), String> {
+        let key = self.structured_default_key(kind, parameter, value.value_type())?;
+        let stored = StoredStructuredDefault::from_checked_value(value)
+            .map_err(|error| format!("typed default canonical encoding failed: {error:?}"))?;
+        self.structured_defaults.insert(key, stored);
+        Ok(())
+    }
+
+    /// Install a checked default as bounded canonical bytes, releasing its value tree.
+    pub fn insert_owned_structured_default(
+        &mut self,
+        kind: &str,
+        parameter: &str,
+        value: conduit_core::StructuredInfoValue,
+    ) -> Result<(), String> {
+        let key = self.structured_default_key(kind, parameter, value.value_type())?;
+        let stored = StoredStructuredDefault::from_checked_value(&value)
+            .map_err(|error| format!("typed default canonical encoding failed: {error:?}"))?;
+        drop(value);
+        self.structured_defaults.insert(key, stored);
+        Ok(())
+    }
+
+    fn structured_default_key(
+        &self,
+        kind: &str,
+        parameter: &str,
+        value_type: &conduit_core::StructuredInfoType,
+    ) -> Result<(String, String), String> {
+        let signature = self
+            .kinds
+            .get(kind)
+            .ok_or("typed default Kind is not installed")?;
+        let parameter_signature = signature
+            .startup_parameters
+            .iter()
+            .find(|entry| entry.name == parameter)
+            .ok_or("typed default startup parameter is not installed")?;
+        if parameter_signature.default.is_none() {
+            return Err("typed default parameter does not declare an omission contract".into());
+        }
+        let expected = crate::value_type::checked_value_kind(&parameter_signature.value_type, self)
+            .map_err(|error| format!("typed default parameter has no exact type: {error:?}"))?;
+        if value_type
+            .profile()
+            .map_err(|error| format!("typed default has no profile: {error:?}"))?
+            .value_kind()
+            != &expected
+        {
+            return Err("typed default differs from its declared exact type".into());
+        }
+        let key = (kind.to_string(), parameter.to_string());
+        if self.structured_defaults.contains_key(&key) {
+            return Err("duplicate typed startup default".into());
+        }
+        Ok(key)
     }
 
     pub(crate) fn get(&self, kind: &str) -> Option<&KindSignature> {

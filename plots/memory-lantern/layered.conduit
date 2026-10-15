@@ -1,0 +1,14 @@
+# Physical A emits lambda through a later authored layer override.
+plot memory_lantern_layered {
+    base = [{ usage: 4, shift: false, altgr: false, action: text("a") }]
+    overlay = [{ usage: 4, shift: false, altgr: false, action: text("λ") }]
+    layout = { layers: [base, overlay], compositions: [] }
+    keyboard: input/keyboard
+    keymap: input/keymap(layout = layout)
+    message: text/edit(maximum-bytes = 256)
+    show: face/text("Layered message")
+
+    keyboard.key >> keymap.key
+    keymap.text >> message.fragment
+    message.current >> show.text
+}

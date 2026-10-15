@@ -399,3 +399,6 @@ mod queue_limits;
 pub(crate) use queue_limits::finite_connection_limits;
 #[cfg(test)]
 mod glyph_literal_tests;
+
+#[cfg(test)]
+mod keymap_tests;

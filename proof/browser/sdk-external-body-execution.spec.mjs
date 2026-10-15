@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { spawn } from "node:child_process";
 import { mkdtemp, rm } from "node:fs/promises";
 import { tmpdir } from "node:os";
@@ -13,6 +14,7 @@ test.beforeAll(async ({}, testInfo) => {
 });
 
 test("a Workspace Body continues through the browser SDK without a Patchbay page runtime", async ({ page }) => {
+  test.setTimeout(BROWSER_COLD_PREPARATION_MS + 30_000);
   const journey = await openExternalBody(page, {
     friendlyName: "SDK Workbench",
     titles: ["Button Across the Room", "Clock", "Desk Telegraph"],
@@ -113,6 +115,9 @@ async function openExternalBody(page, { friendlyName, titles, plots }) {
     await post(page, api("body-host-offer-evidence"), observed.offer);
     const requirements = await get(page, api("body-planning-requirements"));
     const executable = await page.evaluate(() => globalThis.__conduitSdkParticipation.executionCapabilities());
+    expect(executable).toHaveLength(121);
+    expect(executable).toContain("browser/kernel-saved-choice@1");
+    expect(executable).toContain("browser/webaudio-continuous-pcm@1");
     for (const identity of [
       "browser/exact-quantity-conversion@1", "browser/exact-temperature-difference-conversion@1",
       "browser/exact-quantity-comparison@1", "browser/exact-temperature-difference-comparison@1",

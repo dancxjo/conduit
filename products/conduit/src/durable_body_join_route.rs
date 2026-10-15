@@ -31,7 +31,8 @@ use std::net::{SocketAddr, ToSocketAddrs};
 use std::path::Path;
 use std::time::Duration;
 
-const MAXIMUM_ROUTE_FRAME_BYTES: usize = 512 * 1024;
+// Routed admission carries the same exact inventory as the bounded document.
+const MAXIMUM_ROUTE_FRAME_BYTES: usize = MAXIMUM_BODY_ADMISSION_BYTES as usize;
 
 pub(crate) fn serve_body_invitation_route(
     state_dir: &Path,

@@ -17,7 +17,7 @@ fn bounded_validated_biography_evidence_round_trips_separately_from_admission() 
         protocol: BROWSER_ADMISSION_PROTOCOL,
         evidence: Box::new(evidence.clone()),
     };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let mut output = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
     let length = encode_browser_admission_frame(&frame, &mut output).unwrap();
     assert_eq!(
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),

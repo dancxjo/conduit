@@ -60,7 +60,7 @@ fn denied_and_unavailable_audio_remain_visible_while_keyboard_plots_continue() {
     for denied in [true, false] {
         let request = request_from_sources(&[
             include_str!("../../../../../plots/startup-chime/main.conduit"),
-            include_str!("../../../../../plots/memory-lantern/main.conduit"),
+            include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit"),
         ]);
         let (mut session, started) = prepare(request).unwrap();
         let mut progress = started.progress;
@@ -71,6 +71,35 @@ fn denied_and_unavailable_audio_remain_visible_while_keyboard_plots_continue() {
                 TourProgress::Effect(effect) => match *effect {
                     TourHostEffect::AudioCue(effect) => cue = Some(effect),
                     TourHostEffect::KeyEvent(effect) => keyboard = Some(effect),
+                    TourHostEffect::Manifestation(effect) => {
+                        assert_eq!(effect.text.as_deref(), Some(""));
+                        let request_sequence = session
+                            .pending
+                            .iter()
+                            .find(|pending| {
+                                placement_in_fragments(&session.fragments, pending.request.node)
+                                    .is_some_and(|(_, gear)| {
+                                        gear.placement_id.as_str() == effect.placement_id
+                                    })
+                                    && matches!(
+                                        pending.effect,
+                                        engine::BrowserHostEffect::Manifestation(_)
+                                    )
+                            })
+                            .expect("initial manifestation retains its exact pending request")
+                            .request
+                            .request
+                            .0;
+                        progress = session
+                            .complete_effect(
+                                &effect.active_play_id,
+                                &effect.placement_id,
+                                request_sequence,
+                                None,
+                            )
+                            .unwrap();
+                        continue;
+                    }
                     _ => panic!("unexpected startup effect"),
                 },
                 TourProgress::Waiting { .. } => break,

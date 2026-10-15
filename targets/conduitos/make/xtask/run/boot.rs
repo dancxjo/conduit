@@ -76,7 +76,14 @@ pub(crate) fn inspect_wav(path: &Path) -> Result<QemuWavCapture, ConduitosError>
 }
 
 pub(crate) fn boot_once(paths: &Paths, opts: &GlobalOpts) -> Result<GuestRun, ConduitosError> {
-    boot_with_memory(paths, opts, "64M", QEMU_PROFILE, 16 * 1024 * 1024, None)
+    boot_with_memory(
+        paths,
+        opts,
+        "64M",
+        QEMU_PROFILE,
+        conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
+        None,
+    )
 }
 
 /// Record the actual QEMU mixer output of this boot. The caller owns the WAV
@@ -91,7 +98,7 @@ pub(crate) fn boot_once_with_audio(
         opts,
         "64M",
         QEMU_PROFILE,
-        16 * 1024 * 1024,
+        conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
         Some(wav),
     )
 }

@@ -27,7 +27,18 @@ pub(crate) use provider_reports::{
 };
 
 pub const EXPORT_PREFIX: &str = "CONDUIT_OBSERVATORY_SNAPSHOT ";
-pub const MAX_EXPORT_BYTES: usize = 64 * 1024;
+/// Finite retained JSON output budget, separate from connection storage.
+/// Prepared exports use the boot arena before Play; completed keyboard exports
+/// are encoded after Play returns. Exact typed Offers and Plans remain intact.
+/// Snapshots exceeding this budget refuse export, even if their Plot was admitted.
+pub const MAX_EXPORT_BYTES: usize = 2 * 1024 * 1024;
+
+pub(crate) fn bounded_export(encoded: String) -> Result<String, ExportError> {
+    if encoded.len() > MAX_EXPORT_BYTES {
+        return Err(ExportError::ExportTooLarge);
+    }
+    Ok(encoded)
+}
 const RETAINED_SIGN_CAPACITY: u32 = 64;
 
 pub struct PreparedObservatoryExport {
@@ -194,9 +205,7 @@ pub fn prepare_export(
     };
     validate_snapshot(&snapshot).map_err(|_| ExportError::InvalidSnapshot)?;
     let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
-    if encoded.len() > MAX_EXPORT_BYTES {
-        return Err(ExportError::ExportTooLarge);
-    }
+    let encoded = bounded_export(encoded)?;
     Ok(PreparedObservatoryExport { encoded })
 }
 
@@ -236,9 +245,7 @@ pub fn prepare_image_bound_export(
             inclusions: Vec::new(),
         });
     let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
-    if encoded.len() > MAX_EXPORT_BYTES {
-        return Err(ExportError::ExportTooLarge);
-    }
+    let encoded = bounded_export(encoded)?;
     Ok(PreparedObservatoryExport { encoded })
 }
 

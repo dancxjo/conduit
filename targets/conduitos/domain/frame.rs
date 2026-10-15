@@ -18,7 +18,7 @@ pub struct TextFrame {
     pub input: [u8; TEXT_CAPACITY],
     pub output: [u8; TEXT_CAPACITY],
     pub intermediate_length: u32,
-    pub intermediate: [u8; 4],
+    pub intermediate: [u8; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES],
     pub unit_millis: u32,
     pub morse_status: u32,
     pub morse_length: u32,
@@ -39,3 +39,17 @@ pub struct TextFrame {
 }
 
 const _: () = assert!(core::mem::size_of::<TextFrame>() <= 4096);
+
+/// Copy only a reported, bounded intermediate value; a short destination refuses.
+#[allow(dead_code)] // Root reads this window; the independently linked image only writes it.
+pub fn copy_intermediate(
+    intermediate: &[u8; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES],
+    length: u32,
+    output: &mut [u8],
+) -> Option<usize> {
+    let length = usize::try_from(length).ok()?;
+    output
+        .get_mut(..length)?
+        .copy_from_slice(intermediate.get(..length)?);
+    Some(length)
+}

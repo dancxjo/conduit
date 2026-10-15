@@ -47,7 +47,7 @@ pub(crate) struct BodyKernel<'a> {
     image_text_hosts: Vec<Option<super::image_text_back::ImageTextHost>>,
     image_text_record_hosts: Vec<Option<super::image_text_record_back::ImageTextRecordHost>>,
     text_state_hosts: Vec<Option<super::text_state_back::TextStateHost>>,
-    input_keymaps: [conduit_human::ConduitIntlKeymap; MAX_NODES],
+    input_keymaps: [Option<conduit_human::PreparedKeymapChoices>; MAX_NODES],
     requests: Vec<HostCallRequest>,
     clock_observations: KernelClockObservations,
     supported_pure_scan: bool,
@@ -91,7 +91,9 @@ fn text_state(contract: &conduit_core::HostCallContractId) -> bool {
 fn input_semantic(contract: &conduit_core::HostCallContractId) -> bool {
     matches!(
         contract.as_str(),
-        conduit_std_offers::KEYMAP_HOST_CALL | conduit_std_offers::CHORDS_HOST_CALL
+        conduit_std_offers::KEYMAP_HOST_CALL
+            | conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+            | conduit_std_offers::CHORDS_HOST_CALL
     )
 }
 fn todo_checkpoint(operation: &LoweredHostCall) -> bool {
@@ -433,6 +435,22 @@ impl<'a> BodyKernel<'a> {
                 }
             }
         }
+        let input_keymaps = super::input_semantic_backs::prepare_keymaps::<MAX_NODES>(
+            fragments
+                .iter()
+                .zip(&lowered.partitions)
+                .flat_map(|(fragment, partition)| {
+                    fragment.placements.iter().map(|placement| {
+                        (
+                            partition
+                                .identity
+                                .node_for_placement(&placement.placement_id)
+                                .map(|node| usize::from(node.0)),
+                            placement,
+                        )
+                    })
+                }),
+        )?;
         let scheduler = tables.install(drivers, values, signs)?;
         Ok(Self {
             scheduler,
@@ -454,7 +472,7 @@ impl<'a> BodyKernel<'a> {
             image_text_hosts,
             image_text_record_hosts,
             text_state_hosts,
-            input_keymaps: [conduit_human::ConduitIntlKeymap::new(); MAX_NODES],
+            input_keymaps,
             requests: Vec::with_capacity(request_capacity),
             clock_observations: KernelClockObservations::with_capacity(usize::from(sign_items)),
             supported_pure_scan,
@@ -784,7 +802,7 @@ impl<'a> BodyKernel<'a> {
                             quality => {
                                 return Err(format!(
                                     "BodyTime-qualified Play lost clock quality: {quality:?}"
-                                ))
+                                ));
                             }
                         }
                     }
@@ -976,11 +994,21 @@ impl<'a> BodyKernel<'a> {
                     }
                     if input_semantic(&operation.contract_id) {
                         let node = usize::from(request.node.0);
-                        let completion = super::input_semantic_backs::execute_host(
-                            operation.contract_id.as_str() == conduit_std_offers::KEYMAP_HOST_CALL,
-                            &mut self.input_keymaps[node],
-                            input,
-                        );
+                        let completion = if operation.contract_id.as_str()
+                            == conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+                        {
+                            super::input_semantic_backs::select_host(
+                                &mut self.input_keymaps[node],
+                                input,
+                            )
+                        } else {
+                            super::input_semantic_backs::execute_host(
+                                operation.contract_id.as_str()
+                                    == conduit_std_offers::KEYMAP_HOST_CALL,
+                                &mut self.input_keymaps[node],
+                                input,
+                            )
+                        };
                         let outcome =
                             match completion {
                                 Ok(Some(encoded)) => {
@@ -1243,7 +1271,7 @@ impl<'a> BodyKernel<'a> {
                     SchedulerStatus::Cancelled => {
                         return Ok(TerminalDisposition::Cancelled {
                             reason: CancellationReason::OperatorRequested,
-                        })
+                        });
                     }
                     SchedulerStatus::Progress { .. } => {
                         if keys.is_pending() {

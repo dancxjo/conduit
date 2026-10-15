@@ -338,7 +338,7 @@ export async function startApplication(application) {
         surface.hidden = true; inspection.hidden = true; library.show();
       });
       if (body.state !== 'FULFILLED') activities.append(browse);
-      if (!play) play = openWorkspacePlay({ host, session, source, planningLines: () => membership?.planningLines() ?? [], foregroundPlot: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-plot-output]'),
+      if (!play) play = openWorkspacePlay({ host, session, storage: application.storage, source, planningLines: () => membership?.planningLines() ?? [], foregroundPlot: () => selected, inputTarget: input, outputRoot: root.querySelector('[data-plot-output]'),
         faceRootFor: ({ checkedPlotId }) => checkedPlotId === tutorialPlot.checked_plot_id ? tutorialResident : null,
         onApplicationEvent: ({ checkedPlotId, event }) => {
           if (checkedPlotId === tutorialPlot.checked_plot_id) {

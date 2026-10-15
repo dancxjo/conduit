@@ -114,3 +114,34 @@ fn ia32_loader_enforces_the_same_immutable_memory_contract() {
         assert!(DomainImage::parse(&malformed, 3).is_err());
     }
 }
+
+#[allow(dead_code)] // Exercise the shared frame ABI independently of machine mappings.
+#[path = "../../domain/frame.rs"]
+mod shared_frame;
+
+#[test]
+fn shared_intermediate_frame_preserves_multi_scalar_text_and_refuses_short_destinations() {
+    let text = "´`ß".as_bytes();
+    assert!(text.len() > 4);
+    let mut intermediate = [0; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES];
+    intermediate[..text.len()].copy_from_slice(text);
+    let mut output = [0; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES];
+    let length =
+        shared_frame::copy_intermediate(&intermediate, text.len() as u32, &mut output).unwrap();
+    assert_eq!(&output[..length], text);
+    let mut short = [0x55; 4];
+    assert_eq!(
+        shared_frame::copy_intermediate(&intermediate, text.len() as u32, &mut short),
+        None
+    );
+    assert_eq!(short, [0x55; 4]);
+    assert_eq!(
+        shared_frame::copy_intermediate(
+            &intermediate,
+            (intermediate.len() + 1) as u32,
+            &mut output
+        ),
+        None
+    );
+    assert!(core::mem::size_of::<shared_frame::TextFrame>() <= 4096);
+}

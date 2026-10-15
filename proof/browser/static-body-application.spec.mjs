@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
 import { beginHandbookJourney } from "./handbook-journey.mjs";
 import { expect, test } from "@playwright/test";
@@ -250,7 +251,7 @@ test("static Handbook applications retain independent local Bodies through use, 
 });
 
 test("Handbook lessons run text, arithmetic, logic and exact quantities in the local Body", async ({}, testInfo) => {
-  testInfo.setTimeout(120_000);
+  testInfo.setTimeout(120_000 + BROWSER_COLD_PREPARATION_MS);
   const site = await stageStaticApplications();
   const session = await openStaticProfile(testInfo.outputPath("lesson-profile"), new URL(site.url).origin);
   try {
@@ -295,7 +296,8 @@ test("Handbook lessons run text, arithmetic, logic and exact quantities in the l
     expect(editedSource).not.toBe(original);
     await editor.fill(editedSource);
     await page.getByRole("button", { name: "Try in my Handbook", exact: true }).click();
-    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal");
+    // Editing source prepares a replacement realization before ordinary input resumes.
+    await expect(surface.locator('[data-resident-plot]:visible')).toContainText("The distances are not equal", { timeout: BROWSER_COLD_PREPARATION_MS });
     const edited = await current(page);
     await page.reload();
     const recovered = await ready(page);

@@ -52,8 +52,8 @@ pub fn body_workbench_fixture_plots() -> Result<Vec<PlotCandidate>, BodyWorkbenc
         )?,
         reviewed_plot(
             "Memory Lantern",
-            "plots/memory-lantern/main.conduit",
-            include_str!("../../../../plots/memory-lantern/main.conduit"),
+            "plots/memory-lantern/keyboard-only.conduit",
+            include_str!("../../../../plots/memory-lantern/keyboard-only.conduit"),
             "memory_lantern",
             9,
         )?,

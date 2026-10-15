@@ -213,7 +213,7 @@ The reviewed `conduitos-protocol-source.host.conduit` Make profile admits a
 planning, and prepared operations. Build that capable kernel once with
 `cargo xtask make host build targets/conduitos/profiles/conduitos-protocol-source.host.conduit --output target/conduitos/protocol-source-host`.
 Then package additional reviewed Source through `protocol-image` without
-rebuilding the target. The ordinary graphical profile retains its 16 MiB arena.
+rebuilding the target. The ordinary graphical profile admits a 32 MiB arena for complete typed keymap preparation.
 Root selects the exact arena budget from the embedded Make record; boot
 normalization must find one sufficiently large usable memory range before
 initializing it. Unsupported budgets and unavailable ranges have distinct

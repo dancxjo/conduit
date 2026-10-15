@@ -1,3 +1,4 @@
+import { BROWSER_COLD_PREPARATION_MS, waitForWorkspacePreparation } from "./browser-preparation.mjs";
 import { expect, test } from "@playwright/test";
 import { writeFile } from "node:fs/promises";
 import { startStaticProduct } from "./static-product-server.mjs";
@@ -39,7 +40,7 @@ test("five ordinary plots start together beyond the old aggregate placement ceil
 test("repeated Wake and Lull compacts retained evidence instead of exhausting lifecycle Signs", async ({ page }) => {
   // Twelve complete durable lifecycle transitions can exceed the default
   // aggregate budget on hosted runners; keep every transition assertion.
-  test.setTimeout(60_000);
+  test.setTimeout(60_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   const identity = (await current(page)).body_id;
   for (let index = 0; index < 12; index++) {
@@ -51,7 +52,7 @@ test("repeated Wake and Lull compacts retained evidence instead of exhausting li
   expect((await current(page)).body_id).toBe(identity);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   expect((await current(page)).body_id).toBe(identity);
 });
 
@@ -59,7 +60,7 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   // This journey includes three workset changes, interactive execution and reload.
   // Two retained Candidate traces passed preceding assertions but exhausted the
   // default 20-second aggregate budget during the final lifecycle/reload step.
-  test.setTimeout(45_000);
+  test.setTimeout(45_000 + BROWSER_COLD_PREPARATION_MS);
   await page.setViewportSize({ width: 1280, height: 1000 });
   await birth(page);
   const initial = await current(page);
@@ -101,10 +102,10 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await page.locator("#plot-input").focus();
   await page.keyboard.press("r");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: r");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("r");
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
   expect(restored.workload_revision).toBe(2);
@@ -268,11 +269,12 @@ test("removing the final Plot retains an empty Body that can acquire Plots again
   await expect(page.locator("[data-play-state]")).toHaveText("Playing");
   await expect(page.getByRole("button", { name: "lull body", exact: true })).toBeVisible();
   await page.keyboard.press("a");
-  await expect(page.locator("[data-plot-output] output:visible")).toHaveText("Remembered message: a");
+  await expect(page.locator("[data-plot-output] output[data-face-kind='face/text']:visible [data-text-value]")).toHaveText("a");
   expect((await current(page)).body_id).toBe(initial.body_id);
 });
 
 test("a failed workset save stops before replacement effects and reload recovers the saved workload", async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.addInitScript(() => {
     const put = IDBObjectStore.prototype.put;
     globalThis.__failedWorksetWrites = 0;
@@ -301,7 +303,7 @@ test("a failed workset save stops before replacement effects and reload recovers
   await page.reload();
   await expect(page.locator("[data-play-state]")).toHaveText("Lulled");
   await page.getByRole("button", { name: "wake body", exact: true }).click();
-  await expect(page.locator("[data-play-state]")).toHaveText("Playing");
+  await waitForWorkspacePreparation(page);
   const restored = await current(page);
   expect(restored.body_id).toBe(initial.body_id);
   expect(restored.workload_revision).toBe(0);
@@ -328,14 +330,14 @@ function handoffUrl(plot) {
 
 test('a Gallery handoff installs in the retained body and cannot reinstall a later removed Plot on reload', async ({ page }) => {
   // Birth, handoff recovery, removal and final recovery share one aggregate budget.
-  // Keep the individual transition assertions at their existing deadlines.
-  test.setTimeout(45_000);
+  // Only handoff preparation gets an additional budget; ordinary responses retain their deadlines.
+  test.setTimeout(45_000 + BROWSER_COLD_PREPARATION_MS);
   await birth(page);
   const initial = await current(page);
   const plot = await reviewedPlot(page, 'desk_telegraph');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.goto(handoffUrl(plot));
-  await expect(page.locator('#surface-title')).toHaveText('Desk Telegraph');
+  await waitForWorkspacePreparation(page, { surfaceTitle: 'Desk Telegraph' });
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).body_id).toBe(initial.body_id);
   expect((await current(page)).initial_plots).toHaveLength(3);
@@ -350,6 +352,7 @@ test('a Gallery handoff installs in the retained body and cannot reinstall a lat
 });
 
 test('a new Gallery arrival selects the plot in the actual Crèche; a stale handoff leaves the body usable', async ({ page }) => {
+  test.setTimeout(20_000 + BROWSER_COLD_PREPARATION_MS);
   await page.goto(entrance.url);
   await expect(page.getByRole('heading', { name: 'A body of your own' })).toBeVisible();
   const plot = await reviewedPlot(page, 'desk_telegraph');
@@ -363,7 +366,7 @@ test('a new Gallery arrival selects the plot in the actual Crèche; a stale hand
   const initial = await current(page);
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.goto(handoffUrl({ ...plot, checked_plot_id: 'checked/stale' }));
-  await expect(page.locator('[data-play-state]')).toHaveText('Playing');
+  await waitForWorkspacePreparation(page);
   await expect(page.locator('[data-workspace-notice]')).toContainText('checked identity has changed');
   expect((await current(page)).body_id).toBe(initial.body_id);
   expect((await current(page)).initial_plots).toEqual(initial.initial_plots);

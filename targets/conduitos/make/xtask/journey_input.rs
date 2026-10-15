@@ -162,7 +162,11 @@ fn wait_for_record_inner(
     stop_on_timeout: bool,
     mut observed: impl FnMut(&str) -> Result<bool, ConduitosError>,
 ) -> Result<(), ConduitosError> {
-    let deadline = std::time::Instant::now() + RECORD_WAIT_TIMEOUT;
+    let timeout = match status {
+        "born-lulled" | "awake" | "planned" => hid_qmp::COLD_PREPARATION_WAIT_TIMEOUT,
+        _ => RECORD_WAIT_TIMEOUT,
+    };
+    let deadline = std::time::Instant::now() + timeout;
     loop {
         let bytes = fs::read(serial).map_err(|error| {
             ConduitosError::refusal("product-journey-serial-unavailable", error.to_string())
@@ -239,7 +243,7 @@ mod tests {
             .arg("60")
             .spawn()
             .unwrap();
-        let result = wait_status_retaining_guest(&serial, &mut guest, "planned");
+        let result = wait_status_retaining_guest(&serial, &mut guest, "stopped");
         let guest_state = guest.try_wait();
         let _ = guest.kill();
         let reaped = guest.wait();

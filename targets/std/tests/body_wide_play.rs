@@ -24,7 +24,7 @@ const SIGNS: usize = 64;
 const EVIDENCE_MARKER: &str = "CONDUIT_PLOT_EVIDENCE=";
 
 const MORSE_NETWORK: &str = include_str!("../../../plots/morse-network/main.conduit");
-const MEMORY_LANTERN: &str = include_str!("../../../plots/memory-lantern/main.conduit");
+const MEMORY_LANTERN: &str = include_str!("../../../plots/memory-lantern/keyboard-only.conduit");
 const DESK_TELEGRAPH: &str = include_str!("../../../plots/desk-telegraph/main.conduit");
 
 #[derive(Clone, Copy)]

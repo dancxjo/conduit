@@ -1700,6 +1700,21 @@ fn resolve_bound_value(
         return Ok(value.clone());
     }
     let parameter = &signature.startup_parameters[index];
+    if let Some(value) = catalog
+        .structured_defaults
+        .get(&(signature.kind.clone(), parameter.name.clone()))
+        .filter(|_| catalog.signature(&signature.kind) == Some(signature))
+    {
+        let resolved = value.resolve().map_err(|error| {
+            SyntaxCheckError::StructuredExpression(
+                format!("invalid checked structured default: {error:?}"),
+                None,
+            )
+        })?;
+        let value = CanonicalStartupValue::Structured(resolved);
+        values[index] = Some(value.clone());
+        return Ok(value);
+    }
     let default = parameter
         .default
         .as_deref()

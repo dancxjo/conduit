@@ -173,7 +173,7 @@ fn planned_mask_configuration(
                 .insert_structured_type(alias, schema.clone())
                 .map_err(|error| format!("{error:?}"))?;
             startup
-                .insert_structured_type(profile.value_kind().as_str(), schema)
+                .ensure_structured_type(profile.value_kind().as_str(), schema)
                 .map_err(|error| format!("{error:?}"))?;
         }
     }

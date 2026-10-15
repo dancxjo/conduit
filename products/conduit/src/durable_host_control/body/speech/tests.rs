@@ -280,6 +280,11 @@ fn acknowledged_browser_show(
             },
         )
         .unwrap();
+    let inventory_bytes = serde_json::to_vec(owner.host.advertisement())
+        .unwrap()
+        .len();
+    eprintln!("direct readout owner inventory bytes: {inventory_bytes}");
+    assert!(inventory_bytes <= conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize);
     let route = owner
         .browser_mask_route(
             &authorized.window_id,

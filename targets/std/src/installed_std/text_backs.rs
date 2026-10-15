@@ -373,6 +373,9 @@ fn validate_text_join(placement: &PlannedGear) -> Result<(), String> {
 
 fn validate_text_face(placement: &PlannedGear) -> Result<(), String> {
     conduit_semantic_catalog::face_data_label(&placement.configuration)?;
+    if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration) {
+        return Err("stdout text Face does not support an insertion caret".into());
+    }
     validate_identity(
         placement,
         TEXT_FACE_KIND,

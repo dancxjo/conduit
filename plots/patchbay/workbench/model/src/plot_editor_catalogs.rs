@@ -76,6 +76,8 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), PlotE
         .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_input_semantic_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
+    conduit_semantic_catalog::install_saved_choice_catalogs(&mut startup, &mut profile)
+        .map_err(PlotEditorError::Catalog)?;
     conduit_semantic_catalog::install_sound_catalogs(&mut startup, &mut profile)
         .map_err(PlotEditorError::Catalog)?;
     conduit_data::install_measurement_window_catalog(&mut startup, &mut profile)

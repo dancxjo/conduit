@@ -20,6 +20,8 @@ mod quantity_info;
 pub use functional_front::{realization_offer, RealizationOfferIdentity};
 pub use normalized_quantity::*;
 pub use quantity_info::*;
+mod saved_choice;
+pub use saved_choice::*;
 mod keyboard;
 pub use keyboard::*;
 mod application;

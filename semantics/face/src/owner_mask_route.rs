@@ -12,7 +12,9 @@ use sha2::{Digest, Sha256};
 
 use crate::{Face, FaceBasis, FaceContentId, ManifestationLifecycle, MaskShow, PlannedMaskPlot};
 
-const MAX_LOCAL_ROUTE_SEAL_BYTES: usize = 1024 * 1024;
+// A seal retains the exact owner inventory and selected Mask Plan, including
+// finite structured defaults such as complete keyboard layouts.
+const MAX_LOCAL_ROUTE_SEAL_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

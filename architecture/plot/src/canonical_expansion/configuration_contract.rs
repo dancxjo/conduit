@@ -134,7 +134,7 @@ fn parse_configuration_value(
                 format!("structured startup value '{name}' violates its exact profile"),
             ));
         }
-        let concrete = value.try_concrete().ok_or_else(|| {
+        let concrete = value.into_concrete().ok_or_else(|| {
             CanonicalExpansionDiagnostic::new(
                 "CND-FRM-039",
                 format!("structured startup value '{name}' remains unresolved"),
@@ -146,6 +146,8 @@ fn parse_configuration_value(
                 format!("structured startup value '{name}' exceeds canonical bounds"),
             )
         })?;
+        // Envelope validation may decode again; release this consumed tree first.
+        drop(concrete);
         let structured =
             conduit_core::StructuredConfigurationValue::new(profile.clone(), canonical)
                 .ok_or_else(|| {

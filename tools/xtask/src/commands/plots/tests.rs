@@ -412,3 +412,31 @@ fn selected_plot_cli_refuses_browser_mode() {
             .is_err()
     );
 }
+
+#[test]
+fn workspace_catalog_preserves_memory_lantern_saved_choice_requirement() {
+    let root = crate::workspace::workspace_root().unwrap();
+    let output = std::env::temp_dir().join(format!(
+        "conduit-saved-choice-workspace-catalog-{}.json",
+        std::process::id()
+    ));
+    bundle_workspace_catalog(&root, &output).unwrap();
+    let bytes = fs::read(&output).unwrap();
+    fs::remove_file(&output).unwrap();
+    let catalog: serde_json::Value = serde_json::from_slice(&bytes).unwrap();
+    let memory = catalog["plots"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .find(|plot| plot["slug"] == "memory-lantern")
+        .unwrap();
+    assert!(memory["required_kinds"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .any(|kind| kind == conduit_semantic_catalog::SAVED_CHOICE_KIND));
+    assert_eq!(
+        memory["source"],
+        fs::read_to_string(root.join("plots/memory-lantern/main.conduit")).unwrap()
+    );
+}

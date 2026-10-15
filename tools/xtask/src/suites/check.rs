@@ -4,6 +4,10 @@ use crate::{process::Step, proof::ProofClass};
 mod browser_check;
 pub use browser_check::BROWSER_CHECK_STEPS;
 
+#[path = "input_semantics_check.rs"]
+mod input_semantics_check;
+pub use input_semantics_check::INPUT_SEMANTICS_STEPS;
+
 /// Authoritative definition of the normal Rust workspace check gate.
 pub const WORKSPACE_STEPS: &[Step] = &[
     Step::new(
@@ -725,69 +729,6 @@ pub const SEMANTIC_CATALOG_READINESS_STEPS: &[Step] = &[
         "cargo",
         &[
             "check",
-            "-p",
-            "conduit-semantic-catalog",
-            "--no-default-features",
-            "--target",
-            "thumbv6m-none-eabi",
-        ],
-        None,
-        Some("thumbv6m-none-eabi"),
-        Some(ProofClass::ContractCompile),
-        &[],
-    ),
-];
-
-/// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
-pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
-    Step::new(
-        "check.input-semantics.core",
-        "test the reusable keymap and chord contracts",
-        "cargo",
-        &["test", "-p", "conduit-core", "--test", "input_semantics"],
-    ),
-    Step::new(
-        "check.input-semantics.std-host",
-        "test ordinary std Host input Plots and bounded operations",
-        "cargo",
-        &["test", "-p", "conduit-std-host", "input_semantics"],
-    ),
-    Step::new(
-        "check.input-semantics.patchbay",
-        "test finite Patchbay input controls",
-        "cargo",
-        &[
-            "test",
-            "-p",
-            "conduit-patchbay-workbench",
-            "input_semantic_controls",
-        ],
-    ),
-    Step::new(
-        "check.input-semantics.conduitos-peer-vectors",
-        "test ConduitOS USB conversion against shared peer vectors",
-        "cargo",
-        &[
-            "test",
-            "-p",
-            "conduitos",
-            "keyboard_bridge::tests::usb_bridge_matches_every_shared_peer_conformance_value",
-        ],
-    ),
-    Step::new(
-        "check.input-semantics.native-peer",
-        "test native physical-key mapping, shared semantics, planning, and finite failures",
-        "cargo",
-        &["test", "-p", "patchbay-native", "portable_keyboard_tests"],
-    ),
-    Step::typed(
-        "check.input-semantics.thumb",
-        "check reusable input contracts for the thumb target",
-        "cargo",
-        &[
-            "check",
-            "-p",
-            "conduit-core",
             "-p",
             "conduit-semantic-catalog",
             "--no-default-features",

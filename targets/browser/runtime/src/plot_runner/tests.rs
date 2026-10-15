@@ -230,7 +230,7 @@ fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
 
 #[test]
 fn memory_lantern_retains_edits_and_backspace_in_one_play() {
-    let source = include_str!("../../../../../plots/memory-lantern/main.conduit");
+    let source = include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit");
     let (mut session, first) = TourSession::prepare(
         "browser/memory-lantern-live-proof",
         "browser-boot/memory-lantern-live-proof",
@@ -241,6 +241,38 @@ fn memory_lantern_retains_edits_and_backspace_in_one_play() {
     assert!(matches!(first, TourHostEffect::KeyEvent(_)));
     let play = session.active_play_id.as_str().to_owned();
     let mut observed = Vec::new();
+
+    // The editor publishes its initial empty Current before the first edit.
+    for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {
+        if session
+            .pending
+            .iter()
+            .any(|pending| matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_)))
+        {
+            break;
+        }
+        let _ = session.poll_effect().unwrap();
+    }
+    let initial_index = session
+        .pending
+        .iter()
+        .position(|pending| matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_)))
+        .expect("initial empty message must be shown before editing");
+    let TourHostEffect::Manifestation(initial) =
+        session.project_pending_effect(initial_index).unwrap()
+    else {
+        unreachable!()
+    };
+    assert_eq!(initial.text.as_deref(), Some(""));
+    assert_eq!(initial.active_play_id, play);
+    let request = session.pending[initial_index].request;
+    let placement = session.fragments[0].placements[usize::from(request.node.0)]
+        .placement_id
+        .as_str()
+        .to_owned();
+    session
+        .complete_effect(&play, &placement, request.request.0, None)
+        .unwrap();
 
     for usage in [0x04, 0x05, 0x06, 0x2a] {
         for _ in 0..MAXIMUM_EFFECT_DRIVE_STEPS {

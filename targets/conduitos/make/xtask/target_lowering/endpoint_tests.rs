@@ -18,7 +18,10 @@ fn endpoint_appliance_selects_exact_instrumentation_without_changing_the_ordinar
     .unwrap()
     .0
     .manifest;
-    assert_eq!(admitted.bounds.heap_arena_bytes, 16 * 1024 * 1024);
+    assert_eq!(
+        admitted.bounds.heap_arena_bytes,
+        conduitos::make::NATIVE_PREPARATION_ARENA_BYTES
+    );
     let lowered = lower(&admitted).unwrap();
     assert_eq!(
         lowered.cargo_features,

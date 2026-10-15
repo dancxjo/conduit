@@ -65,12 +65,19 @@ pub(in crate::plot_runner) fn complete_host_effect_with_output(
                 + conduit_audio::PCM_FRAME_HEADER_ENCODED_LEN as u32
         }
         BrowserHostEffect::ApplicationEvent => {
-            if output.is_empty()
-                || output.len() > crate::installed_browser::application::EVENT_BYTES as usize
+            if let Some(choice) =
+                scheduler.saved_choices[usize::from(pending.request.node.0)].as_ref()
             {
-                return Err("application event exceeds its planned bound".into());
+                choice.validate_selection(output)?;
+                conduit_semantic_catalog::SAVED_CHOICE_MAXIMUM_ID_BYTES
+            } else {
+                if output.is_empty()
+                    || output.len() > crate::installed_browser::application::EVENT_BYTES as usize
+                {
+                    return Err("application event exceeds its planned bound".into());
+                }
+                crate::installed_browser::application::EVENT_BYTES
             }
-            crate::installed_browser::application::EVENT_BYTES
         }
         BrowserHostEffect::TutorialPresenterRequest => {
             let request =

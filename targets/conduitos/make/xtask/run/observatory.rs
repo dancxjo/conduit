@@ -108,7 +108,7 @@ pub(super) fn validate_observatory(
         "conduitos/kernel-text-upper@1",
     ) && exact_placement(
         "face/text",
-        "conduit.std/face-text@1",
+        "conduit.std/face-text@2",
         "conduitos/kernel-serial-text@1",
     );
     let exact_tick_placements = exact_placement(

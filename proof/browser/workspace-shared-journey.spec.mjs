@@ -45,7 +45,7 @@ test('the shared Workspace journey from zero Body through explicit rest and fini
         case 'use-current':
           await tutorial.getByRole('button', { name: 'Try the current Plot', exact: true }).click();
           await page.keyboard.type(journey.input);
-          await expect(page.locator('[data-plot-output] output:visible')).toHaveText(`Remembered message: ${journey.input}`);
+          await expect(page.locator('[data-plot-output] output[data-face-kind="face/text"]:visible [data-text-value]')).toHaveText(`${journey.input}`);
           break;
         case 'tutorial':
           await page.getByRole('navigation', { name: 'Your plots' }).getByRole('button', { name: 'Tutorial', exact: true }).click();

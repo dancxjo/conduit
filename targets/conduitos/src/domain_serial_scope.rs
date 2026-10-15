@@ -301,6 +301,12 @@ impl SerialScope {
         let _ = pool;
         conduit_core::face_data_label(&placement.configuration)
             .map_err(|_| DomainRefusal::WrongBinding)?;
+        if matches!(face, Face::Text)
+            && conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
+        {
+            // The serial Face cannot realize the requested visual editing cue.
+            return Err(DomainRefusal::WrongBinding);
+        }
         let maximum_operations = match face {
             Face::Count if placement.configuration.len() == 1 => 2,
             Face::Count => return Err(DomainRefusal::WrongBinding),

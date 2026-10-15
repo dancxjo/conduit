@@ -575,6 +575,7 @@ fn control_contract(kind: &FaceControlKind) -> String {
         } => {
             format!("{minimum}..{maximum}{unit}")
         }
+        FaceControlKind::StructuredSource => "typed Conduitese value; edit source".into(),
         FaceControlKind::PhysicalSource { maximum_bytes } => {
             format!("physical source, max {maximum_bytes} bytes")
         }

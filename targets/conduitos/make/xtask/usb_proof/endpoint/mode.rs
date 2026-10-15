@@ -23,7 +23,7 @@ impl ProofMode {
     }
     pub(super) fn arena_bytes(self) -> u64 {
         match self {
-            Self::Raw => 16 * 1024 * 1024,
+            Self::Raw => conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
             Self::Keyboard => conduitos::make::USB_HID_ENDPOINT_ARENA_BYTES,
             Self::Mouse => conduitos::make::USB_HID_MOUSE_ARENA_BYTES,
         }

@@ -3,6 +3,7 @@ import { acquireBrowserPcmAudio, PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL, PCM_PLA
 import { createBodyInputRouting } from "./browser-body-input.mjs";
 import { openBrowserHumanInput } from "./browser-human-input.mjs";
 import { BrowserHostEffectRefusal, createPitchTonePerformer, drainBrowserEffects } from "./browser-plot-effects.mjs";
+import { openBrowserSavedChoice } from "./browser-saved-choice.mjs";
 import { BrowserStorageRefusal } from "./browser-application-storage.mjs";
 import { executeResourceStorageEffect } from "./browser-resource-storage.mjs";
 import { createBrowserMonotonicTimer } from "./browser-monotonic-timer.mjs";
@@ -12,6 +13,7 @@ import { bindBrowserRuntimeBridge } from "./browser-runtime-bridge.mjs";
 const FACE = "conduit.resource/face-slot@1";
 const INPUT = "conduit.resource/browser-window-input@1";
 const TIMER = "conduit.resource/timer-slot@1";
+const SAVED_CHOICE = "conduit.resource/saved-choice-slot@1";
 const TEMPLATE = "conduit.resource/named-pattern-storage-slot@1";
 const CLOCK = "conduit.resource/monotonic-millisecond-timer-slot@1";
 const MEMORY = "conduit.resource/runtime-memory@1";
@@ -26,7 +28,7 @@ const pools = new Map([
   [PCM_CAPTURE_RESOURCE, PCM_CAPTURE_POOL], [PCM_PLAY_RESOURCE, PCM_PLAY_POOL],
   [MEMORY, "browser/runtime-memory"],
   [FACE, "browser/face"], [INPUT, "browser/window-input"],
-  [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
+  [SAVED_CHOICE, "browser/saved-choice"], [TEMPLATE, "browser/named-pattern-storage"], [TIMER, "browser/timer"], [CLOCK, "browser/monotonic-millisecond-timer"],
 ]);
 
 function readOutput(bridge) {
@@ -61,6 +63,29 @@ function refuseUnavailableExecutionLine(proposal, fragment) {
  * One owner per WASM instance prevents duplicate page-side resource ownership.
  */
 const owners = new WeakSet();
+/** Manifest the exact textual Face value and its optional end insertion cue.
+ * The cue is decoration; it never enters retained text or owns edit state.
+ */
+export function manifestBrowserText(output, effect) {
+  const dataLabel = effect.data_label;
+  if (effect.insertion_caret === true) {
+    output.dataset.insertionCaret = "end";
+    const label = output.ownerDocument.createElement("span");
+    label.dataset.textLabel = "";
+    label.textContent = dataLabel ?? "";
+    const value = output.ownerDocument.createElement("span");
+    value.dataset.textValue = "";
+    value.textContent = effect.text;
+    const caret = output.ownerDocument.createElement("span");
+    caret.dataset.textInsertionCaret = "";
+    caret.setAttribute("aria-hidden", "true");
+    output.replaceChildren(label, value, caret);
+  } else {
+    delete output.dataset.insertionCaret;
+    output.textContent = typeof dataLabel === "string" ? `${dataLabel}: ${effect.text}` : effect.text;
+  }
+}
+
 export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: suppliedProposal, inputTarget, outputRoot, foregroundPlot,
   faceRootFor, onApplicationEvent, onTutorialPresenterRequest, storage, externallyManagedPlanIds = [] }) {
   const proposal = structuredClone(suppliedProposal);
@@ -145,12 +170,15 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       demand.set(resource.class_id, (demand.get(resource.class_id) ?? 0) + resource.units);
     }
   }
+  if (demand.has(SAVED_CHOICE) && (storage?.implementationId !== "browser/indexeddb@1" || storage.state !== "Initialized" || typeof storage.readJson !== "function" || typeof storage.writeJson !== "function")) {
+    throw new Error("saved choice requires initialized durable browser storage before Play");
+  }
   if (snapshotPlacements.size > (storage?.bounds?.maximumRecords ?? 0)) {
     throw new Error("snapshot resource demand exceeds selected storage bounds");
   }
   for (const [kind, units] of demand) {
     const capacity = [FACE, INPUT, AUDIO_CUE_RESOURCE].includes(kind) ? 16
-      : kind === MEMORY ? MEMORY_CAPACITY : kind === TIMER ? maximumPlacements : 1;
+      : kind === MEMORY ? MEMORY_CAPACITY : kind === TIMER ? maximumPlacements : kind === SAVED_CHOICE ? 4 : 1;
     if (units > capacity) throw new Error("browser Body resource demand exceeds local bounds");
   }
   const boot = { host_id: hostId, boot_id: bootId, offer_generation: 1, implementation_registry: machinery.implementations };
@@ -283,7 +311,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       pool_id: pools.get(class_id), class_id, health: "Ready",
       // Adapter counts come from acquired state; memory names the finite
       // runtime pool whose exact prepared demand is checked at start.
-      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
+      unreserved_units: class_id === MEMORY ? MEMORY_CAPACITY : class_id === AUDIO_CUE_RESOURCE ? audio.capacity : class_id === PCM_CAPTURE_RESOURCE ? pcmAudio.capacity.capture : class_id === PCM_PLAY_RESOURCE ? pcmAudio.capacity.playback : class_id === FACE ? slots.size : class_id === INPUT ? demand.get(INPUT) : class_id === SAVED_CHOICE ? demand.get(SAVED_CHOICE) : class_id === TEMPLATE ? templateSlots.size : class_id === TIMER ? timerSlots.length : Number(clock),
       utilized_units: 0, sign_id: `browser-resource/${bootId}/${window.crypto.randomUUID()}`,
     }));
     const snapshotPools = new Map();
@@ -297,6 +325,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
     })));
   };
   const delay = (duration, signal, timerOwner) => monotonicTimer.wait(duration, signal, timerOwner);
+  const savedChoices = new Map();
   const perform = async (effect, signal) => {
     assertCurrent();
     if (effect.host_id !== hostId || effect.boot_id !== bootId ||
@@ -337,6 +366,23 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       const bytes = new Uint8Array(8);
       new DataView(bytes.buffer).setBigUint64(0, BigInt(monotonicTimer.nowMicros()), true);
       return bytes;
+    }
+    if (effect.effect_kind === "saved-choice") {
+      if (!demand.has(SAVED_CHOICE) || !effect.choice) throw new Error("saved choice was not admitted");
+      let choice = savedChoices.get(effect.placement_id);
+      if (!choice) {
+        if (savedChoices.size >= demand.get(SAVED_CHOICE)) throw new Error("saved choice capacity exhausted");
+        const container = slots.get(effect.placement_id);
+        if (!container) throw new Error("saved choice Face was not acquired");
+        container.dataset.faceKind = "face/application-view";
+        container.dataset.activePlayId = effect.active_play_id;
+        container.dataset.checkedPlotId = effect.checked_plot_id;
+        container.setAttribute("aria-label", effect.choice.label);
+        choice = openBrowserSavedChoice({ configuration: effect.choice, storage, container });
+        savedChoices.set(effect.placement_id, choice);
+      }
+      try { return await choice.next(signal); }
+      catch (error) { throw new BrowserHostEffectRefusal("failed", 221, `saved choice refused: ${error.code ?? error.message}`); }
     }
     if (effect.effect_kind === "pointer-event") {
       if (!input || !routing) throw new Error("routed pointer input not acquired");
@@ -407,7 +453,9 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
           choiceScope: effect.active_play_id,
           onEvent: event => publishApplicationEvent(effect.checked_plot_id, event),
         });
-      } else if (typeof effect.text === "string") output.textContent = namedValue(effect.text);
+      } else if (typeof effect.text === "string") {
+        manifestBrowserText(output, effect);
+      }
       else if (effect.face_kind === "face/indicator" && Array.isArray(effect.segments) && effect.segments.length <= 256) {
         for (const segment of effect.segments) {
           assertCurrent();
@@ -502,6 +550,7 @@ export function acquireBrowserBodyHost({ api, hostId, bootId, proposal: supplied
       if (closed) return closeResult;
       closed = true;
       dispatchController.abort();
+      for (const choice of savedChoices.values()) choice.close();
       monotonicTimer?.close();
       audio?.close();
       pcmAudio?.close();

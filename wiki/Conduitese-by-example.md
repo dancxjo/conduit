@@ -47,6 +47,8 @@ No trailing full stop. The plot remains alive between ticks.
 
 Current tree: [plots/memory-lantern/main.conduit](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/main.conduit)
 
+The saved layout selector currently runs in the browser; native Hosts use the [keyboard-only companion](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/keyboard-only.conduit) with the same authored default layout.
+
 ```conduit
 plot memory_lantern {
     keyboard: input/keyboard
@@ -61,6 +63,24 @@ plot memory_lantern {
 ```
 
 The editor exposes current text. The plot does not own a window, DOM node, terminal, or framebuffer.
+
+`input/keymap` defaults to the complete US International layout with AltGr dead
+keys. Layouts themselves are typed Conduitese values. For a deliberately small
+custom layout, add these immutable values before the gears and pass `layout`:
+
+```conduit
+    base = [{ usage: 4, shift: false, altgr: false, action: text("a") }]
+    overlay = [{ usage: 4, shift: false, altgr: false, action: text("λ") }]
+    layout = { layers: [base, overlay], compositions: [] }
+    keymap: input/keymap(layout = layout)
+```
+
+Physical A now emits `λ`: later layers override earlier bindings for the same
+usage and modifier level. A reusable Plot can accept `layout: KeymapLayout` and
+forward that value. The complete [layered Memory Lantern](https://github.com/dancxjo/conduit/blob/dev/plots/memory-lantern/layered.conduit)
+keeps the ordinary keyboard → keymap → editor → face connections.
+See the [layout schema, four-level reference, and dead-key behavior](https://github.com/dancxjo/conduit/blob/dev/docs/input-semantics.md).
+
 
 ## Pocket Theremin: quantities and retained state
 

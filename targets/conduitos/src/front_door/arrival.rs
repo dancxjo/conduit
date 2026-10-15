@@ -3,7 +3,7 @@ use alloc::{format, string::String, vec::Vec};
 use conduit_birth_plot::{BirthActionOutcome, BirthActions, BirthWidgetFace};
 use conduit_birth_plot::{BirthDraft, BirthDraftRefusal, BirthPlotChoice, BirthSelection};
 use conduit_face::ApplicationEventKind;
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyModifiers, KeyTransition, KeymapDisposition};
+use conduit_human::{KeyEvent, KeyModifiers, KeyTransition, PreparedKeymap};
 
 use super::{Error, FrontDoor};
 
@@ -15,7 +15,7 @@ pub(super) struct Arrival {
     draft: BirthDraft,
     focus: usize,
     replace_name: bool,
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
     refusal: Option<String>,
 }
 
@@ -66,7 +66,7 @@ impl FrontDoor {
             draft,
             focus: 0,
             replace_name: true,
-            keymap: ConduitIntlKeymap::new(),
+            keymap: PreparedKeymap::default_layout(),
             refusal: None,
         });
         self.advance()
@@ -105,8 +105,8 @@ impl FrontDoor {
 impl Arrival {
     fn accept(&mut self, event: KeyEvent) -> ArrivalInput {
         if event.transition() != KeyTransition::Pressed {
-            // The portable Compose gesture includes a Right Meta release.
-            self.keymap.apply(event);
+            // Preserve portable transition handling while a dead key is pending.
+            let _ = self.keymap.apply(event);
             return ArrivalInput::Unchanged;
         }
         let controls = self.controls();
@@ -131,14 +131,11 @@ impl Arrival {
             79 | 80 if self.focus == 1 => self.cycle_tradition(event.usage() == 80),
             60 => return self.submit(),
             40 if action == "creche.name" => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) if !composing && fragment.as_char() == '\n' => {
+                Ok(Some(fragment)) if !composing && fragment.as_slice() == b"\n" => {
                     return self.submit();
                 }
-                KeymapDisposition::Text(fragment) => {
-                    let mut utf8 = [0; 4];
-                    self.append_name(fragment.encode_utf8(&mut utf8))
-                }
-                KeymapDisposition::Refused(_) => {
+                Ok(Some(fragment)) => self.append_name(fragment.as_slice()),
+                Err(_) => {
                     self.refusal = Some("The keyboard could not complete that character.".into());
                     return ArrivalInput::Changed;
                 }
@@ -173,9 +170,9 @@ impl Arrival {
                 self.change("creche.search", ApplicationEventKind::Input, &search)
             }
             _ if action == "creche.search" => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) => {
+                Ok(Some(fragment)) => {
                     let mut search = String::from(self.draft.search());
-                    search.push(fragment.as_char());
+                    search.push_str(core::str::from_utf8(fragment.as_slice()).unwrap());
                     self.change("creche.search", ApplicationEventKind::Input, &search)
                 }
                 _ => return ArrivalInput::Unchanged,
@@ -191,10 +188,7 @@ impl Arrival {
                 self.change("creche.name", ApplicationEventKind::Input, &name)
             }
             _ if self.focus == 0 => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) => {
-                    let mut utf8 = [0; 4];
-                    self.append_name(fragment.encode_utf8(&mut utf8))
-                }
+                Ok(Some(fragment)) => self.append_name(fragment.as_slice()),
                 _ => return ArrivalInput::Unchanged,
             },
             _ => return ArrivalInput::Unchanged,

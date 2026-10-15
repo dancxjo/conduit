@@ -50,27 +50,40 @@ export function openBrowserHumanInput({
   let pointerSequence = 0;
   let buttonSequence = 0;
   let dropped = 0;
+  const pressedKeys = new Uint8Array(256);
+  const routedKeys = new Uint8Array(256);
+  let modifierBits = 0;
 
   const onKey = (event) => {
     if (closed || keyboardFailure) return;
     const usage = browserKeyboardUsage(event.code);
     if (usage === null) return;
-    // A document-wide adapter must leave ordinary browser controls operable
-    // while no admitted plot is waiting for a key. This also prevents a skip
-    // link or layout button from becoming stale queued Plot input.
-    if (keyboardWaiters.length === 0 && target.nodeType === 9 &&
-        typeof event.target?.closest === "function" &&
-        event.target.closest("a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false'])")) {
-      return;
+    // Track physical state even while a native control owns the interaction.
+    // Aggregate DOM modifier flags cannot identify left versus right sides.
+    const pressed = event.type === "keydown";
+    if (event.repeat || Boolean(pressedKeys[usage]) === pressed) return;
+    pressedKeys[usage] = Number(pressed);
+    if (usage >= 0xe0) {
+      const bit = 1 << (usage - 0xe0);
+      modifierBits = pressed ? modifierBits | bit : modifierBits & ~bit;
     }
+    const nativeControl = target.nodeType === 9 && nativeKeyboardControl(event);
+    const wasRouted = Boolean(routedKeys[usage]);
+    // A standing Plot request does not own a native select, button, link or
+    // text editor. Only a release of an earlier Plot press crosses that boundary;
+    // it balances the transition without cancelling the native default action.
+    if (nativeControl && (pressed || !wasRouted)) return;
+    if (!pressed && !wasRouted) return;
+    if (!pressed) routedKeys[usage] = 0;
     try {
       assertCurrent(owner, currentBoot());
       assertPageActive(target);
       if (!currentTargetOwnsEvent(target, event)) refuse("FocusLost", "keyboard focus left the admitted target");
-      const canonical = Uint8Array.of(usage, event.type === "keydown" ? 0 : 1, modifiers(event));
+      const canonical = Uint8Array.of(usage, pressed ? 0 : 1, modifierBits);
       const deliveryPlot = routeInput?.("keyboard", canonical);
       if (routeInput && deliveryPlot === null) return;
-      event.preventDefault();
+      if (pressed) routedKeys[usage] = 1;
+      if (!nativeControl) event.preventDefault();
       const transition = Object.freeze({
         schema: "input/key-event@1", canonical_bytes: canonical, owner,
         ...(routeInput ? { delivery_plot: deliveryPlot } : {}),
@@ -171,6 +184,9 @@ export function openBrowserHumanInput({
       : "browser input target lost focus");
     buttonQueue.length = 0;
     keyboardQueue.length = 0;
+    pressedKeys.fill(0);
+    routedKeys.fill(0);
+    modifierBits = 0;
     while (keyboardWaiters.length) keyboardWaiters.shift().reject(terminal);
     while (buttonWaiters.length) buttonWaiters.shift().reject(terminal);
   };
@@ -290,15 +306,47 @@ function currentTargetOwnsEvent(target, event) {
   if (target.nodeType === 9) return true;
   return target === event.target || target.contains?.(event.target);
 }
-function modifiers(event) {
-  return (event.ctrlKey ? 1 : 0) | (event.shiftKey ? 2 : 0) | (event.altKey ? 4 : 0) | (event.metaKey ? 8 : 0);
+function nativeKeyboardControl(event) {
+  const selector = "a[href], button, input, select, textarea, summary, [contenteditable]:not([contenteditable='false'])";
+  const path = typeof event.composedPath === "function" ? event.composedPath() : [event.target];
+  return path.some((node) => typeof node?.closest === "function" && node.closest(selector));
 }
+
+// DOM code names identify physical positions; event.key contains the host
+// layout's interpretation and must never choose Conduitese text or dead keys.
 function browserKeyboardUsage(code) {
   if (/^Key[A-Z]$/.test(code)) return 0x04 + code.charCodeAt(3) - 65;
   if (/^Digit[1-9]$/.test(code)) return 0x1e + Number(code.slice(5)) - 1;
-  if (code === "Digit0") return 0x27;
-  return ({ Enter: 0x28, Escape: 0x29, Backspace: 0x2a, Tab: 0x2b, Space: 0x2c })[code] ?? null;
+  if (/^F([1-9]|1[0-9]|2[0-4])$/.test(code)) {
+    const number = Number(code.slice(1));
+    return number <= 12 ? 0x39 + number : 0x67 + number - 12;
+  }
+  return KEYBOARD_USAGES[code] ?? null;
 }
+const KEYBOARD_USAGES = Object.freeze({
+  Digit0: 0x27, Enter: 0x28, Escape: 0x29, Backspace: 0x2a,
+  Tab: 0x2b, Space: 0x2c, Minus: 0x2d, Equal: 0x2e,
+  BracketLeft: 0x2f, BracketRight: 0x30, Backslash: 0x31,
+  Semicolon: 0x33, Quote: 0x34, Backquote: 0x35, Comma: 0x36,
+  Period: 0x37, Slash: 0x38, CapsLock: 0x39, PrintScreen: 0x46,
+  ScrollLock: 0x47, Pause: 0x48, Insert: 0x49, Home: 0x4a,
+  PageUp: 0x4b, Delete: 0x4c, End: 0x4d, PageDown: 0x4e,
+  ArrowRight: 0x4f, ArrowLeft: 0x50, ArrowDown: 0x51, ArrowUp: 0x52,
+  NumLock: 0x53, NumpadDivide: 0x54, NumpadMultiply: 0x55,
+  NumpadSubtract: 0x56, NumpadAdd: 0x57, NumpadEnter: 0x58,
+  Numpad1: 0x59, Numpad2: 0x5a, Numpad3: 0x5b, Numpad4: 0x5c,
+  Numpad5: 0x5d, Numpad6: 0x5e, Numpad7: 0x5f, Numpad8: 0x60,
+  Numpad9: 0x61, Numpad0: 0x62, NumpadDecimal: 0x63,
+  IntlBackslash: 0x64, ContextMenu: 0x65, Power: 0x66, NumpadEqual: 0x67,
+  Open: 0x74, Help: 0x75, Select: 0x77, Again: 0x79, Undo: 0x7a,
+  Cut: 0x7b, Copy: 0x7c, Paste: 0x7d, Find: 0x7e,
+  AudioVolumeMute: 0x7f, AudioVolumeUp: 0x80, AudioVolumeDown: 0x81,
+  NumpadComma: 0x85, IntlRo: 0x87, KanaMode: 0x88, IntlYen: 0x89,
+  Convert: 0x8a, NonConvert: 0x8b, Lang1: 0x90, Lang2: 0x91,
+  Lang3: 0x92, Lang4: 0x93, Lang5: 0x94,
+  ControlLeft: 0xe0, ShiftLeft: 0xe1, AltLeft: 0xe2, MetaLeft: 0xe3,
+  ControlRight: 0xe4, ShiftRight: 0xe5, AltRight: 0xe6, MetaRight: 0xe7,
+});
 function boundedIdentity(value, code) {
   if (typeof value !== "string" || value.length < 1 || value.length > 256) refuse(code, "browser input owner identity is invalid");
   return value;

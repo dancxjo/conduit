@@ -303,6 +303,9 @@ fn prepare_root_port_at_epoch(
         retain_transport_bounds(&mut result, &ring, 2);
         return Ok(result);
     }
+    // Establish continuity once for this original addressed attachment. Later
+    // selected effects must refuse a new connect change rather than clear it.
+    attachment::AttachmentBaseline::establish(controller, &result)?;
     let header_length = control(
         controller,
         &mut ring,

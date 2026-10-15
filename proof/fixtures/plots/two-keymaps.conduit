@@ -1,0 +1,20 @@
+plot two_layouts {
+        base = [{usage:8,shift:false,altgr:false,action:text("e")},{usage:4,shift:false,altgr:false,action:text("a")}]
+        acute = [{usage:52,shift:false,altgr:true,action:dead({spacing:"´",combining:769})},{usage:53,shift:false,altgr:true,action:text("`")}]
+        grave = [{usage:52,shift:false,altgr:true,action:text("'")},{usage:53,shift:false,altgr:true,action:dead({spacing:"`",combining:768})}]
+        first_layout = {layers:[base,acute],compositions:[]}
+        second_layout = {layers:[base,grave],compositions:[]}
+        keyboard: input/keyboard
+        first: input/keymap(layout=first_layout)
+        second: input/keymap(layout=second_layout)
+        first_message: text/edit(maximum-bytes=256)
+        second_message: text/edit(maximum-bytes=256)
+        first_face: face/text("Acute layout")
+        second_face: face/text("Grave layout")
+        keyboard.key >> first.key
+        keyboard.key >> second.key
+        first.text >> first_message.fragment
+        second.text >> second_message.fragment
+        first_message.current >> first_face.text
+        second_message.current >> second_face.text
+    }
