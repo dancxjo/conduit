@@ -153,7 +153,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.dataset.faceRole = subject.role;
       bindRegion(node, subject);
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
-      node.append(faceNode(subject.role === 'Body' ? 'h4' : 'h5', subject.name));
+      node.append(faceNode('h4', subject.name));
       for (const text of subject.text) node.append(faceNode('p', text));
       for (const value of subject.values ?? []) {
         const output = faceNode('p', value.text, 'owner-face-value');
@@ -223,6 +223,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       }
       documentNode.append(section);
     }
+    const hasApplication = collections.length > 0 || view.subjects.some(subject =>
+      !['Body', 'Plot'].includes(subject.role) && subject.disclosure === 'Primary');
+    const bodyMenu = document.createElement('details');
+    bodyMenu.dataset.bodyMenu = '';
+    bodyMenu.open = this.#surface.querySelector('[data-body-menu]')?.open ?? false;
+    bodyMenu.append(faceNode('summary', 'Body'));
+    const choiceGroups = [];
     const inspection = document.createElement('details');
     inspection.append(faceNode('summary', 'Inspect other Face subjects'));
     for (const group of view.subjects) {
@@ -275,15 +282,19 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         placed.add(option.identity);
       });
       fieldset.append(choices);
-      documentNode.append(fieldset);
+      choiceGroups.push(fieldset);
       placed.add(group.identity);
     }
     for (const subject of view.subjects) {
       if (placed.has(subject.identity)) continue;
+      const management = hasApplication
+        && (['Body', 'Plot'].includes(subject.role) || subject.disclosure === 'Context');
       const main = ['Primary', 'Context'].includes(subject.disclosure)
         && (!collections.length || subject.role === 'Status');
-      (main ? documentNode : inspection).append(renderSubject(subject));
+      (management ? bodyMenu : main ? documentNode : inspection).append(renderSubject(subject));
     }
+    documentNode.append(...choiceGroups);
+    if (bodyMenu.children.length > 1) documentNode.append(bodyMenu);
     if (inspection.children.length > 1) documentNode.append(inspection);
     if (view.relationships.length) {
       const relations = document.createElement('details');

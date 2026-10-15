@@ -196,7 +196,27 @@ pub fn run_thermostat(
     opts: &GlobalOpts,
 ) -> Result<(), Box<dyn std::error::Error>> {
     let root = workspace_root()?;
-    if args.verify {
+    if args.capture {
+        let paths = [
+            args.state_dir.as_ref(),
+            args.conduit_bin.as_ref(),
+            args.handbook_package.as_ref(),
+            args.output.as_ref(),
+            args.pinned_playwright.as_ref(),
+        ];
+        let mut command = std::process::Command::new("node");
+        command
+            .arg(root.join("proof/browser/thermostat-journey.mjs"))
+            .current_dir(&root);
+        for path in paths {
+            command.arg(path.ok_or("thermostat capture needs all five paths")?);
+        }
+        if opts.dry_run {
+            println!("would capture a fresh installed Thermostat: {command:?}");
+        } else if !command.status()?.success() {
+            return Err("Thermostat journey capture failed; inspect retained diagnostics".into());
+        }
+    } else if args.verify {
         run_step(
             &Step::new(
                 "thermostat.contracts",
