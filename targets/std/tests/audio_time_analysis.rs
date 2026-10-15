@@ -157,8 +157,7 @@ fn ordinary_kernel_refuses_wrong_timebase_nonfinite_short_and_discontinuous_inpu
                 &mut Vec::new(),
                 &mut NoTimer,
             )
-            .err()
-            .expect("invalid PCM must refuse");
+            .expect_err("invalid PCM must refuse");
         assert!(failure.contains("InvalidInput"), "{failure}");
         assert!(output.0.is_empty(), "refusal must not emit fake analysis");
     }
