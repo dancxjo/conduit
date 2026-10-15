@@ -5,7 +5,7 @@ fn native_make_uses_the_admitted_heap_arena_ceiling() {
     for (source, expected) in [
         (
             include_str!("../../../profiles/conduitos-native.host.conduit"),
-            16 * 1024 * 1024,
+            256 * 1024 * 1024,
         ),
         (
             include_str!("../../../profiles/conduitos-protocol-source.host.conduit"),

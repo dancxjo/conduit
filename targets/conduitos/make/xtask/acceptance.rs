@@ -279,7 +279,7 @@ fn boot_and_observe(path: &Path) -> Result<journey_proof::JourneyIdentity, Condu
             "-cpu",
             "max",
             "-m",
-            "64M",
+            conduitos::make::PC_PRODUCT_QEMU_MEMORY,
             "-smp",
             "1",
             "-display",
