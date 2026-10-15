@@ -275,3 +275,115 @@ fn scratch_reuse_is_reset_equivalent_and_no_analysis_or_bin_iteration_allocates(
         );
     }
 }
+
+#[test]
+fn checked_source_axis_projects_exact_frequency_in_reference_and_prepared_evaluators() {
+    use conduit_core::{ConfigurationValue, Scalar};
+    use conduit_plot::rust_binding::NativeRustBinding;
+    use conduit_plot::{
+        check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
+        PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog,
+        StartupCatalog,
+    };
+    let source = include_str!("../spectral_analysis_types.conduit");
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded = expand_canonical_plot_for_authoring(
+        &checked,
+        "audio/spectrum-bin-frequency",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("pure checked bin-frequency program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let profile = PcmSpectralProfile::new(
+        PcmSpectralGeometry::new(64, 64, 64).unwrap(),
+        55,
+        48000,
+        PcmSpectralWindow::Rectangular,
+    )
+    .unwrap();
+    let observation = profile
+        .prepare_observation(
+            &mut PcmSpectralWorkspace::default(),
+            &frame(&[0.0; 64], 48000, 0),
+            0,
+        )
+        .unwrap();
+    let request = AudioSpectrumBinRequest::new(Scalar::from_raw_microunits(2_000_000), observation)
+        .unwrap()
+        .encode()
+        .unwrap();
+    let expected = Quantity::parse_plot_literal("1500Hz").unwrap().encode();
+    assert_eq!(program.evaluate(&request).unwrap(), expected);
+    let mut prepared = PreparedPortableExpressionEvaluator::new(&program).unwrap();
+    assert_eq!(prepared.evaluate(&request).unwrap(), expected);
+    ALLOCATIONS.with(|c| c.set((true, 0)));
+    for _ in 0..16 {
+        assert_eq!(prepared.evaluate(&request).unwrap(), expected);
+    }
+    let allocations = ALLOCATIONS.with(|c| {
+        let (_, n) = c.get();
+        c.set((false, 0));
+        n
+    });
+    assert_eq!(allocations, 0);
+}
+
+#[test]
+fn prepared_spectrum_slots_match_native_binding_without_play_allocation() {
+    use conduit_plot::rust_binding::NativeRustBinding;
+    for n in [16, 32, 64, 128, 256, 512, 1024] {
+        let samples: Vec<f32> = (0..2 * n)
+            .map(|i| if i % 3 == 0 { 0.25 } else { -0.5 })
+            .collect();
+        let input = frame(&samples, 48000, 9000);
+        for window in [
+            PcmSpectralWindow::Rectangular,
+            PcmSpectralWindow::PeriodicHann,
+        ] {
+            let profile = PcmSpectralProfile::new(
+                PcmSpectralGeometry::new(2 * n, n, n / 2).unwrap(),
+                55,
+                48000,
+                window,
+            )
+            .unwrap();
+            let mut encoder = PreparedPcmSpectrumObservationEncoder::prepare(profile).unwrap();
+            assert!(encoder.encoded_len() <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
+            for index in 0..profile.geometry().windows() {
+                let expected = profile
+                    .prepare_observation(&mut PcmSpectralWorkspace::default(), &input, index)
+                    .unwrap()
+                    .encode()
+                    .unwrap();
+                ALLOCATIONS.with(|c| c.set((true, 0)));
+                let actual = encoder.encode_window(&input, index).unwrap();
+                assert_eq!(actual, expected);
+                let allocations = ALLOCATIONS.with(|c| {
+                    let (_, n) = c.get();
+                    c.set((false, 0));
+                    n
+                });
+                assert_eq!(allocations, 0);
+                assert!(AudioSpectrumObservation::decode(&expected).is_ok());
+            }
+            ALLOCATIONS.with(|c| c.set((true, 0)));
+            assert!(matches!(
+                encoder.encode_window(&input, 3),
+                Err(PcmSpectralEncodingRefusal::Analysis(
+                    PcmSpectralRefusal::WindowIndexOutsideGeometry
+                ))
+            ));
+            let allocations = ALLOCATIONS.with(|c| {
+                let (_, n) = c.get();
+                c.set((false, 0));
+                n
+            });
+            assert_eq!(allocations, 0);
+        }
+    }
+}

@@ -17,6 +17,10 @@ pub enum PcmSpectralWindow {
 pub enum PcmSpectralRefusal {
     Input(PcmTimeAnalysisRefusal),
     UnsupportedWindow,
+    InvalidStride,
+    WrongSourceFrames,
+    TooManyWindows,
+    WindowIndexOutsideGeometry,
     ArithmeticOverflow,
 }
 #[derive(Debug, Clone, Copy, PartialEq)]
