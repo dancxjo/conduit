@@ -250,6 +250,9 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             );
         }
     }
+    for event in &report.print_events {
+        let _ = writeln!(output, "{event}");
+    }
     let _ = writeln!(output, "sign {}", report.signs.len());
     for sign in &report.signs {
         let _ = writeln!(

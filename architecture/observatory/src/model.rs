@@ -372,6 +372,9 @@ pub struct ObservatoryReport {
     pub connections: Vec<ConnectionRow>,
     pub plays: Vec<PlayReport>,
     pub signs: Vec<SignRow>,
+    /// Read-only typed print event descriptions; not aggregate job state.
+    #[serde(default)]
+    pub print_events: Vec<String>,
     pub sealed_boot_provenance: Vec<SealedBootProvenanceReport>,
     pub retention: RetentionRow,
 }

@@ -239,6 +239,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         connections,
         plays: snapshot.plays.clone(),
         signs,
+        print_events: crate::printing::snapshot_print_events(snapshot),
         sealed_boot_provenance: snapshot.sealed_boot_provenance.clone(),
         retention: RetentionRow {
             bounded: true,
