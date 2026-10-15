@@ -10,7 +10,9 @@ use conduit_plot::rust_binding::NativeBindingRefusal;
 impl PcmPitchObservation {
     pub fn prepare_native(self) -> Result<AudioPitchObservation, NativeBindingRefusal> {
         let (state, first, other, correlation) = match self.estimate {
-            PcmPitchEstimate::InsufficientEnergy => (AudioPitchState::InsufficientEnergy, 0, 0, 0),
+            PcmPitchEstimate::UnknownInsufficientEnergy => {
+                (AudioPitchState::UnknownInsufficientEnergy, 0, 0, 0)
+            }
             PcmPitchEstimate::Unknown => (AudioPitchState::Unknown, 0, 0, 0),
             PcmPitchEstimate::Uncertain {
                 first_lag,

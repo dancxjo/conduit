@@ -126,7 +126,7 @@ impl PreparedPcmPitchObservationEncoder {
             .map_err(R::Analysis)?;
         let mut slots = Vec::with_capacity(4);
         for estimate in [
-            PcmPitchEstimate::InsufficientEnergy,
+            PcmPitchEstimate::UnknownInsufficientEnergy,
             PcmPitchEstimate::Unknown,
             // An equal-endpoint profile cannot produce competing lags. Its
             // unreachable slot retains a valid unknown shape instead.
@@ -166,7 +166,7 @@ impl PreparedPcmPitchObservationEncoder {
             .observe(&mut self.scratch, input)
             .map_err(PcmPitchEncodingRefusal::Analysis)?;
         self.active = match observation.estimate {
-            PcmPitchEstimate::InsufficientEnergy => 0,
+            PcmPitchEstimate::UnknownInsufficientEnergy => 0,
             PcmPitchEstimate::Unknown => 1,
             PcmPitchEstimate::Uncertain { .. } => 2,
             PcmPitchEstimate::Periodic { .. } => 3,

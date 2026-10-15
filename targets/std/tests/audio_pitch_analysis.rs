@@ -122,7 +122,7 @@ fn ordinary_source_plan_play_emits_four_observation_states_with_exact_custody() 
         tone(40.0, 0.5, 0.0),
     ];
     let states = [
-        AudioPitchState::InsufficientEnergy,
+        AudioPitchState::UnknownInsufficientEnergy,
         AudioPitchState::Unknown,
         AudioPitchState::Uncertain,
         AudioPitchState::Periodic,

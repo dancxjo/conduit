@@ -15,7 +15,7 @@ observation. Final combined-source proof and candidate CI remain closure gates.
 
 The finite f64 algorithm subtracts the window mean, then measures normalized
 cross-correlation with separate overlap energies. Centered mean-square at or
-below 1e-10 digital-full-scale squared is insufficient energy. A local correlation
+below 1e-10 digital-full-scale squared is unknown with an explicit insufficient-energy reason. A local correlation
 peak must reach 0.9. Search includes shorter lags outside the requested minimum,
 so a clear out-of-profile short period cannot be renamed as its subharmonic.
 No qualifying peak yields unknown, including the deterministic noise fixture.
@@ -33,7 +33,7 @@ real-world F0. No sub-sample interpolation is claimed. The typed observation car
 truncated from the nonnegative f64 result. This declared projection permits
 portable integer threshold laws without introducing unsupported F64 expression
 operations. Correlation is descriptive agreement, not a probability. Uncertain results retain both competing lags.
-Silence/DC, unknown and uncertain remain distinct from a definite periodic result.
+Silence/DC unknown-with-reason, other unknown and uncertain remain distinct from a definite periodic result.
 
 Window support is [start_frame, start_frame+frames) on the retained clock and
 rate. Its end is the earliest availability coordinate. Observing identical sample

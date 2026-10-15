@@ -17,7 +17,7 @@ pub enum PcmPitchRefusal {
 #[derive(Debug, Clone, Copy, PartialEq)]
 pub enum PcmPitchEstimate {
     /// Includes silence and constant/DC input after centering.
-    InsufficientEnergy,
+    UnknownInsufficientEnergy,
     /// No sufficiently periodic local peak in the admitted lag interval.
     Unknown,
     /// Competing periodicities, including possible octave errors.
@@ -84,7 +84,7 @@ impl PcmPitchWorkspace {
             energy += *slot * *slot;
         }
         let estimate = if energy / n as f64 <= 1.0e-10 {
-            PcmPitchEstimate::InsufficientEnergy
+            PcmPitchEstimate::UnknownInsufficientEnergy
         } else {
             // Search below the admitted minimum too: a clear shorter period
             // must not be silently relabelled as its in-range subharmonic.

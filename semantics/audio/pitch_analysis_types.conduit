@@ -3,7 +3,7 @@
 type AudioPitchEstimator =
     centered_normalized_correlation_f64_ppm_v1
 type AudioPitchState =
-    insufficient_energy
+    unknown_insufficient_energy
     | unknown
     | uncertain
     | periodic

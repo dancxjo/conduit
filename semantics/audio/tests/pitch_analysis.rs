@@ -70,7 +70,7 @@ fn silence_dc_noise_and_octave_competition_do_not_fabricate_definite_pitch() {
                 .observe(&bytes, 55, 16000, 0, 1024, 8, 256)
                 .unwrap()
                 .estimate,
-            PcmPitchEstimate::InsufficientEnergy
+            PcmPitchEstimate::UnknownInsufficientEnergy
         );
     }
     let mut seed = 17u32;
@@ -213,7 +213,7 @@ fn prepared_encoder_matches_checked_native_for_every_state_without_allocation() 
         signal(1024, 40.0, 0.5, 0.0),
     ];
     let expected_states = [
-        AudioPitchState::InsufficientEnergy,
+        AudioPitchState::UnknownInsufficientEnergy,
         AudioPitchState::Unknown,
         AudioPitchState::Uncertain,
         AudioPitchState::Periodic,
