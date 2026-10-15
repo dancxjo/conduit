@@ -14,6 +14,8 @@ mod execution_artifact;
 mod model;
 mod pool_cost_explanation;
 pub use pool_cost_explanation::render_pool_cost_selection;
+mod printing;
+pub use printing::*;
 mod projection;
 mod render;
 mod sound;
