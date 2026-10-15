@@ -282,11 +282,13 @@ mod tests {
         let record = record();
         assert_eq!(record.validate(4 * 1024 * 1024), Ok(()));
         assert!(record.includes(IMPL_KEYBOARD));
-        assert!(!MakeRecord {
-            implementations: IMPL_TIME_TICK,
-            ..record
-        }
-        .includes(IMPL_KEYBOARD));
+        assert!(
+            !MakeRecord {
+                implementations: IMPL_TIME_TICK,
+                ..record
+            }
+            .includes(IMPL_KEYBOARD)
+        );
     }
 
     #[test]
