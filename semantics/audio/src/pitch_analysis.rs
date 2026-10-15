@@ -145,11 +145,12 @@ impl PcmPitchWorkspace {
                 continue;
             }
             // Exact repeats of a period are not independent pitch evidence.
-            // A materially stronger repeat is an octave/subharmonic warning;
+            // A stronger repeat beyond the declared f64 numerical tie guard
+            // is an octave/subharmonic warning;
             // a distinct similarly strong period is competing evidence.
             let remainder = other % first;
             let repeat = remainder <= 1 || first - remainder <= 1;
-            let stronger = self.correlations[other] > self.correlations[first] + 0.0001;
+            let stronger = self.correlations[other] > self.correlations[first] + 1.0e-12;
             let comparable = self.correlations[other] >= self.correlations[first] - 0.03;
             if stronger || (!repeat && comparable) {
                 return PcmPitchEstimate::Uncertain {

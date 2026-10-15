@@ -21,7 +21,7 @@ so a clear out-of-profile short period cannot be renamed as its subharmonic.
 No qualifying peak yields unknown, including the deterministic noise fixture.
 
 The first qualifying peak is a candidate. A later peak with correlation greater
-by 0.0001 is competing evidence, including octave ambiguity from a weak
+by more than the declared 1e-12 numerical tie guard is competing evidence, including octave ambiguity from a weak
 fundamental beneath a strong second harmonic. A non-repeat peak within 0.03
 correlation also yields uncertain. Integer repeats within one sample are not
 independent candidate periods. These thresholds are this estimator's declared

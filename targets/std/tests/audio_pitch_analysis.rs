@@ -118,7 +118,7 @@ fn ordinary_source_plan_play_emits_four_observation_states_with_exact_custody() 
     let samples = [
         vec![0.0; 1024],
         noise,
-        tone(80.0, 0.01, 0.5),
+        tone(80.0, 0.000001, 0.5),
         tone(40.0, 0.5, 0.0),
     ];
     let states = [

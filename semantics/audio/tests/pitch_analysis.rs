@@ -88,7 +88,7 @@ fn silence_dc_noise_and_octave_competition_do_not_fabricate_definite_pitch() {
             .estimate,
         PcmPitchEstimate::Unknown
     );
-    for fundamental in [0.05, 0.01] {
+    for fundamental in [0.05, 0.01, 0.001, 0.0001, 0.000001] {
         let bytes = frame(&signal(1024, 80.0, fundamental, 0.5), 16000, 0);
         assert!(matches!(
             workspace
