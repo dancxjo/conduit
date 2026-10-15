@@ -1,5 +1,5 @@
 schema = "conduit.reviewed-plot-inventory/v2"
-maximum_plots = 124
+maximum_plots = 125
 maximum_combined_workloads = 4
 
 # Membership is explicit: repository path discovery validates this list but never creates it.
@@ -73,6 +73,12 @@ title = "Model Authoring"
 entry = "model-authoring"
 deterministic = { package = "conduit-std-host", features = ["burn-model"], test = "burn_plot_journey", case = "ordinary_plot_trains_saves_reloads_and_infers" }
 browser_safe_not_applicable = "training and checkpoint persistence require a prepared hosted model session; the browser advertises no model/work realization"
+[[plots]]
+slug = "print-contract"
+title = "Finite Print Contract"
+entry = "print-contract"
+deterministic = { package = "conduit-semantic-catalog", test = "printing", case = "three_print_jobs_use_ordinary_checked_ports_and_explicit_host_authority" }
+browser_safe_not_applicable = "typed protocol and explicit authority proof; no browser or physical printer Back is installed"
 [[plots]]
 slug = "bounded-job"
 title = "Bounded Job"
@@ -346,7 +352,7 @@ title = "Pocket Theremin"
 entry = "phone-two-axis-controller"
 initial_body_order = 11
 initial_body_face_profile = 1
-deterministic = { package = "conduit-browser-runtime", test = "lib", case = "phone_theremin_checks_with_exact_two_axis_browser_realizations" }
+deterministic = { package = "conduit-browser-runtime", test = "lib", case = "creche::typed_workset_tests::phone_theremin_checks_with_exact_two_axis_browser_realizations" }
 browser_safe = { spec = "proof/browser/workspace-library.spec.mjs", case = "Pocket Theremin plays continuous two-axis PCM on the browser host" }
 [[plots]]
 slug = "pool-webchat"

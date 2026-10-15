@@ -16,7 +16,7 @@ import {
 import {
   applicationFaceLimits,
   createApplicationFaceHost,
-  decodeApplicationTheme,
+  decodeApplicationLook,
   encodeApplicationView,
   manifestApplicationView,
 } from "../../targets/browser/host/assets/application-face.mjs";
@@ -37,11 +37,13 @@ try {
   const proof = manifestFaceNucleus(api, root);
   let retiredThemeRefusal = "";
   try {
-    decodeApplicationTheme(Uint8Array.of(applicationFaceLimits.retiredThemeVersion));
+    const hex = await fetch("../conformance/face-look/retired-application-theme-v2.hex").then(response => response.text());
+    const bytes = Uint8Array.from(hex.replace(/\s/gu, "").match(/../gu), byte => Number.parseInt(byte, 16));
+    decodeApplicationLook(bytes);
   } catch (error) {
     retiredThemeRefusal = error.code;
   }
-  assert(retiredThemeRefusal === "unsupported-version", "retired color-only theme refuses explicitly");
+  assert(retiredThemeRefusal === "look-canonical-type-required-retired-theme-wire", "retired color-only theme refuses explicitly");
   const productThemeRoot = document.querySelector("#theme-products");
   for (const product of ["tour", "creche", "patchbay"]) {
     const productRoot = document.createElement("section");
@@ -55,7 +57,7 @@ try {
         { parent: null, component: "grid", action: null, key: `${product}-grid`, text: "" },
         { parent: 0, component: "panel", action: null, key: `${product}-panel`, text: product },
       ],
-    }), productRoot, { theme: proof.applicationTheme });
+    }), productRoot, { look: proof.applicationLook });
   }
   assert(proof.layout.children.length === 3, "row/column/stack layout reaches the browser");
   assert(proof.graphics.length === 3, "rect/text/icon graphics reach the browser");
@@ -69,7 +71,7 @@ try {
   assert(proof.structured.quantityUnitSymbol === "%", "score retains its authored unit symbol");
   assert(proof.structured.quantity === "88e0", "score retains its exact decimal magnitude");
   assert(proof.application.view.revision === 1, "application view revision remains exact");
-  assert(root.dataset.applicationTheme === "conduit.face/phosphor@1", "browser host consumes the shared renderer-neutral theme");
+  assert(root.dataset.applicationLook === "conduit.look/phosphor@1", "browser host consumes the shared renderer-neutral theme");
   const continueButton = root.querySelector("[data-application-action='nucleus.continue']");
   continueButton.click();
   const applicationEvent = proof.application.nextEvent();
@@ -252,7 +254,7 @@ try {
     structured: proof.structured,
     application: {
       revision: proof.application.view.revision,
-      theme: root.dataset.applicationTheme,
+      theme: root.dataset.applicationLook,
       heading: root.querySelector("[data-application-key=heading] > h3").textContent,
       evidenceIdentity: root.querySelector("[data-application-key=heading] [data-application-component=definition] dd").textContent,
       evidenceProvenance: root.querySelectorAll("[data-application-key=heading] [data-application-component=definition] dd")[1].textContent,

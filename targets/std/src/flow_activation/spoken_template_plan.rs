@@ -35,10 +35,14 @@ fn required_offer(checked: &CheckedSyntaxDocument, name: &str) -> Result<Capabil
 
 pub fn required_spoken_template_offers() -> Result<Vec<CapabilityOffer>, String> {
     let checked = checked()?;
-    ["spoken/brief-template", "spoken/expanded-template"]
-        .into_iter()
-        .map(|name| required_offer(&checked, name))
-        .collect()
+    [
+        "spoken/brief-template",
+        "spoken/expanded-template",
+        "spoken/control-template",
+    ]
+    .into_iter()
+    .map(|name| required_offer(&checked, name))
+    .collect()
 }
 
 /// Computational source custody only; no Show, voice effect or Body authority.
@@ -49,7 +53,10 @@ pub struct SpokenTemplateSourcePlan {
 }
 impl SpokenTemplateSourcePlan {
     pub fn prepare(host: &HostAdvertisement, name: &str) -> Result<Self, String> {
-        if !matches!(name, "spoken/brief-template" | "spoken/expanded-template") {
+        if !matches!(
+            name,
+            "spoken/brief-template" | "spoken/expanded-template" | "spoken/control-template"
+        ) {
             return Err("unknown checked spoken template".into());
         }
         let checked = checked()?;
@@ -93,16 +100,29 @@ impl crate::StdHost {
         face: &conduit_face::Face,
         entry: &str,
     ) -> Result<conduit_face::SpokenTemplateWording, String> {
-        let source = SpokenTemplateSourcePlan::prepare(self.advertisement(), entry)?;
-        let outline = crate::spoken_face_mask::select_spoken_outline(face)
-            .map_err(|error| format!("spoken template outline: {error:?}"))?;
-        let slots = conduit_face::prepare_spoken_template_slots(face, &outline.text_indices)
-            .map_err(|error| format!("spoken template selection: {error:?}"))?;
-        source
-            .evaluator()?
-            .evaluate(face, &slots)
-            .map_err(|error| format!("spoken template wording: {error:?}"))
+        prepare_wording_for_offer(self.advertisement(), face, entry)
     }
+}
+
+/// Pure checked wording preparation against an observed offer; no Host authority.
+pub(crate) fn prepare_wording_for_offer(
+    host: &HostAdvertisement,
+    face: &conduit_face::Face,
+    entry: &str,
+) -> Result<conduit_face::SpokenTemplateWording, String> {
+    let source = SpokenTemplateSourcePlan::prepare(host, entry)?;
+    let outline = crate::spoken_face_mask::select_spoken_outline(face)
+        .map_err(|error| format!("spoken template outline: {error:?}"))?;
+    let slots = (if entry == "spoken/control-template" {
+        conduit_face::prepare_spoken_control_slots(face, &outline.text_indices)
+    } else {
+        conduit_face::prepare_spoken_template_slots(face, &outline.text_indices)
+    })
+    .map_err(|error| format!("spoken template selection: {error:?}"))?;
+    source
+        .evaluator()?
+        .evaluate(face, &slots)
+        .map_err(|error| format!("spoken template wording: {error:?}"))
 }
 
 #[cfg(test)]

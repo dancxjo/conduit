@@ -149,7 +149,7 @@ fn spoken_conversation_requires_explicit_audio_authority_and_a_joined_line() {
             .flat_map(|fragment| &fragment.placements)
             .map(|placement| placement.authority.len())
             .sum::<usize>(),
-        2
+        3 // microphone capture, PCM playback, and playback drain
     );
     assert!(plan(
         &expanded,

@@ -131,7 +131,7 @@ pub(super) fn prepare(
             .filter(|part| !external.contains(&part.plan.plan_id))
             .map(|part| &part.plan)
             .collect::<Vec<_>>(),
-        conduit_plan_lowering::lowering::FIXED_KERNEL_STORAGE_PROFILE,
+        crate::installed_browser::typed_state::storage_profile(),
         FragmentSetBounds {
             fragments: conduit_body::MAX_BODY_PLOTS as u16,
             nodes: MAXIMUM_BROWSER_GEARS as u16,
@@ -176,6 +176,15 @@ pub(super) fn prepare(
         if let Some(offer) =
             crate::installed_browser::structured_selector::offer_for_placement(gear)?
         {
+            if !host
+                .capabilities
+                .iter()
+                .any(|current| current.capability_id == offer.capability_id)
+            {
+                host.capabilities.push(offer);
+            }
+        }
+        if let Some(offer) = crate::installed_browser::typed_state::offer_for_placement(gear)? {
             if !host
                 .capabilities
                 .iter()

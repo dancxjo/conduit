@@ -666,7 +666,7 @@ type VisualMotionPreference =
 
 type VisualExpressionInfo = {
     density: VisualDensityPreference
-    identity: Text <= 128B not in [""]
+    identity: Text <= 128B not in ["", "conduit.face/phosphor@1", "conduit.presentation/phosphor@1"]
     motion: VisualMotionPreference
     palette: VisualPalettePreference
     text_scale_percent: U16 in 100..=200

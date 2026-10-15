@@ -220,6 +220,18 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             .map_err(SharedPoolRuntimeError::Lifecycle)
     }
 
+    /// Complete retirement after the owner confirms that a releasing member's
+    /// provider work has ended. Loss alone does not free capacity or retry work.
+    /// The kernel checks the exact member epoch and releasing lifecycle state.
+    pub fn complete_release(
+        &mut self,
+        member: MemberIdentity,
+    ) -> Result<(), SharedPoolRuntimeError> {
+        self.kernel
+            .complete_release(member)
+            .map_err(SharedPoolRuntimeError::Lifecycle)
+    }
+
     pub fn provider_lost(
         &mut self,
         operation_id: PoolOperationId,

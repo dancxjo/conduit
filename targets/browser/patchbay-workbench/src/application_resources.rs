@@ -36,7 +36,7 @@ pub(crate) fn resource<'a>(
 /// Stage the same admitted bytes served by the embedded product. The manifest
 /// validates all dynamic bounds before any package resource is written.
 pub fn stage(destination: &Path, runtime: &[u8]) -> Result<(), Box<dyn std::error::Error>> {
-    let theme = crate::application_theme_css();
+    let theme = crate::application_look_css();
     let manifest = conduit_browser_host::application_package::build_manifest(
         include_bytes!("../assets/patchbay.application.template.json"),
         |path| resource(path, runtime, &theme).map(|(_, bytes)| bytes),

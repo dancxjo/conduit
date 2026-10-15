@@ -3,8 +3,11 @@ use alloc::{string::String, vec::Vec};
 use conduit_core::{PlanId, PlotIdentity};
 use serde::{Deserialize, Serialize};
 
+#[path = "spoken_template_looks/control.rs"]
+mod control;
 #[path = "spoken_template_looks/selection.rs"]
 mod selection;
+pub use control::prepare_spoken_control_slots;
 #[path = "spoken_template_looks/source.rs"]
 mod source;
 pub use selection::{prepare_spoken_template_slots, SpokenTemplateSlots};

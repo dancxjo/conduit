@@ -42,7 +42,22 @@ fn browser_pcm_offers_seal_distinct_resource_and_authority_truth() {
         playback.kind_id.as_str(),
         conduit_semantic_catalog::AUDIO_PLAY_KIND
     );
-    assert_eq!(playback.host_calls[0].contract_id.as_str(), PLAY_OPERATION);
+    assert_eq!(playback.host_calls[0].contract_id.as_str(), DRAIN_OPERATION);
+    assert_eq!(playback.host_calls[1].contract_id.as_str(), PLAY_OPERATION);
+    for offer in [playback_offer(), continuous_playback_offer()] {
+        assert!(offer.host_calls.windows(2).all(|pair| pair[0] < pair[1]));
+        assert!(offer
+            .authority_requirements
+            .windows(2)
+            .all(|pair| pair[0] < pair[1]));
+        for authority in &offer.authority_requirements {
+            assert!(offer
+                .host_calls
+                .iter()
+                .any(|call| call.contract_id == authority.host_call_contract_id
+                    && call.target_kind.as_ref() == Some(&authority.subject_kind)));
+        }
+    }
     assert_eq!(
         playback.resource_requirements[0].class_id.as_str(),
         PLAY_RESOURCE
@@ -119,6 +134,8 @@ fn playback_validates_pcm_before_request_and_completes_after_closure() {
     let input = value(1, frame.len());
     let mut operation = PlaybackBack {
         budget: PlaybackBudget::new(3072, 16384).unwrap(),
+        drain: value(2, 0),
+        draining: false,
         next: 0,
         pending: None,
     };
@@ -128,8 +145,8 @@ fn playback_validates_pcm_before_request_and_completes_after_closure() {
         StepOutcome::Progress
     );
     assert_eq!(
-        io.test_host_request().map(|request| request.0),
-        Some(RequestId(0))
+        io.test_host_request().map(|request| (request.0, request.1)),
+        Some((RequestId(0), HostCallId(1)))
     );
     let completion = HostCallOutcome {
         disposition: HostCallDisposition::Completed,
@@ -145,6 +162,18 @@ fn playback_validates_pcm_before_request_and_completes_after_closure() {
     let mut closed = StepIo::test_frame([None], [true], [None], None, 4);
     assert_eq!(
         operation.step(&mut closed, &StepInputBytes::test_frame([None], None)),
+        StepOutcome::Progress
+    );
+    assert_eq!(
+        closed
+            .test_host_request()
+            .map(|request| (request.0, request.1)),
+        Some((RequestId(1), HostCallId(0)))
+    );
+    let mut drained =
+        StepIo::test_frame([None], [true], [None], Some((RequestId(1), completion)), 4);
+    assert_eq!(
+        operation.step(&mut drained, &StepInputBytes::test_frame([None], None)),
         StepOutcome::Complete
     );
 }
@@ -165,6 +194,8 @@ fn playback_refuses_excess_work_before_requesting_a_platform_effect() {
     .unwrap();
     let mut operation = PlaybackBack {
         budget: PlaybackBudget::new(1, 1).unwrap(),
+        drain: value(2, 0),
+        draining: false,
         next: 0,
         pending: None,
     };
