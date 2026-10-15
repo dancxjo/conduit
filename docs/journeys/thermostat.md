@@ -23,6 +23,12 @@ complete capture opens this menu separately from the requested settings.
 
 ## Current runtime and capture status
 
+The compact terminal view renders primary typed values from their original
+Face contracts. A unique primary Region focuses the application settings;
+Inspect retains the complete Face and Body context. The capture requires actual
+acknowledged terminal frames showing 21 °C, the browser-made 22.5 °C, and Eco's
+18 °C. Canonical state alone is not a substitute for visible terminal readback.
+
 The direct `--owner-show` terminal attaches a provider to the owner's own Host
 and requires a lulled Body. A running thermostat instead uses a separately
 installed presentation Host. Its real terminal provider is attached before

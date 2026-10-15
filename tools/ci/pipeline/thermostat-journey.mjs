@@ -2,6 +2,7 @@ import { createHash } from 'node:crypto';
 import { cpSync, existsSync, lstatSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import path from 'node:path';
 import { parseCaptureJSON } from '../../../proof/browser/exact-capture-json.mjs';
+import { validateTerminalCapture } from './thermostat-terminal-capture.mjs';
 import { validateSpokenCapture } from './thermostat-spoken-capture.mjs';
 import { requireExactAncestor } from './exact-ancestor.mjs';
 
@@ -60,12 +61,11 @@ export function validateThermostatJourney(root) {
       && observation.retained_body_execution.plan_id === manifest.body_plan_id
       && observation.retained_body_execution.active_play_id === manifest.body_play_id, 'cross-Mask observations changed Body or Play');
   }
-  insist(journey.terminal_evidence.length === 2 && journey.terminal_evidence.every(evidence =>
-    evidence.body_id === manifest.body_id && evidence.host_id === receipt.presentation_peer_host_id && evidence.show_state === 'available' && evidence.owner_selected_show_current === true), 'missing acknowledged terminal Shows');
+  const terminal = validateTerminalCapture(root, receipt);
   insist(journey.terminal_evidence[0].face_id === journey.terminal_before.face.identity
-    && journey.terminal_evidence[1].face_id === journey.after_terminal.view.face_id, 'terminal Shows differ from observed Faces');
+    && journey.terminal_evidence[1].face_id === journey.terminal_stale.after.face.identity
+    && journey.terminal_evidence[2].face_id === journey.after_terminal.view.face_id, 'terminal Shows differ from observed Faces');
   insist(journey.terminal_stale.accepted === false && receipt.stale_show.accepted === false, 'missing stale-Show refusal');
-  const terminal = readFileSync(path.join(root, 'capture/terminal.txt'), 'utf8');
   insist(terminal.includes('18 °C'), 'terminal did not observe accepted Eco target');
   const target = view => view.subjects.find(subject => subject.name === 'Target temperature')?.values?.find(value => value.kind === 'value/quantity@1')?.text;
   insist(target(journey.before_terminal.view) === '22.5 °C' && target(journey.after_terminal.view) === '18 °C' && target(journey.restarted.view) === '21 °C', 'missing cross-Mask target or reset');
