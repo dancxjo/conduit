@@ -10,16 +10,17 @@ Play and the authored 21 °C initial state.
 
 The primary thermostat view should foreground its requested temperature, mode,
 fan and preset, with sensor availability and equipment confirmation alongside
-those settings. The generic Body Face currently contributes Lull, Body overview,
-Plots library and inspection controls to the same rendered surface. Those are
+those settings. The generic Body Face contributes Lull, Body overview,
+Plots library and inspection controls. The browser component groups its Body,
+Plot and context subjects behind a collapsed Body menu. Those are
 Body-management actions, not thermostat settings.
 
 Keep Body management in a separate Body menu or inspection surface. In this
 journey, Off is the thermostat's requested climate-control mode; Lull is an
 explicit later Body-management chapter that stops the Play. Do not make Lull a
 peer of Heat, Cool or Off, or suggest that it preserves session settings. The
-current captures still show the generic renderer; a focused presentation and
-its accessibility verification remain part of the unfinished journey work.
+retained failed capture predates this presentation change; fresh complete
+journey captures remain outstanding.
 
 ## Current capture blocker
 

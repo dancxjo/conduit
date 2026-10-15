@@ -223,6 +223,11 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       }
       documentNode.append(section);
     }
+    const bodyMenu = document.createElement('details');
+    bodyMenu.dataset.bodyMenu = '';
+    bodyMenu.open = this.#surface.querySelector('[data-body-menu]')?.open ?? false;
+    bodyMenu.append(faceNode('summary', 'Body'));
+    const choiceGroups = [];
     const inspection = document.createElement('details');
     inspection.append(faceNode('summary', 'Inspect other Face subjects'));
     for (const group of view.subjects) {
@@ -275,15 +280,18 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         placed.add(option.identity);
       });
       fieldset.append(choices);
-      documentNode.append(fieldset);
+      choiceGroups.push(fieldset);
       placed.add(group.identity);
     }
     for (const subject of view.subjects) {
       if (placed.has(subject.identity)) continue;
-      const main = ['Primary', 'Context'].includes(subject.disclosure)
+      const management = ['Body', 'Plot'].includes(subject.role) || subject.disclosure === 'Context';
+      const main = subject.disclosure === 'Primary'
         && (!collections.length || subject.role === 'Status');
-      (main ? documentNode : inspection).append(renderSubject(subject));
+      (management ? bodyMenu : main ? documentNode : inspection).append(renderSubject(subject));
     }
+    documentNode.append(...choiceGroups);
+    if (bodyMenu.children.length > 1) documentNode.append(bodyMenu);
     if (inspection.children.length > 1) documentNode.append(inspection);
     if (view.relationships.length) {
       const relations = document.createElement('details');

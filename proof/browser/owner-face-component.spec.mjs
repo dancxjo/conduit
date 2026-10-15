@@ -138,3 +138,42 @@ test('configured groups preserve interleaved controls and user text scale', asyn
   await page.keyboard.press('Tab');
   await expect(controls.nth(2)).toBeFocused();
 });
+
+test('application controls remain primary while Body management is disclosed separately', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const scoped = {
+    ...view,
+    subjects: [
+      { ...view.subjects[0], identity: 'fixture/body', name: 'Living room', role: 'Body' },
+      { ...view.subjects[0], identity: 'fixture/plot', name: 'Resident application', role: 'Plot', disclosure: 'Context' },
+      { ...view.subjects[0], name: 'Target temperature', values: [{ name: 'Target', text: '21 °C' }] },
+    ],
+    actions: [
+      { ...view.actions[0], identity: 'fixture/lull', target: 'fixture/body', name: 'Lull' },
+      { ...view.actions[0], identity: 'fixture/library', target: 'fixture/plot', name: 'Open Plots library' },
+      { ...view.actions[0], name: 'Raise target' },
+    ],
+  };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    globalThis.calls = [];
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    document.body.append(element);
+  }, scoped);
+  const element = page.locator('conduit-owner-face');
+  const menu = element.locator('[data-body-menu]');
+  await expect(element.getByRole('button', { name: 'Raise target', exact: true })).toBeVisible();
+  await expect(element.getByRole('button', { name: 'Lull', exact: true })).toBeHidden();
+  await expect(element.getByRole('button', { name: 'Open Plots library', exact: true })).toBeHidden();
+  await menu.locator(':scope > summary').focus();
+  await page.keyboard.press('Enter');
+  await expect(element.getByRole('button', { name: 'Lull', exact: true })).toBeVisible();
+  await expect(element.getByRole('button', { name: 'Open Plots library', exact: true })).toBeVisible();
+  // A refreshed Show keeps the user's disclosure choice, with no extra actions.
+  await element.evaluate((node, view) => node.show(view, { invoke: async call => globalThis.calls.push(call) }), scoped);
+  await expect(menu).toHaveAttribute('open', '');
+  await element.getByRole('button', { name: 'Lull', exact: true }).click();
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: scoped, action: scoped.actions[0], arguments: [] }]);
+});
