@@ -267,6 +267,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     timer: &mut T,
     lifecycle: RunLifecycle<'_, '_, '_>,
 ) -> Result<crate::state_value::RetainedStdRun, String> {
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PreparationStarted);
     let RunLifecycle {
         control,
         retained,
@@ -789,6 +790,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .contract_id;
     #[cfg(test)]
     let observer_target_kind = kind_id("conduit-test/tick-observation");
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PlayStarted);
     #[cfg(test)]
     let play_start_probe = crate::allocation_probe::begin();
     let mut accepted_stop = None;
@@ -3505,6 +3507,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     if !deadlines.is_empty() {
         return Err("installed deadline effects survived terminal Play state".to_string());
     }
+    timer.observe_kernel_phase(crate::KernelTimingPhase::PlayFinished);
     #[cfg(test)]
     let post_play_start_allocations = play_start_probe.finish();
 
