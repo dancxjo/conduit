@@ -58,12 +58,18 @@ impl<const PORTS: usize> StepBack<PORTS> for KeymapBack {
                     detail: 43,
                 });
             };
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 43,
+                });
+            };
             io.consume(PortId(1)).expect("present selection");
             io.request_host_call(RequestId(self.next), HostCallId(0), input)
                 .expect("selection call");
             self.selection = Some(value);
             self.pending = Some(RequestId(self.next));
-            self.next = self.next.saturating_add(1);
+            self.next = next;
             return StepOutcome::Progress;
         }
         if self.require_selection && self.selection.is_none() {
@@ -85,11 +91,17 @@ impl<const PORTS: usize> StepBack<PORTS> for KeymapBack {
                     detail: 43,
                 });
             };
+            let Some(next) = self.next.checked_add(1) else {
+                return StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 43,
+                });
+            };
             io.consume(PortId(0)).expect("present key");
             io.request_host_call(RequestId(self.next), HostCallId(1), input)
                 .expect("key call");
             self.pending = Some(RequestId(self.next));
-            self.next = self.next.saturating_add(1);
+            self.next = next;
             return StepOutcome::Progress;
         }
         if io.input_closed(PortId(0)) {
@@ -150,5 +162,96 @@ mod tests {
         assert_eq!(request, RequestId(0));
         assert_eq!(operation, HostCallId(0));
         assert_eq!(input.value, selection);
+    }
+
+    #[test]
+    fn exhausted_identity_preserves_both_input_paths_without_a_host_call() {
+        for port in [0, 1] {
+            let mut back = KeymapBack::new();
+            back.next = u32::MAX;
+            let value = ValueRef {
+                slot: 1,
+                generation: 1,
+                byte_len: 3,
+            };
+            let mut inputs = [None; 2];
+            inputs[port] = Some(value);
+            let mut io = StepIo::test_frame(inputs, [false; 2], [Some(48), None], None, 8);
+            assert_eq!(
+                back.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 43
+                })
+            );
+            assert!(!io.test_consumed(PortId(port as u16)));
+            assert!(io.test_host_request().is_none());
+            assert_eq!(back.next, u32::MAX);
+            assert!(back.pending.is_none());
+            assert!(back.selection.is_none());
+        }
+    }
+
+    #[test]
+    fn completing_the_last_admitted_identity_cannot_reuse_it_on_either_path() {
+        for port in [0, 1] {
+            let mut back = KeymapBack::new();
+            back.next = u32::MAX - 1;
+            let value = ValueRef {
+                slot: 1,
+                generation: 1,
+                byte_len: 3,
+            };
+            let mut inputs = [None; 2];
+            inputs[port] = Some(value);
+            let mut io = StepIo::test_frame(inputs, [false; 2], [Some(48), None], None, 8);
+            assert_eq!(
+                back.step(&mut io, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Progress
+            );
+            assert_eq!(io.test_host_request().unwrap().0, RequestId(u32::MAX - 1));
+            assert_eq!(
+                io.test_host_request().unwrap().1,
+                HostCallId(1 - port as u16)
+            );
+            let mut completion = StepIo::test_frame(
+                [None; 2],
+                [false; 2],
+                [Some(48), None],
+                Some((
+                    RequestId(u32::MAX - 1),
+                    conduit_kernel::HostCallOutcome {
+                        disposition: HostCallDisposition::Completed,
+                        output: None,
+                        failure: None,
+                    },
+                )),
+                8,
+            );
+            assert_eq!(
+                back.step(
+                    &mut completion,
+                    &StepInputBytes::test_frame([None; 2], None)
+                ),
+                StepOutcome::Progress
+            );
+            assert!(completion.test_host_completion_consumed());
+            inputs[port] = Some(ValueRef {
+                generation: 2,
+                ..value
+            });
+            let mut next = StepIo::test_frame(inputs, [false; 2], [Some(48), None], None, 8);
+            assert_eq!(
+                back.step(&mut next, &StepInputBytes::test_frame([None; 2], None)),
+                StepOutcome::Fail(Failure {
+                    code: FailureCode::IdentityCapacityExhausted,
+                    detail: 43
+                })
+            );
+            assert!(!next.test_consumed(PortId(port as u16)));
+            assert!(next.test_host_request().is_none());
+            assert!(back.pending.is_none());
+            assert_eq!(back.next, u32::MAX);
+        }
     }
 }

@@ -140,6 +140,23 @@ test("the six authored keyboard languages change physical mappings and restore a
 test("the shared textual Face renders an end insertion caret with responsive and accessible Look", async ({ page }, testInfo) => {
   await page.setViewportSize({ width: 1100, height: 800 });
   const { activePlay } = await start(page, "plots/memory-lantern/main.conduit");
+  // A separate reusable Face keeps its surrounding Look when it enables a caret.
+  await page.evaluate(async () => {
+    const { manifestBrowserText } = await import("/targets/browser/host/assets/browser-body-host.mjs");
+    const neutral = document.createElement("output");
+    neutral.id = "neutral-caret";
+    document.body.append(neutral);
+    manifestBrowserText(neutral, { text: "Another message", data_label: "Other Face", insertion_caret: true });
+  });
+  const neutral = page.locator("#neutral-caret");
+  await expect(neutral.locator("[data-text-insertion-caret]")).toBeVisible();
+  await expect(neutral).toHaveCSS("background-image", "none");
+  await expect(neutral).toHaveCSS("box-shadow", "none");
+  await expect(neutral).toHaveCSS("border-top-style", "none");
+  expect(await neutral.evaluate(node => getComputedStyle(node.querySelector("[data-text-insertion-caret]")).backgroundColor))
+    .toBe(await neutral.evaluate(node => getComputedStyle(node).color));
+  await expect(page.locator("#message")).toHaveCSS("background-image", /radial-gradient/);
+  await neutral.evaluate(node => node.remove());
   await page.keyboard.press("Shift+KeyC");
   await page.keyboard.press("KeyA");
   await page.keyboard.press("KeyF");
@@ -164,6 +181,7 @@ test("the shared textual Face renders an end insertion caret with responsive and
   await page.emulateMedia({ reducedMotion: "reduce" });
   await expect(caret).toHaveCSS("animation-name", "none");
   await expect(page.locator("#message")).toHaveCSS("transition-duration", "0s");
+  await expect(page.getByRole("combobox", { name: "Keyboard language" })).toHaveCSS("transition-duration", "0s");
   await page.screenshot({ path: testInfo.outputPath("memory-lantern-desktop.png"), fullPage: true });
 
   await page.setViewportSize({ width: 360, height: 800 });
@@ -171,7 +189,7 @@ test("the shared textual Face renders an end insertion caret with responsive and
   expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth)).toBe(true);
   await expect(text).toHaveText("Café Ñ");
   await expect(caret).toBeVisible();
-  await expect(page.locator("output[data-saved-choice-status]")).toHaveText("Saved in this browser — English — US International");
+  await expect(page.locator("output[data-saved-choice-status]")).toHaveText("Saved in this browser — English — US International (AltGr)");
   await expect(page.locator("output[data-saved-choice-status]")).toBeVisible();
   await page.screenshot({ path: testInfo.outputPath("memory-lantern-narrow-200-percent.png"), fullPage: true });
   await page.emulateMedia({ forcedColors: "active", reducedMotion: "reduce" });

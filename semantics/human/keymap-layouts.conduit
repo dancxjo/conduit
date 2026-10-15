@@ -94,6 +94,6 @@ type KeymapChoice = {
 type KeymapChoices = sequence KeymapChoice <= 8
 
 plot input/keymap-presets (
-    descriptors: KeymapPresetDescriptors = [{identity:"us-intl",label:"US International",definition:"input/keymap-default"},{identity:"us",label:"US",definition:"input/keymap-us"},{identity:"uk",label:"UK",definition:"input/keymap-uk"},{identity:"german",label:"German",definition:"input/keymap-german"},{identity:"french",label:"French",definition:"input/keymap-french"},{identity:"spanish",label:"Spanish",definition:"input/keymap-spanish"}]
+    descriptors: KeymapPresetDescriptors = [{identity:"us-intl",label:"US International (AltGr)",definition:"input/keymap-default"},{identity:"us",label:"US",definition:"input/keymap-us"},{identity:"uk",label:"UK",definition:"input/keymap-uk"},{identity:"german",label:"German",definition:"input/keymap-german"},{identity:"french",label:"French",definition:"input/keymap-french"},{identity:"spanish",label:"Spanish",definition:"input/keymap-spanish"}]
 ) {
 }

@@ -1,6 +1,6 @@
 plot memory_lantern {
     keyboard: input/keyboard
-    languages = [{ identity: "us-intl", label: "English — US International" }, { identity: "us", label: "English — US" }, { identity: "uk", label: "English — UK" }, { identity: "german", label: "Deutsch — German" }, { identity: "french", label: "Français — French" }, { identity: "spanish", label: "Español — Spanish" }]
+    languages = [{ identity: "us-intl", label: "English — US International (AltGr)" }, { identity: "us", label: "English — US" }, { identity: "uk", label: "English — UK" }, { identity: "german", label: "Deutsch — German" }, { identity: "french", label: "Français — French" }, { identity: "spanish", label: "Español — Spanish" }]
     language: input/saved-choice(label = "Keyboard language", key = "memory-lantern/keyboard-layout", initial = "us-intl", options = languages)
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)

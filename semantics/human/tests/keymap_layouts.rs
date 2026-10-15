@@ -562,7 +562,7 @@ fn authored_registry_links_six_unique_named_layout_values() {
             .map(str::to_owned)
             .collect()
     );
-    assert!(DEFAULT_KEYMAP_CHOICES_LITERAL.contains("US International"));
+    assert!(DEFAULT_KEYMAP_CHOICES_LITERAL.contains("US International (AltGr)"));
     assert!(KEYMAP_CHOICES_SOURCE.contains("type KeymapChoices"));
 }
 

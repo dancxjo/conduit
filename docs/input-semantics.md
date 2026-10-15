@@ -192,6 +192,9 @@ Browser manifestation carries `insertion_caret: true` separately from text.
 
 Caret paint, blink, transitions, typography, and decoration belong to browser
 Look/style realization. They do not grant editing actions or alter Face text.
+The reusable cue inherits its surrounding Look. The browser example's host
+container explicitly selects the warm treatment with `data-memory-lantern-look`;
+enabling a caret on another text Face does not select that panel or palette.
 This cue uses the existing configuration grammar; it introduces no new Look DSL.
 The configuration defaults to false for ordinary text Faces. A presenter that
 cannot realize this requested insertion cue must refuse it explicitly; native

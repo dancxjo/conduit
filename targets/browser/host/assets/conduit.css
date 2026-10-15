@@ -197,39 +197,43 @@
 }
 @media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
 
-/* The end caret expresses the Face's insertion point; paint stays in the Look. */
-[data-insertion-caret="end"] {
+/* Reusable insertion landmark: appearance inherits the surrounding Look. */
+[data-insertion-caret="end"] { white-space:pre-wrap; overflow-wrap:anywhere; }
+[data-text-label] { display:block; margin-block-end:.5em; }
+[data-text-insertion-caret] {
+  display:inline-block; inline-size:3px; block-size:1.15em; margin-inline-start:3px;
+  border-radius:2px; vertical-align:-.18em; background:currentColor;
+  animation:conduit-caret 1.15s steps(2,jump-none) infinite;
+}
+@keyframes conduit-caret { 50% { opacity:0; } }
+[data-saved-choice-status] { display:block; margin-block-start:.5rem; color:var(--conduit-text-secondary,#64748b); font:500 .75rem/1.5 var(--conduit-font-body,system-ui); }
+
+/* The example's host container selects its warm visual treatment explicitly. */
+:where([data-memory-lantern-look]) [data-insertion-caret="end"] {
   display:block; position:relative; min-block-size:10rem; margin-block:1rem; padding:1.5rem;
   border:1px solid #e8b66b; border-radius:1.4rem; color:#fff1d5;
   background:radial-gradient(ellipse at 90% 0%,#76502f 0%,transparent 65%),#202936;
   box-shadow:0 12px 32px #15202b26,inset 0 1px #ffe0a833;
   font:500 clamp(1.1rem,2.5vw,1.6rem)/1.7 var(--conduit-font-mono,monospace);
-  white-space:pre-wrap; overflow-wrap:anywhere;
   transition:border-color .2s,box-shadow .2s;
 }
-[data-insertion-caret="end"]:hover { border-color:#ffd794; box-shadow:0 14px 36px #15202b38,inset 0 1px #ffe0a855; }
-[data-text-label] {
-  display:block; margin-block-end:1rem; color:#ffd08d;
+:where([data-memory-lantern-look]) [data-insertion-caret="end"]:hover { border-color:#ffd794; box-shadow:0 14px 36px #15202b38,inset 0 1px #ffe0a855; }
+:where([data-memory-lantern-look]) [data-text-label] {
+  margin-block-end:1rem; color:#ffd08d;
   font:700 .75rem/1.5 var(--conduit-font-body,system-ui); letter-spacing:.12em; text-transform:uppercase;
 }
-[data-text-insertion-caret] {
-  display:inline-block; inline-size:3px; block-size:1.15em; margin-inline-start:3px;
-  border-radius:2px; vertical-align:-.18em; background:#ffcf79; box-shadow:0 0 10px #ffc36b88;
-  animation:conduit-caret 1.15s steps(2,jump-none) infinite;
-}
-@keyframes conduit-caret { 50% { opacity:0; } }
-[data-saved-choice] { padding:1rem 1.25rem; border:1px solid #cba67166; border-radius:1rem; background:#edbd6b0d; }
-[data-saved-choice] select { border-radius:.75rem; transition:border-color .2s,box-shadow .2s,background-color .2s; }
-[data-saved-choice] select:hover:not(:disabled) { box-shadow:0 3px 12px #b77b2430; }
-[data-saved-choice-status] { display:block; margin-block-start:.5rem; color:var(--conduit-text-secondary,#64748b); font:500 .75rem/1.5 var(--conduit-font-body,system-ui); }
+:where([data-memory-lantern-look]) [data-text-insertion-caret] { background:#ffcf79; box-shadow:0 0 10px #ffc36b88; }
+:where([data-memory-lantern-look]) [data-saved-choice] { padding:1rem 1.25rem; border:1px solid #cba67166; border-radius:1rem; background:#edbd6b0d; }
+:where([data-memory-lantern-look]) [data-saved-choice] select { border-radius:.75rem; transition:border-color .2s,box-shadow .2s,background-color .2s; }
+:where([data-memory-lantern-look]) [data-saved-choice] select:hover:not(:disabled) { box-shadow:0 3px 12px #b77b2430; }
 @media (prefers-reduced-motion:reduce) {
   [data-insertion-caret],[data-saved-choice] select { transition:none; }
   [data-text-insertion-caret] { animation:none; }
 }
 @media (forced-colors:active) {
-  [data-insertion-caret="end"] { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; }
-  [data-text-label] { color:CanvasText; }
-  [data-text-insertion-caret] { background:Highlight; box-shadow:none; forced-color-adjust:none; }
+  :where([data-memory-lantern-look]) [data-insertion-caret="end"] { color:CanvasText; background:Canvas; border-color:CanvasText; box-shadow:none; }
+  :where([data-memory-lantern-look]) [data-text-label] { color:CanvasText; }
+  [data-text-insertion-caret], :where([data-memory-lantern-look]) [data-text-insertion-caret] { background:Highlight; box-shadow:none; forced-color-adjust:none; }
 }
 /* A native control owns typing while focused; retain the insertion landmark. */
 body:has(:is(select,input,textarea,button,[contenteditable]):focus) [data-text-insertion-caret] { animation:none; opacity:1; }
