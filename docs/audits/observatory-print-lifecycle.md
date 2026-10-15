@@ -32,3 +32,9 @@ Local validation: 56 tests (52 existing Observatory tests and four Print tests),
 strict all-target Observatory Clippy, and pinned workspace formatting pass.
 These are hosted deterministic projection and refusal tests. No issue closure
 or physical printer proof is claimed here.
+
+Fresh validation at `753c4f97031664616e9f1a7331c26acdbd9af681`, after accepted development
+`ac97b99fd9016e5879f9822432fe945ee3c500f0`, passes all 56 tests, strict all-target
+Observatory Clippy, thumbv6m compilation and pinned workspace formatting. Source
+inputs were refreshed unchanged to exclude relocated-worktree Cargo reuse.
+The implementation and narrow projection proof class remain unchanged.
