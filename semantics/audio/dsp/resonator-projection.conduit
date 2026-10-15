@@ -3,17 +3,14 @@
 # Intermediates admit 16 Q30 units; worst product is below 2^100 in I128.
 # Terms truncate toward zero; final Q14 coefficients round nearest, ties away.
 # This is a named digital approximation, not a mathematical pi denotation.
-type ResonatorRequest = {
-    control: AudioResonator
-    basis: AudioSampleRateBasis
-    frames: U32
-}
 type ResonatorCheckedRequest = {
     request: ResonatorRequest
+    context: ResonatorProjectionContext
     valid: Boolean
 }
 type ResonatorProjectionWork = {
     request: ResonatorRequest
+    context: ResonatorProjectionContext
     valid: Boolean
     theta: I128
     decay_argument: I128
@@ -24,6 +21,7 @@ type ResonatorProjectionWork = {
 }
 type ResonatorProjectionCandidate = {
     request: ResonatorRequest
+    context: ResonatorProjectionContext
     valid: Boolean
     b_q14: I128
     c_q14: I128
@@ -32,37 +30,37 @@ type ResonatorProjectionCandidate = {
 }
 
 plot dsp/resonator-check-request (
- >> value: ResonatorRequest
+ >> value: ResonatorProjectionRequest
  result: ResonatorCheckedRequest >>
-) = ({request: ., valid: (((.basis.sample_rate_hz >= 8000 && (.basis.sample_rate_hz <= 192000 && .basis.anchor.timeline.value > 0)) && ((.basis.anchor.origin.value > 0 && .frames >= 1) && (.frames <= 65536 && .control.center.numerator_hz > 0))) && ((.control.center.denominator > 0 && (.control.bandwidth.numerator_hz > 0 && .control.bandwidth.denominator > 0)) && ((value/i128(.control.center.numerator_hz) * 128 >= value/i128(.control.center.denominator) * value/i128(.basis.sample_rate_hz) && value/i128(.control.center.numerator_hz) * 128 <= value/i128(.control.center.denominator) * value/i128(.basis.sample_rate_hz) * 63) && (value/i128(.control.bandwidth.numerator_hz) * 256 >= value/i128(.control.bandwidth.denominator) * value/i128(.basis.sample_rate_hz) && value/i128(.control.bandwidth.numerator_hz) * 8 <= value/i128(.control.bandwidth.denominator) * value/i128(.basis.sample_rate_hz)))))})
+) = ({request: .request, context: .context, valid: (.request.basis.sample_rate_hz < 8000 || .request.basis.sample_rate_hz > 192000) ? false : (((.request.generation > 0 && (.request.basis.sample_rate_hz >= 8000 && .request.basis.sample_rate_hz <= 192000)) && ((.request.basis.anchor.timeline.value > 0 && .request.basis.anchor.origin.value > 0) && (.request.frames >= 1 && .request.frames <= 65536))) && (((.request.control.center.numerator_hz > 0 && .request.control.center.denominator > 0) && (.request.control.bandwidth.numerator_hz > 0 && .request.control.bandwidth.denominator > 0)) && ((value/i128(.request.control.center.numerator_hz) * 128 >= value/i128(.request.control.center.denominator) * value/i128(.request.basis.sample_rate_hz) && value/i128(.request.control.center.numerator_hz) * 128 <= value/i128(.request.control.center.denominator) * value/i128(.request.basis.sample_rate_hz) * 63) && (value/i128(.request.control.bandwidth.numerator_hz) * 256 >= value/i128(.request.control.bandwidth.denominator) * value/i128(.request.basis.sample_rate_hz) && value/i128(.request.control.bandwidth.numerator_hz) * 8 <= value/i128(.request.control.bandwidth.denominator) * value/i128(.request.basis.sample_rate_hz)))))})
 
 plot dsp/resonator-project-init (
  >> value: ResonatorCheckedRequest
  result: ResonatorProjectionWork >>
-) = ({request: .request, valid: .valid, theta: .valid ? value/i128(.request.control.center.numerator_hz) * 6746518852 / (value/i128(.request.control.center.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, decay_argument: .valid ? value/i128(.request.control.bandwidth.numerator_hz) * 3373259426 / (value/i128(.request.control.bandwidth.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, order: 1, term: 1073741824, sum: 1073741824, decay: 0})
+) = ({request: .request, context: .context, valid: .valid, theta: .valid ? value/i128(.request.control.center.numerator_hz) * 6746518852 / (value/i128(.request.control.center.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, decay_argument: .valid ? value/i128(.request.control.bandwidth.numerator_hz) * 3373259426 / (value/i128(.request.control.bandwidth.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, order: 1, term: 1073741824, sum: 1073741824, decay: 0})
 
 plot dsp/resonator-exponential-term (
  >> value: ResonatorProjectionWork
  result: ResonatorProjectionWork >>
-) = ({request: .request, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .decay_argument / 1073741824 / .order) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .decay_argument / 1073741824 / .order) : 0, decay: .decay})
+) = ({request: .request, context: .context, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .decay_argument / 1073741824 / .order) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .decay_argument / 1073741824 / .order) : 0, decay: .decay})
 
 plot dsp/resonator-cosine-term (
  >> value: ResonatorProjectionWork
  result: ResonatorProjectionWork >>
-) = ({request: .request, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, decay: .decay})
+) = ({request: .request, context: .context, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, decay: .decay})
 
 plot dsp/resonator-cosine-init (
  >> value: ResonatorProjectionWork
  result: ResonatorProjectionWork >>
-) = ({request: .request, valid: .valid && .order == 10, theta: .theta, decay_argument: .decay_argument, order: 1, term: 1073741824, sum: 1073741824, decay: .sum})
+) = ({request: .request, context: .context, valid: .valid && .order == 10, theta: .theta, decay_argument: .decay_argument, order: 1, term: 1073741824, sum: 1073741824, decay: .sum})
 
 plot dsp/resonator-project-finish (
  >> value: ResonatorProjectionWork
  result: ResonatorProjectionCandidate >>
-) = ({request: .request, valid: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))), b_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? ((2 * .decay * .sum / 1073741824) + ((2 * .decay * .sum / 1073741824) >= 0 ? 32768 : -32768)) / 65536 : 0, c_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? -(.decay * .decay / 1073741824 + 32768) / 65536 : 0, decay_q30: .decay, cosine_q30: .sum})
+) = ({request: .request, context: .context, valid: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))), b_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? ((2 * .decay * .sum / 1073741824) + ((2 * .decay * .sum / 1073741824) >= 0 ? 32768 : -32768)) / 65536 : 0, c_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? -(.decay * .decay / 1073741824 + 32768) / 65536 : 0, decay_q30: .decay, cosine_q30: .sum})
 
-plot dsp/resonator-project (
- >> value: ResonatorRequest
+plot dsp/resonator-project-carried (
+ >> value: ResonatorProjectionRequest
  result: ResonatorProjectionCandidate >>
 ) {
  check: dsp/resonator-check-request()
@@ -110,4 +108,19 @@ plot dsp/resonator-project (
  finish: dsp/resonator-project-finish()
  cos9.result >> finish.value
  finish.result >> result
+}.
+
+plot dsp/resonator-project-carry (
+ >> value: ResonatorRequest
+ result: ResonatorProjectionRequest >>
+) = ({request: ., context: {operation: ResonatorOperation.preparation, emitted: 0, remaining: 0, y1: 0, y2: 0, sample: 0, cancelled: false}})
+plot dsp/resonator-project (
+ >> value: ResonatorRequest
+ result: ResonatorProjectionCandidate >>
+) {
+ carry: dsp/resonator-project-carry()
+ project: dsp/resonator-project-carried()
+ value >> carry.value
+ carry.result >> project.value
+ project.result >> result
 }.

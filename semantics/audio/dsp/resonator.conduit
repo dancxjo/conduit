@@ -1,0 +1,59 @@
+# Fixed-coefficient Q14 band resonator. Controls remain in the explicit cursor.
+# Polynomial preparation is repeated by the ordinary finite step graph, so a
+# canonical reload never trusts caller-supplied private coefficient fields.
+# No coefficient modulation or interpolation is offered by this profile.
+
+plot dsp/resonator-start-value (
+ >> value: ResonatorProjectionCandidate
+ result: ResonatorStartOutcome >>
+) = (!(.request.generation > 0 && (((.request.control.center.numerator_hz > 0 && .request.control.center.denominator > 0) && (.request.control.bandwidth.numerator_hz > 0 && .request.control.bandwidth.denominator > 0)) && ((.request.basis.sample_rate_hz > 0 && .request.basis.anchor.timeline.value > 0) && (.request.basis.anchor.origin.value > 0 && (.request.frames >= 1 && .request.frames <= 65536))))) ? ResonatorStartOutcome.invalid_request : !.valid ? ResonatorStartOutcome.unsupported_control : !(.c_q14 <= -16384 || .c_q14 >= 0 ? false : .b_q14 > -(16384 - .c_q14) && .b_q14 < 16384 - .c_q14) ? ResonatorStartOutcome.unstable_projection : ResonatorStartOutcome.started({request: .request, emitted: 0, remaining: .request.frames, y1: 0, y2: 0}))
+
+plot dsp/resonator-prepare (
+ >> value: ResonatorRequest
+ result: ResonatorStartOutcome >>
+) {
+ project: dsp/resonator-project()
+ start: dsp/resonator-start-value()
+ value >> project.value
+ project.result >> start.value
+ start.result >> result
+}.
+
+plot dsp/resonator-step-carry (
+ >> value: ResonatorStepInput
+ result: ResonatorProjectionRequest >>
+) = ({request: .cursor.request, context: {operation: ResonatorOperation.recurrence, emitted: .cursor.emitted, remaining: .cursor.remaining, y1: .cursor.y1, y2: .cursor.y2, sample: .sample, cancelled: .cancelled}})
+
+plot dsp/resonator-check-step (
+ >> value: ResonatorProjectionCandidate
+ result: ResonatorCheckedProjection >>
+) = ({projection: ., valid: (((.valid && (.context.operation is recurrence && (.c_q14 <= -16384 || .c_q14 >= 0 ? false : .b_q14 > -(16384 - .c_q14) && .b_q14 < 16384 - .c_q14))) && (.context.emitted <= .request.frames && (.context.remaining <= .request.frames && value/i128(.context.emitted) + value/i128(.context.remaining) == value/i128(.request.frames)))) && ((.context.y1 >= -2147483648 && (.context.y1 <= 2147483647 && .context.y2 >= -2147483648)) && (.context.y2 <= 2147483647 && (.context.sample >= -32768 && .context.sample <= 32767))))})
+
+plot dsp/resonator-recurrence-input (
+ >> value: ResonatorCheckedProjection
+ result: ResonatorRecurrenceCarry >>
+) = ({projection: .projection, valid: .valid, drive: (.valid && !.projection.context.cancelled && .projection.context.remaining > 0) ? .projection.context.sample * 16384 : 0, b: (.valid && !.projection.context.cancelled && .projection.context.remaining > 0) ? .projection.b_q14 : 0, c: (.valid && !.projection.context.cancelled && .projection.context.remaining > 0) ? .projection.c_q14 : 0, y1: (.valid && !.projection.context.cancelled && .projection.context.remaining > 0) ? .projection.context.y1 : 0, y2: (.valid && !.projection.context.cancelled && .projection.context.remaining > 0) ? .projection.context.y2 : 0})
+
+plot dsp/resonator-finish (
+ >> value: ResonatorRecurrencePair
+ result: ResonatorOutcome >>
+) = (!.input.valid ? ResonatorOutcome.invalid_cursor : .input.projection.context.cancelled ? ResonatorOutcome.cancelled({request: .input.projection.request, emitted: .input.projection.context.emitted, remaining: .input.projection.context.remaining, y1: .input.projection.context.y1, y2: .input.projection.context.y2}) : .input.projection.context.remaining == 0 ? ResonatorOutcome.exhausted({request: .input.projection.request, emitted: .input.projection.context.emitted, remaining: .input.projection.context.remaining, y1: .input.projection.context.y1, y2: .input.projection.context.y2}) : .sample < -2147483648 || .sample > 2147483647 ? ResonatorOutcome.overflow : ResonatorOutcome.advanced({cursor: {request: .input.projection.request, emitted: .input.projection.context.emitted + 1, remaining: .input.projection.context.remaining - 1, y1: .sample, y2: .input.projection.context.y1}, sample: .sample}))
+
+plot dsp/resonator-step (
+ >> value: ResonatorStepInput
+ result: ResonatorOutcome >>
+) {
+ carry: dsp/resonator-step-carry()
+ project: dsp/resonator-project-carried()
+ check: dsp/resonator-check-step()
+ operands: dsp/resonator-recurrence-input()
+ recurrence: dsp/resonator-recurrence-carry(item = ResonatorRecurrenceCarry, output = ResonatorRecurrencePair)
+ finish: dsp/resonator-finish()
+ value >> carry.value
+ carry.result >> project.value
+ project.result >> check.value
+ check.result >> operands.value
+ operands.result >> recurrence.value
+ recurrence.result >> finish.value
+ finish.result >> result
+}.
