@@ -192,6 +192,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     conduit_data::install_tabular_catalogs(&mut startup, &mut profiles)?;
     conduit_finance::install_finance_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_job_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_print_catalogs(&mut startup, &mut profiles)?;
     conduit_net::install_application_network_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_robotics_catalogs(&mut startup, &mut profiles)?;
     conduit_semantic_catalog::install_robotics_structured_catalogs(&mut startup, &mut profiles)?;

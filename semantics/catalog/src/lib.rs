@@ -104,8 +104,10 @@ pub use conduit_process::*;
 pub use generalized_input_catalog::*;
 #[cfg(feature = "plot-catalog")]
 mod job_catalog;
+mod print_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use job_catalog::*;
+pub use print_catalog::*;
 mod palette_metadata;
 #[cfg(feature = "plot-catalog")]
 mod palette_projection;

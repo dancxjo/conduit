@@ -74,6 +74,12 @@ entry = "model-authoring"
 deterministic = { package = "conduit-std-host", features = ["burn-model"], test = "burn_plot_journey", case = "ordinary_plot_trains_saves_reloads_and_infers" }
 browser_safe_not_applicable = "training and checkpoint persistence require a prepared hosted model session; the browser advertises no model/work realization"
 [[plots]]
+slug = "print-contract"
+title = "Finite Print Contract"
+entry = "print-contract"
+deterministic = { package = "conduit-semantic-catalog", test = "printing", case = "three_print_jobs_use_ordinary_checked_ports_and_explicit_host_authority" }
+browser_safe_not_applicable = "typed protocol and explicit authority proof; no browser or physical printer Back is installed"
+[[plots]]
 slug = "bounded-job"
 title = "Bounded Job"
 entry = "bounded-job"
