@@ -111,9 +111,10 @@ test("Use installs into the same body; repeated Use preserves Play and removal s
 });
 
 test("Pocket Theremin plays continuous two-axis PCM on the browser host", async ({ page }, testInfo) => {
+  test.setTimeout(90_000);
   await page.addInitScript(() => {
     const NativeAudioContext = window.AudioContext;
-    globalThis.__thereminAudio = { blocks: [], starts: [], pcm: [] };
+    globalThis.__thereminAudio = { blocks: [], starts: [], pcm: [], captureEnabled: true };
     window.AudioContext = class extends NativeAudioContext {
       createBuffer(channels, frames, sampleRate) {
         globalThis.__thereminAudio.blocks.push({ channels, frames, sampleRate });
@@ -133,7 +134,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
             if (index > 0 && samples[index - 1] <= 0 && samples[index] > 0) crossings += 1;
           }
           globalThis.__thereminAudio.starts.push({ when, peak, crossings, duration: source.buffer.duration, scheduledAt: source.context.currentTime });
-          if (globalThis.__thereminAudio.pcm.length < 120) {
+          if (globalThis.__thereminAudio.captureEnabled && globalThis.__thereminAudio.pcm.length < 120) {
             globalThis.__thereminAudio.pcm.push(Array.from(samples, value => value * outputGain.value));
           }
           return start(when);
@@ -163,8 +164,10 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await page.mouse.down();
   await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(2);
   // Hold the pointer still: cadence must keep producing audio without new input.
-  const stationaryStart = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
-  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length)).toBeGreaterThan(stationaryStart + 20);
+  const stationaryStart = await page.evaluate(() => { globalThis.__thereminAudio.captureEnabled = false; return globalThis.__thereminAudio.starts.length; });
+  // Exceed the former 30-second playback quota with no further input.
+  await expect.poll(() => page.evaluate(() => globalThis.__thereminAudio.starts.length), { timeout: 45_000 }).toBeGreaterThan(stationaryStart + 750);
+  await page.evaluate(() => { globalThis.__thereminAudio.captureEnabled = true; });
   const highPitchEnd = await page.evaluate(() => globalThis.__thereminAudio.starts.length);
   await page.mouse.move(bounds.x + bounds.width * 0.98, bounds.y + bounds.height * 0.85, { steps: 8 });
   await expect.poll(() => page.evaluate(end => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.crossings <= 10), highPitchEnd)).toBe(true);
@@ -174,7 +177,7 @@ test("Pocket Theremin plays continuous two-axis PCM on the browser host", async 
   await expect.poll(() => page.evaluate(({ end, threshold }) => globalThis.__thereminAudio.starts.slice(end + 1).some(block => block.peak < threshold), { end: loudEnd, threshold: loudPeak * 0.4 })).toBe(true);
   // Scheduling is contiguous and bounded while a stationary hand sustains tone.
   const sustained = await page.evaluate(({ start, end }) => globalThis.__thereminAudio.starts.slice(start + 1, end), { start: stationaryStart, end: highPitchEnd });
-  expect(sustained.length).toBeGreaterThanOrEqual(20);
+  expect(sustained.length).toBeGreaterThanOrEqual(750);
   for (let index = 1; index < sustained.length; index += 1) {
     expect(sustained[index].when).toBeCloseTo(sustained[index - 1].when + sustained[index - 1].duration, 8);
     expect(sustained[index].when - sustained[index].scheduledAt).toBeLessThanOrEqual(sustained[index].duration * 2);
