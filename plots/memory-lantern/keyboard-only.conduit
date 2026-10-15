@@ -3,7 +3,7 @@ plot memory_lantern {
     keyboard: input/keyboard
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)
-    show: face/text("Remembered message")
+    show: face/text("Message")
 
     keyboard.key >> keymap.key
     keymap.text >> message.fragment

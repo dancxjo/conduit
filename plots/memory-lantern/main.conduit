@@ -4,7 +4,7 @@ plot memory_lantern {
     language: input/saved-choice(label = "Keyboard language", key = "memory-lantern/keyboard-layout", initial = "us-intl", options = languages)
     keymap: input/keymap
     message: text/edit(maximum-bytes = 256)
-    show: face/text("Remembered message", insertion-caret = true)
+    show: face/text("Message", insertion-caret = true)
 
     language.chosen >> keymap.selection
     keyboard.key >> keymap.key
