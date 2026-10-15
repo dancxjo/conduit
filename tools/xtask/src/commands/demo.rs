@@ -203,13 +203,14 @@ pub fn run_thermostat(
             args.handbook_package.as_ref(),
             args.output.as_ref(),
             args.pinned_playwright.as_ref(),
+            args.peer_state_dir.as_ref(),
         ];
         let mut command = std::process::Command::new("node");
         command
             .arg(root.join("proof/browser/thermostat-journey.mjs"))
             .current_dir(&root);
         for path in paths {
-            command.arg(path.ok_or("thermostat capture needs all five paths")?);
+            command.arg(path.ok_or("thermostat capture needs all six paths")?);
         }
         if opts.dry_run {
             println!("would capture a fresh installed Thermostat: {command:?}");
