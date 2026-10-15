@@ -1,7 +1,7 @@
 use super::*;
 use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
 
-fn drive(session: &mut TourSession, event: Option<KeyEvent>) -> Vec<String> {
+fn drive_named(session: &mut TourSession, event: Option<KeyEvent>) -> Vec<(String, String)> {
     let play = session.active_play_id.as_str().to_owned();
     let mut input = event;
     let mut output = Vec::new();
@@ -32,7 +32,7 @@ fn drive(session: &mut TourSession, event: Option<KeyEvent>) -> Vec<String> {
                 .then_some(true);
                 assert_eq!(effect.insertion_caret, expected_caret);
                 if let Some(text) = effect.text {
-                    output.push(text);
+                    output.push((effect.data_label.unwrap_or_default(), text));
                 }
                 session
                     .complete_effect(&play, &placement, request.request.0, None)
@@ -48,6 +48,13 @@ fn drive(session: &mut TourSession, event: Option<KeyEvent>) -> Vec<String> {
     assert_eq!(session.active_play_id.as_str(), play);
     output
 }
+fn drive(session: &mut TourSession, event: Option<KeyEvent>) -> Vec<String> {
+    drive_named(session, event)
+        .into_iter()
+        .map(|(_, text)| text)
+        .collect()
+}
+
 fn press(usage: u8, bits: u8) -> KeyEvent {
     KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::from_bits(bits)).unwrap()
 }
@@ -196,4 +203,53 @@ fn reusable_plot_forwards_typed_layout_and_keeps_instances_pending_state_indepen
     assert!(drive(&mut second, Some(press(52, 0x40))).is_empty());
     assert_eq!(drive(&mut first, Some(press(8, 0))), ["é"]);
     assert_eq!(drive(&mut second, Some(press(8, 0))), ["aá"]);
+}
+
+#[test]
+fn two_authored_keymaps_in_one_plot_keep_dead_prefixes_independent() {
+    let source = include_str!("../../../../../proof/fixtures/plots/two-keymaps.conduit");
+    let (mut session, _) = TourSession::prepare(
+        "browser/two-layout-proof",
+        "boot/two-layout-proof",
+        source,
+        76,
+    )
+    .unwrap();
+    let named = |values: Vec<(String, String)>| {
+        values
+            .into_iter()
+            .collect::<std::collections::BTreeMap<_, _>>()
+    };
+    assert_eq!(
+        named(drive_named(&mut session, None)),
+        [
+            ("Acute layout".into(), "".into()),
+            ("Grave layout".into(), "".into())
+        ]
+        .into()
+    );
+    assert_eq!(
+        drive_named(&mut session, Some(press(52, 0x40))),
+        [("Grave layout".into(), "'".into())]
+    );
+    assert_eq!(
+        named(drive_named(&mut session, Some(press(8, 0)))),
+        [
+            ("Acute layout".into(), "é".into()),
+            ("Grave layout".into(), "'e".into())
+        ]
+        .into()
+    );
+    assert_eq!(
+        drive_named(&mut session, Some(press(53, 0x40))),
+        [("Acute layout".into(), "é`".into())]
+    );
+    assert_eq!(
+        named(drive_named(&mut session, Some(press(4, 0)))),
+        [
+            ("Acute layout".into(), "é`a".into()),
+            ("Grave layout".into(), "'eà".into())
+        ]
+        .into()
+    );
 }

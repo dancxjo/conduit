@@ -165,3 +165,40 @@ test("authored multi-scalar keymap text larger than four bytes reaches retained 
   await expect(page.locator("#message")).toHaveText("Layered message: λ🌱!");
   await stop(page, activePlay);
 });
+
+test("two composed keymap gears in one Plot keep pending dead keys independent under physical input fanout", async ({ page }) => {
+  const source = await readFile("proof/fixtures/plots/two-keymaps.conduit", "utf8");
+  await page.goto("/proof/browser/browser-keymap.test.html");
+  await expect(page.locator("#status")).toHaveText("ready");
+  await page.evaluate(() => {
+    globalThis.twoKeymapFaces = {};
+    // Read actual rendered Face updates. The shared renderer replaces one
+    // text node per named manifestation; records retain both nodes even when
+    // two kernel outputs are manifested in the same browser task.
+    globalThis.twoKeymapObserver = new MutationObserver(records => {
+      for (const record of records) for (const node of record.addedNodes) {
+        if (node.nodeType !== Node.TEXT_NODE) continue;
+        const named = /^([^:]+): ([\s\S]*)$/.exec(node.textContent);
+        if (named) globalThis.twoKeymapFaces[named[1]] = named[2];
+      }
+    });
+    globalThis.twoKeymapObserver.observe(document.querySelector("#message"), { childList: true });
+  });
+  const { activePlay } = await page.evaluate(source => {
+    globalThis.twoKeymapStart = globalThis.__conduitKeymapProof.start(source);
+    return globalThis.twoKeymapStart;
+  }, source);
+  const faces = () => page.evaluate(() => globalThis.twoKeymapFaces);
+  await expect.poll(faces).toEqual({ "Acute layout": "", "Grave layout": "" });
+  await page.locator("#surface").focus();
+  await altgr(page, "Quote");
+  await expect.poll(faces).toEqual({ "Acute layout": "", "Grave layout": "'" });
+  await page.keyboard.press("KeyE");
+  await expect.poll(faces).toEqual({ "Acute layout": "é", "Grave layout": "'e" });
+  await altgr(page, "Backquote");
+  await expect.poll(faces).toEqual({ "Acute layout": "é`", "Grave layout": "'e" });
+  await page.keyboard.press("KeyA");
+  await expect.poll(faces).toEqual({ "Acute layout": "é`a", "Grave layout": "'eà" });
+  await stop(page, activePlay);
+  await page.evaluate(() => globalThis.twoKeymapObserver.disconnect());
+});
