@@ -61,11 +61,15 @@ spectral/F0 estimation and parent #5223 completion are separate proof classes.
 The selected repository entrance is
 `cargo xtask check plots run --deterministic --plot audio-time-analysis`.
 
-## Typed-unit acceptance strengthening in progress
+## Validated typed-unit ABI
 
-The earlier results above describe the captured wire at the named Source. The
-current follow-up gives signed sample amplitude, amplitude magnitude, mean-square
-power and square-sum separate nominal checked Types. An explicit preparation-only
-borrowed representation view preserves strict nominal admission. This changes the
-observation ABI; the current wire requires fresh conformance, allocation, kernel,
-lint and public-command validation before publication.
+The current observation gives signed sample amplitude, amplitude magnitude,
+mean-square power and square-sum distinct nominal checked Types. An explicit
+preparation-only borrowed representation view preserves strict nominal admission.
+Fresh validation at `5ebec2a50637a619ef8bdc38eea9871a0507596d` passed 108 tests: one Core regression, 104 Audio tests,
+one Catalog conformance test and two production-kernel tests. Encoder byte parity
+and zero allocation/reallocation passed at 2/1024/1025/2048 frames. Strict all-target
+Clippy passed for Core, Audio, Catalog, std offers and std Host. The documented
+public xtask command passed both Source checking and its production-kernel oracle.
+The earlier wire evidence above remains historical; this validation covers the
+nominal-unit ABI. Parent #5223 and all stated physical/perceptual boundaries remain.
