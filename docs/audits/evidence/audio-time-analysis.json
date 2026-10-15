@@ -1,26 +1,43 @@
 {
   "issue": 5685,
-  "state": "validated locally; held for WIP-two PR slot",
-  "runtime_source": "58055651eceb96c1a00160f28120eceb1ae1d34f",
-  "validated_checkout": "92ff446732a67a949b043893d8e30c1fbe635088",
-  "runtime_files_byte_identical_to_measurement": true,
-  "tests": {
-    "audio": 103,
-    "audio_nonempty_targets": 24,
-    "catalog": 1,
-    "production_kernel": 2
+  "state": "typed-unit acceptance strengthening; revalidation pending",
+  "prior_validated_wire": {
+    "issue": 5685,
+    "state": "validated locally; held for WIP-two PR slot",
+    "runtime_source": "58055651eceb96c1a00160f28120eceb1ae1d34f",
+    "validated_checkout": "92ff446732a67a949b043893d8e30c1fbe635088",
+    "runtime_files_byte_identical_to_measurement": true,
+    "tests": {
+      "audio": 103,
+      "audio_nonempty_targets": 24,
+      "catalog": 1,
+      "production_kernel": 2
+    },
+    "strict_all_target_clippy": "PASS: conduit-audio, conduit-semantic-catalog, conduit-std-offers, conduit-std-host",
+    "public_command": "cargo xtask check plots run --deterministic --plot audio-time-analysis",
+    "public_command_status": "PASS: Source check and selected production-kernel oracle",
+    "public_report": "audio-time-analysis-xtask-proof.json",
+    "report_plan_play_fields": "null; actual kernel test asserts real Plan/Play correlation, selected Back, mandatory Signs and fixed value-store capacity",
+    "proof_class": "native synthetic PCM and actual ordinary production kernel; no device/listening claim",
+    "allocation_evidence": "zero allocations/reallocations during analysis and canonical output patching at2/1024/1025/2048; exact generated Native binding byte parity",
+    "inventory": {
+      "reviewed_subjects": 125,
+      "maximum": 125
+    },
+    "parent": 5223,
+    "parent_state": "open"
   },
-  "strict_all_target_clippy": "PASS: conduit-audio, conduit-semantic-catalog, conduit-std-offers, conduit-std-host",
-  "public_command": "cargo xtask check plots run --deterministic --plot audio-time-analysis",
-  "public_command_status": "PASS: Source check and selected production-kernel oracle",
-  "public_report": "audio-time-analysis-xtask-proof.json",
-  "report_plan_play_fields": "null; actual kernel test asserts real Plan/Play correlation, selected Back, mandatory Signs and fixed value-store capacity",
-  "proof_class": "native synthetic PCM and actual ordinary production kernel; no device/listening claim",
-  "allocation_evidence": "zero allocations/reallocations during analysis and canonical output patching at2/1024/1025/2048; exact generated Native binding byte parity",
-  "inventory": {
-    "reviewed_subjects": 125,
-    "maximum": 125
-  },
-  "parent": 5223,
-  "parent_state": "open"
+  "current_unit_types": [
+    "AudioTimeSampleAmplitude",
+    "AudioTimeAmplitudeMagnitude",
+    "AudioTimeMeanSquarePower",
+    "AudioTimeSquareSum"
+  ],
+  "pending": [
+    "borrowed nominal representation strict-admission regression",
+    "fresh Audio/encoder parity and zero-allocation tests",
+    "fresh ordinary kernel/source proof",
+    "strict affected lint including Core",
+    "documented xtask command"
+  ]
 }

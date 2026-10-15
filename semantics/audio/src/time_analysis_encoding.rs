@@ -71,7 +71,11 @@ impl PreparedPcmTimeObservationEncoder {
                 .record_field(name)
                 .map_err(R::Structured)?
                 .ok_or_else(invalid)?;
-            *slot = offset(field.primitive_bytes(kind).map_err(R::Structured)?)?;
+            *slot = offset(
+                field
+                    .primitive_representation_bytes(kind)
+                    .map_err(R::Structured)?,
+            )?;
         }
         let digest = view
             .record_field("source_digest")
@@ -84,7 +88,7 @@ impl PreparedPcmTimeObservationEncoder {
                     .collection_index(i as u16)
                     .map_err(R::Structured)?
                     .ok_or_else(invalid)?
-                    .primitive_bytes("value/u8")
+                    .primitive_representation_bytes("value/u8")
                     .map_err(R::Structured)?,
             )?;
         }
@@ -104,7 +108,7 @@ impl PreparedPcmTimeObservationEncoder {
                 .ok_or_else(invalid)?;
             samples.push(offset(
                 value
-                    .primitive_bytes(conduit_core::F64_INFO_ID)
+                    .primitive_representation_bytes(conduit_core::F64_INFO_ID)
                     .map_err(R::Structured)?,
             )?);
         }

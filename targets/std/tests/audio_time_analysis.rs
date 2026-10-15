@@ -123,8 +123,8 @@ fn ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel() {
         assert_eq!(output.0.len(), 1);
         let actual = AudioTimeAnalysisObservation::decode(&output.0[0]).unwrap();
         assert_eq!(actual, expected);
-        assert_eq!(actual.square_sum().value(), square_sum);
-        assert_eq!(actual.mean_square().value(), square_sum / 4.);
+        assert_eq!(actual.square_sum().get().value(), square_sum);
+        assert_eq!(actual.mean_square().get().value(), square_sum / 4.);
         let kernel = report.kernel.expect("actual production kernel report");
         assert!(!kernel.kernel_sign.is_empty());
         assert_eq!(

@@ -187,15 +187,15 @@ fn checked_native_observation_retains_all_pages_and_exact_custody() {
         assert_eq!(*observation.frames(), count as u16);
         assert_eq!(*observation.clock_id(), 42);
         assert_eq!(*observation.start_frame(), 900);
-        assert_eq!(observation.mean_square().value(), 0.25);
-        assert_eq!(observation.rms().value(), 0.5);
+        assert_eq!(observation.mean_square().get().value(), 0.25);
+        assert_eq!(observation.rms().get().value(), 0.5);
         assert_eq!(observation.source_digest().get(), &analysis.source_digest());
         let waveform: Vec<_> = observation
             .waveform()
             .get()
             .as_slice()
             .iter()
-            .flat_map(|page| page.get().as_slice().iter().map(|v| v.value()))
+            .flat_map(|page| page.get().as_slice().iter().map(|v| v.get().value()))
             .collect();
         assert_eq!(
             waveform,
@@ -218,22 +218,37 @@ fn checked_native_statistics_refuse_nonfinite_negative_and_wrong_window_count() 
         .unwrap()
         .native_observation()
         .unwrap();
-    for (bad, frames) in [(-1.0, 2), (f64::NAN, 2), (f64::INFINITY, 2), (0.5, 3)] {
-        assert!(AudioTimeAnalysisObservation::new(
-            *observed.absolute_peak(),
-            *observed.clock_id(),
-            frames,
-            IeeeF64::from_value(bad),
-            *observed.reference(),
-            *observed.rms(),
-            *observed.sample_rate_hz(),
-            *observed.samples_at_or_above_full_scale(),
-            observed.source_digest().clone(),
-            *observed.square_sum(),
-            *observed.start_frame(),
-            observed.waveform().clone(),
-            *observed.window(),
-        )
-        .is_err());
+    for bad in [-1.0, f64::NAN, f64::INFINITY] {
+        assert!(AudioTimeMeanSquarePower::new(IeeeF64::from_value(bad)).is_err());
+        assert!(AudioTimeAmplitudeMagnitude::new(IeeeF64::from_value(bad)).is_err());
+        assert!(AudioTimeSquareSum::new(IeeeF64::from_value(bad)).is_err());
     }
+    assert!(AudioTimeAnalysisObservation::new(
+        observed.absolute_peak().clone(),
+        *observed.clock_id(),
+        3,
+        observed.mean_square().clone(),
+        *observed.reference(),
+        observed.rms().clone(),
+        *observed.sample_rate_hz(),
+        *observed.samples_at_or_above_full_scale(),
+        observed.source_digest().clone(),
+        observed.square_sum().clone(),
+        *observed.start_frame(),
+        observed.waveform().clone(),
+        *observed.window(),
+    )
+    .is_err());
+}
+
+#[test]
+fn normalized_amplitude_power_and_square_sum_have_distinct_checked_units() {
+    use conduit_core::IeeeF64;
+    use conduit_plot::rust_binding::NativeRustBinding;
+    let power = AudioTimeMeanSquarePower::new(IeeeF64::from_value(0.25)).unwrap();
+    let structured = power.into_structured().unwrap();
+    assert!(AudioTimeAmplitudeMagnitude::from_structured(structured.clone()).is_err());
+    assert!(AudioTimeSquareSum::from_structured(structured.clone()).is_err());
+    assert!(AudioTimeSampleAmplitude::from_structured(structured).is_err());
+    assert!(AudioTimeSampleAmplitude::new(IeeeF64::from_value(-0.5)).is_ok());
 }

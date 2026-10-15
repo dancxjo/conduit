@@ -13,7 +13,11 @@ impl PreparedPcmTimeAnalysis<'_> {
         let mut samples = self.waveform();
         loop {
             let values = BoundedSequence::try_from_iter(
-                samples.by_ref().take(1024).map(IeeeF64::from_value),
+                samples
+                    .by_ref()
+                    .take(1024)
+                    .map(|v| AudioTimeSampleAmplitude::new(IeeeF64::from_value(v)))
+                    .collect::<Result<Vec<_>, _>>()?,
             )
             .map_err(|_| invalid())?;
             if values.is_empty() {
@@ -28,16 +32,16 @@ impl PreparedPcmTimeAnalysis<'_> {
         let time = self.interval();
         let stats = self.statistics();
         AudioTimeAnalysisObservation::new(
-            IeeeF64::from_value(stats.absolute_peak),
+            AudioTimeAmplitudeMagnitude::new(IeeeF64::from_value(stats.absolute_peak))?,
             time.clock_id,
             time.frames,
-            IeeeF64::from_value(stats.mean_square),
+            AudioTimeMeanSquarePower::new(IeeeF64::from_value(stats.mean_square))?,
             AudioTimeAnalysisReference::DigitalFullScale,
-            IeeeF64::from_value(stats.rms),
+            AudioTimeAmplitudeMagnitude::new(IeeeF64::from_value(stats.rms))?,
             time.sample_rate_hz,
             stats.samples_at_or_above_full_scale,
             digest,
-            IeeeF64::from_value(stats.square_sum),
+            AudioTimeSquareSum::new(IeeeF64::from_value(stats.square_sum))?,
             time.start_frame,
             waveform,
             AudioTimeAnalysisWindow::Rectangular,

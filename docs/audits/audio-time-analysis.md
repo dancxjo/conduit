@@ -60,3 +60,12 @@ physical playback, perception/listening, cross-block watch gaps/pressure,
 spectral/F0 estimation and parent #5223 completion are separate proof classes.
 The selected repository entrance is
 `cargo xtask check plots run --deterministic --plot audio-time-analysis`.
+
+## Typed-unit acceptance strengthening in progress
+
+The earlier results above describe the captured wire at the named Source. The
+current follow-up gives signed sample amplitude, amplitude magnitude, mean-square
+power and square-sum separate nominal checked Types. An explicit preparation-only
+borrowed representation view preserves strict nominal admission. This changes the
+observation ABI; the current wire requires fresh conformance, allocation, kernel,
+lint and public-command validation before publication.
