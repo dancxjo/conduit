@@ -35,3 +35,10 @@ non-planner histories remain retained. This proof reuses the accepted owner.
 Proof class: native checked Source and real ordinary planner with modeled offers
 and cost-source identities. No live provider, cryptographic producer-authentication,
 physical transport, execution benefit or parent #5230 completion is claimed.
+
+Fresh current-development validation at `275b83e100c7fc27c5c959bc3a0dcb01e891d6e0`, after
+`ac97b99fd9016e5879f9822432fe945ee3c500f0`, passes all 38 tests across six targets, strict
+focused Clippy and pinned workspace formatting. Compiler and semantic inputs
+were refreshed unchanged to prevent shared-target reuse from another checkout.
+The real-Plan conformance file remains byte-identical to the earlier measured
+source; this adds no production cache, scheduler or provider-authentication claim.
