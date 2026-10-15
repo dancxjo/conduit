@@ -42,6 +42,7 @@ pub(super) unsafe fn admit(
     boot_id: &BootId,
     artifact: &str,
     package: &[u8],
+    class: &crate::protocol_source::PreparedProtocolEntry,
 ) -> Result<
     (
         NativeUsbOwners,
@@ -117,8 +118,9 @@ pub(super) unsafe fn admit(
                 device.attachment_epoch,
             )
         })?;
-        let admitted =
-            super::usb_preflight::accept(package, request, preflight, snapshot, host, boot_id)?;
+        let admitted = super::usb_preflight::accept(
+            package, class, request, preflight, snapshot, host, boot_id,
+        )?;
         admitted.validate_request(request)?;
         admitted.validate_attachment(&controller, &device)?;
         if !admitted.supported() {

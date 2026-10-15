@@ -14,6 +14,7 @@ pub struct PreparedProtocolEntry {
     expanded: ExpandedAuthoringPlot,
     artifact: ArtifactId,
     package_digest: [u8; 32],
+    selected_entry: alloc::string::String,
 }
 
 impl PreparedProtocolEntry {
@@ -35,7 +36,12 @@ impl PreparedProtocolEntry {
             expanded,
             artifact: ArtifactId::from(format!("conduitos/protocol-source/sha256/{digest:x}")),
             package_digest: digest.into(),
+            selected_entry: entry.into(),
         })
+    }
+
+    pub(crate) fn selected_entry(&self) -> &str {
+        &self.selected_entry
     }
 
     pub fn package_digest(&self) -> &[u8; 32] {
