@@ -98,6 +98,11 @@ pub(super) fn prepare_node(
             when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
         },
         PortableExpressionOperation::SemanticCall { kind, arguments }
+            if crate::expression_trigonometry::function(kind).is_some() =>
+        {
+            trigonometry::prepare(node, kind, arguments, input_type, prepared_input)?
+        }
+        PortableExpressionOperation::SemanticCall { kind, arguments }
             if kind == "text/material" =>
         {
             text_material::prepare(node, arguments, input_type, prepared_input)?

@@ -10,6 +10,7 @@ mod rational;
 mod realization;
 mod root;
 mod symbolic;
+mod trigonometry;
 pub use binary64::*;
 pub use enclosure::*;
 pub use projection::*;
@@ -18,6 +19,7 @@ pub use rational::*;
 pub use realization::*;
 pub use root::*;
 pub use symbolic::*;
+pub use trigonometry::*;
 
 pub const EXACT_NUMERIC_MAX_BITS: usize = 4096;
 pub const EXACT_NUMERIC_MAX_DECIMAL_BYTES: usize = 1236;

@@ -15,6 +15,34 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if crate::expression_trigonometry::function(&name.text).is_some() {
+        let [argument] = arguments else {
+            return Err(diagnostic(
+                span,
+                "trigonometry requires exactly one typed Angle",
+            ));
+        };
+        // Never provide an Angle expectation that could attach a unit to a
+        // bare numeric literal. Preserve the inner reason under the typed call.
+        let source = check_argument(argument, None).map_err(|why| {
+            diagnostic(
+                argument.span(),
+                &format!("Angle argument could not be admitted: {}", why.message),
+            )
+        })?;
+        if source
+            .value_kind()
+            .is_none_or(|kind| kind.as_str() != conduit_core::ANGLE_INFO_ID)
+        {
+            return Err(diagnostic(
+                argument.span(),
+                "trigonometry requires Angle; scalar radians are not implicit",
+            ));
+        }
+        return Ok(CheckedExpressionType::semantic(
+            conduit_core::MATHEMATICAL_VALUE_ID,
+        ));
+    }
     if name.text == "text/material" {
         let [argument] = arguments else {
             return Err(diagnostic(
@@ -383,7 +411,8 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 }
 
 pub(crate) fn is_intrinsic(name: &str) -> bool {
-    integer_widening_target(name).is_some()
+    crate::expression_trigonometry::function(name).is_some()
+        || integer_widening_target(name).is_some()
         || matches!(
             name,
             "text/material"

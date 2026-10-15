@@ -146,6 +146,21 @@ pub use generated::{
     AudioTimeSquareSum,
 };
 
+/// Shared portable phase/pulse-flow laws; opaque context is preserved.
+pub const PERIODIC_FLOW_SOURCE: &str = include_str!("../dsp/periodic-flow.conduit");
+
+pub use generated::{
+    AudioPeriodicAdvanced, AudioPeriodicCursor, AudioPeriodicOutcome, AudioPeriodicProfile,
+    AudioPeriodicProjection, AudioPeriodicReference, AudioPeriodicRequest,
+    AudioPeriodicStartOutcome, AudioPeriodicStepInput,
+};
+/// Portable oscillator realization and finite state transition Source.
+pub const PERIODIC_OSCILLATOR_SOURCE: &str = include_str!("../dsp/periodic-oscillator.conduit");
+
+pub use generated::{AudioPeriodicCursorCandidate, AudioPeriodicProjectionCandidate};
+/// Executable predicates derived from the same Source snapshot laws.
+pub const PERIODIC_VALIDATION_SOURCE: &str =
+    include_str!(concat!(env!("OUT_DIR"), "/periodic-validators.conduit"));
 mod spectral_analysis;
 mod spectral_fft;
 pub use spectral_analysis::*;

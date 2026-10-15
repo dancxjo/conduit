@@ -38,12 +38,6 @@ plot speech/source-phase (
     >> value: item
     result: output >>
 ) = ({input: ., current: .source.phase * 256 / (.source.period * 3 / 4), previous: .source.phase <= 0 ? 0 : (.source.phase - 1) * 256 / (.source.period * 3 / 4)})
-plot speech/source-flow (
-    item: type
-    output: type
-    >> value: item
-    result: output >>
-) = ({input: .input, current: .current <= 0 || .current >= 256 ? 0 : .current * .current * (256 - .current) / 256, previous: .previous <= 0 || .previous >= 256 ? 0 : .previous * .previous * (256 - .previous) / 256})
 plot speech/source-mix (
     item: type
     output: type
@@ -55,7 +49,7 @@ plot speech/excitation (
     result: I32 >>
 ) {
     phase: speech/source-phase(item = SpeechSourceOnlyRequest, output = SpeechSourceOnlyPhase)
-    flow: speech/source-flow(item = SpeechSourceOnlyPhase, output = SpeechSourceOnlyFlow)
+    flow: dsp/cubic-flow-pair(item = SpeechSourceOnlyPhase, output = SpeechSourceOnlyFlow)
     mix: speech/source-mix(item = SpeechSourceOnlyFlow, output = SpeechSourceOnlyResult)
     value >> ({source: ., context: SpeechSourceOnlyContext.source_only}) >> phase.value
     phase.result >> flow.value
@@ -92,9 +86,3 @@ type SpeechSubframeSourceResult<C> = {
     voicing: I32
     sample: I32
 }
-plot speech/subframe-source-phase (
-    item: type
-    output: type
-    >> value: item
-    result: output >>
-) = ({input: ., current: .source.phase_q8 * 256 / .source.open_q8, previous: .source.phase_q8 < 256 ? 0 : (.source.phase_q8 - 256) * 256 / .source.open_q8})
