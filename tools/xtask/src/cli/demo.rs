@@ -99,8 +99,8 @@ pub enum PatchbayHost {
 
 #[derive(Args, Debug)]
 pub struct ThermostatDemoArgs {
-    /// Capture a fresh installed thermostat across browser and terminal Masks.
-    #[arg(long, conflicts_with = "verify", requires_all = ["state_dir", "conduit_bin", "handbook_package", "output", "pinned_playwright"])]
+    /// Capture a fresh installed thermostat across browser, terminal and spoken Masks.
+    #[arg(long, conflicts_with = "verify", requires_all = ["state_dir", "conduit_bin", "handbook_package", "output", "pinned_playwright", "peer_state_dir"])]
     pub capture: bool,
     #[arg(long, requires = "capture")]
     pub state_dir: Option<std::path::PathBuf>,
@@ -112,6 +112,9 @@ pub struct ThermostatDemoArgs {
     pub output: Option<std::path::PathBuf>,
     #[arg(long, requires = "capture")]
     pub pinned_playwright: Option<std::path::PathBuf>,
+    /// Fresh unjoined installed peer with explicitly selected artifact speech equipment.
+    #[arg(long, requires = "capture")]
+    pub peer_state_dir: Option<std::path::PathBuf>,
     /// Check semantic, kernel, and installed Body Owner contracts.
     #[arg(long)]
     pub verify: bool,
