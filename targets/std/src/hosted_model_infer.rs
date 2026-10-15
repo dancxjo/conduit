@@ -23,6 +23,7 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
     capability: CapabilityOffer,
     resource: ResourceOffer,
     next_request: u32,
+    cancelled: bool,
 }
 
 impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
@@ -136,6 +137,7 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
                 content: None,
             },
             next_request: 1,
+            cancelled: false,
         })
     }
 }
@@ -154,6 +156,9 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         output: &mut Vec<u8>,
     ) -> ModelWorkTerminal {
         output.clear();
+        if self.cancelled {
+            return ModelWorkTerminal::Cancelled;
+        }
         if placement.capability_id != self.capability.capability_id
             || placement.artifact_id != self.capability.implementation.artifact_id
             || placement.implementation_id.as_str() != MODEL_INFER_IMPLEMENTATION
@@ -235,10 +240,12 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
             ModelComputeAdapterTerminal::Refused(_) => ModelWorkTerminal::Refused,
             ModelComputeAdapterTerminal::Cancelled => ModelWorkTerminal::Cancelled,
             ModelComputeAdapterTerminal::ProviderLost => ModelWorkTerminal::ProviderLost,
+            ModelComputeAdapterTerminal::TimedOut => ModelWorkTerminal::TimedOut,
             ModelComputeAdapterTerminal::Failed => ModelWorkTerminal::Failed,
         }
     }
     fn cancel(&mut self) {
+        self.cancelled = true;
         let _ = self.adapter.cancel();
     }
 }

@@ -36,6 +36,8 @@ pub enum ModelComputeAdapterTerminal {
     Refused(ModelComputeRefusal),
     Cancelled,
     ProviderLost,
+    /// Provider reports that its admitted execution deadline expired.
+    TimedOut,
     Failed,
 }
 

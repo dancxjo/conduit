@@ -10,6 +10,7 @@ pub(super) enum Completion {
     Failed,
     Cancelled,
     ProviderLost,
+    TimedOut,
     MalformedInput,
 }
 
@@ -25,6 +26,7 @@ impl Completion {
             Self::Cancelled => (HostCallDisposition::Cancelled, None),
             Self::Failed => (HostCallDisposition::Failed, failure(70)),
             Self::ProviderLost => (HostCallDisposition::Failed, failure(71)),
+            Self::TimedOut => (HostCallDisposition::Failed, failure(73)),
             Self::MalformedInput => (
                 HostCallDisposition::Failed,
                 Some(Failure {
@@ -71,6 +73,7 @@ pub(super) fn execute(
         ModelWorkTerminal::Failed => Completion::Failed,
         ModelWorkTerminal::Cancelled => Completion::Cancelled,
         ModelWorkTerminal::ProviderLost => Completion::ProviderLost,
+        ModelWorkTerminal::TimedOut => Completion::TimedOut,
         ModelWorkTerminal::MalformedInput => Completion::MalformedInput,
     })
 }
@@ -90,6 +93,12 @@ mod tests {
     fn provider_loss_and_malformed_input_remain_distinct() {
         let lost = Completion::ProviderLost.outcome(None);
         let malformed = Completion::MalformedInput.outcome(None);
+        let timeout = Completion::TimedOut.outcome(None);
+        let cancelled = Completion::Cancelled.outcome(None);
+        assert_eq!(timeout.failure.unwrap().detail, 73);
+        assert_ne!(timeout, lost);
+        assert_eq!(cancelled.disposition, HostCallDisposition::Cancelled);
+        assert!(cancelled.failure.is_none());
         assert_eq!(lost.failure.unwrap().detail, 71);
         assert_eq!(malformed.failure.unwrap().code, FailureCode::InvalidInput);
         assert_eq!(malformed.failure.unwrap().detail, 72);
