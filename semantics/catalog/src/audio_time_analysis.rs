@@ -36,12 +36,13 @@ pub fn audio_time_analysis_contract() -> StandardKindContract {
         limits: CapabilityLimits { max_active_instances: 4, max_queue_items: 1, max_queue_bytes: AUDIO_TIME_ANALYSIS_MAXIMUM_BYTES },
         terminal_behavior: KindTerminalBehavior::CompletesWhenInputsClose,
         hosted_implementation_required: true, browser_manifestation_honest: false, pico_manifestation_honest: false,
-        example: "analysis: audio/measure-time(clock-id: 1, sample-rate-hz: 8000, frames: 4)".into(),
+        example: "analysis: audio/measure-time(clock-id = 1, sample-rate-hz = 8000, frames = 4)".into(),
     }
 }
 pub fn audio_time_analysis_semantic_contract() -> Kind {
     audio_time_analysis_contract().into_semantic_contract(AUDIO_TIME_ANALYSIS_REVISION)
 }
+
 pub fn install_audio_time_analysis_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
@@ -61,7 +62,7 @@ pub fn install_audio_time_analysis_catalog(
             .iter()
             .map(|f| StartupParameterSignature {
                 name: f.key.clone(),
-                value_type: "U64".into(),
+                value_type: "Count".into(),
                 default: Some(match f.default_value {
                     ConfigurationValue::U64(value) => value.to_string(),
                     _ => unreachable!("count configuration"),

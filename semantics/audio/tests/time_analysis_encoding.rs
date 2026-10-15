@@ -55,6 +55,10 @@ fn prepared_native_slots_match_generated_binding_without_runtime_allocations() {
     for frames in [2, 1024, 1025, 2048] {
         let mut encoder = PreparedPcmTimeObservationEncoder::prepare(frames).unwrap();
         let heap = encoder.prepared_heap_bytes();
+        assert_eq!(
+            heap,
+            encoder.maximum_output_bytes() + usize::from(frames) * core::mem::size_of::<usize>()
+        );
         for (clock, rate, start) in [(1, 8000, 0), (77, 48000, 1234567)] {
             let input = input(frames, clock, rate, start);
             let analysis =

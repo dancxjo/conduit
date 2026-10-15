@@ -21,7 +21,7 @@ pub(super) struct AudioTimeAnalysisBack {
     closed: bool,
 }
 fn fail(code: FailureCode, detail: u16) -> StepOutcome {
-    StepOutcome::Fail(Failure::new(code, detail))
+    StepOutcome::Fail(Failure { code, detail })
 }
 impl<const PORTS: usize> StepBack<PORTS> for AudioTimeAnalysisBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, inputs: &StepInputBytes<'_, PORTS>) -> StepOutcome {
@@ -90,12 +90,12 @@ fn configured(placement: &PlannedGear) -> Result<AudioTimeAnalysisBack, String> 
     let expected = conduit_std_offers::audio_time_analysis_offer();
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
-        || placement.implementation_id != expected.implementation_id
-        || placement.artifact_id != expected.artifact_id
-        || placement.execution_profile_id != expected.execution_profile_id
+        || placement.implementation_id != expected.implementation.implementation_id
+        || placement.artifact_id != expected.implementation.artifact_id
+        || placement.execution_profile_id != expected.implementation.execution_profile_id
         || placement.inputs != expected.inputs
         || placement.outputs != expected.outputs
-        || placement.semantic_contract != expected.semantic_contract()
+        || placement.semantic_contract != expected.semantic_contract
         || !placement.host_calls.is_empty()
     {
         return Err("PCM analysis planned identity differs from admitted profile".into());

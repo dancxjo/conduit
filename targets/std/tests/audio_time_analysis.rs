@@ -23,16 +23,15 @@ impl TimerAdapter for NoTimer {
         panic!("pure analysis cannot wait")
     }
 }
-#[test]
-fn ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel() {
+fn checked_plan() -> (StdHost, conduit_core::Plan) {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_audio_time_analysis_catalog(&mut startup, &mut profile)
         .unwrap();
-    let source = "plot measure (\n >> pcm: PcmFrames\n observation: AudioTimeAnalysisObservation >>\n) {\n analyzer: audio/measure-time(clock-id: 7, sample-rate-hz: 8000, offset: 0, frames: 4, maximum-blocks: 1)\n pcm >> analyzer.pcm\n analyzer.observation >> observation\n}\n";
+    let source = include_str!("../../../plots/audio-time-analysis/main.conduit");
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "measure", &profile).unwrap();
-    let mut host = StdHost::new();
+    let host = StdHost::new();
     let hosts = [host.advertisement().clone()];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
@@ -72,55 +71,95 @@ fn ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel() {
         &boundaries,
     )
     .unwrap();
-    plan.verify().unwrap();
+    assert!(conduit_core::verify_plan(&plan));
     assert_eq!(
         plan.fragments[0].placements[0].implementation_id.as_str(),
         conduit_std_offers::AUDIO_TIME_ANALYSIS_IMPLEMENTATION
     );
-    let payload: Vec<_> = [0_f32, 1., 0., -1.]
-        .into_iter()
-        .flat_map(f32::to_le_bytes)
-        .collect();
-    let bytes = PcmFrameHeader::new(
+    (host, plan)
+}
+fn pcm(values: &[f32], clock: u64, rate: u32, discontinuity: bool) -> Vec<u8> {
+    let payload: Vec<_> = values.iter().flat_map(|v| v.to_le_bytes()).collect();
+    PcmFrameHeader::new(
         PcmSampleRepresentation::Float32LittleEndian,
-        8000,
+        rate,
         PcmChannelLayout::Mono,
-        4,
-        7,
+        values.len() as u16,
+        clock,
         123,
-        false,
+        discontinuity,
     )
     .unwrap()
     .encode_frame(&payload)
-    .unwrap();
-    let expected = PreparedPcmTimeAnalysis::prepare(&bytes, 7, 8000, 0, 4)
-        .unwrap()
-        .native_observation()
-        .unwrap();
-    let mut output = Output::default();
-    let report = host
-        .run_external_plot_to(
-            plan.fragments[0].clone(),
-            &[ExternalForeInput {
-                front_port_id: "pcm".into(),
-                track: ConnectionTrack::Payload,
-                bytes,
-            }],
-            &mut output,
-            &mut Vec::new(),
-            &mut NoTimer,
-        )
-        .unwrap();
-    assert_eq!(output.0.len(), 1);
-    assert_eq!(
-        AudioTimeAnalysisObservation::decode(&output.0[0]).unwrap(),
-        expected
-    );
-    let kernel = report.kernel.expect("actual production kernel report");
-    assert!(!kernel.kernel_sign.is_empty());
-    assert_eq!(
-        kernel.value_allocation_capacity_before,
-        kernel.value_allocation_capacity_after
-    );
-    assert_eq!(kernel.active_play.plan_id, plan.plan_id);
+    .unwrap()
+}
+#[test]
+fn ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel() {
+    for (samples, square_sum) in [
+        ([0., 0., 0., 0.], 0.),
+        ([1., 0., 0., 0.], 1.),
+        ([0., 1., 0., -1.], 2.),
+    ] {
+        let (mut host, plan) = checked_plan();
+        let bytes = pcm(&samples, 7, 8000, false);
+        let expected = PreparedPcmTimeAnalysis::prepare(&bytes, 7, 8000, 0, 4)
+            .unwrap()
+            .native_observation()
+            .unwrap();
+        let mut output = Output::default();
+        let report = host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[ExternalForeInput {
+                    front_port_id: "pcm".into(),
+                    track: ConnectionTrack::Payload,
+                    bytes,
+                }],
+                &mut output,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .unwrap();
+        assert_eq!(output.0.len(), 1);
+        let actual = AudioTimeAnalysisObservation::decode(&output.0[0]).unwrap();
+        assert_eq!(actual, expected);
+        assert_eq!(actual.square_sum().value(), square_sum);
+        assert_eq!(actual.mean_square().value(), square_sum / 4.);
+        let kernel = report.kernel.expect("actual production kernel report");
+        assert!(!kernel.kernel_sign.is_empty());
+        assert_eq!(
+            kernel.value_allocation_capacity_before,
+            kernel.value_allocation_capacity_after
+        );
+        assert_eq!(kernel.active_play.plan_id, plan.plan_id);
+    }
+}
+#[test]
+fn ordinary_kernel_refuses_wrong_timebase_nonfinite_short_and_discontinuous_input() {
+    for bytes in [
+        pcm(&[0.; 4], 8, 8000, false),
+        pcm(&[0.; 4], 7, 16000, false),
+        pcm(&[0., f32::NAN, 0., 0.], 7, 8000, false),
+        pcm(&[0.; 3], 7, 8000, false),
+        pcm(&[0.; 4], 7, 8000, true),
+    ] {
+        let (mut host, plan) = checked_plan();
+        let mut output = Output::default();
+        let failure = host
+            .run_external_plot_to(
+                plan.fragments[0].clone(),
+                &[ExternalForeInput {
+                    front_port_id: "pcm".into(),
+                    track: ConnectionTrack::Payload,
+                    bytes,
+                }],
+                &mut output,
+                &mut Vec::new(),
+                &mut NoTimer,
+            )
+            .err()
+            .expect("invalid PCM must refuse");
+        assert!(failure.contains("InvalidInput"), "{failure}");
+        assert!(output.0.is_empty(), "refusal must not emit fake analysis");
+    }
 }
