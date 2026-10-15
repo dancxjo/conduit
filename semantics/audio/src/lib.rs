@@ -7,6 +7,14 @@
 
 extern crate alloc;
 
+mod pitch_analysis;
+mod pitch_native;
+pub use generated::{
+    AudioPitchCorrelation, AudioPitchDigest, AudioPitchEstimator, AudioPitchObservation,
+    AudioPitchState,
+};
+pub use pitch_analysis::*;
+
 #[allow(
     clippy::clone_on_copy,
     clippy::manual_range_contains,
