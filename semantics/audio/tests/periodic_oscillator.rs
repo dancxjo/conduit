@@ -7,6 +7,10 @@ use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     PortableExpressionProgram, PreparedPortableExpressionEvaluator, ProfileCatalog, StartupCatalog,
 };
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 struct Pipeline {
     programs: Vec<PortableExpressionProgram>,
     prepared: Vec<PreparedPortableExpressionEvaluator>,
@@ -73,7 +77,12 @@ impl Pipeline {
     fn run(&mut self, mut bytes: Vec<u8>) -> Vec<u8> {
         for (program, prepared) in self.programs.iter().zip(&mut self.prepared) {
             let reference = program.evaluate(&bytes).unwrap();
-            assert_eq!(prepared.evaluate(&bytes).unwrap(), reference);
+            let capacity = prepared.output_capacity();
+            let (actual, storage) =
+                allocation_probe::observe(|| prepared.evaluate(&bytes).unwrap());
+            assert_eq!(actual, reference);
+            assert_eq!((storage.allocations, storage.reallocations), (0, 0));
+            assert_eq!(prepared.output_capacity(), capacity);
             bytes = reference;
         }
         bytes
@@ -344,5 +353,48 @@ fn complete_cycles_match_independent_integer_reference_and_reset() {
             cursor = AudioPeriodicCursorCandidate::decode(&cursor.encode().unwrap()).unwrap();
         }
         assert_eq!(started(&start.run(req.encode().unwrap())), initial);
+    }
+}
+
+#[test]
+fn forged_cursor_phase_and_budget_refuse_before_step() {
+    let mut start = Pipeline::new(
+        "dsp/oscillator-prepare",
+        AudioPeriodicRequest::semantic_type().unwrap(),
+    );
+    let cursor = started(&start.run(request(125, 1, 0, 1, 1, 1, 3).encode().unwrap()));
+    let mut step = Pipeline::new(
+        "dsp/oscillator-step",
+        AudioPeriodicStepInput::semantic_type().unwrap(),
+    );
+    for (emitted, initial, phase, remainder, remaining) in [
+        (0, 0, 1, 0, 3),
+        (0, 1, 0, 0, 3),
+        (0, 0, 0, 1, 3),
+        (1, 0, 0, 0, 2),
+        (0, 0, 0, 0, 4),
+        (65537, 0, 0, 0, 0),
+    ] {
+        let forged = AudioPeriodicCursorCandidate::new(
+            emitted,
+            initial,
+            phase,
+            remainder,
+            cursor.profile().clone(),
+            remaining,
+        )
+        .unwrap();
+        for cancelled in [false, true] {
+            let bytes = step.run(
+                AudioPeriodicStepInput::new(cancelled, forged.clone())
+                    .unwrap()
+                    .encode()
+                    .unwrap(),
+            );
+            assert!(matches!(
+                AudioPeriodicOutcome::decode(&bytes).unwrap(),
+                AudioPeriodicOutcome::InvalidCursor
+            ));
+        }
     }
 }
