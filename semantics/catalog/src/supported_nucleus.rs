@@ -88,6 +88,10 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
             DISTANCE_FREQUENCY_MAP_REVISION,
         ),
         (audio_time_analysis_contract(), AUDIO_TIME_ANALYSIS_REVISION),
+        (
+            audio_spectral_analysis_contract(),
+            AUDIO_SPECTRAL_ANALYSIS_REVISION,
+        ),
         (quantity_info_wrap_contract(), QUANTITY_INFO_WRAP_REVISION),
         (layout_viewport_contract(), "conduit.std/layout-frame@1"),
         (layout_inset_contract(), "conduit.std/layout-frame@1"),

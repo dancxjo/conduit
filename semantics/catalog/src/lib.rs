@@ -519,5 +519,5 @@ pub use numerical_realization_back::NumericalRealizationBack;
 mod data_label;
 pub use data_label::*;
 
-mod audio_time_analysis;
-pub use audio_time_analysis::*;
+mod audio_analysis;
+pub use audio_analysis::*;
