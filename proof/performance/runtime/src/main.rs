@@ -6,6 +6,7 @@ mod expression;
 #[cfg(feature = "hosted-pipeline")]
 mod pipeline;
 mod pool;
+mod repetition;
 mod timing;
 mod typed_cost;
 #[global_allocator]
@@ -128,7 +129,8 @@ fn run() -> Result<(), Box<dyn Error>> {
             "status":if config.hosted_pipeline { "measured-isolation-and-finite-hosted-baseline" } else { "measured-isolation-baseline" }, "regression_gate":"report-only",
             "config":config,"metadata":"metadata.json","raw":"raw.jsonl","raw_records":raw.records,"runs":summaries,
             "process_resident_high_water":artifact::resident_high_water(),
-            "confidence":"raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open",
+            "repeated_batches":repetition::summarize(&summaries),
+            "confidence":"descriptive sample standard deviation across repeated batches; raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open",
             "scope":if config.hosted_pipeline {
                 "production evaluator/typed-cost/pool-selection isolation plus 64-item ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials; separate cold Back/Play phases, continuous streams, DSP/pressure/fairness and browser matrix remain required by #5395"
             } else {

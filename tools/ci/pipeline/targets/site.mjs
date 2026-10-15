@@ -5,6 +5,7 @@ import path from 'node:path';
 import { acquire, command, digest, xtask } from './common.mjs';
 import { retainedOneBodyEvidence } from '../one-body-evidence.mjs';
 import { TODO_EVIDENCE_ROOT, renderTodoJourney } from '../todo-journey.mjs';
+import { THERMOSTAT_EVIDENCE_ROOT, renderThermostatJourney } from '../thermostat-journey.mjs';
 import { retainedThreeHostDevelopmentEvidence, THREE_HOST_DEVELOPMENT_PROOF,
   THREE_HOST_DEVELOPMENT_SUITE } from '../three-host-development-evidence.mjs';
 import { retainedDirectSpokenDevelopmentEvidence, DIRECT_SPOKEN_DEVELOPMENT_PROOF,
@@ -71,6 +72,13 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
   }
   const todoJourney = existsSync(path.join(TODO_EVIDENCE_ROOT, 'manifest.json'))
     ? renderTodoJourney(TODO_EVIDENCE_ROOT, path.join(directory, 'journeys/current/todo'),
+      sourceCommit, styles(), navigation())
+    : null;
+  if (existsSync(THERMOSTAT_EVIDENCE_ROOT) && !existsSync(path.join(THERMOSTAT_EVIDENCE_ROOT, 'manifest.json'))) {
+    throw new Error('Thermostat evidence directory exists without a complete manifest');
+  }
+  const thermostatJourney = existsSync(path.join(THERMOSTAT_EVIDENCE_ROOT, 'manifest.json'))
+    ? renderThermostatJourney(THERMOSTAT_EVIDENCE_ROOT, path.join(directory, 'journeys/current/thermostat'),
       sourceCommit, styles(), navigation())
     : null;
   if (oneBodyEvidence || threeHostDevelopment) {
@@ -160,6 +168,11 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
       captureSourceCommit: todoJourney.sourceCommit, publicationSourceCommit: sourceCommit,
       path: 'journeys/current/todo/', proof: 'producer-correlated-complete-evidence',
       humanListeningObserved: false,
+    } }),
+    ...(thermostatJourney && { thermostatJourney: {
+      captureSourceCommit: thermostatJourney.sourceCommit, publicationSourceCommit: sourceCommit,
+      bodyId: thermostatJourney.bodyId, path: 'journeys/current/thermostat/',
+      proof: 'retained-local-browser-terminal', speechAvailable: false,
     } }),
     todoBrowserDevelopment: {
       captureSourceCommit: todoBrowserDevelopment.sourceCommit,
