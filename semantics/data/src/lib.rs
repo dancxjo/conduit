@@ -22,11 +22,12 @@ pub use generated::{
     MeasurementSample, MeasurementSummary, MeasurementSummaryRefusal, MeasurementThresholdDecision,
     MeasurementThresholdPolicy, MeasurementThresholdRefusal, MeasurementThresholdState,
     MeasurementThresholdStateForm, MeasurementThresholdTransition, MeasurementWindowProfile,
-    MeasurementWindowRefusal, MissingDataMask, NormalizedQuantityRefusal, ObservationProvenance,
-    ObservationProvenanceDerived, ObservationProvenanceMeasured, ObservationSet, ObservationValue,
-    ObservationValueSampledSignal, ObservationValueTensor, QuantityMappingRefusal,
-    QuantizationPolicy, RangePolicy, SampledSignal, SampledSignalRefusal, ScalarComparison,
-    ScientificAlignmentRefusal, ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
+    MeasurementWindowRefusal, MissingDataMask, NamedTensor, NamedTensorBundle,
+    NormalizedQuantityRefusal, ObservationProvenance, ObservationProvenanceDerived,
+    ObservationProvenanceMeasured, ObservationSet, ObservationValue, ObservationValueSampledSignal,
+    ObservationValueTensor, QuantityMappingRefusal, QuantizationPolicy, RangePolicy, SampledSignal,
+    SampledSignalRefusal, ScalarComparison, ScientificAlignmentRefusal,
+    ScientificAlignmentRefusalObservation, ScientificCorpusRefusal,
     ScientificCorpusRefusalObservation, ScientificObservation, ScientificObservationIdentity,
     ScientificObservationRefusal, SignalCadence, SignalCadenceIrregular, SignalCadenceRegular,
     SignalContinuity, SignalContinuityClockReset, SignalContinuityDiscontinuous, SignalIdentity,
@@ -57,6 +58,7 @@ mod measurement_threshold_wire;
 mod measurement_window;
 mod measurement_window_catalog;
 mod measurement_wire;
+mod named_tensor;
 mod sampled_signal;
 mod scalar_comparison;
 mod scientific_alignment;
@@ -69,6 +71,7 @@ mod tabular_reference;
 mod tensor;
 mod tensor_catalog;
 mod tensor_codec;
+pub use named_tensor::*;
 
 pub use data_catalog::*;
 pub use data_generation::*;
