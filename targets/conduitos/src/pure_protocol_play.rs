@@ -153,13 +153,11 @@ impl PreparedPureProtocolPlay {
     /// Allocating read-only snapshot after Complete, outside sealed Play.
     /// The caller can then release finished queues and computation owners while
     /// retaining the original Plan, actual Play identities and complete Signs.
-    pub(crate) fn retired_evidence(
-        &self,
-    ) -> Result<RetiredPureProtocolEvidence, ProtocolCallRefusal> {
+    pub(crate) fn retired_evidence(&self) -> Option<RetiredPureProtocolEvidence> {
         if !self.completed {
-            return Err(ProtocolCallRefusal::InvalidPlan);
+            return None;
         }
-        Ok(RetiredPureProtocolEvidence {
+        Some(RetiredPureProtocolEvidence {
             _plan: self.kernel.definition().internal_plan.clone(),
             _active_plays: self.kernel.active_plays().clone(),
             _signs: self.kernel.sign_log_snapshots(),

@@ -211,7 +211,7 @@ pub(super) fn accept(
             };
             let evidence = play
                 .retired_evidence()
-                .map_err(|_| "protocol-usb-preflight-evidence")?;
+                .ok_or("protocol-usb-preflight-evidence")?;
             retained._evidence = Some(evidence);
             retained._play = None;
             trace::retired(&retained.verdict)?;

@@ -394,7 +394,7 @@ fn hosted_sign_snapshot_preserves_remote_identity_gap_and_independent_storage() 
     assert_eq!(snapshot.retention_gap(), log.retention_gap());
     assert!(snapshot.retention_gap().is_some());
     assert_eq!(snapshot.allocation_capacity(), log.allocation_capacity());
-    assert_eq!(snapshot.remote_used_bytes(), log.remote_used_bytes());
+    assert_eq!(snapshot.remote_used_bytes, log.remote_used_bytes);
     assert_eq!(snapshot.used_bytes(), log.used_bytes());
     log.record(NodeId(1), None, None, KernelEventKind::HostCallCompleted)
         .unwrap();
