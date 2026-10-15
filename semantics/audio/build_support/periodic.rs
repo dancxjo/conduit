@@ -1,5 +1,7 @@
 //! Runtime predicates reuse the exact authored snapshot laws. Candidate data
 //! never masquerades as a refined Native value during pure construction.
+//! Portable Boolean operands are eager. Conditional branches keep arithmetic
+//! laws behind prior domain checks, matching Native admission order.
 use conduit_plot::parse_syntax_document;
 pub fn validation_source(source: &str) -> String {
     let syntax = parse_syntax_document(source);
@@ -20,7 +22,7 @@ pub fn validation_source(source: &str) -> String {
     };
     let request = laws("AudioPeriodicRequest", ".");
     let projection = format!(
-        "({}) && ({})",
+        "({}) ? ({}) : false",
         laws("AudioPeriodicRequest", ".request"),
         laws("AudioPeriodicProjection", ".")
     );
@@ -42,7 +44,7 @@ pub fn validation_source(source: &str) -> String {
         for law in &ty.invariants {
             let n = stages.len();
             let predicate = prefixed(&law.text, prefix);
-            step.push_str(&format!("plot dsp/oscillator-step-law-{n} (\n >> value: AudioPeriodicCheckedStep\n result: AudioPeriodicCheckedStep >>\n) = ({{value: .value, valid: .valid && ({predicate})}})\n"));
+            step.push_str(&format!("plot dsp/oscillator-step-law-{n} (\n >> value: AudioPeriodicCheckedStep\n result: AudioPeriodicCheckedStep >>\n) = ({{value: .value, valid: .valid ? ({predicate}) : false}})\n"));
             stages.push(format!("law{n}"));
         }
     }
