@@ -25,8 +25,8 @@ capacity. The two retained cache slots bound the candidate envelope. The
 CPU/time or a performance claim. Costs are the same finite millisecond values
 bound through the existing cost evidence/profile path; no opaque host score.
 
-Validation at `c9e599ef2c4ad85fc1d51c75cda422bbf6a05d71`, based on accepted
-`df66968dec9cdf6eddb813857bf617fd4c3326dd`: 38 tests pass across six focused targets covering
+Validation at `9cccd5f2c41acec2cdc39927663bf412b4811ee1`, based on accepted
+`9780308650e454a091edaac55a05f38f97ed77e9`: 38 tests pass across six focused targets covering
 incremental cache, real Plans, global hard admission, bounded global search,
 cost selection and capacity-aware cost planning. Strict focused Clippy and
 pinned workspace formatting pass. A dedicated build cache and unchanged-source
