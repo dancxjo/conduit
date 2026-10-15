@@ -1,0 +1,93 @@
+# Canonical finite expression policy. No Face selectors, actions, bindings,
+# component topology, provider identity or privileged prompt instructions.
+type LookVerbosity =
+    brief
+    | expanded
+
+type LookSpokenDelivery =
+    neutral
+    | calm
+    | crisp
+
+type LookGenerativeRegister =
+    neutral
+    | conversational
+    | technical
+
+type LookSpokenFacetInfo = {
+    verbosity: LookVerbosity
+    delivery: LookSpokenDelivery
+}
+
+type LookGenerativeFacetInfo = {
+    verbosity: LookVerbosity
+    register: LookGenerativeRegister
+}
+
+# Appearance tokens only. Structural breakpoint/grid selection remains with
+# the checked component/Mask, not the Look's visual token resource.
+type LookVisualTokensInfo = {
+    background: ThemeColor
+    reading_paper: ThemeColor
+    workbench_canvas: ThemeColor
+    bootstrap_surface: ThemeColor
+    surface: ThemeColor
+    structure_primary: ThemeColor
+    structure_secondary: ThemeColor
+    text_primary: ThemeColor
+    text_secondary: ThemeColor
+    emphasis: ThemeColor
+    focus: ThemeColor
+    warning: ThemeColor
+    failure: ThemeColor
+    success: ThemeColor
+    muted: ThemeColor
+    type_body_px: U16 in 8..=64
+    type_small_px: U16 in 8..=64
+    line_height_percent: U16 in 100..=250
+    space_unit_px: U16 in 0..=32
+    space_control_inline_px: U16 in 0..=64
+    space_control_block_px: U16 in 0..=64
+    space_panel_px: U16 in 0..=64
+    radius_control_px: U16 in 0..=32
+    radius_panel_px: U16 in 0..=32
+    focus_width_px: U16 in 1..=8
+}
+
+type LookVisualFacetInfo = {
+    expression: VisualExpressionInfo
+    tokens: LookVisualTokensInfo
+}
+
+type LookVisualFacetOption =
+    none
+    | some LookVisualFacetInfo
+
+type LookSpokenFacetOption =
+    none
+    | some LookSpokenFacetInfo
+
+type LookGenerativeFacetOption =
+    none
+    | some LookGenerativeFacetInfo
+
+type LookInfo = {
+    identity: Text <= 128B not in ["", "conduit.face/phosphor@1", "conduit.presentation/phosphor@1"]
+    version: U16 in 1..=1
+    visual: LookVisualFacetOption
+    spoken: LookSpokenFacetOption
+    generative: LookGenerativeFacetOption
+    where .visual is some ? .visual.some.expression.identity == .identity : true
+}
+
+type LookFacetRequest =
+    visual
+    | spoken
+    | generative
+    | unsupported Text <= 64B not in [""]
+
+type LookFacetAvailability =
+    selected
+    | absent
+    | host_unavailable
+    | unsupported
