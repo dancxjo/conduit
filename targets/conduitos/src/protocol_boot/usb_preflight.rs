@@ -60,6 +60,7 @@ impl RetiredUsbDiscovery {
 
 pub(super) fn accept(
     package: &[u8],
+    class: &PreparedProtocolEntry,
     request: &UsbProtocolBootRequest,
     selection: &UsbPreflightBootRequest,
     snapshot: UsbConfigurationSnapshot,
@@ -69,8 +70,13 @@ pub(super) fn accept(
     request
         .bind_package(package)
         .map_err(|_| "protocol-usb-preflight-package")?;
-    let class = PreparedProtocolEntry::prepare(package, &request.entry)
-        .map_err(|_| "protocol-usb-preflight-class-source")?;
+    // Boot already retained this exact expansion. Rechecking and expanding it
+    // here would keep two whole class graphs alive beside descriptor preflight.
+    use sha2::{Digest, Sha256};
+    let digest: [u8; 32] = Sha256::digest(package).into();
+    if class.package_digest() != &digest || class.selected_entry() != request.entry {
+        return Err("protocol-usb-preflight-class-source");
+    }
     let class_resident = class.resident();
     let package_digest = *class.package_digest();
     let entry = PreparedProtocolEntry::prepare(package, &selection.entry)
@@ -92,7 +98,6 @@ pub(super) fn accept(
         .input_schema(&input.port_id)
         .ok_or("protocol-usb-preflight-fore")?;
     let root_bytes = carrier::request_bytes(request)?;
-    use sha2::{Digest, Sha256};
     let root_digest = Sha256::digest(&root_bytes).into();
     let value = ValuePayload {
         value_kind: input.value_kind.clone(),

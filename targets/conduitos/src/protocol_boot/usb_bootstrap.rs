@@ -85,6 +85,7 @@ pub unsafe fn run_if_selected(record: &boot::BootRecord) -> Result<(), &'static 
             &boot,
             crate::make::EMBEDDED_MAKE.build_id,
             package,
+            &entry,
         )
     }?;
     if let Some(discovery) = discovery.as_ref() {
