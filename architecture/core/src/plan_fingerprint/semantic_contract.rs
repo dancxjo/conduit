@@ -1,6 +1,52 @@
 //! Canonical encoding of one immutable Kind semantic contract.
 use super::*;
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::{kind_id, ExactRealizationProperty, KindSemanticContract, KindSemanticLaw};
+
+    fn encoded(law: KindSemanticLaw) -> Vec<u8> {
+        let mut bytes = Vec::new();
+        push_semantic_contract(
+            &mut bytes,
+            &KindSemanticContract {
+                configuration: Vec::new(),
+                laws: alloc::vec![law],
+            },
+        );
+        bytes
+    }
+
+    #[test]
+    fn exact_property_fingerprint_binds_match_mode_profile_and_key() {
+        let request = ExactRealizationProperty {
+            property_profile: kind_id("test/profile"),
+            configuration_key: "signature".into(),
+        };
+        let original = encoded(KindSemanticLaw::ExactRealizationProperty(request.clone()));
+        let mut other = request.clone();
+        other.configuration_key = "other".into();
+        assert_ne!(
+            original,
+            encoded(KindSemanticLaw::ExactRealizationProperty(other))
+        );
+        let mut other = request.clone();
+        other.property_profile = kind_id("test/other-profile");
+        assert_ne!(
+            original,
+            encoded(KindSemanticLaw::ExactRealizationProperty(other))
+        );
+        assert_ne!(
+            original,
+            encoded(KindSemanticLaw::RealizationRequirement {
+                property_profile: request.property_profile,
+                configuration_key: request.configuration_key
+            })
+        );
+    }
+}
+
 pub(super) fn push_semantic_contract(
     canonical: &mut Vec<u8>,
     contract: &crate::KindSemanticContract,
