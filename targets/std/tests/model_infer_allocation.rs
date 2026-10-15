@@ -78,7 +78,7 @@ impl TimerAdapter for Probe {
     }
 }
 struct Sink {
-    bytes: Box<[u8; 262144]>,
+    bytes: Box<[u8]>,
     length: usize,
     calls: usize,
 }
@@ -109,7 +109,7 @@ fn characterize_actual_model_play_allocation_requests() {
         bytes: bundle(input([2., 3.])).encode().unwrap(),
     }];
     let mut sink = Sink {
-        bytes: Box::new([0; 262144]),
+        bytes: vec![0; 262144].into_boxed_slice(),
         length: 0,
         calls: 0,
     };
