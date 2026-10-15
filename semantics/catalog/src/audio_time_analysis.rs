@@ -73,3 +73,14 @@ pub fn install_audio_time_analysis_catalog(
     startup.insert_fore(AUDIO_TIME_ANALYSIS_KIND, contract.checked_front())?;
     profile.insert_kind(contract).map_err(|e| e.to_string())
 }
+
+/// Discovery decoration stays outside the Kind's semantic identity.
+pub(crate) fn audio_time_analysis_palette_metadata(
+    kind: &KindId,
+) -> Option<crate::PaletteMetadata> {
+    (kind.as_str() == AUDIO_TIME_ANALYSIS_KIND).then_some(crate::PaletteMetadata {
+        category: crate::PaletteCategory::Transform,
+        tags: &["audio", "pcm", "waveform", "rms", "energy", "measurement"],
+        icon: crate::PaletteIconKey::ChartColumnsIncreasing,
+    })
+}
