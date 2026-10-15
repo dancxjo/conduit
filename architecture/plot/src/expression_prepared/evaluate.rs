@@ -8,6 +8,26 @@ pub(super) fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::QuantityBinary {
+            operator,
+            left,
+            right,
+            output,
+        } => {
+            let left = evaluate_node(left, input, input_kind)?;
+            let right = evaluate_node(right, input, input_kind)?;
+            let encoded = crate::expression_quantity::evaluate(
+                *operator,
+                kind_name(left.kind),
+                kind_name(right.kind),
+                left.as_slice(),
+                right.as_slice(),
+            )
+            .ok_or(Refusal::InvalidProgram)??;
+            let bytes = encoded.as_slice();
+            output[..bytes.len()].copy_from_slice(bytes);
+            PrimitiveValue::borrowed(expected, &output[..bytes.len()])?
+        }
         PreparedOperation::RationalBinary {
             operator,
             left,

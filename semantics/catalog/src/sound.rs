@@ -29,10 +29,12 @@ pub const SOUND_TONE_PLAY_KIND: &str = "sound/tone-play";
 pub const MUSIC_PLAY_KIND: &str = "music/play";
 pub const MUSIC_SYNTH_KIND: &str = "music/synth";
 pub const AUDIO_PLAY_KIND: &str = "audio/play";
+pub const AUDIO_CONTINUOUS_PLAY_KIND: &str = "audio/continuous-play";
+pub const AUDIO_CONTINUOUS_PLAY_REVISION: &str = "conduit.std/audio-continuous-play@1";
 pub const AUDIO_TONE_KIND: &str = "audio/tone";
 pub const AUDIO_TONE_REVISION: &str = "conduit.std/audio-tone@1";
 pub const AUDIO_CONTINUOUS_TONE_KIND: &str = "audio/continuous-tone";
-pub const AUDIO_CONTINUOUS_TONE_REVISION: &str = "conduit.std/audio-continuous-tone@1";
+pub const AUDIO_CONTINUOUS_TONE_REVISION: &str = "conduit.std/audio-continuous-tone@2";
 pub const AUDIO_GAIN_KIND: &str = "audio/apply-gain";
 pub const AUDIO_GAIN_REVISION: &str = "conduit.std/audio-apply-gain@1";
 // One block spans 41.7 ms at 48 kHz. A 40 ms admitted cadence can therefore
@@ -291,8 +293,7 @@ pub fn audio_continuous_tone_contract() -> StandardKindContract {
     let mut contract = audio_tone_contract();
     contract.kind_id = kind_id(AUDIO_CONTINUOUS_TONE_KIND);
     contract.plain_name = "Generate continuous tone blocks".into();
-    contract.summary = "Transform sampled Frequency controls into overlapping bounded PCM blocks for continuous playback.".into();
-    contract.inputs[0].temporal = PortTemporal::Value;
+    contract.summary = "Retain current Frequency controls and render one bounded phase-continuous PCM block on each cadence tick.".into();
     contract.inputs.insert(
         1,
         PortDescriptor {
@@ -375,7 +376,7 @@ pub fn audio_capture_push_to_talk_contract() -> StandardKindContract {
     }
 }
 
-pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 11] {
+pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str); 12] {
     [
         (sound_tone_play_contract(), SOUND_TONE_PLAY_REVISION),
         (music_input_contract(), MUSIC_INPUT_REVISION),
@@ -383,6 +384,10 @@ pub fn sound_contracts_with_revisions() -> [(StandardKindContract, &'static str)
         (music_synth_contract(), MUSIC_SYNTH_REVISION),
         (audio_render_demand_contract(), AUDIO_RENDER_DEMAND_REVISION),
         (audio_play_contract(), AUDIO_PLAY_REVISION),
+        (
+            audio_continuous_play_contract(),
+            AUDIO_CONTINUOUS_PLAY_REVISION,
+        ),
         (audio_tone_contract(), AUDIO_TONE_REVISION),
         (
             audio_continuous_tone_contract(),
@@ -415,6 +420,13 @@ pub fn stream_semantics(kind: &str) -> Option<StreamSemantics> {
             MAXIMUM_SIMULTANEOUS_NOTES,
             CancellationDisposition::CancelAndReleaseFiniteState,
             SoundTerminalBehavior::CompletesWhenInputsClose,
+        ),
+        AUDIO_CONTINUOUS_PLAY_KIND => (
+            2,
+            2 * (conduit_audio::MAXIMUM_PCM_FRAME_BYTES + PCM_FRAME_HEADER_ENCODED_LEN as u32),
+            0,
+            CancellationDisposition::CancelAndReleaseFiniteState,
+            SoundTerminalBehavior::DrainsAdmittedOutputThenCompletes,
         ),
         AUDIO_PLAY_KIND => (
             MAXIMUM_AUDIO_QUEUE_ITEMS,

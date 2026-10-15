@@ -104,8 +104,10 @@ pub use conduit_process::*;
 pub use generalized_input_catalog::*;
 #[cfg(feature = "plot-catalog")]
 mod job_catalog;
+mod print_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use job_catalog::*;
+pub use print_catalog::*;
 mod palette_metadata;
 #[cfg(feature = "plot-catalog")]
 mod palette_projection;
@@ -338,9 +340,9 @@ pub use sound_stream::*;
 mod sound_catalog;
 #[cfg(feature = "plot-catalog")]
 pub use sound_catalog::{
-    install_audio_capture_push_to_talk_catalog, install_audio_continuous_tone_catalog,
-    install_audio_gain_catalog, install_audio_play_catalog, install_audio_tone_catalog,
-    install_sound_catalogs,
+    install_audio_capture_push_to_talk_catalog, install_audio_continuous_play_catalog,
+    install_audio_continuous_tone_catalog, install_audio_gain_catalog, install_audio_play_catalog,
+    install_audio_tone_catalog, install_sound_catalogs,
 };
 #[cfg(feature = "plot-catalog")]
 mod structured_music_plot;

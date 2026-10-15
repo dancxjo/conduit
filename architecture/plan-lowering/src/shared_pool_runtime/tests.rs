@@ -309,3 +309,6 @@ mod waiting_tests;
 
 #[path = "waiting_policy_tests.rs"]
 mod waiting_policy_tests;
+
+#[path = "fair_progress_tests.rs"]
+mod fair_progress_tests;

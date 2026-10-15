@@ -68,7 +68,11 @@ test('static Handbook Thermostat uses one real local Play, acknowledged Face act
     const thermostat = page.locator('.handbook-show [data-resident-plot]:visible conduit-owner-face');
     await expect(thermostat.getByText('Sensor unavailable', { exact: true })).toBeVisible();
     await expect(thermostat.getByText('Requested settings; equipment operation is unconfirmed.', { exact: true })).toBeVisible();
+    await expect(thermostat.getByRole('button', { name: 'Lull', exact: true })).toBeHidden();
+    const bodyMenu = thermostat.locator('[data-body-menu] > summary');
+    await bodyMenu.click();
     await expect(thermostat.getByRole('button', { name: 'Lull', exact: true })).toBeDisabled();
+    await bodyMenu.click();
     receipts.initial = await face(page);
     const playing = await truth(page);
     expect(playing.bodyId).toBe(born.bodyId);

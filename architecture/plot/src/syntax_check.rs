@@ -15,6 +15,8 @@ use conduit_core::{
     CheckedFront, StructuredInfoTypeShape, StructuredSelector, UnmatchedVariantDisposition,
 };
 
+mod expression_body;
+use expression_body::expression_body_expansion;
 mod lexical_plots;
 mod matched_route;
 mod resolution;
@@ -219,38 +221,6 @@ pub(crate) fn check_document(
         source_sugar_expansions,
         structured_types,
         exact_initial_info: catalog.exact_initial_info.clone(),
-    })
-}
-
-fn expression_body_expansion(plot: &PlotSyntax) -> Option<PendingSourceSugarExpansion> {
-    let body = plot.expression_body.as_ref()?;
-    let input = plot
-        .front
-        .runtime_ports
-        .iter()
-        .find(|port| port.direction == crate::RuntimePortDirection::Input)?;
-    let output = plot
-        .front
-        .runtime_ports
-        .iter()
-        .find(|port| port.direction == crate::RuntimePortDirection::Output)?;
-    Some(PendingSourceSugarExpansion {
-        plot: plot.name.text.clone(),
-        authored: alloc::format!("= {}", body.expression.text),
-        source_span: body.span,
-        ordinary_kind: "conduitese/pure-expression-operation@1".into(),
-        input_ports: alloc::vec![input.name.text.clone()],
-        output_ports: alloc::vec![output.name.text.clone()],
-        operand_bindings: alloc::vec![SourceSugarOperandBinding {
-            source: input.name.text.clone(),
-            input_port: "value".into(),
-        }],
-        canonical_replacement: Some(alloc::format!(
-            "{{\n    {} >> {} >> {}\n}}",
-            input.name.text,
-            body.expression.text,
-            output.name.text
-        )),
     })
 }
 

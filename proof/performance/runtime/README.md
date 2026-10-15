@@ -140,3 +140,29 @@ exit status and stdout/stderr. With hosted pipelines enabled, this includes all
 refusal. Expression tests cover both U64 and Scalar 1/3/8/32-operator shapes,
 branches, boundary inputs and malformed frames. Conformance timings are discarded;
 a failed preflight retains its evidence and starts no measurements.
+
+## Repeated batches and report-only CI
+
+`report.json` includes `repeated_batches`, grouped by workload, execution mode
+and timed metric. Each group retains every batch sample, mean, nearest-rank
+percentiles and Bessel-corrected sample standard deviation. A single observation
+has no sample standard deviation; unavailable CPU observations remain absent.
+Event-latency distributions describe within-batch observations separately.
+These are descriptive statistics from one worker process, not an independent
+process confidence interval. Timer overhead is retained rather than subtracted.
+
+Candidate CI runs the same finite hosted command on its exact merge preview,
+with three repetitions, one million expression values and 1,000 selection and
+latency samples. The independent job is report-only and does not participate in
+the required candidate gate. Its artifact retains raw samples, source/Plan/Play
+receipts, metadata, checksums and refusal logs for fourteen days. Download it
+before expiry. Failure or missing measurements cannot establish a performance
+result; thresholds require later calibration on controlled machines.
+
+Native/prepared expression ratios describe checked arithmetic versus canonical
+frame interpretation. Hosted/native ratios additionally include coordination,
+reservation, Back preparation and retained Sign/report work, as disclosed in
+each raw row. Compare matched workloads and clock scopes; neither ratio is a
+universal claim of native speed. Cold Plot/Plan phases and the hosted full-call
+boundary remain separate from evaluator warm bulk measurements. Finer inside-
+kernel cold/warm phase measurements remain the distinct #5536 proof surface.

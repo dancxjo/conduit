@@ -294,6 +294,27 @@ and scalar invariant facts into consuming-plot arithmetic proofs. For example,
 cover both outcomes. This is bounded proof propagation, not permission to erase
 arbitrary arithmetic checks.
 
+## Quantity expressions and named expression inputs
+
+An expression-bodied plot can use its declared runtime input by name:
+
+```conduit
+plot distance-to-pitch (
+    >> distance: Distance
+    frequency: Frequency >>
+) = (1760Hz - (distance / 1cm) * 55Hz)
+```
+
+The name lowers to the same incoming-value operation as `.`. Neither spelling
+introduces a loop or determines cadence. Authored spelling and spans remain
+available for inspection. Linear quantities support compatible addition and
+subtraction, same-family division to an exact Scalar ratio, and multiplication
+or division by Scalar. Scaling preserves the physical family and Unit.
+Affine Points and products of two dimensional quantities are refused by this
+surface. Results must fit the admitted exact carriers: in particular, ratios
+must fit Scalar's millionth representation without rounding. See the
+[[continuous Theremin example|Conduitese-by-example#pocket-theremin-quantities-and-retained-state]].
+
 ## Bounded each, select, fold, and scan
 
 These are checked activation coordinators around exact selected behavior,

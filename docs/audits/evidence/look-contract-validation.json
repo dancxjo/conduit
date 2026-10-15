@@ -1,0 +1,71 @@
+{
+  "issue": 5633,
+  "source_contract": "0599364451ad41e4f830e23214432786603bcbaf",
+  "source_product": "79f376260b5d73117a90dd926382d4305718e4c3",
+  "final_test_helpers": "72160f63d2afdbf1023316c5ba20126b70e4bcbb",
+  "native": {
+    "passed": 278,
+    "failed": 0,
+    "ignored": 1,
+    "targets": 55,
+    "ignored_reason": "existing explicit retained actual Todo Face requirement"
+  },
+  "strict_face_clippy": "PASS",
+  "wire_node": {
+    "passed": 4
+  },
+  "chromium": {
+    "passed": 5,
+    "project": "chromium",
+    "workers": 1,
+    "retries": 0
+  },
+  "wasm": {
+    "sha256": "cc8f8c7abb0e371a4866bbf8012e83087dd511c5c96623e32f9d4f645d728534",
+    "bytes": 24730213,
+    "build": "release wasm32-unknown-unknown",
+    "source": "79f376260b5d73117a90dd926382d4305718e4c3",
+    "later_delta": "only fixed byte chunks in test helpers"
+  },
+  "logs": [
+    {
+      "path": "work/look-face-final-retry-tests.log",
+      "sha256": "e773ca73b68832b5322c1121ac5fcf0e3bec3936944f184a020e88ac69983d32"
+    },
+    {
+      "path": "work/look-face-final-clippy-pass.log",
+      "sha256": "b03db1a9d774e9d6863cb9c33312bb6cf94e06be290a29cb54e7a97c1932116b"
+    },
+    {
+      "path": "work/look-browser-binding-final-tests.log",
+      "sha256": "f549372f4152dffb8bd162dc51210a32c1824ea96693299c7fe1b641cc0cc189"
+    },
+    {
+      "path": "work/look-browser-clean-wire-tests.log",
+      "sha256": "b62ce9ca00f7d56251c9abaa8039b347d16594d91a1ac6b346cf836ab0012dfb"
+    },
+    {
+      "path": "work/look-browser-final-wasm-build.log",
+      "sha256": "5ce2e79af9ec6108f86a9672054f55c6ba10499ba6e67feafd8e04115fb55a28"
+    },
+    {
+      "path": "work/look-chromium-clean-source-proof.log",
+      "sha256": "7c490254e7757326d5f5de7a500ac7dd1789828d423403c729aafc8eb5d9bf2b"
+    },
+    {
+      "path": "work/look-browser-consumer-clippy.log",
+      "sha256": "beefadda548f5f4df2b46a4e0aaccfb5a2abba5d0e189c70c59f62f49491974f"
+    }
+  ],
+  "consumer_clippy": "PASS: browser Host/runtime/Patchbay lib and bins",
+  "parents_remain_open": [
+    5368,
+    5377,
+    5627
+  ],
+  "proof_limit": "native and actual browser execution; no physical/human or spoken/generative provider output",
+  "publication_refresh": "a3db9eeb590f1c61a33baeaed520f0137c3e7916",
+  "refresh_base": "ca95917e93c9f6f822a31cdd0304d3f5712ee838",
+  "refresh_delta": "Accepted parser Source guard files and docs; measured Look proof identities preserved",
+  "format": "PASS"
+}

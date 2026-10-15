@@ -1,0 +1,34 @@
+{
+  "issue": 5553,
+  "source": "6f707913fe4e4a5f2d9afd8941efbd9e594c143b",
+  "base": "55f4b0fa2198bbc90ce1dc028e59583d5956bfeb",
+  "proof_class": "checked Source and ordinary production planner; modeled resource/transport offers",
+  "tests": {
+    "passed": 327,
+    "failed": 0,
+    "ignored": "existing manual connected planner processing measurement",
+    "targets": 76
+  },
+  "clippy": "strict all-targets PASS",
+  "new_hard_admission_tests": 9,
+  "connected_negative_mutations": 7,
+  "bounds": {
+    "single_gear_global_states": 16,
+    "connected_global_states": 128
+  },
+  "test_bodies_preserved": "40dc2c0420de2324637727a5163cef635e76c561b389b6d2649f0e0ad22e6e92",
+  "coverage": [
+    "exact Host affinity and offered Front",
+    "Boot and offer-generation observation validation",
+    "queue and resource ceilings",
+    "declared memory and typed compute reservation",
+    "authority allowlist and exact-grant sealing",
+    "Line Boot, availability, identity, transport, payload and in-flight bounds",
+    "existing greedy trap and bounded search exhaustion"
+  ],
+  "logs_sha256": {
+    "work/global-hard-admission-all-tests.log": "4dc9180178ab029134011d5dea908842aac7d89c8f07a902dab0cae7444b5c62",
+    "work/global-hard-admission-final-clippy.log": "7d4ac53c6bf85f63501b6fde6643b877643cf77fa0306b20759659286d0d0209"
+  },
+  "parent_5230": "remains open; no physical/live-provider or full product completion claim"
+}

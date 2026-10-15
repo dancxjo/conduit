@@ -191,7 +191,7 @@ pub(crate) fn run(
     }
 }
 
-fn report_actions(output: &mut impl Write, face: &Face) -> Result<(), String> {
+pub(crate) fn report_actions(output: &mut impl Write, face: &Face) -> Result<(), String> {
     let mut count = 0;
     for action in face
         .actions
@@ -224,7 +224,7 @@ fn report_actions(output: &mut impl Write, face: &Face) -> Result<(), String> {
         .map_err(|error| format!("flush terminal actions: {error}"))
 }
 
-fn interaction_for_action(
+pub(crate) fn interaction_for_action(
     face: &Face,
     show: &MaskShow,
     identity: Option<&str>,
@@ -305,7 +305,7 @@ fn report_show(
         .map_err(|error| format!("flush owner terminal receipt: {error}"))
 }
 
-fn evidence_for_show(face: &Face, show: &MaskShow) -> Result<serde_json::Value, String> {
+pub(crate) fn evidence_for_show(face: &Face, show: &MaskShow) -> Result<serde_json::Value, String> {
     show.validate(face)
         .map_err(|error| format!("terminal evidence Show: {error:?}"))?;
     if show.show.lifecycle != conduit_face::ManifestationLifecycle::Available {

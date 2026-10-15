@@ -15,6 +15,8 @@ use crate::{
 };
 
 mod construction;
+pub(crate) mod expression_body;
+use expression_body::expression_body_cord;
 mod document;
 mod lexical_boundaries;
 mod logical_lines;
@@ -951,40 +953,6 @@ fn has_top_level_cord(text: &str, scope: Option<&crate::GlyphNotationScope>) -> 
         .into_iter()
         .filter(|position| text[*position..].starts_with(">>"))
         .any(|position| !text[..position].ends_with('>') && !text[position + 2..].starts_with('>'))
-}
-
-fn expression_body_cord(
-    front: &PlotFront,
-    expression: Expression,
-    span: Span,
-) -> Result<BackStatement, (PlotError, Span)> {
-    let inputs = front
-        .runtime_ports
-        .iter()
-        .filter(|port| port.direction == RuntimePortDirection::Input)
-        .collect::<Vec<_>>();
-    let outputs = front
-        .runtime_ports
-        .iter()
-        .filter(|port| port.direction == RuntimePortDirection::Output)
-        .collect::<Vec<_>>();
-    if inputs.len() != 1 || outputs.len() != 1 || inputs[0].temporal != outputs[0].temporal {
-        return Err((
-            PlotError::InvalidSyntax(
-                "expression-bodied plot requires exactly one runtime input and one runtime output with the same temporal contract; write an ordinary explicit Plot back"
-                    .into(),
-            ),
-            span,
-        ));
-    }
-    Ok(BackStatement::Cord(Cord {
-        stages: vec![
-            CordStage::Reference(inputs[0].name.clone()),
-            CordStage::PureExpression(expression),
-            CordStage::Reference(outputs[0].name.clone()),
-        ],
-        span,
-    }))
 }
 
 fn has_legacy_top_level_cord(text: &str, scope: Option<&crate::GlyphNotationScope>) -> bool {

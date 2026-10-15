@@ -36,7 +36,9 @@ use conduit_kernel::{
     BoundedValueRef, CordId, FixedHostCallBindings, FixedRoutes, HostCallDisposition,
     HostCallOutcome, HostedSignLog, HostedValueStore, NodeId,
 };
-use conduit_plan_lowering::lowering::{lower_plan_fragment, LoweredPlanFragment};
+#[cfg(test)]
+use conduit_plan_lowering::lowering::lower_plan_fragment;
+use conduit_plan_lowering::lowering::{lower_plan_fragment_for_profile, LoweredPlanFragment};
 
 type BrowserKernel = FixedScheduler<
     BrowserBack,
@@ -145,7 +147,7 @@ pub(super) struct PendingHostEffect {
 pub(super) enum BrowserHostEffect {
     AudioCue,
     AudioCapture,
-    PcmPlayback { frame: Vec<u8> },
+    PcmPlayback { frame: Option<Vec<u8>> },
     PitchTone { hertz: u32 },
     ClockObservation,
     Timer { duration_millis: u64 },
@@ -168,8 +170,11 @@ pub(super) enum DriveStatus {
 pub(super) fn prepare(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, PendingHostEffect), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, false)?;
     let mut scheduler = prepare_scheduler(fragment, &lowered)?;
     let pending = match drive(&mut scheduler, fragment)? {
@@ -190,8 +195,11 @@ pub(super) fn prepare(
 pub(super) fn prepare_remote_fragment(
     fragment: &PlanFragment,
 ) -> Result<(TourScheduler, LoweredPlanFragment), String> {
-    let lowered = lower_plan_fragment(fragment)
-        .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
+    let lowered = lower_plan_fragment_for_profile(
+        fragment,
+        crate::installed_browser::typed_state::storage_profile(),
+    )
+    .map_err(|error| format!("lower multi-host executable-tour Plan: {error:?}"))?;
     validate_envelope(fragment, &lowered, true)?;
     let scheduler = prepare_scheduler(fragment, &lowered)?;
     Ok((scheduler, lowered))
@@ -290,13 +298,23 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::AudioCapture,
                 }));
             }
+            if operation.contract_id.as_str() == crate::installed_browser::audio_io::DRAIN_OPERATION
+            {
+                if !input.is_empty() {
+                    return Err("PCM drain input must be empty".into());
+                }
+                return Ok(DriveStatus::Effect(PendingHostEffect {
+                    request,
+                    effect: BrowserHostEffect::PcmPlayback { frame: None },
+                }));
+            }
             if operation.contract_id.as_str() == crate::installed_browser::audio_io::PLAY_OPERATION
             {
                 conduit_audio::PcmFrameHeader::decode_frame(&input)
                     .map_err(|error| format!("browser PCM playback frame: {error:?}"))?;
                 return Ok(DriveStatus::Effect(PendingHostEffect {
                     request,
-                    effect: BrowserHostEffect::PcmPlayback { frame: input },
+                    effect: BrowserHostEffect::PcmPlayback { frame: Some(input) },
                 }));
             }
             if operation.contract_id.as_str()

@@ -26,6 +26,23 @@ impl StdHost {
             .map_err(|error| format!("plan attached terminal Mask: {error:?}"))
     }
 
+    /// Prepare the exact terminal Mask Plan issued by a remote Body owner.
+    /// The caller must authenticate that owner and retain/revalidate the
+    /// route's real Lines; a serialized seal alone establishes no carrier.
+    pub fn prepare_remote_terminal_mask_execution(
+        &self,
+        route: &conduit_face::RemoteOwnerMaskRouteSeal,
+    ) -> Result<terminal_mask_execution::HostedTerminalMaskExecution, String> {
+        if !self.terminal_attachment_is_live()? {
+            return Err("terminal attachment is unavailable".into());
+        }
+        terminal_mask_execution::HostedTerminalMaskExecution::new_remote_attached(
+            &self.advertisement,
+            route,
+        )
+        .map_err(|error| format!("plan remote attached terminal Mask: {error:?}"))
+    }
+
     /// The caller must authenticate and retain a foreground terminal provider
     /// before handing over its live connection. No terminal offer survives
     /// detachment, and each transition invalidates plans from the prior offer

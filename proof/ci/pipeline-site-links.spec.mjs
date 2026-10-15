@@ -48,6 +48,8 @@ test('ticker entrance is truthful and preserves historical recording links and b
   renderTickerIntroduction(path.join(root, 'journeys/current/ticker'));
   const page = readFileSync(path.join(root, 'journeys/current/ticker/index.html'), 'utf8');
   assert.ok(page.includes('<h1>Start, stop, and change a ticker</h1>'));
+  assert.ok(page.includes('data-application-look="conduit.look/phosphor@1"'));
+  assert.ok(!page.includes('data-application-theme='));
   assert.ok(page.includes('It does not tell time of day.'));
   assert.ok(page.includes('250, 500, 1000, or 2000 milliseconds'));
   assert.ok(page.includes('running, stopped, or waiting to start'));

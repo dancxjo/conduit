@@ -56,3 +56,36 @@ fn malformed_catalogue_never_reuses_previous_admission() {
     );
     LIBRARY_ADMISSION.with(|cache| assert_eq!(cache.borrow().as_ref().unwrap().key, [7; 32]));
 }
+
+#[test]
+fn theremin_shelf_admission_derives_exact_dynamic_backs_from_its_source() {
+    let source = include_str!("../../../../../../plots/pocket-theremin/main.conduit");
+    let bundle = serde_json::json!({"schema":"conduit.creche/reviewed-plot-bundle@2",
+        "plots":[{"slug":"pocket-theremin","entry":"phone-two-axis-controller","face_profile":1,"source":source}]}).to_string();
+    let inventory = super::super::initial_plots::reviewed_inventory(&bundle).unwrap();
+    let plot = &inventory.plots[0];
+    let entry = CatalogPlot {
+        slug: "pocket-theremin".into(),
+        title: "Pocket Theremin".into(),
+        entry: plot.name.clone(),
+        source: source.into(),
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
+        face_profile: 1,
+        required_kinds: plot.required_kinds.clone(),
+        unavailable_hint: String::new(),
+        graceful_fallback: None,
+    };
+    let host = HostId::from("browser/theremin-shelf");
+    let boot = BootId::from("boot/theremin-shelf");
+    let observed = crate::installed_browser::advertisement(host.clone(), boot.clone());
+    catalog_plot_plan(
+        &entry,
+        &[observed],
+        &host,
+        &boot,
+        &[],
+        &mut super::super::catalog_preparation::CatalogPreparation::default(),
+    )
+    .unwrap();
+}
