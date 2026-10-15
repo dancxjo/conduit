@@ -131,3 +131,7 @@ pub use generated::{
     AudioTimeAmplitudeMagnitude, AudioTimeMeanSquarePower, AudioTimeSampleAmplitude,
     AudioTimeSquareSum,
 };
+
+mod spectral_analysis;
+mod spectral_fft;
+pub use spectral_analysis::*;
