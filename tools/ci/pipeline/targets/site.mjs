@@ -172,7 +172,7 @@ export function assembleSite(directory, sourceCommit, workspace = 'target/worksp
     ...(thermostatJourney && { thermostatJourney: {
       captureSourceCommit: thermostatJourney.sourceCommit, publicationSourceCommit: sourceCommit,
       bodyId: thermostatJourney.bodyId, path: 'journeys/current/thermostat/',
-      proof: 'retained-local-browser-terminal', speechAvailable: false,
+      proof: 'retained-local-browser-terminal-spoken', speechAvailable: thermostatJourney.speechAvailable,
     } }),
     todoBrowserDevelopment: {
       captureSourceCommit: todoBrowserDevelopment.sourceCommit,
