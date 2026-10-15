@@ -147,15 +147,56 @@ fn plan_chain(count: usize, uniform: bool) -> Result<OptimizedPlan, PlannerError
     assert_eq!(fragment.placements.len(), count);
     assert_eq!(fragment.connections.len(), count - 1);
     for gear in &f.plot.gears {
-        assert!(fragment
+        let member = fragment
             .placements
             .iter()
-            .any(|p| p.gear_id == gear.gear_id));
+            .find(|p| p.gear_id == gear.gear_id)
+            .unwrap();
+        assert_eq!(member.kind_id, gear.kind_id);
+        assert_eq!(member.kind_contract_revision, gear.kind_contract_revision);
+        assert_eq!(member.inputs, gear.inputs);
+        assert_eq!(member.outputs, gear.outputs);
+    }
+    for cord in &f.plot.connections {
+        let source = fragment
+            .placements
+            .iter()
+            .find(|p| p.gear_id == cord.source_gear_id)
+            .unwrap();
+        let sink = fragment
+            .placements
+            .iter()
+            .find(|p| p.gear_id == cord.sink_gear_id)
+            .unwrap();
+        assert!(fragment
+            .connections
+            .iter()
+            .any(|p| p.source_placement_id == source.placement_id
+                && p.sink_placement_id == sink.placement_id
+                && p.source_port_id == cord.source_port_id
+                && p.sink_port_id == cord.sink_port_id
+                && p.value_kind == cord.value_kind
+                && p.track == cord.track
+                && p.temporal == cord.temporal));
     }
     assert_eq!(fragment.execution_fusions.len(), usize::from(count > 1));
     if count > 1 {
-        assert_eq!(planned.fusion_groups[0].preserved_gear_ids.len(), count);
-        assert_eq!(planned.fusion_groups[0].preserved_cords.len(), count - 1);
+        assert_eq!(
+            planned.fusion_groups[0].preserved_gear_ids,
+            f.plot
+                .gears
+                .iter()
+                .map(|g| g.gear_id.clone())
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            planned.fusion_groups[0].preserved_cords,
+            f.plot
+                .connections
+                .iter()
+                .map(|c| (c.source_gear_id.clone(), c.sink_gear_id.clone()))
+                .collect::<Vec<_>>()
+        );
     }
     Ok(planned)
 }
