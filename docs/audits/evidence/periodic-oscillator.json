@@ -1,0 +1,100 @@
+{
+  "issue": 5676,
+  "state": "PASS",
+  "source": "d857468de1a0cb501e055b4a7b66a3bddf03705c",
+  "accepted_base": "9780308650e454a091edaac55a05f38f97ed77e9",
+  "tests": {
+    "native": 6,
+    "normal_Plan_Play": 1,
+    "shared_flow": 1,
+    "Speech_library": 60
+  },
+  "total_tests": 68,
+  "focused_strict_Audio_std_Clippy": "PASS",
+  "workspace_format": "PASS",
+  "Core_production_changes": false,
+  "profile": "bounded integer cubic-flow; projected Q8 period/Q15 amplitude; original typed request and quantization remainders retained",
+  "proof_class": "native checked Source, independent numeric references and ordinary verified std Host Plan/Play; explicit Item cursor resume",
+  "not_claimed": [
+    "physical acoustic units",
+    "continuous exact-real synthesis",
+    "device effects",
+    "new scheduler",
+    "parent5217 or composed synth5678 completion"
+  ],
+  "log_sha256": {
+    "periodic-final-native-tests.log": "df7e83a2f163b6d5e32961aae4f9efd85bfc870cc018fb3afc2d87d64927b1d7",
+    "periodic-final-normal-tests.log": "d91441d54dd8b5772ae7715b72d83e8e57141ec449b1b67654058ce42c7da73e",
+    "periodic-final-shared-flow-tests.log": "130e4b5b610edba64423fbda5689c77659648a6fd543886fd7e9104a1611e112",
+    "periodic-final-speech-tests.log": "a4ee09280412d7b610bd2e610085b644318a68bfec81b83977496a3d40d08570",
+    "periodic-normal-typed-clippy.log": "fc9d19598915836a158d2200d0644adfa0419f2855975a79cd8ccbf043791738",
+    "periodic-final-format.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "tested_files": [
+    {
+      "path": "architecture/plot/tests/periodic_flow.rs",
+      "blob": "0c9ce3141d0d0d7398d164b00f41b01a4ecaa657",
+      "sha256": "714b0a0f32ee3d7da8579d711ba478c698bf3ba310ea75ede22834b49bf875dd"
+    },
+    {
+      "path": "semantics/audio/build.rs",
+      "blob": "4cbaba500d592b78a6d3bee1f7b039d819c42fbe",
+      "sha256": "2579873a9442a6c0b70b32b3e01e81682e9fef364b02c6b79f08d20d4c3baba6"
+    },
+    {
+      "path": "semantics/audio/build_support/periodic.rs",
+      "blob": "3f914918d3090571777d1a8356e9d8ec89963e6c",
+      "sha256": "9f80ae3d17cab8ede2f869aefb275497413e1385bce0356c16d979dd48fbfb25"
+    },
+    {
+      "path": "semantics/audio/dsp/periodic-flow.conduit",
+      "blob": "765996dc039beb15745a915540e4a31c77d152d0",
+      "sha256": "738e977c1ea30901bfc4f0999402eaa63860ec9b7806047428f08ff52e35ba21"
+    },
+    {
+      "path": "semantics/audio/dsp/periodic-oscillator.conduit",
+      "blob": "c9f67028d1442fa6d5c0702319c65e37dfa7a37f",
+      "sha256": "f897d9cd4b72206876d6317c3d6521dd3013f7693b1faf8d7ea2a7e88d44139d"
+    },
+    {
+      "path": "semantics/audio/dsp/periodic-types.conduit",
+      "blob": "a327531a4cefab7aa13731323a7cc9ce10a571dc",
+      "sha256": "5a016d6f01e97bd4b52f12de52084d30bcb952722543ba205cfcefa6434ef4b6"
+    },
+    {
+      "path": "semantics/audio/src/lib.rs",
+      "blob": "028700cdb9ae08f1dc156379185ceecf3cda421f",
+      "sha256": "c676fce1c131bead8f9037fc035f83a25264225b618ad05cd05b106869793330"
+    },
+    {
+      "path": "semantics/audio/tests/periodic_oscillator.rs",
+      "blob": "46d360b346990c1309d99397fca30b71917290ab",
+      "sha256": "86597178be0dc2c55f4801a61d8cb56aed9bb03bb32d0fbaf0a6ad8cf684c6d2"
+    },
+    {
+      "path": "semantics/speech/Cargo.toml",
+      "blob": "a23e5cf90ba91011280f299ff77426d283901380",
+      "sha256": "b47c91b235caf9fadc640780174989da3f7f1e8742895fe0f6cb77bacc833b9d"
+    },
+    {
+      "path": "semantics/speech/build.rs",
+      "blob": "3cf19923237bf5d9584bec9eaf5897d90bd9e8fd",
+      "sha256": "ecb39e3af8160ccc296463be47a1465c7602f42113460761c51f0d9c59a6f430"
+    },
+    {
+      "path": "semantics/speech/glottal.conduit",
+      "blob": "dad23ee24ed39660f17f1c23631720f5fc704ea2",
+      "sha256": "326f44dfc4240d5c93e8ebaca749e9f1edc4239de24b965b8ed7d3282bbfe40e"
+    },
+    {
+      "path": "semantics/speech/voice.conduit",
+      "blob": "7e372bb8f71a42ede67f89198a6556edf6e4c610",
+      "sha256": "7ee445276c3f66f5931dc19bd91aeeea06deed005dfd2efb6c44d3762c6219a8"
+    },
+    {
+      "path": "targets/std/tests/periodic_oscillator.rs",
+      "blob": "b13e0e004deb3771e329b097292bcc1a79a22b9c",
+      "sha256": "3d1229e3d239b50fa86c8f800bd8f2c4a733be641d49917bf252c8c4bdac5e0c"
+    }
+  ]
+}
