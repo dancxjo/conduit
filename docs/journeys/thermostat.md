@@ -22,27 +22,49 @@ peer of Heat, Cool or Off, or suggest that it preserves session settings. The
 retained failed capture predates this presentation change; fresh complete
 journey captures remain outstanding.
 
-## Current capture blocker
+## Current runtime and capture status
 
-There is no complete captured thermostat journey checked in or published by
-this change. The live capture reached the browser controls and finite bounds,
-then the installed Owner refused terminal attachment with
-`terminal-route-requires-lulled-body`. The generic terminal route currently
-requires a lulled Body for attachment, refresh, wardrobe and retirement. Todo
-can remain idle between committed edits; Thermostat owns a continuous scan.
+The direct `--owner-show` terminal attaches a provider to the owner's own Host
+and requires a lulled Body. A running thermostat instead uses a separately
+installed presentation Host. Its real terminal provider is attached before
+signed admission, and the owner selects its exact terminal Mask Plan and three
+directional Lines. Typed actions return through the existing thermostat worker.
 
-Selected audio also requires an idle installed Owner. The mechanical spoken
-reader's deterministic thermostat test does not establish live selected audio
-while the scan runs. A speech refusal is a diagnostic chapter, not a successful
-spoken encounter. Full Todo parity requires a separately reviewed runtime
-change admitting these presentation effects without replacing the thermostat
-Play, inventing a second thermostat state, or changing offers beneath its Plan.
+A development live run has verified fresh installed owner and peer processes,
+pinned TLS admission, actual terminal write/flush acknowledgement, Heat and Eco,
+and unchanged Body/Plan/Play. Closing the terminal leaves the thermostat running.
+The same path also passes with an explicitly selected artifact speech provider
+attached before admission. This is a same-computer, distinct-Host proof, not a
+claim of separate physical computers, equipment control or automatic failover.
+
+While the owner is still lulled, issue its normal routed invitation with an
+explicit non-loopback endpoint and selected TLS certificate. Install a fresh
+presentation Host with `--no-start`; it must not own or have joined another Body.
+Use that peer's installed executable:
+
+```sh
+PEER_CONDUIT=/absolute/path/to/peer-installed/conduit-linux-x86_64
+"$PEER_CONDUIT" body terminal --state-dir /tmp/thermostat-peer \
+  --invitation /absolute/path/to/owner-invitation.json --authorize-join
+```
+
+Start the thermostat through its owner, then enter `show` on the peer to refresh
+its Face. `actions` lists the current choices; `action thermostat.mode.heat` and
+`action thermostat.preset.eco` return typed settings. `evidence` reports the
+actual Show and foreground receipt. The finite owner return permits four
+actions and four refreshes within sixty seconds. A new encounter needs a fresh
+admission; this command does not silently extend a grant or replay a prior Boot.
+
+No complete thermostat journey packet is checked in or published yet. The
+staged producer below still uses the direct-owner terminal entrance and needs
+peer integration. Selected spoken output for the actual running thermostat Face
+also remains outstanding; a standalone kernel-to-WAV provider test is only an
+equipment prerequisite. A speech refusal is not a successful spoken encounter.
 
 Do not restart the thermostat to make a terminal edit look like a same-Play
-interaction. Do not substitute the browser-local Handbook thermostat: it is a
-separate Body. Preserve the original failed run before attempting another
-capture. A new proof attempt needs a fresh private installed Host and a new
-output directory.
+interaction, or substitute the browser-local Handbook thermostat: it is a
+separate Body. Each capture attempt needs fresh private installed Hosts and a
+new output directory.
 
 ## Capture entrance
 
@@ -53,7 +75,7 @@ Use the installed executable printed in its installation, with a short private
 state path (the full `control.sock` pathname must fit Linux's 107-byte limit).
 Prepare pinned Chromium using [the browser proof setup](../../proof/browser/README.md).
 
-Once the runtime prerequisite is satisfied, run:
+After the staged producer has been updated for the peer and spoken routes, use:
 
 ```sh
 cargo xtask prove journey thermostat --capture \

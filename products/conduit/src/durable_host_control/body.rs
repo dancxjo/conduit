@@ -462,12 +462,23 @@ impl DurableHostRuntime {
         receipt: &PortableAdmissionReceipt,
         face_line: &conduit_core::LineOffer,
         return_line: &conduit_core::LineOffer,
+        terminal_interaction_line: Option<&conduit_core::LineOffer>,
         expires_at_millis: u64,
     ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
+        if let Some(interaction_line) = terminal_interaction_line {
+            owner.seal_remote_terminal_mask_route(
+                receipt,
+                face_line,
+                return_line,
+                interaction_line,
+                expires_at_millis,
+            )
+        } else {
+            owner.seal_native_mask_route(receipt, face_line, return_line, expires_at_millis)
+        }
     }
 
     pub(super) fn owned_body_native_component_mask(
@@ -682,6 +693,7 @@ pub(crate) fn select_native_mask_route(
     receipt: PortableAdmissionReceipt,
     face_line: conduit_core::LineOffer,
     return_line: conduit_core::LineOffer,
+    terminal_interaction_line: Option<conduit_core::LineOffer>,
     expires_at_millis: u64,
 ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     match call(
@@ -692,6 +704,7 @@ pub(crate) fn select_native_mask_route(
             receipt: Box::new(receipt),
             face_line: Box::new(face_line),
             return_line: Box::new(return_line),
+            terminal_interaction_line: terminal_interaction_line.map(Box::new),
             expires_at_millis,
         },
     )? {
@@ -731,6 +744,7 @@ pub(crate) fn select_native_mask_route(
     _receipt: PortableAdmissionReceipt,
     _face_line: conduit_core::LineOffer,
     _return_line: conduit_core::LineOffer,
+    _terminal_interaction_line: Option<conduit_core::LineOffer>,
     _expires_at_millis: u64,
 ) -> Result<conduit_face::RemoteOwnerMaskRouteSeal, String> {
     Err("no reviewed local durable host control carrier exists on this platform".into())

@@ -55,6 +55,8 @@ mod face_wardrobe_runtime;
 mod face_wardrobe_witness;
 #[path = "native_mask_route.rs"]
 mod native_mask_route;
+#[path = "remote_terminal_route.rs"]
+mod remote_terminal_route;
 #[path = "wardrobe_face.rs"]
 mod wardrobe_face;
 pub(crate) use clock_interval::{is_clock_control_intent, ClockAction, CLOCK_RUN_MAXIMUM_MILLIS};
@@ -182,6 +184,7 @@ pub(crate) struct Owner {
     admissions: Option<conduit_body::AdmissionManager>,
     pending_browser: Option<participants::BrowserWindow>,
     pending_native_mask: Option<native_mask_route::NativeMaskRoute>,
+    invited_mask_offers: BTreeMap<conduit_core::HostId, String>,
     attached_terminal_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_route: Option<conduit_face::LocalOwnerMaskRouteSeal>,
     direct_spoken_template:
@@ -288,6 +291,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,
@@ -315,6 +319,7 @@ impl Owner {
             admissions: None,
             pending_browser: None,
             pending_native_mask: None,
+            invited_mask_offers: BTreeMap::new(),
             attached_terminal_route: None,
             direct_spoken_route: None,
             direct_spoken_template: None,

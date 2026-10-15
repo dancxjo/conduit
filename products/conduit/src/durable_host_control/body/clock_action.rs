@@ -52,7 +52,7 @@ impl DurableHostRuntime {
         let HostSource::Body { owner, .. } = &mut self.host else {
             return Err("installed Host does not own a live Body session".into());
         };
-        owner.validate_native_mask_show(request, show)?;
+        owner.validate_native_mask_interaction(request, show, interaction)?;
         self.owned_body_clock_action(Some(request), show, interaction)
     }
 
