@@ -49,3 +49,17 @@ measured Look captures. Native tests, browser execution and physical/human proof
 This does not close #5368, #5377 or #5627, admit Todo #5659's missing prerequisites,
 or establish spoken/generative output. Source grammar, real application/body
 integration and broader component/Mask proof remain owned by their open issues.
+
+## Admission repair: remaining test and publication consumers
+
+Candidate admission job `116230392119` failed because Patchbay's palette tests
+still imported the retired theme constant. Those four tests now consume canonical
+Phosphor Look tokens and retain their palette, contrast and planner-preference
+assertions. All four passed. The boundedness assertion checks the canonical Look
+wire envelope rather than the size of the retired Rust struct.
+
+Five current publication entry points now emit `data-application-look` with
+`conduit.look/phosphor@1`, matching the shared stylesheet. Four site publication
+Node tests passed; a one-worker, zero-retry Chromium test of the actual current
+landing page and shared CSS passed, including its painted background and type
+size. Historical retained capture files keep their recorded identities.

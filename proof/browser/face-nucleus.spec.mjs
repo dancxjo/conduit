@@ -223,3 +223,14 @@ test("generic no-Look encounter clears prior owned paint without changing meanin
   expect(result.before).toBe(result.after);
   expect(result).toMatchObject({ look: null, background: "", sentinel: "kept" });
 });
+
+
+test("current publication shell consumes canonical Look CSS hooks", async ({ page }) => {
+  await page.emulateMedia({ colorScheme: "dark" });
+  await page.goto("/site/index.html");
+  await page.addStyleTag({ url: "/targets/browser/host/assets/conduit.css" });
+  await expect(page.locator("body")).toHaveAttribute("data-application-look", "conduit.look/phosphor@1");
+  await expect(page.locator("body")).not.toHaveAttribute("data-application-theme");
+  await expect(page.locator("body")).toHaveCSS("background-color", "rgb(5, 7, 11)");
+  await expect(page.locator("body")).toHaveCSS("font-size", "16px");
+});
