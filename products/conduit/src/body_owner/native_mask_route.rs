@@ -107,14 +107,29 @@ impl Owner {
         interaction_line: &LineOffer,
         expires_at_millis: u64,
     ) -> Result<RemoteOwnerMaskRouteSeal, String> {
-        self.seal_native_mask_route_with_component(
-            receipt,
-            face_line,
-            return_line,
-            expires_at_millis,
-            None,
-            Some(interaction_line),
-        )
+        // This authenticated request explicitly selects the terminal Mask.
+        // Admission alone preserves an existing browser preference, which
+        // cannot acknowledge a Show from this different presentation route.
+        let previous_route = self.pending_native_mask.clone();
+        let previous_wardrobe = self.face_wardrobe.clone();
+        let result = self
+            .seal_native_mask_route_with_component(
+                receipt,
+                face_line,
+                return_line,
+                expires_at_millis,
+                None,
+                Some(interaction_line),
+            )
+            .and_then(|seal| {
+                self.select_component_face_route(&seal)?;
+                Ok(seal)
+            });
+        if result.is_err() {
+            self.pending_native_mask = previous_route;
+            self.face_wardrobe = previous_wardrobe;
+        }
+        result
     }
 
     fn seal_native_mask_route_with_component(
