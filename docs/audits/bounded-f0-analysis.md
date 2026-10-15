@@ -27,3 +27,7 @@ This is local hosted development evidence. Candidate CI and exact accepted-
 source verification remain required before closing #5686. The proof does not
 establish physical playback, real-time performance, a certified continuous F0,
 a complete streaming synth or the broader #5223/#5222 parent contracts.
+
+## CI integration follow-up
+
+The reviewed inventory now admits its 128 explicit subjects, and the reference Host revision assertion includes the installed pitch observation offer. All 21 plot-inventory tests and the reference-host test pass; strict std Host test lint and formatting pass. The appended evidence record retains this integration source separately from the estimator’s original numerical validation source.

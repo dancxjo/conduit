@@ -222,5 +222,67 @@
     "outputs/bounded-f0-pre-availability-checkpoint.json",
     "outputs/bounded-f0-portable-development-proof.json",
     "outputs/bounded-f0-installed-checkpoint-proof.json"
-  ]
+  ],
+  "ci_integration_followup": {
+    "source": "c26c5887728942fb8cc8a39a7739ec1ac55a7ea6",
+    "failed_candidate": "b09b275c005dba47cf9028bd8cf4ed6562ff6b45",
+    "failed_run": 38807804293,
+    "failed_job": 116678346156,
+    "failure_log": {
+      "sha256": "7fa9c4ec4f851a69dda18d1b251f33b6f554ea6b8ee730fe8e9ef3297b3f6f46",
+      "bytes": 2526257
+    },
+    "cause": [
+      "declared inventory maximum127 was lower than128 reviewed subjects",
+      "reference-host revision assertion omitted the installed pitch observation Kind"
+    ],
+    "fix_files": {
+      "plots/inventory.toml": {
+        "sha256": "f641917044a687931bace778f0126b771156eeb10e3c2e5bf7e345a2cd34ac6c",
+        "bytes": 37645
+      },
+      "targets/std/src/composition/tests.rs": {
+        "sha256": "5712c2234db692d55efd1ee61093b1ccf21b9b527b05a74687d4af61b9424d35",
+        "bytes": 8156
+      }
+    },
+    "tests": 22,
+    "checks": [
+      {
+        "log": "../bounded-f0-advertisement-regression.log",
+        "tests": 1,
+        "content": {
+          "sha256": "5afa678922c97749d1c3dc9a194d8e09529e814d6f36e09363e10e5ad3295570",
+          "bytes": 530
+        }
+      },
+      {
+        "log": "../bounded-f0-inventory-regression.log",
+        "tests": 21,
+        "content": {
+          "sha256": "1806bd861f5a7b014953623575e757e43319d6c6f6e79dcb5512e780c161b8d0",
+          "bytes": 19238
+        }
+      },
+      {
+        "log": "../bounded-f0-integration-clippy.log",
+        "state": "PASS",
+        "content": {
+          "sha256": "cea1caf461d9476e63ccefb7d99dc2abb536aaa430eeead7010fc2c0963013a5",
+          "bytes": 202
+        }
+      },
+      {
+        "log": "../bounded-f0-integration-format.log",
+        "state": "PASS",
+        "content": {
+          "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+          "bytes": 0
+        }
+      }
+    ],
+    "behavioral_source": "28efb0d1e5cc5b8578ee6dc4260758ed318f7d64",
+    "behavioral_evidence": "outputs/bounded-f0-combined-development-proof.json",
+    "scope": "No estimator, metadata, Back, codec or runtime code changed; earlier numerical proof retains its original source pin."
+  }
 }
