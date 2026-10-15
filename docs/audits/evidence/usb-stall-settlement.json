@@ -330,5 +330,457 @@
   "late_native_completion_proven_by_external_reply": false,
   "physical_compatibility": "unverified",
   "proof_boundary": "hosted native syntheticMMIO/events + actualfreestandingQEMUproduct; no physicaldeviceclaim; #5587/#5253currentfullintegrationandpublicationgatesremain",
-  "completed_pipeline": 5299
+  "completed_pipeline": 5299,
+  "refreshed_guest": {
+    "source": "5bcc8b9e23d6817364fa8ac2feec783da85951ee",
+    "build_record": {
+      "schema": "conduit.conduitos.build/v2",
+      "artifact_role": "product-host",
+      "base_commit": "5bcc8b9e23d6817364fa8ac2feec783da85951ee",
+      "architecture": "x86_64",
+      "rust_target": "x86_64-unknown-none",
+      "limine_crate": "0.5.0",
+      "elf_sha256": "7d69e030371dbb500de2d82a98a58622a44dfc75abd52eed4105d9acd34d2286"
+    },
+    "build_entrance": "cargo xtask make conduitos live x86_64 --locked",
+    "cases": [
+      {
+        "mode": "none",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "ffb451dc56a345e66b4da00ff4cf065a78b745b28d780a57be90a3c2ddb52f5c",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "proof_class": "emulated-native-block-read",
+          "blocks": 16,
+          "bytes_per_block": 512,
+          "ordered_unique_ordinals": true,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "ffb451dc56a345e66b4da00ff4cf065a78b745b28d780a57be90a3c2ddb52f5c",
+        "wire_sha256": "3ee6dd5b709485cfce43200db002b9e2dd28fc86da8bbb205a76a0668310ca27"
+      },
+      {
+        "mode": "stall-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "67e7f097316bc656f0cd35fd1ab623cf7a5a9bbf3e29e81b378fce2dc3d32a60",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "stalled",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "67e7f097316bc656f0cd35fd1ab623cf7a5a9bbf3e29e81b378fce2dc3d32a60",
+        "wire_sha256": "133d10c4043216acea126b8c7c9858c567ab094a4a78ffdf143fdbbd940d92a4"
+      },
+      {
+        "mode": "disconnect-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "38412eb07fa8f78d3d06e81c828f75e18fafe6fad4d4ee296e67d93e699db6d6",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "provider-lost",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "38412eb07fa8f78d3d06e81c828f75e18fafe6fad4d4ee296e67d93e699db6d6",
+        "wire_sha256": "233f038f6cef2845ccb10684c8a9c78c49c5447d0232cb0a6334564077398809"
+      },
+      {
+        "mode": "stale-tag",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "601ec1a5633506dcaa8cefd0a858edcfe40b75331d2026228d5a1e91f89d28d2",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "601ec1a5633506dcaa8cefd0a858edcfe40b75331d2026228d5a1e91f89d28d2",
+        "wire_sha256": "3145ec7d4ccbb098c727764fdd7f9f95a147d1fdc832dcfb135ec88917a9b031"
+      },
+      {
+        "mode": "bad-residue",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "36950baa6f0906f89bfc8d747d312ec3be4368a2c7b6d847096b0c7228bccc07",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "36950baa6f0906f89bfc8d747d312ec3be4368a2c7b6d847096b0c7228bccc07",
+        "wire_sha256": "c7f7061cd9f5e1fd60a50247c9c411b07af7e3423f169733ab7fc4a3238d9830"
+      },
+      {
+        "mode": "command-failed",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "b06b8dd72d238641b0383eb94f3397e49ca66d523b26f2a29cc42bb34631a9a0",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "b06b8dd72d238641b0383eb94f3397e49ca66d523b26f2a29cc42bb34631a9a0",
+        "wire_sha256": "0a2d4dd1b50a0f11aad78913e9070702f6eb92c1d286fe3a6de0ee3164eda8c7"
+      },
+      {
+        "mode": "phase-error",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "328b001f9dad97f05270e5b920f97d46855f586027c4b9a46153e88fdbb256a0",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "328b001f9dad97f05270e5b920f97d46855f586027c4b9a46153e88fdbb256a0",
+        "wire_sha256": "818d169af90f54586efb29b4e0e05639a9eaa70e10ef71df3984bc8d8906dc68"
+      },
+      {
+        "mode": "short-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "d88d317abb0a15117210c7fdce0a33e70f2829652a8eed29771b19fff0fcbc68",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-retired",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "2e5bbc2f6ae4b0dfa7dfea6fecbaf6fade881d7adff0f21693c5c365e78c12de",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "terminal_storage_result": "command-failed",
+          "ordinal": 0,
+          "results": 1,
+          "retired": true
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "2e5bbc2f6ae4b0dfa7dfea6fecbaf6fade881d7adff0f21693c5c365e78c12de",
+        "wire_sha256": "f742a5d507b03301b044e7ea2c8e7c1cc09759494307b350d912d5c5b575744c"
+      },
+      {
+        "mode": "hold-in",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "c814a1635774d9286cbfdc5cd28cd44983978887522431a9239a7b931cec324b",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-refused:protocol-step-budget-exhausted",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "744ef4844bc16b4da6fd040a601ddf549659f27ee7ecf97243d79d1b41b45bc8",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "root_outcome": "protocol-step-budget-exhausted",
+          "block_outputs": 0,
+          "original_cancel_id": 518897664,
+          "device_response_after_cancel_status": 1,
+          "late_native_completion_proven": false
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "744ef4844bc16b4da6fd040a601ddf549659f27ee7ecf97243d79d1b41b45bc8",
+        "wire_sha256": "8e9775a8536b50c8aeb33e0c6b47ff7549657cabe59e2629795b0eaa21eeaa17"
+      },
+      {
+        "mode": "late-after-cancel",
+        "runner_exit": 0,
+        "decoder_exit": 0,
+        "native_tags": [
+          1
+        ],
+        "passed": true,
+        "receipt": {
+          "aarch64_firmware_sha256": null,
+          "architecture": "x86_64",
+          "emulator": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/usb-stall-final/targets/conduitos/proof/usb-bot/qemu_bot_wrapper.py",
+          "fixture_input": {
+            "command": null,
+            "injected": false,
+            "injection_gate": "CONDUIT_PROTOCOL_PLAY",
+            "maximum_reports": 0,
+            "requested": false
+          },
+          "image_sha256": "c814a1635774d9286cbfdc5cd28cd44983978887522431a9239a7b931cec324b",
+          "maximum_transcript_bytes": 2097152,
+          "outcome": "play-refused:protocol-step-budget-exhausted",
+          "physical_compatibility": "unverified",
+          "proof_class": "freestanding-emulator",
+          "qemu_profile": "q35-single-cpu-512m-headless",
+          "schema": "conduit.conduitos/protocol-run-receipt@1",
+          "serial_sha256": "e05e6e43111186ba18504a990c45da9a71a436d89e7ced56c9eefaf01f8e8f51",
+          "usb_devices": [],
+          "usb_storage_fixture": null
+        },
+        "decoded": {
+          "root_outcome": "protocol-step-budget-exhausted",
+          "block_outputs": 0,
+          "original_cancel_id": 518897664,
+          "device_response_after_cancel_status": 0,
+          "late_native_completion_proven": false
+        },
+        "zero_play_allocation": true,
+        "serial_sha256": "e05e6e43111186ba18504a990c45da9a71a436d89e7ced56c9eefaf01f8e8f51",
+        "wire_sha256": "3ccb9f4ea350a7facb87eb2f53376b0cc8779adb8d92885e4d4fe861d30a98b5"
+      }
+    ],
+    "proof_class": "fresh canonical native product in QEMU with external BOT fixture; hosted native-ring late-event tests remain separate",
+    "excluded_appliance": "initial architecture-proof-appliance build was refused before guest execution; original record and ELF retained",
+    "host_harness_cleanup": "exact orphan emulator/device children of already passed cases terminated; active cases untouched; retained process audit",
+    "fixture_parent_death_cleanup": "wrapper can leave orphan descendants after termination; not a claim about native DMA; local cleanup required"
+  },
+  "probe_process_lifetime": {
+    "class": "Linux external probe process ownership with actual paused QEMU; no native DMA or execution proof",
+    "before": "same lifecycle test fails on original5bccwrapper; emulator/device remain live after forced wrapper death",
+    "after": "PASS; both actual children stop within admitted3seconds after SIGKILL of wrapper",
+    "parent_death": "SIGTERM installed before each child exec, with parent-death installation race checked; Linux-only explicit requirement",
+    "logs": {
+      "before": "6c6ef933394f8400281af7c304d4696a3c71f6627144521bbf3a5f477c8c43ed",
+      "after": "40d4b09cb29a31c3453c5b3200de67e77c949254a5f480e8c3925d5436a49e54"
+    },
+    "source_files": {
+      "qemu_bot_wrapper.py": "45f4488e02c844d69791405a082ef87f7d609e21b1dd5b0d5ab46634247bcbda",
+      "process_lifetime.py": "e3dd9616c98d494368773838cf6e14bda905e79f1600908de4d85f6f2f083f8f",
+      "test_wrapper_lifecycle.py": "a27c0ef9703137691bad5c932b85bdf1fae3dd4bddb14d7ddbbf4b4274bc85c5"
+    }
+  }
 }

@@ -35,3 +35,29 @@ completion; their verifier explicitly reports that fact as false. Native late
 event refusal is a separate hosted proof class. These are emulator and hosted
 tests, not physical compatibility. #5587 and parent #5253 retain their current
 full integration, architecture comparison and publication gates.
+
+## Refreshed product validation
+
+At `5bcc8b9e23d6817364fa8ac2feec783da85951ee`, 38 focused hosted tests,
+strict all-target Conduitos Clippy and pinned workspace formatting pass again.
+The canonical `make conduitos live x86_64 --locked` product build and all ten
+fresh BOT/cancellation cases pass. All ten transcripts retain zero Play
+allocation/reallocation counters. Sixteen ordinary read tags and one typed
+retired STALL result are checked. External reply after cancellation still does
+not prove late native completion. The original receipts above remain pinned.
+
+An initial architecture-appliance build was rejected by the product-role guard
+before any guest case; it is excluded. The harness can orphan emulator/device
+children when its wrapper terminates; only descendants of already verified
+cases were cleaned up, preserving active cases and proof files. These hosted
+fixture process lifetimes do not prove or change native DMA quiescence.
+
+The subsequent dependency refresh adds the PC repair's two exact Host profile
+snapshot literals, with no additional product-code changes.
+
+The BOT wrapper now installs Linux parent-death termination for both its actual
+QEMU and external device children, including the fork/installation race. The
+same actual-QEMU supervision regression fails on the original wrapper and
+passes on the guarded wrapper. It checks forced wrapper death with QEMU paused;
+it is host probe ownership proof, not native transfer or DMA evidence. The ten
+USB guest receipts above remain pinned to their measured product Source.
