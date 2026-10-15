@@ -126,12 +126,9 @@ impl Owner {
                 )
                 .map_err(|error| format!("browser-wardrobe-route-stale:{error:?}"))?;
         }
-        if action.is_some()
-            && (self.session.evidence().body.state != BodyState::Lulled
-                || self.session.realization().is_some())
-        {
-            return Err("owner-wardrobe-requires-lulled-body".into());
-        }
+        // Mask eligibility and preference use only the authenticated current
+        // presentation routes above. They neither replace the workload Plan
+        // nor advance the Host already owned by its active worker.
         self.owner_wardrobe_report(owner_plan_id, basis_revision, action)
     }
 
