@@ -1,0 +1,38 @@
+{
+  "issue": 5551,
+  "source": "68afcccbac2a3d62f15df0bc83ba276c4deaa92b",
+  "base": "55f4b0fa2198bbc90ce1dc028e59583d5956bfeb",
+  "proof": "ordinary generic hosted pool/kernel with explicitly modeled hosts and forecasts; no live inference or physical session",
+  "plan_lowering": {
+    "passed": 46,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 5
+  },
+  "kernel_shared_pool": {
+    "passed": 12,
+    "failed": 0,
+    "ignored": 0,
+    "targets": 3
+  },
+  "strict_all_target_clippy": "PASS",
+  "regression_before": "provider loss plus old hosted release returns Lifecycle(InvalidLifecycle), retained runtime failure",
+  "regression_after": "owner-confirmed checked completion succeeds only from exact releasing epoch; active/repeated/stale completion refuses",
+  "bounds": {
+    "member_slots": 2,
+    "per_member_capacity": 1,
+    "waiting_operations": 32,
+    "waiting_bytes": 128,
+    "maximum_bypasses": 2
+  },
+  "progress": "unrelated requester reaches surviving slower-predicted member while predicted-fast member remains occupied; cancellation and pressure do not free pinned work or retire pending requests; next admitted epoch cannot be released by stale identity",
+  "preserved": "same sealed Plan and existing waiting/aging/cost policy; no automatic replay, retry, extra provider capacity or provider-completion promise",
+  "logs_sha256": {
+    "work/pool-fair-progress-all-tests.log": "c295ca38877e4e0821f1ccc14c59143c659b021cf6cb9f02bc9903cd60ccc31d",
+    "work/pool-fair-progress-kernel-all-related-tests.log": "30607f475f2d037f4e00ab8ac292f54368df9abb798fbc06c9eb6bf50b144398",
+    "work/pool-fair-progress-final-clippy.log": "bc04f72f10983a770a964ce0e2ac4c4c434b30365c9f5c2d31f7d7d15a2661b1",
+    "work/pool-fair-progress-before-retirement-fix.log": "5381bdcd07fced9fb36d0838620e1a4630179fd2ca13b5aa1a251a69a4f4f96c",
+    "work/pool-fair-progress-after-retirement-fix.log": "ce7ddf1e64aa6f3d598500afc47a380112eb44585de7a54ad21883a3e6b442fc"
+  },
+  "parent_5228": "remains open for full product/live-provider requirements"
+}
