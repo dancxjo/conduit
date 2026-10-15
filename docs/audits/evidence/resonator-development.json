@@ -1,0 +1,227 @@
+{
+  "issue": 5677,
+  "state": "LOCAL DEVELOPMENT PROOF PASS; accepted dependency refresh/CI/merge pending; no PR",
+  "source": "7e0774f69fcfaee9195882ef779b2101cc24395d",
+  "accepted_base": "560916ec4f361901e23449f7b44d984dc067c1c3",
+  "tests": {
+    "DSP_Source": 8,
+    "normal_Host_Plan_Play": 1,
+    "Speech_library": 60
+  },
+  "total_runtime_tests": 69,
+  "additional_graph_tests": 7,
+  "total_tests": 76,
+  "checks": [
+    {
+      "log": "stable-resonator-reused-final-source-tests.log",
+      "sha256": "3f3a5bc53847c22ecd54144c39ed6400836750a83b8a4745415e265a71b89087",
+      "tests": 8,
+      "state": "PASS"
+    },
+    {
+      "log": "stable-resonator-reused-final-normal-tests.log",
+      "sha256": "0330bbcc4d661d5a82788bd820f7c87e49817af6e17c5fdfcea54bc66ba0c025",
+      "tests": 1,
+      "state": "PASS"
+    },
+    {
+      "log": "stable-resonator-symbol-fixed-speech-tests.log",
+      "sha256": "515bc4687180a8cf47c3f55ea7c9f3e0497825a5b463ae462f2b93c0b82b6493",
+      "tests": 60,
+      "state": "PASS"
+    },
+    {
+      "log": "stable-resonator-symbol-graph-tests.log",
+      "sha256": "8f9939f1d4b5407d76289a4652cf7eda0a019c3db3d24f1dfab61e9c939c81dc",
+      "tests": 7,
+      "state": "PASS"
+    },
+    {
+      "log": "stable-resonator-symbol-fixed-clippy.log",
+      "sha256": "25bae08f8bbe05278e3392ede2d864db9fb92f37fc079f9a721f183da7556f9f",
+      "tests": 0,
+      "state": "PASS"
+    },
+    {
+      "log": "stable-resonator-symbol-fixed-format.log",
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "tests": 0,
+      "state": "PASS"
+    }
+  ],
+  "tested_files": [
+    {
+      "path": "architecture/plot/tests/common/resonator.rs",
+      "sha256": "7001eff2bea5490fdfc02487d55ce25951990d9b59b08c708564a2c4ccb192f5",
+      "blob": "a6f147db38b67a7db7dc691d4f3c6b2133eda56e"
+    },
+    {
+      "path": "architecture/plot/tests/resonator_projection.rs",
+      "sha256": "68d9b4508c0b19868fb469318e7292c328026d301411340737bb0457422b8aba",
+      "blob": "1a6667f5218d13ab194eea4d7fe1241363704010"
+    },
+    {
+      "path": "architecture/plot/tests/resonator_recurrence.rs",
+      "sha256": "6b55db26e603366f43d1f2c7c6a54d01a570bfb1572573fd2c216f273b29cbf9",
+      "blob": "1335e584a5c111b922b742f7c99a13334549a8af"
+    },
+    {
+      "path": "architecture/plot/tests/resonator_state.rs",
+      "sha256": "3e84de884aafc2ad7e9ab523751bb256640755cca0df138f75e95430a768f3b4",
+      "blob": "55860aff549c1dfe1dd8c732cd65979c3ecd72d1"
+    },
+    {
+      "path": "proof/fixtures/native-speech-footprint/Cargo.lock",
+      "sha256": "291c718dc3c0582ecd8cc4122b9f380a60b3e2de2a3976876bfc2ba287b7c54f",
+      "blob": "175845c44bbf400aad79bd9eeb09adde81fd2fb7"
+    },
+    {
+      "path": "semantics/audio/dsp/resonator-projection.conduit",
+      "sha256": "962ba86755f42f93d840159c6f422e3adc318723f97a64b68456bf99a6c273d0",
+      "blob": "91f31e700c374448fc42299d3c385227b893d5e6"
+    },
+    {
+      "path": "semantics/audio/dsp/resonator-recurrence.conduit",
+      "sha256": "2d3707f326e049dba27188f7bf2b38a37c1ad604a890d3d3cb3c01a564921486",
+      "blob": "2eaa1cecbe05153c970cf798dd376ff016881822"
+    },
+    {
+      "path": "semantics/audio/dsp/resonator-types.conduit",
+      "sha256": "07b40bbacab720b03282c2079d0b089c0ab465ef508ce3778f7040cee9d1bf8b",
+      "blob": "18d6d85af9e28c07e8a99170e8770504998b40be"
+    },
+    {
+      "path": "semantics/audio/dsp/resonator.conduit",
+      "sha256": "014c88828ac43afb558d5327f2c2b8b1faa626e4a3878a7e1656109f738c69cb",
+      "blob": "bd834d185e9c637e9830ed5844c333c3faf079e8"
+    },
+    {
+      "path": "semantics/audio/src/lib.rs",
+      "sha256": "08053dfb7a1f51c21d54b37b814013b680a65df2c989329a71ee451052185ef5",
+      "blob": "ca391edcead8871255137a0d302e60a50b32fc31"
+    },
+    {
+      "path": "semantics/speech/Cargo.toml",
+      "sha256": "b47c91b235caf9fadc640780174989da3f7f1e8742895fe0f6cb77bacc833b9d",
+      "blob": "a23e5cf90ba91011280f299ff77426d283901380"
+    },
+    {
+      "path": "semantics/speech/build.rs",
+      "sha256": "99e7adf0d341ea4463d91c918b2c40faf0c98ff9e9f3ab0934ed10f167d92cbd",
+      "blob": "98b8f83b759a4668ff543ef64817b9fec41455b4"
+    },
+    {
+      "path": "semantics/speech/build_support/graph.rs",
+      "sha256": "5532d9b3d952eed168a12a0f511d4f23f1ad5a4672f8d18165c764d2feee1356",
+      "blob": "b3f70d9c0ddb9faeb973336953e42cd778d399bf"
+    },
+    {
+      "path": "semantics/speech/src/connection_parity.rs",
+      "sha256": "92e49540fb56a82747b992d3c48a8740d0e2f1dd0b011d63fd9e6305b10b6ee8",
+      "blob": "497dc4d035331aaaa23e65f780834770c5791dcb"
+    },
+    {
+      "path": "semantics/speech/src/differential.rs",
+      "sha256": "03d04df0f1df015edce718575b55ab223e3ecc0b9ce173a7b46b845a66f2bb23",
+      "blob": "5f0751decc7db256915f775d64dfaca5d6765ce7"
+    },
+    {
+      "path": "semantics/speech/src/frame_parity.rs",
+      "sha256": "d2bc85ad6576460572b2d880ac68b32d3bf8abd9fd1b371909e9265f1e51b7ce",
+      "blob": "dabb89f25f7084dc77d4e8c80cfd48bf1d6699e2"
+    },
+    {
+      "path": "semantics/speech/src/onset_parity.rs",
+      "sha256": "cafce8a253e8e89f16c22618cb16048e0159466e569d582e2631aca348039b0f",
+      "blob": "91744699394e5f9ff142b718f489efe2a1992232"
+    },
+    {
+      "path": "semantics/speech/src/prosody_parity.rs",
+      "sha256": "89ae049a0a6b13d342c3d49bce63994bc207308db4d9da93661c8be25adac83e",
+      "blob": "7181e3dc2e302d29ab38759e5d577d3482ceac10"
+    },
+    {
+      "path": "semantics/speech/src/resonator_reference.rs",
+      "sha256": "ce09027f02082ee52b5324a32741ea8655ab881c3fcad4f80197f94721b4ad29",
+      "blob": "946751c0869970f5811ec6ff1b8690fcbc4f067b"
+    },
+    {
+      "path": "semantics/speech/src/trajectory_parity.rs",
+      "sha256": "85e86e1c6d9e62c03fa1823eb8fdbe5ec965d488587a185bb1be598f102de9a5",
+      "blob": "507f68057b89ac7eb9ae7a6ad69f3bfcd08f6547"
+    },
+    {
+      "path": "semantics/speech/tests/graph_admission.rs",
+      "sha256": "c0769e57c75f09d1b9dc934f936eb73135884f6ce6e028098274656938482698",
+      "blob": "1773b29ec1deb4fc9b12fd218832a6066e279d9e"
+    },
+    {
+      "path": "semantics/speech/voice.conduit",
+      "sha256": "8a87e3704a422d82d15a9d468c237d7833b0fb04c32e38965431b5ab5574afd3",
+      "blob": "8ed32c0290b7edc8eb9f9078fc9d40238e248872"
+    },
+    {
+      "path": "targets/std/tests/resonator.rs",
+      "sha256": "d9de6f13a066d158b5256d341f5196022b913eb5e1781ab3513ede34259bfeeb",
+      "blob": "ada150bdd99a1d3709c10f4227a143d1e289e9b9"
+    }
+  ],
+  "source_pin_note": "DSP/Host runtime Source matches ea674. The latest generator changes only Rust symbol spelling; full fresh Speech parity and graph-admission tests validate it. Original runtime proof and historical artifact pins remain distinct.",
+  "recovered_corpus": {
+    "origin": "78c38a383f4a3c6c910275f5e66e652f7744a33c",
+    "applicable_vectors": 205,
+    "archive_preserved": true
+  },
+  "standalone_lock_preflight": {
+    "source_origin_branch": "codex/periodic-oscillator",
+    "source_commit": "bd0aa30935e945cf17172638a10827e30553b9db",
+    "reused_file": "proof/fixtures/native-speech-footprint/Cargo.lock",
+    "sha256": "291c718dc3c0582ecd8cc4122b9f380a60b3e2de2a3976876bfc2ba287b7c54f",
+    "reason": "same Speech Audio builddependency; exact earlier lock repair preserves registry versions",
+    "checks": [
+      {
+        "manifest": "proof/fixtures/native-speech-footprint/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/avr/firmware/promicro-host/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/conduitos/domain/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/c3-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/s3-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/wroom-signal/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/esp32/firmware/wroom-signal/make-package-runner/Cargo.toml",
+        "exit_code": 0
+      },
+      {
+        "manifest": "targets/rp2040/firmware/pico-w-signal/Cargo.toml",
+        "exit_code": 0
+      }
+    ],
+    "state": "PASS"
+  },
+  "proof_class": "native checked Source, independent integer/frequency references, ordinary verified Host Plan/Play and full Speech parity",
+  "not_claimed": [
+    "physical output or calibrated SPL",
+    "real-time performance",
+    "parent5217 or synth5678 completion"
+  ],
+  "pending": [
+    "refresh onto accepted5676 dependency while retaining both shared Source imports",
+    "CI candidate and accepted-file verification before issue closure"
+  ]
+}
