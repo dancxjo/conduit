@@ -93,20 +93,21 @@ fn source_kernel_preserves_shape_cancel_provider_loss_and_reported_timeout() {
             tensor.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
         }
         let mut outputs = Outputs::default();
-        let error = host
-            .run_external_plot_to(
-                plan.fragments[0].clone(),
-                &[ExternalForeInput {
-                    front_port_id: "inputs".into(),
-                    track: ConnectionTrack::Payload,
-                    bytes: bundle(tensor).encode().unwrap(),
-                }],
-                &mut outputs,
-                &mut Vec::new(),
-                &mut NoTimer,
-            )
-            .err()
-            .expect("injected terminal must not become successful inference");
+        let result = host.run_external_plot_to(
+            plan.fragments[0].clone(),
+            &[ExternalForeInput {
+                front_port_id: "inputs".into(),
+                track: ConnectionTrack::Payload,
+                bytes: bundle(tensor).encode().unwrap(),
+            }],
+            &mut outputs,
+            &mut Vec::new(),
+            &mut NoTimer,
+        );
+        let error = match result {
+            Err(error) => error,
+            Ok(_) => panic!("injected terminal must not become successful inference"),
+        };
         assert!(
             error.starts_with("installed kernel step: BackFailed"),
             "{error}"
