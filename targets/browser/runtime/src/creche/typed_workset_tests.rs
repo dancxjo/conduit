@@ -280,3 +280,23 @@ fn text_and_pattern_faces_plan_together_under_one_body() {
     }
     session::clear_for_test();
 }
+
+#[test]
+fn retained_state_installs_without_an_incidental_pure_expression() {
+    let source = serde_json::json!({
+        "schema": "conduit.creche/reviewed-plot-bundle@2",
+        "plots": [{"slug": "retained", "entry": "retained", "face_profile": 1,
+            "source": "plot retained {\n frequency: keep Frequency(440Hz) for this play\n}\n"}],
+    })
+    .to_string();
+    let host = initial_plots::reviewed_browser_host(
+        &source,
+        "host/retained".into(),
+        "boot/retained".into(),
+    )
+    .unwrap();
+    assert!(host
+        .capabilities
+        .iter()
+        .any(|offer| { offer.kind_id.as_str() == conduit_core::STATE_VALUE_KIND }));
+}
