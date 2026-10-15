@@ -1124,6 +1124,8 @@ enum Request {
         receipt: Box<PortableAdmissionReceipt>,
         face_line: Box<LineOffer>,
         return_line: Box<LineOffer>,
+        #[serde(default)]
+        terminal_interaction_line: Option<Box<LineOffer>>,
         expires_at_millis: u64,
     },
     BodyNativeComponentMask {
@@ -2220,10 +2222,17 @@ fn handle(mut request: Request, token: &[u8; 32], runtime: &mut DurableHostRunti
             receipt,
             face_line,
             return_line,
+            terminal_interaction_line,
             expires_at_millis,
             ..
         } if protocol == PROTOCOL => runtime
-            .owned_body_native_mask_route(&receipt, &face_line, &return_line, expires_at_millis)
+            .owned_body_native_mask_route(
+                &receipt,
+                &face_line,
+                &return_line,
+                terminal_interaction_line.as_deref(),
+                expires_at_millis,
+            )
             .map(|route| Response::BodyNativeMaskRoute {
                 protocol: PROTOCOL,
                 route: Box::new(route),

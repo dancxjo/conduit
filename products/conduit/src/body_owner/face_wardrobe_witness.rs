@@ -189,7 +189,7 @@ impl Owner {
         if let Some(seal) = llm_speech {
             current.push(CurrentOwnerFaceRoute::Local { seal, owner_offer });
         }
-        if let Some((seal, mask_host_offer, face_line, return_line)) =
+        if let Some((seal, mask_host_offer, face_line, return_line, interaction_line)) =
             native.and_then(|route| route.current_witness(session, face, now_millis))
         {
             if !Self::remote_route_has_prior_owner_generation(seal, owner_offer) {
@@ -199,7 +199,7 @@ impl Owner {
                     mask_host_offer,
                     face_line,
                     return_line,
-                    interaction_line: None,
+                    interaction_line,
                 });
             }
         }
