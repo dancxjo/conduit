@@ -132,5 +132,5 @@ pub use generated::{
     AudioTimeSquareSum,
 };
 
-/// Shared portable integer pulse-flow law; opaque context is preserved.
+/// Shared portable phase/pulse-flow laws; opaque context is preserved.
 pub const PERIODIC_FLOW_SOURCE: &str = include_str!("../dsp/periodic-flow.conduit");

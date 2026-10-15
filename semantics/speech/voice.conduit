@@ -369,7 +369,7 @@ plot speech/frame-excite (
     >> value: SpeechFrameInput
     result: SpeechFrameWorking >>
 ) {
-    phase: speech/subframe-source-phase(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
+    phase: dsp/periodic-phase-pair(item = SpeechFrameSourceRequest, output = SpeechFrameSourcePhase)
     flow: dsp/cubic-flow-pair(item = SpeechFrameSourcePhase, output = SpeechFrameSourceFlow)
     mix: speech/source-mix(item = SpeechFrameSourceFlow, output = SpeechFrameSourceResult)
     finish: speech/frame-source-result

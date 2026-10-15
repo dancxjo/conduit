@@ -7,3 +7,11 @@ plot dsp/cubic-flow-pair (
     >> value: item
     result: output >>
 ) = ({input: .input, current: .current <= 0 || .current >= 256 ? 0 : .current * .current * (256 - .current) / 256, previous: .previous <= 0 || .previous >= 256 ? 0 : .previous * .previous * (256 - .previous) / 256})
+
+# Q8 frame phase and open duration; caller retains the full periodic cursor.
+plot dsp/periodic-phase-pair (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., current: .source.phase_q8 * 256 / .source.open_q8, previous: .source.phase_q8 < 256 ? 0 : (.source.phase_q8 - 256) * 256 / .source.open_q8})

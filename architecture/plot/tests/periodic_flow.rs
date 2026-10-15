@@ -97,13 +97,13 @@ fn cubic_landmarks_and_closed_domain_preserve_opaque_context_in_both_evaluators(
                     panic!("leaf")
                 };
                 match field.name() {
-                    "input" => assert_eq!(bytes.as_slice(), 0xdecafbadcafebabe_u64.to_le_bytes()),
+                    "input" => assert_eq!(bytes, &0xdecafbadcafebabe_u64.to_le_bytes()[..]),
                     "current" => assert_eq!(
-                        i32::from_le_bytes(bytes.as_slice().try_into().unwrap()),
+                        i32::from_le_bytes(bytes.try_into().unwrap()),
                         expected_current
                     ),
                     "previous" => assert_eq!(
-                        i32::from_le_bytes(bytes.as_slice().try_into().unwrap()),
+                        i32::from_le_bytes(bytes.try_into().unwrap()),
                         expected_previous
                     ),
                     _ => panic!("field"),

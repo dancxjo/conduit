@@ -86,9 +86,3 @@ type SpeechSubframeSourceResult<C> = {
     voicing: I32
     sample: I32
 }
-plot speech/subframe-source-phase (
-    item: type
-    output: type
-    >> value: item
-    result: output >>
-) = ({input: ., current: .source.phase_q8 * 256 / .source.open_q8, previous: .source.phase_q8 < 256 ? 0 : (.source.phase_q8 - 256) * 256 / .source.open_q8})
