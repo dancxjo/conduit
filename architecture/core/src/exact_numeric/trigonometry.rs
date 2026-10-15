@@ -75,3 +75,28 @@ impl<'a> PreparedAngleTrigonometry<'a> {
         &self.value
     }
 }
+
+/// Bounded allocation-free writer for a checked runtime Angle. The caller keeps
+/// the original Quantity and Source/Unit evidence; only the mathematical result
+/// is encoded here. Numerical approximation requires a separate admitted Back.
+pub fn encode_angle_trigonometric_denotation(
+    function: AngleTrigonometricFunction,
+    source: Quantity,
+    output: &mut [u8],
+    work: &mut ExactNumericWork,
+) -> Result<usize, AngleTrigonometryRefusal> {
+    use AngleTrigonometryRefusal as R;
+    work.charge(1)
+        .map_err(|e| R::Denotation(MathematicalValueRefusal::Numeric(e)))?;
+    if source.dimension() != QuantityDimension::Angle {
+        return Err(R::NotAngle);
+    }
+    if source.role() != QuantityRole::Linear {
+        return Err(R::UnsupportedRole);
+    }
+    let canonical = RationalQuantity::from_quantity(source, work)
+        .and_then(|q| q.convert_to_unit(Unit::Turn, work))
+        .map_err(R::Coordinate)?;
+    super::symbolic::encode_rational_turns(function, canonical.coordinate(), output, work)
+        .map_err(R::Denotation)
+}

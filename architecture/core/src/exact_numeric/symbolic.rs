@@ -8,6 +8,7 @@ mod enclosure;
 mod trigonometry;
 pub use codec::MathematicalValueView;
 pub use enclosure::*;
+pub(super) use trigonometry::encode_rational_turns;
 
 pub const MATHEMATICAL_VALUE_ID: &str = "numeric/mathematical-value@1";
 pub const MATHEMATICAL_VALUE_MAX_NODES: usize = 32;

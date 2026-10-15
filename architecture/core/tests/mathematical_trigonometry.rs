@@ -167,3 +167,35 @@ fn valid_wide_non_cardinal_fraction_does_not_overflow_cardinal_detection() {
     let encoded = bytes(&value);
     assert_eq!(V::decode(&encoded, &mut work()).unwrap(), value);
 }
+
+#[test]
+fn admitted_storage_writer_matches_prepared_denotation_and_refuses_bounds() {
+    use conduit_core::{
+        encode_angle_trigonometric_denotation as write, AngleTrigonometricFunction as F,
+        PreparedAngleTrigonometry as T, Quantity,
+    };
+    let mut output = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    for original in [
+        "0turn",
+        "0.25turn",
+        "90°",
+        "-810°",
+        "0.125turn",
+        "0.17turn",
+        "1000000000000000000.25turn",
+    ] {
+        let source = Quantity::parse_plot_literal(original).unwrap();
+        for function in [F::Sine, F::Cosine, F::Tangent] {
+            let prepared = T::from_checked(function, source, original, &mut work());
+            let written = write(function, source, &mut output, &mut work());
+            match (prepared, written) {
+                (Ok(value), Ok(length)) => assert_eq!(&output[..length], bytes(value.denotation())),
+                (Err(a), Err(b)) => assert_eq!(a, b),
+                _ => panic!("writer/preparation disagreement"),
+            }
+        }
+    }
+    let source = Quantity::parse_plot_literal("0.17turn").unwrap();
+    assert!(write(F::Sine, source, &mut [0; 1], &mut work()).is_err());
+    assert!(write(F::Sine, source, &mut output, &mut Work::new(0)).is_err());
+}
