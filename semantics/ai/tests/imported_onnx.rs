@@ -175,13 +175,15 @@ fn wrong_graph_signature_count_names_and_digest_refuse() {
 
 #[test]
 fn semantic_dtype_rank_and_dimension_must_match_the_import() {
-    for (element, axes, expected) in [
+    for (index, element, axes, expected) in [
         (
+            0,
             TensorElement::F32,
             vec![ModelDimensionConstraint::bounded(32, 1).unwrap()],
             ImportedOnnxRefusal::Dtype,
         ),
         (
+            0,
             TensorElement::I64,
             vec![
                 ModelDimensionConstraint::fixed(1).unwrap(),
@@ -189,10 +191,16 @@ fn semantic_dtype_rank_and_dimension_must_match_the_import() {
             ],
             ImportedOnnxRefusal::Rank,
         ),
+        (
+            1,
+            TensorElement::F32,
+            vec![ModelDimensionConstraint::fixed(2).unwrap()],
+            ImportedOnnxRefusal::Dimension,
+        ),
     ] {
         let original = signature();
         let mut inputs = original.inputs.get().as_slice().to_vec();
-        inputs[0].value = ModelValueConstraint::tensor(
+        inputs[index].value = ModelValueConstraint::tensor(
             ModelTensorConstraint::from_parts(
                 vec![element],
                 axes.into_iter()
