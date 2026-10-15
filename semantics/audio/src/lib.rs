@@ -113,3 +113,6 @@ mod control_trajectories;
 pub use control_trajectories::*;
 
 pub use generated::AudioControlDomainMatch;
+
+mod time_analysis;
+pub use time_analysis::*;
