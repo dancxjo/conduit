@@ -237,7 +237,7 @@ fn source_selects_admitted_model_and_kernel_executes_its_coefficients() {
     assert!(verify_plan(&plan));
     let mut outputs = Outputs::default();
     let report = host
-        .run_external_plot_sequence_to(
+        .run_external_plot_to(
             plan.fragments[0].clone(),
             &[ExternalForeInput {
                 front_port_id: "inputs".into(),
