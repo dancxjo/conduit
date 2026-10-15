@@ -1,0 +1,113 @@
+# Private finite coefficient preparation profile. All arithmetic is integer.
+# pi_Q30 = 3373259426. Nine Taylor updates follow the initial term one.
+# Intermediates admit 16 Q30 units; worst product is below 2^100 in I128.
+# Terms truncate toward zero; final Q14 coefficients round nearest, ties away.
+# This is a named digital approximation, not a mathematical pi denotation.
+type ResonatorRequest = {
+    control: AudioResonator
+    basis: AudioSampleRateBasis
+    frames: U32
+}
+type ResonatorCheckedRequest = {
+    request: ResonatorRequest
+    valid: Boolean
+}
+type ResonatorProjectionWork = {
+    request: ResonatorRequest
+    valid: Boolean
+    theta: I128
+    decay_argument: I128
+    order: I128
+    term: I128
+    sum: I128
+    decay: I128
+}
+type ResonatorProjectionCandidate = {
+    request: ResonatorRequest
+    valid: Boolean
+    b_q14: I128
+    c_q14: I128
+    decay_q30: I128
+    cosine_q30: I128
+}
+
+plot dsp/resonator-check-request (
+ >> value: ResonatorRequest
+ result: ResonatorCheckedRequest >>
+) = ({request: ., valid: (((.basis.sample_rate_hz >= 8000 && (.basis.sample_rate_hz <= 192000 && .basis.anchor.timeline.value > 0)) && ((.basis.anchor.origin.value > 0 && .frames >= 1) && (.frames <= 65536 && .control.center.numerator_hz > 0))) && ((.control.center.denominator > 0 && (.control.bandwidth.numerator_hz > 0 && .control.bandwidth.denominator > 0)) && ((value/i128(.control.center.numerator_hz) * 128 >= value/i128(.control.center.denominator) * value/i128(.basis.sample_rate_hz) && value/i128(.control.center.numerator_hz) * 128 <= value/i128(.control.center.denominator) * value/i128(.basis.sample_rate_hz) * 63) && (value/i128(.control.bandwidth.numerator_hz) * 256 >= value/i128(.control.bandwidth.denominator) * value/i128(.basis.sample_rate_hz) && value/i128(.control.bandwidth.numerator_hz) * 8 <= value/i128(.control.bandwidth.denominator) * value/i128(.basis.sample_rate_hz)))))})
+
+plot dsp/resonator-project-init (
+ >> value: ResonatorCheckedRequest
+ result: ResonatorProjectionWork >>
+) = ({request: .request, valid: .valid, theta: .valid ? value/i128(.request.control.center.numerator_hz) * 6746518852 / (value/i128(.request.control.center.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, decay_argument: .valid ? value/i128(.request.control.bandwidth.numerator_hz) * 3373259426 / (value/i128(.request.control.bandwidth.denominator) * value/i128(.request.basis.sample_rate_hz)) : 0, order: 1, term: 1073741824, sum: 1073741824, decay: 0})
+
+plot dsp/resonator-exponential-term (
+ >> value: ResonatorProjectionWork
+ result: ResonatorProjectionWork >>
+) = ({request: .request, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .decay_argument / 1073741824 / .order) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .decay_argument / 1073741824 / .order) : 0, decay: .decay})
+
+plot dsp/resonator-cosine-term (
+ >> value: ResonatorProjectionWork
+ result: ResonatorProjectionWork >>
+) = ({request: .request, valid: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))), theta: .theta, decay_argument: .decay_argument, order: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .order + 1 : 0, term: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, sum: (((.valid && (.order >= 1 && .order <= 9)) && (.theta >= 0 && (.theta <= 4294967296 && .decay_argument >= 0))) && ((.decay_argument <= 1073741824 && (.term >= -17179869184 && .term <= 17179869184)) && ((.sum >= -17179869184 && .sum <= 17179869184) && (.decay >= 0 && .decay <= 4294967296)))) ? .sum + (-.term * .theta * .theta / 1073741824 / 1073741824 / (2 * .order - 1) / (2 * .order)) : 0, decay: .decay})
+
+plot dsp/resonator-cosine-init (
+ >> value: ResonatorProjectionWork
+ result: ResonatorProjectionWork >>
+) = ({request: .request, valid: .valid && .order == 10, theta: .theta, decay_argument: .decay_argument, order: 1, term: 1073741824, sum: 1073741824, decay: .sum})
+
+plot dsp/resonator-project-finish (
+ >> value: ResonatorProjectionWork
+ result: ResonatorProjectionCandidate >>
+) = ({request: .request, valid: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))), b_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? ((2 * .decay * .sum / 1073741824) + ((2 * .decay * .sum / 1073741824) >= 0 ? 32768 : -32768)) / 65536 : 0, c_q14: ((.valid && (.order == 10 && .decay >= 0)) && (.decay <= 1073741824 && (.sum >= -1073741824 && .sum <= 1073741824))) ? -(.decay * .decay / 1073741824 + 32768) / 65536 : 0, decay_q30: .decay, cosine_q30: .sum})
+
+plot dsp/resonator-project (
+ >> value: ResonatorRequest
+ result: ResonatorProjectionCandidate >>
+) {
+ check: dsp/resonator-check-request()
+ init: dsp/resonator-project-init()
+ value >> check.value
+ check.result >> init.value
+ exp1: dsp/resonator-exponential-term()
+ init.result >> exp1.value
+ exp2: dsp/resonator-exponential-term()
+ exp1.result >> exp2.value
+ exp3: dsp/resonator-exponential-term()
+ exp2.result >> exp3.value
+ exp4: dsp/resonator-exponential-term()
+ exp3.result >> exp4.value
+ exp5: dsp/resonator-exponential-term()
+ exp4.result >> exp5.value
+ exp6: dsp/resonator-exponential-term()
+ exp5.result >> exp6.value
+ exp7: dsp/resonator-exponential-term()
+ exp6.result >> exp7.value
+ exp8: dsp/resonator-exponential-term()
+ exp7.result >> exp8.value
+ exp9: dsp/resonator-exponential-term()
+ exp8.result >> exp9.value
+ cosine: dsp/resonator-cosine-init()
+ exp9.result >> cosine.value
+ cos1: dsp/resonator-cosine-term()
+ cosine.result >> cos1.value
+ cos2: dsp/resonator-cosine-term()
+ cos1.result >> cos2.value
+ cos3: dsp/resonator-cosine-term()
+ cos2.result >> cos3.value
+ cos4: dsp/resonator-cosine-term()
+ cos3.result >> cos4.value
+ cos5: dsp/resonator-cosine-term()
+ cos4.result >> cos5.value
+ cos6: dsp/resonator-cosine-term()
+ cos5.result >> cos6.value
+ cos7: dsp/resonator-cosine-term()
+ cos6.result >> cos7.value
+ cos8: dsp/resonator-cosine-term()
+ cos7.result >> cos8.value
+ cos9: dsp/resonator-cosine-term()
+ cos8.result >> cos9.value
+ finish: dsp/resonator-project-finish()
+ cos9.result >> finish.value
+ finish.result >> result
+}.
