@@ -23,7 +23,9 @@ fn equality_requires_the_exact_profile_value_and_unique_bounded_properties() {
         configuration_key: "signature".into(),
     };
     let request = ConfigurationValue::Structured(value.clone());
-    requirement.check(Some(&request), &[value.clone()]).unwrap();
+    requirement
+        .check(Some(&request), std::slice::from_ref(&value))
+        .unwrap();
     assert_eq!(
         requirement.check(None, &[]),
         Err(ExactRealizationRefusal::MissingConfiguration)
@@ -42,7 +44,7 @@ fn equality_requires_the_exact_profile_value_and_unique_bounded_properties() {
                 "test/other-signature",
                 7
             ))),
-            &[value.clone()]
+            std::slice::from_ref(&value)
         ),
         Err(ExactRealizationRefusal::WrongConfigurationProfile)
     );
