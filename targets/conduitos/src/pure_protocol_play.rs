@@ -27,7 +27,7 @@ pub struct PreparedPureProtocolPlay {
 pub(crate) struct RetiredPureProtocolEvidence {
     pub(crate) _plan: Plan,
     pub(crate) _active_plays: BTreeMap<HostId, ActivePlayId>,
-    pub(crate) _signs: BTreeMap<HostId, Vec<conduit_kernel::KernelEvent>>,
+    pub(crate) _signs: BTreeMap<HostId, conduit_kernel::HostedSignLog>,
 }
 
 impl PreparedPureProtocolPlay {
@@ -162,7 +162,7 @@ impl PreparedPureProtocolPlay {
         Ok(RetiredPureProtocolEvidence {
             _plan: self.kernel.definition().internal_plan.clone(),
             _active_plays: self.kernel.active_plays().clone(),
-            _signs: self.kernel.signs(),
+            _signs: self.kernel.sign_log_snapshots(),
         })
     }
 

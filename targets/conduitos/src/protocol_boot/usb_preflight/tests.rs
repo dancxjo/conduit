@@ -48,7 +48,12 @@ fn exact_profile_pure_kernel_retires_and_class_package_substitution_refuses() {
     assert!(conduit_core::verify_plan(&evidence._plan));
     assert_eq!(evidence._active_plays.len(), evidence._plan.fragments.len());
     assert_eq!(evidence._signs.len(), evidence._active_plays.len());
-    assert!(evidence._signs.values().all(|signs| !signs.is_empty()));
+    assert!(
+        evidence
+            ._signs
+            .values()
+            .all(|signs| signs.events().next().is_some())
+    );
     admitted.validate_request(&request).unwrap();
     let mut changed = super::tests::request(&bytes);
     changed.endpoint_read.as_mut().unwrap().maximum_packet = 32;
