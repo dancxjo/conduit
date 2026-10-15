@@ -3,6 +3,7 @@
 use super::address_detect_back::FACTORY as ADDRESS_DETECT_FACTORY;
 use super::alife_backs::{LENIA_STEP_FACTORY, ORBIUM_SEED_FACTORY, SCALAR_FIELD_FACE_FACTORY};
 use super::audio_play_back::AUDIO_PLAY_FACTORY;
+use super::audio_time_analysis_back::FACTORY as AUDIO_TIME_ANALYSIS_FACTORY;
 use super::audio_tone_back::FACTORY as AUDIO_TONE_FACTORY;
 use super::back::BackFactory;
 use super::body_chat_prompt_back::FACTORY as BODY_CHAT_PROMPT_FACTORY;
@@ -205,6 +206,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::numerical_back::INTEGER_FACTORY,
     &super::numerical_back::FLOAT_FACTORY,
     &DISTANCE_FREQUENCY_FACTORY,
+    &AUDIO_TIME_ANALYSIS_FACTORY,
     &AUDIO_TONE_FACTORY,
     &super::native_speech_back::FACTORY,
     &super::ipa_constructor_back::PHONE,

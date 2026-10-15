@@ -174,7 +174,8 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
                 && (revision.starts_with("conduit.std/")
                     || revision.starts_with("conduit.input/")
                     || offer.kind_id.as_str() == conduit_semantic_catalog::BOOL_FACE_KIND
-                    || offer.kind_id.as_str() == conduit_face::BITMAP_FACE_KIND)
+                    || offer.kind_id.as_str() == conduit_face::BITMAP_FACE_KIND
+                    || offer.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TIME_ANALYSIS_KIND)
         })
         .cloned()
         .collect::<Vec<_>>();

@@ -1,0 +1,2 @@
+# Preserve the ANSI/CRLF bytes covered by the foreground frame receipts.
+capture/terminal.txt binary

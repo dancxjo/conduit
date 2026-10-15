@@ -541,3 +541,6 @@ fn minimum_viewport_keeps_complete_keyboard_help_and_admitted_row_count() {
         assert!(second.unwrap().chars().count() <= 40);
     }
 }
+
+#[path = "primary_region_tests.rs"]
+mod primary_region_tests;
