@@ -74,6 +74,12 @@ entry = "measure"
 deterministic = { package = "conduit-std-host", test = "audio_time_analysis", case = "ordinary_checked_plot_plans_and_measures_real_pcm_in_production_kernel" }
 browser_safe_not_applicable = "portable PCM observation Types are shared; the browser has no admitted audio/measure-time Back"
 [[plots]]
+slug = "audio-spectrum-analysis"
+title = "PCM Spectrum Analysis"
+entry = "measure"
+deterministic = { package = "conduit-std-host", test = "audio_spectral_analysis", case = "ordinary_checked_plot_emits_all_overlapping_spectral_rows" }
+browser_safe_not_applicable = "portable spectral Types are shared; no browser audio/measure-spectrum Back is admitted"
+[[plots]]
 slug = "model-authoring"
 title = "Model Authoring"
 entry = "model-authoring"

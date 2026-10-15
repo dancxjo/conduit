@@ -9,6 +9,7 @@ use conduit_core::{
     HostAdvertisement, HostProfileId, PlannerCapabilityOffer, PlannerProfileId, PROTOCOL_VERSION,
 };
 
+mod math;
 mod resources;
 mod signal;
 
@@ -320,17 +321,7 @@ pub(super) fn build_advertisement(
         ]);
     }
     if composition.math {
-        capabilities.extend([
-            conduit_std_offers::scalar_literal_std_offer(),
-            conduit_std_offers::math_clamp_offer(),
-            conduit_std_offers::math_scale_offer(),
-            conduit_std_offers::math_deadband_offer(),
-            conduit_std_offers::quantity_map_offer(),
-            conduit_std_offers::distance_frequency_map_offer(),
-            conduit_std_offers::audio_time_analysis_offer(),
-            conduit_std_offers::quantity_info_offer(),
-        ]);
-        capabilities.extend(installed_std::quantity_conversion_offers());
+        math::append(&mut capabilities);
     }
     if composition.layout {
         capabilities.extend([

@@ -130,6 +130,9 @@ impl PreparedPcmSpectrumObservationEncoder {
     pub fn profile(&self) -> PcmSpectralProfile {
         self.profile
     }
+    pub fn encoded(&self) -> &[u8] {
+        &self.output
+    }
     pub fn encoded_len(&self) -> usize {
         self.output.len()
     }
