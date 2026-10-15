@@ -13,7 +13,7 @@ impl From<MachineRunError> for KeyboardChainError {
 }
 
 pub(crate) struct PureKeyboardOutput {
-    source: [u8; 4],
+    source: [u8; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES],
     source_length: usize,
     upper: UppercaseText,
     edit_refused: bool,
@@ -60,7 +60,7 @@ impl<I: TextOwner> ProtectedText<I> {
         }
         let mut result = PureKeyboardOutput {
             edit_refused,
-            source: [0; 4],
+            source: [0; conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES],
             source_length: 0,
             upper: UppercaseText {
                 bytes: [0; MAXIMUM_BYTES],
@@ -75,8 +75,7 @@ impl<I: TextOwner> ProtectedText<I> {
                 .output(&mut result.upper.bytes)
                 .map_err(MachineRunError::ProtectionDomain)?;
         }
-        let source_valid = core::str::from_utf8(result.source())
-            .is_ok_and(|source| source.chars().count() == usize::from(result.source_length != 0));
+        let source_valid = core::str::from_utf8(result.source()).is_ok();
         if (edit_refused && result.source_length == 0)
             || !source_valid
             || core::str::from_utf8(result.transformed()).is_err()

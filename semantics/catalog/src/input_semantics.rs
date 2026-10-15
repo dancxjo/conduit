@@ -13,15 +13,14 @@ use conduit_core::{
     PortTemporal,
 };
 use conduit_human::{
-    CHORD_ENCODED_LEN, CHORD_INFO_ID, CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
-    KEY_EVENT_INFO_ID,
+    CHORD_ENCODED_LEN, CHORD_INFO_ID, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN, KEY_EVENT_INFO_ID,
 };
 
 pub const KEY_EVENT_TEE_KIND: &str = "input/key-tee";
 pub const KEY_EVENT_TEE_REVISION: &str = "conduit.input/key-tee@2";
 
 pub const KEYMAP_KIND: &str = "input/keymap";
-pub const KEYMAP_REVISION: &str = "conduit.input/keymap@2";
+pub const KEYMAP_REVISION: &str = "conduit.input/keymap@3";
 
 pub const CHORDS_KIND: &str = "input/chords";
 pub const CHORDS_REVISION: &str = "conduit.input/chords@2";
@@ -72,27 +71,57 @@ pub fn keymap_contract() -> StandardKindContract {
     StandardKindContract {
         kind_id: kind_id(KEYMAP_KIND),
         plain_name: "International QWERTY keymap".to_string(),
-        summary: "Interpret portable keys as bounded Unicode text with conduit-intl.".to_string(),
-        inputs: vec![port(
-            "key",
-            KEY_EVENT_INFO_ID,
-            PortDirection::Input,
-            PortTemporal::Flow { closes: false },
-        )],
+        summary: "Interpret portable keys through authored layered US International mappings."
+            .to_string(),
+        inputs: vec![
+            port(
+                "key",
+                KEY_EVENT_INFO_ID,
+                PortDirection::Input,
+                PortTemporal::Flow { closes: false },
+            ),
+            port(
+                "selection",
+                TEXT_FACE_VALUE_KIND,
+                PortDirection::Input,
+                PortTemporal::Current,
+            ),
+        ],
         outputs: vec![port(
             "text",
             TEXT_FACE_VALUE_KIND,
             PortDirection::Output,
             PortTemporal::Flow { closes: false },
         )],
-        configuration: vec![KindConfigurationField {
-            key: "layout".to_string(),
-            default_value: ConfigurationValue::Text(CONDUIT_INTL_LAYOUT.to_string()),
-            rule: KindConfigurationRule::TextOneOf {
-                values: vec![CONDUIT_INTL_LAYOUT.to_string()],
+        configuration: vec![
+            KindConfigurationField {
+                key: "layout".to_string(),
+                default_value: ConfigurationValue::Structured(
+                    conduit_human::default_keymap_configuration(),
+                ),
+                rule: KindConfigurationRule::Structured {
+                    profile: conduit_human::keymap_layout_type()
+                        .profile()
+                        .expect("finite keymap layout")
+                        .value_kind()
+                        .clone(),
+                },
             },
-        }],
-        limits: limits(4),
+            KindConfigurationField {
+                key: "choices".to_string(),
+                default_value: ConfigurationValue::Structured(
+                    conduit_human::default_choices_configuration(),
+                ),
+                rule: KindConfigurationRule::Structured {
+                    profile: conduit_human::choices_type()
+                        .profile()
+                        .expect("finite choices")
+                        .value_kind()
+                        .clone(),
+                },
+            },
+        ],
+        limits: limits(conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES as u32),
         terminal_behavior: KindTerminalBehavior::MirrorsInputTerminal,
         hosted_implementation_required: true,
         browser_manifestation_honest: false,
@@ -192,6 +221,8 @@ pub fn install_input_semantic_catalogs(
     profile: &mut conduit_plot::ProfileCatalog,
 ) -> Result<(), String> {
     use conduit_plot::{KindSignature, StartupParameterSignature};
+    startup.insert_structured_type("KeymapLayout", conduit_human::keymap_layout_type())?;
+    startup.insert_structured_type("KeymapChoices", conduit_human::choices_type())?;
     for (contract, revision) in [
         (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
         (keymap_contract(), KEYMAP_REVISION),
@@ -202,10 +233,18 @@ pub fn install_input_semantic_catalogs(
             .iter()
             .map(|field| StartupParameterSignature {
                 name: field.key.clone(),
-                value_type: "Text".to_string(),
+                value_type: if field.key == "choices" {
+                    "KeymapChoices"
+                } else if contract.kind_id.as_str() == KEYMAP_KIND {
+                    "KeymapLayout"
+                } else {
+                    "Text"
+                }
+                .to_string(),
                 default: Some(match &field.default_value {
                     ConfigurationValue::Text(value) => alloc::format!("\"{value}\""),
-                    _ => unreachable!("input semantic choices have text defaults"),
+                    ConfigurationValue::Structured(_) => "<checked-structured-default>".to_string(),
+                    _ => unreachable!("input semantic defaults are authored values"),
                 }),
             })
             .collect();
@@ -213,6 +252,19 @@ pub fn install_input_semantic_catalogs(
             kind: contract.kind_id.as_str().to_string(),
             startup_parameters,
         })?;
+        for field in &contract.configuration {
+            if let ConfigurationValue::Structured(value) = &field.default_value {
+                let checked = conduit_core::StructuredInfoValue::from_canonical_bytes(
+                    value.canonical_value(),
+                )
+                .map_err(|error| alloc::format!("checked keymap default: {error:?}"))?;
+                startup.insert_structured_default(
+                    contract.kind_id.as_str(),
+                    &field.key,
+                    &checked,
+                )?;
+            }
+        }
         profile
             .insert_kind(semantic_contract(contract, revision))
             .map_err(|error| error.to_string())?;
@@ -236,7 +288,7 @@ mod tests {
         assert_eq!(keymap.outputs[0].value_kind.as_str(), TEXT_FACE_VALUE_KIND);
         assert_eq!(
             keymap.configuration[0].default_value,
-            ConfigurationValue::Text(CONDUIT_INTL_LAYOUT.to_string())
+            ConfigurationValue::Structured(conduit_human::default_keymap_configuration())
         );
         let chords = chords_contract();
         assert_eq!(chords.outputs[0].value_kind.as_str(), CHORD_INFO_ID);
@@ -245,11 +297,11 @@ mod tests {
             ConfigurationValue::Text(CORE_CHORD_MAP.to_string())
         );
         assert!(key_event_tee_contract().configuration.is_empty());
-        assert_eq!(keymap_contract().configuration.len(), 1);
+        assert_eq!(keymap_contract().configuration.len(), 2);
         assert_eq!(chords_contract().configuration.len(), 1);
         for (contract, revision, startup_count) in [
             (key_event_tee_semantic_contract(), KEY_EVENT_TEE_REVISION, 0),
-            (keymap_semantic_contract(), KEYMAP_REVISION, 1),
+            (keymap_semantic_contract(), KEYMAP_REVISION, 2),
             (chords_semantic_contract(), CHORDS_REVISION, 1),
         ] {
             assert_eq!(contract.kind_contract_revision.as_str(), revision);

@@ -8,7 +8,7 @@ use crate::{
     keyboard_text_play, offer::HostOffer,
 };
 
-pub const PHYSICAL_TRANSITIONS: usize = 38;
+pub const PHYSICAL_TRANSITIONS: usize = 26;
 
 pub fn run_reviewed_sequences(
     record: &BootRecord,
@@ -42,11 +42,11 @@ pub fn run_reviewed_sequences(
             b"O",
             "Æ".as_bytes(),
             "É".as_bytes(),
-            "Λ".as_bytes(),
+            "À".as_bytes(),
         ],
     )?;
     let sign = format!(
-        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-plot/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"plot_machine_facts\":false,\"keymap_configuration\":\"conduit-intl\",\"physical_transition_count\":{},\"face_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"Λ\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
+        "CONDUIT_KEYBOARD_TEXT_SIGN {{\"schema\":\"conduit.conduitos.keyboard-text-plot/v1\",\"status\":\"completed\",\"proof_class\":\"freestanding-emulator\",\"source_document_id\":\"{}\",\"checked_plot_id\":\"{}\",\"expanded_plot_id\":\"{}\",\"plan_id\":\"{}\",\"active_play_id\":\"{}\",\"host_id\":\"{}\",\"boot_id\":\"{}\",\"plot_machine_facts\":false,\"keymap_configuration\":\"us-intl\",\"physical_transition_count\":{},\"face_fragments\":[\"H\",\"E\",\"L\",\"L\",\"O\",\"Æ\",\"É\",\"À\"],\"visible_ascii\":\"HELLO\",\"bounded\":true,\"completed\":true}}\n",
         prepared.source_document_id.as_str(),
         prepared.checked_plot_id.as_str(),
         prepared.expanded_plot_id.as_str(),

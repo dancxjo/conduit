@@ -10,7 +10,7 @@ use super::application_delivery::NativeApplication;
 use super::{AdmittedPlotInput, PreparedNativeWorkset, WorksetRefusal};
 use crate::keyboard_text_backs::PlannedBack;
 use alloc::boxed::Box;
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition};
+use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 use conduit_kernel::{
     FixedSignLog, FixedValueStore, KernelEvent, NodeId,
     scheduler::{FixedScheduler, HostCallRequest, SchedulerStatus},
@@ -117,7 +117,7 @@ pub struct NativeWorksetPlay {
     protection_admissions: [Option<crate::text_protection::BodyTextAdmission>; PLOTS],
     scheduler: Box<Scheduler>,
     bindings: [Option<Binding>; NODES],
-    keymaps: [ConduitIntlKeymap; PLOTS],
+    keymaps: [PreparedKeymap; PLOTS],
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     editors: [Option<BoundedTextState>; PLOTS],
     pending: [Option<HostCallRequest>; PLOTS],

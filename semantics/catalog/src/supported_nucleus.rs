@@ -46,7 +46,7 @@ pub(crate) fn supported_nucleus_contracts_with_revisions(
         (text_literal_contract(), "conduit.std/text-literal@1"),
         (text_upper_contract(), "conduit.std/text-upper@1"),
         (text_join_contract(), "conduit.std/text-join@1"),
-        (text_face_contract(), "conduit.std/face-text@1"),
+        (text_face_contract(), "conduit.std/face-text@2"),
         (key_event_tee_contract(), KEY_EVENT_TEE_REVISION),
         (keymap_contract(), KEYMAP_REVISION),
         (chords_contract(), CHORDS_REVISION),

@@ -19,6 +19,8 @@ fn kernel() -> (PreparedNativeWorkset, NativeWorksetPlay) {
     let mut play = NativeWorksetPlay::prepare_with_biography(&prepared, &evidence).unwrap();
     let active = conduit_body::BodyPlayIdentity::bind(&prepared.plan, 3);
     play.start_for(&prepared.plan, &active).unwrap();
+    let memory = index(&prepared, NativePlot::MemoryLantern);
+    assert_eq!(play.take_face(memory).unwrap().text(), "");
     (prepared, play)
 }
 fn key(usage: u8, transition: KeyTransition) -> KeyEvent {

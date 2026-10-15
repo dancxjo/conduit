@@ -2,6 +2,12 @@ use crate::{process::Step, proof::ProofClass};
 
 pub const BROWSER_CHECK_STEPS: &[Step] = &[
     Step::new(
+        "check.browser.saved-choice",
+        "Check finite saved-choice restore, committed emission, and distinct storage refusals",
+        "node",
+        &["--test", "proof/browser/browser-saved-choice.test.mjs"],
+    ),
+    Step::new(
         "check.browser.browser-runtime",
         "test conduit-browser-runtime",
         "cargo",

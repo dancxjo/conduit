@@ -61,7 +61,7 @@ fn native_inventory_preserves_existing_plots_and_adds_the_canonical_tour_identit
     assert_ne!(canvas, resident(NativePlot::MemoryLantern).unwrap());
     assert_eq!(
         NativePlot::MemoryLantern.source(),
-        include_str!("../../../../plots/memory-lantern/main.conduit")
+        include_str!("../../../../plots/memory-lantern/keyboard-only.conduit")
     );
     assert_eq!(
         NativePlot::Tour.source(),

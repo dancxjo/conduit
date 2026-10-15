@@ -27,6 +27,7 @@ pub(super) fn prepare(
     let mut bindings = [None; NODES];
     #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
     let mut editors = core::array::from_fn(|_| None);
+    let mut keymaps = core::array::from_fn(|_| PreparedKeymap::default_layout());
     let mut admitted_editors = [false; PLOTS];
     let mut operations = Vec::with_capacity(NODES);
     for (plot, part) in parts.iter().enumerate() {
@@ -82,10 +83,37 @@ pub(super) fn prepare(
                         next: 0,
                     }),
                 ),
-                crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => (
-                    Effect::Keymap,
-                    PlannedBack::Keymap(StreamTransformBack::new(true)),
-                ),
+                crate::keyboard_text_plan::KEYMAP_IMPLEMENTATION => {
+                    // This Back has no selected-layout Host operation. Refuse a
+                    // wired selection rather than silently keep the startup layout.
+                    if fragment.connections.iter().any(|cord| {
+                        cord.sink_placement_id == placement.placement_id
+                            && cord.sink_port_id.as_str() == "selection"
+                    }) {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    let layout = placement
+                        .configuration
+                        .iter()
+                        .find_map(|entry| match (entry.key.as_str(), &entry.value) {
+                            ("layout", conduit_core::ConfigurationValue::Structured(layout)) => {
+                                Some(layout)
+                            }
+                            _ => None,
+                        })
+                        .ok_or(WorksetRefusal::Plan)?;
+                    #[cfg(all(target_arch = "x86_64", target_os = "none"))]
+                    if layout != &conduit_human::default_keymap_configuration() {
+                        // The protected domain admits only its source-generated static layout.
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    keymaps[plot] =
+                        PreparedKeymap::new(layout).map_err(|_| WorksetRefusal::Plan)?;
+                    (
+                        Effect::Keymap,
+                        PlannedBack::Keymap(StreamTransformBack::new(true)),
+                    )
+                }
                 crate::offer::TEXT_UPPER_IMPLEMENTATION => (
                     Effect::Upper,
                     PlannedBack::Upper(StreamTransformBack::new(false)),
@@ -123,16 +151,24 @@ pub(super) fn prepare(
                     // installed host binding gives it retained text semantics.
                     (
                         Effect::Edit,
-                        PlannedBack::TextEdit(StreamTransformBack::new(false)),
+                        PlannedBack::TextEdit(StreamTransformBack::initially_empty(
+                            values.store(&[]).map_err(|_| WorksetRefusal::Kernel)?,
+                        )),
                     )
                 }
-                crate::offer::TEXT_FACE_IMPLEMENTATION => (
-                    Effect::Face,
-                    PlannedBack::Face(FaceBack {
-                        pending: None,
-                        next: 0,
-                    }),
-                ),
+                crate::offer::TEXT_FACE_IMPLEMENTATION => {
+                    if conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
+                    {
+                        return Err(WorksetRefusal::Plan);
+                    }
+                    (
+                        Effect::Face,
+                        PlannedBack::Face(FaceBack {
+                            pending: None,
+                            next: 0,
+                        }),
+                    )
+                }
                 _ => return Err(WorksetRefusal::Capability),
             };
             bindings[operations.len()] = Some(Binding {
@@ -250,7 +286,7 @@ pub(super) fn prepare(
         }),
         scheduler: Box::new(scheduler),
         bindings,
-        keymaps: core::array::from_fn(|_| ConduitIntlKeymap::new()),
+        keymaps,
         #[cfg(not(all(target_arch = "x86_64", target_os = "none")))]
         editors,
         pending: [None; PLOTS],

@@ -215,6 +215,33 @@ pub(in crate::plot_runner) fn complete_transform(
             .map_err(debug_error)?;
         return Ok(true);
     }
+    if operation.contract_id.as_str() == crate::installed_browser::keymap::KEYMAP_SELECT {
+        let input = scheduler
+            .kernel
+            .host_value(request.input.value)
+            .map_err(debug_error)?;
+        let result = scheduler.keymaps[usize::from(request.node.0)]
+            .as_mut()
+            .ok_or("browser keymap was not prepared")?
+            .select(input);
+        let outcome = match result {
+            Ok(()) => HostCallOutcome {
+                disposition: HostCallDisposition::Completed,
+                output: None,
+                failure: None,
+            },
+            Err(failure) => HostCallOutcome {
+                disposition: HostCallDisposition::Failed,
+                output: None,
+                failure: Some(failure),
+            },
+        };
+        scheduler
+            .kernel
+            .complete_host_call(request.node, request.request, outcome)
+            .map_err(debug_error)?;
+        return Ok(true);
+    }
     if operation.contract_id.as_str() == crate::installed_browser::keymap::HOST_CALL {
         let input = scheduler
             .kernel

@@ -442,6 +442,9 @@ impl Session {
             boot_id: self.fragment.boot_id.as_str().into(),
             face_kind: manifestation.kind_id.into(),
             data_label: manifestation.data_label.clone(),
+            insertion_caret: (manifestation.kind_id == conduit_semantic_catalog::TEXT_FACE_KIND
+                && conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration))
+            .then_some(true),
             observation_sequence,
             realization: "direct",
             expanded_gears: self

@@ -4,6 +4,8 @@
 mod attempt;
 #[path = "engine_completions.rs"]
 mod completions;
+#[path = "engine_input_effects.rs"]
+mod inputs;
 #[path = "engine_thermostat.rs"]
 pub(super) mod thermostat;
 pub(super) use completions::{complete_host_effect, complete_host_effect_with_output};
@@ -101,6 +103,8 @@ pub(super) struct TourScheduler {
     comparisons: Vec<Option<conduit_semantic_catalog::BoundedPatternComparisonCodec>>,
     timing: Vec<Option<crate::installed_browser::timing::PreparedTiming>>,
     keymaps: Vec<Option<crate::installed_browser::keymap::PreparedKeymap>>,
+    pub(super) saved_choices:
+        Vec<Option<crate::installed_browser::saved_choice::SavedChoiceConfiguration>>,
     text_states: Vec<Option<Box<crate::installed_browser::text_state::PreparedTextState>>>,
     deliveries: Vec<Option<conduit_net::BoundedRecordDeliveryStatusCodec>>,
     histories: Vec<Option<crate::installed_browser::historical::PreparedHistory>>,
@@ -355,39 +359,8 @@ fn drive_with_boundary<'a>(
                     effect: BrowserHostEffect::PitchTone { hertz },
                 }));
             }
-            if operation.contract_id.as_str() == crate::installed_browser::KEY_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::KeyEvent,
-                }));
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::POINTER_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::PointerEvent,
-                }));
-            }
-            if operation.contract_id.as_str() == crate::installed_browser::BUTTON_EVENT_OPERATION {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::ButtonTransition,
-                }));
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::APPLICATION_EVENT_OPERATION
-            {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::ApplicationEvent,
-                }));
-            }
-            if operation.contract_id.as_str()
-                == crate::installed_browser::tutorial_presenter::REQUEST_OPERATION
-            {
-                return Ok(DriveStatus::Effect(PendingHostEffect {
-                    request,
-                    effect: BrowserHostEffect::TutorialPresenterRequest,
-                }));
+            if let Some(effect) = inputs::effect(operation.contract_id.as_str()) {
+                return Ok(DriveStatus::Effect(PendingHostEffect { request, effect }));
             }
             let installation = factory(&placement.implementation_id)
                 .ok_or_else(|| "browser request implementation is not installed".to_string())?;

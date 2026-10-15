@@ -230,7 +230,7 @@ fn morse_keyboard_reacts_to_three_separated_keys_in_one_play() {
 
 #[test]
 fn memory_lantern_retains_edits_and_backspace_in_one_play() {
-    let source = include_str!("../../../../../plots/memory-lantern/main.conduit");
+    let source = include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit");
     let (mut session, first) = TourSession::prepare(
         "browser/memory-lantern-live-proof",
         "browser-boot/memory-lantern-live-proof",

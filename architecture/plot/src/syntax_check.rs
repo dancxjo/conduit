@@ -1730,6 +1730,15 @@ fn resolve_bound_value(
         return Ok(value.clone());
     }
     let parameter = &signature.startup_parameters[index];
+    if let Some(value) = catalog
+        .structured_defaults
+        .get(&(signature.kind.clone(), parameter.name.clone()))
+        .filter(|_| catalog.signature(&signature.kind) == Some(signature))
+    {
+        let value = CanonicalStartupValue::Structured(value.clone());
+        values[index] = Some(value.clone());
+        return Ok(value);
+    }
     let default = parameter
         .default
         .as_deref()

@@ -127,6 +127,7 @@ impl TourSession {
                     maximum_output_bytes: crate::installed_browser::MAXIMUM_BROWSER_VALUE_BYTES
                         as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })))
             }
             engine::BrowserHostEffect::ClockObservation => Ok(TourHostEffect::ClockObservation(
@@ -145,6 +146,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: 8,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 }),
             )),
             engine::BrowserHostEffect::KeyEvent => {
@@ -163,6 +165,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })))
             }
             engine::BrowserHostEffect::ButtonTransition => Ok(TourHostEffect::ButtonTransition(
@@ -186,7 +189,14 @@ impl TourSession {
             engine::BrowserHostEffect::ApplicationEvent => Ok(TourHostEffect::ApplicationEvent(
                 Box::new(TourKeyEventEffect {
                     schema: "conduit.browser/application-event-effect@1",
-                    effect_kind: "application-event",
+                    effect_kind: if self.scheduler.saved_choices
+                        [usize::from(pending.request.node.0)]
+                    .is_some()
+                    {
+                        "saved-choice"
+                    } else {
+                        "application-event"
+                    },
                     source_document_id: fragment.source_document_id.as_str().into(),
                     checked_plot_id: fragment.checked_plot_id.as_str().into(),
                     expanded_plot_id: fragment.expanded_plot_id.as_str().into(),
@@ -197,8 +207,17 @@ impl TourSession {
                     host_id: self.host_id.as_str().into(),
                     boot_id: self.boot_id.as_str().into(),
                     request_sequence: pending.request.request.0,
-                    maximum_output_bytes: conduit_face::MAX_APPLICATION_EVENT_ENCODED_BYTES as u32,
+                    maximum_output_bytes: if self.scheduler.saved_choices
+                        [usize::from(pending.request.node.0)]
+                    .is_some()
+                    {
+                        conduit_semantic_catalog::SAVED_CHOICE_MAXIMUM_ID_BYTES
+                    } else {
+                        conduit_face::MAX_APPLICATION_EVENT_ENCODED_BYTES as u32
+                    },
                     source_interaction: self.source_interaction.clone(),
+                    choice: self.scheduler.saved_choices[usize::from(pending.request.node.0)]
+                        .clone(),
                 }),
             )),
             engine::BrowserHostEffect::TutorialPresenterRequest => Ok(
@@ -217,6 +236,7 @@ impl TourSession {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes: conduit_ai::MAXIMUM_LLM_INPUT_BYTES as u32,
                     source_interaction: self.source_interaction.clone(),
+                    choice: None,
                 })),
             ),
             engine::BrowserHostEffect::Manifestation(manifestation) => {
@@ -250,6 +270,12 @@ impl TourSession {
                     boot_id: self.boot_id.as_str().into(),
                     face_kind: manifestation.kind_id.into(),
                     data_label: manifestation.data_label.clone(),
+                    insertion_caret: (manifestation.kind_id
+                        == conduit_semantic_catalog::TEXT_FACE_KIND
+                        && conduit_semantic_catalog::text_face_insertion_caret(
+                            &placement.configuration,
+                        ))
+                    .then_some(true),
                     observation_sequence,
                     realization: self.realization.as_str(),
                     expanded_gears: self

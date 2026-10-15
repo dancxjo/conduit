@@ -1,6 +1,6 @@
 //! Exact typed Host completions; retained editing uses portable semantics.
 use super::*;
-use conduit_human::KeymapDisposition;
+
 use conduit_kernel::{BoundedValueRef, Failure, FailureCode, HostCallDisposition, HostCallOutcome};
 
 impl NativeWorksetPlay {
@@ -36,16 +36,9 @@ impl NativeWorksetPlay {
                 }
                 let event = KeyEvent::decode(input).map_err(|_| PlayRefusal::Kernel)?;
                 match self.keymaps[plot].apply(event) {
-                    KeymapDisposition::Text(text) => {
-                        let mut utf8 = [0; 4];
-                        self.output(request, Some(text.encode_utf8(&mut utf8)))
-                    }
-                    KeymapDisposition::NoText | KeymapDisposition::Cancelled => {
-                        self.output(request, None)
-                    }
-                    KeymapDisposition::Refused(_) => {
-                        self.failed(request, FailureCode::InvalidInput, 72)
-                    }
+                    Ok(Some(text)) => self.output(request, Some(text.as_slice())),
+                    Ok(None) => self.output(request, None),
+                    Err(_) => self.failed(request, FailureCode::InvalidInput, 72),
                 }
             }
             Effect::Upper => {

@@ -42,6 +42,8 @@ pub enum FaceControlKind {
         maximum: u64,
         unit: Option<String>,
     },
+    /// An exact structured configuration edited in its authored Conduitese source.
+    StructuredSource,
     PhysicalSource {
         maximum_bytes: u32,
     },
@@ -161,6 +163,10 @@ pub fn project_controls(gear: &CheckedGear) -> Result<Vec<FaceControl>, Patchbay
                         choices: values.clone(),
                     }
                 }
+                (
+                    ConfigurationValue::Structured(value),
+                    KindConfigurationRule::Structured { profile },
+                ) if value.profile() == profile => FaceControlKind::StructuredSource,
                 (ConfigurationValue::Unit(_), KindConfigurationRule::Unit)
                 | (ConfigurationValue::Quantity(_), KindConfigurationRule::Quantity)
                 | (

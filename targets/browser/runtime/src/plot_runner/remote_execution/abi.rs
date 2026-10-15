@@ -446,6 +446,13 @@ pub extern "C" fn conduit_browser_remote_drive() -> i32 {
                     BrowserHostEffect::Manifestation(manifestation) => {
                         object.insert("effect_kind".into(), "manifestation".into());
                         object.insert("face_kind".into(), manifestation.kind_id.into());
+                        if manifestation.kind_id == conduit_semantic_catalog::TEXT_FACE_KIND
+                            && conduit_semantic_catalog::text_face_insertion_caret(
+                                &placement.configuration,
+                            )
+                        {
+                            object.insert("insertion_caret".into(), true.into());
+                        }
                         if let Some(label) = &manifestation.data_label {
                             object.insert("data_label".into(), label.clone().into());
                         }

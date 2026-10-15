@@ -6,7 +6,7 @@ use conduit_core::{
     kind_id, ArtifactId, Back, BackOfferBuilder, CapabilityId, CapabilityOffer, ConfigurationValue,
     ExecutionProfileId, HostCallRequirement, ImplementationId, Kind, PlannedGear,
 };
-use conduit_kernel::{Failure, FailureCode, HostedValueStore};
+use conduit_kernel::{Failure, FailureCode, HostedValueStore, ValueStorage};
 
 pub(crate) const HOST_CALL: &str = "conduit.host/browser-text-state@1";
 const EDIT_IMPLEMENTATION: &str = "browser/kernel-text-edit@1";
@@ -49,7 +49,7 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
                 contract_id: HOST_CALL.into(),
                 target_kind: Some(kind_id("text/bounded-state-output@1")),
                 maximum_in_flight: 1,
-                maximum_input_bytes: 4,
+                maximum_input_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
                 maximum_output_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
             }],
             resource_requirements: Vec::new(),
@@ -59,14 +59,27 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
     .build()
 }
 
-fn prepare(placement: &PlannedGear, _: &mut HostedValueStore) -> Result<BrowserBack, String> {
+fn prepare(placement: &PlannedGear, values: &mut HostedValueStore) -> Result<BrowserBack, String> {
     let expected = match placement.implementation_id.as_str() {
         EDIT_IMPLEMENTATION => edit_offer(),
         SUBMIT_IMPLEMENTATION => submit_offer(),
         _ => return Err("unsupported text state implementation".into()),
     };
     validate_placement(placement, &expected)?;
-    Ok(BrowserBack::unary(4, 1))
+    if placement.implementation_id.as_str() == EDIT_IMPLEMENTATION {
+        let initial = values
+            .store(&[])
+            .map_err(|error| format!("store initial empty editor Current: {error:?}"))?;
+        Ok(BrowserBack::unary_with_initial(
+            conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
+            initial,
+        ))
+    } else {
+        Ok(BrowserBack::unary(
+            conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
+            1,
+        ))
+    }
 }
 
 pub(crate) struct PreparedTextState(conduit_semantic_catalog::BoundedTextState);

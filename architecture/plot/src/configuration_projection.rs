@@ -3,6 +3,61 @@ use crate::prelude::*;
 use crate::{
     ConfigurationValue, KindConfigurationField, KindConfigurationRule, StartupParameterSignature,
 };
+/// Preserve checked configuration defaults in the startup IR, without Source rendering.
+pub(crate) fn install_structured_defaults(
+    startup: &mut crate::StartupCatalog,
+    signature: &crate::KindSignature,
+    fields: &[KindConfigurationField],
+) -> Result<(), String> {
+    for field in fields {
+        let ConfigurationValue::Structured(configuration) = &field.default_value else {
+            continue;
+        };
+        // Built-in semantic values such as Dimension have their own checked
+        // Source literal owner; their configuration envelope is not a new Type.
+        if field.default_value.semantic_kind() != *configuration.profile() {
+            continue;
+        }
+        let value = conduit_core::StructuredInfoValue::from_canonical_bytes(
+            configuration.canonical_value(),
+        )
+        .map_err(|error| {
+            format!(
+                "invalid canonical structured default '{}': {error:?}",
+                field.key
+            )
+        })?;
+        if value
+            .value_type()
+            .profile()
+            .map_err(|error| format!("invalid structured default type: {error:?}"))?
+            .value_kind()
+            != configuration.profile()
+        {
+            return Err(format!(
+                "structured default '{}' differs from its exact profile",
+                field.key
+            ));
+        }
+        let Some(parameter) = signature
+            .startup_parameters
+            .iter()
+            .find(|parameter| parameter.name == field.key)
+        else {
+            // Internal configuration fields are not callable startup defaults.
+            continue;
+        };
+        startup.ensure_structured_type(parameter.value_type.clone(), value.value_type().clone())?;
+        if parameter.default.is_some() {
+            startup.structured_defaults.insert(
+                (signature.kind.clone(), parameter.name.clone()),
+                crate::CanonicalStructuredStartupValue::from_checked_value(&value),
+            );
+        }
+    }
+    Ok(())
+}
+
 pub(crate) fn projected_startup_parameter(
     field: &KindConfigurationField,
 ) -> StartupParameterSignature {
@@ -53,5 +108,85 @@ pub(crate) fn render_value(value: &ConfigurationValue) -> String {
         ConfigurationValue::Quantity(value) => value.source().into(),
         ConfigurationValue::Unit(value) => value.source().into(),
         ConfigurationValue::TemperatureDifference(value) => value.source().into(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_core::{
+        KindIdentity, StructuredFieldType, StructuredFieldValue, StructuredInfoType,
+        StructuredInfoValue,
+    };
+
+    #[test]
+    fn profile_derived_structured_default_retains_checked_bytes_without_source_rendering() {
+        let text_type =
+            StructuredInfoType::leaf(conduit_core::kind_id(conduit_core::BOOL_INFO_ID)).unwrap();
+        let value_type = StructuredInfoType::record(
+            conduit_core::kind_id("fixture/settings@1"),
+            vec![StructuredFieldType::new("label", text_type.clone()).unwrap()],
+        )
+        .unwrap();
+        let value = StructuredInfoValue::record(
+            value_type.clone(),
+            vec![StructuredFieldValue::new(
+                "label",
+                StructuredInfoValue::leaf(
+                    text_type,
+                    conduit_core::InfoBool::TRUE.encode().to_vec(),
+                )
+                .unwrap(),
+            )
+            .unwrap()],
+        )
+        .unwrap();
+        let profile = value_type.profile().unwrap().value_kind().clone();
+        let configuration = conduit_core::StructuredConfigurationValue::new(
+            profile.clone(),
+            value.canonical_bytes().unwrap(),
+        )
+        .unwrap();
+        let mut catalog = crate::ProfileCatalog::new();
+        catalog
+            .insert(crate::KindProjection {
+                kind_id: "fixture/structured-default".into(),
+                kind_contract_revision: KindIdentity::from("fixture/structured-default@1"),
+                inputs: vec![],
+                outputs: vec![],
+                configuration: vec![KindConfigurationField {
+                    key: "settings".into(),
+                    default_value: ConfigurationValue::Structured(configuration.clone()),
+                    rule: KindConfigurationRule::Structured { profile },
+                }],
+            })
+            .unwrap();
+        let checked = crate::parse(
+            "plot defaults {\n item: fixture/structured-default\n}",
+            &catalog,
+        )
+        .unwrap();
+        assert_eq!(
+            checked.gears[0].configuration[0].value,
+            ConfigurationValue::Structured(configuration)
+        );
+        // Source-owned defaults on a same-name Plot must not inherit the
+        // installed primitive's prepared default.
+        let startup = catalog.startup_catalog().unwrap();
+        let syntax = crate::parse_syntax_document(
+            "plot fixture/structured-default (\n settings: Count = 9\n) {\n}\nplot caller {\n item: fixture/structured-default\n}",
+        );
+        let source = crate::check_syntax_document(&syntax, &startup).unwrap();
+        assert_eq!(
+            source
+                .plots
+                .iter()
+                .find(|plot| plot.name == "caller")
+                .unwrap()
+                .gears[0]
+                .startup_bindings[0]
+                .value,
+            crate::CanonicalStartupValue::Literal("9".into())
+        );
     }
 }

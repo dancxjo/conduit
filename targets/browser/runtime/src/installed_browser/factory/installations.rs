@@ -3,6 +3,7 @@
 use super::BrowserInstallation;
 
 pub(super) static INSTALLATIONS: &[&BrowserInstallation] = &[
+    &crate::installed_browser::saved_choice::INSTALLATION,
     &crate::installed_browser::thermostat::INSTALLATION,
     &crate::installed_browser::thermostat_scan_offer::INSTALLATION,
     &crate::installed_browser::audio_io::CAPTURE,

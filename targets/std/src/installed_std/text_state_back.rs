@@ -19,12 +19,22 @@ pub(super) static SUBMIT_FACTORY: BackFactory = BackFactory {
 };
 
 pub(super) struct TextStateBack {
+    initial: Option<conduit_kernel::ValueRef>,
     pending: Option<RequestId>,
     next_request: u32,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for TextStateBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if let Some(initial) = self.initial {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            io.send(PortId(0), initial)
+                .expect("ready initial edited text");
+            self.initial = None;
+            return StepOutcome::Progress;
+        }
         if let Some((request, outcome)) = io.host_completion() {
             if self.pending != Some(request) {
                 return step_fail(FailureCode::InvalidLifecycle, 4);
@@ -65,7 +75,9 @@ impl<const PORTS: usize> StepBack<PORTS> for TextStateBack {
             if self.pending.is_some() {
                 return step_fail(FailureCode::InvalidLifecycle, 4);
             }
-            let Ok(input) = BoundedValueRef::new(value, 4) else {
+            let Ok(input) =
+                BoundedValueRef::new(value, conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES)
+            else {
                 return step_fail(FailureCode::InvalidInput, 2);
             };
             let request = RequestId(self.next_request);
@@ -88,6 +100,7 @@ impl<const PORTS: usize> StepBack<PORTS> for TextStateBack {
     }
 
     fn cancel(&mut self) {
+        self.initial = None;
         self.pending = None;
     }
 }
@@ -178,7 +191,13 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate(placement, &offer)?;
     let maximum = maximum_bytes(placement)? as u32;
     Ok(BackBudget {
-        value_items: 8,
+        value_items: if placement.implementation_id.as_str()
+            == conduit_std_offers::TEXT_EDIT_STD_IMPLEMENTATION
+        {
+            9
+        } else {
+            8
+        },
         value_bytes: maximum.saturating_mul(8),
         host_requests: 1,
         sign_items: 64,
@@ -188,11 +207,70 @@ fn budget(placement: &PlannedGear) -> Result<BackBudget, String> {
 
 fn prepare(
     placement: &PlannedGear,
-    _values: &mut conduit_kernel::HostedValueStore,
+    values: &mut conduit_kernel::HostedValueStore,
 ) -> Result<InstalledBack, String> {
     budget(placement)?;
+    use conduit_kernel::ValueStorage;
+    let initial = if placement.implementation_id.as_str()
+        == conduit_std_offers::TEXT_EDIT_STD_IMPLEMENTATION
+    {
+        Some(
+            values
+                .store(&[])
+                .map_err(|error| format!("store initial edited text: {error:?}"))?,
+        )
+    } else {
+        None
+    };
     Ok(InstalledBack::TextState(TextStateBack {
+        initial,
         pending: None,
         next_request: 0,
     }))
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use conduit_kernel::ValueRef;
+
+    #[test]
+    fn editor_emits_empty_before_input_and_accepts_multi_scalar_fragments() {
+        let empty = ValueRef {
+            slot: 1,
+            generation: 1,
+            byte_len: 0,
+        };
+        let fragment = ValueRef {
+            slot: 2,
+            generation: 1,
+            byte_len: 8,
+        };
+        let mut editor = TextStateBack {
+            initial: Some(empty),
+            pending: None,
+            next_request: 0,
+        };
+        let mut blocked = StepIo::test_frame([Some(fragment)], [false], [None], None, 8);
+        assert_eq!(
+            editor.step(&mut blocked, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Await
+        );
+        assert_eq!(editor.initial, Some(empty));
+        let mut ready = StepIo::test_frame([Some(fragment)], [false], [Some(4)], None, 8);
+        assert_eq!(
+            editor.step(&mut ready, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert!(ready.test_host_request().is_none());
+        assert_eq!(ready.test_output(PortId(0)), Some(empty));
+        assert!(!ready.test_consumed(PortId(0)));
+        assert!(editor.initial.is_none());
+        let mut next = StepIo::test_frame([Some(fragment)], [false], [Some(4)], None, 8);
+        assert_eq!(
+            editor.step(&mut next, &StepInputBytes::test_frame([None], None)),
+            StepOutcome::Progress
+        );
+        assert_eq!(next.test_host_request().unwrap().2.value, fragment);
+    }
 }

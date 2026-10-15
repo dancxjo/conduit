@@ -18,6 +18,7 @@ pub(crate) struct KeyboardBack {
 
 #[derive(Clone, Copy)]
 pub(crate) struct StreamTransformBack {
+    initial: Option<ValueRef>,
     pending: Option<RequestId>,
     next: u32,
     allows_empty_output: bool,
@@ -26,10 +27,16 @@ pub(crate) struct StreamTransformBack {
 impl StreamTransformBack {
     pub(crate) const fn new(allows_empty_output: bool) -> Self {
         Self {
+            initial: None,
             pending: None,
             next: 0,
             allows_empty_output,
         }
+    }
+    pub(crate) fn initially_empty(value: ValueRef) -> Self {
+        let mut back = Self::new(false);
+        back.initial = Some(value);
+        back
     }
 }
 
@@ -74,7 +81,10 @@ impl StepBack<PORTS> for PlannedBack {
     fn cancel(&mut self) {
         match self {
             Self::Keyboard(back) => back.pending = None,
-            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => back.pending = None,
+            Self::Keymap(back) | Self::Upper(back) | Self::TextEdit(back) => {
+                back.pending = None;
+                back.initial = None;
+            }
             Self::Face(back) => back.pending = None,
             Self::Application(back) => back.pending = None,
         }
@@ -131,6 +141,16 @@ impl KeyboardBack {
 
 impl StreamTransformBack {
     fn step(&mut self, io: &mut StepIo<PORTS>) -> StepOutcome {
+        if let Some(initial) = self.initial {
+            if !io.output_ready(PortId(0)) {
+                return StepOutcome::Await;
+            }
+            if io.send(PortId(0), initial).is_err() {
+                return fail(63);
+            }
+            self.initial = None;
+            return StepOutcome::Progress;
+        }
         if let Some(request) = self.pending {
             let Some((completed, outcome)) = io.host_completion() else {
                 return StepOutcome::Await;

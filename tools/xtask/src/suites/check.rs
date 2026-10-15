@@ -741,6 +741,39 @@ pub const SEMANTIC_CATALOG_READINESS_STEPS: &[Step] = &[
 /// Deterministic K5/K5b contracts plus K8's two truthful platform seams.
 pub const INPUT_SEMANTICS_STEPS: &[Step] = &[
     Step::new(
+        "check.input-semantics.browser-keymaps",
+        "test configured layouts and live saved selection through the browser kernel",
+        "cargo",
+        &["test", "-p", "conduit-browser-runtime", "keymap", "--lib"],
+    ),
+    Step::new(
+        "check.input-semantics.authored-keymaps",
+        "test typed Conduitese keyboard layers and the complete AltGr default",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-human",
+            "--lib",
+            "--test",
+            "keymap_layouts",
+        ],
+    ),
+    Step::new(
+        "check.input-semantics.saved-choice",
+        "test bounded authored saved-choice options and identity output",
+        "cargo",
+        &[
+            "test",
+            "-p",
+            "conduit-semantic-catalog",
+            "--features",
+            "plot-catalog",
+            "saved_choice",
+            "--lib",
+        ],
+    ),
+    Step::new(
         "check.input-semantics.core",
         "test the reusable keymap and chord contracts",
         "cargo",

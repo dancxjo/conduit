@@ -63,7 +63,7 @@ pub(super) fn upper(build_id: &str) -> CapabilityOffer<'_> {
 pub(super) fn face(build_id: &str) -> CapabilityOffer<'_> {
     CapabilityOffer {
         kind: "face/text",
-        contract_revision: "conduit.std/face-text@1",
+        contract_revision: "conduit.std/face-text@2",
         implementation: TEXT_FACE_IMPLEMENTATION,
         artifact_build: build_id,
         host_call: Some("conduit.host/present@1"),

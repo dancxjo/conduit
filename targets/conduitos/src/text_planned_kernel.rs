@@ -323,6 +323,7 @@ fn validate_shape(
         || upper.host_calls[0].maximum_in_flight != 1
         || upper.host_calls[0].maximum_input_bytes != conduit_text::MAX_TEXT_BYTES
         || upper.host_calls[0].maximum_output_bytes != conduit_text::MAX_TEXT_BYTES
+        || conduit_semantic_catalog::text_face_insertion_caret(&face.configuration)
         || configured_text(&literal.configuration, "value")? != expected_literal
         || configured_u64(&face.configuration, "maximum-values")?
             != conduit_semantic_catalog::MAX_TEXT_VALUES

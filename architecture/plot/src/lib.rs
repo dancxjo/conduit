@@ -574,8 +574,8 @@ impl ProfileCatalog {
     }
 
     /// Derives the startup names and defaults needed to check canonical source.
-    /// Structured startup types still require an explicitly assembled
-    /// [`StartupCatalog`].
+    /// Checked structured configuration defaults supply their exact Types and
+    /// canonical values. Additional authored Types require an assembled catalog.
     pub fn startup_catalog(&self) -> Result<StartupCatalog, String> {
         let mut startup = StartupCatalog::new();
         for definition in self.kinds.values() {
@@ -611,6 +611,11 @@ impl ProfileCatalog {
                     },
                 ),
             };
+            configuration_projection::install_structured_defaults(
+                &mut startup,
+                &signature,
+                &definition.configuration,
+            )?;
             startup.insert(signature)?;
             let fore = if let Some(kind) = canonical_kind {
                 kind.checked_front()

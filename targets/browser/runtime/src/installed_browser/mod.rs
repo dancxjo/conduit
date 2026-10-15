@@ -59,6 +59,7 @@ pub(crate) mod replay_source;
 pub(crate) mod resource;
 mod rhythm_face;
 mod rhythm_state;
+pub(crate) mod saved_choice;
 pub(crate) mod startup_chime;
 mod state_time;
 pub(crate) mod stroke_capture;

@@ -333,6 +333,11 @@ pub(crate) fn advertisement_for_machinery(
     ));
     super::button_attempt::admit_clock_resource(&mut resources);
     resources.push(resource_offer(
+        "browser/saved-choice",
+        super::saved_choice::RESOURCE_CLASS,
+        4,
+    ));
+    resources.push(resource_offer(
         "browser/named-pattern-storage",
         super::template_storage::RESOURCE_CLASS,
         1,

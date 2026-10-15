@@ -344,7 +344,7 @@ pub fn keymap_offer() -> CapabilityOffer {
             target_kind: Some(kind_id(KEYMAP_HOST_TARGET)),
             maximum_in_flight: 1,
             maximum_input_bytes: conduit_human::KEY_EVENT_ENCODED_LEN as u32,
-            maximum_output_bytes: 4,
+            maximum_output_bytes: conduit_human::KEYMAP_MAXIMUM_TEXT_BYTES as u32,
         }],
     )
 }

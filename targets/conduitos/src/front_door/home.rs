@@ -7,26 +7,26 @@ use conduit_face::{
 };
 pub use conduit_home_model::{HomeAction as HomeInput, HomeView};
 use conduit_home_model::{HomeEvent, HomeModel};
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeyTransition, KeymapDisposition};
+use conduit_human::{KeyEvent, KeyTransition, PreparedKeymap};
 
 use super::{Error, FrontDoor};
 
 pub(super) struct Home {
     model: HomeModel,
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
 }
 
 impl Home {
     fn new() -> Self {
         Self {
             model: HomeModel::new(),
-            keymap: ConduitIntlKeymap::new(),
+            keymap: PreparedKeymap::default_layout(),
         }
     }
 
     fn accept(&mut self, event: KeyEvent) -> HomeInput {
         if event.transition() != KeyTransition::Pressed {
-            self.keymap.apply(event);
+            let _ = self.keymap.apply(event);
             return HomeInput::Unchanged;
         }
         let plots = installed_plot_titles();
@@ -37,14 +37,13 @@ impl Home {
             41 => HomeEvent::Escape,
             42 => HomeEvent::Backspace,
             _ => match self.keymap.apply(event) {
-                KeymapDisposition::Text(fragment) => {
-                    let mut utf8 = [0; 4];
-                    let text = fragment.encode_utf8(&mut utf8);
+                Ok(Some(fragment)) => {
+                    let text = fragment.as_slice();
                     return core::str::from_utf8(text).map_or(HomeInput::Unchanged, |text| {
                         self.model.accept(HomeEvent::Text(text), &plots)
                     });
                 }
-                KeymapDisposition::Refused(_) => HomeEvent::CharacterUnavailable,
+                Err(_) => HomeEvent::CharacterUnavailable,
                 _ => return HomeInput::Unchanged,
             },
         };

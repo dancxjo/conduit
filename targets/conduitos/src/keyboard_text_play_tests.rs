@@ -62,8 +62,8 @@ fn hello_and_unicode_cross_the_exact_four_gear_production_play() {
         release(0x0f, KeyModifiers::NONE),
         press(0x12, KeyModifiers::NONE),
         release(0x12, KeyModifiers::NONE),
-        press(0x04, KeyModifiers::RIGHT_ALT),
-        release(0x04, KeyModifiers::RIGHT_ALT),
+        press(0x1d, KeyModifiers::RIGHT_ALT),
+        release(0x1d, KeyModifiers::RIGHT_ALT),
     ];
     let report = run(&prepared(), &events).unwrap();
     let expected = ["H", "E", "L", "L", "O", "Æ"];

@@ -32,6 +32,32 @@ impl BodyTextAdmission {
         let [region] = fragment.execution_regions.as_slice() else {
             return Err(MachineRunError::KernelConstruction);
         };
+        for placement in &fragment.placements {
+            if placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND {
+                if placement.configuration.len() != 2
+                    || !placement.configuration.iter().any(|entry| {
+                        entry.key.as_str() == "layout"
+                            && entry.value
+                                == conduit_core::ConfigurationValue::Structured(
+                                    conduit_human::default_keymap_configuration(),
+                                )
+                    })
+                    || !placement.configuration.iter().any(|entry| {
+                        entry.key.as_str() == "choices"
+                            && entry.value
+                                == conduit_core::ConfigurationValue::Structured(
+                                    conduit_human::default_choices_configuration(),
+                                )
+                    })
+                    || fragment.connections.iter().any(|cord| {
+                        cord.sink_placement_id == placement.placement_id
+                            && cord.sink_port_id.as_str() == "selection"
+                    })
+                {
+                    return Err(MachineRunError::KernelConstruction);
+                }
+            }
+        }
         let editor_capacity = fragment
             .placements
             .iter()

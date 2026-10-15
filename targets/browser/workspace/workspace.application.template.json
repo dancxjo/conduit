@@ -329,7 +329,7 @@
       "role": "shared-face-style",
       "kind": "style",
       "path": "conduit.css",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 32768,
       "dependencies": []
     },
     {
@@ -433,6 +433,10 @@
       "maximum_bytes": 32768,
       "dependencies": [
         {
+          "role": "browser-saved-choice",
+          "specifier": "./browser-saved-choice.mjs"
+        },
+        {
           "role": "browser-human-input",
           "specifier": "./browser-human-input.mjs"
         },
@@ -471,6 +475,18 @@
         {
           "role": "browser-resource-storage",
           "specifier": "./browser-resource-storage.mjs"
+        }
+      ]
+    },
+    {
+      "role": "browser-saved-choice",
+      "kind": "module",
+      "path": "browser-saved-choice.mjs",
+      "maximum_bytes": 8192,
+      "dependencies": [
+        {
+          "role": "application-face",
+          "specifier": "./application-face.mjs"
         }
       ]
     },
