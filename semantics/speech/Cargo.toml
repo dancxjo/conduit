@@ -19,6 +19,7 @@ conduit-audio = { path = "../audio", optional = true }
 conduit-kernel = { path = "../../architecture/kernel", optional = true }
 
 [build-dependencies]
+conduit-audio = { path = "../audio" }
 postcard = { version = "1", default-features = false, features = ["alloc"] }
 conduit-language = { path = "../language" }
 conduit-plot = { path = "../../architecture/plot" }
