@@ -8,6 +8,7 @@ mod parsec_map_build;
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=look.conduit");
     let mut catalog = StartupCatalog::new();
     catalog
         .insert_value_kind_alias(
@@ -36,7 +37,9 @@ fn main() {
         .insert_structured_type("TemporalInstant", temporal_instant.clone())
         .expect("temporal instant Type installs once");
     let checked = check_syntax_document(
-        &parse_syntax_document(include_str!("types.conduit")),
+        &parse_syntax_document(
+            &[include_str!("types.conduit"), include_str!("look.conduit")].join("\n"),
+        ),
         &catalog,
     )
     .expect("face semantic Types must check");
@@ -99,6 +102,9 @@ fn main() {
             ]
             .into(),
             serde_variant_exclusions: [
+                "LookVisualFacetOption".into(),
+                "LookSpokenFacetOption".into(),
+                "LookGenerativeFacetOption".into(),
                 "FaceUtteranceProvenance".into(),
                 "FaceCompositionKind".into(),
                 "VisionColorSample".into(),

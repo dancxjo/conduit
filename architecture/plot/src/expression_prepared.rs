@@ -19,7 +19,9 @@ mod member_selection;
 mod nominal;
 mod sequence_selection;
 use member_selection::PreparedMemberSelection;
+mod prepare;
 mod primitive;
+use prepare::prepare_node;
 mod storage_bound;
 mod structured;
 mod structured_contract;
@@ -87,6 +89,12 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    QuantityBinary {
+        operator: BinaryOperator,
+        left: Box<PreparedNode>,
+        right: Box<PreparedNode>,
+        output: Vec<u8>,
+    },
     RationalBinary {
         operator: BinaryOperator,
         left: Box<PreparedNode>,
@@ -317,169 +325,4 @@ impl PreparedPortableExpressionEvaluator {
     pub fn output_capacity(&self) -> usize {
         self.output.capacity()
     }
-}
-
-fn prepare_node(
-    node: &PortableExpressionNode,
-    input_type: &conduit_core::StructuredInfoType,
-    prepared_input: &PreparedInput,
-) -> Result<PreparedNode, Refusal> {
-    let kind = leaf_kind(&node.value_type)?;
-    let operation = match &node.operation {
-        PortableExpressionOperation::Constant(value) => {
-            if value.value_type() != &node.value_type {
-                return Err(Refusal::InvalidProgram);
-            }
-            let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-                return Err(Refusal::InvalidProgram);
-            };
-            PreparedOperation::Literal(bytes.to_vec())
-        }
-        PortableExpressionOperation::Input => PreparedOperation::Input,
-        PortableExpressionOperation::Literal(literal) => PreparedOperation::Literal(
-            crate::expression_evaluate::literal_primitive_bytes(&node.value_type, literal)?,
-        ),
-        PortableExpressionOperation::CanonicalLiteral(encoded) => {
-            crate::expression_program::validate_capsule_literal(&node.value_type, encoded)
-                .map_err(|_| Refusal::InvalidProgram)?;
-            PreparedOperation::Literal(encoded.clone())
-        }
-        PortableExpressionOperation::Unary { operator, operand } => PreparedOperation::Unary {
-            operator: *operator,
-            operand: Box::new(prepare_node(operand, input_type, prepared_input)?),
-        },
-        PortableExpressionOperation::Binary {
-            operator,
-            left,
-            right,
-            ..
-        } if kind == PrimitiveInfoKind::MathematicalValue
-            && matches!(
-                operator,
-                BinaryOperator::Add
-                    | BinaryOperator::Subtract
-                    | BinaryOperator::Multiply
-                    | BinaryOperator::Divide
-            ) =>
-        {
-            PreparedOperation::RationalBinary {
-                operator: *operator,
-                left: Box::new(prepare_node(left, input_type, prepared_input)?),
-                right: Box::new(prepare_node(right, input_type, prepared_input)?),
-                output: vec![0; conduit_core::EXACT_RATIONAL_MAX_ENCODED_BYTES + 3],
-            }
-        }
-        PortableExpressionOperation::Binary {
-            operator,
-            proven,
-            left,
-            right,
-        } => equality::binary(
-            *operator,
-            *proven,
-            kind,
-            left,
-            right,
-            input_type,
-            prepared_input,
-        )?,
-        PortableExpressionOperation::Conditional {
-            condition,
-            when_true,
-            when_false,
-        } => PreparedOperation::Conditional {
-            condition: Box::new(prepare_node(condition, input_type, prepared_input)?),
-            when_true: Box::new(prepare_node(when_true, input_type, prepared_input)?),
-            when_false: Box::new(prepare_node(when_false, input_type, prepared_input)?),
-        },
-        PortableExpressionOperation::SemanticCall { kind, arguments }
-            if kind == "text/material" =>
-        {
-            text_material::prepare(node, arguments, input_type, prepared_input)?
-        }
-        PortableExpressionOperation::SemanticCall {
-            kind: call,
-            arguments,
-        } if crate::expression_semantic_call::integer_widening_target(call).is_some() => {
-            let [argument] = arguments.as_slice() else {
-                return Err(Refusal::InvalidProgram);
-            };
-            let operand = prepare_node(argument, input_type, prepared_input)?;
-            if call != kind_name(kind)
-                || !crate::expression_semantic_call::is_strict_widening(
-                    kind_name(operand.kind),
-                    call,
-                )
-            {
-                return Err(Refusal::InvalidProgram);
-            }
-            PreparedOperation::Widen(Box::new(operand))
-        }
-        PortableExpressionOperation::SemanticCall {
-            kind: call,
-            arguments,
-        } if matches!(
-            call.as_str(),
-            "variant/is" | "variant/tag" | "sequence/length"
-        ) =>
-        {
-            let expected = match call.as_str() {
-                "variant/is" => PrimitiveInfoKind::Bool,
-                "variant/tag" => PrimitiveInfoKind::Text,
-                _ => PrimitiveInfoKind::U64,
-            };
-            if kind != expected {
-                return Err(Refusal::InvalidProgram);
-            }
-            PreparedOperation::Inspection(inspection::PreparedInspection::new(
-                call,
-                arguments,
-                input_type,
-                prepared_input,
-            )?)
-        }
-        PortableExpressionOperation::SemanticCall {
-            kind: call,
-            arguments,
-        } if matches!(call.as_str(), "bytes/length" | "bytes/at" | "bytes/window") => {
-            let expected = if call == "bytes/window" {
-                PrimitiveInfoKind::Bytes
-            } else if call == "bytes/at" {
-                PrimitiveInfoKind::U8
-            } else {
-                PrimitiveInfoKind::U64
-            };
-            if kind != expected {
-                return Err(Refusal::InvalidProgram);
-            }
-            PreparedOperation::Bytes(byte_observation::PreparedByteObservation::new(
-                call,
-                arguments,
-                input_type,
-                prepared_input,
-            )?)
-        }
-        PortableExpressionOperation::SemanticCall { kind: call, .. } if call == "sequence/at" => {
-            PreparedOperation::SequenceSelection(
-                sequence_selection::PreparedSequenceSelection::new(
-                    node,
-                    input_type,
-                    prepared_input,
-                )?,
-            )
-        }
-        PortableExpressionOperation::Projection { .. } => PreparedOperation::Projection(
-            member_selection::prepare(node, input_type, prepared_input)?,
-        ),
-        _ => {
-            return Err(Refusal::UnsupportedType(
-                "structured expression runtime".into(),
-            ));
-        }
-    };
-    Ok(PreparedNode {
-        kind,
-        info_kind: leaf_info_kind(&node.value_type)?.into(),
-        operation,
-    })
 }

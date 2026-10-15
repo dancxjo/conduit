@@ -142,6 +142,20 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
                 &return_line,
             )
             .unwrap();
+            assert_eq!(
+                component_seal.profile,
+                conduit_face::RemoteMaskRouteProfile::Native
+            );
+            assert!(serde_json::to_value(&component_seal)
+                .unwrap()
+                .get("profile")
+                .is_none());
+            let mut changed_profile = component_seal.clone();
+            changed_profile.profile = conduit_face::RemoteMaskRouteProfile::HostedPresentation;
+            assert_eq!(
+                changed_profile.validate_mask_host_offer(&native_offer),
+                Err(conduit_face::RemoteOwnerMaskRouteError::InvalidSeal)
+            );
             let encoded = serde_json::to_vec(&component_seal).unwrap();
             assert!(encoded.len() > 32 * 1024 && encoded.len() < 40 * 1024);
             component_seal
@@ -152,10 +166,10 @@ fn remote_native_mask_accepts_only_the_offered_scoped_present_binding() {
                 .face_basis
                 .sign_ids
                 .push(conduit_core::SignId::from("x".repeat(40 * 1024)));
-            assert_eq!(
+            assert!(matches!(
                 oversized.validate_mask_host_offer(&native_offer),
-                Err(conduit_face::RemoteOwnerMaskRouteError::SealCapacityExceeded)
-            );
+                Err(conduit_face::RemoteOwnerMaskRouteError::SealEncodingCapacityExceeded { bytes, maximum }) if bytes > maximum && maximum == 40 * 1024
+            ));
         }
     }
     let seal = conduit_face::RemoteOwnerMaskRouteSeal::seal_current(

@@ -72,21 +72,11 @@ pub(super) fn apply(
                 if available {
                     let selected = crate::durable_host_control::local_face_snapshot(state_dir)
                         .and_then(|(_, owner_offer)| {
-                            let binding = super::super::native_lines::binding_reference(
+                            grant.seal_mask_route(
                                 listener,
-                                &grant.binding_reference(action.sequence),
-                            );
-                            let (face_line, return_line) = super::super::native_lines::offer_pair(
-                                &owner_offer,
-                                &grant.receipt,
-                                &binding,
-                            );
-                            crate::durable_host_control::select_native_mask_route(
                                 state_dir,
-                                grant.receipt.clone(),
-                                face_line,
-                                return_line,
-                                grant.expires_at_millis,
+                                &owner_offer,
+                                action.sequence,
                             )
                         });
                     match selected {

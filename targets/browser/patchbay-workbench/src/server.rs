@@ -1,7 +1,7 @@
 use crate::RendererSnapshot;
 use conduit_core::SignId;
+use conduit_face::phosphor_look;
 use conduit_face::ManifestationFailure;
-use conduit_face::CONDUIT_APPLICATION_THEME;
 use conduit_patchbay_workbench::PatchbayInteraction;
 use std::net::{Ipv4Addr, SocketAddr, SocketAddrV4, TcpListener, TcpStream};
 use std::time::Duration;
@@ -31,7 +31,7 @@ mod timeline;
 mod transition;
 mod watches;
 
-use crate::theme::render_theme_css;
+use crate::theme::render_look_css;
 use debug_control::DocumentaryDebuggerRuntime;
 use http::{read_request, write_response};
 use resources::*;
@@ -70,7 +70,12 @@ impl PatchbayHtmlServer {
         snapshot.mark_available(SignId::from("patchbay-html/document-ready"))?;
         let encoded_snapshot = snapshot.encode()?;
         let navigation = navigation_state(&snapshot)?;
-        let theme_css = render_theme_css(&CONDUIT_APPLICATION_THEME);
+        let look = phosphor_look().map_err(|error| {
+            ServerError::ApplicationPackage(format!("canonical Look admission: {error:?}"))
+        })?;
+        let theme_css = render_look_css(&look).map_err(|error| {
+            ServerError::ApplicationPackage(format!("canonical visual Look: {error:?}"))
+        })?;
         if theme_css.len() > MAX_THEME_CSS_BYTES {
             return Err(ServerError::ThemeCssTooLarge);
         }

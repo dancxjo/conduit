@@ -110,6 +110,7 @@ impl BrowserMachinery {
         }
         if installation.implementation_id == super::audio_io::CAPTURE_IMPLEMENTATION
             || installation.implementation_id == super::audio_io::PLAY_IMPLEMENTATION
+            || installation.implementation_id == super::audio_io::CONTINUOUS_PLAY_IMPLEMENTATION
         {
             return self.audio;
         }
@@ -164,80 +165,8 @@ pub(crate) fn execution_capability_ids() -> Vec<conduit_core::CapabilityId> {
 }
 
 pub(crate) use super::catalogs::{backs, catalogs, catalogs_for_face};
-
-pub(crate) fn factory(
-    implementation_id: &ImplementationId,
-) -> Option<&'static BrowserInstallation> {
-    if implementation_id.as_str() == super::structured_selector::IMPLEMENTATION {
-        return Some(&super::structured_selector::INSTALLATION);
-    }
-    if implementation_id.as_str() == super::pure_expression::IMPLEMENTATION {
-        return Some(&super::pure_expression::INSTALLATION);
-    }
-    if implementation_id.as_str() == super::pure_expression::FILTER_IMPLEMENTATION {
-        return Some(&super::pure_expression::FILTER_INSTALLATION);
-    }
-    if implementation_id.as_str() == super::time_window::IMPLEMENTATION {
-        return Some(&super::time_window::INSTALLATION);
-    }
-    if implementation_id.as_str() == super::flow_collect::IMPLEMENTATION {
-        return Some(&super::flow_collect::INSTALLATION);
-    }
-    if implementation_id.as_str() == super::time_sample::IMPLEMENTATION {
-        return Some(&super::time_sample::INSTALLATION);
-    }
-    if let Some(resource) = super::resource::factory(implementation_id.as_str()) {
-        return Some(resource);
-    }
-    #[cfg(test)]
-    if let Some(fixture) = super::test_json::factory(implementation_id.as_str()) {
-        return Some(fixture);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_timing_sink::KIND {
-        return Some(&super::test_timing_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_replay_sink::KIND {
-        return Some(&super::test_replay_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_measurement_sink::KIND {
-        return Some(&super::test_measurement_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_measurement_observation_sink::KIND {
-        return Some(&super::test_measurement_observation_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_stroke_sink::KIND {
-        return Some(&super::test_stroke_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_garden_sink::KIND {
-        return Some(&super::test_garden_sink::SINK);
-    }
-    #[cfg(test)]
-    if implementation_id.as_str() == super::test_measurement_decision_sink::KIND {
-        return Some(&super::test_measurement_decision_sink::SINK);
-    }
-    if implementation_id.as_str() == super::comparison_face::IMPLEMENTATION {
-        return Some(&super::comparison_face::FACE);
-    }
-    if implementation_id.as_str() == super::normalized_face::IMPLEMENTATION {
-        return Some(&super::normalized_face::FACE);
-    }
-    if implementation_id.as_str() == quantity_output::FACE_IMPLEMENTATION {
-        return Some(&quantity_output::FACE);
-    }
-    if implementation_id.as_str() == quantity_output::DIRECT_FACE_IMPLEMENTATION {
-        return Some(&quantity_output::DIRECT_FACE);
-    }
-    INSTALLATIONS
-        .iter()
-        .copied()
-        .find(|factory| factory.implementation_id == implementation_id.as_str())
-}
+mod lookup;
+pub(crate) use lookup::factory;
 
 pub(crate) fn advertisement(host_id: HostId, boot_id: BootId) -> HostAdvertisement {
     advertisement_for_machinery(
@@ -407,6 +336,20 @@ mod profile_tests {
             .resources
             .iter()
             .any(|resource| { resource.class_id.as_str() == input::WINDOW_INPUT_RESOURCE_CLASS }));
+
+        assert!(!viewer.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str()
+                == super::super::audio_io::CONTINUOUS_PLAY_IMPLEMENTATION
+        }));
+        let audio_host = advertisement_for_machinery(
+            "browser/audio".into(),
+            "browser/audio-boot".into(),
+            BrowserMachinery::from_selected(&[AUDIO_MAKE_ID]).unwrap(),
+        );
+        assert!(audio_host.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str()
+                == super::super::audio_io::CONTINUOUS_PLAY_IMPLEMENTATION
+        }));
 
         let control = advertisement_for_machinery(
             HostId::from("browser/control"),

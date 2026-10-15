@@ -340,3 +340,7 @@ fn compact_and_spacious_presentations_return_one_unchanged_face_action() {
         })
     );
 }
+
+#[cfg(unix)]
+#[path = "remote_tests.rs"]
+mod remote;
