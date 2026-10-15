@@ -49,29 +49,19 @@ fn application_view_round_trip_is_exact_and_finite() {
     assert!(encoded.len() <= MAX_APPLICATION_VIEW_BYTES);
     assert_eq!(MAX_APPLICATION_VIEW_RESOURCES, 0);
     assert_eq!(ApplicationView::decode(&encoded), Ok(original));
-    assert_eq!(
-        CONDUIT_APPLICATION_THEME.identity,
-        "conduit.face/phosphor@1"
-    );
+    let look = phosphor_look().unwrap();
+    assert_eq!(look.identity(), PHOSPHOR_LOOK_ID);
+    let LookVisualFacetOption::Some(visual) = look.visual() else {
+        panic!("visual facet")
+    };
     assert_ne!(
-        CONDUIT_APPLICATION_THEME.reading_paper,
-        CONDUIT_APPLICATION_THEME.workbench_canvas
+        visual.tokens().reading_paper(),
+        visual.tokens().workbench_canvas()
     );
-    assert!(CONDUIT_APPLICATION_THEME.encode().unwrap().len() <= MAX_APPLICATION_THEME_BYTES);
-    let encoded_theme = CONDUIT_APPLICATION_THEME.encode().unwrap();
-    assert_eq!(encoded_theme[0], APPLICATION_THEME_VERSION);
-    let palette = 2 + CONDUIT_APPLICATION_THEME.identity.len();
-    assert_eq!(&encoded_theme[palette..palette + 3], &[0x05, 0x07, 0x0b]);
-    assert_eq!(
-        &encoded_theme[palette + 3..palette + 6],
-        &[0x0c, 0x12, 0x1c]
-    );
-    assert_ne!(APPLICATION_THEME_VERSION, RETIRED_APPLICATION_THEME_VERSION);
-    assert_eq!(CONDUIT_APPLICATION_THEME.type_body_px, 16);
-    assert_eq!(CONDUIT_APPLICATION_THEME.line_height_percent, 150);
-    assert_eq!(CONDUIT_APPLICATION_THEME.space_unit_px, 4);
-    assert_eq!(CONDUIT_APPLICATION_THEME.radius_panel_px, 9);
-    assert_eq!(CONDUIT_APPLICATION_THEME.responsive_breakpoint_px, 720);
+    assert_eq!(*visual.tokens().type_body_px(), 16);
+    assert_eq!(*visual.tokens().line_height_percent(), 150);
+    assert_eq!(*visual.tokens().space_unit_px(), 4);
+    assert_eq!(*visual.tokens().radius_panel_px(), 9);
 }
 
 #[test]

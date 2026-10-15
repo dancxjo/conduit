@@ -47,7 +47,7 @@
   background: var(--conduit-background);
   font: var(--conduit-type-body)/var(--conduit-line-height) var(--conduit-font-body);
 }
-:where([data-application-theme]) {
+:where([data-application-look]) {
   box-sizing: border-box;
   color: var(--conduit-text-primary);
   background: var(--conduit-background);
@@ -75,7 +75,7 @@
     color-scheme: light;
   }
 }
-:where([data-application-theme]) *, :where([data-application-theme]) *::before, :where([data-application-theme]) *::after { box-sizing: inherit; }
+:where([data-application-look]) *, :where([data-application-look]) *::before, :where([data-application-look]) *::after { box-sizing: inherit; }
 .conduit-skip-link {
   position: fixed; z-index: 2147483647; inset-block-start: var(--conduit-space-unit); inset-inline-start: var(--conduit-space-unit);
   padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); border: 2px solid var(--conduit-focus);
@@ -143,13 +143,13 @@
   background: var(--conduit-surface);
   font: inherit;
 }
-:where([data-application-theme] button, [data-application-theme] input:not([type="checkbox"]):not([type="radio"]), [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary) {
+:where([data-application-look] button, [data-application-look] input:not([type="checkbox"]):not([type="radio"]), [data-application-look] select, [data-application-look] textarea, [data-application-look] summary) {
   min-height: 2.5rem; padding: var(--conduit-space-control-block) var(--conduit-space-control-inline); color: inherit;
   border: 1px solid var(--conduit-structure-secondary); border-radius: var(--conduit-radius-control); background: var(--conduit-surface); font: inherit;
 }
-:where([data-application-theme] button, [data-application-theme] select) { font-weight: 650; cursor: pointer; }
-:where([data-application-theme] button, [data-application-theme] select):disabled { cursor: not-allowed; opacity: .48; }
-:where([data-application-theme] button, [data-application-theme] input, [data-application-theme] select, [data-application-theme] textarea, [data-application-theme] summary, [data-application-theme] a):focus-visible {
+:where([data-application-look] button, [data-application-look] select) { font-weight: 650; cursor: pointer; }
+:where([data-application-look] button, [data-application-look] select):disabled { cursor: not-allowed; opacity: .48; }
+:where([data-application-look] button, [data-application-look] input, [data-application-look] select, [data-application-look] textarea, [data-application-look] summary, [data-application-look] a):focus-visible {
   border-color: var(--conduit-focus); outline: var(--conduit-focus-width) solid var(--conduit-focus); outline-offset: 2px;
 }
 :where(button[data-application-component]) {
@@ -184,13 +184,13 @@
 :where([data-application-status="warning"], [data-application-evidence="refused"], [data-application-evidence="stale"]) { color: var(--conduit-warning); }
 :where([data-application-status="failure"], [data-application-evidence="failed"]) { color: var(--conduit-failure); }
 :where([data-application-status="success"], [data-application-evidence="succeeded"]) { color: var(--conduit-success); }
-:where([data-application-theme][data-conduit-contrast="high"]) {
+:where([data-application-look][data-conduit-contrast="high"]) {
   --conduit-surface: var(--conduit-background) !important;
   --conduit-text-secondary: var(--conduit-text-primary) !important;
   --conduit-structure-secondary: var(--conduit-focus) !important;
 }
 @media (max-width: 720px) {
-  :where([data-application-theme] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
-  :where([data-application-theme] [data-application-component="grid"]) { grid-template-columns: 1fr; }
+  :where([data-application-look] [data-application-responsive="stack"]) { display: flex; flex-direction: column; }
+  :where([data-application-look] [data-application-component="grid"]) { grid-template-columns: 1fr; }
 }
 @media (prefers-reduced-motion: reduce) { :where(button[data-application-component],select[data-application-component]) { transition:none; } }
