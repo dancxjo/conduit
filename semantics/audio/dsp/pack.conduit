@@ -13,6 +13,10 @@ pack audio/dsp (
     ship ResonatorStartOutcome
     ship ResonatorStepInput
     ship ResonatorOutcome
+    ship noise-step-value
+    ship envelope-value
+    ship gain-value
+    ship mix-two-value
     ship noise-step-candidate
     ship NoiseStepCandidate
     ship NoiseStepOutcome
