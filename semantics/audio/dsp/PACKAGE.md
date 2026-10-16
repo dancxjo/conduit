@@ -1,6 +1,6 @@
 # Checked DSP Source package
 
-`prepare_dsp_source_package()` prepares the owned `audio/dsp` package with the
+`conduit_semantic_catalog::prepare_dsp_source_package()` prepares the owned `audio/dsp` package with the
 ordinary checked-package and export-catalog owners. `pack.conduit` declares the
 public entries. The returned bundle retains exact content/member identities;
 its checked document retains actual component bodies and typed Fores, and its
@@ -34,3 +34,7 @@ sealed Std Plan and the production expression/selector Backs. Six input cases
 retain all noise outcomes and produce PCM only for the three advances, against
 an independent wide-integer reference. The observed kernel value-allocation
 capacity remains stable. This is hosted software execution.
+
+The catalog owns package preparation and generic Flow contracts. Audio owns
+the component Source and numerical profiles. This keeps the dependency
+direction intact when composition uses the existing typed Flow pairing.

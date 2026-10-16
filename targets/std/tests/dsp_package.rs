@@ -22,7 +22,7 @@ impl ExternalForeOutputAdapter for Outputs {
     }
 }
 fn prepare() -> (StdHost, Plan, StructuredInfoType) {
-    let package = conduit_audio::prepare_dsp_source_package().unwrap();
+    let package = conduit_semantic_catalog::prepare_dsp_source_package().unwrap();
     let example = package
         .checked
         .plots

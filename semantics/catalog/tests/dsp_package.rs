@@ -1,9 +1,9 @@
-use conduit_audio::{prepare_dsp_source_package, DspSourcePackage};
 use conduit_core::PortTemporal;
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     structured_selector_definition, CheckedCordStage, ProfileCatalog,
 };
+use conduit_semantic_catalog::{prepare_dsp_source_package, DspSourcePackage};
 fn profiles(package: &DspSourcePackage) -> ProfileCatalog {
     let mut profiles = ProfileCatalog::new();
     let mut seen = std::collections::BTreeSet::new();
