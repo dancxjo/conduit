@@ -5,7 +5,7 @@ use conduit_plot::{
 };
 use conduit_semantic_catalog::{prepare_dsp_source_package, DspSourcePackage};
 fn profiles(package: &DspSourcePackage) -> ProfileCatalog {
-    let mut profiles = ProfileCatalog::new();
+    let mut profiles = package.profiles.clone();
     let mut seen = std::collections::BTreeSet::new();
     for plot in &package.checked.plots {
         for cord in &plot.cords {
@@ -28,9 +28,11 @@ fn profiles(package: &DspSourcePackage) -> ProfileCatalog {
 #[test]
 fn owned_source_package_checks_all_public_component_bodies_and_exact_fronts() {
     let package = prepare_dsp_source_package().unwrap();
-    assert_eq!(package.bundle.members.len(), 9);
+    assert_eq!(package.bundle.members.len(), 10);
     let profiles = profiles(&package);
     for leaf in [
+        "experimental-q14-frame",
+        "experimental-q14-two-source",
         "oscillator-prepare",
         "oscillator-step",
         "resonator-prepare",
@@ -61,6 +63,8 @@ fn shipped_control_imports_retain_the_owners_exact_front_types() {
     package.exports.install_shipped_types(&mut startup).unwrap();
     for (ty, owner) in [
         ("GainControl", "dsp/gain"),
+        ("SharedExcitationStage", "dsp/experimental-q14-frame"),
+        ("DspDualControl", "dsp/experimental-q14-two-source"),
         ("NoiseStepCandidate", "dsp/noise-step-candidate"),
         ("AudioPeriodicStepInput", "dsp/oscillator-step"),
         ("ResonatorStepInput", "dsp/resonator-step"),
@@ -142,6 +146,38 @@ fn declared_value_profiles_preserve_the_exact_owned_flow_programs() {
         assert_eq!(
             value.expanded.gears[0].inputs[0].temporal,
             PortTemporal::Value
+        );
+    }
+}
+
+#[test]
+fn two_source_example_reuses_two_owned_chains_and_one_owned_mixer() {
+    let package = prepare_dsp_source_package().unwrap();
+    let profiles = profiles(&package);
+    let dual = expand_canonical_plot_for_authoring(
+        &package.checked,
+        "dsp/experimental-q14-two-source",
+        &profiles,
+    )
+    .unwrap();
+    for (owner, expected) in [
+        ("dsp/noise-step-value", 2),
+        ("dsp/envelope-value", 2),
+        ("dsp/gain-value", 2),
+        ("dsp/mix-two-value", 1),
+    ] {
+        let component =
+            expand_canonical_plot_for_authoring(&package.checked, owner, &profiles).unwrap();
+        assert_eq!(component.expanded.gears.len(), 1);
+        let configuration = &component.expanded.gears[0].configuration;
+        assert_eq!(
+            dual.expanded
+                .gears
+                .iter()
+                .filter(|gear| &gear.configuration == configuration)
+                .count(),
+            expected,
+            "{owner}"
         );
     }
 }

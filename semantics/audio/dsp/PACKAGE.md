@@ -50,3 +50,41 @@ Tests compare complete canonical programs for every Flow/Value pair. A Value
 profile performs one explicit frame operation; it does not silently adapt a
 stream or own a whole-Flow lifetime quota. The package/compiler checks run
 before the separately named installed-execution test and full DSP regression.
+
+## Experimental full-frame compositions
+
+`audio/dsp/experimental-q14-frame` checks and expands the ordinary authored
+noise or periodic diagnostic excitation → Q14 recurrence → envelope → gain
+chain. `audio/dsp/experimental-q14-two-source` invokes that same chain twice,
+with separate caller-carried controls, then invokes the unchanged two-channel
+mixer. Both inputs have gain Q8=128, a declared relative digital headroom
+policy. The mixer retains its frame/rate mismatch and saturation outcomes.
+These are new explicit coefficient-domain profiles, not a waveform change to
+the existing compact voice or the earlier accepted shared-excitation specimen.
+
+The single-frame cursor carries seed, phase, filter history and finite remaining
+work. The frame commits that cursor only after its noise, envelope and gain
+results are admitted; a refused frame retains its original cursor. Filter output
+clamps to ±32767 before envelope/gain. The experimental recurrence admits
+|b|≤8192 and |c|≤4096 in Q14, with histories in ±32767. Its absolute feedback
+sum is at most 3/4, and intermediate ordered sums fit I32. It is not an acoustic
+frequency/bandwidth projection. The cubic periodic source remains a limited
+diagnostic profile; this composition supplies no new antialiasing claim.
+
+The two-source result includes both controls only when both frames are valid
+and the mixer returns a sample. Otherwise it returns `rejected`, without an
+implicit continuation, hidden retry or advancing one branch for the caller.
+Authored Value pairing preserves one result per input; a dropped branch cannot
+be accidentally paired with a later frame. Preparation installs the existing
+finite typed `data/pair` contract and verifies that its Stage Type matches the
+Type in the checked package exactly.
+
+The package ships both input Types and explicit seed initializers. Current
+evidence covers Source checking/expansion, unchanged component program reuse
+and production local-kernel execution. The latter checks independent integer
+recurrence, serialized partition resume, held outputs/cancellation, independent
+two-source histories and declared mixing headroom, with zero allocation during
+prepared child advancement. Independent periodic phase/envelope and invalid-coefficient cursor retention
+checks also pass. Full refusal and independent excitation coverage still remain
+before claiming the full #5217 delivery. No
+device or physical audio is involved.
