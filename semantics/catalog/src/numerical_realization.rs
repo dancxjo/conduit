@@ -203,6 +203,14 @@ pub fn numerical_result_value(
             .map_err(|why| format!("binary64 receipt denotation: {why:?}"))?;
             (q, q, "binary64")
         }
+        NumericalTarget::EnclosedBinary64(algorithm) => {
+            let q = ExactRational::from_binary64(
+                algorithm.rounded().target(),
+                &mut ExactNumericWork::new(100_000_000),
+            )
+            .map_err(|why| format!("enclosed binary64 receipt: {why:?}"))?;
+            (q, q, "binary64")
+        }
         NumericalTarget::OutwardI64(interval) => (
             ExactRational::from_i128(
                 interval
@@ -239,14 +247,18 @@ pub fn numerical_result_value(
         .iter()
         .find(|field| field.name() == "representation")
         .unwrap();
-    let payload = if let NumericalTarget::Binary64(algorithm) = prepared.target() {
-        binary64_receipt_payload(field.value_type(), algorithm)?
-    } else {
-        StructuredInfoValue::leaf(
+    let payload = match prepared.target() {
+        NumericalTarget::Binary64(algorithm) => {
+            binary64_receipt_payload(field.value_type(), algorithm, false)?
+        }
+        NumericalTarget::EnclosedBinary64(algorithm) => {
+            binary64_receipt_payload(field.value_type(), algorithm.rounded(), true)?
+        }
+        _ => StructuredInfoValue::leaf(
             StructuredInfoType::leaf(kind_id(EMPTY_INFO_ID)).unwrap(),
             vec![],
         )
-        .unwrap()
+        .unwrap(),
     };
     values.push(
         StructuredFieldValue::new(
@@ -261,6 +273,7 @@ pub fn numerical_result_value(
 fn binary64_receipt_payload(
     ty: &StructuredInfoType,
     algorithm: &PreparedBinary64Algorithm,
+    certified_enclosure: bool,
 ) -> Result<StructuredInfoValue, String> {
     let StructuredInfoTypeShape::Variant { cases, .. } = ty.shape() else {
         return Err("numeric representation Type".into());
@@ -331,9 +344,13 @@ fn binary64_receipt_payload(
         leaf("step-count", vec![algorithm.steps().len() as u8])?,
         tag(
             "error-claim",
-            match algorithm.error() {
-                Binary64ErrorClaim::ExactDistance(_) => "exact_distance",
-                Binary64ErrorClaim::CertifiedBound(_) => "certified_bound",
+            if certified_enclosure {
+                "certified_bound"
+            } else {
+                match algorithm.error() {
+                    Binary64ErrorClaim::ExactDistance(_) => "exact_distance",
+                    Binary64ErrorClaim::CertifiedBound(_) => "certified_bound",
+                }
             },
         )?,
     ];

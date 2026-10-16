@@ -2,6 +2,7 @@
 use super::*;
 use crate::{kind_id, KindId, StructuredInfoType};
 use alloc::vec::Vec;
+mod enclosed;
 mod float;
 const INFO: &str = "numeric/prepared-realization@1";
 fn ty() -> StructuredInfoType {
@@ -23,12 +24,16 @@ fn rational(bytes: &mut Vec<u8>, q: ExactRational) -> Result<(), NumericalRealiz
 pub(super) fn encode(
     value: &PreparedNumericalRealization,
 ) -> Result<StructuredConfigurationValue, NumericalRealizationRefusal> {
+    if let NumericalAlgorithm::EnclosedBinary64 { rounding } = value.algorithm {
+        return enclosed::encode(value, rounding);
+    }
     let mut bytes = Vec::new();
     bytes.push(1);
     bytes.push(match value.algorithm {
         NumericalAlgorithm::ExactRational => 0,
         NumericalAlgorithm::OutwardI64 => 1,
         NumericalAlgorithm::Binary64 { .. } => 2,
+        NumericalAlgorithm::EnclosedBinary64 { .. } => unreachable!("version two certificate"),
     });
     if let NumericalAlgorithm::Binary64 { rounding } = value.algorithm {
         bytes.push(float::mode(rounding));
@@ -47,6 +52,7 @@ pub(super) fn encode(
     match &value.target {
         NumericalTarget::ExactRational(q) => rational(&mut bytes, **q)?,
         NumericalTarget::Binary64(algorithm) => float::encode(&mut bytes, algorithm)?,
+        NumericalTarget::EnclosedBinary64(_) => unreachable!("version two certificate"),
         NumericalTarget::OutwardI64(interval) => {
             for endpoint in [interval.lower(), interval.upper()] {
                 let (encoded, length) = endpoint.encode();
@@ -54,6 +60,9 @@ pub(super) fn encode(
             }
         }
     }
+    property(bytes)
+}
+fn property(bytes: Vec<u8>) -> Result<StructuredConfigurationValue, NumericalRealizationRefusal> {
     let value = StructuredInfoValue::leaf(ty(), bytes)
         .map_err(|_| NumericalRealizationRefusal::InvalidCertificate)?;
     let canonical = value
@@ -113,6 +122,9 @@ pub(super) fn decode(
     let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
         return Err(R::InvalidCertificate);
     };
+    if bytes.first() == Some(&2) {
+        return enclosed::decode(bytes, work);
+    }
     let mut cursor = Cursor { bytes };
     if cursor.take(1)? != [1] {
         return Err(R::InvalidCertificate);
@@ -170,6 +182,7 @@ pub(super) fn decode(
                 return Err(R::InvalidCertificate);
             }
         }
+        NumericalTarget::EnclosedBinary64(_) => return Err(R::InvalidCertificate),
         NumericalTarget::ExactRational(q) => {
             if cursor.rational(work)? != **q {
                 return Err(R::InvalidCertificate);

@@ -1,5 +1,7 @@
 #[path = "../suites/acoustic_flow.rs"]
 mod acoustic_flow;
+#[path = "../suites/angle_reference.rs"]
+mod angle_reference;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
@@ -91,6 +93,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
+        CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::OwnerFace => run_suite(owner_face::STEPS, &root, opts),
