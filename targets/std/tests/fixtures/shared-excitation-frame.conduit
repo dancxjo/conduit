@@ -1,0 +1,127 @@
+# A shared excitation frame; specimen selection and linguistic custody are separate.
+# Algorithms are imported ordinary DSP plots, not repeated in this composition.
+with data/pair/paired as SharedExcitationPair
+
+type SharedExcitationSeed = {
+    word: I32 in 0..=65535
+}
+type SharedExcitationCursor = {
+    word: I32
+    remaining: U32
+    frame: I32
+    total: I32
+    attack: I32
+    release: I32
+    sample: I32
+}
+type SharedExcitationControl = {
+    cursor: SharedExcitationCursor
+    next_word: I32
+    next_remaining: U32
+    noise: I32
+    level: I32
+    valid: Boolean
+}
+type SharedExcitationStage =
+    context SharedExcitationControl
+    | noise NoiseStepOutcome
+    | envelope EnvelopeOutcome
+    | gain GainOutcome
+
+plot shared-excitation-start (
+    >> value: SharedExcitationSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-unpack (
+    >> value: SharedExcitationStage
+    result: SharedExcitationControl >>
+) = (.context)
+plot shared-excitation-context (
+    >> value: SharedExcitationControl
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context(.))
+plot shared-excitation-noise-input (
+    >> value: SharedExcitationControl
+    result: NoiseStepCandidate >>
+) = ({word: .cursor.word, remaining: .cursor.remaining})
+plot shared-excitation-noise-tag (
+    >> value: NoiseStepOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.noise(.))
+plot shared-excitation-after-noise (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationControl >>
+) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: .1.noise is advanced})
+plot shared-excitation-envelope-input (
+    >> value: SharedExcitationControl
+    result: EnvelopeControl >>
+) = ({frame: .cursor.frame, total: .cursor.total, attack: .cursor.attack, release: .cursor.release, cancelled: false})
+plot shared-excitation-envelope-tag (
+    >> value: EnvelopeOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.envelope(.))
+plot shared-excitation-after-envelope (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationControl >>
+) = ({cursor: .0.context.cursor, next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, level: (.1.envelope is level_q8 ? .1.envelope.level_q8 : 0), valid: .0.context.valid && .1.envelope is level_q8})
+plot shared-excitation-gain-input (
+    >> value: SharedExcitationControl
+    result: GainControl >>
+) = ({sample: .noise, gain_q8: .level, cancelled: false})
+plot shared-excitation-gain-tag (
+    >> value: GainOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.gain(.))
+plot shared-excitation-finish (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: (.0.context.valid && .1.gain is sample ? {word: .0.context.next_word, remaining: .0.context.next_remaining, frame: .0.context.cursor.frame + 1, total: .0.context.cursor.total, attack: .0.context.cursor.attack, release: .0.context.cursor.release, sample: .1.gain.sample} : .0.context.cursor), next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, level: .0.context.level, valid: .0.context.valid && .1.gain is sample}))
+
+plot shared-excitation-frame (
+    >> value: SharedExcitationStage
+    result: SharedExcitationStage >>
+) {
+    unpack: shared-excitation-unpack()
+    noise_context: shared-excitation-context()
+    noise_input: shared-excitation-noise-input()
+    noise: dsp/noise-step-value()
+    noise_tag: shared-excitation-noise-tag()
+    noise_pair: data/pair()
+    after_noise: shared-excitation-after-noise()
+    envelope_context: shared-excitation-context()
+    envelope_input: shared-excitation-envelope-input()
+    envelope: dsp/envelope-value()
+    envelope_tag: shared-excitation-envelope-tag()
+    envelope_pair: data/pair()
+    after_envelope: shared-excitation-after-envelope()
+    gain_context: shared-excitation-context()
+    gain_input: shared-excitation-gain-input()
+    gain: dsp/gain-value()
+    gain_tag: shared-excitation-gain-tag()
+    gain_pair: data/pair()
+    finish: shared-excitation-finish()
+    value >> unpack.value
+    unpack.result >> noise_context.value
+    unpack.result >> noise_input.value
+    noise_context.result >> noise_pair.left
+    noise_input.result >> noise.state
+    noise.next >> noise_tag.value
+    noise_tag.result >> noise_pair.right
+    noise_pair.paired >> after_noise.pair
+    after_noise.result >> envelope_context.value
+    after_noise.result >> envelope_input.value
+    envelope_context.result >> envelope_pair.left
+    envelope_input.result >> envelope.control
+    envelope.result >> envelope_tag.value
+    envelope_tag.result >> envelope_pair.right
+    envelope_pair.paired >> after_envelope.pair
+    after_envelope.result >> gain_context.value
+    after_envelope.result >> gain_input.value
+    gain_context.result >> gain_pair.left
+    gain_input.result >> gain.control
+    gain.result >> gain_tag.value
+    gain_tag.result >> gain_pair.right
+    gain_pair.paired >> finish.pair
+    finish.result >> result
+}

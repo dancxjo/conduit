@@ -40,13 +40,23 @@ fn prepare() -> (StdHost, conduit_core::Plan, PortableExpressionProgram) {
     };
     let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
     let mut advertisement = StdHost::new().advertisement().clone();
-    let offer = conduit_std_offers::pure_expression_std_offer(
-        &program,
-        authored.expanded.gears[0].inputs[0].temporal,
-    )
-    .unwrap();
-    assert!(authored.expanded.gears[0].accepts_realization(&offer));
-    advertisement.capabilities.push(offer);
+    for gear in &authored.expanded.gears {
+        let ConfigurationValue::Text(encoded) = &gear.configuration[0].value else {
+            panic!("program")
+        };
+        let component = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+        let offer =
+            conduit_std_offers::pure_expression_std_offer(&component, gear.inputs[0].temporal)
+                .unwrap();
+        assert!(gear.accepts_realization(&offer));
+        if !advertisement
+            .capabilities
+            .iter()
+            .any(|existing| existing.capability_id == offer.capability_id)
+        {
+            advertisement.capabilities.push(offer);
+        }
+    }
     advertisement
         .capabilities
         .sort_by(|a, b| a.capability_id.cmp(&b.capability_id));

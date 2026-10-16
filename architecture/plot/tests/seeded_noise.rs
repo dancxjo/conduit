@@ -11,9 +11,12 @@ fn program() -> PortableExpressionProgram {
     let document = parse_syntax_document(SOURCE);
     assert_eq!(document.round_trip(), SOURCE);
     let checked = check_syntax_document(&document, &StartupCatalog::new()).unwrap();
-    let expanded =
-        expand_canonical_plot_for_authoring(&checked, "dsp/noise-step", &ProfileCatalog::new())
-            .unwrap();
+    let expanded = expand_canonical_plot_for_authoring(
+        &checked,
+        "dsp/noise-step-candidate",
+        &ProfileCatalog::new(),
+    )
+    .unwrap();
     assert_eq!(expanded.expanded.gears.len(), 1);
     let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
     else {
