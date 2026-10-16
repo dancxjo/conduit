@@ -1,9 +1,9 @@
 # Inverse-angle preparation development
 
 The current development slice for #5734 implements principal arctangent
-enclosures and source-correlated same-Dimension `atan2` preparation. It does
-not yet supply asin/acos or an authored Plot/runtime entrance; this is not
-complete issue acceptance.
+enclosures, source-correlated same-Dimension `atan2`, and principal asin/acos
+preparation. It does not yet supply an authored Plot/runtime entrance; this
+is not complete issue acceptance.
 
 Arctangent retains its exact rational input and returns a rational interval
 in turns. Reciprocal and quarter-turn identities reduce the series argument
@@ -28,3 +28,18 @@ all quadrants, `3m`/`400cm` conversion parity, refusal and finite-work limits.
 The existing π and forward-trig regressions remain necessary after sharing
 the series implementation. Authored-source integration, further inverse
 branches and exact-head admission remain pending.
+
+Principal asin retains a certified square-root interval for `sqrt(1-x²)` and
+uses monotone arctangent endpoint bounds. Negative inputs reverse division
+endpoint order. Acos subtracts that complete interval from one quarter turn.
+The final width includes root and both arctangent bounds; inadequate root
+resolution or excessive combined angular width refuses. Inputs outside
+[-1,1] have a separate domain refusal. Exact zero and endpoints require no
+root or series work.
+
+The half-input regression profile admits one billion charged limb-work units,
+root width 1/10^12, and final angular width 1/10^8 turn. Observed preparation
+work is approximately 175–178 million units across the signed asin/acos cases.
+These are internal arithmetic-work observations, not device timing or a
+runtime speed claim. The earlier 100-million-unit fixture budget refused;
+the error bound was retained when admitting the larger preparation budget.

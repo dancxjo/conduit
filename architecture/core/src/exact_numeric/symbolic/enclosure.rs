@@ -11,6 +11,8 @@ use core::{cmp::Ordering, mem::size_of};
 mod interval;
 mod inverse_trigonometry;
 pub use inverse_trigonometry::*;
+mod inverse_circular;
+pub use inverse_circular::*;
 mod pi;
 mod typed_atan2;
 pub use interval::MathematicalInterval;
