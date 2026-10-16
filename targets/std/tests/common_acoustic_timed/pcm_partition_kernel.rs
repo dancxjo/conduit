@@ -29,11 +29,11 @@ pub fn run(
         .collect::<Vec<_>>();
     let mut results = items
         .iter()
-        .map(|_| Vec::with_capacity(32768))
+        .map(|_| Vec::with_capacity(2077))
         .collect::<Vec<_>>();
     let mut output = ValuePayload {
         value_kind: front.outputs()[0].value_kind.clone(),
-        encoded: Vec::with_capacity(32768),
+        encoded: Vec::with_capacity(2077),
     };
     let input = &front.inputs()[0].port_id;
     let out = &front.outputs()[0].port_id;

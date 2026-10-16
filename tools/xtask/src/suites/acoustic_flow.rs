@@ -21,6 +21,7 @@ pub const STEPS: &[Step] = &[Step::new(
         "--test", "acoustic_timed_partition",
         "--test", "acoustic_timed_cancel",
         "--test", "acoustic_timed_output_loss",
+        "--test", "acoustic_timed_pcm_partition",
         "--", "--nocapture",
     ],
 )];

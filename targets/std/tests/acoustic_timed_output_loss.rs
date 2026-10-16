@@ -17,13 +17,13 @@ fn pcm_sink_provider_loss_after_one_commit_is_terminal_without_growth_or_retry()
         let prepared=pcm_loss_plan::prepare();
         let mut kernel=boundary::prepare(prepared.plan,&prepared.front,&prepared.registry);
         let input=&prepared.front.inputs()[0].port_id;let out=&prepared.front.outputs()[0].port_id;
-        let tick=ValuePayload {value_kind:prepared.front.inputs()[0].value_kind.clone(),encoded:prepared.items[0].clone()};
+        let ticks=prepared.items.iter().map(|encoded|ValuePayload {value_kind:prepared.front.inputs()[0].value_kind.clone(),encoded:encoded.clone()}).collect::<Vec<_>>();
         let mut output=ValuePayload {value_kind:prepared.front.outputs()[0].value_kind.clone(),encoded:Vec::with_capacity(2077)};
         let mut reply=Vec::with_capacity(2077);let mut requests=0;let mut commits=0;let mut lost=false;let mut loss_token=None;
         let (_,storage)=allocation_probe::observe(|| {
             kernel.start().unwrap();
             for frame in 0..2 {
-                assert!(matches!(kernel.admit_input(input,frame,&tick).unwrap(),conduit_kernel::scheduler::RemoteIngressOutcome::Accepted {sequence} if sequence==frame));
+                assert!(matches!(kernel.admit_input(input,frame,&ticks[frame as usize]).unwrap(),conduit_kernel::scheduler::RemoteIngressOutcome::Accepted {sequence} if sequence==frame));
                 let mut finished=false;
                 for _ in 0..5000 {
                     if let Err(error)=kernel.step() {
