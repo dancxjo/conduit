@@ -192,3 +192,23 @@ impl NativePrimitive for conduit_core::MathematicalValue {
         .ok()
     }
 }
+
+impl NativePrimitive for conduit_core::MathematicalAngle {
+    fn encode_primitive(&self) -> Vec<u8> {
+        let mut bytes = vec![0; conduit_core::MATHEMATICAL_ANGLE_MAX_ENCODED_BYTES];
+        let length = self
+            .encode(&mut bytes)
+            .expect("checked finite mathematical Angle");
+        bytes.truncate(length);
+        bytes
+    }
+    fn decode_primitive(canonical: &[u8]) -> Option<Self> {
+        Self::decode(
+            canonical,
+            &mut conduit_core::ExactNumericWork::new(
+                conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK,
+            ),
+        )
+        .ok()
+    }
+}

@@ -15,6 +15,64 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
+    if let Some(function) = crate::expression_inverse_trigonometry::function(&name.text) {
+        use crate::expression_inverse_trigonometry::Function;
+        let expected = CheckedExpressionType::semantic(conduit_core::MATHEMATICAL_VALUE_ID);
+        match function {
+            Function::Unary(_) => {
+                let [argument] = arguments else {
+                    return Err(diagnostic(
+                        span,
+                        "inverse function requires one exact MathematicalValue",
+                    ));
+                };
+                let ty = check_argument(argument, Some(&expected))?;
+                if ty
+                    .value_kind()
+                    .is_none_or(|k| k.as_str() != conduit_core::MATHEMATICAL_VALUE_ID)
+                {
+                    return Err(diagnostic(
+                        argument.span(),
+                        "inverse function requires a dimensionless exact MathematicalValue",
+                    ));
+                }
+            }
+            Function::Atan2 => {
+                let [y, x] = arguments else {
+                    return Err(diagnostic(span, "atan2 requires two typed Quantities"));
+                };
+                if crate::expression_inverse_trigonometry::closed_zero(y)
+                    && crate::expression_inverse_trigonometry::closed_zero(x)
+                {
+                    return Err(diagnostic(span, "atan2 is undefined for the zero pair"));
+                }
+                let y_type = check_argument(y, None)?;
+                let x_type = check_argument(x, None)?;
+                let dimension = |ty: &CheckedExpressionType| {
+                    ty.value_kind().and_then(|kind| {
+                        crate::expression_inverse_trigonometry::quantity_dimension(kind.as_str())
+                    })
+                };
+                let (Some(y_dimension), Some(x_dimension)) =
+                    (dimension(&y_type), dimension(&x_type))
+                else {
+                    return Err(diagnostic(
+                        span,
+                        "atan2 requires Quantities; bare scalars have no implicit Unit",
+                    ));
+                };
+                if y_dimension.zip(x_dimension).is_some_and(|(y, x)| y != x) {
+                    return Err(diagnostic(
+                        span,
+                        "atan2 requires the same Dimension on both operands",
+                    ));
+                }
+            }
+        }
+        return Ok(CheckedExpressionType::semantic(
+            conduit_core::MATHEMATICAL_ANGLE_ID,
+        ));
+    }
     if crate::expression_trigonometry::function(&name.text).is_some()
         || name.text == crate::expression_angle_reference::CALL
     {
@@ -413,7 +471,8 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 }
 
 pub(crate) fn is_intrinsic(name: &str) -> bool {
-    crate::expression_trigonometry::function(name).is_some()
+    crate::expression_inverse_trigonometry::function(name).is_some()
+        || crate::expression_trigonometry::function(name).is_some()
         || name == crate::expression_angle_reference::CALL
         || integer_widening_target(name).is_some()
         || matches!(

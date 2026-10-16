@@ -28,6 +28,7 @@ pub(crate) fn canonical_value_kind(source_type: &str) -> KindId {
         "Unit" => kind_id(conduit_core::UNIT_INFO_ID),
         "Dimension" => kind_id(conduit_core::DIMENSION_INFO_ID),
         "MathematicalValue" => kind_id(conduit_core::MATHEMATICAL_VALUE_ID),
+        "MathematicalAngle" => kind_id(conduit_core::MATHEMATICAL_ANGLE_ID),
         "U8" => kind_id("value/u8"),
         "U16" => kind_id("value/u16"),
         "U32" => kind_id("value/u32"),

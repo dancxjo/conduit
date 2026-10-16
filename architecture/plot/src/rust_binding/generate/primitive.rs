@@ -36,6 +36,7 @@ pub(crate) fn primitive_rust_type(identity: &str) -> Result<String, RustBindingG
         Some(PrimitiveInfoKind::Unit) => "conduit_core::Unit",
         Some(PrimitiveInfoKind::Dimension) => "conduit_core::Dimension",
         Some(PrimitiveInfoKind::MathematicalValue) => "conduit_core::MathematicalValue",
+        Some(PrimitiveInfoKind::MathematicalAngle) => "conduit_core::MathematicalAngle",
         Some(PrimitiveInfoKind::U8) => "u8",
         Some(PrimitiveInfoKind::U16) => "u16",
         Some(PrimitiveInfoKind::U32) => "u32",

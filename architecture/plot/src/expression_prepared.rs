@@ -23,6 +23,7 @@ mod prepare;
 mod primitive;
 use prepare::prepare_node;
 mod angle_reference;
+mod inverse_trigonometry;
 mod storage_bound;
 mod structured;
 mod structured_contract;
@@ -91,6 +92,12 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    InverseTrigonometry {
+        function: crate::expression_inverse_trigonometry::Function,
+        left: Box<PreparedNode>,
+        right: Option<Box<PreparedNode>>,
+        output: Vec<u8>,
+    },
     AngleReference {
         argument: Box<PreparedNode>,
         output: Vec<u8>,

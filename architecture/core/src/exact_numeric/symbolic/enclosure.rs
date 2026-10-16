@@ -9,8 +9,17 @@ use crate::{
 use alloc::vec::Vec;
 use core::{cmp::Ordering, mem::size_of};
 mod interval;
+mod inverse_trigonometry;
+pub use inverse_trigonometry::*;
+mod inverse_circular;
+pub use inverse_circular::*;
+mod atan2_denotation;
+mod inverse_node;
 mod pi;
+mod typed_atan2;
+pub use atan2_denotation::*;
 pub use interval::MathematicalInterval;
+pub use typed_atan2::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathematicalEnclosureRefusal {
     Numeric(ExactNumericRefusal),
@@ -23,6 +32,7 @@ pub enum MathematicalEnclosureRefusal {
     RetainedStorageLimit,
     InvalidExpression,
     UnsupportedTrigonometricEnclosure,
+    InverseRootResolution,
 }
 impl From<ExactNumericRefusal> for MathematicalEnclosureRefusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -109,6 +119,12 @@ impl PreparedMathematicalEnclosure {
                     }
                     Node::SineTurns(_) | Node::CosineTurns(_) | Node::TangentTurns(_) => {
                         return Err(R::UnsupportedTrigonometricEnclosure)
+                    }
+                    Node::ArctangentTurns(a) | Node::ArcsineTurns(a) | Node::ArccosineTurns(a) => {
+                        let (interval, terms) =
+                            inverse_node::enclose(*node, get(a)?, requirements, work)?;
+                        maximum_used_constant_terms = maximum_used_constant_terms.max(terms);
+                        interval
                     }
                     Node::Tau => return Err(R::InvalidExpression), // Canonical construction expands 2π.
                     Node::Negate(a) => get(a)?.negated(),

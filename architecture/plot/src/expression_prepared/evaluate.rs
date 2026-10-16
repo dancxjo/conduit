@@ -8,6 +8,25 @@ pub(super) fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::InverseTrigonometry {
+            function,
+            left,
+            right,
+            output,
+        } => {
+            let a = evaluate_node(left, input, input_kind)?;
+            let b = right
+                .as_mut()
+                .map(|b| evaluate_node(b, input, input_kind))
+                .transpose()?;
+            let n = crate::expression_inverse_trigonometry::encode(
+                *function,
+                a.as_slice(),
+                b.as_ref().map(|v| v.as_slice()),
+                output,
+            )?;
+            PrimitiveValue::borrowed(expected, &output[..n])?
+        }
         PreparedOperation::AngleReference { argument, output } => {
             let value = evaluate_node(argument, input, input_kind)?;
             let length = crate::expression_angle_reference::encode(value.as_slice(), output)?;
