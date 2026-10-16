@@ -347,6 +347,7 @@ test('a Gallery handoff installs in the retained body and cannot reinstall a lat
   await expect(card(page, 'Desk Telegraph')).toContainText('Not in your body');
   await page.evaluate(() => globalThis.__conduitWorkspace.settled());
   await page.reload();
+  await waitForWorkspacePreparation(page);
   await expect(page.locator('[data-play-state]')).toHaveText('Playing');
   expect((await current(page)).initial_plots).toEqual(initial.initial_plots);
 });
