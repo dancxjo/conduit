@@ -10,6 +10,9 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod local_expression;
+pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
+
 mod parsec_combine;
 mod parsec_combine_back;
 mod parsec_input_instruction_plan;
@@ -77,6 +80,7 @@ pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     let mut registry = KernelOperationRegistry::new();
     registry.install(TodoCombineFactory)?;
     registry.install(ThermostatCombineFactory)?;
+    registry.install(LocalExpressionFactory)?;
     Ok(registry)
 }
 
