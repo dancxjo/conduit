@@ -1,0 +1,32 @@
+pack audio/dsp (
+    version = 0.1.0
+) {
+    ship oscillator-prepare
+    ship oscillator-step
+    ship AudioPeriodicRequest
+    ship AudioPeriodicStartOutcome
+    ship AudioPeriodicStepInput
+    ship AudioPeriodicOutcome
+    ship resonator-prepare
+    ship resonator-step
+    ship ResonatorRequest
+    ship ResonatorStartOutcome
+    ship ResonatorStepInput
+    ship ResonatorOutcome
+    ship noise-step-candidate
+    ship NoiseStepCandidate
+    ship NoiseStepOutcome
+    ship envelope
+    ship EnvelopeControl
+    ship EnvelopeOutcome
+    ship gain
+    ship GainControl
+    ship GainOutcome
+    ship mix-two
+    ship mix-four
+    ship MixerChannel
+    ship MixerOutcome
+    ship one-pole
+    ship OnePoleFrame
+    ship OnePoleOutcome
+}
