@@ -10,6 +10,18 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod value_scan;
+pub use value_scan::{
+    install_value_scan, value_scan_child_steps, value_scan_offer, VALUE_SCAN_ARTIFACT,
+    VALUE_SCAN_IMPLEMENTATION, VALUE_SCAN_MAXIMUM_ITEMS, VALUE_SCAN_PROFILE,
+};
+
+mod value_pair;
+pub use value_pair::PreparedValuePairFactory;
+
+mod local_expression;
+pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
+
 mod parsec_combine;
 mod parsec_combine_back;
 mod parsec_input_instruction_plan;
@@ -77,6 +89,7 @@ pub fn standard_child_registry() -> Result<KernelOperationRegistry, String> {
     let mut registry = KernelOperationRegistry::new();
     registry.install(TodoCombineFactory)?;
     registry.install(ThermostatCombineFactory)?;
+    registry.install(LocalExpressionFactory)?;
     Ok(registry)
 }
 
@@ -226,3 +239,11 @@ mod todo_spoken_template_plan;
 pub use todo_spoken_template_plan::{
     required_todo_spoken_template_offers, TodoSpokenTemplateSourcePlan,
 };
+
+mod pcm_packing;
+pub use pcm_packing::PreparedPcm16PackingBack;
+
+mod pcm_packing_factory;
+pub use pcm_packing_factory::Pcm16PackingFactory;
+mod value_scan_factory;
+pub use value_scan_factory::PreparedValueScanFactory;

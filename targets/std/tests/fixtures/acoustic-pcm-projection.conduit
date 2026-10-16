@@ -1,0 +1,6 @@
+# The Source owns sample selection, timing projection, and cancellation silence.
+# The packing Gear validates representation only; Flow close owns termination.
+plot acoustic-pcm-projection (
+    >> value: AcousticStage...| <= 32768B
+    result: AudioPcm16PackingInput...| >>
+) = (. is context && .context.cursor.status is sample && .context.cursor.oscillator.emitted > 0 ? AudioPcm16PackingInput.block({sample_rate_hz: .context.cursor.oscillator.profile.projection.request.basis.sample_rate_hz, clock_id: .context.cursor.oscillator.profile.projection.request.basis.anchor.timeline.value, start_frame: value/u64(.context.cursor.oscillator.emitted) - 1, discontinuity: false, samples: [.context.cursor.sample]}) : AudioPcm16PackingInput.skip)

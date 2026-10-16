@@ -6,6 +6,7 @@ use std::{env, fs, path::PathBuf};
 
 fn main() {
     println!("cargo:rerun-if-changed=types.conduit");
+    println!("cargo:rerun-if-changed=pcm_packing_types.conduit");
     println!("cargo:rerun-if-changed=dsp/periodic-types.conduit");
     println!("cargo:rerun-if-changed=build_support/periodic.rs");
     println!("cargo:rerun-if-changed=time_analysis_types.conduit");
@@ -19,7 +20,7 @@ fn main() {
     println!("cargo:rerun-if-changed=rate_projection.conduit");
     println!("cargo:rerun-if-changed=trajectory.conduit");
     let type_source = format!(
-        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
+        "{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}\n{}",
         include_str!("types.conduit"),
         include_str!("trajectory_types.conduit"),
         include_str!("rate_types.conduit"),
@@ -28,7 +29,8 @@ fn main() {
         include_str!("time_analysis_types.conduit"),
         include_str!("dsp/periodic-types.conduit"),
         include_str!("spectral_analysis_types.conduit"),
-        include_str!("pitch_analysis_types.conduit")
+        include_str!("pitch_analysis_types.conduit"),
+        include_str!("pcm_packing_types.conduit")
     );
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("periodic-validators.conduit"),

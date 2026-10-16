@@ -54,6 +54,8 @@ pub enum CheckSuite {
     TodoDurability,
     /// Check canonical IPA notation and first-class phone/phoneme authoring.
     SpeechIpa,
+    /// Prove authored finite acoustic state and PCM transport through the production kernel.
+    AcousticFlow,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
