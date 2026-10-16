@@ -93,6 +93,10 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
             source: include_str!("../dsp/gain.conduit"),
         },
         PackageMemberSource {
+            path: "example",
+            source: include_str!("../dsp/noise-gain-example.conduit"),
+        },
+        PackageMemberSource {
             path: "one-pole",
             source: include_str!("../dsp/one-pole.conduit"),
         },
