@@ -38,3 +38,15 @@ capacity remains stable. This is hosted software execution.
 The catalog owns package preparation and generic Flow contracts. Audio owns
 the component Source and numerical profiles. This keeps the dependency
 direction intact when composition uses the existing typed Flow pairing.
+
+The package also declares four per-frame Value profiles: noise-step-value,
+envelope-value, gain-value and mix-two-value. Preparation uses the ordinary
+Source AST to retain each owner's exact pure expression and Type spellings.
+Generated profile text records the original Source identity. Unsupported
+Fores, additional port contracts and non-expression bodies refuse this
+projection. The original closing-Flow interfaces remain available.
+
+Tests compare complete canonical programs for every Flow/Value pair. A Value
+profile performs one explicit frame operation; it does not silently adapt a
+stream or own a whole-Flow lifetime quota. The package/compiler checks run
+before the separately named installed-execution test and full DSP regression.

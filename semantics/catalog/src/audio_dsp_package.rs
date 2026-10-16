@@ -5,6 +5,9 @@ use conduit_plot::{
     CheckedSyntaxDocument, PackageExportCatalog, PackageMemberSource, StartupCatalog,
 };
 
+#[path = "audio_dsp_profiles.rs"]
+mod profiles;
+
 pub const DSP_PACKAGE_MANIFEST: &str = include_str!("../../audio/dsp/pack.conduit");
 
 /// Source and export facts derived by the ordinary checked-package owners.
@@ -45,9 +48,32 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         include_str!("../../audio/dsp/resonator.conduit"),
     ]
     .join("\n");
-    let mixer = include_str!("../../audio/dsp/mixer.conduit");
+    let noise_owner = include_str!("../../audio/dsp/seeded-noise.conduit");
+    let noise = format!(
+        "{noise_owner}\n{}",
+        profiles::value_profile(
+            noise_owner,
+            "dsp/noise-step-candidate",
+            "dsp/noise-step-value"
+        )?
+    );
+    let envelope_owner = include_str!("../../audio/dsp/envelope.conduit");
+    let envelope = format!(
+        "{envelope_owner}\n{}",
+        profiles::value_profile(envelope_owner, "dsp/envelope", "dsp/envelope-value")?
+    );
+    let gain_owner = include_str!("../../audio/dsp/gain.conduit");
+    let gain = format!(
+        "{gain_owner}\n{}",
+        profiles::value_profile(gain_owner, "dsp/gain", "dsp/gain-value")?
+    );
+    let mixer_owner = include_str!("../../audio/dsp/mixer.conduit");
+    let mixer = format!(
+        "{mixer_owner}\n{}",
+        profiles::value_profile(mixer_owner, "dsp/mix-two", "dsp/mix-two-value")?
+    );
     let mut startup = StartupCatalog::new();
-    let mixer_types = prepare_source_types(&parse_syntax_document(mixer), &startup)
+    let mixer_types = prepare_source_types(&parse_syntax_document(&mixer), &startup)
         .map_err(|e| format!("DSP mixer Types: {e:?}"))?;
     let channel = mixer_types
         .named_type("MixerChannel")
@@ -78,19 +104,19 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         },
         PackageMemberSource {
             path: "mixer",
-            source: mixer,
+            source: &mixer,
         },
         PackageMemberSource {
             path: "noise",
-            source: include_str!("../../audio/dsp/seeded-noise.conduit"),
+            source: &noise,
         },
         PackageMemberSource {
             path: "envelope",
-            source: include_str!("../../audio/dsp/envelope.conduit"),
+            source: &envelope,
         },
         PackageMemberSource {
             path: "gain",
-            source: include_str!("../../audio/dsp/gain.conduit"),
+            source: &gain,
         },
         PackageMemberSource {
             path: "example",

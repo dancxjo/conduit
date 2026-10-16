@@ -13,7 +13,7 @@ pub const STEPS: &[Step] = &[
         "cargo",
         &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host", "-p", "conduit-audio", "-p", "conduit-semantic-catalog",
           "--test", "seeded_noise", "--test", "dsp_shared_excitation",
-          "--test", "dsp_shared_partition", "--test", "dsp_shared_speech", "--test", "one_pole", "--", "--nocapture"],
+          "--test", "dsp_shared_partition", "--test", "dsp_shared_speech", "--test", "one_pole", "--test", "dsp_package_installed", "--", "--nocapture"],
     ),
     Step::new(
         "dsp.compact-voice-parity",
