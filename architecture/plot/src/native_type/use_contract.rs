@@ -171,6 +171,7 @@ pub(crate) fn validate_concrete_value(
 pub(crate) fn validate_concrete_value_type(
     value: &crate::CanonicalStructuredStartupValue,
     catalog: &StartupCatalog,
+    source: crate::NativeRefinementSource<'_>,
     span: crate::Span,
 ) -> Result<(), SyntaxCheckDiagnostic> {
     let Some((contracts, invariants)) = catalog.native_laws_for(value.value_type()) else {
@@ -182,9 +183,15 @@ pub(crate) fn validate_concrete_value_type(
     crate::rust_binding::validate_native_contracts(&concrete, contracts)
         .and_then(|()| crate::rust_binding::validate_native_invariants(&concrete, invariants))
         .map_err(|error| {
-            super::diagnostic(
-                span,
-                alloc::format!("native startup Type refinement refuses this value: {error:?}"),
-            )
+            catalog
+                .native_refinement_diagnostic(&concrete, source, &error)
+                .unwrap_or_else(|| {
+                    super::diagnostic(
+                        span,
+                        alloc::format!(
+                            "native startup Type refinement refuses this value: {error:?}"
+                        ),
+                    )
+                })
         })
 }

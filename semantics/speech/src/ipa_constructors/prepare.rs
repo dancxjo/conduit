@@ -128,7 +128,7 @@ pub fn prepare_configuration(
             let basis_value =
                 StructuredInfoValue::from_canonical_bytes(configured(configuration, "basis")?)
                     .map_err(|e| D::field(NativeBindingRefusal::InvalidValue(e), "basis"))?;
-            check_basis(&inventory, &basis_value)?;
+            check_basis_coherence(Some(&inventory), &basis_value)?;
             let basis = SpeechIpaInventoryNotationBasis::from_structured(basis_value)
                 .map_err(|e| D::field(e, "basis"))?;
             let phones: SpeechIpaPhoneBindings = decode(configuration, "phone-bindings")?;
@@ -228,8 +228,8 @@ fn decode<T: NativeRustBinding>(
         .map_err(|e| IpaConstructorDiagnostic::field(e, name))
 }
 // Locate explicit scope substitutions before root Native invariant refusal.
-fn check_basis(
-    inventory: &SpeechInventory,
+pub(super) fn check_basis_coherence(
+    inventory: Option<&SpeechInventory>,
     notation: &StructuredInfoValue,
 ) -> Result<(), IpaConstructorDiagnostic> {
     use IpaConstructorDiagnostic as D;
@@ -238,7 +238,7 @@ fn check_basis(
         .map_err(|e| D::field(e, "basis.profile"))?;
     let id = SpeechInventoryId::from_structured(field("inventory_id", "basis.inventory_id")?)
         .map_err(|e| D::field(e, "basis.inventory_id"))?;
-    if inventory.identity() != &id || profile.inventory_id() != &id {
+    if inventory.is_some_and(|value| value.identity() != &id) || profile.inventory_id() != &id {
         return Err(D::inventory(
             IpaInventoryRefusal::Basis,
             "basis.inventory_id",
@@ -247,7 +247,7 @@ fn check_basis(
     let language =
         conduit_language::LanguageId::from_structured(field("language", "basis.language")?)
             .map_err(|e| D::field(e, "basis.language"))?;
-    if inventory.language() != &language {
+    if inventory.is_some_and(|value| value.language() != &language) {
         return Err(D::inventory(IpaInventoryRefusal::Basis, "basis.language"));
     }
     let variety =

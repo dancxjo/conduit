@@ -177,16 +177,30 @@ impl<'a> Resolver<'a> {
                         other => other,
                     });
             }
+            let mut owned_refinement = None;
             let checked = crate::structured_startup::check_structured_expression(
                 &expression.syntax,
                 expected,
                 &mut |atomic, atomic_expected| {
                     self.resolve_spanned(atomic, Some(atomic_expected))
-                        .map_err(|error| error.diagnostic(atomic.span))
+                        .map_err(|error| match error {
+                            SyntaxCheckError::NativeRefinement(diagnostic) => {
+                                owned_refinement = Some(diagnostic.clone());
+                                diagnostic
+                            }
+                            other => other.diagnostic(atomic.span),
+                        })
                 },
             )
             .map_err(|diagnostic| {
-                SyntaxCheckError::StructuredExpression(diagnostic.message, Some(diagnostic.span))
+                if let Some(owned) = owned_refinement {
+                    SyntaxCheckError::NativeRefinement(owned)
+                } else {
+                    SyntaxCheckError::StructuredExpression(
+                        diagnostic.message,
+                        Some(diagnostic.span),
+                    )
+                }
             })?;
             if !checked.satisfies_concrete_bounds() {
                 return Err(SyntaxCheckError::StructuredExpression(
@@ -197,6 +211,7 @@ impl<'a> Resolver<'a> {
             crate::native_type::validate_concrete_value_type(
                 &checked,
                 self.catalog,
+                crate::NativeRefinementSource::new(&expression.syntax, &self.locals),
                 expression.span,
             )
             .map_err(SyntaxCheckError::NativeRefinement)?;

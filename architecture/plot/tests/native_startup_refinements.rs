@@ -49,3 +49,45 @@ fn explicit_startup_values_apply_the_owner_range_and_invariant() {
         );
     }
 }
+
+fn owner_diagnostic(
+    _: &conduit_core::StructuredInfoValue,
+    source: conduit_plot::NativeRefinementSource<'_>,
+    _: &conduit_plot::rust_binding::NativeBindingRefusal,
+) -> Option<conduit_plot::SyntaxCheckDiagnostic> {
+    Some(conduit_plot::SyntaxCheckDiagnostic {
+        code: "FIXTURE-INTERVAL",
+        span: source.field_span("high")?,
+        message: "interval order refused".into(),
+    })
+}
+
+#[test]
+fn compiled_owner_diagnostic_keeps_native_refusal_and_follows_immutable_field_alias() {
+    let owner = check_syntax_document(
+        &parse_syntax_document("type Interval = {\n low: U32 in 1..=10\n high: U32 in 1..=10\n where .low <= .high\n}\n"),
+        &StartupCatalog::new(),
+    ).unwrap();
+    let mut startup = catalog();
+    startup
+        .insert_native_refinement_diagnostic(
+            "fixture/interval@1",
+            owner.native_types[0].value_type.clone(),
+            owner_diagnostic,
+        )
+        .unwrap();
+    let source =
+        "plot test {\n high = 2\n verify: fixture/check(interval = {low: 5, high: high})\n}\n";
+    let error = check_syntax_document(&parse_syntax_document(source), &startup).unwrap_err();
+    assert_eq!(error.code, "FIXTURE-INTERVAL", "{error:?}");
+    assert_eq!(&source[error.span.start..error.span.end], "2");
+    let accepted = source.replace("low: 5", "low: 1");
+    assert!(check_syntax_document(&parse_syntax_document(&accepted), &startup).is_ok());
+    assert!(startup
+        .insert_native_refinement_diagnostic(
+            "fixture/other-owner@1",
+            owner.native_types[0].value_type.clone(),
+            owner_diagnostic,
+        )
+        .is_err());
+}
