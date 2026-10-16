@@ -13,9 +13,11 @@ mod inverse_trigonometry;
 pub use inverse_trigonometry::*;
 mod inverse_circular;
 pub use inverse_circular::*;
+mod atan2_denotation;
 mod inverse_node;
 mod pi;
 mod typed_atan2;
+pub use atan2_denotation::*;
 pub use interval::MathematicalInterval;
 pub use typed_atan2::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]

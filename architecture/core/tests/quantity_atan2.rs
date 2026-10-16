@@ -91,3 +91,48 @@ fn dimensions_zero_pair_and_forged_source_refuse_distinctly() {
         ))
     ));
 }
+
+#[test]
+fn exact_denotation_precedes_profile_and_survives_common_unit_and_codec() {
+    let branch = Atan2Branch::PrincipalSignedHalfTurn;
+    let exact =
+        QuantityAtan2Denotation::from_checked(inputs("3m", "400cm", "m"), branch, &mut work())
+            .unwrap();
+    let centimeters =
+        QuantityAtan2Denotation::from_checked(inputs("3m", "400cm", "cm"), branch, &mut work())
+            .unwrap();
+    assert_eq!(exact.coordinate(), centimeters.coordinate());
+    assert_eq!(exact.coordinate().as_rational(), None);
+    assert_eq!(exact.unit(), Unit::Turn);
+    assert_eq!(exact.unit().dimension(), QuantityDimension::Angle);
+    let mut bytes = vec![0; MATHEMATICAL_VALUE_MAX_ENCODED_BYTES];
+    let length = exact.coordinate().encode(&mut bytes).unwrap();
+    bytes.truncate(length);
+    assert_eq!(
+        MathematicalValue::decode(&bytes, &mut work()).unwrap(),
+        *exact.coordinate()
+    );
+    let mut validation = ExactNumericWork::new(MATHEMATICAL_VALUE_VALIDATION_WORK);
+    MathematicalValueView::decode(&bytes, &mut validation).unwrap();
+    let projected = PreparedQuantityAtan2::from_checked(
+        inputs("3m", "400cm", "m"),
+        requirements(),
+        &mut work(),
+    )
+    .unwrap();
+    assert_eq!(projected.denotation(), &exact);
+    assert_eq!(projected.projection().source(), exact.coordinate());
+    let mut impossible = requirements();
+    impossible.numeric.maximum_width_turns = ExactRational::ZERO;
+    assert!(PreparedQuantityAtan2::from_checked(
+        inputs("3m", "400cm", "m"),
+        impossible,
+        &mut work()
+    )
+    .is_err());
+    assert_eq!(exact.x_conversion().original(), "400cm");
+    assert_eq!(
+        MathematicalValue::decode(&bytes, &mut work()).unwrap(),
+        *exact.coordinate()
+    );
+}

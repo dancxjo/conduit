@@ -59,3 +59,14 @@ and limb-work requirements remain authoritative. The projected record retains
 the original exact graph, and an impossible zero-width request refuses rather
 than replacing the graph with a point approximation. The typed Angle envelope
 and authored/runtime entrance are still separate pending integration work.
+
+`QuantityAtan2Denotation::from_checked` now performs source correlation and
+constructs the exact turn-coordinate expression independently of any numeric
+profile. Its immutable Unit and principal branch establish Angle meaning;
+both original input receipts remain available. Choosing metres or centimetres
+as the explicit common Unit produces the same exact coordinate denotation.
+`PreparedQuantityAtan2` subsequently projects that same graph through the
+ordinary mathematical-enclosure engine and retains its exact source alongside
+typed rational Angle endpoints. A refused numeric profile leaves the separately
+prepared exact denotation intact. The coordinate graph round-trips through the
+canonical codec; a complete authored/runtime Angle transport remains pending.

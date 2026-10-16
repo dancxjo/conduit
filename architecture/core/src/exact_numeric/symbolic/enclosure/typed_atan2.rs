@@ -1,7 +1,7 @@
 //! Source-correlated same-Dimension atan2 with an explicit common Unit.
 use super::{
-    ArctangentTurnsRequirements, MathematicalEnclosureRefusal, MathematicalInterval as Interval,
-    PreparedArctangentTurns,
+    ArctangentTurnsRequirements, MathematicalEnclosureRefusal, MathematicalEnclosureRequirements,
+    PreparedArctangentTurns, PreparedMathematicalEnclosure, QuantityAtan2Denotation,
 };
 use crate::{
     ExactNumericRefusal, ExactNumericWork as Work, ExactQuantityConversionRequestRefusal,
@@ -36,6 +36,7 @@ pub enum Atan2Refusal {
     SourceEvidence(ExactQuantityConversionRequestRefusal),
     Coordinate(RationalQuantityRefusal),
     Enclosure(MathematicalEnclosureRefusal),
+    Denotation(crate::MathematicalValueRefusal),
 }
 impl From<ExactNumericRefusal> for Atan2Refusal {
     fn from(value: ExactNumericRefusal) -> Self {
@@ -48,10 +49,16 @@ impl From<MathematicalEnclosureRefusal> for Atan2Refusal {
     }
 }
 
+impl From<crate::MathematicalValueRefusal> for Atan2Refusal {
+    fn from(value: crate::MathematicalValueRefusal) -> Self {
+        Self::Denotation(value)
+    }
+}
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct PreparedQuantityAtan2<'a> {
-    y: RationalQuantityConversionReceipt<'a>,
-    x: RationalQuantityConversionReceipt<'a>,
+    source: QuantityAtan2Denotation<'a>,
+    projection: PreparedMathematicalEnclosure,
     lower: RationalQuantity,
     upper: RationalQuantity,
     width_turns: Q,
@@ -65,67 +72,53 @@ impl<'a> PreparedQuantityAtan2<'a> {
         work: &mut Work,
     ) -> Result<Self, Atan2Refusal> {
         use Atan2Refusal as R;
-        if inputs.y.dimension() != inputs.x.dimension()
-            || inputs.y.dimension() != inputs.common_unit.dimension()
-        {
-            return Err(R::MismatchedDimensions);
-        }
-        if inputs.y.role() != QuantityRole::Linear || inputs.x.role() != QuantityRole::Linear {
-            return Err(R::UnsupportedRole);
-        }
         let before = work.spent();
-        let convert = |value, original, work: &mut Work| {
-            RationalQuantityConversionReceipt::from_checked(
-                value,
-                inputs.common_unit,
-                original,
-                inputs.common_unit_source,
+        let source = QuantityAtan2Denotation::from_checked(inputs, requirements.branch, work)?;
+        PreparedArctangentTurns::prepare(Q::ZERO, requirements.numeric, work)
+            .map_err(R::Enclosure)?;
+        let series_leaf = requirements
+            .numeric
+            .maximum_series_width
+            .checked_multiply(Q::from_i128(16), work)?;
+        let maximum_leaf_width = if series_leaf
+            .checked_compare(requirements.numeric.maximum_width_turns, work)?
+            == core::cmp::Ordering::Less
+        {
+            series_leaf
+        } else {
+            requirements.numeric.maximum_width_turns
+        };
+        // This is bounded preparation storage. Host admission separately
+        // accounts for stack frames and allocator overhead, as for the ordinary enclosure entrance.
+        let projection =
+            PreparedMathematicalEnclosure::prepare(
+                source.coordinate(),
+                MathematicalEnclosureRequirements {
+                    maximum_width: requirements.numeric.maximum_width_turns,
+                    maximum_leaf_width,
+                    maximum_constant_terms: requirements.numeric.maximum_terms,
+                    maximum_root_refinements: 0,
+                    maximum_scratch_payload_bytes: (crate::MATHEMATICAL_VALUE_MAX_NODES
+                        * core::mem::size_of::<super::MathematicalInterval>())
+                        as u32,
+                    maximum_retained_payload_bytes: (core::mem::size_of::<
+                        PreparedMathematicalEnclosure,
+                    >() + crate::MATHEMATICAL_VALUE_MAX_NODES
+                        * core::mem::size_of::<crate::MathematicalNode>())
+                        as u32,
+                },
                 work,
             )
-            .map_err(R::SourceEvidence)
-        };
-        let y = convert(inputs.y, inputs.original_y, work)?;
-        let x = convert(inputs.x, inputs.original_x, work)?;
-        let y_coordinate = y.result().map_err(R::Coordinate)?.coordinate();
-        let x_coordinate = x.result().map_err(R::Coordinate)?.coordinate();
-        if y_coordinate == Q::ZERO && x_coordinate == Q::ZERO {
-            return Err(R::UndefinedZeroPair);
-        }
-        let ratio = if x_coordinate == Q::ZERO {
-            Q::ZERO
-        } else {
-            y_coordinate.checked_divide(x_coordinate, work)?
-        };
-        let atan = PreparedArctangentTurns::prepare(ratio, requirements.numeric, work)
             .map_err(R::Enclosure)?;
-        let half = Q::ratio(1, 2, work)?;
-        let quarter = Q::ratio(1, 4, work)?;
-        let target = if x_coordinate == Q::ZERO {
-            Interval::point(if y_coordinate.is_negative() {
-                quarter.negated()
-            } else {
-                quarter
-            })
-        } else if x_coordinate.is_negative() {
-            atan.target().add(
-                Interval::point(if y_coordinate.is_negative() {
-                    half.negated()
-                } else {
-                    half
-                }),
-                work,
-            )?
-        } else {
-            atan.target()
-        };
-        let width_turns = target.width(work)?;
+        let target = projection.target();
+        let width_turns = projection.width();
         let angle = |coordinate| {
             RationalQuantity::new(coordinate, Unit::Turn, QuantityRole::Linear)
                 .map_err(R::Coordinate)
         };
         Ok(Self {
-            y,
-            x,
+            source,
+            projection,
             lower: angle(target.lower())?,
             upper: angle(target.upper())?,
             width_turns,
@@ -133,11 +126,17 @@ impl<'a> PreparedQuantityAtan2<'a> {
             limb_work: work.spent() - before,
         })
     }
+    pub fn denotation(&self) -> &QuantityAtan2Denotation<'a> {
+        &self.source
+    }
+    pub fn projection(&self) -> &PreparedMathematicalEnclosure {
+        &self.projection
+    }
     pub const fn y_conversion(&self) -> RationalQuantityConversionReceipt<'a> {
-        self.y
+        self.source.y_conversion()
     }
     pub const fn x_conversion(&self) -> RationalQuantityConversionReceipt<'a> {
-        self.x
+        self.source.x_conversion()
     }
     pub const fn lower(&self) -> RationalQuantity {
         self.lower
