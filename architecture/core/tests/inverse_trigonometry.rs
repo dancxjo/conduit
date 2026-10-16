@@ -98,3 +98,34 @@ fn insufficient_terms_tolerance_and_work_refuse() {
         Err(R::Numeric(_))
     ));
 }
+
+#[test]
+fn coarse_error_profile_still_keeps_nonzero_values_inside_principal_limits() {
+    let req = Requirements {
+        maximum_width_turns: q(1, 2),
+        maximum_series_width: q(1, 2),
+        maximum_terms: 8,
+    };
+    for input in [
+        q(1_000_000, 1),
+        q(-1_000_000, 1),
+        q(1, 1_000_000),
+        q(-1, 1_000_000),
+    ] {
+        let p = Prepared::prepare(input, req, &mut work()).unwrap();
+        assert_eq!(
+            p.target()
+                .lower()
+                .checked_compare(q(-1, 4), &mut work())
+                .unwrap(),
+            Ordering::Greater
+        );
+        assert_eq!(
+            p.target()
+                .upper()
+                .checked_compare(q(1, 4), &mut work())
+                .unwrap(),
+            Ordering::Less
+        );
+    }
+}

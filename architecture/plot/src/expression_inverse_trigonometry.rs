@@ -116,3 +116,27 @@ pub(crate) fn closed_zero(value: &crate::ExpressionSyntax) -> bool {
         _ => false,
     }
 }
+
+/// Stable pure-expression Back details after the existing 1..=19 cases.
+/// Std and browser adapters share this mapping; typed causes remain distinct.
+pub fn inverse_angle_failure_detail(reason: &conduit_core::InverseAngleEncodingRefusal) -> u16 {
+    use conduit_core::{
+        Atan2Refusal as A, ExactNumericRefusal as N, InverseAngleEncodingRefusal as E,
+        MathematicalValueRefusal as M,
+    };
+    match reason {
+        E::Quantity(A::MismatchedDimensions) => 20,
+        E::Quantity(A::UnsupportedRole) => 21,
+        E::Quantity(A::UndefinedZeroPair) => 22,
+        E::Quantity(A::SourceEvidence(_)) => 23,
+        E::Quantity(A::Coordinate(_)) => 24,
+        E::Quantity(A::Enclosure(_)) => 25,
+        E::Quantity(A::Denotation(_)) => 26,
+        E::Denotation(M::InverseTrigonometricDomain) => 27,
+        E::Denotation(M::UnsupportedDomainProof) => 28,
+        E::Denotation(M::Numeric(N::WorkLimit)) => 29,
+        E::Denotation(M::Numeric(N::EncodingBufferTooSmall)) => 30,
+        E::Denotation(_) => 31,
+        E::Angle(_) => 32,
+    }
+}

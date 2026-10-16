@@ -99,7 +99,12 @@ pub(super) fn enclose_arctangent(
     let mut series = Arctangent::new(magnitude, work)?;
     loop {
         let interval = series.bounds(work)?;
-        if interval.width(work)?.checked_compare(maximum_width, work)? != Ordering::Greater {
+        // A nonzero reduced argument needs one term even under a coarse
+        // width profile: x - x³/3 > 0 proves a strict sign, keeping reciprocal
+        // and atan2 branch enclosures away from excluded principal limits.
+        if series.terms > 0
+            && interval.width(work)?.checked_compare(maximum_width, work)? != Ordering::Greater
+        {
             return Ok((
                 if argument.is_negative() {
                     interval.negated()

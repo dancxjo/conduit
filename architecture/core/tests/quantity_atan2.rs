@@ -136,3 +136,28 @@ fn exact_denotation_precedes_profile_and_survives_common_unit_and_codec() {
         *exact.coordinate()
     );
 }
+
+#[test]
+fn non_axis_values_stay_inside_the_signed_branch_even_with_coarse_tolerance() {
+    let mut req = requirements();
+    req.numeric.maximum_width_turns = q(1, 2);
+    req.numeric.maximum_series_width = q(1, 2);
+    for y in ["-0.000001m", "0.000001m"] {
+        let p =
+            PreparedQuantityAtan2::from_checked(inputs(y, "-1m", "m"), req, &mut work()).unwrap();
+        assert_eq!(
+            p.lower()
+                .coordinate()
+                .checked_compare(q(-1, 2), &mut work())
+                .unwrap(),
+            core::cmp::Ordering::Greater
+        );
+        assert_eq!(
+            p.upper()
+                .coordinate()
+                .checked_compare(q(1, 2), &mut work())
+                .unwrap(),
+            core::cmp::Ordering::Less
+        );
+    }
+}

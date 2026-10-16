@@ -6,6 +6,8 @@ mod acoustic_flow;
 mod angle_reference;
 #[path = "../suites/dsp_shared_compositions.rs"]
 mod dsp_shared_compositions;
+#[path = "../suites/inverse_angle.rs"]
+mod inverse_angle;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
 #[path = "../suites/speech_ipa.rs"]
@@ -103,6 +105,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
         CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
+        CheckSuite::InverseAngle => run_suite(inverse_angle::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),
         CheckSuite::TodoState => run_suite(todo::TODO_STATE_STEPS, &root, opts),
         CheckSuite::OwnerFace => run_suite(owner_face::STEPS, &root, opts),

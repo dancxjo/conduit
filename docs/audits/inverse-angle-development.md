@@ -2,8 +2,9 @@
 
 The local #5734 candidate implements exact principal inverse denotations,
 certified numerical preparation, source-correlated typed atan2, and exact Angle
-transport and authored inverse-call lowering. Installed runtime integration
-and exact-head acceptance remain pending. This is not complete issue acceptance.
+transport and authored inverse-call lowering. Installed Std Host Plan/Play and the
+supported development command now pass. Final source admission and release
+acceptance remain pending.
 
 Arctangent retains its exact rational input and returns a certified interval in
 turns. Reciprocal and quarter-turn identities reduce its series argument to
@@ -81,3 +82,20 @@ calls, literal and dynamic values, typed refusals, ordinary evaluator parity,
 capacity stability, and actual zero allocations/reallocations over repeated
 prepared execution. Numerical approximation remains a separate admitted
 projection of the resulting coordinate graph.
+
+The supported command has passed 58 tests across 14 harnesses with no ignored
+or failed tests. Installed tests execute all four calls through ordinary
+sealed Plans and the production Std kernel. They retain original Quantity
+units or exact numeric inputs beside the output Angle, check Source identity,
+correlate requested/completed Host Calls, and observe stable kernel value
+capacity. Numerical enclosure is performed separately with the exact emitted
+graph retained. The original installed forward-trig test body is unchanged
+after extracting the shared test harness.
+
+Adversarial loose-tolerance tests require interval endpoints to remain within
+open principal limits for non-axis values. The reduced arctangent series takes
+at least one nonzero term to certify strict sign; reciprocal/quadrant
+transforms therefore do not let a coarse enclosure touch an excluded branch
+cut. Std and browser Back refusal adapters share distinct inverse-domain,
+zero-pair, dimension, proof, work and storage detail mappings. This is software
+proof, not physical browser/device execution or native-speed evidence.

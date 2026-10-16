@@ -45,6 +45,11 @@ fn changed_or_missing_suite_refuses_before_launching_cargo() {
             "dsp_shared_compositions.rs",
             include_bytes!("../../xtask/src/suites/dsp_shared_compositions.rs").as_slice(),
         ),
+        (
+            "inverse-angle",
+            "inverse_angle.rs",
+            include_bytes!("../../xtask/src/suites/inverse_angle.rs").as_slice(),
+        ),
     ] {
         let path = root.join("tools/xtask/src/suites").join(file);
         for missing in [false, true] {
