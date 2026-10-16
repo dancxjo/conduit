@@ -1,0 +1,20 @@
+# Development parent Flow; acceptance requires execution and terminal evidence.
+plot acoustic-timed-combine (
+    >> accumulator: AcousticStage <= 32768B
+    >> item: AcousticStage <= 32768B
+    combined: AcousticStage <= 32768B >>
+) {
+    frame: acoustic-timed-frame()
+    accumulator >> frame.accumulator
+    item >> frame.item
+    frame.result >> combined
+}
+plot acoustic-timed-flow (
+    initial: AcousticStage
+    >> controls: AcousticStage...| <= 32768B
+    states: AcousticStage...| <= 32768B >>
+) {
+    samples: scan(initial, maximum-items = 7) acoustic-timed-combine()
+    controls >> samples.item
+    samples.combined >> states
+}

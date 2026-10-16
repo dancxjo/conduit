@@ -1,0 +1,283 @@
+{
+  "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+  "base": "002fc28e288a9e42626ebdf2e18cad0cc1a210ed",
+  "issue": 5691,
+  "proof_class": "development Source and preparation; not positive Conduit Plan/Play inference acceptance",
+  "tests": [
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "tests": 13,
+      "log": "../onnx-final-fore-tests.log",
+      "log_content": {
+        "sha256": "539929d7598105eeee818684667d5d127397a1cd6637f9caf207e9899616f3c5",
+        "bytes": 2706
+      }
+    },
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "tests": 2,
+      "log": "../onnx-final-wire-tests.log",
+      "log_content": {
+        "sha256": "bd598b6563c26577ed859b3d3169861cb44947c96291d3c5c02fef34cdf614b3",
+        "bytes": 567
+      }
+    },
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "tests": 2,
+      "log": "../onnx-final-data-tests.log",
+      "log_content": {
+        "sha256": "b4b3aab679a2362bd8a7537cfc3dbb8b32bb5c8cbbdec100ff48fb9de365dcbf",
+        "bytes": 421
+      }
+    },
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "tests": 1,
+      "log": "../onnx-final-startup-tests.log",
+      "log_content": {
+        "sha256": "a2f3f74209f854f061d389adaefd006af77f77c91f1e85b6569164cf55917306",
+        "bytes": 524
+      }
+    },
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "tests": 10,
+      "log": "../onnx-final-existing-model-tests.log",
+      "log_content": {
+        "sha256": "d97056ab918fa832bd32f1caf6a4c6dfe00678b344c08f2ed0dffcfff88e5aed",
+        "bytes": 1685
+      }
+    },
+    {
+      "source": "85475a391450c75bd25e1e869826bb39cb8001da",
+      "tests": 58,
+      "log": "../onnx-native-type-diagnostic-tests.log",
+      "log_content": {
+        "sha256": "cba0103be58f44271da96c4c6718db6c4119b8ee1f220db037ef6fe752f313c5",
+        "bytes": 6934
+      }
+    }
+  ],
+  "focused_current_source_tests": 28,
+  "compatibility_tests_at_prior_source": 58,
+  "compatibility_source_audit": {
+    "compiler_files_byte_identical": [
+      "architecture/plot/src/checked_syntax.rs",
+      "architecture/plot/src/native_type.rs",
+      "architecture/plot/src/native_type/use_contract.rs",
+      "architecture/plot/src/syntax_check/resolution.rs"
+    ],
+    "data_owner_unchanged_since_lint_source": "7a5aa3858556ed5f73a2eb44c610abadba9c43e5"
+  },
+  "strict_clippy": [
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "log": "../onnx-final-ai-clippy.log",
+      "log_content": {
+        "sha256": "d813c3ca212bf9cdc2f74f1654380c6f7f77552a659df7740912db3742ecaa1f",
+        "bytes": 670
+      }
+    },
+    {
+      "source": "7a5aa3858556ed5f73a2eb44c610abadba9c43e5",
+      "log": "../onnx-current-data-clippy.log",
+      "log_content": {
+        "sha256": "cfe33ebf128e712cee92c4b2eeb5c686ed02a03eb6513657627ba5306edf48ca",
+        "bytes": 998
+      }
+    },
+    {
+      "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+      "log": "../onnx-final-plot-clippy.log",
+      "log_content": {
+        "sha256": "6ce3d42f86dbe64b31060afc8d0f973cda62ab59546cac27378991930edaabd7",
+        "bytes": 208
+      }
+    }
+  ],
+  "format": {
+    "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+    "log_content": {
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "bytes": 0
+    }
+  },
+  "files": {
+    "architecture/plot/src/checked_syntax.rs": {
+      "sha256": "83bc6ccac75e282083e1d9095ced82b605dc4cb902bf921a36061dfcf2c0cf06",
+      "bytes": 17400
+    },
+    "architecture/plot/src/native_type.rs": {
+      "sha256": "b9e6616770fb1c2117af6af6ade125ad6a547b1d8d34f077274f804623c41c56",
+      "bytes": 19372
+    },
+    "architecture/plot/src/native_type/use_contract.rs": {
+      "sha256": "24215e82eacfa47cab1fb7cf6c2952775a6510c334f30534c8c17a4e11ee20eb",
+      "bytes": 7259
+    },
+    "architecture/plot/src/syntax_check/resolution.rs": {
+      "sha256": "76365c2adee75724a784d670212c3466fdad7a1778b6b3e33dca5de7ab33c127",
+      "bytes": 15934
+    },
+    "architecture/plot/tests/native_startup_refinements.rs": {
+      "sha256": "9b31a30cc76612f1f059165893d7d1e056a73f9f34d24bdc2e04f6be3763d902",
+      "bytes": 1844
+    },
+    "semantics/ai/ONNX_IMPORT.md": {
+      "sha256": "b2cc46e8ec98507585a5e74d17f21ea7663309ad692e2615334d1f3d39f23bd4",
+      "bytes": 4630
+    },
+    "semantics/ai/src/imported_onnx.rs": {
+      "sha256": "110035378132f296dfa0a5beb2679695c91ed50122e81079e753214e51d86355",
+      "bytes": 6577
+    },
+    "semantics/ai/src/lib.rs": {
+      "sha256": "aff0e7564b91277eb6354d7a62574ef26b10737284bc805f21bd7376b382c34c",
+      "bytes": 10655
+    },
+    "semantics/ai/src/model_infer_catalog.rs": {
+      "sha256": "7dab5d34a4f4fd4e7a455b3da2319b979a27300b90a00bb1bc787c98e1d0c138",
+      "bytes": 6753
+    },
+    "semantics/ai/src/model_infer_types.rs": {
+      "sha256": "8f520ea42f80a5bb4926dac53ea270cc02bbfa4a32cfdf3bf385ab474df2accc",
+      "bytes": 1657
+    },
+    "semantics/ai/src/model_signature.rs": {
+      "sha256": "877822eb4a9a1a10936a7d80f54fe533ca27db870885793ad69acd8ff572bb1c",
+      "bytes": 12153
+    },
+    "semantics/ai/src/model_tensor_io.rs": {
+      "sha256": "86a7de8c34a4eb0b408709899694912a52a90581d8060d51cb5ac0446994d1ad",
+      "bytes": 3255
+    },
+    "semantics/ai/src/onnx_metadata.rs": {
+      "sha256": "b186975b0562bdf2801fff521180f3b15554554aa9210932a08657fe30f6878a",
+      "bytes": 8862
+    },
+    "semantics/ai/src/onnx_tensor_io.rs": {
+      "sha256": "1a9a965aae825e09bc691320a7e20200496a67fd1d7cdc05373221b5de626a0d",
+      "bytes": 3426
+    },
+    "semantics/ai/src/onnx_wire.rs": {
+      "sha256": "af4893c5221684c4e52f3824b1f8dd083e60df8e60252df9990df78b8977b9f1",
+      "bytes": 3732
+    },
+    "semantics/ai/tests/common/model_signature_fixture.rs": {
+      "sha256": "37ae07c08cb912dd9bb83c17ea1e1e80decab633ac911585d95addab093ac216",
+      "bytes": 1307
+    },
+    "semantics/ai/tests/common/named_tensor_fixture.rs": {
+      "sha256": "847c17a352d41a604e043e40261d7a1387bbab3555d050fa5b9c825be1b4db66",
+      "bytes": 866
+    },
+    "semantics/ai/tests/common/onnx_fixture.rs": {
+      "sha256": "55194abdf0a3604dbe8e61d798ac8ed3e6a41392e6afa87a4b691c51e45632b4",
+      "bytes": 2010
+    },
+    "semantics/ai/tests/common/onnx_resource_fixture.rs": {
+      "sha256": "763a3e48eba0421361553ec949bcaa6224f51c213283ddb7b73e22ac3c37f0f8",
+      "bytes": 1756
+    },
+    "semantics/ai/tests/fixtures/onnx-model-fore.conduit": {
+      "sha256": "46581105249adb052af7fe68629a8005033e77e6d58249590614414f3eaf9533",
+      "bytes": 1087
+    },
+    "semantics/ai/tests/imported_onnx.rs": {
+      "sha256": "5ccf4d006769cd6831a149c43c5f20e93f9cb41679958a2a4075ea37729ec239",
+      "bytes": 4812
+    },
+    "semantics/ai/tests/model_infer_fore.rs": {
+      "sha256": "9216b564da8b88b2046d8f33f7c980366345612db364f7c457da2973ab3a14a3",
+      "bytes": 1998
+    },
+    "semantics/ai/tests/model_tensor_io.rs": {
+      "sha256": "790bf0f01dde6ee09a4a26ee348d01f78dceed6cb82e04311264b20368ddfea6",
+      "bytes": 3832
+    },
+    "semantics/ai/tests/onnx_metadata.rs": {
+      "sha256": "03ce5dfb2ceedba6564d50e63b613ef281d4c90bcce42ca145099755c89e38fd",
+      "bytes": 3198
+    },
+    "semantics/ai/tests/onnx_tensor_io.rs": {
+      "sha256": "c1e76c8306e3c6dc39058c816281d35bba22f2445587a9b6cc852f8833b0467f",
+      "bytes": 3956
+    },
+    "semantics/data/build.rs": {
+      "sha256": "0e827fab687d4db4ec57122eb8acf8d6267afafb7138aa125ad818cca7acb2dd",
+      "bytes": 5588
+    },
+    "semantics/data/src/lib.rs": {
+      "sha256": "75532ef06099d4315631e6b2c6c354f7912be8d20abde9d657a0965595d65a9d",
+      "bytes": 4405
+    },
+    "semantics/data/src/named_tensor.rs": {
+      "sha256": "66207dc6f65fe5f5637465f6546dcf6794ffdb187261cfa43a8a10b1a5e187c0",
+      "bytes": 3105
+    },
+    "semantics/data/src/named_tensor_catalog.rs": {
+      "sha256": "bf55016b00b4dc215300cfb4f368c8577bffe8260593a5a3ef9eecf3ddf1ea4c",
+      "bytes": 1269
+    },
+    "semantics/data/tests/named_tensor.rs": {
+      "sha256": "f7b2ed6583d757a64cf984372c22023c717087d21aad619041c2dec8a2e271de",
+      "bytes": 3342
+    },
+    "semantics/data/types.conduit": {
+      "sha256": "6ba14228a84bff671e3104087e4327bb50233557110e6433cd029108f3342d78",
+      "bytes": 13511
+    }
+  },
+  "independent_reference": {
+    "source": "d4f73c314e4ad4c173f2d5e3b2866c323e11e902",
+    "fixture_source_sha256": "55194abdf0a3604dbe8e61d798ac8ed3e6a41392e6afa87a4b691c51e45632b4",
+    "graph_sha256": "8825d14ea0f54d3881a51234709aa99db5f59ed5da7021351ecf96a32305ec29",
+    "graph_bytes": 158,
+    "onnx": "1.23.2",
+    "numpy": "2.5.4",
+    "python": "3.14.4 (main, Aug 20 2026, 10:41:58) [GCC 15.2.0]",
+    "checker": "onnx.checker.check_model full_check=True passed",
+    "reference": "upstream Python ReferenceEvaluator; not Conduit execution and not ORT",
+    "inputs": {
+      "tokens": {
+        "dtype": "int64",
+        "values": [
+          7,
+          11
+        ]
+      },
+      "scale": {
+        "dtype": "float32",
+        "values": [
+          2
+        ]
+      }
+    },
+    "outputs": [
+      {
+        "dtype": "float32",
+        "shape": [
+          4
+        ],
+        "values": [
+          3.0,
+          4.0,
+          5.0,
+          6.0
+        ]
+      }
+    ],
+    "remaining": "Conduit Source/Plan/Play numerical execution remains unproven",
+    "install_report": "work/onnx-validation-install.json"
+  },
+  "origin_reuse_audit": "outputs/origin-named-tensor-reuse-inventory.json",
+  "remaining": [
+    "Matching model realization eligibility in ordinary planner",
+    "Canonical named I/O migration of existing single-tensor invocation callers",
+    "Genuine bounded Back through the normal kernel/Host Call with positive numeric/cancellation/resource proof",
+    "Stock catalog/Host integration and honest supported entrance; no issue closure yet"
+  ],
+  "prior_evidence_preserved": "outputs/onnx-preparation-component-proof.json",
+  "validation_logs_retained_locally": true
+}

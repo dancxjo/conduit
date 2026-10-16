@@ -41,7 +41,13 @@ do not repeat a generic Hello journey. Other architecture and hosted/browser
 changes run the Std journey; architecture changes
 also run multi-placement and new-Plan recovery. Browser source changes build WASM.
 The broader `cargo xtask integrate` loop remains available locally and is not
-required for unrelated PR changes. Admission optimizes test execution while
+required for unrelated PR changes.
+`cargo xtask check acoustic-flow` exercises the declared four-frame, 8 kHz mono
+PCM patch through Source, Plan and the production kernel. It covers timed
+control refusal, identical state under producer-block partitions, explicit queue
+pressure, closure with pending work, cancellation and a deterministic Host Call
+sink that loses its provider. These are finite software proofs, not physical
+speaker or device evidence. Admission optimizes test execution while
 retaining debug assertions and overflow checks. Reproduce with
 `cargo xtask ci pipeline admission BASE_SHA`. Cancelled workflows skip their final
 gate jobs so obsolete runs cannot block replacement checks; ordinary failures still

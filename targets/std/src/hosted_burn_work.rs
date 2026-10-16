@@ -155,7 +155,43 @@ impl<D: BurnModelDefinition, F: FnMut() -> D> HostedBurnWork<D, F> {
             ModelWorkOperation::Infer { inputs } => {
                 let inference = self.inference.as_mut().ok_or(Error::Unloaded)?;
                 let checkpoint_identity = inference.inference_checkpoint_identity();
-                let outputs = inference.infer_cancellable(&inputs, &self.cancellation)?;
+                let signature = inference.signature().clone();
+                signature
+                    .validate_named_inputs(&inputs)
+                    .map_err(|_| Error::InvalidTensor)?;
+                let ordered = signature
+                    .inputs
+                    .get()
+                    .iter()
+                    .map(|port| {
+                        inputs
+                            .get()
+                            .iter()
+                            .find(|value| &value.name == port.identity.get())
+                            .map(|value| value.value.clone())
+                            .ok_or(Error::InvalidTensor)
+                    })
+                    .collect::<Result<Vec<_>, _>>()?;
+                let values = inference.infer_cancellable(&ordered, &self.cancellation)?;
+                if values.len() != signature.outputs.get().len() {
+                    return Err(Error::InvalidTensor);
+                }
+                let outputs = conduit_data::NamedTensorBundle::from_values(
+                    signature
+                        .outputs
+                        .get()
+                        .iter()
+                        .zip(values)
+                        .map(|(port, value)| conduit_data::NamedTensor {
+                            name: port.identity.get().clone(),
+                            value,
+                        })
+                        .collect(),
+                )
+                .map_err(|_| Error::InvalidTensor)?;
+                signature
+                    .validate_named_outputs(&outputs)
+                    .map_err(|_| Error::InvalidTensor)?;
                 ModelWorkResult::Inferred {
                     checkpoint_identity,
                     outputs,

@@ -64,21 +64,15 @@ fn check_scan() {
     let parent = format!(
         r#"
 # Explicit identity transports the checked finite envelope into scan's state.
-plot acoustic-bounded-state (
- >> value: AcousticStage <= 32768B
- result: AcousticStage <= 32768B >>
-) = (.)
 plot acoustic-combine (
  >> accumulator: AcousticStage <= 32768B
  >> item: AcousticStage <= 32768B
  combined: AcousticStage <= 32768B >>
 ) {{
  frame: acoustic-value-frame()
- bounded: acoustic-bounded-state()
  accumulator >> frame.accumulator
  item >> frame.item
- frame.result >> bounded.value
- bounded.result >> combined
+ frame.result >> combined
 }}
 plot acoustic-bounded-packing (
  >> value: AudioPcm16PackingInput...| <= 32768B

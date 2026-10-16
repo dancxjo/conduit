@@ -1,9 +1,10 @@
 use conduit_ai::*;
 use conduit_core::ComputeServiceGuarantee;
 use conduit_data::{
-    tensor_content_digest, TensorAxis, TensorAxisRole, TensorBacking, TensorElement, TensorValue,
+    tensor_content_digest, NamedTensor, NamedTensorBundle, TensorAxis, TensorAxisRole,
+    TensorBacking, TensorElement, TensorValue,
 };
-use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_std_host::hosted_model_compute::{
     LinearF32ModelAdapter, ModelComputeAdapter, ModelComputeAdapterTerminal,
     ModelComputeInvocation, ReferenceModelComputeAdapter,
@@ -74,15 +75,47 @@ fn input(values: [f32; 2]) -> TensorValue {
     }
 }
 
-fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
-    ModelComputeInvocation {
+fn bundle(value: TensorValue) -> NamedTensorBundle {
+    NamedTensorBundle::from_values(vec![NamedTensor {
+        name: "input".into(),
+        value,
+    }])
+    .unwrap()
+}
+
+// Own input bytes outside the adapter invocation; production receives only
+// the same admitted canonical borrowed view used by Source Host Calls.
+struct InvocationFixture {
+    request_identity: [u8; 32],
+    artifact_identity: [u8; 32],
+    checkpoint_identity: Option<[u8; 32]>,
+    requirement: ModelComputeRequirement,
+    inputs: NamedTensorBundle,
+    reader: conduit_data::PreparedNamedTensorBundleView,
+    encoded: Vec<u8>,
+}
+impl InvocationFixture {
+    fn request(&mut self) -> ModelComputeInvocation<'_> {
+        self.encoded = self.inputs.clone().encode().unwrap();
+        ModelComputeInvocation {
+            request_identity: self.request_identity,
+            artifact_identity: self.artifact_identity,
+            checkpoint_identity: self.checkpoint_identity,
+            requirement: &self.requirement,
+            inputs: self.reader.read(&self.encoded).unwrap(),
+        }
+    }
+}
+
+fn invocation(artifact: [u8; 32], values: [f32; 2]) -> InvocationFixture {
+    InvocationFixture {
         request_identity: [31; 32],
         artifact_identity: artifact,
         checkpoint_identity: None,
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/reference-linear".into(),
-            element: TensorElement::F32,
+            elements: vec![TensorElement::F32],
             rank: 1,
             model_bytes: 64,
             working_memory_bytes: 64,
@@ -100,15 +133,19 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
             requires_checkpoint_load: false,
             requires_checkpoint_write: false,
         },
-        input: input(values),
+        inputs: bundle(input(values)),
+        reader: conduit_data::PreparedNamedTensorBundleView::prepare().unwrap(),
+        encoded: Vec::new(),
     }
 }
 
-fn values(tensor: &TensorValue) -> [f32; 2] {
-    let TensorBacking::Inline(bytes) = &tensor.backing else {
+fn values(bundle: conduit_data::NamedTensorBundleRef<'_>) -> [f32; 2] {
+    let reader = conduit_data::PreparedNamedTensorBundleView::prepare().unwrap();
+    let view = reader.read(bundle.encoded()).unwrap();
+    let conduit_data::TensorBackingView::Inline(bytes) = view.values().next().unwrap().backing
+    else {
         panic!()
     };
-    let bytes = bytes.as_slice();
     [
         f32::from_le_bytes(bytes[0..4].try_into().unwrap()),
         f32::from_le_bytes(bytes[4..8].try_into().unwrap()),
@@ -121,11 +158,11 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     let mut reference = ReferenceModelComputeAdapter::new(offer(), runtime("reference")).unwrap();
     reference.load(artifact, 64).unwrap();
     let ModelComputeAdapterTerminal::Produced(reference_result) =
-        reference.execute(invocation(artifact, [2.0, 3.0]))
+        reference.execute(invocation(artifact, [2.0, 3.0]).request())
     else {
         panic!("reference adapter must produce")
     };
-    assert_eq!(values(&reference_result.output), [2.0, 3.0]);
+    assert_eq!(values(reference_result.outputs), [2.0, 3.0]);
     assert_eq!(reference_result.artifact_identity, artifact);
     assert_ne!(
         reference_result.runtime.adapter_artifact_identity,
@@ -146,13 +183,16 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     .unwrap();
     linear.load(artifact, 64).unwrap();
     let ModelComputeAdapterTerminal::Produced(result) =
-        linear.execute(invocation(artifact, [2.0, 3.0]))
+        linear.execute(invocation(artifact, [2.0, 3.0]).request())
     else {
         panic!("real linear model must produce")
     };
-    assert_eq!(values(&result.output), [5.0, 1.0]);
+    assert_eq!(values(result.outputs), [5.0, 1.0]);
     assert_eq!(result.consumed_work_units, 8);
-    assert_eq!(result.input_identity, input([2.0, 3.0]).content_digest);
+    assert_eq!(
+        result.inputs_identity,
+        bundle(input([2.0, 3.0])).semantic_digest().unwrap()
+    );
     assert_eq!(result.runtime.adapter_artifact_identity, "adapter/linear/1");
 }
 
@@ -167,13 +207,86 @@ fn wrong_loaded_model_and_known_resource_mismatch_refuse_before_compute() {
     .unwrap();
     linear.load([44; 32], 64).unwrap();
     assert_eq!(
-        linear.execute(invocation([45; 32], [1.0, 2.0])),
+        linear.execute(invocation([45; 32], [1.0, 2.0]).request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ProviderUnavailable)
     );
     let mut oversized = invocation([44; 32], [1.0, 2.0]);
     oversized.requirement.working_memory_bytes = 2048;
     assert_eq!(
-        linear.execute(oversized),
+        linear.execute(oversized.request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
     );
+}
+
+#[test]
+fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
+    let artifact = [44; 32];
+    let mut host = ReferenceModelComputeAdapter::new(offer(), runtime("reference")).unwrap();
+    host.load(artifact, 64).unwrap();
+    let mut wrong_type = invocation(artifact, [2., 3.]);
+    let mut wrong_type_value = input([2., 3.]);
+    let bytes = 2_f64.to_le_bytes();
+    wrong_type_value.element = TensorElement::F64;
+    wrong_type_value.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+    wrong_type_value.content_digest = tensor_content_digest(&bytes);
+    wrong_type_value.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    wrong_type.inputs = bundle(wrong_type_value);
+    assert_eq!(
+        host.execute(wrong_type.request()),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedElement)
+    );
+    let mut wrong_rank = invocation(artifact, [2., 3.]);
+    let mut wrong_rank_value = input([2., 3.]);
+    wrong_rank_value.dimensions = BoundedSequence::try_from_iter([1, 2]).unwrap();
+    let axis = wrong_rank_value.axes[0].clone();
+    wrong_rank_value.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
+    wrong_rank.inputs = bundle(wrong_rank_value);
+    assert_eq!(
+        host.execute(wrong_rank.request()),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape)
+    );
+}
+
+#[test]
+fn named_mixed_bundle_preserves_custody_and_refusal_releases_the_session() {
+    let artifact = [44; 32];
+    let mut capabilities = offer();
+    capabilities.supported_elements.push(TensorElement::I64);
+    capabilities.limits.maximum_input_bytes = 16;
+    capabilities.limits.maximum_output_bytes = 16;
+    capabilities.limits.maximum_queue_bytes = 16;
+    let mut host = ReferenceModelComputeAdapter::new(capabilities, runtime("reference")).unwrap();
+    host.load(artifact, 64).unwrap();
+    let mut request = invocation(artifact, [2., 3.]);
+    let bytes = 7_i64.to_le_bytes();
+    let mut token = input([0., 0.]);
+    token.element = TensorElement::I64;
+    token.dimensions = BoundedSequence::try_from_iter([1]).unwrap();
+    token.content_digest = tensor_content_digest(&bytes);
+    token.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
+    request.inputs = NamedTensorBundle::from_values(vec![
+        NamedTensor {
+            name: "scale".into(),
+            value: input([2., 3.]),
+        },
+        NamedTensor {
+            name: "tokens".into(),
+            value: token,
+        },
+    ])
+    .unwrap();
+    request.requirement.elements.push(TensorElement::I64);
+    request.requirement.input_bytes = 16;
+    request.requirement.output_bytes = 8;
+    assert_eq!(
+        host.execute(request.request()),
+        ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
+    );
+    request.requirement.output_bytes = 16;
+    let expected = request.inputs.clone();
+    let ModelComputeAdapterTerminal::Produced(result) = host.execute(request.request()) else {
+        panic!("a refused output must leave the admitted session available");
+    };
+    assert_eq!(result.outputs.encoded(), expected.clone().encode().unwrap());
+    assert_eq!(result.inputs_identity, expected.semantic_digest().unwrap());
 }

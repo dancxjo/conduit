@@ -317,7 +317,11 @@ fn ordinary_plot_trains_saves_reloads_and_infers() {
         80,
         86,
         ModelWorkOperation::Infer {
-            inputs: batch.inputs.clone(),
+            inputs: conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
+                name: "x".into(),
+                value: batch.inputs[0].clone(),
+            }])
+            .unwrap(),
         },
     );
     let ModelWorkResult::Inferred {
@@ -328,7 +332,7 @@ fn ordinary_plot_trains_saves_reloads_and_infers() {
         panic!("inference result")
     };
     assert_eq!(checkpoint_identity, Some(identity));
-    assert_eq!(outputs.len(), 1);
+    assert_eq!(outputs.get().len(), 1);
     drop(host);
     let fresh_training = BurnAdapter::initialize(
         common::RegressionDefinition,
@@ -391,7 +395,11 @@ fn ordinary_plot_trains_saves_reloads_and_infers() {
         80,
         89,
         ModelWorkOperation::Infer {
-            inputs: batch.inputs.clone(),
+            inputs: conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
+                name: "x".into(),
+                value: batch.inputs[0].clone(),
+            }])
+            .unwrap(),
         },
     );
     let ModelWorkResult::Inferred {

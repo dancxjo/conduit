@@ -61,14 +61,25 @@ fn referenced_scope_refusals_locate_the_original_declaration_not_the_alias() {
         ),
     ] {
         let syntax = parse_syntax_document(&source);
-        let checked = check_syntax_document(&syntax, &startup).unwrap();
-        let diagnostic = validate_source(&syntax, &checked).unwrap_err();
+        assert_eq!(syntax.round_trip(), source);
+        // Retained Native inventory coherence is checked before constructor
+        // preparation, including when the original declaration is aliased.
+        let diagnostic = check_syntax_document(&syntax, &startup).unwrap_err();
+        assert_eq!(diagnostic.code, "CND-SPC-IPA");
         assert_eq!(
             &source[diagnostic.span.start..diagnostic.span.end],
             expected,
             "{diagnostic:?}"
         );
-        assert_eq!(diagnostic.source_document_id, syntax.source_document_id());
+        let before = &source[..diagnostic.span.start];
+        assert_eq!(
+            diagnostic.span.line,
+            before.chars().filter(|c| *c == '\n').count() + 1
+        );
+        assert_eq!(
+            diagnostic.span.column,
+            before.rsplit('\n').next().unwrap().chars().count() + 1
+        );
     }
 }
 
