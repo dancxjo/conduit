@@ -27,11 +27,18 @@ type SharedExcitationStage =
     | noise NoiseStepOutcome
     | envelope EnvelopeOutcome
     | gain GainOutcome
+    | tick Boolean
+    | rejected
 
 plot shared-excitation-start (
     >> value: SharedExcitationSeed
     result: SharedExcitationStage >>
 ) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-tick (
+    >> value: Boolean
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.tick(.))
 
 plot shared-excitation-unpack (
     >> value: SharedExcitationStage
@@ -124,4 +131,30 @@ plot shared-excitation-frame (
     gain_tag.result >> gain_pair.right
     gain_pair.paired >> finish.pair
     finish.result >> result
+}
+
+plot shared-excitation-select (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationStage >>
+) = (.1 is tick ? .0 : SharedExcitationStage.rejected(empty))
+# Retain the scan accumulator's admitted bound through an identity program.
+plot shared-excitation-retain (
+    >> value: SharedExcitationStage <= 32768B
+    result: SharedExcitationStage <= 32768B >>
+) = (.)
+plot shared-excitation-combine (
+    >> accumulator: SharedExcitationStage <= 32768B
+    >> item: SharedExcitationStage <= 32768B
+    combined: SharedExcitationStage <= 32768B >>
+) {
+    pair: data/pair()
+    selected: shared-excitation-select()
+    frame: shared-excitation-frame()
+    retained: shared-excitation-retain()
+    accumulator >> pair.left
+    item >> pair.right
+    pair.paired >> selected.pair
+    selected.result >> frame.value
+    frame.result >> retained.value
+    retained.result >> combined
 }

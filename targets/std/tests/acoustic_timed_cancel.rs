@@ -15,8 +15,15 @@ fn cancellation_during_active_and_held_output_refuses_late_control_without_growt
         .spawn(|| {
             for hold_output in [false, true] {
                 let prepared = parent_plan::prepare();
-                let mut kernel =
-                    boundary::prepare(prepared.plan, &prepared.front, &prepared.registry);
+                let mut kernel = boundary::prepare(
+                    prepared.plan,
+                    &prepared.front,
+                    &prepared.registry,
+                    conduit_composite::KernelCompositeSignStorage {
+                        additional_local_items: 256,
+                        additional_remote_items: 128,
+                    },
+                );
                 let input = &prepared.front.inputs()[0];
                 let output = &prepared.front.outputs()[0];
                 let item = ValuePayload {

@@ -9,6 +9,7 @@ pub fn prepare(
     plan: Plan,
     front: &CheckedFront,
     registry: &KernelOperationRegistry,
+    signs: conduit_composite::KernelCompositeSignStorage,
 ) -> KernelCompositeHost {
     let fragment = &plan.fragments[0];
     let bind = |port: &PortDescriptor| {
@@ -72,13 +73,5 @@ pub fn prepare(
         failure_translation: FailureReason::CompositeCapabilityFailed,
     };
 
-    KernelCompositeHost::prepare_with_sign_storage(
-        definition,
-        registry,
-        conduit_composite::KernelCompositeSignStorage {
-            additional_local_items: 256,
-            additional_remote_items: 128,
-        },
-    )
-    .unwrap()
+    KernelCompositeHost::prepare_with_sign_storage(definition, registry, signs).unwrap()
 }

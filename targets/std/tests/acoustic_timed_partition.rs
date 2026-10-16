@@ -24,8 +24,14 @@ fn one_block_and_partitioned_controls_have_identical_state_with_pressure_and_tai
                     &prepared.registry,
                     &prepared.items,
                     partitions,
-                    gap,
-                    hold,
+                    partition_kernel::Delivery {
+                        gap,
+                        hold,
+                        signs: conduit_composite::KernelCompositeSignStorage {
+                            additional_local_items: 256,
+                            additional_remote_items: 128,
+                        },
+                    },
                 );
                 assertions::check_states(&states);
                 if let Some(previous) = &reference {

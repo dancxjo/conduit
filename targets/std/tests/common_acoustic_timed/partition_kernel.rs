@@ -9,19 +9,24 @@ mod boundary;
 mod terminal_signs;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+pub struct Delivery {
+    pub gap: usize,
+    pub hold: usize,
+    pub signs: conduit_composite::KernelCompositeSignStorage,
+}
 pub fn run(
     plan: Plan,
     front: &CheckedFront,
     registry: &conduit_composite::KernelOperationRegistry,
     items: &[Vec<u8>],
     partitions: &[usize],
-    gap: usize,
-    hold: usize,
+    delivery: Delivery,
 ) -> Vec<Vec<u8>> {
+    let Delivery { gap, hold, signs } = delivery;
     assert_eq!(partitions.iter().sum::<usize>(), items.len());
     assert!(partitions.iter().all(|size| *size > 0));
     assert!(hold > 0);
-    let mut kernel = boundary::prepare(plan, front, registry);
+    let mut kernel = boundary::prepare(plan, front, registry, signs);
     let inputs = items
         .iter()
         .map(|bytes| ValuePayload {
