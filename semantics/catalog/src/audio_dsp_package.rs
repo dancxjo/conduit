@@ -53,27 +53,35 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
     .join("\n");
     let noise_owner = include_str!("../../audio/dsp/seeded-noise.conduit");
     let noise = format!(
-        "{noise_owner}\n{}",
+        "{noise_owner}\n{}\n{}",
         profiles::value_profile(
             noise_owner,
             "dsp/noise-step-candidate",
             "dsp/noise-step-value"
+        )?,
+        profiles::carried_profile(
+            noise_owner,
+            "dsp/noise-step-candidate",
+            "dsp/noise-step-carry"
         )?
     );
     let envelope_owner = include_str!("../../audio/dsp/envelope.conduit");
     let envelope = format!(
-        "{envelope_owner}\n{}",
-        profiles::value_profile(envelope_owner, "dsp/envelope", "dsp/envelope-value")?
+        "{envelope_owner}\n{}\n{}",
+        profiles::value_profile(envelope_owner, "dsp/envelope", "dsp/envelope-value")?,
+        profiles::carried_profile(envelope_owner, "dsp/envelope", "dsp/envelope-carry")?
     );
     let gain_owner = include_str!("../../audio/dsp/gain.conduit");
     let gain = format!(
-        "{gain_owner}\n{}",
-        profiles::value_profile(gain_owner, "dsp/gain", "dsp/gain-value")?
+        "{gain_owner}\n{}\n{}",
+        profiles::value_profile(gain_owner, "dsp/gain", "dsp/gain-value")?,
+        profiles::carried_profile(gain_owner, "dsp/gain", "dsp/gain-carry")?
     );
     let mixer_owner = include_str!("../../audio/dsp/mixer.conduit");
     let mixer = format!(
-        "{mixer_owner}\n{}",
-        profiles::value_profile(mixer_owner, "dsp/mix-two", "dsp/mix-two-value")?
+        "{mixer_owner}\n{}\n{}",
+        profiles::value_profile(mixer_owner, "dsp/mix-two", "dsp/mix-two-value")?,
+        profiles::carried_pair_profile(mixer_owner, "dsp/mix-two", "dsp/mix-two-carry")?
     );
     let mut startup = StartupCatalog::new();
     let mixer_types = prepare_source_types(&parse_syntax_document(&mixer), &startup)
@@ -93,6 +101,7 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         .insert_structured_type("MixerQuad", quad)
         .map_err(|e| format!("DSP mixer quad catalog: {e:?}"))?;
     let frame = include_str!("../../audio/dsp/experimental-q14-frame.conduit");
+    let excitation = include_str!("../../audio/dsp/independent-excitation.conduit");
     // Prepare the closed Stage Type before its pair Fore. Type declarations are
     // copied by ordinary parser spans; imports and executable bodies are not
     // part of this bootstrap. The checked package must retain this exact Type.
@@ -104,8 +113,12 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         &*mixer,
         conduit_audio::RESONATOR_RECURRENCE_SOURCE,
         frame,
+        excitation,
     ] {
         let document = parse_syntax_document(source);
+        if !document.diagnostics.is_empty() {
+            return Err(format!("DSP Type owner parse: {:?}", document.diagnostics));
+        }
         for declaration in &document.types {
             stage_source.push_str(&source[declaration.span.start..declaration.span.end]);
             stage_source.push('\n');
@@ -137,6 +150,10 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         &mut profiles,
     )?;
     let members = [
+        PackageMemberSource {
+            path: "excitation",
+            source: excitation,
+        },
         PackageMemberSource {
             path: "frame",
             source: frame,

@@ -1,6 +1,8 @@
 pack audio/dsp (
     version = 0.1.0
 ) {
+    ship IndependentExcitationInput
+    ship experimental-independent-excitation
     ship SharedExcitationStage
     ship SharedExcitationProfileSeed
     ship SharedExcitationSeed
@@ -21,7 +23,13 @@ pack audio/dsp (
     ship ResonatorStartOutcome
     ship ResonatorStepInput
     ship ResonatorOutcome
+    ship noise-step-carry
+    ship mix-two-carry
+    ship SharedExcitationControl
+    ship experimental-q14-control-frame
     ship noise-step-value
+    ship envelope-carry
+    ship gain-carry
     ship envelope-value
     ship gain-value
     ship mix-two-value

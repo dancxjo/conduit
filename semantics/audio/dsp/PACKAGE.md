@@ -85,6 +85,39 @@ and production local-kernel execution. The latter checks independent integer
 recurrence, serialized partition resume, held outputs/cancellation, independent
 two-source histories and declared mixing headroom, with zero allocation during
 prepared child advancement. Independent periodic phase/envelope and invalid-coefficient cursor retention
-checks also pass. Full refusal and independent excitation coverage still remain
-before claiming the full #5217 delivery. No
+checks also pass. Public catalog/authoring integration and the complete parent acceptance audit
+still remain before claiming the full #5217 delivery. No
 device or physical audio is involved.
+
+## Independent excitation experiment
+
+`experimental-independent-excitation` has separate voiced, aspiration and
+frication controls and returns all three committed controls with the mixed
+sample, or one `rejected` result. Its role check requires periodic voiced
+excitation and two independent noise cursors. These are relative digital
+signals with explicitly chosen coefficient profiles; the names do not assert
+an aerodynamic airflow model or measured phonetic quality.
+
+All three paths use the same authored frame. Two unchanged mixer invocations
+apply half gain at each sum: voiced contributes one half, while aspiration and
+frication each contribute one quarter, with the mixer's existing per-stage
+integer truncation and saturation. Frame mismatch, an invalid role or any
+invalid child prevents the combined result from exposing partial committed
+controls. A caller retains its original inputs after rejection.
+
+Explicit context-carrying Value profiles for noise, envelope, gain and mixing
+return caller context with the numeric outcome. Preparation uses ordinary AST
+Input spans to rebind the owned expression to `.control`; the mixer explicitly
+names its two original tuple inputs `control.left` and `control.right`. No
+arithmetic token or branch is rewritten. The original Flow and Value entries
+remain available. Source custody tests restore only those declared input
+projections and verify exact equality with the owned numeric expression.
+
+The three-source graph has 61 gears and two boundary nodes, within the existing
+64-node composite profile, and two pair instances, within the existing eight-
+instance offer. The direct Control-entry frame avoids redundant Stage wrappers.
+No default Host limit, port bound or retry policy was raised. The compact
+carried topology passed the supported DSP suite (34 tests across 14 harnesses),
+including production local-kernel independence and five rejection classes, and
+strict Clippy. Prepared child advancement remains allocation-free in these
+fixtures; no whole-Host or physical-audio claim follows.
