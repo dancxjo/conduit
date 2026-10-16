@@ -15,6 +15,13 @@ eight MiB too, global search refuses the entire assignment exhaustively.
 Every successful result passes ordinary Plan verification. The ample-memory
 control distinguishes memory admission from unrelated slot or queue limits.
 
+The fresh-observation case keeps both advertised memory pools at sixteen MiB,
+then withdraws available GPU memory to eight. Global planning selects one
+instance on each Host, with an eleven-millisecond supplied total forecast.
+With CPU availability also reduced below eight, the complete assignment
+refuses. The earlier two-GPU-instance Plan remains byte-for-byte unchanged
+and verifiable; the newly feasible fallback Plan has a distinct identity.
+
 `favorable_forecasts_cannot_certify_a_deadline_request` also exercises the
 global entrance with `PerformanceIntent::BoundedResponse`. The existing
 generic selector returns `UnsupportedIntent` before global search can produce

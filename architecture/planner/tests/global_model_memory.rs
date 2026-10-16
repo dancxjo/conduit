@@ -37,6 +37,16 @@ fn exercise(
     cpu_memory: u32,
     intent: PerformanceIntent,
 ) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
+    exercise_observed(gpu_memory, gpu_memory, cpu_memory, cpu_memory, intent)
+}
+
+fn exercise_observed(
+    gpu_memory: u32,
+    gpu_available: u32,
+    cpu_memory: u32,
+    cpu_available: u32,
+    intent: PerformanceIntent,
+) -> Result<GlobalPlacementResult, GlobalPlacementRefusal> {
     let mut startup = conduit_plot::StartupCatalog::new();
     let mut profile = conduit_plot::ProfileCatalog::new();
     conduit_ai::install_llm_semantic_catalog(&mut startup, &mut profile).unwrap();
@@ -173,7 +183,16 @@ fn exercise(
             unavailable: UnavailableCostPolicy::RequireKnown,
         })
         .collect();
-    let observations = common::resource_observations(&hosts);
+    let mut observations = common::resource_observations(&hosts);
+    for observation in &mut observations {
+        if observation.class_id.as_str() == LOCAL_MODEL_MEMORY_RESOURCE {
+            observation.unreserved_units = if observation.host_id == hosts[0].host_id {
+                gpu_available
+            } else {
+                cpu_available
+            };
+        }
+    }
     let timed: Vec<_> = observations
         .iter()
         .map(|observation| {
@@ -269,4 +288,36 @@ fn favorable_forecasts_cannot_certify_a_deadline_request() {
     };
     assert_eq!(refusal.reason, CostEvidenceRefusal::UnsupportedIntent);
     assert_eq!(refusal.intent, PerformanceIntent::BoundedResponse);
+}
+
+#[test]
+fn fresh_memory_withdrawal_overrides_advertised_capacity_and_preserves_old_plan() {
+    let old = exercise_observed(16, 16, 16, 16, PerformanceIntent::ThroughputBatch).unwrap();
+    let old_plan = old.plan.clone();
+    let next = exercise_observed(16, 8, 16, 16, PerformanceIntent::ThroughputBatch).unwrap();
+    assert!(verify_plan(&next.plan));
+    assert_ne!(next.plan.plan_id, old_plan.plan_id);
+    let mut memory = BTreeMap::<HostId, u32>::new();
+    for placement in next.plan.fragments.iter().flat_map(|f| &f.placements) {
+        let binding = placement
+            .resources
+            .iter()
+            .find(|r| r.class_id.as_str() == LOCAL_MODEL_MEMORY_RESOURCE)
+            .unwrap();
+        *memory.entry(placement.host_id.clone()).or_default() += binding.units;
+    }
+    assert_eq!(
+        memory,
+        BTreeMap::from([("host/gpu".into(), 8), ("host/cpu".into(), 8)])
+    );
+    assert_eq!(
+        next.score.known_upper_seconds,
+        ExactRational::ratio(11, 1000, &mut ExactNumericWork::new(100_000_000)).unwrap()
+    );
+    assert!(matches!(
+        exercise_observed(16, 8, 16, 7, PerformanceIntent::ThroughputBatch),
+        Err(GlobalPlacementRefusal::NoFeasibleAssignment { .. })
+    ));
+    assert_eq!(old.plan, old_plan);
+    assert!(verify_plan(&old.plan));
 }
