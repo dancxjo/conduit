@@ -1,0 +1,12 @@
+# Timed controls use the same bounded Source child, with no added child nodes.
+plot acoustic-timed-frame (
+ >> accumulator: AcousticStage <= 32768B
+ >> item: AcousticStage <= 32768B
+ result: AcousticStage <= 32768B >>
+) {
+ frame: acoustic-value-frame()
+ accumulator >> frame.accumulator
+ item >> frame.item
+ frame.result >> result
+}
+

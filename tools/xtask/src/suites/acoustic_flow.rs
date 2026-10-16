@@ -2,7 +2,7 @@
 use crate::process::Step;
 pub const STEPS: &[Step] = &[Step::new(
     "acoustic.authored-kernel",
-    "Validate exact packing and execute authored oscillator/resonator state to finite PCM through the production kernel",
+    "Validate exact authored PCM, timed-control state, producer partitions, pressure, drain, cancellation and fixture provider loss through the production kernel",
     "cargo",
     &[
         "test", "--locked",
@@ -15,6 +15,12 @@ pub const STEPS: &[Step] = &[Step::new(
         "--test", "acoustic_scan_source",
         "--test", "pcm_packing_back",
         "--test", "acoustic_pcm_parent",
+        "--test", "acoustic_timed_source",
+        "--test", "acoustic_timed_child",
+        "--test", "acoustic_timed_parent",
+        "--test", "acoustic_timed_partition",
+        "--test", "acoustic_timed_cancel",
+        "--test", "acoustic_timed_output_loss",
         "--", "--nocapture",
     ],
 )];
