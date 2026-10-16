@@ -29,6 +29,7 @@ mod expression_check;
 mod expression_definition;
 mod expression_evaluate;
 mod expression_f32;
+mod expression_inverse_trigonometry;
 mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;

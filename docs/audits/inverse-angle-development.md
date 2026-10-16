@@ -2,8 +2,8 @@
 
 The local #5734 candidate implements exact principal inverse denotations,
 certified numerical preparation, source-correlated typed atan2, and exact Angle
-transport. Authored inverse-call lowering, installed runtime integration and
-exact-head acceptance remain pending. This is not complete issue acceptance.
+transport and authored inverse-call lowering. Installed runtime integration
+and exact-head acceptance remain pending. This is not complete issue acceptance.
 
 Arctangent retains its exact rational input and returns a certified interval in
 turns. Reciprocal and quarter-turn identities reduce its series argument to
@@ -62,5 +62,22 @@ Parity tests compare these bytes with ordinary prepared canonical denotations
 across units, axes, quadrants, exact identities and domain failures. Empty work
 and undersized storage refuse. A separate allocation probe observes zero
 allocations/reallocations over 100 rounds of all four writers and ordinary
-Info validation. These writers are the pending authored-call frontend's
-bounded execution mechanism; the frontend/installed proof is not yet complete.
+Info validation. These writers are the authored-call frontend's bounded execution mechanism;
+installed runtime proof remains pending.
+
+The Source checker and both portable evaluators now support math/atan,
+math/asin, math/acos and math/atan2, returning MathematicalAngle. Unary inputs
+are exact dimensionless mathematical values with admitted rational domain
+proof. Atan2 consumes same-Dimension typed Quantities, preserving explicit
+unit conversion; mixed Dimensions and bare scalar coordinates refuse.
+Literal zero-pair undefinedness is proved before Unit inference, so
+math/atan2(0,0) retains its named domain diagnostic. Typed dynamic zero pairs
+retain the corresponding runtime refusal. Principal branches are part of each
+reviewed function's exact meaning, not an implicit scalar-radian convention.
+
+Known literal domains fold/refuse during preparation. Dynamic exact results
+use admitted buffers and canonical writers. Frontend tests cover all four
+calls, literal and dynamic values, typed refusals, ordinary evaluator parity,
+capacity stability, and actual zero allocations/reallocations over repeated
+prepared execution. Numerical approximation remains a separate admitted
+projection of the resulting coordinate graph.
