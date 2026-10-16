@@ -109,19 +109,7 @@ impl TensorValue {
     }
 
     pub fn resource_profile(&self) -> &'static str {
-        match self.element {
-            TensorElement::I8 => "tensor/elements-i8@1",
-            TensorElement::U8 => "tensor/elements-u8@1",
-            TensorElement::I16 => "tensor/elements-i16-le@1",
-            TensorElement::I24 => "tensor/elements-i24-le@1",
-            TensorElement::U16 => "tensor/elements-u16-le@1",
-            TensorElement::I32 => "tensor/elements-i32-le@1",
-            TensorElement::U32 => "tensor/elements-u32-le@1",
-            TensorElement::I64 => "tensor/elements-i64-le@1",
-            TensorElement::U64 => "tensor/elements-u64-le@1",
-            TensorElement::F32 => "tensor/elements-ieee754-f32-le@1",
-            TensorElement::F64 => "tensor/elements-ieee754-f64-le@1",
-        }
+        self.element.resource_profile()
     }
 
     pub fn summary(&self) -> Result<TensorSummary, TensorRefusal> {
@@ -154,5 +142,23 @@ pub(crate) fn validate_axis_identity(identity: Option<&str>) -> Result<(), Tenso
         Err(TensorRefusal::AxisIdentityInvalid)
     } else {
         Ok(())
+    }
+}
+
+impl TensorElement {
+    pub fn resource_profile(self) -> &'static str {
+        match self {
+            TensorElement::I8 => "tensor/elements-i8@1",
+            TensorElement::U8 => "tensor/elements-u8@1",
+            TensorElement::I16 => "tensor/elements-i16-le@1",
+            TensorElement::I24 => "tensor/elements-i24-le@1",
+            TensorElement::U16 => "tensor/elements-u16-le@1",
+            TensorElement::I32 => "tensor/elements-i32-le@1",
+            TensorElement::U32 => "tensor/elements-u32-le@1",
+            TensorElement::I64 => "tensor/elements-i64-le@1",
+            TensorElement::U64 => "tensor/elements-u64-le@1",
+            TensorElement::F32 => "tensor/elements-ieee754-f32-le@1",
+            TensorElement::F64 => "tensor/elements-ieee754-f64-le@1",
+        }
     }
 }

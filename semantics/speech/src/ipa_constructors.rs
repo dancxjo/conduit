@@ -3,6 +3,7 @@ mod contract;
 mod notation;
 mod placeholder;
 mod prepare;
+mod refinement_diagnostic;
 pub use notation::{install_notation, NOTATION_EXPORT_PATH};
 mod source;
 use crate::semantic::*;

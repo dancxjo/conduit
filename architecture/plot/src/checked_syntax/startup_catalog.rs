@@ -1,4 +1,7 @@
 //! Installed checking-time Kind, Type and authoring contracts.
+mod refinement_diagnostic;
+use refinement_diagnostic::NativeRefinementDiagnosticOwner;
+pub use refinement_diagnostic::{NativeRefinementDiagnosticCallback, NativeRefinementSource};
 mod stored_default;
 pub(crate) use stored_default::StoredStructuredDefault;
 mod type_catalog;
@@ -36,6 +39,7 @@ pub struct StartupCatalog {
     value_kind_aliases: BTreeMap<String, conduit_core::KindId>,
     pub(crate) native_type_sources: BTreeMap<String, NativeTypeSourceOrigin>,
     pub(crate) native_families: BTreeMap<String, crate::native_type::family::NativeTypeFamily>,
+    native_refinement_diagnostics: Vec<NativeRefinementDiagnosticOwner>,
     pub(crate) exact_initial_info: BTreeMap<(conduit_core::KindId, String), Vec<u8>>,
 }
 

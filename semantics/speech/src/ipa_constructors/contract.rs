@@ -22,6 +22,7 @@ pub fn install(startup: &mut StartupCatalog, profile: &mut ProfileCatalog) -> Re
             .insert_kind(contract(constructor))
             .map_err(|e| format!("{e}"))?;
     }
+    super::refinement_diagnostic::install(startup)?;
     Ok(())
 }
 

@@ -94,6 +94,7 @@ fn main() {
                 "MeasurementThresholdDecision".into(),
                 "MeasurementWindowProfile".into(),
                 "MissingDataMask".into(),
+                "NamedTensor".into(),
                 "ObservationSet".into(),
                 "SignalWindow".into(),
                 "SignalSummary".into(),
