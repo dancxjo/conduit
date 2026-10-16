@@ -5,7 +5,7 @@ pub const STEPS: &[Step] = &[
         "dsp.shared-source-play",
         "Prove owned DSP programs, admitted IPA frication, periodic music, exact state/seed partitions and bounded execution",
         "cargo",
-        &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host",
+        &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host", "-p", "conduit-audio",
           "--test", "seeded_noise", "--test", "dsp_shared_excitation",
           "--test", "dsp_shared_partition", "--test", "dsp_shared_speech", "--test", "one_pole", "--test", "dsp_package", "--", "--nocapture"],
     ),
