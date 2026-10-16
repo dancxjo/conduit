@@ -202,11 +202,13 @@ fn emit_nominal(
         .expect("String writing is infallible");
     writeln!(out, "        if value.value_type() != &Self::semantic_type()? {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}")
         .expect("String writing is infallible");
-    writeln!(out, "        let representation = conduit_plot::rust_binding::nominal_representation_type(&Self::semantic_type()?)?;")
+    // The incoming structured value already has the exact nominal Type. Check
+    // its retained refinements before decoding; re-encoding the decoded value
+    // through `new` would repeat that validation and allocate a second tree.
+    writeln!(out, "        conduit_plot::rust_binding::validate_native_contracts(&value, &Self::value_contracts())?;")
         .expect("String writing is infallible");
-    writeln!(out, "        let _ = &representation;").expect("String writing is infallible");
     let decoded = super::generate_conversion::decode_expression(representation, "value", names)?;
-    writeln!(out, "        Self::new({decoded})\n    }}\n}}\n")
+    writeln!(out, "        Ok(Self({decoded}))\n    }}\n}}\n")
         .expect("String writing is infallible");
     Ok(())
 }
