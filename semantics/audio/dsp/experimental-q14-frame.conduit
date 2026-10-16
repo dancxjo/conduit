@@ -1,8 +1,8 @@
 # Explicit bounded Q14 diagnostic composition. Filter precedes envelope/gain.
 # This authored specimen uses caller-owned state and no clock or device.
-with ./noise/noise-step-value as noise_step
-with ./envelope/envelope-value as level_curve
-with ./gain/gain-value as apply_gain
+with ./noise/noise-step-carry as noise_step
+with ./envelope/envelope-carry as level_curve
+with ./gain/gain-carry as apply_gain
 with ./mixer/mix-two-value as sum_two
 with ./oscillator/periodic-phase-pair as phase_step
 with ./oscillator/cubic-flow-pair as pulse_step
@@ -61,6 +61,30 @@ type SharedExcitationResonatorInput = {
     y2: I32
 }
 type SharedExcitationResonatorPair = ResonatorRecurrenceResult<SharedExcitationResonatorInput,I32>
+type SharedNoiseInput = {
+    context: SharedExcitationControl
+    control: NoiseStepCandidate
+}
+type SharedNoiseResult = {
+    context: SharedExcitationControl
+    outcome: NoiseStepOutcome
+}
+type SharedEnvelopeInput = {
+    context: SharedExcitationControl
+    control: EnvelopeControl
+}
+type SharedEnvelopeResult = {
+    context: SharedExcitationControl
+    outcome: EnvelopeOutcome
+}
+type SharedGainInput = {
+    context: SharedExcitationControl
+    control: GainControl
+}
+type SharedGainResult = {
+    context: SharedExcitationControl
+    outcome: GainOutcome
+}
 type SharedExcitationStage =
     context SharedExcitationControl
     | noise NoiseStepOutcome
@@ -69,6 +93,8 @@ type SharedExcitationStage =
     | dual DspDualControl
     | mixed MixerOutcome
     | rendered DspDualResult
+    | excitation_context IndependentExcitationContext
+    | excitation IndependentExcitationResult
     | tick Boolean
     | rejected
 
@@ -77,9 +103,7 @@ type SharedExcitationProfileSeed = {
     b: I32
     c: I32
 }
-# Append to the explicit Q14 profile after its single-frame contract is checked.
-# SharedExcitationStage also gains dual DspDualControl | mixed MixerOutcome
-# | rendered DspDualResult. These payloads contain Controls, never Stage itself.
+# Two-source controls contain independent cursors, never recursive Stage values.
 type DspMixerChannels = {
     left: MixerChannel
     right: MixerChannel
@@ -124,16 +148,16 @@ plot shared-excitation-context (
 ) = (SharedExcitationStage.context(.))
 plot shared-excitation-noise-input (
     >> value: SharedExcitationControl
-    result: NoiseStepCandidate >>
-) = ({word: .cursor.word, remaining: .cursor.remaining})
+    result: SharedNoiseInput >>
+) = ({context: ., control: {word: .cursor.word, remaining: .cursor.remaining}})
 plot shared-excitation-noise-tag (
     >> value: NoiseStepOutcome
     result: SharedExcitationStage >>
 ) = (SharedExcitationStage.noise(.))
 plot shared-excitation-after-noise (
-    >> pair: SharedExcitationPair
+    >> value: SharedNoiseResult
     result: SharedExcitationControl >>
-) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), filtered: 0, level: 0, valid: (((.1.noise is advanced && (.0.context.cursor.period_q8 >= 2048 && .0.context.cursor.period_q8 <= 131072)) && (.0.context.cursor.phase_q8 >= 0 && (.0.context.cursor.phase_q8 < .0.context.cursor.period_q8 && .0.context.cursor.b >= -8192))) && ((.0.context.cursor.b <= 8192 && (.0.context.cursor.c >= -4096 && .0.context.cursor.c <= 4096)) && ((.0.context.cursor.y1 >= -32767 && .0.context.cursor.y1 <= 32767) && (.0.context.cursor.y2 >= -32767 && .0.context.cursor.y2 <= 32767))))})
+) = ({cursor: .context.cursor, next_word: (.outcome is advanced ? .outcome.advanced.word : .context.cursor.word), next_remaining: (.outcome is advanced ? .outcome.advanced.remaining : .context.cursor.remaining), noise: (.outcome is advanced ? .outcome.advanced.sample : 0), filtered: 0, level: 0, valid: (((.outcome is advanced && (.context.cursor.period_q8 >= 2048 && .context.cursor.period_q8 <= 131072)) && (.context.cursor.phase_q8 >= 0 && (.context.cursor.phase_q8 < .context.cursor.period_q8 && .context.cursor.b >= -8192))) && ((.context.cursor.b <= 8192 && (.context.cursor.c >= -4096 && .context.cursor.c <= 4096)) && ((.context.cursor.y1 >= -32767 && .context.cursor.y1 <= 32767) && (.context.cursor.y2 >= -32767 && .context.cursor.y2 <= 32767))))})
 plot shared-excitation-periodic-input (
     >> value: SharedExcitationControl
     result: SharedExcitationPeriodicInput >>
@@ -144,20 +168,20 @@ plot shared-excitation-after-periodic (
 ) = ({cursor: .input.control.cursor, next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: (.input.control.cursor.periodic ? .current - .previous : .input.control.noise), filtered: 0, level: 0, valid: .input.control.valid})
 plot shared-excitation-envelope-input (
     >> value: SharedExcitationControl
-    result: EnvelopeControl >>
-) = ({frame: .cursor.frame, total: .cursor.total, attack: .cursor.attack, release: .cursor.release, cancelled: false})
+    result: SharedEnvelopeInput >>
+) = ({context: ., control: {frame: .cursor.frame, total: .cursor.total, attack: .cursor.attack, release: .cursor.release, cancelled: false}})
 plot shared-excitation-envelope-tag (
     >> value: EnvelopeOutcome
     result: SharedExcitationStage >>
 ) = (SharedExcitationStage.envelope(.))
 plot shared-excitation-after-envelope (
-    >> pair: SharedExcitationPair
+    >> value: SharedEnvelopeResult
     result: SharedExcitationControl >>
-) = ({cursor: .0.context.cursor, next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, filtered: .0.context.filtered, level: (.1.envelope is level_q8 ? .1.envelope.level_q8 : 0), valid: .0.context.valid && .1.envelope is level_q8})
+) = ({cursor: .context.cursor, next_word: .context.next_word, next_remaining: .context.next_remaining, noise: .context.noise, filtered: .context.filtered, level: (.outcome is level_q8 ? .outcome.level_q8 : 0), valid: .context.valid && .outcome is level_q8})
 plot shared-excitation-gain-input (
     >> value: SharedExcitationControl
-    result: GainControl >>
-) = ({sample: .filtered, gain_q8: .level, cancelled: false})
+    result: SharedGainInput >>
+) = ({context: ., control: {sample: .filtered, gain_q8: .level, cancelled: false}})
 plot shared-excitation-gain-tag (
     >> value: GainOutcome
     result: SharedExcitationStage >>
@@ -176,20 +200,27 @@ plot shared-excitation-after-filter (
 ) = ({cursor: .input.control.cursor, next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: .input.control.noise, filtered: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), level: 0, valid: .input.control.valid})
 
 plot shared-excitation-finish (
-    >> pair: SharedExcitationPair
+    >> value: SharedGainResult
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: (.0.context.valid && .1.gain is sample ? {word: .0.context.next_word, remaining: .0.context.next_remaining, frame: .0.context.cursor.frame + 1, total: .0.context.cursor.total, attack: .0.context.cursor.attack, release: .0.context.cursor.release, sample: .1.gain.sample, periodic: .0.context.cursor.periodic, period_q8: .0.context.cursor.period_q8, phase_q8: (.0.context.cursor.phase_q8 + 256) % .0.context.cursor.period_q8, b: .0.context.cursor.b, c: .0.context.cursor.c, y1: .0.context.filtered, y2: .0.context.cursor.y1} : .0.context.cursor), next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, filtered: .0.context.filtered, level: .0.context.level, valid: .0.context.valid && .1.gain is sample}))
+) = (SharedExcitationStage.context({cursor: (.context.valid && .outcome is sample ? {word: .context.next_word, remaining: .context.next_remaining, frame: .context.cursor.frame + 1, total: .context.cursor.total, attack: .context.cursor.attack, release: .context.cursor.release, sample: .outcome.sample, periodic: .context.cursor.periodic, period_q8: .context.cursor.period_q8, phase_q8: (.context.cursor.phase_q8 + 256) % .context.cursor.period_q8, b: .context.cursor.b, c: .context.cursor.c, y1: .context.filtered, y2: .context.cursor.y1} : .context.cursor), next_word: .context.next_word, next_remaining: .context.next_remaining, noise: .context.noise, filtered: .context.filtered, level: .context.level, valid: .context.valid && .outcome is sample}))
 
 plot dsp/experimental-q14-frame (
     >> value: SharedExcitationStage
     result: SharedExcitationStage >>
 ) {
     unpack: shared-excitation-unpack()
-    noise_context: shared-excitation-context()
+    frame: dsp/experimental-q14-control-frame()
+    value >> unpack.value
+    unpack.result >> frame.value
+    frame.result >> result
+}
+
+plot dsp/experimental-q14-control-frame (
+    >> value: SharedExcitationControl
+    result: SharedExcitationStage >>
+) {
     noise_input: shared-excitation-noise-input()
-    noise: noise_step()
-    noise_tag: shared-excitation-noise-tag()
-    noise_pair: data/pair()
+    noise: noise_step(item = SharedNoiseInput, output = SharedNoiseResult)
     after_noise: shared-excitation-after-noise()
     periodic_input: shared-excitation-periodic-input()
     phase: phase_step(item = SharedExcitationPeriodicInput, output = SharedExcitationPeriodicPair)
@@ -198,26 +229,15 @@ plot dsp/experimental-q14-frame (
     filter_input: shared-excitation-filter-input()
     filter: resonate(item = SharedExcitationResonatorInput, output = SharedExcitationResonatorPair)
     after_filter: shared-excitation-after-filter()
-    envelope_context: shared-excitation-context()
     envelope_input: shared-excitation-envelope-input()
-    envelope: level_curve()
-    envelope_tag: shared-excitation-envelope-tag()
-    envelope_pair: data/pair()
+    envelope: level_curve(item = SharedEnvelopeInput, output = SharedEnvelopeResult)
     after_envelope: shared-excitation-after-envelope()
-    gain_context: shared-excitation-context()
     gain_input: shared-excitation-gain-input()
-    gain: apply_gain()
-    gain_tag: shared-excitation-gain-tag()
-    gain_pair: data/pair()
+    gain: apply_gain(item = SharedGainInput, output = SharedGainResult)
     finish: shared-excitation-finish()
-    value >> unpack.value
-    unpack.result >> noise_context.value
-    unpack.result >> noise_input.value
-    noise_context.result >> noise_pair.left
-    noise_input.result >> noise.state
-    noise.next >> noise_tag.value
-    noise_tag.result >> noise_pair.right
-    noise_pair.paired >> after_noise.pair
+    value >> noise_input.value
+    noise_input.result >> noise.value
+    noise.result >> after_noise.value
     after_noise.result >> periodic_input.value
     periodic_input.result >> phase.value
     phase.result >> waveform.value
@@ -225,20 +245,12 @@ plot dsp/experimental-q14-frame (
     after_periodic.result >> filter_input.value
     filter_input.result >> filter.value
     filter.result >> after_filter.value
-    after_filter.result >> envelope_context.value
     after_filter.result >> envelope_input.value
-    envelope_context.result >> envelope_pair.left
-    envelope_input.result >> envelope.control
-    envelope.result >> envelope_tag.value
-    envelope_tag.result >> envelope_pair.right
-    envelope_pair.paired >> after_envelope.pair
-    after_envelope.result >> gain_context.value
+    envelope_input.result >> envelope.value
+    envelope.result >> after_envelope.value
     after_envelope.result >> gain_input.value
-    gain_context.result >> gain_pair.left
-    gain_input.result >> gain.control
-    gain.result >> gain_tag.value
-    gain_tag.result >> gain_pair.right
-    gain_pair.paired >> finish.pair
+    gain_input.result >> gain.value
+    gain.result >> finish.value
     finish.result >> result
 }
 

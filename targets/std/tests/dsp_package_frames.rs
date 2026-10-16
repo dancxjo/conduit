@@ -383,3 +383,6 @@ fn invalid_experimental_coefficients_preserve_the_uncommitted_cursor() {
     };
     assert_eq!(bytes, &[0]);
 }
+
+#[path = "dsp_package_frames/independent.rs"]
+mod independent;
