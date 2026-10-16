@@ -29,5 +29,8 @@ imports. It preserves the full noise outcome on its diagnostic output and
 selects advanced samples into the existing gain component. Its checked
 expansion retains the exact standalone noise and gain programs. Downstream
 imports of five public control Types retain their owners' exact typed Fores.
-These checks establish Source checking and expansion; installed execution of
-this new example remains a separate proof obligation.
+The installed proof executes the same imported graph through an ordinary
+sealed Std Plan and the production expression/selector Backs. Six input cases
+retain all noise outcomes and produce PCM only for the three advances, against
+an independent wide-integer reference. The observed kernel value-allocation
+capacity remains stable. This is hosted software execution.
