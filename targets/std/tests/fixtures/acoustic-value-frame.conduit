@@ -81,7 +81,7 @@ plot acoustic-retain-frame (
 plot acoustic-value-frame (
     >> accumulator: AcousticStage <= 32768B
     >> item: AcousticStage <= 32768B
-    result: AcousticStage <= 32768B >>
+    result: AcousticStage >>
 ) {
     paired: data/pair
     control: acoustic-frame-control()

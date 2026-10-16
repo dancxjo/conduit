@@ -103,7 +103,7 @@ mod tests {
         assert!(kind.terminal_transductions().next().is_none());
         let output = kind
             .value_contracts()
-            .into_iter()
+            .iter()
             .find(|v| matches!(v.location, FrontValueLocation::Output(_)))
             .unwrap();
         assert!(output.contract.maximum_bytes > 5);

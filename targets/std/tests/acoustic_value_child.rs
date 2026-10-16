@@ -1,5 +1,8 @@
 //! Development proof of the authored DSP child; this is not complete PCM output.
-use conduit_core::{CheckedValueContract, ConfigurationValue, PortTemporal};
+use conduit_core::{
+    verify_plan, BaseImplementationId, CheckedValueContract, ConfigurationValue, ConnectionTrack,
+    PortDirection, PortTemporal,
+};
 use conduit_plot::{
     check_syntax_document, expand_canonical_plot_for_authoring, parse_syntax_document,
     PortableExpressionProgram, ProfileCatalog, StartupCatalog,
@@ -102,9 +105,19 @@ fn check_child() {
         .iter()
         .all(|cord| cord.temporal == PortTemporal::Value));
     let mut pair_count = 0;
+    let mut offers = Vec::new();
     for gear in &child.expanded.gears {
         if gear.kind_id.as_str() == conduit_semantic_catalog::VALUE_PAIR_KIND {
             pair_count += 1;
+            if !offers.iter().any(|offer: &conduit_core::CapabilityOffer| {
+                offer.implementation.implementation_id.as_str()
+                    == conduit_std_offers::VALUE_PAIR_IMPLEMENTATION
+            }) {
+                offers.push(
+                    conduit_std_offers::value_pair_offer(&contract, &stage, &contract, &stage)
+                        .unwrap(),
+                );
+            }
         } else {
             let [entry] = gear.configuration.as_slice() else {
                 panic!("one exact expression")
@@ -116,7 +129,78 @@ fn check_child() {
             let offer = conduit_std_offers::pure_expression_local_offer(&program).unwrap();
             assert!(gear.accepts_realization(&offer));
             assert!(offer.host_calls.is_empty());
+            if !offers
+                .iter()
+                .any(|other| other.capability_id == offer.capability_id)
+            {
+                offers.push(offer);
+            }
         }
     }
     assert_eq!(pair_count, 3);
+    eprintln!(
+        "acoustic Value child: {} Gears, {} Cords",
+        child.expanded.gears.len(),
+        child.expanded.connections.len()
+    );
+    let mut host = conduit_std_host::StdHost::new().advertisement().clone();
+    host.host_id = "fixture/acoustic-value-child".into();
+    host.capabilities = offers;
+    let hosts = [host];
+    let placements = conduit_planner::default_expanded_placements(&child.expanded, &hosts).unwrap();
+    let boundaries = [
+        (PortDirection::Input, "accumulator"),
+        (PortDirection::Input, "item"),
+        (PortDirection::Output, "result"),
+    ]
+    .into_iter()
+    .map(|(direction, name)| {
+        (
+            conduit_planner::ForeBoundaryKey {
+                direction,
+                front_port_id: name.into(),
+                track: ConnectionTrack::Payload,
+            },
+            conduit_planner::ConnectionQueueLimits {
+                item_capacity: 1,
+                byte_capacity: 32768,
+            },
+        )
+    })
+    .collect();
+    let plan = conduit_planner::plan_expanded_authoring_with_options(
+        &child,
+        &hosts,
+        &placements,
+        &[BaseImplementationId::from("conduit.base/local@1")],
+        conduit_planner::PlanningOptions {
+            connection_bases: &std::collections::BTreeMap::new(),
+            line_candidates: &std::collections::BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 32768,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        },
+        &boundaries,
+    )
+    .unwrap();
+    assert!(verify_plan(&plan));
+    assert_eq!(plan.fragments.len(), 1);
+    let pair = conduit_std_host::flow_activation::PreparedValuePairFactory::new(
+        &contract, &stage, &contract, &stage,
+    )
+    .unwrap();
+    use conduit_composite::KernelOperationFactory;
+    for gear in &plan.fragments[0].placements {
+        let budget =
+            if gear.implementation_id.as_str() == conduit_std_offers::VALUE_PAIR_IMPLEMENTATION {
+                pair.budget(gear).unwrap()
+            } else {
+                conduit_std_host::flow_activation::LocalExpressionFactory
+                    .budget(gear)
+                    .unwrap()
+            };
+        assert_eq!(budget.host_requests, 0);
+    }
 }

@@ -30,8 +30,16 @@ fn exact_pair_factory_runs_the_authored_value_graph_and_refuses_changed_identity
         &mut profiles,
     )
     .unwrap();
-    let source = "with data/pair/paired as Pair\nplot pair (\n >> left: I32\n >> right: U8\n paired: Pair >>\n) {\n join: data/pair\n left >> join.left\n right >> join.right\n join.paired >> paired\n}\n";
-    let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
+    let output_maximum = offer
+        .semantic_contract
+        .value_contracts()
+        .iter()
+        .find(|v| matches!(v.location, FrontValueLocation::Output(_)))
+        .unwrap()
+        .contract
+        .maximum_bytes;
+    let source = format!("with data/pair/paired as Pair\nplot pair (\n >> left: I32 <= 4B\n >> right: U8 <= 1B\n paired: Pair <= {output_maximum}B >>\n) {{\n join: data/pair\n left >> join.left\n right >> join.right\n join.paired >> paired\n}}\n");
+    let checked = check_syntax_document(&parse_syntax_document(&source), &startup).unwrap();
     let authored = expand_canonical_plot_for_authoring(&checked, "pair", &profiles).unwrap();
     let mut host = StdHost::new().advertisement().clone();
     host.host_id = "fixture/value-pair-child".into();
@@ -40,12 +48,12 @@ fn exact_pair_factory_runs_the_authored_value_graph_and_refuses_changed_identity
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
     let boundaries = [
-        (PortDirection::Input, "left"),
-        (PortDirection::Input, "right"),
-        (PortDirection::Output, "paired"),
+        (PortDirection::Input, "left", 4),
+        (PortDirection::Input, "right", 1),
+        (PortDirection::Output, "paired", output_maximum),
     ]
     .into_iter()
-    .map(|(direction, name)| {
+    .map(|(direction, name, maximum_bytes)| {
         (
             conduit_planner::ForeBoundaryKey {
                 direction,
@@ -54,7 +62,7 @@ fn exact_pair_factory_runs_the_authored_value_graph_and_refuses_changed_identity
             },
             conduit_planner::ConnectionQueueLimits {
                 item_capacity: 1,
-                byte_capacity: 65536,
+                byte_capacity: maximum_bytes,
             },
         )
     })
@@ -68,7 +76,7 @@ fn exact_pair_factory_runs_the_authored_value_graph_and_refuses_changed_identity
             connection_bases: &BTreeMap::new(),
             line_candidates: &BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 65536,
+            connection_byte_capacity: output_maximum,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
