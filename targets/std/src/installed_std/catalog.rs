@@ -207,6 +207,7 @@ const FACTORIES: &[&BackFactory] = &[
     &super::numerical_back::EXACT_FACTORY,
     &super::numerical_back::INTEGER_FACTORY,
     &super::numerical_back::FLOAT_FACTORY,
+    &super::numerical_back::ENCLOSED_FACTORY,
     &DISTANCE_FREQUENCY_FACTORY,
     &AUDIO_TIME_ANALYSIS_FACTORY,
     &AUDIO_SPECTRAL_ANALYSIS_FACTORY,

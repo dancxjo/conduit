@@ -395,22 +395,43 @@ fn main() {
         ));
         generated.push_str(&lowered.source);
     }
-    generated.push_str(&format!(
-        "#[cfg(test)] pub const PROGRAMS: &[(&str, &str)] = &{:?};\n",
-        programs
-    ));
-    generated.push_str("#[cfg(test)] pub struct CompiledGraphProof { pub name: &'static str, pub steps: &'static [(usize, &'static str)], pub result: usize }\n");
-    generated.push_str(&format!(
-        "#[cfg(test)] pub const GRAPHS: &[CompiledGraphProof] = &[{}];\n",
+    // Keep every proof entry and graph edge, but emit identical canonical
+    // program text only once. Repeated large literals waste compiler work.
+    let mut proof_programs = std::collections::BTreeMap::new();
+    for encoded in programs.iter().map(|(_, encoded)| encoded).chain(
         graphs
             .iter()
-            .map(|(name, graph, result)| format!(
-                "CompiledGraphProof {{ name: {name:?}, steps: &{:?}, result: {result} }}",
-                graph
-            ))
-            .collect::<Vec<_>>()
-            .join(",")
-    ));
+            .flat_map(|(_, steps, _)| steps.iter().map(|(_, encoded)| encoded)),
+    ) {
+        let next = proof_programs.len();
+        proof_programs.entry(encoded.as_str()).or_insert(next);
+    }
+    for (encoded, index) in &proof_programs {
+        generated.push_str(&format!(
+            "#[cfg(test)] const PROOF_PROGRAM_{index}: &str = {encoded:?};\n"
+        ));
+    }
+    generated.push_str("#[cfg(test)] pub const PROGRAMS: &[(&str, &str)] = &[\n");
+    for (name, encoded) in &programs {
+        generated.push_str(&format!(
+            "({name:?}, PROOF_PROGRAM_{}),\n",
+            proof_programs[encoded.as_str()]
+        ));
+    }
+    generated.push_str("];\n");
+    generated.push_str("#[cfg(test)] pub struct CompiledGraphProof { pub name: &'static str, pub steps: &'static [(usize, &'static str)], pub result: usize }\n");
+    generated.push_str("#[cfg(test)] pub const GRAPHS: &[CompiledGraphProof] = &[\n");
+    for (name, steps, result) in &graphs {
+        generated.push_str(&format!("CompiledGraphProof {{ name: {name:?}, steps: &["));
+        for (source, encoded) in steps {
+            generated.push_str(&format!(
+                "({source}, PROOF_PROGRAM_{}),",
+                proof_programs[encoded.as_str()]
+            ));
+        }
+        generated.push_str(&format!("], result: {result} }},\n"));
+    }
+    generated.push_str("];\n");
     fs::write(
         PathBuf::from(env::var_os("OUT_DIR").unwrap()).join("voice.rs"),
         generated,

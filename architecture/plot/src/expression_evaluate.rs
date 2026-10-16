@@ -32,6 +32,7 @@ pub enum PortableExpressionEvaluationRefusal {
     Arithmetic,
     UnprovedMathematicalComparison,
     AngleTrigonometry(conduit_core::AngleTrigonometryRefusal),
+    AngleReference(conduit_core::AngleReferenceRefusal),
     UnsupportedSemanticCall(String),
     UnsupportedType(String),
 }

@@ -227,7 +227,9 @@ fn runtime_preparation_rechecks_selected_algorithm_ports_and_certificate() {
         let other = match p.algorithm() {
             NumericalAlgorithm::ExactRational => NumericalAlgorithm::OutwardI64,
             NumericalAlgorithm::OutwardI64 => NumericalAlgorithm::ExactRational,
-            NumericalAlgorithm::Binary64 { .. } => NumericalAlgorithm::ExactRational,
+            NumericalAlgorithm::Binary64 { .. } | NumericalAlgorithm::EnclosedBinary64 { .. } => {
+                NumericalAlgorithm::ExactRational
+            }
         };
         assert!(NumericalRealizationBack::prepare(gear, other).is_err());
         let mut changed = gear.clone();

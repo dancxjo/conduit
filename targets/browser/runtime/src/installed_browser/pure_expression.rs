@@ -266,6 +266,12 @@ fn failure(refusal: conduit_plot::PortableExpressionEvaluationRefusal) -> Failur
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,
+        conduit_plot::PortableExpressionEvaluationRefusal::AngleReference(reason) => match reason {
+            conduit_core::AngleReferenceRefusal::NotLinearAngle => 16,
+            conduit_core::AngleReferenceRefusal::SourceEvidence(_) => 17,
+            conduit_core::AngleReferenceRefusal::Coordinate(_) => 18,
+            conduit_core::AngleReferenceRefusal::Denotation(_) => 19,
+        },
         // 8/9 are existing filter failures above. Keep the new Angle domain
         // causes separate rather than flattening an undefined pole to arithmetic.
         conduit_plot::PortableExpressionEvaluationRefusal::AngleTrigonometry(reason) => {
