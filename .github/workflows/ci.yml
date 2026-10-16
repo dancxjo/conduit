@@ -120,9 +120,11 @@ jobs:
       - name: Prove portable meaning
         env:
           SHARD: ${{ matrix.shard }}
-          # Installed Owner deadlines and portable ConduitOS Source tests use the
-          # optimized candidate profile; assertions and overflow checks stay enabled.
-          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'products' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
+          # Portable Source proof and installed Owner tests share the optimized
+          # candidate profile, retaining assertions and checked arithmetic.
+          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'foundation' || matrix.shard == 'products' || matrix.shard == 'hosts-std' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
+          CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
+          CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
           CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
         run: cargo xtask ci pipeline unit "$SHARD"
       - name: Replay public CPU model tutorial commands

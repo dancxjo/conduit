@@ -90,16 +90,16 @@ fn four_qualified_source_constructors_produce_distinct_native_values() {
 #[test]
 fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
     let catalogs = catalogs();
-    for (source, expected) in [
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"), r"\n"),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", r#"t͡ʃ\""#), r#"\""#),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\\"), r"\\"),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ̃"), "̃"),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", "ːt"), "ː"),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ."), "."),
-        (PHONEMIC.replace("ˈt͡ʃaː", "ˈt͡ʃa"), "a"),
-        (PHONEMIC.replace("ˈt͡ʃaː", "t͡ʃː"), "ː"),
-        (PHONETIC.replace("ˈt͡ʃãː.n̩", &"t͡ʃ".repeat(257)), "t͡ʃ"),
+    for (source, expected, native_refusal) in [
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"), r"\n", false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", r#"t͡ʃ\""#), r#"\""#, false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\\"), r"\\", false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ̃"), "̃", false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", "ːt"), "ː", false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", "t͡ʃ."), ".", false),
+        (PHONEMIC.replace("ˈt͡ʃaː", "ˈt͡ʃa"), "a", false),
+        (PHONEMIC.replace("ˈt͡ʃaː", "t͡ʃː"), "ː", false),
+        (PHONETIC.replace("ˈt͡ʃãː.n̩", &"t͡ʃ".repeat(257)), "t͡ʃ", false),
         (
             PHONEMIC.replacen(
                 "inventory_id: \"inventory/test\"",
@@ -107,6 +107,7 @@ fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
                 1,
             ),
             "\"inventory/foreign\"",
+            true,
         ),
         (
             PHONEMIC.replacen(
@@ -115,6 +116,7 @@ fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
                 1,
             ),
             "{identity: \"variety/foreign\", language: \"language/test\"}",
+            true,
         ),
         (
             PHONEMIC.replacen(
@@ -123,31 +125,32 @@ fn source_refusals_locate_unicode_escapes_and_explicit_scope_fields() {
                 1,
             ),
             "\"revision/foreign\"",
+            true,
         ),
     ] {
         let syntax = parse_syntax_document(&source);
         assert!(syntax.diagnostics.is_empty(), "{:?}", syntax.diagnostics);
-        let checked = check_syntax_document(&syntax, &catalogs.0).unwrap();
-        let error = validate_source(&syntax, &checked).unwrap_err();
+        assert_eq!(syntax.round_trip(), source);
+        let span = if native_refusal {
+            // A basis cannot enter a checked Plot after its retained Native
+            // coherence law has already refused it. Keep the owner's span.
+            let error = check_syntax_document(&syntax, &catalogs.0).unwrap_err();
+            assert_eq!(error.code, "CND-SPC-IPA");
+            error.span
+        } else {
+            let checked = check_syntax_document(&syntax, &catalogs.0).unwrap();
+            let error = validate_source(&syntax, &checked).unwrap_err();
+            assert_eq!(error.source_document_id, checked.source_document_id);
+            error.span
+        };
+        assert_eq!(&source[span.start..span.end], expected, "{span:?}");
+        let before = &source[..span.start];
+        assert_eq!(span.line, before.chars().filter(|c| *c == '\n').count() + 1);
         assert_eq!(
-            &source[error.span.start..error.span.end],
-            expected,
-            "{error:?}"
-        );
-        assert_eq!(error.source_document_id, checked.source_document_id);
-        let before = &source[..error.span.start];
-        assert_eq!(
-            error.span.line,
-            before.chars().filter(|c| *c == '\n').count() + 1
-        );
-        assert_eq!(
-            error.span.column,
+            span.column,
             before.rsplit('\n').next().unwrap().chars().count() + 1
         );
-        assert_eq!(
-            error.span.end_column - error.span.column,
-            expected.chars().count()
-        );
+        assert_eq!(span.end_column - span.column, expected.chars().count());
     }
     let mut foreign = parse_syntax_document(PHONETIC);
     let checked = check_syntax_document(&foreign, &catalogs.0).unwrap();

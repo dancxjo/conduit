@@ -161,6 +161,13 @@ type TensorValue = {
 
 type TensorResourceIdentity = collection U8 = 32
 
+type NamedTensor = {
+    name: Text <= 128B not in [""]
+    value: TensorValue
+}
+
+type NamedTensorBundle = sequence NamedTensor in 0..=32
+
 type TensorSummary = {
     element: TensorElement
     dimensions: sequence U64 in 1..=8

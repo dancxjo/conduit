@@ -1,0 +1,231 @@
+# A shared excitation frame; specimen selection and linguistic custody are separate.
+# Algorithms are imported ordinary DSP plots, not repeated in this composition.
+with data/pair/paired as SharedExcitationPair
+
+type SharedExcitationSeed = {
+    word: I32 in 0..=65535
+}
+type SharedExcitationCursor = {
+    word: I32
+    remaining: U32
+    frame: I32
+    total: I32
+    attack: I32
+    release: I32
+    sample: I32
+    periodic: Boolean
+    period_q8: I32
+    phase_q8: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
+}
+type SharedExcitationControl = {
+    cursor: SharedExcitationCursor
+    next_word: I32
+    next_remaining: U32
+    noise: I32
+    level: I32
+    valid: Boolean
+}
+type SharedExcitationPhaseCoordinates = {
+    phase_q8: I32
+    open_q8: I32
+}
+type SharedExcitationPeriodicInput = {
+    source: SharedExcitationPhaseCoordinates
+    control: SharedExcitationControl
+}
+type SharedExcitationPeriodicPair = {
+    input: SharedExcitationPeriodicInput
+    current: I32
+    previous: I32
+}
+type SharedExcitationResonatorInput = {
+    control: SharedExcitationControl
+    drive: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
+}
+type SharedExcitationResonatorPair = ResonatorRecurrenceResult<SharedExcitationResonatorInput,I32>
+type SharedExcitationStage =
+    context SharedExcitationControl
+    | noise NoiseStepOutcome
+    | envelope EnvelopeOutcome
+    | gain GainOutcome
+    | tick Boolean
+    | rejected
+
+type SharedExcitationProfileSeed = {
+    word: I32 in 0..=65535
+    b: I32
+    c: I32
+}
+plot shared-excitation-start (
+    >> value: SharedExcitationSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: false, period_q8: 4096, phase_q8: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-music-start (
+    >> value: SharedExcitationSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: true, period_q8: 4096, phase_q8: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-profile-start (
+    >> value: SharedExcitationProfileSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: false, period_q8: 4096, phase_q8: 0, b: .b, c: .c, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-tick (
+    >> value: Boolean
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.tick(.))
+
+plot shared-excitation-unpack (
+    >> value: SharedExcitationStage
+    result: SharedExcitationControl >>
+) = (.context)
+plot shared-excitation-context (
+    >> value: SharedExcitationControl
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context(.))
+plot shared-excitation-noise-input (
+    >> value: SharedExcitationControl
+    result: NoiseStepCandidate >>
+) = ({word: .cursor.word, remaining: .cursor.remaining})
+plot shared-excitation-noise-tag (
+    >> value: NoiseStepOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.noise(.))
+plot shared-excitation-after-noise (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationControl >>
+) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: (((.1.noise is advanced && (.0.context.cursor.period_q8 >= 2048 && .0.context.cursor.period_q8 <= 131072)) && (.0.context.cursor.phase_q8 >= 0 && (.0.context.cursor.phase_q8 < .0.context.cursor.period_q8 && .0.context.cursor.b >= -8192))) && ((.0.context.cursor.b <= 8192 && (.0.context.cursor.c >= -4096 && .0.context.cursor.c <= 4096)) && ((.0.context.cursor.y1 >= -32767 && .0.context.cursor.y1 <= 32767) && (.0.context.cursor.y2 >= -32767 && .0.context.cursor.y2 <= 32767))))})
+plot shared-excitation-periodic-input (
+    >> value: SharedExcitationControl
+    result: SharedExcitationPeriodicInput >>
+) = ({source: {phase_q8: (.valid ? .cursor.phase_q8 : 0), open_q8: (.valid ? (.cursor.period_q8 * 3 / 4 / 256) * 256 : 1536)}, control: .})
+plot shared-excitation-after-periodic (
+    >> value: SharedExcitationPeriodicPair
+    result: SharedExcitationControl >>
+) = ({cursor: .input.control.cursor, next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: (.input.control.cursor.periodic ? .current - .previous : .input.control.noise), level: 0, valid: .input.control.valid})
+plot shared-excitation-envelope-input (
+    >> value: SharedExcitationControl
+    result: EnvelopeControl >>
+) = ({frame: .cursor.frame, total: .cursor.total, attack: .cursor.attack, release: .cursor.release, cancelled: false})
+plot shared-excitation-envelope-tag (
+    >> value: EnvelopeOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.envelope(.))
+plot shared-excitation-after-envelope (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationControl >>
+) = ({cursor: .0.context.cursor, next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, level: (.1.envelope is level_q8 ? .1.envelope.level_q8 : 0), valid: .0.context.valid && .1.envelope is level_q8})
+plot shared-excitation-gain-input (
+    >> value: SharedExcitationControl
+    result: GainControl >>
+) = ({sample: .noise, gain_q8: .level, cancelled: false})
+plot shared-excitation-gain-tag (
+    >> value: GainOutcome
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.gain(.))
+# The bounded Q14 profile uses the same recurrence as the compact voice.
+# |b| <= 8192, |c| <= 4096 and clamped histories keep all I32
+# products and ordered sums below 2^31; state is never hidden in a Back.
+plot shared-excitation-filter-input (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationResonatorInput >>
+) = ({control: .0.context, drive: (.0.context.valid && .1.gain is sample ? .1.gain.sample * 16384 : 0), b: (.0.context.valid ? .0.context.cursor.b : 0), c: (.0.context.valid ? .0.context.cursor.c : 0), y1: (.0.context.valid ? .0.context.cursor.y1 : 0), y2: (.0.context.valid ? .0.context.cursor.y2 : 0)})
+plot shared-excitation-finish (
+    >> value: SharedExcitationResonatorPair
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: (.input.control.valid ? {word: .input.control.next_word, remaining: .input.control.next_remaining, frame: .input.control.cursor.frame + 1, total: .input.control.cursor.total, attack: .input.control.cursor.attack, release: .input.control.cursor.release, sample: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), periodic: .input.control.cursor.periodic, period_q8: .input.control.cursor.period_q8, phase_q8: (.input.control.cursor.phase_q8 + 256) % .input.control.cursor.period_q8, b: .input.b, c: .input.c, y1: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), y2: .input.y1} : .input.control.cursor), next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: .input.control.noise, level: .input.control.level, valid: .input.control.valid}))
+
+plot shared-excitation-frame (
+    >> value: SharedExcitationStage
+    result: SharedExcitationStage >>
+) {
+    unpack: shared-excitation-unpack()
+    noise_context: shared-excitation-context()
+    noise_input: shared-excitation-noise-input()
+    noise: dsp/noise-step-value()
+    noise_tag: shared-excitation-noise-tag()
+    noise_pair: data/pair()
+    after_noise: shared-excitation-after-noise()
+    periodic_input: shared-excitation-periodic-input()
+    phase: dsp/periodic-phase-pair(item = SharedExcitationPeriodicInput, output = SharedExcitationPeriodicPair)
+    waveform: dsp/cubic-flow-pair(item = SharedExcitationPeriodicPair, output = SharedExcitationPeriodicPair)
+    after_periodic: shared-excitation-after-periodic()
+    envelope_context: shared-excitation-context()
+    envelope_input: shared-excitation-envelope-input()
+    envelope: dsp/envelope-value()
+    envelope_tag: shared-excitation-envelope-tag()
+    envelope_pair: data/pair()
+    after_envelope: shared-excitation-after-envelope()
+    gain_context: shared-excitation-context()
+    gain_input: shared-excitation-gain-input()
+    gain: dsp/gain-value()
+    gain_tag: shared-excitation-gain-tag()
+    gain_pair: data/pair()
+    filter_input: shared-excitation-filter-input()
+    filter: dsp/resonator-recurrence-carry(item = SharedExcitationResonatorInput, output = SharedExcitationResonatorPair)
+    finish: shared-excitation-finish()
+    value >> unpack.value
+    unpack.result >> noise_context.value
+    unpack.result >> noise_input.value
+    noise_context.result >> noise_pair.left
+    noise_input.result >> noise.state
+    noise.next >> noise_tag.value
+    noise_tag.result >> noise_pair.right
+    noise_pair.paired >> after_noise.pair
+    after_noise.result >> periodic_input.value
+    periodic_input.result >> phase.value
+    phase.result >> waveform.value
+    waveform.result >> after_periodic.value
+    after_periodic.result >> envelope_context.value
+    after_periodic.result >> envelope_input.value
+    envelope_context.result >> envelope_pair.left
+    envelope_input.result >> envelope.control
+    envelope.result >> envelope_tag.value
+    envelope_tag.result >> envelope_pair.right
+    envelope_pair.paired >> after_envelope.pair
+    after_envelope.result >> gain_context.value
+    after_envelope.result >> gain_input.value
+    gain_context.result >> gain_pair.left
+    gain_input.result >> gain.control
+    gain.result >> gain_tag.value
+    gain_tag.result >> gain_pair.right
+    gain_pair.paired >> filter_input.pair
+    filter_input.result >> filter.value
+    filter.result >> finish.value
+    finish.result >> result
+}
+
+plot shared-excitation-select (
+    >> pair: SharedExcitationPair
+    result: SharedExcitationStage >>
+) = (.1 is tick ? .0 : SharedExcitationStage.rejected(empty))
+# Retain the scan accumulator's admitted bound through an identity program.
+plot shared-excitation-retain (
+    >> value: SharedExcitationStage <= 32768B
+    result: SharedExcitationStage <= 32768B >>
+) = (.)
+plot shared-excitation-combine (
+    >> accumulator: SharedExcitationStage <= 32768B
+    >> item: SharedExcitationStage <= 32768B
+    combined: SharedExcitationStage <= 32768B >>
+) {
+    pair: data/pair()
+    selected: shared-excitation-select()
+    frame: shared-excitation-frame()
+    retained: shared-excitation-retain()
+    accumulator >> pair.left
+    item >> pair.right
+    pair.paired >> selected.pair
+    selected.result >> frame.value
+    frame.result >> retained.value
+    retained.result >> combined
+}

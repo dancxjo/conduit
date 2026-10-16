@@ -16,6 +16,7 @@ pub fn literal(value: &StructuredInfoValue) -> String {
                     }
                 }
                 "value/u32" => u32::from_le_bytes(bytes.try_into().unwrap()).to_string(),
+                "value/i32" => i32::from_le_bytes(bytes.try_into().unwrap()).to_string(),
                 "value/u64" => u64::from_le_bytes(bytes.try_into().unwrap()).to_string(),
                 "value/i64" => i64::from_le_bytes(bytes.try_into().unwrap()).to_string(),
                 "value/i128" => i128::from_le_bytes(bytes.try_into().unwrap()).to_string(),

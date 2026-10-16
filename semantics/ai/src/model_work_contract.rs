@@ -8,7 +8,7 @@ use crate::{
 };
 use alloc::{boxed::Box, format, string::String, vec, vec::Vec};
 use conduit_core::*;
-use conduit_data::TensorValue;
+use conduit_data::{NamedTensorBundle, TensorValue};
 use conduit_plot::rust_binding::NativeRustBinding;
 use serde::{Deserialize, Serialize};
 
@@ -63,8 +63,8 @@ pub enum ModelWorkOperation {
         checkpoint_identity: [u8; 32],
     },
     Infer {
-        #[serde(with = "tensors")]
-        inputs: Vec<TensorValue>,
+        #[serde(with = "native")]
+        inputs: NamedTensorBundle,
     },
     ReloadInference {
         checkpoint_identity: [u8; 32],
@@ -89,8 +89,8 @@ pub enum ModelWorkResult {
     Resumed(TrainingState),
     Inferred {
         checkpoint_identity: Option<[u8; 32]>,
-        #[serde(with = "tensors")]
-        outputs: Vec<TensorValue>,
+        #[serde(with = "native")]
+        outputs: NamedTensorBundle,
     },
     ReloadedInference {
         checkpoint_identity: [u8; 32],
@@ -141,7 +141,9 @@ impl ModelWorkRequest {
                 tensor_bounds(inputs)?;
                 tensor_bounds(targets)?;
             }
-            ModelWorkOperation::Infer { inputs } => tensor_bounds(inputs)?,
+            ModelWorkOperation::Infer { inputs } => inputs
+                .validate()
+                .map_err(|_| ModelWorkCodecRefusal::Malformed)?,
             ModelWorkOperation::Checkpoint { metrics }
                 if metrics.len() > crate::MAXIMUM_METRICS =>
             {
@@ -234,7 +236,9 @@ impl ModelWorkReply {
                 outputs,
                 checkpoint_identity,
             } => {
-                tensor_bounds(outputs)?;
+                outputs
+                    .validate()
+                    .map_err(|_| ModelWorkCodecRefusal::Malformed)?;
                 if *checkpoint_identity == Some([0; 32]) {
                     return Err(ModelWorkCodecRefusal::Identity);
                 }

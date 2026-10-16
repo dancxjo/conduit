@@ -5,10 +5,15 @@ result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The default dispatcher keeps Host, semantic and product packages out of its
-transitive dependency graph. The no-option `cargo xtask check acoustic-flow`
-entrance executes the same shared suite directly; option-bearing forms retain
+transitive dependency graph. The no-option `cargo xtask check acoustic-flow`,
+`cargo xtask check acoustic-control`, `cargo xtask check angle-reference` and
+`cargo xtask check dsp-shared-compositions`
+entrances execute their same shared suites directly; option-bearing forms retain
 the full CLI parser. A regression test checks the actual default Cargo graph,
-including transitive dependencies.
+including transitive dependencies. Focused entrances also compare their compiled
+suite definition with the current checkout before executing any step. A stale
+dispatcher from a shared build cache refuses instead of running an older proof
+subset; rebuild from the current checkout using a separate cache.
 
 ## Candidate
 
@@ -41,7 +46,13 @@ do not repeat a generic Hello journey. Other architecture and hosted/browser
 changes run the Std journey; architecture changes
 also run multi-placement and new-Plan recovery. Browser source changes build WASM.
 The broader `cargo xtask integrate` loop remains available locally and is not
-required for unrelated PR changes. Admission optimizes test execution while
+required for unrelated PR changes.
+`cargo xtask check acoustic-flow` exercises the declared four-frame, 8 kHz mono
+PCM patch through Source, Plan and the production kernel. It covers timed
+control refusal, identical state under producer-block partitions, explicit queue
+pressure, closure with pending work, cancellation and a deterministic Host Call
+sink that loses its provider. These are finite software proofs, not physical
+speaker or device evidence. Admission optimizes test execution while
 retaining debug assertions and overflow checks. Reproduce with
 `cargo xtask ci pipeline admission BASE_SHA`. Cancelled workflows skip their final
 gate jobs so obsolete runs cannot block replacement checks; ordinary failures still
@@ -190,7 +201,10 @@ required publication set. There is no second product build campaign.
 Unit jobs retain finite per-shard wall-clock limits: foundation has 90 minutes,
 products and the ordinary Host groups have 70, ConduitOS has 120, and lint has
 40. The cold foundation path includes its main tests, doctests and a separate
-kernel allocation-feature pass; products includes optimized browser Owner proof.
+kernel allocation-feature pass; products includes browser Owner proof. Foundation,
+products, Std Host and ConduitOS tests use optimization level 1 with debug assertions and
+overflow checks enabled. The same tests and features remain selected; this profile
+changes execution cost, not the required proof set.
 These limits include compilation and preparation. They do not permit test
 retries or reduce the required proof set.
 

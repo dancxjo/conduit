@@ -15,9 +15,24 @@ pub(super) static FACTORY: BackFactory = BackFactory {
 pub(super) struct ModelWorkBack {
     completed: u16,
     pending: bool,
+    maximum_input_bytes: u32,
+    single: bool,
+}
+impl ModelWorkBack {
+    pub(super) fn inference(maximum_input_bytes: u32) -> Self {
+        Self {
+            completed: 0,
+            pending: false,
+            maximum_input_bytes,
+            single: true,
+        }
+    }
 }
 impl<const PORTS: usize> StepBack<PORTS> for ModelWorkBack {
     fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
+        if self.single && self.completed == 1 {
+            return StepOutcome::Complete;
+        }
         if let Some((request, outcome)) = io.host_completion() {
             if !self.pending || request != RequestId(u32::from(self.completed)) {
                 return fail(FailureCode::InvalidLifecycle, 86);
@@ -52,8 +67,7 @@ impl<const PORTS: usize> StepBack<PORTS> for ModelWorkBack {
             if self.completed >= MAXIMUM_REQUESTS {
                 return fail(FailureCode::InvalidInput, 87);
             }
-            let Ok(input) = BoundedValueRef::new(value, conduit_ai::MODEL_WORK_MAXIMUM_INPUT_BYTES)
-            else {
+            let Ok(input) = BoundedValueRef::new(value, self.maximum_input_bytes) else {
                 return fail(FailureCode::InvalidInput, 81);
             };
             io.consume(PortId(0)).expect("present model-work command");
@@ -118,5 +132,7 @@ fn prepare(
     Ok(InstalledBack::ModelWork(ModelWorkBack {
         completed: 0,
         pending: false,
+        maximum_input_bytes: conduit_ai::MODEL_WORK_MAXIMUM_INPUT_BYTES,
+        single: false,
     }))
 }

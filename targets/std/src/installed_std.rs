@@ -102,6 +102,7 @@ mod flow_collect_back;
 mod flow_join_by_key_back;
 mod flow_zip_back;
 mod fore_sign_storage;
+mod model_infer_back;
 mod model_work_back;
 mod model_work_host;
 mod pulse_observation_back;
@@ -2938,7 +2939,9 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     .complete_host_call(request.node, request.request, completion.outcome(output))
                     .map_err(|error| format!("complete model operation: {error:?}"))?;
                 continue;
-            } else if contract.as_str() == conduit_ai::MODEL_WORK_OPERATION {
+            } else if contract.as_str() == conduit_ai::MODEL_WORK_OPERATION
+                || contract.as_str() == crate::hosted_model_infer::MODEL_INFER_OPERATION
+            {
                 let placement = fragment
                     .placements
                     .get(usize::from(request.node.0))

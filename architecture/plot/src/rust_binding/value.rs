@@ -1,7 +1,7 @@
 use crate::prelude::*;
 use conduit_core::{
-    CheckedValueContract, PrimitiveInfoRefusal, StructuredInfoRefusal, StructuredInfoType,
-    StructuredInfoTypeShape, StructuredInfoValue, StructuredInfoValueShape, ValueConstraintRefusal,
+    PrimitiveInfoRefusal, StructuredInfoRefusal, StructuredInfoType, StructuredInfoTypeShape,
+    StructuredInfoValue, StructuredInfoValueShape, ValueConstraintRefusal,
 };
 
 #[derive(Debug, Clone, PartialEq, Eq)]
@@ -122,80 +122,7 @@ pub fn validate_native_contracts(
     value: &StructuredInfoValue,
     contracts: &[crate::NativeTypeValueContract],
 ) -> Result<(), NativeBindingRefusal> {
-    for contract in contracts {
-        validate_at_path(value, &contract.representation_path, &contract.contract).map_err(
-            |refusal| NativeBindingRefusal::ViolatedConstraint {
-                representation_path: contract.representation_path.clone(),
-                refusal,
-            },
-        )?;
-    }
-    Ok(())
-}
-
-fn validate_at_path(
-    value: &StructuredInfoValue,
-    path: &str,
-    contract: &CheckedValueContract,
-) -> Result<(), ValueConstraintRefusal> {
-    if path.is_empty() {
-        let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-            return Err(ValueConstraintRefusal::WrongConstraintKind);
-        };
-        return contract.validate(bytes);
-    }
-    if let Some(rest) = path.strip_prefix("[]") {
-        let StructuredInfoValueShape::Collection(values) = value.shape() else {
-            return Err(ValueConstraintRefusal::WrongConstraintKind);
-        };
-        for item in values {
-            validate_at_path(item, rest, contract)?;
-        }
-        return Ok(());
-    }
-    if let Some(rest) = path.strip_prefix("?some") {
-        let StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
-            return Err(ValueConstraintRefusal::WrongConstraintKind);
-        };
-        return if tag == "some" {
-            validate_at_path(payload, rest, contract)
-        } else {
-            Ok(())
-        };
-    }
-    if let Some(rest) = path.strip_prefix('.') {
-        let (name, remaining) = split_path_component(rest);
-        let StructuredInfoValueShape::Record(fields) = value.shape() else {
-            return Err(ValueConstraintRefusal::WrongConstraintKind);
-        };
-        let field = fields
-            .iter()
-            .find(|field| field.name() == name)
-            .ok_or(ValueConstraintRefusal::WrongConstraintKind)?;
-        return validate_at_path(field.value(), remaining, contract);
-    }
-    if let Some(rest) = path.strip_prefix('|') {
-        let (wanted, remaining) = split_path_component(rest);
-        let StructuredInfoValueShape::Variant { tag, payload } = value.shape() else {
-            return Err(ValueConstraintRefusal::WrongConstraintKind);
-        };
-        return if tag == wanted {
-            validate_at_path(payload, remaining, contract)
-        } else {
-            Ok(())
-        };
-    }
-    Err(ValueConstraintRefusal::WrongConstraintKind)
-}
-
-fn split_path_component(path: &str) -> (&str, &str) {
-    let end = path
-        .char_indices()
-        .find_map(|(index, character)| {
-            (index > 0 && matches!(character, '.' | '|' | '[' | '?')).then_some(index)
-        })
-        .unwrap_or(path.len());
-    path.split_at(end)
+    super::native_contracts::validate_owned(value, contracts)
 }
 
 /// Exact conversion boundary implemented by generated Rust bindings.

@@ -8,6 +8,7 @@ pub enum ModelWorkTerminal {
     Failed,
     Cancelled,
     ProviderLost,
+    TimedOut,
     MalformedInput,
 }
 
