@@ -34,11 +34,17 @@ pub(super) fn encode(value: &MathematicalValue, output: &mut [u8]) -> Result<usi
             }
             MathematicalNode::SineTurns(a)
             | MathematicalNode::CosineTurns(a)
-            | MathematicalNode::TangentTurns(a) => {
+            | MathematicalNode::TangentTurns(a)
+            | MathematicalNode::ArctangentTurns(a)
+            | MathematicalNode::ArcsineTurns(a)
+            | MathematicalNode::ArccosineTurns(a) => {
                 let tag = match node {
                     MathematicalNode::SineTurns(_) => 9,
                     MathematicalNode::CosineTurns(_) => 10,
-                    _ => 11,
+                    MathematicalNode::TangentTurns(_) => 11,
+                    MathematicalNode::ArctangentTurns(_) => 12,
+                    MathematicalNode::ArcsineTurns(_) => 13,
+                    _ => 14,
                 };
                 bytes[..2].copy_from_slice(&[tag, a.index]);
                 2
@@ -129,7 +135,7 @@ impl<'a> MathematicalValueView<'a> {
                     3 + usize::from(u16::from_le_bytes([b[0], b[1]]))
                 }
                 1 => 1,
-                2 | 3 | 9..=11 => 2,
+                2 | 3 | 9..=14 => 2,
                 4..=7 => 3,
                 _ => return Err(R::NonCanonicalEncoding),
             };
@@ -217,6 +223,14 @@ impl<'a> MathematicalValueView<'a> {
     ) -> Result<(), R> {
         use MathematicalNode as N;
         match node {
+            N::ArctangentTurns(a) | N::ArcsineTurns(a) | N::ArccosineTurns(a) => {
+                let q = self
+                    .rational_node(a, work)?
+                    .ok_or(R::UnsupportedDomainProof)?;
+                if super::inverse_trigonometry::cardinal(node, q, work)?.is_some() {
+                    return Err(R::NonCanonicalEncoding);
+                }
+            }
             N::SineTurns(a) | N::CosineTurns(a) | N::TangentTurns(a) => {
                 if let Some(q) = self.rational_node(a, work)? {
                     if q.reduced_turn(work)? != q
@@ -286,6 +300,9 @@ impl<'a> MathematicalValueView<'a> {
             9 => MathematicalNode::SineTurns(self.reference(bytes[1])?),
             10 => MathematicalNode::CosineTurns(self.reference(bytes[1])?),
             11 => MathematicalNode::TangentTurns(self.reference(bytes[1])?),
+            12 => MathematicalNode::ArctangentTurns(self.reference(bytes[1])?),
+            13 => MathematicalNode::ArcsineTurns(self.reference(bytes[1])?),
+            14 => MathematicalNode::ArccosineTurns(self.reference(bytes[1])?),
             2 => MathematicalNode::Negate(self.reference(bytes[1])?),
             3 => MathematicalNode::PrincipalSquareRoot(self.reference(bytes[1])?),
             4 => MathematicalNode::Add(self.reference(bytes[1])?, self.reference(bytes[2])?),

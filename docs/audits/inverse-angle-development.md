@@ -43,3 +43,19 @@ work is approximately 175–178 million units across the signed asin/acos cases.
 These are internal arithmetic-work observations, not device timing or a
 runtime speed claim. The earlier 100-million-unit fixture budget refused;
 the error bound was retained when admitting the larger preparation budget.
+
+Exact principal inverse denotations are now canonical mathematical DAG nodes:
+`ArctangentTurns`, `ArcsineTurns` and `ArccosineTurns`. Builder and borrowed
+codec validation share domain and rational-identity checks. Existing node tags
+and encodings remain unchanged; the three additional tags preserve inverse
+operation identity across encoding, decoding and source-bound enclosure.
+Only rational arguments are currently admitted for these inverse nodes;
+unproved symbolic argument domains refuse. Principal endpoints and half-input
+asin/acos identities reduce exactly before numerical projection.
+
+The ordinary mathematical-enclosure entrance uses the certified inverse
+preparations for these nodes. Its leaf-width, term, root-refinement, storage
+and limb-work requirements remain authoritative. The projected record retains
+the original exact graph, and an impossible zero-width request refuses rather
+than replacing the graph with a point approximation. The typed Angle envelope
+and authored/runtime entrance are still separate pending integration work.
