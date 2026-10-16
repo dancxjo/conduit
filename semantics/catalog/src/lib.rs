@@ -330,6 +330,8 @@ mod copy_file;
 pub use copy_file::*;
 mod sound;
 pub use sound::*;
+mod audio_dsp_package;
+pub use audio_dsp_package::*;
 mod audio_render_demand;
 pub use audio_render_demand::*;
 mod alife;
