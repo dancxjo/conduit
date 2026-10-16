@@ -1,12 +1,22 @@
-//! Run the existing focused acoustic suite without the full tooling build.
+//! Run exact named proof suites from their canonical shared definitions.
 use crate::{process::Step, workspace::workspace_root};
+#[path = "../../xtask/src/suites/acoustic_control.rs"]
+mod acoustic_control;
 #[path = "../../xtask/src/suites/acoustic_flow.rs"]
 mod acoustic_flow;
+#[path = "../../xtask/src/suites/angle_reference.rs"]
+mod angle_reference;
 
 fn selected(arguments: &[String]) -> Option<&'static [Step]> {
     match arguments {
         [check, suite] if check == "check" && suite == "acoustic-flow" => {
             Some(acoustic_flow::STEPS)
+        }
+        [check, suite] if check == "check" && suite == "acoustic-control" => {
+            Some(acoustic_control::STEPS)
+        }
+        [check, suite] if check == "check" && suite == "angle-reference" => {
+            Some(angle_reference::STEPS)
         }
         // Global options and all other commands retain the full CLI parser.
         _ => None,
@@ -51,8 +61,14 @@ mod tests {
     }
     #[test]
     fn exact_entrance_selects_the_shared_complete_suite() {
-        let steps = selected(&arguments(&["check", "acoustic-flow"])).unwrap();
-        assert_eq!(format!("{steps:?}"), format!("{:?}", acoustic_flow::STEPS));
+        for (name, expected) in [
+            ("acoustic-flow", acoustic_flow::STEPS),
+            ("acoustic-control", acoustic_control::STEPS),
+            ("angle-reference", angle_reference::STEPS),
+        ] {
+            let steps = selected(&arguments(&["check", name])).unwrap();
+            assert_eq!(format!("{steps:?}"), format!("{expected:?}"), "{name}");
+        }
     }
     #[test]
     fn options_and_other_commands_retain_full_parser() {
@@ -62,6 +78,10 @@ mod tests {
             vec!["check", "acoustic-flow", "--dry-run"],
             vec!["check", "acoustic-flow", "unexpected"],
             vec!["check", "workspace"],
+            vec!["--json", "check", "acoustic-control"],
+            vec!["check", "acoustic-control", "--dry-run"],
+            vec!["--json", "check", "angle-reference"],
+            vec!["check", "angle-reference", "--quiet"],
             vec!["ci", "pipeline", "unit", "foundation"],
             vec!["check"],
         ] {
