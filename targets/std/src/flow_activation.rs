@@ -239,3 +239,11 @@ mod todo_spoken_template_plan;
 pub use todo_spoken_template_plan::{
     required_todo_spoken_template_offers, TodoSpokenTemplateSourcePlan,
 };
+
+mod pcm_packing;
+pub use pcm_packing::PreparedPcm16PackingBack;
+
+mod pcm_packing_factory;
+pub use pcm_packing_factory::Pcm16PackingFactory;
+mod value_scan_factory;
+pub use value_scan_factory::PreparedValueScanFactory;

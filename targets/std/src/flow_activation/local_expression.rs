@@ -1,7 +1,8 @@
 //! One checked expression Gear executed by an existing child kernel.
 use conduit_composite::{KernelOperationBudget, KernelOperationFactory};
 use conduit_core::{
-    ConfigurationValue, ImplementationId, PlannedGear, MAXIMUM_STRUCTURED_CANONICAL_BYTES,
+    ConfigurationValue, ImplementationId, PlannedGear, PortTemporal,
+    MAXIMUM_STRUCTURED_CANONICAL_BYTES,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -35,9 +36,12 @@ impl KernelOperationFactory for LocalExpressionFactory {
         placement: &PlannedGear,
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
-        Ok(Box::new(PreparedLocalExpressionBack::prepare(&validate(
-            placement,
-        )?)?))
+        let mut back = PreparedLocalExpressionBack::prepare(&validate(placement)?)?;
+        back.flow = matches!(
+            placement.inputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
+        Ok(Box::new(back))
     }
 }
 fn validate(placement: &PlannedGear) -> Result<PortableExpressionProgram, String> {
@@ -49,8 +53,14 @@ fn validate(placement: &PlannedGear) -> Result<PortableExpressionProgram, String
     };
     let program = PortableExpressionProgram::from_canonical_hex(encoded)
         .map_err(|e| format!("local expression program: {e:?}"))?;
-    let expected = conduit_std_offers::pure_expression_local_offer(&program)
-        .map_err(|e| format!("local expression Fore: {e:?}"))?;
+    let expected = match placement.inputs.first().map(|port| port.temporal) {
+        Some(PortTemporal::Value) => conduit_std_offers::pure_expression_local_offer(&program),
+        Some(PortTemporal::Flow { closes: true }) => {
+            conduit_std_offers::pure_expression_local_flow_offer(&program)
+        }
+        _ => return Err("local expression requires Value or closing Flow".into()),
+    }
+    .map_err(|e| format!("local expression Fore: {e:?}"))?;
     if placement.kind_id != expected.kind_id
         || placement.kind_contract_revision != expected.kind_contract_revision
         || placement.capability_id != expected.capability_id
@@ -91,7 +101,7 @@ fn bounds(program: &PortableExpressionProgram) -> Result<(u32, u32), String> {
 }
 
 /// Owns the existing prepared evaluator; every allocation occurs in preparation.
-/// One committed Value invocation completes this Back. The activation owner
+/// One committed Value invocation completes this Back; closing Flow invocations reuse its fixed storage until close. The activation owner
 /// admits and prepares another instance when another child Play is required.
 pub struct PreparedLocalExpressionBack {
     evaluator: PreparedPortableExpressionEvaluator,
@@ -99,6 +109,7 @@ pub struct PreparedLocalExpressionBack {
     maximum_output_bytes: u32,
     staged: bool,
     complete: bool,
+    flow: bool,
 }
 impl PreparedLocalExpressionBack {
     pub fn prepare(program: &PortableExpressionProgram) -> Result<Self, String> {
@@ -110,6 +121,7 @@ impl PreparedLocalExpressionBack {
             maximum_output_bytes,
             staged: false,
             complete: false,
+            flow: false,
         })
     }
     pub fn output_capacity(&self) -> usize {
@@ -128,7 +140,14 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedLocalExpressionBack {
         }
         let Some(reference) = io.input(PortId(0)) else {
             return if io.input_closed(PortId(0)) {
-                fail(1641)
+                if self.flow {
+                    if io.consume_closed(PortId(0)).is_err() {
+                        return fail(1641);
+                    }
+                    StepOutcome::Complete
+                } else {
+                    fail(1641)
+                }
             } else {
                 StepOutcome::Await
             };
@@ -162,7 +181,7 @@ impl<const PORTS: usize> StepBack<PORTS> for PreparedLocalExpressionBack {
         (port == PortId(0) && self.staged).then(|| self.evaluator.output_bytes())
     }
     fn step_committed(&mut self) {
-        self.complete |= self.staged;
+        self.complete |= self.staged && !self.flow;
         self.staged = false;
     }
     fn cancel(&mut self) {

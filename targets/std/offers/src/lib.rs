@@ -330,3 +330,6 @@ mod tests;
 
 mod audio_analysis;
 pub use audio_analysis::*;
+
+mod pcm_packing;
+pub use pcm_packing::*;

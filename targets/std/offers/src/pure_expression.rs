@@ -113,3 +113,16 @@ pub fn pure_expression_local_offer(
     offer.host_calls.clear();
     Ok(offer)
 }
+
+/// Closing Flow counterpart using the same prepared evaluator and bounded storage.
+pub fn pure_expression_local_flow_offer(
+    program: &conduit_plot::PortableExpressionProgram,
+) -> Result<CapabilityOffer, conduit_core::StructuredInfoRefusal> {
+    let mut offer = pure_expression_std_offer(program, PortTemporal::Flow { closes: true })?;
+    offer.capability_id = format!("std/local-flow/{}", offer.kind_id.as_str()).into();
+    offer.implementation.execution_profile_id = PURE_EXPRESSION_LOCAL_PROFILE.into();
+    offer.implementation.implementation_id = PURE_EXPRESSION_LOCAL_IMPLEMENTATION.into();
+    offer.implementation.artifact_id = PURE_EXPRESSION_LOCAL_ARTIFACT.into();
+    offer.host_calls.clear();
+    Ok(offer)
+}
