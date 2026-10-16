@@ -1,0 +1,26 @@
+# Complementary coefficient-domain one-pole filters; no implicit sample clock.
+# The caller owns the admitted PCM rate and explicit retention coefficient.
+# Q14 retention is 0..16383: the feedback pole is nonnegative and below one.
+type OnePoleFrame = {
+    sample: I32
+    history: I32
+    retention_q14: I32
+    remaining: I32
+    reset: Boolean
+    cancelled: Boolean
+}
+type OnePoleSamples = {
+    low: I32
+    high: I32
+    history: I32
+    remaining: I32
+}
+type OnePoleOutcome =
+    samples OnePoleSamples
+    | invalid_profile
+    | budget_exhausted
+    | cancelled
+plot dsp/one-pole (
+    >> frame: OnePoleFrame...|
+    result: OnePoleOutcome...| >>
+) = (.cancelled ? OnePoleOutcome.cancelled : .sample < -32767 || .sample > 32767 || .history < -32767 || .history > 32767 || .retention_q14 < 0 || .retention_q14 >= 16384 || .remaining < 0 || .remaining > 65536 ? OnePoleOutcome.invalid_profile : .remaining == 0 ? OnePoleOutcome.budget_exhausted : OnePoleOutcome.samples({low: ((.sample * (16384 - .retention_q14) + (.reset ? 0 : .history) * .retention_q14) / 16384), high: (.sample - ((.sample * (16384 - .retention_q14) + (.reset ? 0 : .history) * .retention_q14) / 16384)) < -32767 ? -32767 : (.sample - ((.sample * (16384 - .retention_q14) + (.reset ? 0 : .history) * .retention_q14) / 16384)) > 32767 ? 32767 : (.sample - ((.sample * (16384 - .retention_q14) + (.reset ? 0 : .history) * .retention_q14) / 16384)), history: ((.sample * (16384 - .retention_q14) + (.reset ? 0 : .history) * .retention_q14) / 16384), remaining: .remaining - 1}))
