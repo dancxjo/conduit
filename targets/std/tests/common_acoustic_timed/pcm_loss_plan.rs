@@ -9,6 +9,8 @@ mod literal;
 mod seed;
 #[path = "../common_acoustic_value/source.rs"]
 mod source;
+#[path = "values.rs"]
+mod values;
 pub struct Parent {
     pub plan: conduit_core::Plan,
     pub front: conduit_core::CheckedFront,
@@ -16,8 +18,9 @@ pub struct Parent {
     pub items: Vec<Vec<u8>>,
 }
 pub fn prepare() -> Parent {
-    let child_source =
-        source::composed_source() + include_str!("../fixtures/acoustic-pcm-projection.conduit");
+    let child_source = source::composed_source()
+        + include_str!("../fixtures/acoustic-pcm-projection.conduit")
+        + include_str!("../fixtures/acoustic-timed-frame.conduit");
     let owner = child_source
         .split("plot acoustic-frame-control (")
         .next()
@@ -66,7 +69,7 @@ plot acoustic-combine (
  >> item: AcousticStage <= 32768B
  combined: AcousticStage <= 32768B >>
 ) {{
- frame: acoustic-value-frame()
+ frame: acoustic-timed-frame()
  accumulator >> frame.accumulator
  item >> frame.item
  frame.result >> combined
@@ -263,11 +266,11 @@ plot acoustic-scan-fixture (
         .install(conduit_std_host::flow_activation::Pcm16PackingFactory)
         .unwrap();
     registry.install(super::output_sink::Factory).unwrap();
-    let (_, tick) = seed::seeds(&checked, &profiles);
+    let items = (0..4).map(|frame| values::tick(&stage, 1, frame)).collect();
     Parent {
         plan,
         front: expanded.front,
         registry,
-        items: vec![tick; 4],
+        items,
     }
 }
