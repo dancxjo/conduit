@@ -21,7 +21,15 @@ pub fn run(
     assert_eq!(partitions.iter().sum::<usize>(), items.len());
     assert!(partitions.iter().all(|size| *size > 0));
     assert!(hold > 0);
-    let mut kernel = boundary::prepare(plan, front, registry);
+    let mut kernel = boundary::prepare(
+        plan,
+        front,
+        registry,
+        conduit_composite::KernelCompositeSignStorage {
+            additional_local_items: 256,
+            additional_remote_items: 128,
+        },
+    );
     let inputs = items
         .iter()
         .map(|bytes| ValuePayload {

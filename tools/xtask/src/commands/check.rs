@@ -4,6 +4,8 @@ mod acoustic_control;
 mod acoustic_flow;
 #[path = "../suites/angle_reference.rs"]
 mod angle_reference;
+#[path = "../suites/dsp_shared_compositions.rs"]
+mod dsp_shared_compositions;
 #[path = "../suites/model_inference.rs"]
 mod model_inference;
 #[path = "../suites/speech_ipa.rs"]
@@ -98,6 +100,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
         CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),

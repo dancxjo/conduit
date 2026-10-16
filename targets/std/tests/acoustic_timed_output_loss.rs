@@ -15,7 +15,7 @@ static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 fn pcm_sink_provider_loss_after_one_commit_is_terminal_without_growth_or_retry() {
     std::thread::Builder::new().stack_size(8*1024*1024).spawn(|| {
         let prepared=pcm_loss_plan::prepare();
-        let mut kernel=boundary::prepare(prepared.plan,&prepared.front,&prepared.registry);
+        let mut kernel=boundary::prepare(prepared.plan,&prepared.front,&prepared.registry, conduit_composite::KernelCompositeSignStorage { additional_local_items: 256, additional_remote_items: 128 });
         let input=&prepared.front.inputs()[0].port_id;let out=&prepared.front.outputs()[0].port_id;
         let ticks=prepared.items.iter().map(|encoded|ValuePayload {value_kind:prepared.front.inputs()[0].value_kind.clone(),encoded:encoded.clone()}).collect::<Vec<_>>();
         let mut output=ValuePayload {value_kind:prepared.front.outputs()[0].value_kind.clone(),encoded:Vec::with_capacity(2077)};

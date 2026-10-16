@@ -1,0 +1,11 @@
+# The existing prepared scan profile admits at most 64 items in one Play.
+# Remaining excitation state is explicit and may be resumed by a later block.
+plot shared-excitation-flow (
+    initial: SharedExcitationStage
+    >> controls: SharedExcitationStage...| <= 32768B
+    states: SharedExcitationStage...| <= 32768B >>
+) {
+    frames: scan(initial, maximum-items = 64) shared-excitation-combine()
+    controls >> frames.item
+    frames.combined >> states
+}

@@ -17,7 +17,15 @@ pub fn run(
     admission_gap: usize,
     output_hold: usize,
 ) -> Vec<Vec<u8>> {
-    let mut kernel = boundary::prepare(plan, front, &registry);
+    let mut kernel = boundary::prepare(
+        plan,
+        front,
+        &registry,
+        conduit_composite::KernelCompositeSignStorage {
+            additional_local_items: 256,
+            additional_remote_items: 128,
+        },
+    );
     let inputs = items
         .iter()
         .map(|encoded| ValuePayload {

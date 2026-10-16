@@ -1,7 +1,9 @@
 # Portable seeded excitation
 
 `seeded-noise.conduit` defines `dsp/noise-step` as an ordinary checked Source
-Plot. Its single generic pure-expression Back uses no clock, device, ambient
+Plot. It retains the strict `NoiseStepInput` request and forwards its fields to
+`dsp/noise-step-candidate`. The latter owns the single recurrence expression.
+Both use existing generic pure-expression Backs, with no clock, device, ambient
 randomness, speech parser, or voice policy.
 
 The exact `lcg16` recurrence is `(word * 25173 + 13849) mod 65536`.
@@ -18,6 +20,14 @@ profile; the guards enforce it even for malformed caller state. The output
 record uses ordinary integer fields; the arithmetic and full-period reference
 proof establish its range. Reentry checks the input profile again.
 
+`NoiseStepCandidate` carries ordinary I32/U32 fields for a dynamic composition.
+Its transition executes all seed and work-domain guards before arithmetic and
+returns the same explicit refusal variants. It does not claim that an unchecked
+candidate is a refined `NoiseStepInput`. This lets an authored recurrence pass
+its next state through the owner without inventing a Native refinement proof.
+The strict entry keeps its request Type and adds a forwarding Gear; the
+candidate entry executes the one transition Gear directly.
+
 Reset supplies the same seed and work count. Resume supplies the exact last
 advanced word and remaining count. There is no hidden generator state or
 Rust noise implementation. Callers retain state explicitly and must stop on
@@ -26,8 +36,8 @@ sequence. The Host's existing maximum of 64 input values per external sequence
 still applies; it is independent of the component's total remaining-work bound.
 
 Include the declarations in authored Source, check them with the current
-catalogue, expand `dsp/noise-step`, and prepare the existing exact
-`pure_expression_std_offer` for its compiled program and temporal contract.
+catalogue, expand the selected entry, and prepare the existing exact
+`pure_expression_std_offer` for every compiled program and temporal contract.
 Ordinary planning seals the selected generic Back. The source contains no
 Host or resource binding.
 
@@ -37,3 +47,6 @@ capacity. The std Host tests execute real Kernel HostCalls, compare complete
 output bytes across reset/partition/fresh-Host resume, check exact Source
 custody, and verify unchanged Kernel value-allocation capacity. These are
 deterministic hosted execution receipts.
+
+The [shared speech and musical composition proof](SHARED_COMPOSITIONS.md)
+reuses these Source owners in finite checked graphs with explicit state.
