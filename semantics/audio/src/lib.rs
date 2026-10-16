@@ -182,3 +182,7 @@ pub use spectral_encoding::*;
 
 /// Shared authored recurrence; profile admission remains with its caller.
 pub const RESONATOR_RECURRENCE_SOURCE: &str = include_str!("../dsp/resonator-recurrence.conduit");
+
+mod pcm_packing;
+pub use generated::{AudioPcm16PackingFrame, AudioPcm16PackingInput};
+pub use pcm_packing::*;

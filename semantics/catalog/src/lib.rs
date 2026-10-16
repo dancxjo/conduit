@@ -248,7 +248,9 @@ pub use seeded_state::*;
 mod combine_latest;
 pub use combine_latest::*;
 mod flow_zip;
+mod value_pair;
 pub use flow_zip::*;
+pub use value_pair::*;
 mod flow_zip_schema;
 pub use flow_zip_schema::*;
 mod flow_singleton;
@@ -521,3 +523,6 @@ pub use data_label::*;
 
 mod audio_analysis;
 pub use audio_analysis::*;
+
+mod pcm_packing;
+pub use pcm_packing::*;

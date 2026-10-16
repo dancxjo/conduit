@@ -1,0 +1,12 @@
+# Packing accepts already computed and clipped integers. It never synthesizes,
+# clamps, resamples or chooses whether an acoustic state should emit a sample.
+type AudioPcm16PackingFrame = {
+    sample_rate_hz: U64
+    clock_id: U64
+    start_frame: U64
+    discontinuity: Boolean
+    samples: sequence I128 in 1..=1024
+}
+type AudioPcm16PackingInput =
+    block AudioPcm16PackingFrame
+    | skip
