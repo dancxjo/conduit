@@ -114,3 +114,34 @@ fn authored_imports_expand_the_same_owned_noise_and_gain_programs() {
         );
     }
 }
+#[test]
+fn declared_value_profiles_preserve_the_exact_owned_flow_programs() {
+    let package = prepare_dsp_source_package().unwrap();
+    for (owner, value) in [
+        ("dsp/noise-step-candidate", "dsp/noise-step-value"),
+        ("dsp/envelope", "dsp/envelope-value"),
+        ("dsp/gain", "dsp/gain-value"),
+        ("dsp/mix-two", "dsp/mix-two-value"),
+    ] {
+        let owner =
+            expand_canonical_plot_for_authoring(&package.checked, owner, &ProfileCatalog::new())
+                .unwrap();
+        let value =
+            expand_canonical_plot_for_authoring(&package.checked, value, &ProfileCatalog::new())
+                .unwrap();
+        assert_eq!(owner.expanded.gears.len(), 1);
+        assert_eq!(value.expanded.gears.len(), 1);
+        assert_eq!(
+            owner.expanded.gears[0].configuration,
+            value.expanded.gears[0].configuration
+        );
+        assert_eq!(
+            owner.expanded.gears[0].inputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
+        assert_eq!(
+            value.expanded.gears[0].inputs[0].temporal,
+            PortTemporal::Value
+        );
+    }
+}
