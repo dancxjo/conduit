@@ -5,10 +5,14 @@ result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The default dispatcher keeps Host, semantic and product packages out of its
-transitive dependency graph. The no-option `cargo xtask check acoustic-flow`
-entrance executes the same shared suite directly; option-bearing forms retain
+transitive dependency graph. The no-option `cargo xtask check acoustic-flow`,
+`cargo xtask check acoustic-control` and `cargo xtask check angle-reference`
+entrances execute their same shared suites directly; option-bearing forms retain
 the full CLI parser. A regression test checks the actual default Cargo graph,
-including transitive dependencies.
+including transitive dependencies. Focused entrances also compare their compiled
+suite definition with the current checkout before executing any step. A stale
+dispatcher from a shared build cache refuses instead of running an older proof
+subset; rebuild from the current checkout using a separate cache.
 
 ## Candidate
 
