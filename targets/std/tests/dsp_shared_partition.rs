@@ -200,19 +200,25 @@ fn complete_attack_sustain_release_and_seed_survive_fresh_play_windows() {
 }
 
 #[test]
-fn shared_filter_matches_independent_ordered_i32_profile_and_refuses_bad_coefficients() {
+fn shared_filter_matches_independent_ordered_i32_profile_and_refuses_bad_state() {
     std::thread::Builder::new()
         .stack_size(8 * 1024 * 1024)
         .spawn(|| {
             let source = source::source();
             let tick = seed::tick(&source);
-            for (b, c, valid) in [
-                (-8192, -4096, true),
-                (8192, -4096, true),
-                (i32::MAX, 0, false),
-                (0, i32::MIN, false),
+            for (b, c, bad_phase, valid) in [
+                (-8192, -4096, false, true),
+                (8192, -4096, false, true),
+                (i32::MAX, 0, false, false),
+                (0, i32::MIN, false, false),
+                (0, 0, true, false),
             ] {
-                let initial = seed::profile(&source, 7, b, c);
+                let profile_source = if bad_phase {
+                    source.replace("phase_q8: 0", "phase_q8: -1")
+                } else {
+                    source.clone()
+                };
+                let initial = seed::profile(&profile_source, 7, b, c);
                 let prepared = planning::prepare(&initial, &tick, 64);
                 let states = producer::run(
                     prepared.plan,

@@ -155,6 +155,12 @@ pub fn prepare_with_catalogues(
     )
     .unwrap();
     assert!(verify_plan(&plan));
+    assert_eq!(
+        plan.source_document_id,
+        authored.expanded.source_document_id
+    );
+    assert_eq!(plan.checked_plot_id, authored.expanded.checked_plot_id);
+    assert_eq!(plan.expanded_plot_id, authored.expanded.expanded_plot_id);
     (plan, authored.front, pair)
 }
 

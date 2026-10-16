@@ -47,3 +47,6 @@ capacity. The std Host tests execute real Kernel HostCalls, compare complete
 output bytes across reset/partition/fresh-Host resume, check exact Source
 custody, and verify unchanged Kernel value-allocation capacity. These are
 deterministic hosted execution receipts.
+
+The [shared speech and musical composition proof](SHARED_COMPOSITIONS.md)
+reuses these Source owners in finite checked graphs with explicit state.
