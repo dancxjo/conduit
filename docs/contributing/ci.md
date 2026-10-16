@@ -4,6 +4,12 @@ Open ordinary pull requests to `dev`. Read the single required `candidate`
 result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
+The default dispatcher keeps Host, semantic and product packages out of its
+transitive dependency graph. The no-option `cargo xtask check acoustic-flow`
+entrance executes the same shared suite directly; option-bearing forms retain
+the full CLI parser. A regression test checks the actual default Cargo graph,
+including transitive dependencies.
+
 ## Candidate
 
 The pipeline scans the diff, checks patch hygiene, Rust formatting, locked
