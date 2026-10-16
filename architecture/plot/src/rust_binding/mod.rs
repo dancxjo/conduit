@@ -4,6 +4,8 @@
 //! not derive semantic identity from Rust names, layout, or traits.
 
 mod bounded;
+mod native_contracts;
+pub use native_contracts::{validate_native_contracts_borrowed, BorrowedNativeContractRefusal};
 mod generate;
 mod generate_conversion;
 mod generate_direct;
