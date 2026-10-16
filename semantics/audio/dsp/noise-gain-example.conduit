@@ -1,0 +1,24 @@
+# An authored diagnostic composition: explicit seeded noise into half gain.
+# All generator outcomes remain visible; only advanced values enter the gain.
+with ./noise/noise-step-candidate as noise_step
+with ./gain/gain as apply_gain
+
+plot dsp/noise-gain-control (
+    >> value: NoiseStepOutput...|
+    control: GainControl...| >>
+) = ({sample: .sample, gain_q8: 128, cancelled: false})
+
+plot dsp/noise-gain-example (
+    >> state: NoiseStepCandidate...|
+    noise: NoiseStepOutcome...| >>
+    pcm: GainOutcome...| >>
+) {
+    source: noise_step()
+    control: dsp/noise-gain-control()
+    gain: apply_gain()
+    state >> source.state
+    source.next >> noise
+    source.next >> select(NoiseStepOutcome.advanced, unmatched=drop) >> control.value
+    control.control >> gain.control
+    gain.result >> pcm
+}

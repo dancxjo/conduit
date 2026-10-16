@@ -26,6 +26,7 @@ pack audio/dsp (
     ship mix-four
     ship MixerChannel
     ship MixerOutcome
+    ship noise-gain-example
     ship one-pole
     ship OnePoleFrame
     ship OnePoleOutcome
