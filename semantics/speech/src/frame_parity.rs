@@ -1,5 +1,7 @@
 //! Whole transition parity, including wire order and retained history.
 use crate::generated::*;
+#[path = "resonator_reference.rs"]
+mod resonator_reference;
 use conduit_core::{
     StructuredFieldValue, StructuredInfoType, StructuredInfoTypeShape, StructuredInfoValue,
 };
@@ -370,8 +372,8 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
             .into_iter()
             .enumerate()
             {
-                current[index] = speech_filter_limit(ResonatorInput {
-                    drive: speech_drive(DriveInput {
+                current[index] = resonator_reference::filter_limit(
+                    speech_drive(DriveInput {
                         sample: if index == 0 { lower } else { upper },
                         gain,
                     })
@@ -380,7 +382,7 @@ fn frame_history_matches_the_original_checked_scalar_composition() {
                     c,
                     y1,
                     y2,
-                })
+                )
                 .unwrap();
             }
             let envelope = speech_envelope(EnvelopeInput {

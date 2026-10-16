@@ -214,6 +214,7 @@ installed_step_dispatch!(
     DistanceFrequency,
     AudioTimeAnalysis,
     AudioSpectralAnalysis,
+    AudioPitchAnalysis,
     #[cfg(any(test, feature = "local-model-proof"))]
     RecordedSpeech,
     WhisperSpeech,
