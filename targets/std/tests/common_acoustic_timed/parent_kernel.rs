@@ -5,6 +5,8 @@ use conduit_core::*;
 mod allocation_probe;
 #[path = "boundary.rs"]
 mod boundary;
+#[path = "terminal_signs.rs"]
+mod terminal_signs;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 pub fn run(
@@ -86,6 +88,7 @@ pub fn run(
         (0, 0),
         "{storage:?}"
     );
+    terminal_signs::normal(&kernel);
     println!(
         "timed-parent-plays={:?}; storage={storage:?}",
         kernel.active_plays()
