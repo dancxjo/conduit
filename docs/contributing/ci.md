@@ -202,7 +202,7 @@ Unit jobs retain finite per-shard wall-clock limits: foundation has 90 minutes,
 products and the ordinary Host groups have 70, ConduitOS has 120, and lint has
 40. The cold foundation path includes its main tests, doctests and a separate
 kernel allocation-feature pass; products includes browser Owner proof. Foundation,
-products and ConduitOS tests use optimization level 1 with debug assertions and
+products, Std Host and ConduitOS tests use optimization level 1 with debug assertions and
 overflow checks enabled. The same tests and features remain selected; this profile
 changes execution cost, not the required proof set.
 These limits include compilation and preparation. They do not permit test

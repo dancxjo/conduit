@@ -1,0 +1,118 @@
+{
+  "schema": "conduit.ci/products-mask-context-observation@1",
+  "rust_source_commit": "a61aa8f85293816e66c6957a9ae76ea0286c4699",
+  "runner_sha256": {
+    "proof/conformance/face-waist/committed-todo-exchange.mjs": "80c4457fd94fd69cdd7f7d95b502eee45b68b537bff541c5871794f41086fbbd",
+    "proof/conformance/face-waist/committed-todo-exchange-runner.mjs": "f61f2fc03da44a7af9dd69dd316b9c9398950f8ae04b9d421705af09038a964e"
+  },
+  "environment": {
+    "cpu": [
+      "Architecture:                            x86_64",
+      "CPU op-mode(s):                          32-bit, 64-bit",
+      "Address sizes:                           46 bits physical, 48 bits virtual",
+      "Byte Order:                              Little Endian",
+      "CPU(s):                                  20",
+      "On-line CPU(s) list:                     0-19",
+      "Vendor ID:                               GenuineIntel",
+      "Model name:                              12th Gen Intel(R) Core(TM) i7-12700",
+      "CPU family:                              6",
+      "Model:                                   151",
+      "Thread(s) per core:                      2",
+      "Core(s) per socket:                      12",
+      "Socket(s):                               1",
+      "Stepping:                                2",
+      "CPU(s) scaling MHz:                      39%",
+      "CPU max MHz:                             4900.0000",
+      "CPU min MHz:                             800.0000",
+      "BogoMIPS:                                4224.00"
+    ],
+    "os": "PRETTY_NAME=\"Ubuntu 26.04.1 LTS\"\nNAME=\"Ubuntu\"\nVERSION_ID=\"26.04\"\nVERSION=\"26.04.1 LTS (Resolute Raccoon)\"\nVERSION_CODENAME=resolute\nID=ubuntu\nID_LIKE=debian\nHOME_URL=\"https://www.ubuntu.com/\"\nSUPPORT_URL=\"https://help.ubuntu.com/\"\nBUG_REPORT_URL=\"https://bugs.launchpad.net/ubuntu/\"\nPRIVACY_POLICY_URL=\"https://www.ubuntu.com/legal/terms-and-policies/privacy-policy\"\nUBUNTU_CODENAME=resolute\nLOGO=ubuntu-logo\n",
+    "affinity": [
+      0,
+      1,
+      2,
+      3,
+      4,
+      5,
+      6,
+      7,
+      8,
+      9,
+      10,
+      11,
+      12,
+      13,
+      14,
+      15,
+      16,
+      17,
+      18,
+      19
+    ],
+    "jobs": 4,
+    "toolchain": "1.98.1",
+    "test_profile": {
+      "opt_level": 1,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "debug": 0,
+      "incremental": false
+    }
+  },
+  "initial_cache": "Combined conduit bin/library and browser-runtime library test context had been compiled and its two required tests passed; original standalone browser test context had not been compiled in this target. Registry downloads were already available.",
+  "observations": [
+    {
+      "variant": "original separate package contexts",
+      "started_at": "2026-10-16T17:02:38.339758+00:00",
+      "wall_seconds": 309.50530521798646,
+      "exit": 0,
+      "cache": "same target after combined context prepared and passed; shared dependency artifacts already warm",
+      "script": "git HEAD a61aa8f original unmodified proof entry; executed from products worktree",
+      "log": "work/products-original-context-baseline.log"
+    },
+    {
+      "variant": "shared context Cargo-managed",
+      "started_at": "2026-10-16T17:09:28.515300+00:00",
+      "wall_seconds": 2.431906159967184,
+      "exit": 0,
+      "log": "work/products-shared-context-timed.log",
+      "cache": "after original-context first replay; shared-context artifacts also retained from initial preparation"
+    },
+    {
+      "variant": "original contexts warmed",
+      "started_at": "2026-10-16T17:09:30.947356+00:00",
+      "wall_seconds": 2.328587752999738,
+      "exit": 0,
+      "log": "work/products-original-context-warm.log",
+      "cache": "after original-context first replay; shared-context artifacts also retained from initial preparation"
+    }
+  ],
+  "reported_cargo_build_seconds": {
+    "original_transition": [
+      0.18,
+      307
+    ],
+    "shared_replay": [
+      0.21,
+      0.19
+    ]
+  },
+  "interpretation": "The original package-selection change introduced a second browser feature context and an additional build. Identical package/target selection reuses the prepared shared context. Warm controls show no claimed test-runtime improvement.",
+  "limits": "One local transition observation and warm controls, not a controlled cold full-products-shard comparison or a statistical CI speedup estimate. Both package defaults now participate in Cargo feature unification. Rust test bodies, test-name filters, producer-before-consumer order and browser --ignored selection are retained.",
+  "ci_reference": {
+    "run": 38924306914,
+    "products_job": 117057086418,
+    "wall_seconds": 2508,
+    "cargo_test_build_seconds": [
+      939,
+      748,
+      608
+    ],
+    "sum_harness_seconds": 132.29
+  },
+  "validation": {
+    "pipeline_tests": 220,
+    "required_real_tests_per_invocation": 1,
+    "real_owner_then_browser": "PASS original and shared selections"
+  }
+}
