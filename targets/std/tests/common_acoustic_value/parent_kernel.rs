@@ -83,6 +83,7 @@ pub fn run(plan: Plan, front: &CheckedFront, registry: KernelOperationRegistry, 
     };
     let input_port = &front.inputs()[0].port_id;
     let output_port = &front.outputs()[0].port_id;
+    let mut blocks = [[0_u8; 31]; 4];
     let (_, storage) = allocation_probe::observe(|| {
         kernel.start().unwrap();
         for frame in 0..4 {
@@ -106,6 +107,7 @@ pub fn run(plan: Plan, front: &CheckedFront, registry: KernelOperationRegistry, 
                     if frame == 0 {
                         assert_eq!(samples, 24_i16.to_le_bytes());
                     }
+                    blocks[frame as usize].copy_from_slice(&output.encoded);
                     kernel.complete_output(output_port, frame).unwrap();
                     delivered = true;
                     break;
@@ -114,13 +116,24 @@ pub fn run(plan: Plan, front: &CheckedFront, registry: KernelOperationRegistry, 
             assert!(delivered);
         }
         kernel.close_input(input_port).unwrap();
+        let mut complete = false;
         for _ in 0..64 {
-            kernel.step().unwrap();
+            complete |=
+                kernel.step().unwrap() == conduit_composite::KernelCompositeStatus::Complete;
         }
+        assert!(complete);
+        assert_eq!(
+            kernel
+                .output_terminal_into(output_port, &mut output)
+                .unwrap(),
+            Some(conduit_composite::KernelCompositeTerminal::Normal)
+        );
     });
     assert_eq!(
         (storage.allocations, storage.reallocations),
         (0, 0),
         "{storage:?}"
     );
+    println!("acoustic-plays={:?}", kernel.active_plays());
+    println!("acoustic-pcm-blocks={blocks:02x?}; storage={storage:?}");
 }

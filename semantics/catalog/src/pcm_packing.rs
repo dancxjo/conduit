@@ -33,7 +33,7 @@ pub fn pcm16_packing_semantic_contract() -> Kind {
         temporal: PortTemporal::Flow { closes: true },
         abnormal_kind: None,
     };
-    Kind {
+    let mut kind = Kind {
         startup_parameters: vec![],
         shorthand: None,
         kind_id: kind_id(PCM16_PACKING_KIND),
@@ -70,18 +70,26 @@ pub fn pcm16_packing_semantic_contract() -> Kind {
         limits: CapabilityLimits {
             max_active_instances: 4,
             max_queue_items: 1,
-            max_queue_bytes: PCM16_PACKING_MAXIMUM_INPUT_BYTES,
+            // Queue capacity is independent of the per-value envelope.
+            // A parent can share the larger finite queue budget required by its DSP child.
+            max_queue_bytes: MAXIMUM_STRUCTURED_CANONICAL_BYTES as u32,
         },
-    }
+    };
+    kind.startup_parameters = crate::startup_front(&kind.configuration);
+    kind
 }
 pub fn install_pcm16_packing_catalog(
     startup: &mut StartupCatalog,
     profile: &mut ProfileCatalog,
 ) -> Result<(), String> {
-    startup.insert_structured_type(
-        "AudioPcm16PackingInput",
-        AudioPcm16PackingInput::semantic_type().map_err(|e| format!("{e:?}"))?,
-    )?;
+    let checked = conduit_plot::check_syntax_document(
+        &conduit_plot::parse_syntax_document(conduit_audio::PCM16_PACKING_SOURCE),
+        &StartupCatalog::new(),
+    )
+    .map_err(|e| format!("packing Source: {e:?}"))?;
+    for ty in &checked.native_types {
+        startup.insert_checked_native_type(&ty.name, ty)?;
+    }
     startup
         .insert_value_kind_alias("PcmFrames", kind_id(AUDIO_PCM_INFO_ID))
         .map_err(|e| format!("{e:?}"))?;

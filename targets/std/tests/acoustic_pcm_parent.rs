@@ -20,9 +20,8 @@ fn authored_scan_produces_four_pcm_blocks_in_the_parent_kernel() {
         .unwrap();
 }
 fn check_scan() {
-    let child_source = source::composed_source()
-        + conduit_audio::PCM16_PACKING_SOURCE
-        + include_str!("fixtures/acoustic-pcm-projection.conduit");
+    let child_source =
+        source::composed_source() + include_str!("fixtures/acoustic-pcm-projection.conduit");
     let owner = child_source
         .split("plot acoustic-frame-control (")
         .next()
@@ -219,6 +218,19 @@ plot acoustic-scan-fixture (
     )
     .unwrap();
     assert!(conduit_core::verify_plan(&plan));
+    assert_eq!(
+        plan.source_document_id,
+        expanded.expanded.source_document_id
+    );
+    assert_eq!(plan.checked_plot_id, expanded.expanded.checked_plot_id);
+    assert_eq!(plan.expanded_plot_id, expanded.expanded.expanded_plot_id);
+    println!(
+        "acoustic-source={} checked={} expanded={} plan={}",
+        plan.source_document_id.as_str(),
+        plan.checked_plot_id.as_str(),
+        plan.expanded_plot_id.as_str(),
+        plan.plan_id.as_str()
+    );
     let conduit_core::PlannedActivationEntry::Scan(planned) = &plan.activations[0] else {
         panic!("scan")
     };
