@@ -3,6 +3,11 @@ use alloc::{format, string::String};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 
 pub fn install_named_tensor_type(startup: &mut StartupCatalog) -> Result<(), String> {
+    let ty = checked_named_tensor_type()?;
+    startup.insert_checked_native_type("NamedTensorBundle", &ty)
+}
+
+pub(crate) fn checked_named_tensor_type() -> Result<conduit_plot::CheckedNativeType, String> {
     let mut owner = StartupCatalog::new();
     owner.insert_value_kind_alias(
         "ResourceRef",
@@ -28,5 +33,5 @@ pub fn install_named_tensor_type(startup: &mut StartupCatalog) -> Result<(), Str
     {
         return Err("named tensor binding differs from its owner Source".into());
     }
-    startup.insert_checked_native_type("NamedTensorBundle", ty)
+    Ok(ty.clone())
 }

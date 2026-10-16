@@ -60,6 +60,8 @@ mod measurement_window_catalog;
 mod measurement_wire;
 mod named_tensor;
 mod named_tensor_catalog;
+mod named_tensor_view;
+pub use named_tensor_view::*;
 mod sampled_signal;
 mod scalar_comparison;
 mod scientific_alignment;
