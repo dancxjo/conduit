@@ -8,6 +8,15 @@ use conduit_plot::{
     PortableExpressionProgram, ProfileCatalog, StartupCatalog,
 };
 
+#[path = "../../../architecture/plot/tests/common/allocation_probe.rs"]
+mod allocation_probe;
+#[path = "common_acoustic_value/kernel.rs"]
+mod kernel;
+#[path = "common_acoustic_value/seed.rs"]
+mod seed;
+#[global_allocator]
+static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
+
 fn composed_source() -> String {
     let units = [
         include_str!("../../../semantics/audio/types.conduit"),
@@ -168,6 +177,16 @@ fn check_child() {
         )
     })
     .collect();
+    let connection_capacity = child
+        .expanded
+        .gears
+        .iter()
+        .flat_map(|gear| gear.semantic_contract.value_contracts())
+        .map(|contract| contract.contract.maximum_bytes)
+        .max()
+        .unwrap();
+    assert!(connection_capacity as usize <= conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES);
+    eprintln!("acoustic child admitted Cord bytes: {connection_capacity}");
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &child,
         &hosts,
@@ -177,7 +196,7 @@ fn check_child() {
             connection_bases: &std::collections::BTreeMap::new(),
             line_candidates: &std::collections::BTreeMap::new(),
             connection_item_capacity: 1,
-            connection_byte_capacity: 32768,
+            connection_byte_capacity: connection_capacity,
             authority_grants: &[],
             protected_resource_grants: &[],
             line_offers: &[],
@@ -203,4 +222,82 @@ fn check_child() {
             };
         assert_eq!(budget.host_requests, 0);
     }
+    let (accumulator, item) = seed::seeds(&checked, &profiles);
+    let cancelled_plan = plan.clone();
+    let encoded = kernel::run(
+        plan,
+        &child.front,
+        pair,
+        accumulator.clone(),
+        item.clone(),
+        false,
+    )
+    .unwrap();
+    let cancelled_pair = conduit_std_host::flow_activation::PreparedValuePairFactory::new(
+        &contract, &stage, &contract, &stage,
+    )
+    .unwrap();
+    assert!(kernel::run(
+        cancelled_plan,
+        &child.front,
+        cancelled_pair,
+        accumulator,
+        item,
+        true
+    )
+    .is_none());
+    let output = conduit_core::StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+    let conduit_core::StructuredInfoValueShape::Variant { tag, payload } = output.shape() else {
+        panic!("stage")
+    };
+    assert_eq!(tag, "context");
+    let field = |value: &conduit_core::StructuredInfoValue,
+                 name: &str|
+     -> conduit_core::StructuredInfoValue {
+        let conduit_core::StructuredInfoValueShape::Record(fields) = value.shape() else {
+            panic!("record")
+        };
+        fields
+            .iter()
+            .find(|field| field.name() == name)
+            .unwrap()
+            .value()
+            .clone()
+    };
+    let cursor = field(payload, "cursor");
+    let sample = field(&cursor, "sample");
+    let conduit_core::StructuredInfoValueShape::Leaf(bytes) = sample.shape() else {
+        panic!("sample")
+    };
+    assert_eq!(i128::from_le_bytes(bytes.try_into().unwrap()), 24);
+    let status = field(&cursor, "status");
+    let conduit_core::StructuredInfoValueShape::Variant { tag, .. } = status.shape() else {
+        panic!("status")
+    };
+    assert_eq!(tag, "sample");
+    let unsigned = |value: &conduit_core::StructuredInfoValue| {
+        let conduit_core::StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+            panic!("u32")
+        };
+        u32::from_le_bytes(bytes.try_into().unwrap())
+    };
+    let oscillator = field(&cursor, "oscillator");
+    let resonator = field(&cursor, "resonator");
+    for state in [&oscillator, &resonator] {
+        assert_eq!(unsigned(&field(state, "emitted")), 1);
+        assert_eq!(unsigned(&field(state, "remaining")), 3);
+    }
+    let request = field(
+        &field(&field(&oscillator, "profile"), "projection"),
+        "request",
+    );
+    assert_eq!(
+        field(&request, "basis"),
+        field(&field(&resonator, "request"), "basis")
+    );
+    let y1 = field(&resonator, "y1");
+    let conduit_core::StructuredInfoValueShape::Leaf(bytes) = y1.shape() else {
+        panic!("history")
+    };
+    assert_eq!(i128::from_le_bytes(bytes.try_into().unwrap()), 24);
 }
