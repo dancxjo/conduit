@@ -24,6 +24,7 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
     resource: ResourceOffer,
     next_request: u32,
     cancelled: bool,
+    prepared_output: Option<conduit_data::PreparedNamedTensorBundleOutput>,
 }
 
 impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
@@ -121,6 +122,29 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         )
         .build();
         capability.realization_properties = vec![property];
+        let prepared_output = adapter
+            .output_template()
+            .map_err(|e| format!("model output preparation: {e:?}"))?
+            .map(|template| {
+                model
+                    .signature()
+                    .validate_named_outputs(&template)
+                    .map_err(|e| format!("model output template differs from signature: {e:?}"))?;
+                if template
+                    .tensor_bytes()
+                    .map_err(|e| format!("model output bound: {e:?}"))?
+                    > requirement.output_bytes
+                {
+                    return Err("model output template exceeds admitted bytes".to_string());
+                }
+                let output = conduit_data::PreparedNamedTensorBundleOutput::prepare(&template)
+                    .map_err(|e| format!("model canonical output preparation: {e:?}"))?;
+                if output.maximum_encoded_len() > MODEL_INFER_MAXIMUM_BYTES as usize {
+                    return Err("canonical model output exceeds the Host Call envelope".into());
+                }
+                Ok(output)
+            })
+            .transpose()?;
         adapter
             .load(model.artifact().content_identity(), requirement.model_bytes)
             .map_err(|e| format!("model load: {e:?}"))?;
@@ -138,6 +162,7 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
             },
             next_request: 1,
             cancelled: false,
+            prepared_output,
         })
     }
 }
@@ -231,15 +256,33 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
                 {
                     return ModelWorkTerminal::Failed;
                 }
-                let Ok(bytes) = result.outputs.encode() else {
-                    return ModelWorkTerminal::Failed;
+                let allocated;
+                let bytes: &[u8] = if let Some(prepared) = self.prepared_output.as_mut() {
+                    prepared.reset();
+                    for named in result.outputs.get().iter() {
+                        if prepared.write_tensor(&named.name, &named.value).is_err() {
+                            return ModelWorkTerminal::Failed;
+                        }
+                    }
+                    let Ok(bytes) = prepared.encoded() else {
+                        return ModelWorkTerminal::Failed;
+                    };
+                    bytes
+                } else {
+                    // Providers without a fixed output geometry retain the
+                    // existing representation path; this is one inference API.
+                    allocated = match result.outputs.encode() {
+                        Ok(bytes) => bytes,
+                        Err(_) => return ModelWorkTerminal::Failed,
+                    };
+                    &allocated
                 };
                 if bytes.len() > MODEL_INFER_MAXIMUM_BYTES as usize
                     || bytes.len() > output.capacity()
                 {
                     return ModelWorkTerminal::Failed;
                 }
-                output.extend_from_slice(&bytes);
+                output.extend_from_slice(bytes);
                 ModelWorkTerminal::Produced
             }
             ModelComputeAdapterTerminal::Refused(_) => ModelWorkTerminal::Refused,

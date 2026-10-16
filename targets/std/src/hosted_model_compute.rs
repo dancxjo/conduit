@@ -50,6 +50,12 @@ pub trait ModelComputeAdapter {
         artifact_identity: [u8; 32],
         model_bytes: u64,
     ) -> Result<(), ModelComputeRefusal>;
+    /// Optional exact output geometry owned by this prepared provider profile.
+    /// It is checked against the admitted model before execution. A provider
+    /// declaring this template must preserve its complete tensor metadata.
+    fn output_template(&self) -> Result<Option<NamedTensorBundle>, ModelComputeRefusal> {
+        Ok(None)
+    }
     fn execute(&mut self, invocation: ModelComputeInvocation) -> ModelComputeAdapterTerminal;
     fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal, ModelComputeRefusal>;
     fn unload(&mut self) -> Result<(), ModelComputeRefusal>;
@@ -205,6 +211,16 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
     fn load(&mut self, identity: [u8; 32], bytes: u64) -> Result<(), ModelComputeRefusal> {
         load(&mut self.session, identity, bytes)
     }
+    fn output_template(&self) -> Result<Option<NamedTensorBundle>, ModelComputeRefusal> {
+        NamedTensorBundle::from_values(
+            self.outputs
+                .iter()
+                .map(|(name, width)| linear_output(name, *width, &[0; 8][..*width * 4]))
+                .collect(),
+        )
+        .map(Some)
+        .map_err(|_| ModelComputeRefusal::UnsupportedShape)
+    }
     fn execute(&mut self, invocation: ModelComputeInvocation) -> ModelComputeAdapterTerminal {
         let inputs_identity = match validate_invocation(&self.offer, &self.session, &invocation) {
             Ok(value) => value,
@@ -254,29 +270,7 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
                 .flat_map(|v| v.to_le_bytes())
                 .collect::<Vec<_>>();
             offset += width;
-            let output = TensorValue {
-                element: TensorElement::F32,
-                dimensions: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
-                    *width as u64
-                ])
-                .expect("one dimension"),
-                axes: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
-                    conduit_data::TensorAxis {
-                        role: conduit_data::TensorAxisRole::Feature,
-                        identity: None,
-                        unit: None,
-                    },
-                ])
-                .expect("one axis"),
-                content_digest: tensor_content_digest(&output_bytes),
-                backing: TensorBacking::Inline(
-                    BoundedBytes::new(&output_bytes).expect("two f32 values fit"),
-                ),
-            };
-            named_outputs.push(NamedTensor {
-                name: name.clone(),
-                value: output,
-            });
+            named_outputs.push(linear_output(name, *width, &output_bytes));
         }
         let outputs = match NamedTensorBundle::from_values(named_outputs) {
             Ok(value)
@@ -312,6 +306,27 @@ impl ModelComputeAdapter for LinearF32ModelAdapter {
     }
     fn unload(&mut self) -> Result<(), ModelComputeRefusal> {
         unload(&mut self.session)
+    }
+}
+
+fn linear_output(name: &str, width: usize, bytes: &[u8]) -> NamedTensor {
+    NamedTensor {
+        name: name.into(),
+        value: TensorValue {
+            element: TensorElement::F32,
+            dimensions: conduit_plot::rust_binding::BoundedSequence::try_from_iter([width as u64])
+                .expect("one dimension"),
+            axes: conduit_plot::rust_binding::BoundedSequence::try_from_iter([
+                conduit_data::TensorAxis {
+                    role: conduit_data::TensorAxisRole::Feature,
+                    identity: None,
+                    unit: None,
+                },
+            ])
+            .expect("one axis"),
+            content_digest: tensor_content_digest(bytes),
+            backing: TensorBacking::Inline(BoundedBytes::new(bytes).expect("two f32 values fit")),
+        },
     }
 }
 
