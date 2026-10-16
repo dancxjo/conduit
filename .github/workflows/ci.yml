@@ -92,10 +92,11 @@ jobs:
     needs: preflight
     if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'
     runs-on: ubuntu-24.04
-    # Cold foundation compilation and doc-tests need their own preparation headroom.
+    # Cold foundation tests, doc-tests and the separate alloc pass need headroom.
+    # Products also compiles and executes the optimized browser Owner proof.
     # Full ConduitOS Source/Kernel class proof needs more than the measured 70-minute cold run.
     # Other independently scheduled host groups retain their existing bound.
-    timeout-minutes: ${{ matrix.shard == 'hosts-conduitos' && 120 || matrix.shard == 'foundation' && 60 || startsWith(matrix.shard, 'hosts-') && 70 || 40 }}
+    timeout-minutes: ${{ matrix.shard == 'hosts-conduitos' && 120 || matrix.shard == 'foundation' && 90 || (matrix.shard == 'products' || startsWith(matrix.shard, 'hosts-')) && 70 || 40 }}
     strategy:
       fail-fast: false
       matrix: ${{ fromJSON(needs.preflight.outputs.unit-matrix) }}
