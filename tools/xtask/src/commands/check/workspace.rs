@@ -58,7 +58,16 @@ pub(super) fn run_workspace_shard(
                 continue;
             }
         }
-        run_step(step, root, opts)?;
+        let inherited = if planned_tests.is_none() {
+            shard.product_mask_arguments(step)
+        } else {
+            None
+        };
+        if let Some(arguments) = inherited {
+            run_step_with_arguments(step, &arguments, root, opts)?;
+        } else {
+            run_step(step, root, opts)?;
+        }
     }
     Ok(())
 }

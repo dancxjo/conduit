@@ -58,6 +58,8 @@ fn unit(name: &str) -> Result<(), String> {
                 .arg(step.args[0])
                 .arg("--locked")
                 .args(&step.args[1..]);
+        } else if let Some(arguments) = shard.product_mask_arguments(step) {
+            command.args(arguments);
         } else {
             command.args(step.args);
         }
