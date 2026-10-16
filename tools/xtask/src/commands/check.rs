@@ -1,3 +1,5 @@
+#[path = "../suites/acoustic_control.rs"]
+mod acoustic_control;
 #[path = "../suites/acoustic_flow.rs"]
 mod acoustic_flow;
 #[path = "../suites/angle_reference.rs"]
@@ -90,6 +92,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::Observatory => run_suite(OBSERVATORY_READINESS_STEPS, &root, opts),
         CheckSuite::SemanticCatalog => run_suite(SEMANTIC_CATALOG_READINESS_STEPS, &root, opts),
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
+        CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
