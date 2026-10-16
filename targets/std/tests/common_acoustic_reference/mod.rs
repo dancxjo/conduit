@@ -9,6 +9,22 @@ pub fn prepare(
     stage_name: &str,
     entry: &str,
 ) -> (Plan, CheckedFront, PreparedValuePairFactory) {
+    prepare_with_catalogues(
+        fixture,
+        stage_name,
+        entry,
+        StartupCatalog::new(),
+        ProfileCatalog::new(),
+    )
+}
+
+pub fn prepare_with_catalogues(
+    fixture: &str,
+    stage_name: &str,
+    entry: &str,
+    mut startup: StartupCatalog,
+    mut profiles: ProfileCatalog,
+) -> (Plan, CheckedFront, PreparedValuePairFactory) {
     let types = [
         include_str!("../../../../semantics/audio/types.conduit"),
         include_str!("../../../../semantics/audio/trajectory_types.conduit"),
@@ -23,7 +39,7 @@ pub fn prepare(
         .join("\n");
     let owner = check_syntax_document(
         &parse_syntax_document(&format!("{types}\n{declarations}")),
-        &StartupCatalog::new(),
+        &startup,
     )
     .unwrap();
     let stage = owner
@@ -36,8 +52,6 @@ pub fn prepare(
     let contract =
         CheckedValueContract::new(stage.profile().unwrap().value_kind().clone(), 32768, vec![])
             .unwrap();
-    let mut startup = StartupCatalog::new();
-    let mut profiles = ProfileCatalog::new();
     conduit_semantic_catalog::install_value_pair_kind(
         &contract,
         &stage,

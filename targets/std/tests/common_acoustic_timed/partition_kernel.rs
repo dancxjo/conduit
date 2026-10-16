@@ -2,7 +2,7 @@
 use conduit_core::*;
 use conduit_kernel::scheduler::RemoteIngressOutcome;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+pub(crate) mod allocation_probe;
 #[path = "boundary.rs"]
 mod boundary;
 #[path = "terminal_signs.rs"]
