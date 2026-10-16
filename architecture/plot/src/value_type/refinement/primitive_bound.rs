@@ -20,6 +20,9 @@ pub(super) fn intrinsic_maximum_bytes(value_kind: &str) -> Option<u32> {
         PrimitiveInfoKind::MathematicalValue => {
             Some(conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES as u32)
         }
+        PrimitiveInfoKind::MathematicalAngle => {
+            Some(conduit_core::MATHEMATICAL_ANGLE_MAX_ENCODED_BYTES as u32)
+        }
         PrimitiveInfoKind::Dimension => Some(conduit_core::DIMENSION_ENCODED_LEN as u32),
         kind @ (PrimitiveInfoKind::U8
         | PrimitiveInfoKind::U16

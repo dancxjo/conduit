@@ -63,3 +63,25 @@ pub(crate) fn arithmetic(
         .encode(output)
         .map_err(|_| R::Arithmetic)
 }
+
+/// Angle coordinates use the same bounded proof relation; Unit is canonical turn.
+pub(crate) fn angle_equal(
+    left: &[u8],
+    right: &[u8],
+) -> Result<bool, crate::PortableExpressionEvaluationRefusal> {
+    use crate::PortableExpressionEvaluationRefusal as R;
+    use conduit_core::{MathematicalAngleView as View, MathematicalComparison as C};
+    let mut work =
+        conduit_core::ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
+    let left = View::decode(left, &mut work).map_err(|_| R::InvalidInput)?;
+    let right = View::decode(right, &mut work).map_err(|_| R::InvalidInput)?;
+    match left
+        .coordinate()
+        .compare(right.coordinate(), &mut work)
+        .map_err(|_| R::Arithmetic)?
+    {
+        C::ProvedEqual => Ok(true),
+        C::ProvedDifferent => Ok(false),
+        C::Unknown => Err(R::UnprovedMathematicalComparison),
+    }
+}

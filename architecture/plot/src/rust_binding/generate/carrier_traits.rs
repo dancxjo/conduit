@@ -9,6 +9,7 @@ pub(crate) fn copy_type(value_type: &StructuredInfoType) -> bool {
                 PrimitiveInfoKind::Text
                     | PrimitiveInfoKind::Bytes
                     | PrimitiveInfoKind::MathematicalValue
+                    | PrimitiveInfoKind::MathematicalAngle
             ) | None
         ),
         StructuredInfoTypeShape::Nominal { representation, .. } => copy_type(representation),

@@ -1,72 +1,53 @@
-# Inverse-angle preparation development
+# Inverse-angle development
 
-The current development slice for #5734 implements principal arctangent
-enclosures, source-correlated same-Dimension `atan2`, and principal asin/acos
-preparation. It does not yet supply an authored Plot/runtime entrance; this
-is not complete issue acceptance.
+The local #5734 candidate implements exact principal inverse denotations,
+certified numerical preparation, source-correlated typed atan2, and exact Angle
+transport. Authored inverse-call lowering, installed runtime integration and
+exact-head acceptance remain pending. This is not complete issue acceptance.
 
-Arctangent retains its exact rational input and returns a rational interval
-in turns. Reciprocal and quarter-turn identities reduce the series argument
-to magnitude at most one half. The alternating series retains the first
-omitted term as a rigorous remainder. This is the same arithmetic used by
-the existing Machin π enclosure; there is no host floating-point evaluator.
-Division by an independently enclosed positive 2π converts the certified
-series interval to turns. The final width is checked against the admitted
-turn-coordinate tolerance, separately from the series tolerance. Terms and
-limb work are finite; inability to meet the profile refuses explicitly.
+Arctangent retains its exact rational input and returns a certified interval in
+turns. Reciprocal and quarter-turn identities reduce its series argument to
+magnitude at most one half. The alternating series retains the first omitted
+term as a rigorous remainder, sharing the arithmetic used by the Machin π
+enclosure. Division by an independently enclosed positive 2π produces turn
+coordinates. Terms, limb work and final width are admitted bounds; insufficient
+profiles refuse. No host floating-point evaluator supplies the certificate.
 
-`PreparedQuantityAtan2` requires checked original Quantity spellings, a common
-Unit and its exact spelling, and an explicit principal signed-half-turn
-branch. Both input conversions retain their source receipts. Mismatched
-Dimensions, nonlinear roles, forged source evidence and the undefined zero
-pair refuse. Successful endpoints are typed Angle Quantities with Unit turn.
-The negative x-axis selects positive one half turn; other quadrant offsets
-are exact. Input units are never treated as scalar radians.
+Principal asin retains a certified interval for sqrt(1-x²), then applies
+monotone arctangent endpoint bounds. Negative inputs reverse the division
+endpoints. Acos subtracts the complete asin interval from one quarter turn.
+The final error includes root and both arctangent bounds. Outside-domain,
+unresolved positive root, exhausted refinement and excessive total width
+remain distinct refusals. Exact zero and endpoints need no root or series.
+The half-input test profile retains a 1/10^8-turn error bound, admits one billion
+limb-work units and observes about 175–178 million; its earlier 100-million
+budget refused. These are arithmetic-work observations, not device timing.
 
-Core tests cover independent numerical brackets, exact cardinal/axis cases,
-all quadrants, `3m`/`400cm` conversion parity, refusal and finite-work limits.
-The existing π and forward-trig regressions remain necessary after sharing
-the series implementation. Authored-source integration, further inverse
-branches and exact-head admission remain pending.
+Exact ArctangentTurns, ArcsineTurns and ArccosineTurns DAG nodes share principal
+domain and rational-identity checks between builder and borrowed codec.
+Unproved symbolic arguments refuse. Canonical encoding preserves function
+identity; ordinary mathematical-enclosure projection retains the exact graph.
+A numerical enclosure never silently replaces the authored denotation.
 
-Principal asin retains a certified square-root interval for `sqrt(1-x²)` and
-uses monotone arctangent endpoint bounds. Negative inputs reverse division
-endpoint order. Acos subtracts that complete interval from one quarter turn.
-The final width includes root and both arctangent bounds; inadequate root
-resolution or excessive combined angular width refuses. Inputs outside
-[-1,1] have a separate domain refusal. Exact zero and endpoints require no
-root or series work.
+QuantityAtan2Denotation checks both original Quantity spellings, explicit
+common Unit and principal signed-half-turn branch before constructing an exact
+coordinate expression. Mismatched Dimensions, nonlinear roles, forged source
+and the zero pair refuse. Metre and centimetre common coordinates give the same
+exact result. The negative x-axis selects +1/2 turn. PreparedQuantityAtan2 then
+projects that same graph through the ordinary enclosure entrance, retaining
+original conversion receipts and typed rational Angle bounds. Refusing a
+numeric profile leaves the independently prepared exact denotation intact.
 
-The half-input regression profile admits one billion charged limb-work units,
-root width 1/10^12, and final angular width 1/10^8 turn. Observed preparation
-work is approximately 175–178 million units across the signed asin/acos cases.
-These are internal arithmetic-work observations, not device timing or a
-runtime speed claim. The earlier 100-million-unit fixture budget refused;
-the error bound was retained when admitting the larger preparation budget.
+MathematicalAngle is a numerical representation using the existing Angle
+Dimension, linear role, canonical turn Unit and mathematical-coordinate DAG.
+It introduces no Unit definition and leaves the decimal Quantity/Angle codec
+unchanged. Its versioned codec includes the existing Unit descriptor. Borrowed
+Info validation rejects foreign Units, unsupported versions and malformed
+coordinates. Plot Type bounds, prepared storage and native carriers retain
+this finite representation. There is no implicit narrowing or Unit erasure.
 
-Exact principal inverse denotations are now canonical mathematical DAG nodes:
-`ArctangentTurns`, `ArcsineTurns` and `ArccosineTurns`. Builder and borrowed
-codec validation share domain and rational-identity checks. Existing node tags
-and encodings remain unchanged; the three additional tags preserve inverse
-operation identity across encoding, decoding and source-bound enclosure.
-Only rational arguments are currently admitted for these inverse nodes;
-unproved symbolic argument domains refuse. Principal endpoints and half-input
-asin/acos identities reduce exactly before numerical projection.
-
-The ordinary mathematical-enclosure entrance uses the certified inverse
-preparations for these nodes. Its leaf-width, term, root-refinement, storage
-and limb-work requirements remain authoritative. The projected record retains
-the original exact graph, and an impossible zero-width request refuses rather
-than replacing the graph with a point approximation. The typed Angle envelope
-and authored/runtime entrance are still separate pending integration work.
-
-`QuantityAtan2Denotation::from_checked` now performs source correlation and
-constructs the exact turn-coordinate expression independently of any numeric
-profile. Its immutable Unit and principal branch establish Angle meaning;
-both original input receipts remain available. Choosing metres or centimetres
-as the explicit common Unit produces the same exact coordinate denotation.
-`PreparedQuantityAtan2` subsequently projects that same graph through the
-ordinary mathematical-enclosure engine and retains its exact source alongside
-typed rational Angle endpoints. A refused numeric profile leaves the separately
-prepared exact denotation intact. The coordinate graph round-trips through the
-canonical codec; a complete authored/runtime Angle transport remains pending.
+Checked Plot pack/unpack tests retain an exact inverse coordinate across typed
+structured ports. The allocation probe observes zero allocations and zero
+reallocations over 100 repeated prepared executions. Both evaluators apply the
+existing mathematical proof relation to Angle equality: unknown remains an
+explicit refusal. Native carrier round-trip and forged-unit refusal are tested.
