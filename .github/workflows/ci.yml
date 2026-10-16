@@ -122,7 +122,7 @@ jobs:
           SHARD: ${{ matrix.shard }}
           # Portable Source proof and installed Owner tests share the optimized
           # candidate profile, retaining assertions and checked arithmetic.
-          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'foundation' || matrix.shard == 'products' || matrix.shard == 'hosts-std' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
+          CARGO_PROFILE_TEST_OPT_LEVEL: ${{ (matrix.shard == 'foundation' || matrix.shard == 'products' || matrix.shard == 'hosts-std' || matrix.shard == 'hosts-browser' || matrix.shard == 'hosts-conduitos') && 1 || 0 }}
           CARGO_PROFILE_TEST_DEBUG_ASSERTIONS: "true"
           CARGO_PROFILE_TEST_OVERFLOW_CHECKS: "true"
           CONDUIT_CI_CONDUITOS_PROOF: ${{ needs.preflight.outputs.conduitos-proof }}
