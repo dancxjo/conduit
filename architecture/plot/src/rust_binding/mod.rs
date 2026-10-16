@@ -16,6 +16,7 @@ mod generate_package;
 mod generate_tests;
 mod generate_value;
 mod primitive;
+mod source_literal;
 mod value;
 
 pub use bounded::{BoundedBytes, BoundedSequence, BoundedSequenceCapacityRefusal, BoundedText};

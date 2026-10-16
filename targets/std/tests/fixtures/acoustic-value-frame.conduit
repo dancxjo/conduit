@@ -1,0 +1,120 @@
+# Development child candidate for the existing bounded scan coordinator.
+# The oscillator and resonator algorithms remain ordinary imported Source plots.
+# Source checking, exact child Plan and complete PCM output proof are pending.
+with data/pair/paired as AcousticStagePair
+
+type AcousticFrameStatus =
+    waiting
+    | sample
+    | cancelled
+    | exhausted
+    | invalid
+    | overflow
+type AcousticFrameCursor = {
+    oscillator: AudioPeriodicCursorCandidate
+    resonator: ResonatorCursor
+    sample: I128
+    clipped: Boolean
+    status: AcousticFrameStatus
+}
+type AcousticFrameControl = {
+    cursor: AcousticFrameCursor
+    cancelled: Boolean
+    oscillator_ready: Boolean
+    drive: I128
+}
+type AcousticStage =
+    context AcousticFrameControl
+    | oscillator AudioPeriodicOutcome
+    | resonator ResonatorOutcome
+    | tick Boolean
+
+plot acoustic-frame-control (
+    >> pair: AcousticStagePair
+    result: AcousticFrameControl >>
+) = ({cursor: .0.context.cursor, cancelled: (.1 is tick ? .1.tick : true), oscillator_ready: false, drive: 0})
+
+plot acoustic-frame-context (
+    >> value: AcousticFrameControl
+    result: AcousticStage >>
+) = (AcousticStage.context(.))
+
+plot acoustic-oscillator-input (
+    >> value: AcousticFrameControl
+    result: AudioPeriodicStepInput >>
+) = ({cursor: .cursor.oscillator, cancelled: .cancelled})
+
+plot acoustic-oscillator-result (
+    >> value: AudioPeriodicOutcome
+    result: AcousticStage >>
+) = (AcousticStage.oscillator(.))
+
+# Invalid/cancelled/exhausted oscillator results never become sample frames.
+plot acoustic-after-oscillator (
+    >> pair: AcousticStagePair
+    result: AcousticFrameControl >>
+) = ({cursor: {oscillator: (.1.oscillator is advanced ? .1.oscillator.advanced.cursor : .1.oscillator is cancelled ? .1.oscillator.cancelled : .1.oscillator is exhausted ? .1.oscillator.exhausted : .0.context.cursor.oscillator), resonator: .0.context.cursor.resonator, sample: 0, clipped: false, status: (.1.oscillator is advanced ? AcousticFrameStatus.waiting : .1.oscillator is cancelled ? AcousticFrameStatus.cancelled : .1.oscillator is exhausted ? AcousticFrameStatus.exhausted : AcousticFrameStatus.invalid)}, cancelled: .0.context.cancelled, oscillator_ready: .1.oscillator is advanced, drive: (.1.oscillator is advanced ? .1.oscillator.advanced.sample : 0)})
+
+plot acoustic-resonator-input (
+    >> value: AcousticFrameControl
+    result: ResonatorStepInput >>
+) = ({cursor: .cursor.resonator, sample: .drive, cancelled: .cancelled || !.oscillator_ready})
+
+plot acoustic-resonator-result (
+    >> value: ResonatorOutcome
+    result: AcousticStage >>
+) = (AcousticStage.resonator(.))
+
+# Saturation into the PCM16 range is explicit; the wide carrier still needs
+# the ordinary PCM packing boundary to admit/narrow it. The clipping fact stays in the
+# same frame cursor. The original Q14 resonator history remains unmodified.
+plot acoustic-after-resonator (
+    >> pair: AcousticStagePair
+    result: AcousticFrameCursor >>
+) = (!.0.context.oscillator_ready ? .0.context.cursor : {oscillator: .0.context.cursor.oscillator, resonator: (.1.resonator is advanced ? .1.resonator.advanced.cursor : .1.resonator is cancelled ? .1.resonator.cancelled : .1.resonator is exhausted ? .1.resonator.exhausted : .0.context.cursor.resonator), sample: (.1.resonator is advanced ? (.1.resonator.advanced.sample < -32768 ? -32768 : .1.resonator.advanced.sample > 32767 ? 32767 : .1.resonator.advanced.sample) : 0), clipped: (.1.resonator is advanced ? .1.resonator.advanced.sample < -32768 || .1.resonator.advanced.sample > 32767 : false), status: (.1.resonator is advanced ? AcousticFrameStatus.sample : .1.resonator is cancelled ? AcousticFrameStatus.cancelled : .1.resonator is exhausted ? AcousticFrameStatus.exhausted : .1.resonator is overflow ? AcousticFrameStatus.overflow : AcousticFrameStatus.invalid)})
+
+plot acoustic-retain-frame (
+    >> value: AcousticFrameCursor
+    result: AcousticStage >>
+) = (AcousticStage.context({cursor: ., cancelled: false, oscillator_ready: false, drive: 0}))
+
+plot acoustic-value-frame (
+    >> accumulator: AcousticStage <= 32768B
+    >> item: AcousticStage <= 32768B
+    result: AcousticStage >>
+) {
+    paired: data/pair
+    control: acoustic-frame-control()
+    oscillator_context: data/pair
+    oscillator: dsp/oscillator-step()
+    oscillated: acoustic-after-oscillator()
+    resonator_context: data/pair
+    resonator: dsp/resonator-step()
+    filtered: acoustic-after-resonator()
+    oscillator_input: acoustic-oscillator-input()
+    oscillator_carry: acoustic-frame-context()
+    oscillator_tag: acoustic-oscillator-result()
+    resonator_input: acoustic-resonator-input()
+    resonator_carry: acoustic-frame-context()
+    resonator_tag: acoustic-resonator-result()
+    retained: acoustic-retain-frame()
+    accumulator >> paired.left
+    item >> paired.right
+    paired.paired >> control.pair
+    control.result >> oscillator_carry.value
+    oscillator_carry.result >> oscillator_context.left
+    control.result >> oscillator_input.value
+    oscillator_input.result >> oscillator.value
+    oscillator.result >> oscillator_tag.value
+    oscillator_tag.result >> oscillator_context.right
+    oscillator_context.paired >> oscillated.pair
+    oscillated.result >> resonator_carry.value
+    resonator_carry.result >> resonator_context.left
+    oscillated.result >> resonator_input.value
+    resonator_input.result >> resonator.value
+    resonator.result >> resonator_tag.value
+    resonator_tag.result >> resonator_context.right
+    resonator_context.paired >> filtered.pair
+    filtered.result >> retained.value
+    retained.result >> result
+}

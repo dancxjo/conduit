@@ -2,12 +2,13 @@ mod carrier_traits;
 pub(super) use carrier_traits::copy_type;
 use carrier_traits::hash_type;
 mod names;
+use super::source_literal::byte_string_literal;
 use crate::prelude::*;
 use crate::{CheckedNativeType, CheckedTypeForm};
 use alloc::collections::{BTreeMap, BTreeSet};
 use conduit_core::{PrimitiveInfoKind, StructuredInfoType, StructuredInfoTypeShape};
 use core::fmt::Write;
-use names::{byte_literals, rust_screaming_identifier};
+use names::rust_screaming_identifier;
 pub(super) use names::{rust_pascal_identifier, rust_snake_identifier};
 
 pub use super::generate_options::RustBindingOptions;
@@ -261,8 +262,8 @@ fn emit_type(
     let bytes = &bytes_by_identity[value_type.identity.as_str()];
     writeln!(
         out,
-        "pub const {constant}: &[u8] = &[{}];",
-        byte_literals(bytes)
+        "pub const {constant}: &[u8] = {};",
+        byte_string_literal(bytes)
     )
     .expect("String writing is infallible");
     writeln!(

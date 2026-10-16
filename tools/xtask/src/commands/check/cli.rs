@@ -54,6 +54,8 @@ pub enum CheckSuite {
     SpeechIpa,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
     AngleReference,
+    /// Prove authored finite acoustic state and PCM transport through the production kernel.
+    AcousticFlow,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
