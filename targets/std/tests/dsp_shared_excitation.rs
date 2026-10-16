@@ -10,20 +10,9 @@ mod allocation_probe;
 mod kernel;
 #[path = "common_acoustic_reference/mod.rs"]
 mod preparation;
+use preparation::field;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
-fn field(value: &StructuredInfoValue, name: &str) -> StructuredInfoValue {
-    let StructuredInfoValueShape::Record(fields) = value.shape() else {
-        panic!("record");
-    };
-    fields
-        .iter()
-        .find(|field| field.name() == name)
-        .unwrap()
-        .value()
-        .clone()
-}
-
 fn source() -> String {
     let units = [
         include_str!("../../../semantics/audio/dsp/seeded-noise.conduit"),
@@ -144,41 +133,62 @@ fn shared_noise_envelope_and_gain_execute_as_one_checked_child() {
             let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
                 panic!("seed")
             };
-            let seed = StructuredInfoValue::record(
-                program.input_type.clone(),
-                vec![StructuredFieldValue::new(
-                    "word",
-                    StructuredInfoValue::leaf(
-                        fields[0].value_type().clone(),
-                        7_i32.to_le_bytes().to_vec(),
+            for seed_word in [0_i32, 7, 65535] {
+                let seed = StructuredInfoValue::record(
+                    program.input_type.clone(),
+                    vec![StructuredFieldValue::new(
+                        "word",
+                        StructuredInfoValue::leaf(
+                            fields[0].value_type().clone(),
+                            seed_word.to_le_bytes().to_vec(),
+                        )
+                        .unwrap(),
                     )
-                    .unwrap(),
+                    .unwrap()],
                 )
-                .unwrap()],
-            )
-            .unwrap();
-            let input = program.evaluate(&seed.canonical_bytes().unwrap()).unwrap();
-            println!("shared seed canonical bytes={}", input.len());
-            let (plan, front, pair) =
-                preparation::prepare(&source, "SharedExcitationStage", "shared-excitation-frame");
-            assert!(plan.fragments[0].placements.len() <= 64);
-            let result = kernel::run(plan, &front, pair, vec![], input, false).unwrap();
-            let result = StructuredInfoValue::from_canonical_bytes(&result).unwrap();
-            let StructuredInfoValueShape::Variant { tag, payload } = result.shape() else {
-                panic!("context")
-            };
-            assert_eq!(tag, "context");
-            let cursor = field(payload, "cursor");
-            for (name, expected) in [
-                ("word", (7 * 25173 + 13849) % 65536),
-                ("frame", 1),
-                ("sample", 0),
-            ] {
-                let value = field(&cursor, name);
-                let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
-                    panic!("integer")
-                };
-                assert_eq!(i32::from_le_bytes(bytes.try_into().unwrap()), expected);
+                .unwrap();
+                let mut input = program.evaluate(&seed.canonical_bytes().unwrap()).unwrap();
+                let mut reference_word = seed_word as u64;
+                for frame in 0_i32..10 {
+                    let (plan, front, pair) = preparation::prepare(
+                        &source,
+                        "SharedExcitationStage",
+                        "shared-excitation-frame",
+                    );
+                    assert!(plan.fragments[0].placements.len() <= 64);
+                    let encoded = kernel::run(plan, &front, pair, vec![], input, false).unwrap();
+                    let result = StructuredInfoValue::from_canonical_bytes(&encoded).unwrap();
+                    let StructuredInfoValueShape::Variant { tag, payload } = result.shape() else {
+                        panic!("context")
+                    };
+                    assert_eq!(tag, "context");
+                    let cursor = field(payload, "cursor");
+                    reference_word = (reference_word * 25173 + 13849) & 65535;
+                    let level = if frame < 8 { frame * 32 } else { 256 };
+                    let sample = (((reference_word as i64 - 32768) * i64::from(level)) / 256)
+                        .clamp(-32767, 32767);
+                    for (name, expected) in [
+                        ("word", reference_word as i32),
+                        ("frame", frame + 1),
+                        ("sample", sample as i32),
+                    ] {
+                        let value = field(&cursor, name);
+                        let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                            panic!("integer")
+                        };
+                        assert_eq!(i32::from_le_bytes(bytes.try_into().unwrap()), expected);
+                    }
+                    let remaining = field(&cursor, "remaining");
+                    let StructuredInfoValueShape::Leaf(bytes) = remaining.shape() else {
+                        panic!("remaining")
+                    };
+                    assert_eq!(
+                        u32::from_le_bytes(bytes.try_into().unwrap()),
+                        159 - frame as u32
+                    );
+                    // Actual committed output supplies the next frame's state.
+                    input = encoded;
+                }
             }
         })
         .unwrap()
