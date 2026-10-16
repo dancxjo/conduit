@@ -1,0 +1,106 @@
+# Three independent digital excitation cursors. This is a coefficient-domain
+# experiment, not an airflow model or a phonetic-quality claim.
+with ./frame/experimental-q14-control-frame as render_frame
+with ./mixer/mix-two-carry as sum_two
+with data/pair/paired as ExcitationPair
+
+type IndependentExcitationInput = {
+    voiced: SharedExcitationControl
+    aspiration: SharedExcitationControl
+    frication: SharedExcitationControl
+}
+type IndependentExcitationContext = {
+    voices: IndependentExcitationInput
+    noise_sum: I32
+    valid: Boolean
+}
+type IndependentExcitationResult = {
+    voices: IndependentExcitationInput
+    sample: I32
+}
+type IndependentMixerInput = {
+    context: IndependentExcitationContext
+    control: DspMixerChannels
+}
+type IndependentMixerResult = {
+    context: IndependentExcitationContext
+    outcome: MixerOutcome
+}
+plot excitation-voiced (
+    >> value: IndependentExcitationInput
+    result: SharedExcitationControl >>
+) = (.voiced)
+plot excitation-aspiration (
+    >> value: IndependentExcitationInput
+    result: SharedExcitationControl >>
+) = (.aspiration)
+plot excitation-frication (
+    >> value: IndependentExcitationInput
+    result: SharedExcitationControl >>
+) = (.frication)
+plot excitation-first-pair (
+    >> pair: ExcitationPair
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.dual({left: .0.context, right: .1.context}))
+plot excitation-three-cursors (
+    >> pair: ExcitationPair
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.excitation_context({voices: {voiced: .0.dual.left, aspiration: .0.dual.right, frication: .1.context}, noise_sum: 0, valid: ((.0.dual.left.valid && .0.dual.right.valid) && .1.context.valid) && (.0.dual.left.cursor.periodic && (!.0.dual.right.cursor.periodic && !.1.context.cursor.periodic))}))
+plot excitation-noise-channels (
+    >> value: SharedExcitationStage
+    result: IndependentMixerInput >>
+) = ({context: .excitation_context, control: {left: {sample: .excitation_context.voices.aspiration.cursor.sample, gain_q8: 128, timeline: 1, frame: .excitation_context.voices.aspiration.cursor.frame, rate_hz: 8000}, right: {sample: .excitation_context.voices.frication.cursor.sample, gain_q8: 128, timeline: 1, frame: .excitation_context.voices.frication.cursor.frame, rate_hz: 8000}}})
+
+plot excitation-after-noise-mix (
+    >> value: IndependentMixerResult
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.excitation_context({voices: .context.voices, noise_sum: (.outcome is sample ? .outcome.sample : 0), valid: .context.valid && .outcome is sample}))
+plot excitation-final-channels (
+    >> value: SharedExcitationStage
+    result: IndependentMixerInput >>
+) = ({context: .excitation_context, control: {left: {sample: .excitation_context.voices.voiced.cursor.sample, gain_q8: 128, timeline: 1, frame: .excitation_context.voices.voiced.cursor.frame, rate_hz: 8000}, right: {sample: .excitation_context.noise_sum, gain_q8: 128, timeline: 1, frame: .excitation_context.voices.aspiration.cursor.frame, rate_hz: 8000}}})
+
+plot excitation-finish (
+    >> value: IndependentMixerResult
+    result: SharedExcitationStage >>
+) = (.context.valid && .outcome is sample ? SharedExcitationStage.excitation({voices: .context.voices, sample: .outcome.sample}) : SharedExcitationStage.rejected(empty))
+plot dsp/experimental-independent-excitation (
+    >> value: IndependentExcitationInput
+    result: SharedExcitationStage >>
+) {
+    voiced_input: excitation-voiced()
+    aspiration_input: excitation-aspiration()
+    frication_input: excitation-frication()
+    voiced: render_frame()
+    aspiration: render_frame()
+    frication: render_frame()
+    first_pair: data/pair()
+    first: excitation-first-pair()
+    second_pair: data/pair()
+    three: excitation-three-cursors()
+    noise_channels: excitation-noise-channels()
+    noise_mix: sum_two(item = IndependentMixerInput, output = IndependentMixerResult)
+    after_noise: excitation-after-noise-mix()
+    final_channels: excitation-final-channels()
+    final_mix: sum_two(item = IndependentMixerInput, output = IndependentMixerResult)
+    finish: excitation-finish()
+    value >> voiced_input.value
+    value >> aspiration_input.value
+    value >> frication_input.value
+    voiced_input.result >> voiced.value
+    aspiration_input.result >> aspiration.value
+    frication_input.result >> frication.value
+    voiced.result >> first_pair.left
+    aspiration.result >> first_pair.right
+    first_pair.paired >> first.pair
+    first.result >> second_pair.left
+    frication.result >> second_pair.right
+    second_pair.paired >> three.pair
+    three.result >> noise_channels.value
+    noise_channels.result >> noise_mix.value
+    noise_mix.result >> after_noise.value
+    after_noise.result >> final_channels.value
+    final_channels.result >> final_mix.value
+    final_mix.result >> finish.value
+    finish.result >> result
+}
