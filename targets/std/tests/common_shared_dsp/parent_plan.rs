@@ -14,7 +14,8 @@ pub struct Parent {
     pub registry: KernelOperationRegistry,
     pub items: Vec<Vec<u8>>,
 }
-pub fn prepare(initial: &[u8], tick: &[u8]) -> Parent {
+pub fn prepare(initial: &[u8], tick: &[u8], count: usize) -> Parent {
+    assert!((1..=64).contains(&count));
     let child_source = source::source();
     let owner = child_source
         .split("plot ")
@@ -211,7 +212,7 @@ pub fn prepare(initial: &[u8], tick: &[u8]) -> Parent {
     registry
         .install(conduit_std_host::flow_activation::LocalExpressionFactory)
         .unwrap();
-    let items = vec![tick.to_vec(); 64];
+    let items = vec![tick.to_vec(); count];
     Parent {
         plan,
         front: expanded.front,
