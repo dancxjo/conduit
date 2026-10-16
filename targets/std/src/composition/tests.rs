@@ -177,7 +177,9 @@ fn reference_host_advertises_every_supported_std_revision_and_no_legacy_revision
                     || offer.kind_id.as_str() == conduit_face::BITMAP_FACE_KIND
                     || offer.kind_id.as_str() == conduit_semantic_catalog::AUDIO_TIME_ANALYSIS_KIND
                     || offer.kind_id.as_str()
-                        == conduit_semantic_catalog::AUDIO_SPECTRAL_ANALYSIS_KIND)
+                        == conduit_semantic_catalog::AUDIO_SPECTRAL_ANALYSIS_KIND
+                    || offer.kind_id.as_str()
+                        == conduit_semantic_catalog::AUDIO_PITCH_ANALYSIS_KIND)
         })
         .cloned()
         .collect::<Vec<_>>();

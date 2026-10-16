@@ -1,6 +1,7 @@
 mod address_detect_back;
 mod alife_backs;
 mod alife_host;
+mod audio_pitch_analysis_back;
 mod audio_play_back;
 mod audio_spectral_analysis_back;
 mod audio_stream_budget;
