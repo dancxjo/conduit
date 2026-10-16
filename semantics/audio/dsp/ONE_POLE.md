@@ -1,6 +1,7 @@
 # Complementary one-pole filters
 
-Development work for #5217. `dsp/one-pole` is ordinary checked Source. It
+Development work for #5217. Run `cargo xtask check dsp-shared-compositions`
+from this development checkout for the component and installed proofs. `dsp/one-pole` is ordinary checked Source. It
 returns both a low-pass sample and the input-minus-low-pass high-pass sample,
 plus the next explicit history and decremented finite frame budget. Reset
 uses zero history. Cancellation, invalid profile and exhausted work refuse
@@ -25,9 +26,22 @@ a convex combination of the input and previous state, and truncation toward
 zero cannot increase its magnitude. Thus arbitrary admitted coefficient
 sequences preserve the same bounded state; this is stronger than checking
 only two endpoint poles. Frequency-response claims apply only to a fixed
-coefficient. An Hz-to-coefficient projection remains unimplemented. Finite work is 1..65536 frames
-per prepared window; a zero budget reports exhaustion. State must be carried unchanged when continuing in a fresh window, with
-the authored coefficient sequence retained separately.
+coefficient. An Hz-to-coefficient projection remains unimplemented. The explicit caller-carried remaining counter is bounded to 0..65536 and
+consumes one unit per accepted frame; zero reports exhaustion. A continuing
+consumer passes the committed counter/history or explicitly prepares a new
+budget. This component does not own a whole-Flow lifetime quota. The authored
+coefficient sequence is retained separately.
 
 This component does not establish physical playback, calibrated pressure,
 band-limited oscillation, or completion of the parent DSP issue.
+
+The installed proof derives an explicitly named Value temporal profile from
+the unchanged owned equation and verifies their canonical expression programs
+are identical. Production local-expression factories execute it in the ordinary
+kernel under a named test boundary, with held-output pressure and cancellation.
+The proof compares sixteen committed frames against independent wide arithmetic
+and reloads serialized history/work across freshly prepared Plan windows. The original closing-Flow profile is independently executed with eight explicit
+frame/state inputs, gapped admission, held output pressure and normal closure.
+The Value-profile case proves recurrence continuation from committed state;
+the Flow case proves transport of caller-supplied frame/state items. Neither
+introduces hidden feedback or establishes physical playback.

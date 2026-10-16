@@ -6,7 +6,7 @@ use conduit_composite::{
 use conduit_core::*;
 use conduit_plot::CompositeFrontTerminal;
 #[path = "../../../../architecture/plot/tests/common/allocation_probe.rs"]
-mod allocation_probe;
+pub(crate) mod allocation_probe;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 pub fn run(
