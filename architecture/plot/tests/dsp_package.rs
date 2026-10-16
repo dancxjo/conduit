@@ -56,7 +56,7 @@ fn checked_pack_exports_real_dsp_types_and_owned_expression_programs() {
         downstream.plots[0].checked_front().inputs()[0].value_kind,
         owner.checked_front().inputs()[0].value_kind
     );
-    let mut changed = members.clone();
+    let mut changed = members;
     changed[0].source = "plot counterfeit {\n}\n";
     assert!(
         PackageExportCatalog::from_bundle(&bundle, MANIFEST, &syntax.packages[0], &changed)

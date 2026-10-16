@@ -23,3 +23,11 @@ Run `cargo xtask check dsp-shared-compositions` for the package and installed
 component corpus. These are development/software proofs. The package seam
 alone does not establish a Patchbay import UI, physical playback, independent
 voiced/aspiration/frication profiles, or completion of #5217.
+
+`noise-gain-example.conduit` is an authored package member with explicit local
+imports. It preserves the full noise outcome on its diagnostic output and
+selects advanced samples into the existing gain component. Its checked
+expansion retains the exact standalone noise and gain programs. Downstream
+imports of five public control Types retain their owners' exact typed Fores.
+These checks establish Source checking and expansion; installed execution of
+this new example remains a separate proof obligation.
