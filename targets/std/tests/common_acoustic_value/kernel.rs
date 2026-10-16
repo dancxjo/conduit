@@ -80,6 +80,12 @@ pub fn run(
     registry.install(LocalExpressionFactory).unwrap();
     registry.install(pair).unwrap();
     let mut child = KernelCompositeHost::prepare(definition, &registry).unwrap();
+    println!(
+        "acoustic-child-source={:?} plan={:?} plays={:?}",
+        child.definition().internal_plan.source_document_id,
+        child.definition().internal_plan.plan_id,
+        child.active_plays()
+    );
     let inputs = front
         .inputs()
         .iter()
@@ -105,14 +111,16 @@ pub fn run(
             child.close_input(&port.port_id).unwrap();
         }
         let mut delivered = false;
+        let mut complete = false;
         let mut holds = 0;
         let mut output_digest = None;
         for _ in 0..1040 {
-            child.step().unwrap_or_else(|error| {
+            let status = child.step().unwrap_or_else(|error| {
                 let signs = child.signs();
                 let tail = signs.values().flatten().rev().take(8).collect::<Vec<_>>();
                 panic!("{error:?}; final kernel signs: {tail:?}")
             });
+            complete |= status == conduit_composite::KernelCompositeStatus::Complete;
             assert!(child.next_host_request().is_none());
             if child
                 .output_into(output_port, &mut output)
@@ -143,6 +151,10 @@ pub fn run(
             }
         }
         assert!(delivered);
+        assert!(
+            complete,
+            "finite child must complete after its output is acknowledged"
+        );
     });
     assert_eq!(
         storage.allocations, 0,

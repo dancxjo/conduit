@@ -1,0 +1,42 @@
+# Development closing-Flow composition; finite queries use existing Audio laws.
+# The previous observation is consumed by pair, and the next query retains its
+# exact typed request. There is no renderer clock or sample-count substitution.
+plot trajectory-scan-query (
+    >> pair: AcousticTrajectoryPair
+    result: AudioTrajectoryU8Arithmetic >>
+) = (.1.request)
+plot trajectory-scan-observation (
+    >> value: AcousticTrajectoryObservation
+    result: AcousticTrajectoryStage >>
+) = (AcousticTrajectoryStage.observation(.))
+plot trajectory-bounded-state (
+    >> value: AcousticTrajectoryStage <= 32768B
+    result: AcousticTrajectoryStage <= 32768B >>
+) = (.)
+plot trajectory-combine (
+    >> accumulator: AcousticTrajectoryStage <= 32768B
+    >> item: AcousticTrajectoryStage <= 32768B
+    combined: AcousticTrajectoryStage <= 32768B >>
+) {
+    paired: data/pair
+    selected: trajectory-scan-query()
+    evaluated: acoustic-trajectory-value()
+    observed: trajectory-scan-observation()
+    bounded: trajectory-bounded-state()
+    accumulator >> paired.left
+    item >> paired.right
+    paired.paired >> selected.pair
+    selected.result >> evaluated.value
+    evaluated.result >> observed.value
+    observed.result >> bounded.value
+    bounded.result >> combined
+}
+plot acoustic-trajectory-replay (
+    initial: AcousticTrajectoryStage
+    >> queries: AcousticTrajectoryStage...| <= 32768B
+    observations: AcousticTrajectoryStage...| <= 32768B >>
+) {
+    replay: scan(initial, maximum-items = 16) trajectory-combine()
+    queries >> replay.item
+    replay.combined >> observations
+}
