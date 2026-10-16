@@ -88,9 +88,6 @@ pub use generated::{
 };
 pub use trajectory::*;
 
-mod dsp_package;
-pub use dsp_package::*;
-
 mod source_execution;
 pub use source_execution::{AudioSourceExecution, AudioSourceExecutionRefusal};
 mod rate_projection;

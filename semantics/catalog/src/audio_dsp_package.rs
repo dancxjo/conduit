@@ -5,7 +5,7 @@ use conduit_plot::{
     CheckedSyntaxDocument, PackageExportCatalog, PackageMemberSource, StartupCatalog,
 };
 
-pub const DSP_PACKAGE_MANIFEST: &str = include_str!("../dsp/pack.conduit");
+pub const DSP_PACKAGE_MANIFEST: &str = include_str!("../../audio/dsp/pack.conduit");
 
 /// Source and export facts derived by the ordinary checked-package owners.
 /// Preparation may allocate; this object neither chooses Backs nor runs Play.
@@ -22,30 +22,30 @@ pub struct DspSourcePackage {
 /// component bodies and equations are never rewritten by this preparation.
 pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
     let types = [
-        include_str!("../types.conduit"),
-        include_str!("../trajectory_types.conduit"),
-        include_str!("../rate_types.conduit"),
-        include_str!("../decibel_types.conduit"),
-        include_str!("../exact_control_types.conduit"),
-        include_str!("../time_analysis_types.conduit"),
-        include_str!("../spectral_analysis_types.conduit"),
+        include_str!("../../audio/types.conduit"),
+        include_str!("../../audio/trajectory_types.conduit"),
+        include_str!("../../audio/rate_types.conduit"),
+        include_str!("../../audio/decibel_types.conduit"),
+        include_str!("../../audio/exact_control_types.conduit"),
+        include_str!("../../audio/time_analysis_types.conduit"),
+        include_str!("../../audio/spectral_analysis_types.conduit"),
     ]
     .join("\n");
     let oscillator = [
-        include_str!("../dsp/periodic-types.conduit"),
-        crate::PERIODIC_VALIDATION_SOURCE,
-        crate::PERIODIC_FLOW_SOURCE,
-        crate::PERIODIC_OSCILLATOR_SOURCE,
+        include_str!("../../audio/dsp/periodic-types.conduit"),
+        conduit_audio::PERIODIC_VALIDATION_SOURCE,
+        conduit_audio::PERIODIC_FLOW_SOURCE,
+        conduit_audio::PERIODIC_OSCILLATOR_SOURCE,
     ]
     .join("\n");
     let resonator = [
-        crate::RESONATOR_RECURRENCE_SOURCE,
-        include_str!("../dsp/resonator-types.conduit"),
-        include_str!("../dsp/resonator-projection.conduit"),
-        include_str!("../dsp/resonator.conduit"),
+        conduit_audio::RESONATOR_RECURRENCE_SOURCE,
+        include_str!("../../audio/dsp/resonator-types.conduit"),
+        include_str!("../../audio/dsp/resonator-projection.conduit"),
+        include_str!("../../audio/dsp/resonator.conduit"),
     ]
     .join("\n");
-    let mixer = include_str!("../dsp/mixer.conduit");
+    let mixer = include_str!("../../audio/dsp/mixer.conduit");
     let mut startup = StartupCatalog::new();
     let mixer_types = prepare_source_types(&parse_syntax_document(mixer), &startup)
         .map_err(|e| format!("DSP mixer Types: {e:?}"))?;
@@ -82,23 +82,23 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         },
         PackageMemberSource {
             path: "noise",
-            source: include_str!("../dsp/seeded-noise.conduit"),
+            source: include_str!("../../audio/dsp/seeded-noise.conduit"),
         },
         PackageMemberSource {
             path: "envelope",
-            source: include_str!("../dsp/envelope.conduit"),
+            source: include_str!("../../audio/dsp/envelope.conduit"),
         },
         PackageMemberSource {
             path: "gain",
-            source: include_str!("../dsp/gain.conduit"),
+            source: include_str!("../../audio/dsp/gain.conduit"),
         },
         PackageMemberSource {
             path: "example",
-            source: include_str!("../dsp/noise-gain-example.conduit"),
+            source: include_str!("../../audio/dsp/noise-gain-example.conduit"),
         },
         PackageMemberSource {
             path: "one-pole",
-            source: include_str!("../dsp/one-pole.conduit"),
+            source: include_str!("../../audio/dsp/one-pole.conduit"),
         },
     ];
     let document = parse_syntax_document(DSP_PACKAGE_MANIFEST);
