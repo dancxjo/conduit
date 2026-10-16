@@ -10,6 +10,9 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod value_pair;
+pub use value_pair::PreparedValuePairFactory;
+
 mod local_expression;
 pub use local_expression::{LocalExpressionFactory, PreparedLocalExpressionBack};
 

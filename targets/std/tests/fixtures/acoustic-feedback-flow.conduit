@@ -1,6 +1,6 @@
-# Development fixture: ordinary seeded state and typed Cords retain both DSP
-# cursors. Accepted Value DSP plots participate through existing reactive lifting.
-# This file alone does not establish a PCM block/output or physical playback proof.
+# Development probe: this candidate preserves both DSP cursors in Source.
+# Expansion currently refuses its closing Flow to Value DSP connections (CND-FRM-045).
+# It is not a runnable PCM block/output or physical playback proof.
 with flow/zip/feedback/paired as AcousticTickPair
 with flow/zip/finite/paired as AcousticStagePair
 

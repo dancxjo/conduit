@@ -1,5 +1,8 @@
 //! Exact implementation offers owned by the hosted std Host.
 
+mod value_pair;
+pub use value_pair::*;
+
 mod flow_state;
 pub use flow_state::*;
 mod data_text;
