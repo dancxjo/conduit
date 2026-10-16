@@ -116,7 +116,7 @@ fn check_child() {
             }
         }
     }
-    assert_eq!(pair_count, 3);
+    assert_eq!(pair_count, 4);
     eprintln!(
         "acoustic Value child: {} Gears, {} Cords",
         child.expanded.gears.len(),

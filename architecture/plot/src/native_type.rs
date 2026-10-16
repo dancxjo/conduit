@@ -19,6 +19,7 @@ mod use_contract;
 use identity::{schema_identity, schema_identity_for_record, schema_identity_for_variant};
 pub(crate) use use_contract::{
     install_import_aliases, install_import_aliases_borrowed, validate_concrete_value,
+    validate_concrete_value_type,
 };
 
 #[derive(Clone)]

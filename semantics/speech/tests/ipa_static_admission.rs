@@ -115,12 +115,17 @@ fn one_segment_transcription_stays_the_declared_transcription_type() {
 #[test]
 fn request_shape_never_substitutes_for_domain_grammar_or_inventory_admission() {
     let (startup, profile) = catalogs();
-    for (constructor, source) in [
+    for (constructor, source, native_refusal) in [
         (
             IpaConstructor::Phonetic,
             PHONETIC.replace("ˈt͡ʃãː.n̩", r"t͡ʃ\n"),
+            false,
         ),
-        (IpaConstructor::Phonemic, PHONEMIC.replace("ˈt͡ʃaː", "z")),
+        (
+            IpaConstructor::Phonemic,
+            PHONEMIC.replace("ˈt͡ʃaː", "z"),
+            false,
+        ),
         (
             IpaConstructor::Phonemic,
             PHONEMIC.replacen(
@@ -128,8 +133,20 @@ fn request_shape_never_substitutes_for_domain_grammar_or_inventory_admission() {
                 "inventory_id: \"inventory/foreign\"",
                 1,
             ),
+            true,
         ),
     ] {
+        if native_refusal {
+            let syntax = parse_syntax_document(&source);
+            assert_eq!(syntax.round_trip(), source);
+            let refusal = check_syntax_document(&syntax, &startup).unwrap_err();
+            assert_eq!(refusal.code, "CND-SPC-IPA");
+            assert_eq!(
+                &source[refusal.span.start..refusal.span.end],
+                "\"inventory/foreign\""
+            );
+            continue;
+        }
         let configuration = configuration(&source, &startup, &profile);
         assert!(
             matches!(

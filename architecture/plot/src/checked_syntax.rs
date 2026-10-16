@@ -420,11 +420,13 @@ pub(crate) enum SyntaxCheckError {
     InvalidIntegerLiteral(String),
     AmbiguousFrontName(String),
     StructuredExpression(String, Option<Span>),
+    NativeRefinement(SyntaxCheckDiagnostic),
 }
 
 impl SyntaxCheckError {
     pub(crate) fn diagnostic(self, span: Span) -> SyntaxCheckDiagnostic {
         let (code, detail, owned_span) = match self {
+            Self::NativeRefinement(diagnostic) => return diagnostic,
             Self::DuplicateImmutable(name) => (
                 "CND-FRM-020",
                 format!("duplicate immutable binding '{name}'"),

@@ -162,6 +162,7 @@ pub(crate) fn filter_candidates<T, F>(
 where
     F: for<'a> Fn(&'a T) -> (&'a HostAdvertisement, &'a CapabilityOffer),
 {
+    let candidates = crate::exact_realization::filter_candidates(gear, candidates, &fields)?;
     let candidates = crate::numerical_realization::filter_candidates(gear, candidates, &fields)?;
     let requests = requirements(gear)?;
     if requests.is_empty() {

@@ -4,6 +4,8 @@ mod acoustic_control;
 mod acoustic_flow;
 #[path = "../suites/angle_reference.rs"]
 mod angle_reference;
+#[path = "../suites/model_inference.rs"]
+mod model_inference;
 #[path = "../suites/speech_ipa.rs"]
 mod speech_ipa;
 #[path = "../suites/todo.rs"]
@@ -94,6 +96,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::QuantityMapping => run_suite(QUANTITY_MAPPING_STEPS, &root, opts),
         CheckSuite::AcousticControl => run_suite(acoustic_control::STEPS, &root, opts),
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
+        CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
         CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
