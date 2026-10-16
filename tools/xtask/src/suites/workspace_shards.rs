@@ -239,6 +239,24 @@ impl WorkspaceShard {
         }
     }
 
+    /// Keep the cross-Mask proof in the canonical product feature context.
+    pub fn product_mask_arguments(self, step: &Step) -> Option<Vec<String>> {
+        if self != Self::TestProducts || step.id != "check.committed-todo-mask-exchange" {
+            return None;
+        }
+        let context = serde_json::json!({
+            "schema": "conduit.ci/product-cargo-context@1",
+            "args": PRODUCT_TEST_STEP.args,
+        });
+        Some(
+            step.args
+                .iter()
+                .map(|arg| (*arg).to_owned())
+                .chain(["--products-context-json".to_owned(), context.to_string()])
+                .collect(),
+        )
+    }
+
     pub fn owns(self, step: &Step) -> bool {
         match self {
             Self::Lint => matches!(step.id, "check.fmt" | "check.clippy"),
@@ -273,6 +291,30 @@ mod tests {
         check::WORKSPACE_STEPS, network_capability::NETWORK_CAPABILITY_STEPS,
         pico_compositions::PICO_COMPOSITION_STEPS,
     };
+
+    #[test]
+    fn product_mask_context_retains_the_complete_canonical_cargo_arguments() {
+        let step = WORKSPACE_STEPS
+            .iter()
+            .find(|s| s.id == "check.committed-todo-mask-exchange")
+            .unwrap();
+        let args = WorkspaceShard::TestProducts
+            .product_mask_arguments(step)
+            .unwrap();
+        assert_eq!(&args[..step.args.len()], step.args);
+        assert_eq!(args[step.args.len()], "--products-context-json");
+        let payload: serde_json::Value = serde_json::from_str(args.last().unwrap()).unwrap();
+        assert_eq!(payload["args"], serde_json::json!(PRODUCT_TEST_STEP.args));
+        assert_eq!(payload["schema"], "conduit.ci/product-cargo-context@1");
+        for shard in WorkspaceShard::ALL {
+            if shard != WorkspaceShard::TestProducts {
+                assert!(shard.product_mask_arguments(step).is_none());
+            }
+        }
+        assert!(WorkspaceShard::TestProducts
+            .product_mask_arguments(&PRODUCT_TEST_STEP)
+            .is_none());
+    }
 
     #[test]
     fn every_workspace_gate_step_belongs_to_exactly_one_shard() {
