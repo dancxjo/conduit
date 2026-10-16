@@ -8,6 +8,11 @@ pub(super) fn evaluate_node<'a>(
 ) -> Result<PrimitiveValue<'a>, Refusal> {
     let expected = node.kind;
     let value = match &mut node.operation {
+        PreparedOperation::AngleReference { argument, output } => {
+            let value = evaluate_node(argument, input, input_kind)?;
+            let length = crate::expression_angle_reference::encode(value.as_slice(), output)?;
+            PrimitiveValue::borrowed(expected, &output[..length])?
+        }
         PreparedOperation::Trigonometry {
             function,
             argument,

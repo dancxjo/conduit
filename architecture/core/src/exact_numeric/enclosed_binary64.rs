@@ -90,6 +90,14 @@ impl PreparedEnclosedBinary64 {
     pub fn source(&self) -> &MathematicalValue {
         self.enclosure.source()
     }
+    /// The verifier first replays all spent work under its own smaller ceiling.
+    /// Restore the supplier's inspected ceilings only after that replay agrees.
+    pub(super) fn restore_admitted_work_delta(&mut self, delta: u64) {
+        self.enclosure
+            .restore_admitted_work(self.enclosure.admitted_limb_work() + delta);
+        self.rounded
+            .restore_admitted_work(self.rounded.admitted_limb_work() + delta);
+    }
     pub fn enclosure(&self) -> &PreparedMathematicalEnclosure {
         &self.enclosure
     }

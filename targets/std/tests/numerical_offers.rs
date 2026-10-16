@@ -2,11 +2,14 @@ use conduit_core::{BootId, HostId, OfferGeneration};
 use conduit_plot::{ProfileCatalog, StartupCatalog};
 use conduit_std_host::{StdHost, StdHostConfig};
 fn plot(value: &str) -> conduit_plot::ExpandedCanonicalPlot {
+    plot_with_error(value, "1")
+}
+fn plot_with_error(value: &str, error: &str) -> conduit_plot::ExpandedCanonicalPlot {
     let mut startup = StartupCatalog::new();
     let mut profile = ProfileCatalog::new();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profile).unwrap();
     let source = format!(
-        "plot numbers {{\n value: math/realize(request={{value:{value},maximum-error:1}})\n}}\n"
+        "plot numbers {{\n value: math/realize(request={{value:{value},maximum-error:{error}}})\n}}\n"
     );
     let checked = conduit_plot::check_syntax_document(
         &conduit_plot::parse_syntax_document(&source),
@@ -34,9 +37,9 @@ fn preparing_offers_changes_generation_once_and_refusal_is_transactional() {
     host.prepare_numerical_realizations(&rational).unwrap();
     assert_eq!(host.advertisement(), &offered);
     let why = host
-        .prepare_numerical_realizations(&plot("tau"))
+        .prepare_numerical_realizations(&plot_with_error("tau", "0"))
         .unwrap_err();
-    assert!(why.contains("UnsupportedDenotation"));
+    assert!(why.contains("ExactConstantEnclosureUnsupported"), "{why}");
     assert_eq!(host.advertisement(), &offered);
     host.prepare_numerical_realizations(&plot("0.4")).unwrap();
     assert_eq!(

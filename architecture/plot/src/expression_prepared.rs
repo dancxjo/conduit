@@ -22,6 +22,7 @@ use member_selection::PreparedMemberSelection;
 mod prepare;
 mod primitive;
 use prepare::prepare_node;
+mod angle_reference;
 mod storage_bound;
 mod structured;
 mod structured_contract;
@@ -90,6 +91,10 @@ struct PreparedNode {
 }
 
 enum PreparedOperation {
+    AngleReference {
+        argument: Box<PreparedNode>,
+        output: Vec<u8>,
+    },
     Trigonometry {
         function: conduit_core::AngleTrigonometricFunction,
         argument: Box<PreparedNode>,

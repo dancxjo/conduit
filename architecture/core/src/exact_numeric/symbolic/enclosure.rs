@@ -180,6 +180,9 @@ impl PreparedMathematicalEnclosure {
     pub const fn admitted_limb_work(&self) -> u64 {
         self.admitted_limb_work
     }
+    pub(in crate::exact_numeric) fn restore_admitted_work(&mut self, admitted: u64) {
+        self.admitted_limb_work = admitted;
+    }
     pub const fn limb_work(&self) -> u64 {
         self.limb_work
     }

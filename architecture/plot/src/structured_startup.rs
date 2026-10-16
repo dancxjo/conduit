@@ -1,7 +1,9 @@
 mod literal;
 mod prepared;
+mod resolution;
 use literal::canonical_leaf_literal;
 pub(crate) use literal::parse_scalar_literal;
+pub(crate) use resolution::{check_structured_expression, StartupValueSyntax};
 
 use crate::prelude::*;
 use crate::{CanonicalStartupValue, ExpressionSyntax, Span, SpannedText, SyntaxCheckDiagnostic};
@@ -80,18 +82,19 @@ impl CanonicalStructuredStartupValue {
     }
 }
 
-pub(crate) fn check_structured_expression(
+pub(crate) fn check_startup_expression(
     expression: &ExpressionSyntax,
     expected: &StructuredInfoType,
     resolve_atomic: &mut dyn FnMut(
-        &SpannedText,
+        StartupValueSyntax<'_>,
         &StructuredInfoType,
     ) -> Result<CanonicalStartupValue, SyntaxCheckDiagnostic>,
 ) -> Result<CanonicalStructuredStartupValue, SyntaxCheckDiagnostic> {
+    use StartupValueSyntax::Atomic;
     // Resolve the sealed constructor result before unwrapping nominal Types:
     // a branch has one exact result Type, independent of its expected position.
     if let ExpressionSyntax::TypedGlyphLiteral(literal) = expression {
-        return match resolve_atomic(&literal.authored, expected)? {
+        return match resolve_atomic(Atomic(&literal.authored), expected)? {
             CanonicalStartupValue::Structured(value) if value.value_type() == expected => Ok(value),
             _ => Err(structured_diagnostic(
                 literal.authored.span,
@@ -100,12 +103,12 @@ pub(crate) fn check_structured_expression(
         };
     }
     if let StructuredInfoTypeShape::Nominal { representation, .. } = expected.shape() {
-        let mut checked = check_structured_expression(expression, representation, resolve_atomic)?;
+        let mut checked = check_startup_expression(expression, representation, resolve_atomic)?;
         checked.value_type = expected.clone();
         return Ok(checked);
     }
     match expression {
-        ExpressionSyntax::Atomic(atomic) => match resolve_atomic(atomic, expected)? {
+        ExpressionSyntax::Atomic(atomic) => match resolve_atomic(Atomic(atomic), expected)? {
             CanonicalStartupValue::Literal(value) => {
                 let StructuredInfoTypeShape::Leaf(kind) = expected.shape() else {
                     return Err(structured_diagnostic(
@@ -219,7 +222,7 @@ pub(crate) fn check_structured_expression(
             }
             let checked = values
                 .iter()
-                .map(|value| check_structured_expression(value, element, resolve_atomic))
+                .map(|value| check_startup_expression(value, element, resolve_atomic))
                 .collect::<Result<Vec<_>, _>>()?;
             Ok(CanonicalStructuredStartupValue {
                 value_type: expected.clone(),
@@ -279,7 +282,7 @@ pub(crate) fn check_structured_expression(
                     debug_assert_eq!(field.name.text, expected_field.name());
                     Ok(CanonicalStructuredStartupField {
                         name: field.name.text.clone(),
-                        value: check_structured_expression(
+                        value: check_startup_expression(
                             &field.value,
                             expected_field.value_type(),
                             resolve_atomic,
@@ -308,8 +311,7 @@ pub(crate) fn check_structured_expression(
                         &format!("unknown structured variant tag '{}'", tag.text),
                     )
                 })?;
-            let payload =
-                check_structured_expression(payload, case.payload_type(), resolve_atomic)?;
+            let payload = check_startup_expression(payload, case.payload_type(), resolve_atomic)?;
             Ok(CanonicalStructuredStartupValue {
                 value_type: expected.clone(),
                 node: CanonicalStructuredStartupNode::Variant {
@@ -330,7 +332,20 @@ pub(crate) fn check_structured_expression(
                 text: format!("-{}", atomic.text),
                 span: *span,
             });
-            check_structured_expression(&negated, expected, resolve_atomic)
+            check_startup_expression(&negated, expected, resolve_atomic)
+        }
+        ExpressionSyntax::SemanticCall { kind, .. }
+            if kind.text == crate::expression_angle_reference::CALL =>
+        {
+            match resolve_atomic(StartupValueSyntax::AngleReference(expression), expected)? {
+                CanonicalStartupValue::Structured(value) if value.value_type() == expected => {
+                    Ok(value)
+                }
+                _ => Err(structured_diagnostic(
+                    expression.span(),
+                    "Angle reference requires its exact mathematical result Type",
+                )),
+            }
         }
         ExpressionSyntax::TypedGlyphLiteral(_)
         | ExpressionSyntax::Input(_)

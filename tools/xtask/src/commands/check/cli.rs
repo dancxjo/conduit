@@ -52,6 +52,8 @@ pub enum CheckSuite {
     TodoDurability,
     /// Check canonical IPA notation and first-class phone/phoneme authoring.
     SpeechIpa,
+    /// Prove exact Angle-to-radian reference transport and certified numerical realization.
+    AngleReference,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
