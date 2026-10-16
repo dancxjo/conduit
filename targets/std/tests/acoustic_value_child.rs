@@ -17,39 +17,9 @@ mod seed;
 #[global_allocator]
 static ALLOCATOR: allocation_probe::Allocator = allocation_probe::Allocator;
 
-fn composed_source() -> String {
-    let units = [
-        include_str!("../../../semantics/audio/types.conduit"),
-        include_str!("../../../semantics/audio/trajectory_types.conduit"),
-        include_str!("../../../semantics/audio/rate_types.conduit"),
-        include_str!("../../../semantics/audio/decibel_types.conduit"),
-        include_str!("../../../semantics/audio/exact_control_types.conduit"),
-        include_str!("../../../semantics/audio/time_analysis_types.conduit"),
-        include_str!("../../../semantics/audio/spectral_analysis_types.conduit"),
-        include_str!("../../../semantics/audio/dsp/periodic-types.conduit"),
-        conduit_audio::PERIODIC_FLOW_SOURCE,
-        conduit_audio::PERIODIC_OSCILLATOR_SOURCE,
-        conduit_audio::PERIODIC_VALIDATION_SOURCE,
-        include_str!("../../../semantics/audio/dsp/resonator-recurrence.conduit"),
-        include_str!("../../../semantics/audio/dsp/resonator-types.conduit"),
-        include_str!("../../../semantics/audio/dsp/resonator-projection.conduit"),
-        include_str!("../../../semantics/audio/dsp/resonator.conduit"),
-        include_str!("fixtures/acoustic-value-frame.conduit"),
-    ];
-    let mut imports = Vec::new();
-    let mut body = Vec::new();
-    for unit in units {
-        for line in unit.lines() {
-            if line.starts_with("with ") {
-                imports.push(line);
-            } else {
-                body.push(line);
-            }
-        }
-    }
-    imports.extend(body);
-    imports.join("\n") + "\n"
-}
+#[path = "common_acoustic_value/source.rs"]
+mod source;
+use source::composed_source;
 
 #[test]
 fn authored_oscillator_and_resonator_expand_as_one_bounded_value_child() {

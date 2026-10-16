@@ -10,6 +10,12 @@ use conduit_core::{
     PreparationHostIdentity, PreparedFragmentReceipt, PreparedPlan,
 };
 
+mod value_scan;
+pub use value_scan::{
+    install_value_scan, value_scan_child_steps, value_scan_offer, VALUE_SCAN_ARTIFACT,
+    VALUE_SCAN_IMPLEMENTATION, VALUE_SCAN_MAXIMUM_ITEMS, VALUE_SCAN_PROFILE,
+};
+
 mod value_pair;
 pub use value_pair::PreparedValuePairFactory;
 
