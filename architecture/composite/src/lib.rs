@@ -28,6 +28,8 @@ pub use flow_concat_finite::FlowConcatFiniteBack;
 mod flow_merge_finite;
 mod flow_select;
 mod flow_zip;
+mod value_pair;
+pub use value_pair::ValuePairBack;
 mod kernel_executor;
 mod operation;
 mod planned_activation;

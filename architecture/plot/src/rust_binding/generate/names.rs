@@ -56,14 +56,6 @@ fn rust_identifier(value: &str, pascal: bool) -> Result<String, RustBindingGener
     Ok(output)
 }
 
-pub(super) fn byte_literals(bytes: &[u8]) -> String {
-    bytes
-        .iter()
-        .map(|byte| format!("0x{byte:02x}"))
-        .collect::<Vec<_>>()
-        .join(", ")
-}
-
 const RUST_KEYWORDS: &[&str] = &[
     "as", "break", "const", "continue", "crate", "else", "enum", "extern", "false", "fn", "for",
     "if", "impl", "in", "let", "loop", "match", "mod", "move", "mut", "pub", "ref", "return",
