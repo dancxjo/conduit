@@ -9,4 +9,3 @@ plot acoustic-timed-frame (
  item >> frame.item
  frame.result >> result
 }
-
