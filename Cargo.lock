@@ -2319,6 +2319,7 @@ dependencies = [
  "conduit-language",
  "conduit-plan-lowering",
  "conduit-plot",
+ "conduit-process",
  "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-signal-conformance",

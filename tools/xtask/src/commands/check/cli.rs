@@ -64,6 +64,8 @@ pub enum CheckSuite {
     AcousticFlow,
     /// Prove shared speech/music DSP components, finite state and compact-voice parity.
     DspSharedCompositions,
+    /// Prove typed fixture printers with the generic shared-pool scheduler.
+    PrintPool,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,
