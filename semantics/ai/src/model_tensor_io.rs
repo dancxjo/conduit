@@ -96,7 +96,7 @@ pub(crate) enum TensorValues<'borrow, 'data> {
 }
 enum Tensor<'borrow, 'data> {
     Owned(&'borrow TensorValue),
-    Borrowed(NamedTensorView<'data>),
+    Borrowed(&'borrow NamedTensorView<'data>),
 }
 impl<'borrow, 'data> TensorValues<'borrow, 'data> {
     fn unknown_port(&self, ports: &[ModelPortConstraint]) -> bool {
@@ -116,7 +116,6 @@ impl<'borrow, 'data> TensorValues<'borrow, 'data> {
             Self::Borrowed(values) => values
                 .values()
                 .find(|value| value.name == name)
-                .copied()
                 .map(Tensor::Borrowed),
         }
     }
