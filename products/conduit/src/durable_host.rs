@@ -25,7 +25,8 @@ const RUNTIME_SCHEMA: &str = "conduit.install/durable-host-runtime@1";
 const RELEASE_SCHEMA: &str = "conduit.release/host-bundle@1";
 const MAXIMUM_RELEASE_FILES: usize = 32;
 const MAXIMUM_RELEASE_FILE_BYTES: u64 = 64 * 1024 * 1024;
-const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 512 * 1024;
+// Admission retains the exact Host inventory, including authored layout defaults.
+const MAXIMUM_BODY_ADMISSION_BYTES: u64 = 2 * 1024 * 1024;
 
 #[cfg(test)]
 #[path = "durable_host/selection_recovery_tests.rs"]

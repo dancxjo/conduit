@@ -249,6 +249,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
     let mut comparisons = empty_slots(active_nodes);
     let mut timing = empty_slots(active_nodes);
     let mut keymaps = empty_slots(active_nodes);
+    let mut saved_choices = empty_slots(active_nodes);
     let mut text_states = empty_slots(active_nodes);
     let mut deliveries = empty_slots(active_nodes);
     let mut histories = empty_slots(active_nodes);
@@ -307,6 +308,9 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
                 Some(operation) => operation,
                 None => match scans.remove(&placement.placement_id) {
                     Some(back) => BrowserBack::installed_step(back),
+                    None if placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND => {
+                        inputs::keymap_back(partitions, node.node, placement, &mut values)?
+                    }
                     None => (installation.prepare)(placement, &mut values)?,
                 },
             },
@@ -317,6 +321,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
             crate::installed_browser::button_attempt::prepare_codec(placement)?;
         timing[usize::from(node.node.0)] =
             crate::installed_browser::timing::PreparedTiming::for_placement(placement)?;
+        saved_choices[usize::from(node.node.0)] = inputs::saved_choice(placement)?;
         keymaps[usize::from(node.node.0)] =
             crate::installed_browser::keymap::PreparedKeymap::for_placement(placement)?;
         text_states[usize::from(node.node.0)] =
@@ -469,6 +474,7 @@ pub(in crate::plot_runner) fn prepare_body_scheduler(
         selectors,
         timing,
         keymaps,
+        saved_choices,
         text_states,
         deliveries,
         histories,

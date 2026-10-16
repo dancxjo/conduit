@@ -122,6 +122,12 @@ pub fn validate(
     {
         return Err(PreparationError::PlanRejected);
     }
+    if fragment.placements.iter().any(|placement| {
+        placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND
+            && conduit_semantic_catalog::text_face_insertion_caret(&placement.configuration)
+    }) {
+        return Err(PreparationError::PlanRejected);
+    }
     for (kind, implementation) in [
         (
             conduit_semantic_catalog::KEYBOARD_KIND,
@@ -158,10 +164,21 @@ pub fn validate(
         .iter()
         .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::KEYMAP_KIND)
         .ok_or(PreparationError::PlanRejected)?;
-    if keymap.configuration.len() != 1
-        || keymap.configuration[0].key.as_str() != "layout"
-        || keymap.configuration[0].value
-            != conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+    if keymap.configuration.len() != 2
+        || !keymap.configuration.iter().any(|entry| {
+            entry.key.as_str() == "layout"
+                && entry.value
+                    == conduit_core::ConfigurationValue::Structured(
+                        conduit_human::default_keymap_configuration(),
+                    )
+        })
+        || !keymap.configuration.iter().any(|entry| {
+            entry.key.as_str() == "choices"
+                && entry.value
+                    == conduit_core::ConfigurationValue::Structured(
+                        conduit_human::default_choices_configuration(),
+                    )
+        })
         || keymap.host_calls.len() != 1
         || keymap.host_calls[0].contract_id.as_str() != crate::functional_offers::KEYMAP_HOST_CALL
     {
@@ -357,11 +374,9 @@ mod tests {
             .unwrap();
         conduit_semantic_catalog::install_text_pipeline_catalogs(&mut startup, &mut profile)
             .unwrap();
-        let checked = conduit_plot::check_syntax_document(&syntax, &startup).unwrap();
-        assert!(
-            conduit_plot::expand_canonical_plot(&checked, "conduitos-keyboard-upper", &profile,)
-                .is_err()
-        );
+        // Layouts are exact structured values; a locale Text now refuses at
+        // source checking, before expansion or any Host is selected.
+        assert!(conduit_plot::check_syntax_document(&syntax, &startup).is_err());
     }
 
     #[test]

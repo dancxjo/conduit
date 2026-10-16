@@ -104,6 +104,7 @@ fn native_birth_keeps_four_plots_in_one_body_plan_play_and_switches_only_foregro
         journey.foreground_input_owner().unwrap().plot,
         native_workset::resident(NativePlot::MemoryLantern).unwrap()
     );
+    assert_eq!(journey.projection().result.as_deref(), Some(""));
     let editor_partition = journey.projection().partition_plan_id.unwrap();
     assert_ne!(canvas_partition, editor_partition);
     type_key(&mut journey, 5);

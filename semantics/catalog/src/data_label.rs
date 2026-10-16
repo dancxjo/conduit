@@ -1,11 +1,9 @@
 //! Construction-time names for data manifested through a Face.
 use alloc::string::ToString;
-#[cfg(feature = "plot-catalog")]
 use alloc::{vec, vec::Vec};
 
 pub use conduit_core::{data_label_configuration, face_data_label, MAXIMUM_DATA_LABEL_BYTES};
 
-#[cfg(feature = "plot-catalog")]
 pub fn data_label_startup_signature() -> Vec<conduit_plot::StartupParameterSignature> {
     vec![conduit_plot::StartupParameterSignature {
         name: "label".to_string(),

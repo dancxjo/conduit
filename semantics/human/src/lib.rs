@@ -94,6 +94,8 @@ mod image_text;
 mod image_text_codec;
 mod input_chord;
 mod input_keymap;
+mod keymap_layout;
+pub use keymap_layout::*;
 mod key_event;
 mod visual_experience;
 mod visual_impression;

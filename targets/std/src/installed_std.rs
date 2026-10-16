@@ -1,6 +1,7 @@
 mod address_detect_back;
 mod alife_backs;
 mod alife_host;
+mod audio_pitch_analysis_back;
 mod audio_play_back;
 mod audio_spectral_analysis_back;
 mod audio_stream_budget;
@@ -542,7 +543,17 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let mut text_output_buffer = Vec::with_capacity(
         (contract::MAX_TEXT_BYTES as usize).max(conduit_text::MAXIMUM_MORSE_PATTERN_BYTES),
     );
-    let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
+    let mut input_keymaps = input_semantic_backs::prepare_keymaps::<MAX_NODES>(
+        fragment.placements.iter().map(|placement| {
+            (
+                lowered
+                    .identity
+                    .node_for_placement(&placement.placement_id)
+                    .map(|node| usize::from(node.0)),
+                placement,
+            )
+        }),
+    )?;
     let mut text_state_hosts = fragment
         .placements
         .iter()
@@ -3216,17 +3227,23 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     )
                     .map_err(|error| format!("complete flow/gate bool decode: {error:?}"))?;
                 continue;
-            } else if (contract == &keymap_contract_id
-                && lowered_operation.target_kind.as_ref() == Some(&keymap_target_kind))
+            } else if contract.as_str() == conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+                || (contract == &keymap_contract_id
+                    && lowered_operation.target_kind.as_ref() == Some(&keymap_target_kind))
                 || (contract == &chords_contract_id
                     && lowered_operation.target_kind.as_ref() == Some(&chords_target_kind))
             {
                 let node = usize::from(request.node.0);
-                let completion = input_semantic_backs::execute_host(
-                    contract == &keymap_contract_id,
-                    &mut input_keymaps[node],
-                    input,
-                );
+                let completion = if contract.as_str() == conduit_std_offers::KEYMAP_SELECT_HOST_CALL
+                {
+                    input_semantic_backs::select_host(&mut input_keymaps[node], input)
+                } else {
+                    input_semantic_backs::execute_host(
+                        contract == &keymap_contract_id,
+                        &mut input_keymaps[node],
+                        input,
+                    )
+                };
                 let outcome = match completion {
                     Ok(Some(encoded)) => {
                         let value = scheduler

@@ -79,6 +79,10 @@ for (const [slug, expected] of cases) {
             continue;
           }
           output = keyBytes(key);
+        } else if (progress.effect_kind === "saved-choice") {
+          // This runner-conformance fixture supplies the authored initial identity.
+          // The dedicated live keymap proof establishes the actual saved selector.
+          output = encoder.encode(progress.choice.initial);
         } else if (progress.effect_kind === "manifestation") {
           const matches = expected.text
             ? progress.text === expected.text

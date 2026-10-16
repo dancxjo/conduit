@@ -35,7 +35,7 @@ fn offer(contract: Kind, implementation: &'static str) -> CapabilityOffer {
                 contract_id: TEXT_STATE_HOST_CALL.into(),
                 target_kind: Some(kind_id("text/bounded-state-output@1")),
                 maximum_in_flight: 1,
-                maximum_input_bytes: 4,
+                maximum_input_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
                 maximum_output_bytes: conduit_semantic_catalog::MAXIMUM_EDITED_TEXT_BYTES,
             }],
             resource_requirements: Vec::new(),

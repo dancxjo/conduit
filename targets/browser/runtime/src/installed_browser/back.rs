@@ -1,5 +1,8 @@
 //! Generic finite kernel verbs used by installed browser implementations.
 
+mod unary;
+use unary::UnaryBack;
+
 use conduit_core::Scalar;
 use conduit_kernel::scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome};
 use conduit_kernel::ValueStorage;
@@ -60,6 +63,16 @@ impl BrowserBack {
 
     pub(crate) fn unary(maximum_input_bytes: u32, _maximum_values: u32) -> Self {
         Self::installed_step(UnaryBack {
+            initial: None,
+            maximum_input_bytes,
+            next_request: 0,
+            pending: None,
+        })
+    }
+
+    pub(crate) fn unary_with_initial(maximum_input_bytes: u32, initial: ValueRef) -> Self {
+        Self::installed_step(UnaryBack {
+            initial: Some(initial),
             maximum_input_bytes,
             next_request: 0,
             pending: None,
@@ -367,78 +380,6 @@ impl<const PORTS: usize> StepBack<PORTS> for SourceBack {
     }
 }
 
-struct UnaryBack {
-    maximum_input_bytes: u32,
-    next_request: u32,
-    pending: Option<RequestId>,
-}
-
-impl<const PORTS: usize> StepBack<PORTS> for UnaryBack {
-    fn step(&mut self, io: &mut StepIo<PORTS>, _: &StepInputBytes<'_, PORTS>) -> StepOutcome {
-        if let Some((request, outcome)) = io.host_completion() {
-            if self.pending != Some(request) {
-                return fail(2);
-            }
-            match (outcome.disposition, outcome.output, outcome.failure) {
-                (HostCallDisposition::Completed, output, None) => {
-                    if output.is_some() && !io.output_ready(PortId(0)) {
-                        return StepOutcome::Await;
-                    }
-                    let Some(next) = self.next_request.checked_add(1) else {
-                        return identity_exhausted(2);
-                    };
-                    io.consume_host_completion()
-                        .expect("observed unary Host Call completion");
-                    if let Some(output) = output {
-                        io.send(PortId(0), output.value)
-                            .expect("ready unary output");
-                    }
-                    self.pending = None;
-                    self.next_request = next;
-                    return StepOutcome::Progress;
-                }
-                (HostCallDisposition::Failed, None, Some(reason)) => {
-                    self.pending = None;
-                    return StepOutcome::Fail(reason);
-                }
-                (HostCallDisposition::Cancelled, None, None) => {
-                    self.pending = None;
-                    return StepOutcome::Fail(Failure {
-                        code: FailureCode::Cancelled,
-                        detail: 0,
-                    });
-                }
-                _ => return fail(2),
-            }
-        }
-        if let Some(value) = io.input(PortId(0)) {
-            if self.pending.is_some() {
-                return fail(2);
-            }
-            let input = match BoundedValueRef::new(value, self.maximum_input_bytes) {
-                Ok(input) => input,
-                Err(_) => return fail(2),
-            };
-            let request = RequestId(self.next_request);
-            io.consume(PortId(0)).expect("present unary input");
-            io.request_host_call(request, HostCallId(0), input)
-                .expect("unary Host Call");
-            self.pending = Some(request);
-            return StepOutcome::Progress;
-        }
-        if io.input_closed(PortId(0)) && self.pending.is_none() {
-            io.consume_closed(PortId(0))
-                .expect("observed unary input closure");
-            return StepOutcome::Complete;
-        }
-        StepOutcome::Await
-    }
-
-    fn cancel(&mut self) {
-        self.pending = None;
-    }
-}
-
 struct FaceBack {
     maximum_input_bytes: u32,
     next_request: u32,
@@ -713,7 +654,3 @@ fn identity_exhausted(detail: u16) -> StepOutcome {
         detail,
     })
 }
-
-#[cfg(test)]
-#[path = "unary_outcome_tests.rs"]
-mod unary_outcome_tests;

@@ -123,6 +123,15 @@ impl<'a> PreparedPcmTimeAnalysis<'a> {
     pub fn interval(&self) -> PcmAnalysisInterval {
         self.interval
     }
+    /// Complete validated source support, including samples outside the window.
+    pub fn source_interval(&self) -> PcmAnalysisInterval {
+        PcmAnalysisInterval {
+            clock_id: self.interval.clock_id,
+            start_frame: self.header.start_frame(),
+            frames: self.header.frame_count(),
+            sample_rate_hz: self.interval.sample_rate_hz,
+        }
+    }
     pub fn statistics(&self) -> PcmTimeStatistics {
         self.statistics
     }

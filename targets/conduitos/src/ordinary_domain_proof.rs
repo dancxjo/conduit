@@ -133,9 +133,8 @@ fn keymap_entries() {
     }
     // Compose state must survive separate hardware entries, including release.
     for (usage, transition, modifiers, expected) in [
-        (0xe7, KeyTransition::Pressed, KeyModifiers::RIGHT_GUI, ""),
-        (0xe7, KeyTransition::Released, KeyModifiers::NONE, ""),
-        (0x34, KeyTransition::Pressed, KeyModifiers::NONE, ""),
+        (0x34, KeyTransition::Pressed, KeyModifiers::RIGHT_ALT, ""),
+        (0x34, KeyTransition::Released, KeyModifiers::NONE, ""),
         (0x08, KeyTransition::Pressed, KeyModifiers::NONE, "é"),
     ] {
         let event =

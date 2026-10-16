@@ -4,6 +4,7 @@ use crate::prelude::*;
 use crate::{PlotCompletionPolicy, RuntimePort, Span};
 use alloc::collections::BTreeMap;
 use conduit_core::{CheckedFront, CheckedPlotId, ExpandedPlotId, SourceDocumentId};
+pub(crate) use startup_catalog::StoredStructuredDefault;
 pub use startup_catalog::*;
 
 #[derive(Debug, Clone, PartialEq, Eq)]

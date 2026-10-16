@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="en">
+<meta charset="utf-8">
+<title>Authored Conduitese keymaps through the browser kernel</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<link rel="stylesheet" href="/targets/browser/host/assets/conduit.css">
+<style>
+  body { margin:0; padding:clamp(1rem,4vw,3rem); background:var(--conduit-background); color:var(--conduit-text-primary); font-family:system-ui,sans-serif; }
+  main { max-inline-size:48rem; margin-inline:auto; }
+  h1 { color:var(--conduit-emphasis); font-size:clamp(2rem,6vw,3.6rem); margin-block:1rem .5rem; letter-spacing:-.04em; }
+  .intro { color:var(--conduit-text-secondary); line-height:1.7; margin-block-end:2rem; }
+  #surface { outline:none; }
+  #surface:focus-visible [data-insertion-caret] { outline:2px solid var(--conduit-focus); outline-offset:4px; }
+  [data-saved-choice] select { max-inline-size:100%; }
+  .hint { font-size:.85rem; color:var(--conduit-text-secondary); line-height:1.6; }
+</style>
+<p id="status" hidden>starting</p>
+<output id="key-count" hidden>0</output>
+<main data-memory-lantern-look>
+  <h1>Memory Lantern</h1>
+  <p class="intro">A little light for your thoughts. Choose a keyboard language, then type a message.</p>
+  <section id="choices" aria-label="Saved choices"></section>
+  <div id="surface" tabindex="0" aria-label="Keyboard input surface">
+    <output id="message" aria-label="Message"></output>
+  </div>
+  <p class="hint">US International keeps punctuation literal. Hold AltGr for accents: AltGr + quote, then e → é.</p>
+</main>
+<script type="module">
+import { manifestBrowserText } from "../../targets/browser/host/assets/browser-body-host.mjs";
+import { openBrowserHumanInput } from "../../targets/browser/host/assets/browser-human-input.mjs";
+import { bindBrowserRuntimeBridge } from "../../targets/browser/host/assets/browser-runtime-bridge.mjs";
+import { openBrowserApplicationStorage } from "../../targets/browser/host/assets/browser-application-storage.mjs";
+import { openBrowserSavedChoice } from "../../targets/browser/host/assets/browser-saved-choice.mjs";
+import { drainBrowserEffects } from "../../targets/browser/host/assets/browser-plot-effects.mjs";
+
+const response = await fetch("/target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm");
+if (!response.ok) throw new Error(`browser runtime fetch failed: ${response.status}`);
+const { instance } = await WebAssembly.instantiate(await response.arrayBuffer(), {});
+const api = instance.exports;
+const bridge = bindBrowserRuntimeBridge(api, { context: "authored keymap live proof" });
+const encoder = new TextEncoder();
+const boot = {
+  host_id: "browser/keymap-proof", boot_id: "browser-boot/keymap-proof", offer_generation: 1,
+  implementation_registry: ["browser/keyboard-events@1"],
+};
+const adapter = openBrowserHumanInput({ target: document.querySelector("#surface"), boot });
+const controller = new AbortController();
+let running = null;
+let keyCount = 0;
+let manifestations = 0;
+let activePlay = null;
+let failure = null;
+let storage = null;
+const choices = new Map();
+const read = () => bridge.browserPlotReadOutputJson();
+const fail = (error) => {
+  failure = String(error?.stack ?? error);
+  document.querySelector("#status").textContent = failure;
+};
+globalThis.__conduitKeymapProof = {
+  async start(source) {
+    if (running) throw new Error("one admitted Play per proof page");
+    const sourceBytes = encoder.encode(source);
+    const digest = [...new Uint8Array(await crypto.subtle.digest("SHA-256", sourceBytes))]
+      .map(value => value.toString(16).padStart(2, "0")).join("");
+    storage = await openBrowserApplicationStorage("conduit-browser-keymap-proof", 1, `sha256:${digest}`, {
+      implementationRegistry: ["browser/indexeddb@1"],
+    });
+    new Uint8Array(api.memory.buffer, api.conduit_browser_plot_input_ptr(), sourceBytes.length).set(sourceBytes);
+    if (api.conduit_browser_plot_admit_source_interaction(sourceBytes.length, 1n) < 0) {
+      throw new Error(`source interaction refused: ${JSON.stringify(read())}`);
+    }
+    const hostBytes = encoder.encode(boot.host_id);
+    const bootBytes = encoder.encode(boot.boot_id);
+    const bytes = new Uint8Array(api.memory.buffer, api.conduit_browser_plot_input_ptr(),
+      hostBytes.length + bootBytes.length + sourceBytes.length);
+    bytes.set(hostBytes);
+    bytes.set(bootBytes, hostBytes.length);
+    bytes.set(sourceBytes, hostBytes.length + bootBytes.length);
+    if (api.conduit_browser_plot_start(hostBytes.length, bootBytes.length, sourceBytes.length, 1n) < 0) {
+      throw new Error(`Plot start refused: ${JSON.stringify(read())}`);
+    }
+    const initialProgress = read();
+    activePlay = initialProgress.active_play_id;
+    // The shared Host dispatcher handles bounded kernel effects and exact
+    // completion identities. Retain the pending observation for the whole Play.
+    running = drainBrowserEffects({
+      api, bridge, initialProgress, readOutput: read, signal: controller.signal,
+      async perform(effect, signal) {
+        if (effect.active_play_id !== activePlay) throw new Error("effect belongs to a different Play");
+        if (effect.effect_kind === "saved-choice") {
+          let choice = choices.get(effect.placement_id);
+          if (!choice) {
+            if (choices.size >= 4) throw new Error("proof choice capacity exceeded");
+            const container = document.createElement("div");
+            document.querySelector("#choices").append(container);
+            choice = openBrowserSavedChoice({ configuration: effect.choice, storage, container });
+            choices.set(effect.placement_id, choice);
+          }
+          return choice.next(signal);
+        }
+        if (effect.effect_kind === "key-event") {
+          const value = await adapter.nextKeyboard();
+          if (++keyCount > 128) throw new Error("proof keyboard transition bound exceeded");
+          document.querySelector("#key-count").textContent = String(keyCount);
+          return value.canonical_bytes;
+        }
+        if (effect.effect_kind === "manifestation" && effect.face_kind === "face/text") {
+          manifestBrowserText(document.querySelector("#message"), effect);
+          if (++manifestations > 256) throw new Error("proof manifestation bound exceeded");
+          return new Uint8Array();
+        }
+        throw new Error(`unexpected keymap proof effect ${effect.effect_kind}`);
+      },
+      onWaiting() { document.querySelector("#status").textContent = "listening"; },
+    }).catch(fail);
+    return { activePlay };
+  },
+  async stop() {
+    controller.abort();
+    adapter.close();
+    for (const choice of choices.values()) choice.close();
+    storage?.close();
+    await running;
+    if (failure) throw new Error(failure);
+    if (api.conduit_browser_plot_cancel() < 0) throw new Error(`cancellation refused: ${JSON.stringify(read())}`);
+    return { receipt: read(), keyCount, manifestations, activePlay };
+  },
+};
+document.querySelector("#status").textContent = "ready";
+</script>
+</html>

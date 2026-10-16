@@ -3,6 +3,45 @@ use super::*;
 use conduit_core::StructuredInfoValueShape;
 
 impl CanonicalStructuredStartupValue {
+    /// Consume this startup value through the same validating Core constructors.
+    /// Unresolved parameters and invalid values refuse exactly as `try_concrete`.
+    pub fn into_concrete(self) -> Option<StructuredInfoValue> {
+        owned_concrete(self).ok()
+    }
+
+    /// Move an admitted Core value into the identical startup representation.
+    /// This avoids retaining a second recursive Type/value tree during installation.
+    pub fn from_owned_checked_value(value: StructuredInfoValue) -> Self {
+        use conduit_core::OwnedStructuredInfoValueShape as Shape;
+        let (value_type, shape) = value.into_parts();
+        let node = match shape {
+            Shape::Leaf(canonical) => CanonicalStructuredStartupNode::Literal { canonical },
+            Shape::Collection(values) => CanonicalStructuredStartupNode::Collection(
+                values
+                    .into_iter()
+                    .map(Self::from_owned_checked_value)
+                    .collect(),
+            ),
+            Shape::Record(fields) => CanonicalStructuredStartupNode::Record(
+                fields
+                    .into_iter()
+                    .map(|field| {
+                        let (name, value) = field.into_parts();
+                        CanonicalStructuredStartupField {
+                            name,
+                            value: Self::from_owned_checked_value(value),
+                        }
+                    })
+                    .collect(),
+            ),
+            Shape::Variant { tag, payload } => CanonicalStructuredStartupNode::Variant {
+                tag,
+                payload: Box::new(Self::from_owned_checked_value(*payload)),
+            },
+        };
+        Self { value_type, node }
+    }
+
     /// Converts an already constructed, bounded Core value without reparsing
     /// Source or inferring a different nominal Type from its representation.
     pub fn from_checked_value(value: &StructuredInfoValue) -> Self {
@@ -38,6 +77,105 @@ impl CanonicalStructuredStartupValue {
     }
 }
 
+pub(super) fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
+    concrete_with_type(&value.value_type, &value.node)
+}
+
+fn concrete_with_type(
+    value_type: &StructuredInfoType,
+    node: &CanonicalStructuredStartupNode,
+) -> Result<StructuredInfoValue, ()> {
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = value_type.shape() {
+        return StructuredInfoValue::nominal(
+            value_type.clone(),
+            concrete_with_type(representation, node)?,
+        )
+        .map_err(|_| ());
+    }
+    match node {
+        CanonicalStructuredStartupNode::Literal { canonical, .. } => {
+            StructuredInfoValue::leaf(value_type.clone(), canonical.clone()).map_err(|_| ())
+        }
+        CanonicalStructuredStartupNode::Parameter(_) => Err(()),
+        CanonicalStructuredStartupNode::Collection(values) => {
+            let values = values.iter().map(concrete).collect::<Result<Vec<_>, _>>()?;
+            match value_type.shape() {
+                StructuredInfoTypeShape::Collection { .. } => {
+                    StructuredInfoValue::collection(value_type.clone(), values)
+                }
+                StructuredInfoTypeShape::Sequence { .. } => {
+                    StructuredInfoValue::sequence(value_type.clone(), values)
+                }
+                _ => Err(StructuredInfoRefusal::WrongType),
+            }
+            .map_err(|_| ())
+        }
+        CanonicalStructuredStartupNode::Record(fields) => StructuredInfoValue::record(
+            value_type.clone(),
+            fields
+                .iter()
+                .map(|field| {
+                    StructuredFieldValue::new(field.name.clone(), concrete(&field.value)?)
+                        .map_err(|_| ())
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| ()),
+        CanonicalStructuredStartupNode::Variant { tag, payload } => {
+            StructuredInfoValue::variant(value_type.clone(), tag.clone(), concrete(payload)?)
+                .map_err(|_| ())
+        }
+    }
+}
+
+fn owned_concrete(value: CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
+    let CanonicalStructuredStartupValue { value_type, node } = value;
+    if let StructuredInfoTypeShape::Nominal { representation, .. } = value_type.shape() {
+        let represented_type = representation.clone();
+        let represented = owned_concrete(CanonicalStructuredStartupValue {
+            value_type: represented_type,
+            node,
+        })?;
+        return StructuredInfoValue::nominal(value_type, represented).map_err(|_| ());
+    }
+    match node {
+        CanonicalStructuredStartupNode::Literal { canonical } => {
+            StructuredInfoValue::leaf(value_type, canonical).map_err(|_| ())
+        }
+        CanonicalStructuredStartupNode::Parameter(_) => Err(()),
+        CanonicalStructuredStartupNode::Collection(values) => {
+            let values = values
+                .into_iter()
+                .map(owned_concrete)
+                .collect::<Result<Vec<_>, _>>()?;
+            match value_type.shape() {
+                StructuredInfoTypeShape::Collection { .. } => {
+                    StructuredInfoValue::collection(value_type, values)
+                }
+                StructuredInfoTypeShape::Sequence { .. } => {
+                    StructuredInfoValue::sequence(value_type, values)
+                }
+                _ => Err(StructuredInfoRefusal::WrongType),
+            }
+            .map_err(|_| ())
+        }
+        CanonicalStructuredStartupNode::Record(fields) => StructuredInfoValue::record(
+            value_type,
+            fields
+                .into_iter()
+                .map(|field| {
+                    StructuredFieldValue::new(field.name, owned_concrete(field.value)?)
+                        .map_err(|_| ())
+                })
+                .collect::<Result<Vec<_>, _>>()?,
+        )
+        .map_err(|_| ()),
+        CanonicalStructuredStartupNode::Variant { tag, payload } => {
+            StructuredInfoValue::variant(value_type, tag, owned_concrete(*payload)?).map_err(|_| ())
+        }
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
@@ -58,8 +196,47 @@ mod tests {
         let startup = CanonicalStructuredStartupValue::from_checked_value(&original);
         assert_eq!(startup.value_type(), &nominal_type);
         assert!(startup.satisfies_concrete_bounds());
+        assert_eq!(startup.clone().into_concrete(), Some(original.clone()));
         assert_eq!(startup.try_concrete(), Some(original));
     }
+    #[test]
+    fn consuming_conversion_preserves_parameter_and_invalid_value_refusals() {
+        let text = StructuredInfoType::leaf(KindId::new("value/text")).unwrap();
+        let cases = [
+            CanonicalStructuredStartupValue {
+                value_type: text.clone(),
+                node: CanonicalStructuredStartupNode::Parameter("caller".into()),
+            },
+            CanonicalStructuredStartupValue {
+                value_type: text.clone(),
+                node: CanonicalStructuredStartupNode::Literal {
+                    canonical: vec![0xff],
+                },
+            },
+            CanonicalStructuredStartupValue {
+                value_type: text.clone(),
+                node: CanonicalStructuredStartupNode::Collection(vec![]),
+            },
+            CanonicalStructuredStartupValue {
+                value_type: StructuredInfoType::collection(text.clone(), Some(1)).unwrap(),
+                node: CanonicalStructuredStartupNode::Collection(vec![]),
+            },
+            CanonicalStructuredStartupValue {
+                value_type: StructuredInfoType::collection(text.clone(), Some(1)).unwrap(),
+                node: CanonicalStructuredStartupNode::Collection(vec![
+                    CanonicalStructuredStartupValue {
+                        value_type: text,
+                        node: CanonicalStructuredStartupNode::Parameter("nested".into()),
+                    },
+                ]),
+            },
+        ];
+        for value in cases {
+            assert_eq!(value.try_concrete(), None);
+            assert_eq!(value.into_concrete(), None);
+        }
+    }
+
     #[test]
     fn nested_glyph_requires_exact_admitted_nominal_constructor_result() {
         let span = Span {

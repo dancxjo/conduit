@@ -27,6 +27,9 @@ pub(super) struct TourEffect {
     pub(super) face_kind: String,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) data_label: Option<String>,
+    /// An authored semantic insertion point at the end of the current text.
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) insertion_caret: Option<bool>,
     pub(super) observation_sequence: u32,
     pub(super) realization: &'static str,
     pub(super) expanded_gears: Vec<TourGearEvidence>,
@@ -76,6 +79,8 @@ pub(super) struct TourKeyEventEffect {
     pub(super) maximum_output_bytes: u32,
     #[serde(skip_serializing_if = "Option::is_none")]
     pub(super) source_interaction: Option<SourceInteractionEvidence>,
+    #[serde(skip_serializing_if = "Option::is_none")]
+    pub(super) choice: Option<crate::installed_browser::saved_choice::SavedChoiceConfiguration>,
 }
 
 #[derive(Debug, Serialize)]

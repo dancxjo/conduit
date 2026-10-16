@@ -1,8 +1,10 @@
+mod keymap_layout_build;
 use conduit_plot::rust_binding::{generate_rust_bindings_with_forms, RustBindingOptions};
 use conduit_plot::{check_syntax_document, parse_syntax_document, StartupCatalog};
 use std::{collections::BTreeMap, env, fs, path::PathBuf};
 
 fn main() {
+    keymap_layout_build::generate();
     println!("cargo:rerun-if-changed=types.conduit");
     let mut catalog = StartupCatalog::new();
     catalog

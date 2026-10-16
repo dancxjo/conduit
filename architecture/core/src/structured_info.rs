@@ -14,6 +14,8 @@ mod canonical;
 mod canonical_length;
 pub use borrowed::*;
 mod inspection;
+mod owned;
+pub use owned::*;
 mod prepared_composition;
 mod profile;
 mod selection;

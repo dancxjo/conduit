@@ -6,8 +6,9 @@ use serde::Serialize;
 use std::io::{self, Write};
 use std::net::TcpStream;
 
-// Leave room for Host observations in the browser's 256 KiB start input arena.
-const MAX_PROPOSAL_BYTES: usize = 192 * 1024;
+// The ordinary two-resident keyboard workload carries 1,701,516 bytes of exact plan metadata.
+// Browser Body start reserves a separate 64 KiB for host framing and observations.
+const MAX_PROPOSAL_BYTES: usize = 2 * 1024 * 1024;
 
 #[derive(Serialize)]
 struct ExecutionProposal<'a> {

@@ -159,10 +159,7 @@ pub fn completed_snapshot(
     };
     validate_snapshot(&snapshot).map_err(|_| ExportError::InvalidSnapshot)?;
     let encoded = serde_json::to_string(&snapshot).map_err(|_| ExportError::EncodingFailed)?;
-    if encoded.len() > crate::observatory::MAX_EXPORT_BYTES {
-        return Err(ExportError::ExportTooLarge);
-    }
-    Ok(encoded)
+    crate::observatory::bounded_export(encoded)
 }
 
 fn observation(
@@ -223,7 +220,7 @@ mod tests {
                 rdrand: true,
                 invariant_tsc: true,
             },
-            1_048_576,
+            8 * 1024 * 1024,
         )
         .with_keyboard(
             KeyboardRealization {
@@ -253,7 +250,7 @@ mod tests {
             command_line_bytes: 0,
             runtime_arena: crate::boot::RuntimeArena {
                 physical_start: 6,
-                length: 1_048_576,
+                length: 8 * 1024 * 1024,
             },
         };
         let encoded = completed_snapshot(

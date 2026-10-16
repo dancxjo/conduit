@@ -1,8 +1,8 @@
 use super::back::{BackBudget, BackFactory, InstalledBack};
 use conduit_core::{ConfigurationValue, PlannedGear, PortDescriptor, PortDirection};
 use conduit_human::{
-    ChordInfo, ConduitIntlKeymap, KeyEvent, KeymapDisposition, KeymapRefusal, CHORD_ENCODED_LEN,
-    CONDUIT_INTL_LAYOUT, CORE_CHORD_MAP, KEY_EVENT_ENCODED_LEN,
+    ChordInfo, KeyEvent, KeymapRefusal, PreparedKeymapChoices as PreparedKeymap, CHORD_ENCODED_LEN,
+    CORE_CHORD_MAP, KEYMAP_MAXIMUM_TEXT_BYTES, KEY_EVENT_ENCODED_LEN,
 };
 use conduit_kernel::{
     scheduler::{StepBack, StepInputBytes, StepIo, StepOutcome},
@@ -35,6 +35,8 @@ pub(super) struct KeyEventTeeBack {
 pub(super) struct InputSemanticBack {
     pending: Option<RequestId>,
     next: u32,
+    selections: bool,
+    selection: Option<conduit_kernel::ValueRef>,
 }
 
 impl<const PORTS: usize> StepBack<PORTS> for KeyEventTeeBack {
@@ -94,6 +96,26 @@ impl<const PORTS: usize> StepBack<PORTS> for InputSemanticBack {
             self.next = self.next.saturating_add(1);
             return StepOutcome::Progress;
         }
+        if self.pending.is_some() {
+            return StepOutcome::Await;
+        }
+        if self.selections {
+            if let Some(value) = io
+                .input(PortId(1))
+                .filter(|value| Some(*value) != self.selection)
+            {
+                let Ok(input) = BoundedValueRef::new(value, 32) else {
+                    return step_fail(42);
+                };
+                let request = RequestId(self.next);
+                io.consume(PortId(1)).expect("present keymap selection");
+                io.request_host_call(request, HostCallId(0), input)
+                    .expect("keymap selection call");
+                self.pending = Some(request);
+                self.selection = Some(value);
+                return StepOutcome::Progress;
+            }
+        }
         if let Some(value) = io.input(PortId(0)) {
             if self.pending.is_some()
                 || self.next >= u32::from(conduit_semantic_catalog::INPUT_SEMANTIC_MAXIMUM_VALUES)
@@ -106,7 +128,7 @@ impl<const PORTS: usize> StepBack<PORTS> for InputSemanticBack {
             let request = RequestId(self.next);
             io.consume(PortId(0))
                 .expect("present input semantic key event");
-            io.request_host_call(request, HostCallId(0), input)
+            io.request_host_call(request, HostCallId(u16::from(self.selections)), input)
                 .expect("input semantic Host Call");
             self.pending = Some(request);
             return StepOutcome::Progress;
@@ -121,6 +143,7 @@ impl<const PORTS: usize> StepBack<PORTS> for InputSemanticBack {
 
     fn cancel(&mut self) {
         self.pending = None;
+        self.selection = None;
     }
 }
 
@@ -137,7 +160,7 @@ impl InputSemanticBack {}
 
 #[derive(Debug, PartialEq, Eq)]
 pub(super) struct EncodedOutput {
-    bytes: [u8; CHORD_ENCODED_LEN],
+    bytes: [u8; KEYMAP_MAXIMUM_TEXT_BYTES],
     len: usize,
 }
 
@@ -149,24 +172,24 @@ impl EncodedOutput {
 
 pub(super) fn execute_host(
     keymap: bool,
-    state: &mut ConduitIntlKeymap,
+    state: &mut Option<PreparedKeymap>,
     input: &[u8],
 ) -> Result<Option<EncodedOutput>, Failure> {
     let event = KeyEvent::decode(input).map_err(|_| invalid_input(1))?;
     if keymap {
+        let state = state.as_mut().ok_or_else(|| invalid_input(6))?;
         match state.apply(event) {
-            KeymapDisposition::Text(fragment) => {
-                let mut bytes = [0; CHORD_ENCODED_LEN];
-                let mut utf8 = [0; 4];
-                let value = fragment.encode_utf8(&mut utf8);
+            Ok(Some(fragment)) => {
+                let value = fragment.as_slice();
+                let mut bytes = [0; KEYMAP_MAXIMUM_TEXT_BYTES];
                 bytes[..value.len()].copy_from_slice(value);
                 Ok(Some(EncodedOutput {
                     bytes,
                     len: value.len(),
                 }))
             }
-            KeymapDisposition::NoText | KeymapDisposition::Cancelled => Ok(None),
-            KeymapDisposition::Refused(reason) => Err(invalid_input(match reason {
+            Ok(None) => Ok(None),
+            Err(reason) => Err(invalid_input(match reason {
                 KeymapRefusal::UnknownComposeSequence => 2,
                 KeymapRefusal::EmptyUnicodeEntry => 3,
                 KeymapRefusal::UnicodeEntryOverflow => 4,
@@ -174,11 +197,60 @@ pub(super) fn execute_host(
             })),
         }
     } else {
-        Ok(ChordInfo::from_key_event(event).map(|chord| EncodedOutput {
-            bytes: chord.encode(),
-            len: CHORD_ENCODED_LEN,
+        Ok(ChordInfo::from_key_event(event).map(|chord| {
+            let mut bytes = [0; KEYMAP_MAXIMUM_TEXT_BYTES];
+            bytes[..CHORD_ENCODED_LEN].copy_from_slice(&chord.encode());
+            EncodedOutput {
+                bytes,
+                len: CHORD_ENCODED_LEN,
+            }
         }))
     }
+}
+
+pub(super) fn select_host(
+    state: &mut Option<PreparedKeymap>,
+    input: &[u8],
+) -> Result<Option<EncodedOutput>, Failure> {
+    state
+        .as_mut()
+        .ok_or_else(|| invalid_input(6))?
+        .select(input)
+        .map_err(|_| invalid_input(7))?;
+    Ok(None)
+}
+
+/// Prepare each layout against the exact lowered node identity before play.
+/// Body partitions use a shared node space; placement order is not a node ID.
+pub(super) fn prepare_keymaps<'a, const N: usize>(
+    placements: impl IntoIterator<Item = (Option<usize>, &'a PlannedGear)>,
+) -> Result<[Option<PreparedKeymap>; N], String> {
+    let mut keymaps = core::array::from_fn(|_| None);
+    for (node, placement) in placements {
+        if placement.kind_id.as_str() != conduit_semantic_catalog::KEYMAP_KIND {
+            continue;
+        }
+        validate_keymap(placement)?;
+        let node = node.ok_or("keymap placement has no lowered node")?;
+        let state = keymaps
+            .get_mut(node)
+            .ok_or("keymap node exceeds prepared capacity")?;
+        if state.is_some() {
+            return Err("keymap node was prepared twice".into());
+        }
+        let layout = structured_configuration(placement, "layout")
+            .ok_or("keymap layout must be a structured Conduitese value")?;
+        let choices = placement
+            .configuration
+            .iter()
+            .find_map(|entry| match (&*entry.key, &entry.value) {
+                ("choices", ConfigurationValue::Structured(value)) => Some(value),
+                _ => None,
+            })
+            .ok_or("keymap choices are missing")?;
+        *state = Some(PreparedKeymap::new(layout, choices)?);
+    }
+    Ok(keymaps)
 }
 
 const fn invalid_input(detail: u16) -> Failure {
@@ -200,7 +272,7 @@ fn key_event_tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
         },
         &conduit_semantic_catalog::key_event_tee_contract().inputs,
         &conduit_semantic_catalog::key_event_tee_contract().outputs,
-        None,
+        ConfigurationMatch::Empty,
     )?;
     Ok(BackBudget {
         value_items: 0,
@@ -213,7 +285,7 @@ fn key_event_tee_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
 
 fn keymap_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
     validate_keymap(placement)?;
-    semantic_budget(4)
+    semantic_budget(KEYMAP_MAXIMUM_TEXT_BYTES as u32)
 }
 
 fn chords_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
@@ -251,6 +323,8 @@ fn prepare_keymap(
     Ok(InstalledBack::InputKeymap(InputSemanticBack {
         pending: None,
         next: 0,
+        selections: true,
+        selection: None,
     }))
 }
 
@@ -262,6 +336,8 @@ fn prepare_chords(
     Ok(InstalledBack::InputChords(InputSemanticBack {
         pending: None,
         next: 0,
+        selections: false,
+        selection: None,
     }))
 }
 
@@ -277,7 +353,7 @@ fn validate_keymap(placement: &PlannedGear) -> Result<(), String> {
         },
         &conduit_semantic_catalog::keymap_contract().inputs,
         &conduit_semantic_catalog::keymap_contract().outputs,
-        Some(("layout", CONDUIT_INTL_LAYOUT)),
+        ConfigurationMatch::Layout,
     )
 }
 
@@ -293,8 +369,14 @@ fn validate_chords(placement: &PlannedGear) -> Result<(), String> {
         },
         &conduit_semantic_catalog::chords_contract().inputs,
         &conduit_semantic_catalog::chords_contract().outputs,
-        Some(("map", CORE_CHORD_MAP)),
+        ConfigurationMatch::Text("map", CORE_CHORD_MAP),
     )
+}
+
+enum ConfigurationMatch<'a> {
+    Empty,
+    Text(&'a str, &'a str),
+    Layout,
 }
 
 struct Identity {
@@ -305,16 +387,35 @@ struct Identity {
     artifact: &'static str,
 }
 
+fn structured_configuration<'a>(
+    placement: &'a PlannedGear,
+    key: &str,
+) -> Option<&'a conduit_core::StructuredConfigurationValue> {
+    placement
+        .configuration
+        .iter()
+        .find_map(|entry| match (&*entry.key, &entry.value) {
+            (name, ConfigurationValue::Structured(value)) if name == key => Some(value),
+            _ => None,
+        })
+}
+
 fn validate_identity(
     placement: &PlannedGear,
     identity: Identity,
     inputs: &[PortDescriptor],
     outputs: &[PortDescriptor],
-    configuration: Option<(&str, &str)>,
+    configuration: ConfigurationMatch<'_>,
 ) -> Result<(), String> {
     let configuration_matches = match configuration {
-        None => placement.configuration.is_empty(),
-        Some((key, expected)) => {
+        ConfigurationMatch::Empty => placement.configuration.is_empty(),
+        ConfigurationMatch::Layout => {
+            placement.configuration.len() == 2
+                && structured_configuration(placement, "layout")
+                    .zip(structured_configuration(placement, "choices"))
+                    .is_some_and(|(layout, choices)| PreparedKeymap::new(layout, choices).is_ok())
+        }
+        ConfigurationMatch::Text(key, expected) => {
             placement.configuration.len() == 1
                 && placement.configuration[0].key == key
                 && placement.configuration[0].value == ConfigurationValue::Text(expected.into())
@@ -341,57 +442,5 @@ fn validate_identity(
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use conduit_human::{KeyModifiers, KeyTransition};
-
-    #[test]
-    fn host_semantics_share_the_core_state_machine_and_refuse_malformed_input() {
-        let mut map = ConduitIntlKeymap::new();
-        let event = KeyEvent::new(0x08, KeyTransition::Pressed, KeyModifiers::RIGHT_ALT).unwrap();
-        let output = execute_host(true, &mut map, &event.encode())
-            .unwrap()
-            .unwrap();
-        assert_eq!(output.as_slice(), "€".as_bytes());
-        assert_eq!(execute_host(true, &mut map, &[0, 1]), Err(invalid_input(1)));
-
-        let ctrl_g =
-            KeyEvent::new(0x0a, KeyTransition::Pressed, KeyModifiers::LEFT_CONTROL).unwrap();
-        let chord = execute_host(false, &mut map, &ctrl_g.encode())
-            .unwrap()
-            .unwrap();
-        assert_eq!(
-            ChordInfo::decode(chord.as_slice()).unwrap().chord_id(),
-            conduit_human::CoreChordId::CancelOrEscape
-        );
-    }
-
-    #[test]
-    fn cancellation_clears_one_pending_semantic_request_without_a_duplicate() {
-        let mut operation = InputSemanticBack {
-            pending: None,
-            next: 0,
-        };
-        let value = conduit_kernel::ValueRef {
-            slot: 1,
-            generation: 1,
-            byte_len: KEY_EVENT_ENCODED_LEN as u32,
-        };
-        let mut io = StepIo::test_frame([Some(value)], [false], [Some(4)], None, 8);
-        assert_eq!(
-            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
-            StepOutcome::Progress
-        );
-        assert_eq!(
-            io.test_host_request().map(|request| request.0),
-            Some(RequestId(0))
-        );
-        StepBack::<1>::cancel(&mut operation);
-        let mut io = StepIo::test_frame([None], [true], [None], None, 8);
-        assert_eq!(
-            operation.step(&mut io, &StepInputBytes::test_frame([None], None)),
-            StepOutcome::Complete
-        );
-        assert!(io.test_consumed_closed(PortId(0)));
-    }
-}
+#[path = "input_semantic_backs_tests.rs"]
+mod tests;

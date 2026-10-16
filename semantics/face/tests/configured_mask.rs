@@ -94,7 +94,7 @@ fn fixture(
         .insert_structured_type("VisualExpressionInfo", visual_expression_type())
         .unwrap();
     startup
-        .insert_structured_type(profile.as_str(), visual_expression_type())
+        .ensure_structured_type(profile.as_str(), visual_expression_type())
         .unwrap();
     let checked = check_syntax_document(&parse_syntax_document(source), &startup).unwrap();
     let expanded = expand_canonical_plot_for_authoring(&checked, root_name, &profiles).unwrap();

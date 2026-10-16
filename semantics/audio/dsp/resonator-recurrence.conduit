@@ -1,0 +1,24 @@
+# Exact shared Q14 two-pole recurrence, retaining compact voice ordering.
+# Callers own typed controls, stable coefficients, state and work bounds.
+type ResonatorRecurrenceResult<I,O> = {
+    input: I
+    sample: O
+}
+plot dsp/resonator-recurrence-carry (
+    item: type
+    output: type
+    >> value: item
+    result: output >>
+) = ({input: ., sample: (.drive + .b * .y1 + .c * .y2) / 16384})
+
+plot dsp/resonator-recurrence (
+    item: type
+    paired: type
+    output: type
+    >> value: item
+    result: output >>
+) {
+    arithmetic: dsp/resonator-recurrence-carry(item = item, output = paired)
+    value >> arithmetic.value
+    arithmetic.result >> (.sample) >> result
+}.

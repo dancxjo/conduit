@@ -25,11 +25,11 @@ mod relay;
 pub(crate) use relay::validate_endpoint_descriptor as validate_relay_endpoint_descriptor;
 
 const PROTOCOL: u16 = 1;
-// One control frame must hold the exact bounded standard Host advertisement
-// both before and after invitation admission. Keep this synchronized with the
-// browser peer; 512 KiB admits the four-constructor canonical catalog without making
-// the retained Line or its ordinary data frames unbounded.
-const MAXIMUM_FRAME_BYTES: usize = 512 * 1024;
+// Rendezvous carries the exact standard Host inventory, including complete
+// authored keyboard defaults. Keep this finite bound synchronized with the
+// browser rendezvous peer; ordinary data-Line limits remain independently admitted.
+const MAXIMUM_FRAME_BYTES: usize = 2 * 1024 * 1024;
+const MAXIMUM_JOINED_FRAME_BYTES: usize = 512 * 1024;
 const MAXIMUM_ID_BYTES: usize = 192;
 const CODE_PREFIX: &str = "C1-WS";
 const SERIAL_CODE_PREFIX: &str = "C1-SERIAL";
@@ -596,8 +596,8 @@ fn exchange_joined_frame(
     }
     let first = decode_session_frame(
         frame,
-        MAXIMUM_FRAME_BYTES as u32,
-        MAXIMUM_FRAME_BYTES as u32,
+        MAXIMUM_JOINED_FRAME_BYTES as u32,
+        MAXIMUM_JOINED_FRAME_BYTES as u32,
     )
     .map_err(|error| format!("decode joined Host session frame: {error:?}"))?;
     let identity = first.identity;
@@ -614,8 +614,8 @@ fn exchange_joined_frame(
             }
             let decoded = decode_session_frame(
                 &candidate,
-                MAXIMUM_FRAME_BYTES as u32,
-                MAXIMUM_FRAME_BYTES as u32,
+                MAXIMUM_JOINED_FRAME_BYTES as u32,
+                MAXIMUM_JOINED_FRAME_BYTES as u32,
             )
             .map_err(|error| format!("decode joined Host cancellation: {error:?}"))?;
             if decoded.identity != identity

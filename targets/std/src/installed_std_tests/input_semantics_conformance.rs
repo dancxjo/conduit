@@ -65,7 +65,7 @@ fn ordinary_plot_splits_text_and_chords_through_the_production_kernel() {
         .unwrap();
     assert_eq!(
         keymap.configuration[0].value,
-        conduit_core::ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+        conduit_core::ConfigurationValue::Structured(conduit_human::default_keymap_configuration())
     );
     let chords = fragment
         .placements
@@ -132,4 +132,25 @@ fn unsupported_layout_and_cross_plane_wiring_refuse_before_play() {
 
     let incompatible = SPLIT_FORM.replace("keymap.text >> show.text", "chords.chord >> show.text");
     assert!(parse(&incompatible, &installed_std::test_catalog()).is_err());
+}
+
+#[test]
+fn stdout_caret_request_is_refused_before_text_effects_and_default_false_executes() {
+    for enabled in [false, true] {
+        let source = format!("plot stdout_cue {{\n show: face/text(\"Cue\", insertion-caret = {enabled})\n \"cue\" >> show.text\n}}\n");
+        let (mut host, fragment) = plan(&source);
+        let mut output = Vec::new();
+        let mut timer = RecordingTimer { waits: Vec::new() };
+        let result = host.run_fragment_to(fragment, &mut output, &mut timer);
+        let output = String::from_utf8(output).unwrap();
+        if enabled {
+            assert!(result
+                .unwrap_err()
+                .contains("stdout text Face does not support an insertion caret"));
+            assert!(!output.contains("FACE-TEXT"), "{output}");
+        } else {
+            assert!(result.is_ok());
+            assert!(output.contains("cue\n"), "{output}");
+        }
+    }
 }

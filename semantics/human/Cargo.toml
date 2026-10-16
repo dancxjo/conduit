@@ -4,6 +4,7 @@ version = "0.1.0"
 edition = "2021"
 
 [dependencies]
+unicode-normalization = { version = "0.1", default-features = false }
 conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 serde = { version = "1", default-features = false, features = ["alloc", "derive"] }

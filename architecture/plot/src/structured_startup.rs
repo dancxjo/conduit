@@ -69,7 +69,7 @@ impl CanonicalStructuredStartupValue {
     }
 
     pub fn try_concrete(&self) -> Option<StructuredInfoValue> {
-        concrete(self).ok()
+        prepared::concrete(self).ok()
     }
 
     pub(crate) fn satisfies_concrete_bounds(&self) -> bool {
@@ -344,51 +344,6 @@ pub(crate) fn check_structured_expression(
             span: expression.span(),
             message: "pure runtime expression is not a structured startup value".into(),
         }),
-    }
-}
-
-fn concrete(value: &CanonicalStructuredStartupValue) -> Result<StructuredInfoValue, ()> {
-    if let StructuredInfoTypeShape::Nominal { representation, .. } = value.value_type.shape() {
-        let represented = CanonicalStructuredStartupValue {
-            value_type: representation.clone(),
-            node: value.node.clone(),
-        };
-        return StructuredInfoValue::nominal(value.value_type.clone(), concrete(&represented)?)
-            .map_err(|_| ());
-    }
-    match &value.node {
-        CanonicalStructuredStartupNode::Literal { canonical, .. } => {
-            StructuredInfoValue::leaf(value.value_type.clone(), canonical.clone()).map_err(|_| ())
-        }
-        CanonicalStructuredStartupNode::Parameter(_) => Err(()),
-        CanonicalStructuredStartupNode::Collection(values) => {
-            let values = values.iter().map(concrete).collect::<Result<Vec<_>, _>>()?;
-            match value.value_type.shape() {
-                StructuredInfoTypeShape::Collection { .. } => {
-                    StructuredInfoValue::collection(value.value_type.clone(), values)
-                }
-                StructuredInfoTypeShape::Sequence { .. } => {
-                    StructuredInfoValue::sequence(value.value_type.clone(), values)
-                }
-                _ => Err(StructuredInfoRefusal::WrongType),
-            }
-            .map_err(|_| ())
-        }
-        CanonicalStructuredStartupNode::Record(fields) => StructuredInfoValue::record(
-            value.value_type.clone(),
-            fields
-                .iter()
-                .map(|field| {
-                    StructuredFieldValue::new(field.name.clone(), concrete(&field.value)?)
-                        .map_err(|_| ())
-                })
-                .collect::<Result<Vec<_>, _>>()?,
-        )
-        .map_err(|_| ()),
-        CanonicalStructuredStartupNode::Variant { tag, payload } => {
-            StructuredInfoValue::variant(value.value_type.clone(), tag.clone(), concrete(payload)?)
-                .map_err(|_| ())
-        }
     }
 }
 

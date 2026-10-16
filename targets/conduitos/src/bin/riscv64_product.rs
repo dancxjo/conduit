@@ -24,7 +24,8 @@ pub extern "C" fn conduitos_riscv64_product_start() -> ! {
     if !arch::initialize_machine() {
         refuse("unavailable-or-stale-trap-controller");
     }
-    let boot_record = boot::normalize_boot().unwrap_or_else(|error| refuse(error.as_str()));
+    let boot_record = boot::normalize_boot_with_arena_bytes(EMBEDDED_MAKE.runtime_arena_ceiling)
+        .unwrap_or_else(|error| refuse(error.as_str()));
     arch::initialize_domains(&boot_record);
     let arena = boot_record
         .hhdm_offset
@@ -210,7 +211,52 @@ unsafe extern "C" fn memset(d: *mut u8, v: i32, n: usize) -> *mut u8 {
     }
     d
 }
+struct DiagnosticWriter {
+    remaining: usize,
+    truncated: bool,
+}
+
+impl core::fmt::Write for DiagnosticWriter {
+    fn write_str(&mut self, text: &str) -> core::fmt::Result {
+        let mut length = text.len().min(self.remaining);
+        while !text.is_char_boundary(length) {
+            length -= 1;
+        }
+        arch::present(&text.as_bytes()[..length]);
+        self.remaining -= length;
+        if length < text.len() {
+            self.truncated = true;
+            // Once a chunk is truncated, preserve a prefix of the whole report.
+            self.remaining = 0;
+        }
+        Ok(())
+    }
+}
+
 #[panic_handler]
-fn panic(_: &PanicInfo<'_>) -> ! {
+fn panic(info: &PanicInfo<'_>) -> ! {
+    arch::disable_interrupts();
+    arch::present(b"CONDUIT_RISCV64_PRODUCT_PANIC ");
+    let mut writer = DiagnosticWriter {
+        remaining: 1024,
+        truncated: false,
+    };
+    let _ = core::fmt::Write::write_fmt(&mut writer, format_args!("{info}\n"));
+    if writer.truncated {
+        arch::present(b" [truncated]\n");
+    }
+    // Arena facts remain available even if the panic message exhausted its cap.
+    let _ = core::fmt::Write::write_fmt(
+        &mut DiagnosticWriter {
+            remaining: 1024,
+            truncated: false,
+        },
+        format_args!(
+            "CONDUIT_RISCV64_PANIC_ARENA peak={} live={} capacity={}\n",
+            BOOT_ARENA.used(),
+            BOOT_ARENA.live_bytes(),
+            BOOT_ARENA.capacity()
+        ),
+    );
     refuse("panic")
 }

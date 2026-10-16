@@ -195,12 +195,12 @@ mod tests {
     fn cost_requires_one_exact_current_partition_and_retirement() {
         let identity = json!({"plan_id":"body-plan", "active_play_id":"play", "checked_plot_id":"editor", "partition_plan_id":"editor-partition"});
         let cost = json!({"plan_id":"body-plan", "play_id":"play", "checked_plot_id":"editor",
-            "partition_plan_id":"editor-partition", "fixture":false, "entries":21,
-            "base_gate_transitions":5, "state":"Revoked(PlayCancelled)", "teardown_zeroed_bytes":217088,
+            "partition_plan_id":"editor-partition", "fixture":false, "entries":23,
+            "base_gate_transitions":6, "state":"Revoked(PlayCancelled)", "teardown_zeroed_bytes":217088,
             "dma_isolation":false, "driver_isolation":false});
         let line = |cost: &Value| format!("CONDUIT_DOMAIN_COST {cost}\n");
-        assert!(validate_cost(&line(&cost), &identity, 21, 5).is_ok());
-        assert!(validate_cost(&line(&cost).repeat(2), &identity, 21, 5).is_err());
+        assert!(validate_cost(&line(&cost), &identity, 23, 6).is_ok());
+        assert!(validate_cost(&line(&cost).repeat(2), &identity, 23, 6).is_err());
         for (field, replacement) in [
             ("play_id", "old-play"),
             ("checked_plot_id", "sibling"),
@@ -210,7 +210,7 @@ mod tests {
             let mut invalid = cost.clone();
             invalid[field] = json!(replacement);
             assert!(
-                validate_cost(&line(&invalid), &identity, 21, 5).is_err(),
+                validate_cost(&line(&invalid), &identity, 23, 6).is_err(),
                 "{field}"
             );
         }

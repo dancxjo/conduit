@@ -7,6 +7,20 @@
 
 extern crate alloc;
 
+mod pitch_analysis;
+mod pitch_encoding;
+mod pitch_native;
+mod pitch_profile;
+mod pitch_projection_report;
+pub use generated::{
+    AudioPitchCorrelation, AudioPitchDigest, AudioPitchEstimator, AudioPitchObservation,
+    AudioPitchState,
+};
+pub use pitch_analysis::*;
+pub use pitch_encoding::*;
+pub use pitch_profile::*;
+pub use pitch_projection_report::*;
+
 #[allow(
     clippy::clone_on_copy,
     clippy::manual_range_contains,
@@ -165,3 +179,6 @@ pub use spectral_native::*;
 
 mod spectral_encoding;
 pub use spectral_encoding::*;
+
+/// Shared authored recurrence; profile admission remains with its caller.
+pub const RESONATOR_RECURRENCE_SOURCE: &str = include_str!("../dsp/resonator-recurrence.conduit");

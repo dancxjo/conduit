@@ -259,6 +259,7 @@ impl Session {
                     request_sequence: pending.request.request.0,
                     maximum_output_bytes,
                     source_interaction: Some(self.source_interaction.clone()),
+                    choice: None,
                 };
                 self.pending = Some(pending);
                 self.stage = Stage::Input;

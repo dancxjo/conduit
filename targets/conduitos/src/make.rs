@@ -45,6 +45,8 @@ pub const PROOF_USB_CONFIGURATION: u16 = 1 << 2;
 pub const PROOF_USB_ENDPOINT_READ: u16 = 1 << 3;
 pub const USB_ENDPOINT_QEMU_PROFILE: &str =
     "q35-single-cpu-64m-headless-xhci-usb-kbd-endpoint-read";
+/// Ordinary product/proof preparation retains the complete authored keymap registry.
+pub const NATIVE_PREPARATION_ARENA_BYTES: u64 = 32 * 1024 * 1024;
 pub const USB_HID_ENDPOINT_ARENA_BYTES: u64 = 128 * 1024 * 1024;
 pub const USB_HID_MOUSE_ARENA_BYTES: u64 = 32 * 1024 * 1024;
 pub const USB_HID_MOUSE_QEMU_PROFILE: &str =

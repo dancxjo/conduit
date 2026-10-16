@@ -26,10 +26,10 @@ const MAX_REMOTE_ROUTE_SEAL_BYTES: usize = 40 * 1024;
 mod profile;
 pub use profile::RemoteMaskRouteProfile;
 // Preparation hashes the full local inventory but transmits only its digest.
-// Allow the reference Host plus attached providers within the same finite 1 MiB
-// inventory envelope as local Mask sealing; native seals remain 40 KiB.
-// The explicitly selected hosted profile has a separate finite encoding limit.
-const MAX_HOST_OFFER_BYTES: usize = 1024 * 1024;
+// Bind any inventory admitted by the shared candidate envelope. The transmitted
+// remote seal remains independently bounded to 40 KiB and carries only a digest.
+const MAX_HOST_OFFER_BYTES: usize = conduit_body::MAX_CANDIDATE_ADVERTISEMENT_BYTES as usize;
+// Native and hosted route seals retain separate finite encoding limits.
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 #[serde(deny_unknown_fields)]

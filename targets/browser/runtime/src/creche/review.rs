@@ -281,7 +281,7 @@ mod tests {
     const THREE: &str = concat!(
         include_str!("../../../../../plots/morse-network/main.conduit"),
         "\n",
-        include_str!("../../../../../plots/memory-lantern/main.conduit"),
+        include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit"),
         "\n",
         include_str!("../../../../../plots/desk-telegraph/main.conduit"),
     );

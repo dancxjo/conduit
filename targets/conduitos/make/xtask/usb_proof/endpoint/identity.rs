@@ -51,7 +51,7 @@ mod tests {
             artifacts: 1,
             framebuffers: 1,
             command_line_bytes: 38,
-            runtime_arena_bytes: 16 * 1024 * 1024,
+            runtime_arena_bytes: conduitos::make::NATIVE_PREPARATION_ARENA_BYTES,
         }
     }
 
@@ -105,7 +105,7 @@ mod tests {
             ("memory_regions", serde_json::json!(0)),
             (
                 "runtime_arena_bytes",
-                serde_json::json!(16 * 1024 * 1024 - 1),
+                serde_json::json!(conduitos::make::NATIVE_PREPARATION_ARENA_BYTES - 1),
             ),
         ] {
             let mut candidate = serde_json::to_value(specimen()).unwrap();

@@ -12,6 +12,11 @@ use std::{
 pub(super) use super::qmp::connect;
 use super::{qmp, ConduitosError};
 
+// Source catalog and Mask preparation share one finite cold-start envelope.
+// Candidate arrival missed 20s; its exact kernel arrived locally in 17.8s,
+// while later cold lifecycle preparation required up to 28.4s.
+pub(super) const COLD_PREPARATION_WAIT_TIMEOUT: Duration = Duration::from_secs(60);
+
 #[derive(Clone, Copy)]
 pub(super) enum RescueNearMiss {
     ControlDelete,
@@ -97,7 +102,7 @@ fn inject_keyboard_text(
     child: &mut Child,
     wav: Option<&Path>,
 ) -> Result<(), ConduitosError> {
-    const EVENTS: [(&str, bool); 38] = [
+    const EVENTS: [(&str, bool); 26] = [
         ("h", true),
         ("h", false),
         ("e", true),
@@ -109,33 +114,21 @@ fn inject_keyboard_text(
         ("o", true),
         ("o", false),
         ("alt_r", true),
-        ("a", true),
-        ("a", false),
+        ("z", true),
+        ("z", false),
         ("alt_r", false),
         ("alt_r", true),
-        ("spc", true),
-        ("spc", false),
-        ("alt_r", false),
         ("apostrophe", true),
         ("apostrophe", false),
+        ("alt_r", false),
         ("e", true),
         ("e", false),
         ("alt_r", true),
-        ("shift", true),
-        ("spc", true),
-        ("spc", false),
-        ("shift", false),
+        ("grave_accent", true),
+        ("grave_accent", false),
         ("alt_r", false),
-        ("0", true),
-        ("0", false),
-        ("3", true),
-        ("3", false),
-        ("b", true),
-        ("b", false),
-        ("b", true),
-        ("b", false),
-        ("ret", true),
-        ("ret", false),
+        ("a", true),
+        ("a", false),
     ];
     for (index, (key, down)) in EVENTS.iter().copied().enumerate() {
         wait_for_stage_count(
@@ -417,10 +410,16 @@ pub(super) fn wait_for_product_arrival(
     stage: &str,
     reason: &'static str,
 ) -> Result<(), ConduitosError> {
-    wait_for_stage_with_budget(serial_path, child, stage, reason, Duration::from_secs(20))
+    wait_for_stage_with_budget(
+        serial_path,
+        child,
+        stage,
+        reason,
+        COLD_PREPARATION_WAIT_TIMEOUT,
+    )
 }
 
-fn wait_for_stage_with_budget(
+pub(super) fn wait_for_stage_with_budget(
     serial_path: &Path,
     child: &mut Child,
     stage: &str,

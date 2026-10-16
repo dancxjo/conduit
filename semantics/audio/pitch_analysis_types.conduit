@@ -1,0 +1,37 @@
+# Descriptive finite-lag signal evidence; never commanded or linguistic pitch.
+# The frequency estimate is sample_rate / candidate_lag, not an exact real F0.
+type AudioPitchEstimator =
+    centered_normalized_correlation_f64_ppm_v1
+type AudioPitchState =
+    unknown_insufficient_energy
+    | unknown
+    | uncertain
+    | periodic
+type AudioPitchCorrelation = U32 in 0..=1000000
+type AudioPitchDigest = collection U8 = 32
+type AudioPitchObservation = {
+    source_digest: AudioPitchDigest
+    source_start_frame: U64
+    source_frames: U16 in 64..=2048
+    source_available_frame: U64
+    clock_id: U64 in 1..=18446744073709551615
+    window_start_frame: U64
+    window_frames: U16 in 64..=2048
+    sample_rate: Frequency
+    minimum_lag: U16 in 2..=512
+    maximum_lag: U16 in 2..=512
+    estimator: AudioPitchEstimator
+    state: AudioPitchState
+    candidate_lag: U16 in 0..=512
+    competing_lag: U16 in 0..=512
+    correlation_ppm: AudioPitchCorrelation
+    where .minimum_lag <= .maximum_lag
+    where .window_frames >= .maximum_lag * 3
+    where .window_start_frame <= 18446744073709551615 - value/u64(.window_frames)
+    where .source_start_frame <= 18446744073709551615 - value/u64(.source_frames) ? .source_available_frame == .source_start_frame + value/u64(.source_frames) : false
+    where .window_start_frame <= 18446744073709551615 - value/u64(.window_frames) ? (.window_start_frame >= .source_start_frame && .window_start_frame + value/u64(.window_frames) <= .source_available_frame) : false
+    where .sample_rate >= 8000Hz && .sample_rate <= 192000Hz
+    where (.state is periodic || .state is uncertain) ? (.candidate_lag >= .minimum_lag && .candidate_lag <= .maximum_lag) : .candidate_lag == 0
+    where .state is uncertain ? (.competing_lag > .candidate_lag && .competing_lag <= .maximum_lag) : .competing_lag == 0
+    where .state is periodic ? .correlation_ppm >= 900000 : .correlation_ppm == 0
+}

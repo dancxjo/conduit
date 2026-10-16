@@ -121,7 +121,7 @@ pub(super) fn context(
 #[test]
 fn authored_pitch_and_dsp_chain_matches_portable_graph_with_exact_context() {
     let (programs, result_index) = graph("speech_prosodic_frame");
-    assert_eq!(programs.len(), 14); // three intensity stages, two pitch stages and nine DSP stages
+    assert_eq!(programs.len(), 20); // three intensity stages, two pitch stages and fifteen DSP stages
     let ty = &programs[0].1.input_type;
     let output_type = &programs[result_index].1.output_type;
     for (phone, _) in PHONES {

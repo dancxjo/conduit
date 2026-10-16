@@ -26,7 +26,7 @@ fn admitted_offer_evidence_round_trips_without_becoming_planning_detail() {
         protocol: BROWSER_ADMISSION_PROTOCOL,
         evidence: Box::new(evidence.clone()),
     };
-    let mut output = [0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
+    let mut output = vec![0; MAX_BROWSER_ADMISSION_FRAME_BYTES];
     let length = encode_browser_admission_frame(&frame, &mut output).unwrap();
     assert_eq!(
         serde_json::from_slice::<BrowserAdmissionEgress>(&output[..length]).unwrap(),

@@ -36,6 +36,8 @@ export default defineConfig({
     "browser-host-calls.spec.mjs",
     "browser-pointer.spec.mjs",
     "browser-human-input.spec.mjs",
+    "browser-keymap.spec.mjs",
+    "browser-preparation.spec.mjs",
     "browser-host-entrance.spec.mjs",
     "field-station-clock.spec.mjs",
     "static-body-application.spec.mjs",

@@ -200,6 +200,20 @@ fn debugger_trace_uses_exact_causal_parent_and_not_graph_reachability() {
 
 #[test]
 fn debugger_break_and_resume_cross_the_real_kernel_control_contract() {
+    // This integration fixture prepares and runs the hosted kernel before the
+    // HTTP debugger assertions. Its debug-build preparation frames exceed the
+    // test harness's 2 MiB default; retain an explicit finite 4 MiB test budget.
+    // The server and its request worker keep their normal production paths.
+    std::thread::Builder::new()
+        .name("hosted-debugger-contract".into())
+        .stack_size(4 * 1024 * 1024)
+        .spawn(debugger_break_and_resume_contract)
+        .unwrap()
+        .join()
+        .unwrap();
+}
+
+fn debugger_break_and_resume_contract() {
     let snapshot = demonstration_snapshot().unwrap();
     let face = snapshot.face.clone();
     let control = snapshot.debugger_control.as_ref().unwrap();

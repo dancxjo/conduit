@@ -103,11 +103,30 @@ fn ordinary_time_every_has_no_hidden_fixed_tick_lifetime() {
 
 #[test]
 fn reactive_transforms_accept_later_values_on_open_flows() {
-    let source = include_str!("../../../../../plots/memory-lantern/main.conduit");
+    let source = include_str!("../../../../../plots/memory-lantern/keyboard-only.conduit");
     let (mut session, first) =
         TourSession::prepare("browser/memory-proof", "boot/memory-proof", source, 64).unwrap();
     assert!(matches!(first, TourHostEffect::KeyEvent(_)));
     let play = session.active_play_id.as_str().to_owned();
+    let initial = pending_index(
+        &mut session,
+        |pending| matches!(pending.effect, engine::BrowserHostEffect::Manifestation(_)),
+        "memory source did not present its initial empty state",
+    );
+    let TourHostEffect::Manifestation(initial_effect) =
+        session.project_pending_effect(initial).unwrap()
+    else {
+        panic!("initial memory state must be a manifestation");
+    };
+    assert_eq!(initial_effect.text.as_deref(), Some(""));
+    session
+        .complete_effect(
+            &play,
+            &initial_effect.placement_id,
+            session.pending[initial].request.request.0,
+            None,
+        )
+        .unwrap();
     let mut outputs = Vec::new();
     for usage in [0x04, 0x05] {
         let key_index = pending_index(

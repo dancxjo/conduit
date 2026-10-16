@@ -64,7 +64,7 @@ fn timing_controls_expose_bounded_duration_policy_and_capacity() {
 
 #[test]
 fn input_semantic_controls_project_authoritative_finite_defaults() {
-    let editor =
+    let mut editor =
         editor("plot input_controls {\n    keymap: input/keymap\n    chords: input/chords\n}\n");
     let graph =
         PatchbayGraph::from_expanded(&editor.expand_plot("input_controls").unwrap()).unwrap();
@@ -75,13 +75,13 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         .unwrap();
     assert_eq!(
         keymap.controls[0].value,
-        ConfigurationValue::Text(conduit_human::CONDUIT_INTL_LAYOUT.into())
+        ConfigurationValue::Structured(conduit_human::default_keymap_configuration())
     );
     assert!(matches!(
         keymap.controls[0].kind,
-        FaceControlKind::TextChoice { ref choices }
-            if choices == &[conduit_human::CONDUIT_INTL_LAYOUT.to_string()]
+        FaceControlKind::StructuredSource
     ));
+    assert!(keymap.controls[0].interaction.is_none());
     let chords = graph
         .gears
         .iter()
@@ -91,6 +91,19 @@ fn input_semantic_controls_project_authoritative_finite_defaults() {
         chords.controls[0].value,
         ConfigurationValue::Text(conduit_human::CORE_CHORD_MAP.into())
     );
+    let source = editor.view().source;
+    assert!(matches!(
+        editor.set_gear_configuration(
+            0,
+            &graph.expanded_plot_id,
+            "keymap",
+            "layout",
+            ConfigurationValue::Structured(conduit_human::default_keymap_configuration()),
+        ),
+        Err(PlotEditorError::InvalidConfiguration(message))
+            if message.contains("common interaction contract")
+    ));
+    assert_eq!(editor.view().source, source);
 }
 
 #[test]

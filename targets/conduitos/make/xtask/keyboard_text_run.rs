@@ -38,21 +38,21 @@ pub(super) fn validate(
         .lines()
         .filter_map(|line| line.strip_prefix("CONDUIT_KEYBOARD_UNICODE_PRESENT "))
         .collect();
-    let expected = ["H", "E", "L", "L", "O", "Æ", "É", "Λ"];
+    let expected = ["H", "E", "L", "L", "O", "Æ", "É", "À"];
     if sign.schema != "conduit.conduitos.keyboard-text-plot/v1"
         || sign.status != "completed"
         || sign.proof_class != "freestanding-emulator"
         || sign.host_id != keyboard.host_id
         || sign.boot_id != boot.boot_id
         || sign.plot_machine_facts
-        || sign.keymap_configuration != "conduit-intl"
-        || sign.physical_transition_count != 38
+        || sign.keymap_configuration != "us-intl"
+        || sign.physical_transition_count != 26
         || sign.face_fragments.iter().map(String::as_str).ne(expected)
         || sign.visible_ascii != "HELLO"
         || !sign.bounded
         || !sign.completed
         || ascii != ["HELLO"]
-        || unicode != ["ÆÉΛ"]
+        || unicode != ["ÆÉÀ"]
         || !is_identity(&sign.source_document_id)
         || !is_identity(&sign.checked_plot_id)
         || !is_identity(&sign.expanded_plot_id)

@@ -603,7 +603,24 @@ fn canonical_button_clock_and_telegraph_share_admission_and_one_installed_kernel
     let mut buttons = [(true, 0_u64), (false, 1)].into_iter();
     let mut button_encoder =
         conduit_semantic_catalog::PreparedButtonTransitionEncoder::new("button/primary").unwrap();
-    let mut input_keymaps = [conduit_human::ConduitIntlKeymap::new(); MAX_NODES];
+    let mut input_keymaps =
+        crate::installed_std::input_semantic_backs::prepare_keymaps::<MAX_NODES>(
+            fragments
+                .iter()
+                .zip(&lowered.partitions)
+                .flat_map(|(fragment, partition)| {
+                    fragment.placements.iter().map(|placement| {
+                        (
+                            partition
+                                .identity
+                                .node_for_placement(&placement.placement_id)
+                                .map(|node| usize::from(node.0)),
+                            placement,
+                        )
+                    })
+                }),
+        )
+        .unwrap();
     let mut output = Vec::with_capacity(1024);
     let mut typed_record_hosts: Vec<_> = fragments
         .iter()

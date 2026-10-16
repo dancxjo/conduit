@@ -91,7 +91,7 @@ pub fn text_edit_contract() -> StandardKindContract {
         TEXT_EDIT_KIND,
         TEXT_EDIT_REVISION,
         "current",
-        "Retain and emit bounded current text after each edit fragment.",
+        "Emit initial empty Current, then retain and emit bounded current text after each edit fragment.",
     )
 }
 

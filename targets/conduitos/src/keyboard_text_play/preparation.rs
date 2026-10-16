@@ -94,6 +94,6 @@ pub(super) fn prepare(
         keymap_node,
         upper_node,
         face_node,
-        keymap: ConduitIntlKeymap::new(),
+        keymap: PreparedKeymap::default_layout(),
     })
 }

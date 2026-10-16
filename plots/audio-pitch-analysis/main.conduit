@@ -1,0 +1,9 @@
+# Finite observed periodicity, independent of commanded pitch or linguistic truth.
+plot measure (
+    >> pcm: PcmFrames...|
+    observation: AudioPitchObservation...| >>
+) {
+    analyzer: audio/measure-pitch(clock-id = 7, sample-rate = 8000Hz, source-frames = 1024, window-frames = 1024, window-offset = 0, minimum-lag = 8, maximum-lag = 256, maximum-blocks = 4)
+    pcm >> analyzer.pcm
+    analyzer.observation >> observation
+}.

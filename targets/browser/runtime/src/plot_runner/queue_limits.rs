@@ -52,10 +52,18 @@ pub(crate) fn finite_connection_limits(
             });
             let dimension_bound = (output.value_kind.as_str() == conduit_core::DIMENSION_INFO_ID)
                 .then_some(conduit_core::DIMENSION_ENCODED_LEN as u32);
-            let bound = dimension_bound.or(sample_bound).or_else(|| {
-                crate::installed_browser::measurement_limits::value_queue_bound(&output.value_kind)
+            let application_view_bound = (output.value_kind.as_str()
+                == conduit_face::APPLICATION_VIEW_INFO_ID)
+                .then_some(conduit_face::MAX_APPLICATION_VIEW_BYTES as u32);
+            let bound = dimension_bound
+                .or(application_view_bound)
+                .or(sample_bound)
+                .or_else(|| {
+                    crate::installed_browser::measurement_limits::value_queue_bound(
+                        &output.value_kind,
+                    )
                     .map(|bound| bound.max(default_bytes))
-            })?;
+                })?;
             Some((
                 (
                     connection.source_gear_id.clone(),

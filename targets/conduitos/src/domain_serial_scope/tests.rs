@@ -320,3 +320,37 @@ fn tour_timer_count_scope_distinguishes_semantic_value_and_physical_digits() {
         Err(KernelCapabilityRefusal::Exhausted)
     );
 }
+
+#[test]
+fn serial_text_face_refuses_an_unrealizable_insertion_caret_before_issuance() {
+    let (mut plan, binding, fixed) = fixture();
+    let placement = plan.fragments[0]
+        .placements
+        .iter_mut()
+        .find(|placement| placement.kind_id.as_str() == conduit_semantic_catalog::TEXT_FACE_KIND)
+        .unwrap();
+    placement
+        .configuration
+        .iter_mut()
+        .find(|entry| entry.key.as_str() == "insertion-caret")
+        .unwrap()
+        .value = conduit_core::ConfigurationValue::Bool(true);
+    // Re-seal the changed test Plan so refusal cannot be attributed to its seal.
+    let plan = conduit_core::seal_plan_with_completion(
+        conduit_core::PlotIdentity {
+            source_document_id: plan.source_document_id,
+            checked_plot_id: plan.checked_plot_id,
+            expanded_plot_id: plan.expanded_plot_id,
+        },
+        plan.completion_policy,
+        plan.fragments,
+    );
+    let active = conduit_core::bind_active_play(
+        &plan.plan_id,
+        &binding.active.host_id,
+        &binding.active.boot_id,
+        binding.active.play_sequence,
+    );
+    let binding = RegionBinding::admit(&plan, &active, &binding.region, binding.domain).unwrap();
+    assert!(SerialScope::admit(&plan, &binding, &fixed).is_err());
+}

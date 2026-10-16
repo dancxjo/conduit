@@ -15,7 +15,7 @@ pub(crate) const STATE_OPERATION: &str = "conduit.host/browser-application-apply
 pub(crate) const FACE_OPERATION: &str = "conduit.host/browser-present-application-view@1";
 const ARTIFACT: &str = "conduit-browser-runtime/installed-application@1";
 pub(crate) const EVENT_BYTES: u32 = 4096;
-const VIEW_BYTES: u32 = 16 * 1024;
+const VIEW_BYTES: u32 = conduit_face::MAX_APPLICATION_VIEW_BYTES as u32;
 
 pub(super) static EVENT: BrowserInstallation = BrowserInstallation {
     implementation_id: EVENT_IMPLEMENTATION,

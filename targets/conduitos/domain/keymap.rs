@@ -1,12 +1,12 @@
 //! The same portable keymap semantics used by the ordinary Host implementation.
 use crate::{frame::TextFrame, gate};
-use conduit_human::{ConduitIntlKeymap, KeyEvent, KeymapDisposition};
+use conduit_human::{KeyEvent, PreparedKeymap};
 #[allow(dead_code)] // The shared owner also implements the separately admitted Submit mode.
 #[path = "../../../semantics/catalog/src/text_state/retained.rs"]
 mod retained;
 use retained::{RetainedText, TextStateMode, TextStateRefusal};
 struct State {
-    keymap: ConduitIntlKeymap,
+    keymap: PreparedKeymap,
     editor: Option<RetainedText>,
     text: [u8; 256],
 }
@@ -22,7 +22,7 @@ const _: () = assert!(core::mem::size_of::<State>() <= 4096);
 pub unsafe fn initialize(frame: &mut TextFrame) -> ! {
     unsafe {
         STATE.write(State {
-            keymap: ConduitIntlKeymap::new(),
+            keymap: PreparedKeymap::default_layout(),
             editor: None,
             text: [0; 256],
         });
@@ -71,15 +71,14 @@ unsafe fn transform(frame: &mut TextFrame) -> u32 {
     };
     frame.output_length = 0;
     match unsafe { (&mut *STATE).keymap.apply(event) } {
-        KeymapDisposition::Text(text) => {
-            let mut utf8 = [0; 4];
-            let bytes = text.encode_utf8(&mut utf8);
+        Ok(Some(text)) => {
+            let bytes = text.as_slice();
             frame.output[..bytes.len()].copy_from_slice(bytes);
             frame.output_length = bytes.len() as u32;
             0
         }
-        KeymapDisposition::NoText | KeymapDisposition::Cancelled => 0,
-        KeymapDisposition::Refused(_) => 1,
+        Ok(None) => 0,
+        Err(_) => 1,
     }
 }
 
@@ -97,7 +96,7 @@ pub unsafe fn initialize_editor(frame: &mut TextFrame) -> ! {
     };
     unsafe {
         STATE.write(State {
-            keymap: ConduitIntlKeymap::new(),
+            keymap: PreparedKeymap::default_layout(),
             editor: Some(editor),
             text: [0; 256],
         });

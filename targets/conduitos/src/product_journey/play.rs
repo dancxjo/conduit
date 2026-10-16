@@ -319,6 +319,21 @@ impl ProductJourney {
             self.retire_realization()?;
             return Err(error);
         }
+        let kernel = self.kernel.as_mut().ok_or(JourneyError::Kernel)?;
+        for index in 0..self.plots.len() {
+            if let Some(value) = kernel.take_face(index) {
+                self.results[index].record(
+                    self.plots[index].ok_or(JourneyError::Kernel)?,
+                    value,
+                    SignId::from(format!(
+                        "conduitos/product/initial-result/{}/{}",
+                        play.active_play_id.as_str(),
+                        index,
+                    )),
+                )?;
+                self.results[index].input_sequence = None;
+            }
+        }
         Ok(())
     }
 

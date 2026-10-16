@@ -51,6 +51,11 @@ pub fn install_text_pipeline_catalogs(
                 value_type: "Count".to_string(),
                 default: Some(super::MAX_TEXT_VALUES.to_string()),
             });
+            parameters.push(StartupParameterSignature {
+                name: "insertion-caret".to_string(),
+                value_type: "Boolean".to_string(),
+                default: Some("false".to_string()),
+            });
             parameters
         },
     })?;

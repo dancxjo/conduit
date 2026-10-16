@@ -358,3 +358,20 @@ test("runtime memory bindings admit the finite pool and refuse aggregate excess"
   placement.resources.at(-1).units = 8 * 1024 * 1024 + 1;
   assert.throws(() => acquireBrowserBodyHost(f), /resource demand exceeds local bounds/);
 });
+
+test("saved-choice acquisition reports its exact admitted units and requires initialized storage", () => {
+  const f = fixture();
+  const placement = f.proposal.plan.plots[0].plan.fragments[0].placements[0];
+  placement.resources.push({ pool_id: "browser/saved-choice", class_id: "conduit.resource/saved-choice-slot@1", units: 4 });
+  assert.throws(() => acquireBrowserBodyHost(f), /saved choice requires initialized durable browser storage/);
+  const storage = { implementationId: "browser/indexeddb@1", state: "Initialized", async readJson() { return null; }, async writeJson() {} };
+  const owner = acquireBrowserBodyHost({ ...f, storage });
+  const acquired = owner.observations().find(item => item.class_id === "conduit.resource/saved-choice-slot@1");
+  assert.equal(acquired.unreserved_units, 4);
+  assert.equal(acquired.utilized_units, 0);
+  assert.equal(f.count().starts, 0);
+  owner.close();
+  placement.resources.at(-1).units = 5;
+  assert.throws(() => acquireBrowserBodyHost({ ...f, storage }), /resource demand exceeds local bounds/);
+  assert.throws(() => acquireBrowserBodyHost({ ...f, storage: { ...storage, state: "Unavailable" } }), /saved choice requires initialized durable browser storage/);
+});
