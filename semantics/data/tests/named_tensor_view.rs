@@ -209,6 +209,11 @@ fn resource_descriptor_preserves_custody_and_refuses_profile_extent_and_digest_w
     assert_eq!(reference.access_class, expected.access_class.as_str());
     assert_eq!(reference.content_profile, expected.content_profile.as_str());
     assert_eq!(reference.extent, expected.extent);
+    let output_template = NamedTensorBundle::from_values(vec![named.clone()]).unwrap();
+    assert_eq!(
+        PreparedNamedTensorBundleOutput::prepare(&output_template).err(),
+        Some(NamedTensorOutputRefusal::UnsupportedBacking),
+    );
     // No opener, Host, path, or authority is involved in descriptor admission.
     for refusal in [
         TensorRefusal::ResourceProfileMismatch,
@@ -266,4 +271,143 @@ fn every_dtype_and_full_named_capacity_use_the_same_borrowed_boundary() {
     let view = measured(&prepared, &bytes).unwrap();
     assert_eq!(view.values().len(), 32);
     assert_eq!(view.tensor_bytes(), 32);
+}
+
+fn without_allocations(f: impl FnOnce()) {
+    CALLS.with(|v| v.set(0));
+    ENABLED.with(|v| v.set(true));
+    f();
+    ENABLED.with(|v| v.set(false));
+    assert_eq!(
+        CALLS.with(Cell::get),
+        0,
+        "prepared output must not allocate"
+    );
+}
+
+#[test]
+fn prepared_output_reuses_exact_native_geometry_and_matches_owned_encoding() {
+    let template = NamedTensorBundle::from_values(vec![
+        tensor("score", TensorElement::F32, &0_f32.to_le_bytes()),
+        tensor("ids", TensorElement::I64, &0_i64.to_le_bytes()),
+    ])
+    .unwrap();
+    let expected = NamedTensorBundle::from_values(vec![
+        tensor("score", TensorElement::F32, &0.5_f32.to_le_bytes()),
+        tensor("ids", TensorElement::I64, &11_i64.to_le_bytes()),
+    ])
+    .unwrap()
+    .encode()
+    .unwrap();
+    let mut output = PreparedNamedTensorBundleOutput::prepare(&template).unwrap();
+    let capacity = output.maximum_encoded_len();
+    without_allocations(|| {
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        for _ in 0..100 {
+            output.reset();
+            output.write("ids", &11_i64.to_le_bytes()).unwrap();
+            assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+            output.write("score", &0.5_f32.to_le_bytes()).unwrap();
+            assert_eq!(output.maximum_encoded_len(), capacity);
+            assert_eq!(output.encoded().unwrap(), expected);
+            let view = output.view().unwrap();
+            assert_eq!(view.tensor_bytes(), 12);
+            assert_eq!(view.values().len(), 2);
+        }
+    });
+}
+
+#[test]
+fn output_errors_and_reset_prevent_publishing_stale_or_mixed_invocations() {
+    let template = NamedTensorBundle::from_values(vec![
+        tensor("left", TensorElement::U8, &[0]),
+        tensor("right", TensorElement::U8, &[0]),
+    ])
+    .unwrap();
+    let mut output = PreparedNamedTensorBundleOutput::prepare(&template).unwrap();
+    without_allocations(|| {
+        output.write("left", &[1]).unwrap();
+        assert_eq!(
+            output.write("right", &[2, 3]),
+            Err(NamedTensorOutputRefusal::PayloadLength)
+        );
+        output.write("right", &[2]).unwrap();
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        output.write("left", &[1]).unwrap();
+        assert!(output.encoded().is_ok());
+        assert_eq!(
+            output.write("foreign", &[3]),
+            Err(NamedTensorOutputRefusal::UnknownPort)
+        );
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        output.write("left", &[4]).unwrap();
+        assert_eq!(
+            output.write("left", &[5]),
+            Err(NamedTensorOutputRefusal::AlreadyWritten)
+        );
+        output.write("right", &[6]).unwrap();
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        output.write("left", &[7]).unwrap();
+        let view = output.view().unwrap();
+        for tensor in view.values() {
+            let TensorBackingView::Inline(bytes) = tensor.backing else {
+                panic!("inline")
+            };
+            assert_eq!(bytes, if tensor.name == "left" { &[7] } else { &[6] });
+        }
+        output.reset();
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+    });
+}
+
+#[test]
+fn output_mask_supports_all_32_ports_and_all_admitted_dtypes() {
+    let elements = [
+        TensorElement::I8,
+        TensorElement::U8,
+        TensorElement::I16,
+        TensorElement::U16,
+        TensorElement::I24,
+        TensorElement::I32,
+        TensorElement::U32,
+        TensorElement::I64,
+        TensorElement::U64,
+        TensorElement::F32,
+        TensorElement::F64,
+    ];
+    let names = (0..32).map(|i| format!("port-{i}")).collect::<Vec<_>>();
+    let payloads = (0..32)
+        .map(|i| vec![i as u8; elements[i % elements.len()].byte_width() as usize])
+        .collect::<Vec<_>>();
+    let template = NamedTensorBundle::from_values(
+        (0..32)
+            .map(|i| {
+                tensor(
+                    &names[i],
+                    elements[i % elements.len()],
+                    &vec![0; payloads[i].len()],
+                )
+            })
+            .collect(),
+    )
+    .unwrap();
+    let expected = NamedTensorBundle::from_values(
+        (0..32)
+            .map(|i| tensor(&names[i], elements[i % elements.len()], &payloads[i]))
+            .collect(),
+    )
+    .unwrap()
+    .encode()
+    .unwrap();
+    let mut output = PreparedNamedTensorBundleOutput::prepare(&template).unwrap();
+    without_allocations(|| {
+        for i in (0..32).rev() {
+            output.write(&names[i], &payloads[i]).unwrap();
+        }
+        assert_eq!(output.encoded().unwrap(), expected);
+        assert_eq!(output.view().unwrap().values().len(), 32);
+        output.reset();
+        output.write(&names[31], &payloads[31]).unwrap();
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+    });
 }
