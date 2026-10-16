@@ -84,6 +84,7 @@ impl PreparedNamedTensorBundleView {
     }
 }
 
+#[derive(Clone)]
 pub struct NamedTensorBundleView<'a> {
     canonical: &'a [u8],
     values: [Option<NamedTensorView<'a>>; MAXIMUM_NAMED_TENSORS],
@@ -91,6 +92,11 @@ pub struct NamedTensorBundleView<'a> {
     tensor_bytes: u64,
 }
 impl<'a> NamedTensorBundleView<'a> {
+    /// Exact admitted canonical bytes; borrowing does not grant resource access.
+    pub fn encoded(&self) -> &'a [u8] {
+        self.canonical
+    }
+
     pub fn values(&self) -> impl ExactSizeIterator<Item = &NamedTensorView<'a>> {
         self.values[..self.count]
             .iter()

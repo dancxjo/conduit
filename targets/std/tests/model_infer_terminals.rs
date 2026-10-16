@@ -35,7 +35,7 @@ impl ModelComputeAdapter for FaultCompute {
         assert_eq!(bytes, 24);
         Ok(())
     }
-    fn execute(&mut self, _: ModelComputeInvocation) -> ModelComputeAdapterTerminal {
+    fn execute(&mut self, _: ModelComputeInvocation<'_>) -> ModelComputeAdapterTerminal {
         self.calls.fetch_add(1, Ordering::SeqCst);
         match self.fault {
             Fault::ProviderLost => ModelComputeAdapterTerminal::ProviderLost,

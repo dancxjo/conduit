@@ -22,6 +22,11 @@ fn basis(
     // This checks only the basis's internal coherence. Inventory membership
     // remains the ordinary constructor's separate preparation obligation.
     let cause = super::prepare::check_basis_coherence(None, value).err()?;
+    // Scalar Native refusals retain their ordinary law diagnostic. The owner
+    // only translates the cross-field IPA inventory/basis coherence refusal.
+    if !matches!(&cause.refusal, super::IpaConstructorRefusal::Inventory(_)) {
+        return None;
+    }
     let IpaConstructorLocation::Field(path) = cause.location.as_ref() else {
         return None;
     };

@@ -64,7 +64,7 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
             .ready_for_inference()
             .map_err(|_| ModelComputeRefusal::ProviderUnavailable)
     }
-    fn execute(&mut self, invocation: ModelComputeInvocation) -> ModelComputeAdapterTerminal {
+    fn execute(&mut self, invocation: ModelComputeInvocation<'_>) -> ModelComputeAdapterTerminal {
         if self.cancellation.is_cancelled() {
             return ModelComputeAdapterTerminal::Cancelled;
         }
@@ -86,15 +86,18 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
                 _ => ModelComputeRefusal::ResourceBoundExceeded,
             });
         }
+        let Ok(inputs_owned) = <conduit_data::NamedTensorBundle as conduit_plot::rust_binding::NativeRustBinding>::decode(invocation.inputs.encoded()) else {
+            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
+        };
         if self
             .adapter
             .signature()
-            .validate_named_inputs(&invocation.inputs)
+            .validate_named_inputs(&inputs_owned)
             .is_err()
         {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
-        if invocation.inputs.get().iter().any(|input| {
+        if inputs_owned.get().iter().any(|input| {
             !invocation
                 .requirement
                 .elements
@@ -112,14 +115,12 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
         }) {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
         }
-        if invocation.inputs.tensor_bytes().ok() != Some(invocation.requirement.input_bytes) {
+        if invocation.inputs.tensor_bytes() != invocation.requirement.input_bytes {
             return ModelComputeAdapterTerminal::Refused(
                 ModelComputeRefusal::ResourceBoundExceeded,
             );
         }
-        let Ok(inputs_identity) = invocation.inputs.semantic_digest() else {
-            return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape);
-        };
+        let inputs_identity = invocation.inputs.semantic_digest();
         let inputs = self
             .adapter
             .signature()
@@ -127,8 +128,7 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
             .get()
             .iter()
             .map(|port| {
-                invocation
-                    .inputs
+                inputs_owned
                     .get()
                     .iter()
                     .find(|value| &value.name == port.identity.get())

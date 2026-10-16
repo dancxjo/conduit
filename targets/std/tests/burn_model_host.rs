@@ -55,15 +55,20 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
     .unwrap();
     let mut host = HostedBurnModelComputeAdapter::from_inference(inference).unwrap();
     host.load(artifact, 4096).unwrap();
+    let input_bundle =
+        conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
+            name: host.signature().inputs.get()[0].identity.get().clone(),
+            value: batch.inputs[0].clone(),
+        }])
+        .unwrap();
+    let encoded_input =
+        conduit_plot::rust_binding::NativeRustBinding::encode(input_bundle).unwrap();
+    let input_reader = conduit_data::PreparedNamedTensorBundleView::prepare().unwrap();
     let request = ModelComputeInvocation {
         request_identity: [31; 32],
         artifact_identity: artifact,
         checkpoint_identity: Some(checkpoint_id),
-        inputs: conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
-            name: host.signature().inputs.get()[0].identity.get().clone(),
-            value: batch.inputs[0].clone(),
-        }])
-        .unwrap(),
+        inputs: input_reader.read(&encoded_input).unwrap(),
         requirement: ModelComputeRequirement {
             operation: ModelComputeOperation::Inference,
             model_format: "model/burn-safetensors@1".into(),

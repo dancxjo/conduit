@@ -6,7 +6,6 @@ use crate::hosted_model_work::{HostedModelWorkAdapter, ModelWorkTerminal};
 use conduit_ai::model_infer_catalog::{model_infer_contract, signature_configuration};
 use conduit_ai::{AdmittedModelResource, ModelComputeOperation, ModelComputeRequirement};
 use conduit_core::*;
-use conduit_data::NamedTensorBundle;
 use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const MODEL_INFER_OPERATION: &str = "conduit.host/model-infer@1";
@@ -25,6 +24,8 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
     next_request: u32,
     cancelled: bool,
     prepared_output: Option<conduit_data::PreparedNamedTensorBundleOutput>,
+    input_reader: conduit_data::PreparedNamedTensorBundleView,
+    signature_io: conduit_ai::PreparedModelTensorIo,
 }
 
 impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
@@ -122,6 +123,10 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         )
         .build();
         capability.realization_properties = vec![property];
+        let input_reader = conduit_data::PreparedNamedTensorBundleView::prepare()
+            .map_err(|e| format!("model input preparation: {e}"))?;
+        let signature_io = conduit_ai::PreparedModelTensorIo::prepare(model.signature())
+            .map_err(|e| format!("model signature preparation: {e:?}"))?;
         let prepared_output = adapter
             .output_template()
             .map_err(|e| format!("model output preparation: {e:?}"))?
@@ -163,6 +168,8 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
             next_request: 1,
             cancelled: false,
             prepared_output,
+            input_reader,
+            signature_io,
         })
     }
 }
@@ -201,20 +208,13 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         if input.len() > MODEL_INFER_MAXIMUM_BYTES as usize {
             return ModelWorkTerminal::MalformedInput;
         }
-        let Ok(inputs) = NamedTensorBundle::decode(input) else {
+        let Ok(inputs) = self.input_reader.read(input) else {
             return ModelWorkTerminal::MalformedInput;
         };
-        if self
-            .model
-            .signature()
-            .validate_named_inputs(&inputs)
-            .is_err()
-        {
+        if self.signature_io.validate_inputs(&inputs).is_err() {
             return ModelWorkTerminal::MalformedInput;
         }
-        let Ok(bytes) = inputs.tensor_bytes() else {
-            return ModelWorkTerminal::MalformedInput;
-        };
+        let bytes = inputs.tensor_bytes();
         if bytes > self.requirement.input_bytes {
             return ModelWorkTerminal::Refused;
         }
@@ -226,10 +226,7 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         self.next_request = next;
         let mut requirement = self.requirement.clone();
         requirement.input_bytes = bytes;
-        // Native decoding and signature validation above establish these exact
-        // canonical bytes. Hash the admitted encoding without cloning and
-        // rebuilding the same typed value solely to serialize it again.
-        let inputs_identity = semantic_digest(conduit_data::NAMED_TENSOR_BUNDLE_INFO_ID, input);
+        let inputs_identity = inputs.semantic_digest();
         let terminal = self.adapter.execute(ModelComputeInvocation {
             request_identity: identity,
             artifact_identity: self.model.artifact().content_identity(),
@@ -244,9 +241,8 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
                     || result.inputs_identity != inputs_identity
                     || result.checkpoint_identity.is_some()
                     || self
-                        .model
-                        .signature()
-                        .validate_named_outputs(&result.outputs)
+                        .signature_io
+                        .validate_owned_outputs(&result.outputs)
                         .is_err()
                     || result
                         .outputs

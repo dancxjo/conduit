@@ -4,7 +4,7 @@ use conduit_data::{
     tensor_content_digest, NamedTensor, NamedTensorBundle, TensorAxis, TensorAxisRole,
     TensorBacking, TensorElement, TensorValue,
 };
-use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence};
+use conduit_plot::rust_binding::{BoundedBytes, BoundedSequence, NativeRustBinding};
 use conduit_std_host::hosted_model_compute::{
     LinearF32ModelAdapter, ModelComputeAdapter, ModelComputeAdapterTerminal,
     ModelComputeInvocation, ReferenceModelComputeAdapter,
@@ -83,8 +83,32 @@ fn bundle(value: TensorValue) -> NamedTensorBundle {
     .unwrap()
 }
 
-fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
-    ModelComputeInvocation {
+// Own input bytes outside the adapter invocation; production receives only
+// the same admitted canonical borrowed view used by Source Host Calls.
+struct InvocationFixture {
+    request_identity: [u8; 32],
+    artifact_identity: [u8; 32],
+    checkpoint_identity: Option<[u8; 32]>,
+    requirement: ModelComputeRequirement,
+    inputs: NamedTensorBundle,
+    reader: conduit_data::PreparedNamedTensorBundleView,
+    encoded: Vec<u8>,
+}
+impl InvocationFixture {
+    fn request(&mut self) -> ModelComputeInvocation<'_> {
+        self.encoded = self.inputs.clone().encode().unwrap();
+        ModelComputeInvocation {
+            request_identity: self.request_identity,
+            artifact_identity: self.artifact_identity,
+            checkpoint_identity: self.checkpoint_identity,
+            requirement: self.requirement.clone(),
+            inputs: self.reader.read(&self.encoded).unwrap(),
+        }
+    }
+}
+
+fn invocation(artifact: [u8; 32], values: [f32; 2]) -> InvocationFixture {
+    InvocationFixture {
         request_identity: [31; 32],
         artifact_identity: artifact,
         checkpoint_identity: None,
@@ -110,6 +134,8 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> ModelComputeInvocation {
             requires_checkpoint_write: false,
         },
         inputs: bundle(input(values)),
+        reader: conduit_data::PreparedNamedTensorBundleView::prepare().unwrap(),
+        encoded: Vec::new(),
     }
 }
 
@@ -130,7 +156,7 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     let mut reference = ReferenceModelComputeAdapter::new(offer(), runtime("reference")).unwrap();
     reference.load(artifact, 64).unwrap();
     let ModelComputeAdapterTerminal::Produced(reference_result) =
-        reference.execute(invocation(artifact, [2.0, 3.0]))
+        reference.execute(invocation(artifact, [2.0, 3.0]).request())
     else {
         panic!("reference adapter must produce")
     };
@@ -155,7 +181,7 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     .unwrap();
     linear.load(artifact, 64).unwrap();
     let ModelComputeAdapterTerminal::Produced(result) =
-        linear.execute(invocation(artifact, [2.0, 3.0]))
+        linear.execute(invocation(artifact, [2.0, 3.0]).request())
     else {
         panic!("real linear model must produce")
     };
@@ -179,13 +205,13 @@ fn wrong_loaded_model_and_known_resource_mismatch_refuse_before_compute() {
     .unwrap();
     linear.load([44; 32], 64).unwrap();
     assert_eq!(
-        linear.execute(invocation([45; 32], [1.0, 2.0])),
+        linear.execute(invocation([45; 32], [1.0, 2.0]).request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ProviderUnavailable)
     );
     let mut oversized = invocation([44; 32], [1.0, 2.0]);
     oversized.requirement.working_memory_bytes = 2048;
     assert_eq!(
-        linear.execute(oversized),
+        linear.execute(oversized.request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
     );
 }
@@ -204,7 +230,7 @@ fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
     wrong_type_value.backing = TensorBacking::Inline(BoundedBytes::new(&bytes).unwrap());
     wrong_type.inputs = bundle(wrong_type_value);
     assert_eq!(
-        host.execute(wrong_type),
+        host.execute(wrong_type.request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedElement)
     );
     let mut wrong_rank = invocation(artifact, [2., 3.]);
@@ -214,7 +240,7 @@ fn reference_boundary_checks_actual_dtype_and_rank_against_the_requirement() {
     wrong_rank_value.axes = BoundedSequence::try_from_iter([axis.clone(), axis]).unwrap();
     wrong_rank.inputs = bundle(wrong_rank_value);
     assert_eq!(
-        host.execute(wrong_rank),
+        host.execute(wrong_rank.request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::UnsupportedShape)
     );
 }
@@ -251,12 +277,12 @@ fn named_mixed_bundle_preserves_custody_and_refusal_releases_the_session() {
     request.requirement.input_bytes = 16;
     request.requirement.output_bytes = 8;
     assert_eq!(
-        host.execute(request.clone()),
+        host.execute(request.request()),
         ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ResourceBoundExceeded)
     );
     request.requirement.output_bytes = 16;
     let expected = request.inputs.clone();
-    let ModelComputeAdapterTerminal::Produced(result) = host.execute(request) else {
+    let ModelComputeAdapterTerminal::Produced(result) = host.execute(request.request()) else {
         panic!("a refused output must leave the admitted session available");
     };
     assert_eq!(result.outputs, expected);

@@ -107,3 +107,6 @@ pub use tabular_catalog::*;
 pub use tabular_reference::*;
 pub use tensor::*;
 pub use tensor_catalog::*;
+
+mod tensor_view_axis;
+pub use tensor_view_axis::TensorAxisRoleView;
