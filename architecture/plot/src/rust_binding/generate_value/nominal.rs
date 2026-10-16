@@ -71,14 +71,20 @@ pub(super) fn emit_nominal(
         .expect("String writing is infallible");
     writeln!(out, "        if value.value_type() != &Self::semantic_type()? {{ return Err(NativeBindingRefusal::InvalidValue(conduit_core::StructuredInfoRefusal::WrongType)); }}")
         .expect("String writing is infallible");
-    // The incoming structured value already has the exact nominal Type. Check
-    // its retained refinements before decoding; re-encoding the decoded value
-    // through `new` would repeat that validation and allocate a second tree.
-    writeln!(out, "        conduit_plot::rust_binding::validate_native_contracts(&value, &Self::value_contracts())?;")
-        .expect("String writing is infallible");
     let decoded =
         super::super::generate_conversion::decode_expression(representation, "value", names)?;
-    writeln!(out, "        Ok(Self({decoded}))\n    }}\n}}\n")
-        .expect("String writing is infallible");
+    if direct_kind.is_some() {
+        // Integer constructors already check their exact bounds directly. Keep
+        // that path rather than materializing generic refinement metadata.
+        writeln!(out, "        Self::new({decoded})\n    }}\n}}\n")
+            .expect("String writing is infallible");
+    } else {
+        // The incoming value already has the exact nominal Type. Validate its
+        // retained refinements without rebuilding a second structured tree.
+        writeln!(out, "        conduit_plot::rust_binding::validate_native_contracts(&value, &Self::value_contracts())?;")
+            .expect("String writing is infallible");
+        writeln!(out, "        Ok(Self({decoded}))\n    }}\n}}\n")
+            .expect("String writing is infallible");
+    }
     Ok(())
 }
