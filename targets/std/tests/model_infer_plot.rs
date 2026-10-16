@@ -45,6 +45,24 @@ fn run_source_model(source: &str, input_bundle: NamedTensorBundle) -> Outputs {
         })
     ));
     let kernel = report.kernel.expect("ordinary kernel");
+    assert_eq!(
+        plan.source_document_id,
+        parse_syntax_document(source).source_document_id()
+    );
+    assert_eq!(kernel.active_play.plan_id, plan.plan_id);
+    assert_eq!(kernel.active_play_id, kernel.identity.active_play_id);
+    assert!(report.observations.iter().all(|observation| {
+        observation.plan_id.as_ref() == Some(&plan.plan_id)
+            && observation.active_play_id.as_ref() == Some(&kernel.active_play_id)
+    }));
+    println!(
+        "model-source={} checked={} expanded={} plan={} play={}",
+        plan.source_document_id.as_str(),
+        plan.checked_plot_id.as_str(),
+        plan.expanded_plot_id.as_str(),
+        plan.plan_id.as_str(),
+        kernel.active_play_id.as_str()
+    );
     for kind in [
         conduit_kernel::KernelEventKind::HostCallRequested,
         conduit_kernel::KernelEventKind::HostCallCompleted,
