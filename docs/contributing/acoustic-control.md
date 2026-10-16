@@ -7,6 +7,9 @@ The installed tests check exact Hz/cycle round trips, explicit recognition of
 unsupported logarithmic inputs, and distinct amplitude/power dB conventions.
 They derive offers from checked Source, verify a Plan and execute the normal
 Host kernel. Sample geometry is not substituted for a control quantity.
+An admitted generic Audio cycle also feeds the existing checked Speech Q8
+projection law at 8/16/48 kHz, with independent whole/remainder references.
+This does not establish linguistic scope or shared timed Speech intent.
 
 This is development evidence. Full reference-envelope transport through Play,
 trajectory endpoint and closing-Flow partition proof, and the shared Speech

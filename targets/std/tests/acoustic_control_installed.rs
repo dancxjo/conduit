@@ -322,3 +322,111 @@ fn installed_db_projection_keeps_amplitude_and_power_conventions_distinct() {
         }
     }
 }
+
+#[test]
+fn generic_audio_cycle_flows_into_existing_speech_projection_without_a_second_quantity() {
+    use conduit_core::{StructuredFieldValue, StructuredInfoTypeShape};
+    // Use the exact existing private Speech projection law, before its next
+    // independent declaration. No renderer or linguistic binding is implied.
+    let speech = include_str!("../../../semantics/speech/control_projection.conduit")
+        .split("type SpeechAmplitudeQ15Result")
+        .next()
+        .unwrap();
+    let source = format!(
+        "{}\n{}\n{}",
+        include_str!("../../../semantics/audio/types.conduit"),
+        speech,
+        r#"
+        type AcousticCycleProjectionInput = {
+            cycle: AudioCycleDuration
+            sample_rate_hz: U64 in 1..=192000
+        }
+        plot acoustic-cycle-projection-input (
+            >> value: AcousticCycleProjectionInput
+            result: SpeechCycleQ8Input >>
+        ) = ({numerator_seconds: .cycle.numerator_seconds, denominator: .cycle.denominator, sample_rate_hz: .sample_rate_hz})
+        plot acoustic-cycle-to-speech (
+            >> value: AcousticCycleProjectionInput
+            result: SpeechControlQ8Result >>
+        ) {
+            admitted: acoustic-cycle-projection-input()
+            projected: speech/cycle-q8()
+            value >> admitted.value
+            admitted.result >> projected.value
+            projected.result >> result
+        }
+    "#
+    );
+    for (n, d) in [(1, 120), (3, 440), (1, 7)] {
+        let cycle = AudioCycleDuration::new(d, n).unwrap();
+        let original = cycle.encode().unwrap();
+        for rate in [8000u64, 16000, 48000] {
+            let (mut host, plan) = prepare(&source, "acoustic-cycle-to-speech", "value");
+            let program = plan.fragments[0]
+                .placements
+                .iter()
+                .find_map(|gear| {
+                    let ConfigurationValue::Text(encoded) = &gear.configuration.first()?.value
+                    else {
+                        return None;
+                    };
+                    let program = PortableExpressionProgram::from_canonical_hex(encoded).ok()?;
+                    let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape()
+                    else {
+                        return None;
+                    };
+                    fields
+                        .iter()
+                        .any(|field| field.name() == "cycle")
+                        .then_some(program)
+                })
+                .expect("the Source adapter consumes the generic cycle record");
+            let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
+                panic!("input record")
+            };
+            let rate_type = fields
+                .iter()
+                .find(|field| field.name() == "sample_rate_hz")
+                .unwrap()
+                .value_type()
+                .clone();
+            let input = StructuredInfoValue::record(
+                program.input_type.clone(),
+                vec![
+                    StructuredFieldValue::new(
+                        "cycle",
+                        StructuredInfoValue::from_canonical_bytes(&original).unwrap(),
+                    )
+                    .unwrap(),
+                    StructuredFieldValue::new(
+                        "sample_rate_hz",
+                        StructuredInfoValue::leaf(rate_type, rate.to_le_bytes().to_vec()).unwrap(),
+                    )
+                    .unwrap(),
+                ],
+            )
+            .unwrap()
+            .canonical_bytes()
+            .unwrap();
+            let output = run(&mut host, &plan, "value", vec![input]);
+            let output = StructuredInfoValue::from_canonical_bytes(&output[0]).unwrap();
+            let StructuredInfoValueShape::Record(fields) = output.shape() else {
+                panic!("projection record")
+            };
+            let number = |name| {
+                let field = fields.iter().find(|field| field.name() == name).unwrap();
+                let StructuredInfoValueShape::Leaf(bytes) = field.value().shape() else {
+                    panic!("integer")
+                };
+                u64::from_le_bytes(bytes.try_into().unwrap())
+            };
+            let reference = u128::from(n) * u128::from(rate) * 256;
+            assert_eq!(u128::from(number("whole_q8")), reference / u128::from(d));
+            assert_eq!(
+                u128::from(number("remainder_numerator")),
+                reference % u128::from(d)
+            );
+            assert_eq!(AudioCycleDuration::decode(&original).unwrap(), cycle);
+        }
+    }
+}
