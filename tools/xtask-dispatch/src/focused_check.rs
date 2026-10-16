@@ -7,27 +7,47 @@ mod acoustic_flow;
 #[path = "../../xtask/src/suites/angle_reference.rs"]
 mod angle_reference;
 
-fn selected(arguments: &[String]) -> Option<&'static [Step]> {
+struct Suite {
+    steps: &'static [Step],
+    path: &'static str,
+    source: &'static [u8],
+}
+
+fn selected(arguments: &[String]) -> Option<Suite> {
     match arguments {
-        [check, suite] if check == "check" && suite == "acoustic-flow" => {
-            Some(acoustic_flow::STEPS)
-        }
-        [check, suite] if check == "check" && suite == "acoustic-control" => {
-            Some(acoustic_control::STEPS)
-        }
-        [check, suite] if check == "check" && suite == "angle-reference" => {
-            Some(angle_reference::STEPS)
-        }
+        [check, suite] if check == "check" && suite == "acoustic-flow" => Some(Suite {
+            steps: acoustic_flow::STEPS,
+            path: "tools/xtask/src/suites/acoustic_flow.rs",
+            source: include_bytes!("../../xtask/src/suites/acoustic_flow.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "acoustic-control" => Some(Suite {
+            steps: acoustic_control::STEPS,
+            path: "tools/xtask/src/suites/acoustic_control.rs",
+            source: include_bytes!("../../xtask/src/suites/acoustic_control.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "angle-reference" => Some(Suite {
+            steps: angle_reference::STEPS,
+            path: "tools/xtask/src/suites/angle_reference.rs",
+            source: include_bytes!("../../xtask/src/suites/angle_reference.rs"),
+        }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,
     }
 }
 
 pub fn run(arguments: &[String]) -> Option<Result<(), String>> {
-    let steps = selected(arguments)?;
+    let suite = selected(arguments)?;
     Some((|| {
         let root = workspace_root()?;
-        execute(steps, |step| {
+        let current = std::fs::read(root.join(suite.path))
+            .map_err(|error| format!("cannot verify focused suite {}: {error}", suite.path))?;
+        if current != suite.source {
+            return Err(format!(
+                "focused suite {} differs from this compiled dispatcher; rebuild the dispatcher from this checkout using a separate build cache before claiming complete proof",
+                suite.path
+            ));
+        }
+        execute(suite.steps, |step| {
             println!("» [{}] {}", step.id, step.description);
             println!("  $ {step}");
             let directory = step.cwd.map_or_else(|| root.clone(), |cwd| root.join(cwd));
@@ -66,7 +86,7 @@ mod tests {
             ("acoustic-control", acoustic_control::STEPS),
             ("angle-reference", angle_reference::STEPS),
         ] {
-            let steps = selected(&arguments(&["check", name])).unwrap();
+            let steps = selected(&arguments(&["check", name])).unwrap().steps;
             assert_eq!(format!("{steps:?}"), format!("{expected:?}"), "{name}");
         }
     }
