@@ -1,0 +1,18 @@
+type RadianObservation = {
+    angle: Angle
+    projection: NumericalResult
+}
+plot retain-angle (
+    original: Angle
+    >> receipt: NumericalResult <= 8192B
+    result: RadianObservation >>
+) = ({angle: original, projection: .})
+plot radians (
+    result: RadianObservation >>
+) {
+    angle = 1turn
+    projected: math/realize(request={value:math/radians(angle),maximum-error:0.000000000001})
+    retained: retain-angle(original=angle)
+    projected.result >> retained.receipt
+    retained.result >> result
+}

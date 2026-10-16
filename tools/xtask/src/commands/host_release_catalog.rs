@@ -4,7 +4,12 @@ use std::{
     path::{Component, Path, PathBuf},
 };
 
-use conduit_host_make::{
+// Share the canonical catalog implementation without compiling all Host make
+// machinery merely to seal release metadata. Other public APIs belong to Host make.
+#[allow(dead_code)]
+#[path = "../../../../make/host/src/release_catalog.rs"]
+mod release_catalog;
+use release_catalog::{
     ReleaseArtifactDescriptor, ReleaseCatalog, ReleaseCatalogEntry, MAXIMUM_RELEASE_CATALOG_BYTES,
     MAXIMUM_RELEASE_CATALOG_ENTRIES, MAXIMUM_RELEASE_MANIFEST_BYTES, RELEASE_CATALOG_SCHEMA,
 };
