@@ -1,7 +1,7 @@
 //! Fixed-geometry canonical output storage admitted before model execution.
 use crate::{
     tensor_content_digest, NamedTensorBundle, NamedTensorBundleView, PreparedNamedTensorBundleView,
-    TensorBackingView,
+    TensorAxis, TensorBacking, TensorBackingView, TensorElement, TensorValue,
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::validate_canonical_structured_value;
@@ -11,6 +11,8 @@ use core::ops::Range;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NamedTensorOutputRefusal {
     Template,
+    InvalidTensor,
+    MetadataMismatch,
     UnsupportedBacking,
     UnknownPort,
     AlreadyWritten,
@@ -20,6 +22,9 @@ pub enum NamedTensorOutputRefusal {
 }
 struct OutputSlot {
     name: String,
+    element: TensorElement,
+    dimensions: Box<[u64]>,
+    axes: Box<[TensorAxis]>,
     payload: Range<usize>,
     digest: [usize; 32],
 }
@@ -89,6 +94,9 @@ impl PreparedNamedTensorBundleOutput {
             }
             slots.push(OutputSlot {
                 name: tensor.name.into(),
+                element: tensor.element,
+                dimensions: tensor.dimensions().into(),
+                axes: template.get()[index].value.axes.as_slice().into(),
                 payload: start..start + payload.len(),
                 digest,
             });
@@ -135,6 +143,36 @@ impl PreparedNamedTensorBundleOutput {
         self.written |= bit;
         Ok(())
     }
+    /// Preserve a provider's complete admitted tensor descriptor. A changed
+    /// dtype, dimension, axis identity, role or unit cannot be silently replaced
+    /// by the prepared envelope's metadata.
+    pub fn write_tensor(
+        &mut self,
+        name: &str,
+        tensor: &TensorValue,
+    ) -> Result<(), NamedTensorOutputRefusal> {
+        use NamedTensorOutputRefusal as R;
+        let refusal = if tensor.validate().is_err() {
+            Some(R::InvalidTensor)
+        } else if let Some(slot) = self.slots.iter().find(|slot| slot.name == name) {
+            (slot.element != tensor.element
+                || slot.dimensions.as_ref() != tensor.dimensions.as_slice()
+                || slot.axes.as_ref() != tensor.axes.as_slice())
+            .then_some(R::MetadataMismatch)
+        } else {
+            Some(R::UnknownPort)
+        };
+        if let Some(refusal) = refusal {
+            self.written = 0;
+            return Err(refusal);
+        }
+        let TensorBacking::Inline(bytes) = &tensor.backing else {
+            self.written = 0;
+            return Err(R::UnsupportedBacking);
+        };
+        self.write(name, bytes.as_slice())
+    }
+
     /// Partial, reset or failed invocations cannot publish a mixed bundle.
     pub fn encoded(&self) -> Result<&[u8], NamedTensorOutputRefusal> {
         let required = if self.slots.len() == 32 {

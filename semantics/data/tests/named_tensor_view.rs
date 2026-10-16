@@ -411,3 +411,36 @@ fn output_mask_supports_all_32_ports_and_all_admitted_dtypes() {
         assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
     });
 }
+
+#[test]
+fn provider_tensor_writes_preserve_full_metadata_and_refuse_forged_digest() {
+    let named = tensor("score", TensorElement::F32, &0.5_f32.to_le_bytes());
+    let template = NamedTensorBundle::from_values(vec![named.clone()]).unwrap();
+    let mut output = PreparedNamedTensorBundleOutput::prepare(&template).unwrap();
+    let mut changed = named.value.clone();
+    changed.axes = BoundedSequence::try_from_iter([TensorAxis {
+        role: TensorAxisRole::Batch,
+        identity: None,
+        unit: None,
+    }])
+    .unwrap();
+    let mut forged = named.value.clone();
+    forged.content_digest[0] ^= 1;
+    without_allocations(|| {
+        output.write_tensor("score", &named.value).unwrap();
+        assert!(output.encoded().is_ok());
+        output.reset();
+        assert_eq!(
+            output.write_tensor("score", &changed),
+            Err(NamedTensorOutputRefusal::MetadataMismatch)
+        );
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        assert_eq!(
+            output.write_tensor("score", &forged),
+            Err(NamedTensorOutputRefusal::InvalidTensor)
+        );
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        output.write_tensor("score", &named.value).unwrap();
+        assert!(output.view().is_ok());
+    });
+}
