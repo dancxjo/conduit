@@ -189,7 +189,7 @@ pub(crate) fn validate_concrete_value_type(
                     super::diagnostic(
                         span,
                         alloc::format!(
-                            "native startup Type refinement refuses this value: {error:?}"
+                            "native startup Type refinement refuses this value under its retained Native laws: {error:?}"
                         ),
                     )
                 })
