@@ -117,7 +117,11 @@ pub struct NamedTensorView<'a> {
 #[derive(Clone, Copy)]
 pub enum TensorBackingView<'a> {
     Inline(&'a [u8]),
-    Resource(conduit_core::EncodedResourceReference<'a>),
+    Resource {
+        reference: conduit_core::EncodedResourceReference<'a>,
+        /// Complete version/expiry encoding retained for later admitted access.
+        encoded: &'a [u8],
+    },
 }
 impl<'a> NamedTensorView<'a> {
     pub fn byte_count(&self) -> u64 {
@@ -255,7 +259,7 @@ fn read_tensor(value: View<'_>) -> Result<NamedTensorView<'_>, NamedTensorViewRe
                 TensorRefusal::ContentIdentityMismatch,
             ));
         }
-        TensorBackingView::Resource(reference)
+        TensorBackingView::Resource { reference, encoded }
     };
     Ok(NamedTensorView {
         name,

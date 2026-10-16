@@ -197,12 +197,13 @@ fn resource_descriptor_preserves_custody_and_refuses_profile_extent_and_digest_w
     let borrowed = measured(&prepared, &bytes).unwrap();
     assert_eq!(borrowed.tensor_bytes(), 4);
     let value = borrowed.values().next().unwrap();
-    let TensorBackingView::Resource(reference) = value.backing else {
+    let TensorBackingView::Resource { reference, encoded } = value.backing else {
         panic!("resource")
     };
     let TensorBacking::Resource(expected) = &named.value.backing else {
         panic!("resource")
     };
+    assert_eq!(encoded, expected.encode().unwrap());
     assert_eq!(reference.identity, expected.identity);
     assert_eq!(reference.version, expected.lifetime.version);
     assert_eq!(reference.access_class, expected.access_class.as_str());
