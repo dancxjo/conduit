@@ -5,10 +5,14 @@ result. Its failure identifies the command and source being checked; reproduce
 through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The default dispatcher keeps Host, semantic and product packages out of its
-transitive dependency graph. The no-option `cargo xtask check acoustic-flow`
-entrance executes the same shared suite directly; option-bearing forms retain
+transitive dependency graph. The no-option `cargo xtask check acoustic-flow`,
+`cargo xtask check acoustic-control` and `cargo xtask check angle-reference`
+entrances execute their same shared suites directly; option-bearing forms retain
 the full CLI parser. A regression test checks the actual default Cargo graph,
-including transitive dependencies.
+including transitive dependencies. Focused entrances also compare their compiled
+suite definition with the current checkout before executing any step. A stale
+dispatcher from a shared build cache refuses instead of running an older proof
+subset; rebuild from the current checkout using a separate cache.
 
 ## Candidate
 
@@ -196,7 +200,10 @@ required publication set. There is no second product build campaign.
 Unit jobs retain finite per-shard wall-clock limits: foundation has 90 minutes,
 products and the ordinary Host groups have 70, ConduitOS has 120, and lint has
 40. The cold foundation path includes its main tests, doctests and a separate
-kernel allocation-feature pass; products includes optimized browser Owner proof.
+kernel allocation-feature pass; products includes browser Owner proof. Foundation,
+products and ConduitOS tests use optimization level 1 with debug assertions and
+overflow checks enabled. The same tests and features remain selected; this profile
+changes execution cost, not the required proof set.
 These limits include compilation and preparation. They do not permit test
 retries or reduce the required proof set.
 
