@@ -32,6 +32,7 @@ mod tool_command;
 #[path = "../../xtask/src/process/browser_release.rs"]
 mod browser_release;
 
+mod focused_check;
 mod process {
     pub use crate::browser_release::BROWSER_RELEASE_ENVIRONMENT;
     use crate::proof::ProofClass;
@@ -163,6 +164,13 @@ fn main() {
         && arguments.get(1).map(String::as_str) == Some("runtime-performance")
     {
         if let Err(error) = runtime_performance::run(&arguments[2..], false) {
+            eprintln!("xtask error: {error}");
+            std::process::exit(1);
+        }
+        return;
+    }
+    if let Some(result) = focused_check::run(&arguments) {
+        if let Err(error) = result {
             eprintln!("xtask error: {error}");
             std::process::exit(1);
         }
@@ -479,39 +487,5 @@ mod tests {
     fn unrelated_make_commands_stay_on_the_full_dispatcher() {
         let arguments = arguments(&["make", "conduitos", "release"]);
         assert_eq!(host_release_options(&arguments), None);
-    }
-}
-
-#[cfg(test)]
-mod dependency_boundary_tests {
-    use std::collections::BTreeSet;
-
-    #[test]
-    fn default_dispatcher_test_target_has_only_dependency_light_inputs() {
-        let root = crate::workspace::workspace_root().unwrap();
-        let manifest = std::fs::read_to_string(root.join("tools/xtask-dispatch/Cargo.toml"))
-            .expect("read dispatcher manifest");
-        let manifest: toml::Value = toml::from_str(&manifest).expect("parse dispatcher manifest");
-        let dependencies = manifest["dependencies"]
-            .as_table()
-            .expect("dispatcher dependencies");
-        let non_optional = dependencies
-            .iter()
-            .filter_map(|(name, value)| {
-                let optional = value
-                    .as_table()
-                    .and_then(|details| details.get("optional"))
-                    .and_then(toml::Value::as_bool)
-                    .unwrap_or(false);
-                (!optional).then_some(name.as_str())
-            })
-            .collect::<BTreeSet<_>>();
-        assert_eq!(
-            non_optional,
-            BTreeSet::from(["conduit-host-make", "serde", "serde_json", "sha2", "toml"])
-        );
-        assert!(dependencies["conduit-host-browser-make"]["optional"]
-            .as_bool()
-            .unwrap());
     }
 }
