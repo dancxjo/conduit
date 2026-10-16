@@ -2,6 +2,8 @@
 //! choice of machine realization. Multi-limb arithmetic spends explicit work;
 //! no operation allocates, rounds or changes existing Scalar/Quantity semantics.
 mod angle_reference;
+mod inverse_angle_writer;
+pub use inverse_angle_writer::*;
 mod mathematical_angle;
 pub use mathematical_angle::*;
 mod binary64;

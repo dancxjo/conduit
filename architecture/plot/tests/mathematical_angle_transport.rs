@@ -140,3 +140,27 @@ fn exact_angle_cannot_implicitly_narrow_or_lose_its_unit() {
     let source="plot wrong (\n >> input: MathematicalValue\n output: MathematicalAngle >>\n) {\n input >> output\n}\n";
     assert!(check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).is_err());
 }
+
+#[test]
+fn bounded_inverse_writers_allocate_nothing_in_admitted_storage() {
+    let y = Quantity::parse_plot_literal("3m").unwrap();
+    let x = Quantity::parse_plot_literal("-400cm").unwrap();
+    let input = ExactRational::ratio(3, 5, &mut work()).unwrap();
+    let mut output = vec![0; INVERSE_ANGLE_MAX_ENCODED_BYTES];
+    let (_, allocations) = allocation_probe::observe(|| {
+        for _ in 0..100 {
+            for function in [
+                InverseAngleFunction::Arctangent,
+                InverseAngleFunction::Arcsine,
+                InverseAngleFunction::Arccosine,
+            ] {
+                let n = encode_inverse_angle_denotation(function, input, &mut output, &mut work())
+                    .unwrap();
+                validate_primitive_info(MATHEMATICAL_ANGLE_ID, &output[..n]).unwrap();
+            }
+            let n = encode_quantity_atan2_denotation(y, x, &mut output, &mut work()).unwrap();
+            validate_primitive_info(MATHEMATICAL_ANGLE_ID, &output[..n]).unwrap();
+        }
+    });
+    assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+}

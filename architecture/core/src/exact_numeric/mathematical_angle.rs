@@ -39,11 +39,7 @@ impl MathematicalAngle {
     }
     /// The caller supplies admitted storage; this writer never grows it.
     pub fn encode(&self, output: &mut [u8]) -> Result<usize, MathematicalAngleRefusal> {
-        if output.len() < PREFIX {
-            return Err(MathematicalAngleRefusal::Truncated);
-        }
-        output[0] = 1;
-        output[1..PREFIX].copy_from_slice(&Unit::Turn.encode());
+        write_prefix(output)?;
         let length = self
             .coordinate
             .encode(&mut output[PREFIX..])
@@ -108,4 +104,13 @@ fn coordinate_bytes(encoded: &[u8]) -> Result<&[u8], MathematicalAngleRefusal> {
         return Err(R::UnsupportedCoordinateUnit);
     }
     Ok(&encoded[PREFIX..])
+}
+
+pub(super) fn write_prefix(output: &mut [u8]) -> Result<usize, MathematicalAngleRefusal> {
+    if output.len() < PREFIX {
+        return Err(MathematicalAngleRefusal::Truncated);
+    }
+    output[0] = 1;
+    output[1..PREFIX].copy_from_slice(&Unit::Turn.encode());
+    Ok(PREFIX)
 }

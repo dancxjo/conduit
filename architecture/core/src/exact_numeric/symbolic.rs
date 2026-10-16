@@ -9,6 +9,7 @@ mod inverse_trigonometry;
 mod trigonometry;
 pub use codec::MathematicalValueView;
 pub use enclosure::*;
+pub(super) use inverse_trigonometry::{encode_inverse_coordinate, encode_shifted_arctangent};
 pub(super) use trigonometry::encode_rational_turns;
 
 pub const MATHEMATICAL_VALUE_ID: &str = "numeric/mathematical-value@1";

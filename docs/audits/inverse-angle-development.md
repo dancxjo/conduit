@@ -51,3 +51,16 @@ structured ports. The allocation probe observes zero allocations and zero
 reallocations over 100 repeated prepared executions. Both evaluators apply the
 existing mathematical proof relation to Angle equality: unknown remains an
 explicit refusal. Native carrier round-trip and forged-unit refusal are tested.
+
+Caller-storage writers now encode exact unary inverse and typed atan2 results
+without allocating a graph during Play. They reuse canonical inverse identities
+and the shared Angle header writer. The admitted output ceiling covers at most
+two rational nodes, one inverse node and one quadrant addition. Typed input
+Quantity descriptors supply the explicit runtime Unit conversion law.
+
+Parity tests compare these bytes with ordinary prepared canonical denotations
+across units, axes, quadrants, exact identities and domain failures. Empty work
+and undersized storage refuse. A separate allocation probe observes zero
+allocations/reallocations over 100 rounds of all four writers and ordinary
+Info validation. These writers are the pending authored-call frontend's
+bounded execution mechanism; the frontend/installed proof is not yet complete.
