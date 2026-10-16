@@ -100,7 +100,7 @@ mod tests {
             .inputs
             .iter()
             .all(|p| p.direction == PortDirection::Input));
-        assert!(kind.terminal_transductions().is_empty());
+        assert!(kind.terminal_transductions().next().is_none());
         let output = kind
             .value_contracts()
             .into_iter()
