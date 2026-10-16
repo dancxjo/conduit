@@ -1,0 +1,58 @@
+# Draft Item child; closing-Flow partition acceptance is separate.
+# Existing Source laws own the arithmetic. Pairing retains the exact request.
+with data/pair/paired as AcousticTrajectoryPair
+
+type AcousticTrajectoryStage =
+    request AudioTrajectoryU8Arithmetic
+    | weight AudioTrajectoryWeight
+    | result AudioTrajectoryRatio
+type AcousticTrajectoryObservation = {
+    original: AudioTrajectoryU8Arithmetic
+    result: AudioTrajectoryRatio
+}
+plot trajectory-retain-request (
+    >> value: AudioTrajectoryU8Arithmetic
+    result: AcousticTrajectoryStage >>
+) = (AcousticTrajectoryStage.request(.))
+plot trajectory-retain-weight (
+    >> value: AudioTrajectoryWeight
+    result: AcousticTrajectoryStage >>
+) = (AcousticTrajectoryStage.weight(.))
+plot trajectory-bind-weight (
+    >> pair: AcousticTrajectoryPair
+    result: AudioTrajectoryBlendInput >>
+) = ({request: .0.request, weight: .1.weight})
+plot trajectory-retain-result (
+    >> value: AudioTrajectoryRatio
+    result: AcousticTrajectoryStage >>
+) = (AcousticTrajectoryStage.result(.))
+plot trajectory-observation (
+    >> pair: AcousticTrajectoryPair
+    result: AcousticTrajectoryObservation >>
+) = ({original: .0.request, result: .1.result})
+plot acoustic-trajectory-value (
+    >> value: AudioTrajectoryU8Arithmetic <= 32768B
+    result: AcousticTrajectoryObservation >>
+) {
+    retained: trajectory-retain-request()
+    weight: audio/trajectory-weight()
+    tagged-weight: trajectory-retain-weight()
+    weighted-context: data/pair
+    bound: trajectory-bind-weight()
+    blend: audio/trajectory-blend()
+    tagged-result: trajectory-retain-result()
+    result-context: data/pair
+    observed: trajectory-observation()
+    value >> retained.value
+    value >> weight.value
+    retained.result >> weighted-context.left
+    weight.result >> tagged-weight.value
+    tagged-weight.result >> weighted-context.right
+    weighted-context.paired >> bound.pair
+    bound.result >> blend.value
+    retained.result >> result-context.left
+    blend.result >> tagged-result.value
+    tagged-result.result >> result-context.right
+    result-context.paired >> observed.pair
+    observed.result >> result
+}

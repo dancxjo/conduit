@@ -46,6 +46,8 @@ pub enum CheckSuite {
     SemanticCatalog,
     /// Execute authored quantity mappings through the std production kernel and face.
     QuantityMapping,
+    /// Check exact acoustic control conversions and installed Source projections.
+    AcousticControl,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     /// Prove selected Todo checkpoint persistence and same-Body Host continuity.

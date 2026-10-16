@@ -1,0 +1,67 @@
+# Draft installed-Host composition of the existing exact dB Source laws.
+# The original reference and provenance travel on authored cords beside math.
+# No sample geometry, logarithmic approximation or inferred reference is added.
+with data/pair/paired as AcousticDecibelPair
+
+type AcousticDecibelStage =
+    original AudioReferencedLevelRatio
+    | recognition AudioExactPowerOfTen
+    | projected AudioDecibelValue
+type AcousticDecibelObservation = {
+    original: AudioReferencedLevelRatio
+    projected: AudioDecibelLevel
+}
+plot decibel-retain-original (
+    >> value: AudioReferencedLevelRatio
+    result: AcousticDecibelStage >>
+) = (AcousticDecibelStage.original(.))
+plot decibel-input-ratio (
+    >> value: AudioReferencedLevelRatio
+    result: AudioLevelRatio >>
+) = (.ratio)
+plot decibel-retain-recognition (
+    >> value: AudioExactPowerOfTen
+    result: AcousticDecibelStage >>
+) = (AcousticDecibelStage.recognition(.))
+plot decibel-bind-convention (
+    >> pair: AcousticDecibelPair
+    result: AudioExactPowerOfTenEligible >>
+) = ({recognition: .1.recognition, convention: .0.original.basis.convention})
+plot decibel-retain-projection (
+    >> value: AudioDecibelValue
+    result: AcousticDecibelStage >>
+) = (AcousticDecibelStage.projected(.))
+plot decibel-observation (
+    >> pair: AcousticDecibelPair
+    result: AcousticDecibelObservation >>
+) = ({original: .0.original, projected: {basis: .0.original.basis, value: .1.projected}})
+plot acoustic-referenced-db-value (
+    >> value: AudioReferencedLevelRatio <= 32768B
+    result: AcousticDecibelObservation >>
+) {
+    retained: decibel-retain-original()
+    ratio: decibel-input-ratio()
+    working: audio/decibel-ratio-working()
+    recognition: audio/decibel-recognize-power-of-ten()
+    tagged-recognition: decibel-retain-recognition()
+    recognition-context: data/pair
+    eligible: decibel-bind-convention()
+    projection: audio/decibel-from-power-of-ten()
+    tagged-projection: decibel-retain-projection()
+    projection-context: data/pair
+    observed: decibel-observation()
+    value >> retained.value
+    value >> ratio.value
+    ratio.result >> working.value
+    working.result >> recognition.value
+    recognition.result >> tagged-recognition.value
+    retained.result >> recognition-context.left
+    tagged-recognition.result >> recognition-context.right
+    recognition-context.paired >> eligible.pair
+    eligible.result >> projection.value
+    projection.result >> tagged-projection.value
+    retained.result >> projection-context.left
+    tagged-projection.result >> projection-context.right
+    projection-context.paired >> observed.pair
+    observed.result >> result
+}
