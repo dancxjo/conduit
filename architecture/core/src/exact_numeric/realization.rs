@@ -2,9 +2,9 @@
 //! A sealed certificate is an implementation fact, not a host precision label.
 use super::{
     Binary64AlgorithmLimits, Binary64AlgorithmRefusal, Binary64Operation, Binary64Rounding,
-    ExactNumericRefusal, ExactNumericWork, ExactRational, IntegerEnclosure,
-    IntegerEnclosureRefusal, MathematicalValue, PreparedBinary64Algorithm,
-    PreparedIntegerEnclosure,
+    EnclosedBinary64Refusal, ExactNumericRefusal, ExactNumericWork, ExactRational,
+    IntegerEnclosure, IntegerEnclosureRefusal, MathematicalValue, PreparedBinary64Algorithm,
+    PreparedEnclosedBinary64, PreparedIntegerEnclosure,
 };
 use crate::{
     PrimitiveInfoKind, StructuredConfigurationValue, StructuredInfoTypeShape, StructuredInfoValue,
@@ -13,6 +13,7 @@ use crate::{
 use alloc::boxed::Box;
 use core::cmp::Ordering;
 mod codec;
+mod enclosed;
 pub use codec::numerical_realization_profile;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -20,18 +21,21 @@ pub enum NumericalAlgorithm {
     ExactRational,
     OutwardI64,
     Binary64 { rounding: Binary64Rounding },
+    EnclosedBinary64 { rounding: Binary64Rounding },
 }
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub enum NumericalTarget {
     ExactRational(Box<ExactRational>),
     OutwardI64(IntegerEnclosure),
     Binary64(Box<PreparedBinary64Algorithm>),
+    EnclosedBinary64(Box<PreparedEnclosedBinary64>),
 }
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum NumericalRealizationRefusal {
     Numeric(ExactNumericRefusal),
     Integer(IntegerEnclosureRefusal),
     Binary64(Binary64AlgorithmRefusal),
+    EnclosedBinary64(EnclosedBinary64Refusal),
     CertificateExtentExceeded,
     InvalidRequest,
     UnsupportedDenotation,
@@ -134,6 +138,9 @@ impl PreparedNumericalRealization {
         work: &mut ExactNumericWork,
     ) -> Result<Self, NumericalRealizationRefusal> {
         use NumericalRealizationRefusal as R;
+        if let NumericalAlgorithm::EnclosedBinary64 { rounding } = algorithm {
+            return Self::prepare_enclosed(source, rounding, maximum_outward_error, work);
+        }
         if let NumericalAlgorithm::Binary64 { rounding } = algorithm {
             let value = source.as_rational().ok_or(R::UnsupportedDenotation)?;
             return Self::prepare_binary64(
@@ -155,7 +162,7 @@ impl PreparedNumericalRealization {
         let before = work.spent();
         let admitted_limb_work = work.remaining();
         let (target, maximum_error) = match algorithm {
-            NumericalAlgorithm::Binary64 { .. } => {
+            NumericalAlgorithm::Binary64 { .. } | NumericalAlgorithm::EnclosedBinary64 { .. } => {
                 unreachable!("binary64 uses its operation-order preparation")
             }
             NumericalAlgorithm::ExactRational => (
@@ -273,9 +280,13 @@ impl PreparedNumericalRealization {
     /// Resident payload excludes allocator overhead; Host admission owns it.
     pub fn retained_payload_bytes(&self) -> usize {
         core::mem::size_of::<Self>()
+            + self.source.retained_heap_bytes()
             + match self.target {
                 NumericalTarget::ExactRational(_) => core::mem::size_of::<ExactRational>(),
                 NumericalTarget::Binary64(ref algorithm) => algorithm.retained_payload_bytes(),
+                NumericalTarget::EnclosedBinary64(ref algorithm) => {
+                    algorithm.retained_payload_bytes()
+                }
                 _ => 0,
             }
     }

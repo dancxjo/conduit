@@ -84,9 +84,9 @@ fn ordinary_product_source_retains_exact_meaning_through_selected_std_receipts()
     }
 }
 #[test]
-fn symbolic_or_negative_precision_refuses_without_play_or_output() {
+fn symbolic_or_negative_error_bound_refuses_without_play_or_output() {
     for request in [
-        "{value:pi,maximum-error:1}",
+        "{value:pi,maximum-error:0}",
         "{value:0.3,maximum-error:pi}",
         "{value:0.3,maximum-error:-1}",
     ] {
@@ -95,6 +95,53 @@ fn symbolic_or_negative_precision_refuses_without_play_or_output() {
         assert!(conduit::execute_hosted_plot(&source, &mut output).is_err());
         assert!(output.is_empty());
     }
+}
+
+#[test]
+fn symbolic_pi_runs_through_the_product_with_a_selected_enclosed_certificate() {
+    let source = "plot pi-projection {\n value: math/realize(request={value:pi,maximum-error:0.000000000001})\n shown: face/numerical-result(\"Pi projection\")\n value.result >> shown.input\n}.\n";
+    let mut output = vec![];
+    let execution = conduit::execute_hosted_plot(source, &mut output).unwrap();
+    assert!(conduit_core::verify_plan(&execution.plan));
+    let gear = execution
+        .plan
+        .fragments
+        .iter()
+        .flat_map(|f| &f.placements)
+        .find(|g| g.kind_id.as_str() == conduit_semantic_catalog::NUMERICAL_REALIZE_KIND)
+        .unwrap();
+    let prepared = PreparedNumericalRealization::from_property(
+        &gear.realization_properties[0],
+        &mut ExactNumericWork::new(100_000_000),
+    )
+    .unwrap();
+    assert_eq!(
+        prepared.algorithm(),
+        NumericalAlgorithm::EnclosedBinary64 {
+            rounding: conduit_core::Binary64Rounding::NearestTiesEven,
+        }
+    );
+    assert_eq!(
+        prepared.source(),
+        &MathematicalValue::parse_literal("pi", &mut ExactNumericWork::new(100_000_000)).unwrap()
+    );
+    assert!(prepared.source().as_rational().is_none());
+    let expected = conduit_semantic_catalog::numerical_result_value(&prepared).unwrap();
+    let presented: Vec<_> = execution
+        .observations
+        .iter()
+        .filter_map(|observation| {
+            if let ObservationKind::ValuePresented { label, value } = &observation.kind {
+                assert_eq!(label, "Pi projection");
+                assert!(observation.plan_id.is_some());
+                assert!(observation.active_play_id.is_some());
+                Some(StructuredInfoValue::from_canonical_bytes(&value.encoded).unwrap())
+            } else {
+                None
+            }
+        })
+        .collect();
+    assert_eq!(presented, vec![expected]);
 }
 
 #[test]

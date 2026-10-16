@@ -6,6 +6,12 @@ pub(super) fn intrinsic_call(
     mut arguments: Vec<Value>,
     expected: &StructuredInfoType,
 ) -> Result<Value, PortableExpressionEvaluationRefusal> {
+    if kind == crate::expression_angle_reference::CALL {
+        let [argument] = arguments.as_slice() else {
+            return Err(PortableExpressionEvaluationRefusal::InvalidProgram);
+        };
+        return crate::expression_angle_reference::evaluate(argument, expected);
+    }
     if let Some(function) = crate::expression_trigonometry::function(kind) {
         let [argument] = arguments.as_slice() else {
             return Err(PortableExpressionEvaluationRefusal::InvalidProgram);

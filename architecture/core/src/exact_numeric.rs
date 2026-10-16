@@ -1,7 +1,9 @@
 //! Bounded exact mathematical integers and rationals. This is denotation, not a
 //! choice of machine realization. Multi-limb arithmetic spends explicit work;
 //! no operation allocates, rounds or changes existing Scalar/Quantity semantics.
+mod angle_reference;
 mod binary64;
+mod enclosed_binary64;
 mod enclosure;
 mod natural;
 mod projection;
@@ -11,7 +13,9 @@ mod realization;
 mod root;
 mod symbolic;
 mod trigonometry;
+pub use angle_reference::*;
 pub use binary64::*;
+pub use enclosed_binary64::*;
 pub use enclosure::*;
 pub use projection::*;
 pub use quantity::*;
