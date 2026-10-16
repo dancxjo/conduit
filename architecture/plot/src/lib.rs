@@ -24,6 +24,7 @@ mod canonical_expansion;
 mod checked_syntax;
 mod diagnostic;
 mod ecmascript_binding;
+mod expression_angle_reference;
 mod expression_check;
 mod expression_definition;
 mod expression_evaluate;

@@ -6,6 +6,7 @@ use conduit_semantic_catalog::{NumericalRealizationBack, NUMERICAL_REALIZE_KIND}
 const EXACT: &str = "conduit.std/numeric-rational@1";
 const INTEGER: &str = "conduit.std/numeric-outward-i64@1";
 const FLOAT: &str = "conduit.std/numeric-binary64-nearest@1";
+const ENCLOSED: &str = "conduit.std/numeric-enclosed-binary64-nearest@1";
 const PROFILE: &str = "conduit.std/prepared-numerical-receipt@1";
 const WORK: u64 = 100_000_000;
 pub(super) static EXACT_FACTORY: BackFactory = BackFactory {
@@ -20,6 +21,11 @@ pub(super) static INTEGER_FACTORY: BackFactory = BackFactory {
 };
 pub(super) static FLOAT_FACTORY: BackFactory = BackFactory {
     implementation_id: FLOAT,
+    budget,
+    prepare,
+};
+pub(super) static ENCLOSED_FACTORY: BackFactory = BackFactory {
+    implementation_id: ENCLOSED,
     budget,
     prepare,
 };
@@ -38,6 +44,9 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
         NumericalAlgorithm::Binary64 {
             rounding: Binary64Rounding::NearestTiesEven,
         } => FLOAT,
+        NumericalAlgorithm::EnclosedBinary64 {
+            rounding: Binary64Rounding::NearestTiesEven,
+        } => ENCLOSED,
         _ => return Err("std numerical rounding strategy is not installed".into()),
     };
     let property = prepared
@@ -55,6 +64,19 @@ fn offer(prepared: &PreparedNumericalRealization) -> Result<CapabilityOffer, Str
             include_str!("../../../../semantics/catalog/src/numerical_realization_back.rs"),
             include_str!("../../../../semantics/catalog/numerical/types.conduit"),
             include_str!("../../../../architecture/core/src/exact_numeric/realization.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/enclosed_binary64.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/realization/enclosed.rs"),
+            include_str!(
+                "../../../../architecture/core/src/exact_numeric/realization/codec/enclosed.rs"
+            ),
+            include_str!("../../../../architecture/core/src/exact_numeric/symbolic.rs"),
+            include_str!("../../../../architecture/core/src/exact_numeric/symbolic/enclosure.rs"),
+            include_str!(
+                "../../../../architecture/core/src/exact_numeric/symbolic/enclosure/interval.rs"
+            ),
+            include_str!(
+                "../../../../architecture/core/src/exact_numeric/symbolic/enclosure/pi.rs"
+            ),
             include_str!("../../../../architecture/core/src/exact_numeric/realization/codec.rs"),
             include_str!(
                 "../../../../architecture/core/src/exact_numeric/realization/codec/float.rs"
@@ -89,7 +111,7 @@ pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
     offer.implementation.execution_profile_id.as_str() == PROFILE
         && matches!(
             offer.implementation.implementation_id.as_str(),
-            EXACT | INTEGER | FLOAT
+            EXACT | INTEGER | FLOAT | ENCLOSED
         )
 }
 /// Prepare the finite supported realizations of one exact source, independently
@@ -97,6 +119,18 @@ pub(crate) fn owns_offer(offer: &CapabilityOffer) -> bool {
 pub(crate) fn offers(
     request: &NumericalRealizationRequest,
 ) -> Result<Vec<CapabilityOffer>, String> {
+    if request.source().as_rational().is_none() {
+        let prepared = PreparedNumericalRealization::prepare(
+            request.source(),
+            NumericalAlgorithm::EnclosedBinary64 {
+                rounding: Binary64Rounding::NearestTiesEven,
+            },
+            request.maximum_error(),
+            &mut ExactNumericWork::new(WORK),
+        )
+        .map_err(|why| format!("std symbolic numerical realization refused: {why:?}"))?;
+        return Ok(vec![offer(&prepared)?]);
+    }
     let mut result = vec![];
     for algorithm in [
         NumericalAlgorithm::ExactRational,

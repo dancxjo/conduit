@@ -312,6 +312,14 @@ pub struct MathematicalValue {
     representation: Representation,
 }
 impl MathematicalValue {
+    pub(super) fn retained_heap_bytes(&self) -> usize {
+        match &self.representation {
+            Representation::Rational(_) => 0,
+            Representation::Expression(nodes) => {
+                nodes.capacity() * core::mem::size_of::<MathematicalNode>()
+            }
+        }
+    }
     pub const fn rational(value: ExactRational) -> Self {
         Self {
             representation: Representation::Rational(value),

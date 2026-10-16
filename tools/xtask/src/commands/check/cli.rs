@@ -46,12 +46,16 @@ pub enum CheckSuite {
     SemanticCatalog,
     /// Execute authored quantity mappings through the std production kernel and face.
     QuantityMapping,
+    /// Check exact acoustic control conversions and installed Source projections.
+    AcousticControl,
     /// Prove bounded Todo state transitions and recursive Plot execution.
     TodoState,
     /// Prove selected Todo checkpoint persistence and same-Body Host continuity.
     TodoDurability,
     /// Check canonical IPA notation and first-class phone/phoneme authoring.
     SpeechIpa,
+    /// Prove exact Angle-to-radian reference transport and certified numerical realization.
+    AngleReference,
     /// Prove authored finite acoustic state and PCM transport through the production kernel.
     AcousticFlow,
     /// Prove bounded speech selection and explicit detail from exact Faces.

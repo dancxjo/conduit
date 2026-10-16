@@ -1,3 +1,4 @@
+mod angle_reference;
 mod physical_constructor;
 use crate::prelude::*;
 use crate::{CanonicalStartupValue, SyntaxCheckError};
@@ -124,6 +125,9 @@ impl<'a> Resolver<'a> {
             kind, arguments, ..
         } = &expression.syntax
         {
+            if kind.text == crate::expression_angle_reference::CALL {
+                return self.resolve_angle_reference(expression, &expression.syntax, expected);
+            }
             if self.catalog.physical.quantities.contains_key(&kind.text) {
                 return self
                     .resolve_quantity_constructor(expression, expected, &kind.text, arguments);
@@ -177,12 +181,19 @@ impl<'a> Resolver<'a> {
                         other => other,
                     });
             }
-            let checked = crate::structured_startup::check_structured_expression(
+            let checked = crate::structured_startup::check_startup_expression(
                 &expression.syntax,
                 expected,
-                &mut |atomic, atomic_expected| {
-                    self.resolve_spanned(atomic, Some(atomic_expected))
-                        .map_err(|error| error.diagnostic(atomic.span))
+                &mut |syntax, atomic_expected| {
+                    use crate::structured_startup::StartupValueSyntax;
+                    match syntax {
+                        StartupValueSyntax::Atomic(atomic) => self
+                            .resolve_spanned(atomic, Some(atomic_expected))
+                            .map_err(|error| error.diagnostic(atomic.span)),
+                        StartupValueSyntax::AngleReference(call) => self
+                            .resolve_angle_reference(expression, call, Some(atomic_expected))
+                            .map_err(|error| error.diagnostic(call.span())),
+                    }
                 },
             )
             .map_err(|diagnostic| {

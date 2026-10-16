@@ -15,11 +15,13 @@ pub(super) fn check(
         Option<&CheckedExpressionType>,
     ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic>,
 ) -> Result<CheckedExpressionType, ExpressionTypeDiagnostic> {
-    if crate::expression_trigonometry::function(&name.text).is_some() {
+    if crate::expression_trigonometry::function(&name.text).is_some()
+        || name.text == crate::expression_angle_reference::CALL
+    {
         let [argument] = arguments else {
             return Err(diagnostic(
                 span,
-                "trigonometry requires exactly one typed Angle",
+                "Angle intrinsic requires exactly one typed Angle",
             ));
         };
         // Never provide an Angle expectation that could attach a unit to a
@@ -36,7 +38,7 @@ pub(super) fn check(
         {
             return Err(diagnostic(
                 argument.span(),
-                "trigonometry requires Angle; scalar radians are not implicit",
+                "Angle intrinsic requires Angle; scalar radians are not implicit",
             ));
         }
         return Ok(CheckedExpressionType::semantic(
@@ -412,6 +414,7 @@ fn diagnostic(span: Span, message: &str) -> ExpressionTypeDiagnostic {
 
 pub(crate) fn is_intrinsic(name: &str) -> bool {
     crate::expression_trigonometry::function(name).is_some()
+        || name == crate::expression_angle_reference::CALL
         || integer_widening_target(name).is_some()
         || matches!(
             name,
