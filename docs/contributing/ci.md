@@ -181,6 +181,13 @@ newer pending updates coalesce. The full target list is explicit in
 `tools/ci/pipeline/targets.mjs`; adding a target changes both scheduling and the
 required publication set. There is no second product build campaign.
 
+Unit jobs retain finite per-shard wall-clock limits: foundation has 90 minutes,
+products and the ordinary Host groups have 70, ConduitOS has 120, and lint has
+40. The cold foundation path includes its main tests, doctests and a separate
+kernel allocation-feature pass; products includes optimized browser Owner proof.
+These limits include compilation and preparation. They do not permit test
+retries or reduce the required proof set.
+
 A lane writes a receipt only after its build and proof succeed. The receipt
 records its source commit, target, proof class, and complete product file hashes.
 Products leave the runner in tar archives so executable permissions survive
