@@ -226,6 +226,51 @@ pub fn seeds(checked: &CheckedSyntaxDocument, profiles: &ProfileCatalog) -> (Vec
                 "status",
                 empty_case(checked, "AcousticFrameStatus", "waiting"),
             ),
+            (
+                "history_count",
+                leaf(
+                    checked,
+                    "AcousticFrameCursor",
+                    "history_count",
+                    0_u64.to_le_bytes().to_vec(),
+                ),
+            ),
+            (
+                "history_a",
+                leaf(
+                    checked,
+                    "AcousticFrameCursor",
+                    "history_a",
+                    0_i128.to_le_bytes().to_vec(),
+                ),
+            ),
+            (
+                "history_b",
+                leaf(
+                    checked,
+                    "AcousticFrameCursor",
+                    "history_b",
+                    0_i128.to_le_bytes().to_vec(),
+                ),
+            ),
+            (
+                "history_c",
+                leaf(
+                    checked,
+                    "AcousticFrameCursor",
+                    "history_c",
+                    0_i128.to_le_bytes().to_vec(),
+                ),
+            ),
+            (
+                "history_d",
+                leaf(
+                    checked,
+                    "AcousticFrameCursor",
+                    "history_d",
+                    0_i128.to_le_bytes().to_vec(),
+                ),
+            ),
         ],
     );
     let context = record(
@@ -233,6 +278,10 @@ pub fn seeds(checked: &CheckedSyntaxDocument, profiles: &ProfileCatalog) -> (Vec
         "AcousticFrameControl",
         vec![
             ("cursor", cursor),
+            (
+                "control_status",
+                empty_case(checked, "AcousticControlStatus", "ready"),
+            ),
             (
                 "cancelled",
                 leaf(checked, "AcousticFrameControl", "cancelled", vec![0]),
