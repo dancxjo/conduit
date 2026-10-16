@@ -1,4 +1,4 @@
-//! Diagnostic measurement, not a storage-admission or zero-allocation claim.
+//! Fixed prepared profile Play allocation contract; preparation and total memory are separate.
 #[path = "common_model_infer/mod.rs"]
 mod fixture;
 use conduit_core::ConnectionTrack;
@@ -96,7 +96,7 @@ impl ExternalForeOutputAdapter for Sink {
     }
 }
 #[test]
-fn characterize_actual_model_play_allocation_requests() {
+fn prepared_model_source_play_uses_only_prepared_storage() {
     let (mut host, plan) = host_plan(include_str!("fixtures/model-linear.conduit"), |signature| {
         Box::new(
             prepare_linear_model(model(signature), offer(), runtime("linear"), requirement())
@@ -125,6 +125,11 @@ fn characterize_actual_model_play_allocation_requests() {
     result.unwrap();
     assert_eq!(probe.phases, 2);
     assert_eq!(sink.calls, 1);
+    assert_eq!(
+        probe.calls, 0,
+        "prepared reference-linear Source Play must not allocate"
+    );
+    assert_eq!(probe.requested, 0);
     let output = NamedTensorBundle::decode(&sink.bytes[..sink.length]).unwrap();
     assert_eq!(output.get()[0].name, "output");
     println!("model_play_allocation_requests={{\"calls\":{},\"requested_bytes_sum\":{},\"output_bytes\":{}}}", probe.calls, probe.requested, sink.length);

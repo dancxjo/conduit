@@ -13,6 +13,8 @@ pub struct HostedBurnModelComputeAdapter<D: BurnModelDefinition> {
     adapter: InferenceBurnAdapter<D>,
     offer: ModelComputeOffer,
     cancellation: Cancellation,
+    output: Vec<u8>,
+    output_reader: conduit_data::PreparedNamedTensorBundleView,
 }
 impl<D: BurnModelDefinition> HostedBurnModelComputeAdapter<D> {
     pub fn from_checkpoint(adapter: BurnAdapter<D>) -> Result<Self, Error> {
@@ -33,6 +35,9 @@ impl<D: BurnModelDefinition> HostedBurnModelComputeAdapter<D> {
             adapter,
             offer,
             cancellation: Cancellation::default(),
+            output: Vec::with_capacity(conduit_core::MAXIMUM_STRUCTURED_CANONICAL_BYTES),
+            output_reader: conduit_data::PreparedNamedTensorBundleView::prepare()
+                .map_err(|_| Error::InvalidDescriptor)?,
         })
     }
     pub fn cancellation(&self) -> Cancellation {
@@ -64,7 +69,10 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
             .ready_for_inference()
             .map_err(|_| ModelComputeRefusal::ProviderUnavailable)
     }
-    fn execute(&mut self, invocation: ModelComputeInvocation<'_>) -> ModelComputeAdapterTerminal {
+    fn execute(
+        &mut self,
+        invocation: ModelComputeInvocation<'_>,
+    ) -> ModelComputeAdapterTerminal<'_> {
         if self.cancellation.is_cancelled() {
             return ModelComputeAdapterTerminal::Cancelled;
         }
@@ -74,12 +82,12 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
         {
             return ModelComputeAdapterTerminal::Refused(ModelComputeRefusal::ProviderUnavailable);
         }
-        if let Err(error) = self.offer.admits(&invocation.requirement) {
+        if let Err(error) = self.offer.admits(invocation.requirement) {
             return ModelComputeAdapterTerminal::Refused(error);
         }
         if let Err(error) = self
             .adapter
-            .admit_inference_requirement(&invocation.requirement)
+            .admit_inference_requirement(invocation.requirement)
         {
             return ModelComputeAdapterTerminal::Refused(match error {
                 Error::ModelCompute(error) => error,
@@ -183,15 +191,28 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
                         ModelComputeRefusal::ResourceBoundExceeded,
                     );
                 }
-                ModelComputeAdapterTerminal::Produced(Box::new(ModelComputeExecution {
+                let Ok(encoded) = <conduit_data::NamedTensorBundle as conduit_plot::rust_binding::NativeRustBinding>::encode(outputs) else {
+                    return ModelComputeAdapterTerminal::Failed;
+                };
+                if encoded.len() > self.output.capacity() {
+                    return ModelComputeAdapterTerminal::Refused(
+                        ModelComputeRefusal::ResourceBoundExceeded,
+                    );
+                }
+                self.output.clear();
+                self.output.extend_from_slice(&encoded);
+                let Ok(outputs) = self.output_reader.read(&self.output) else {
+                    return ModelComputeAdapterTerminal::Failed;
+                };
+                ModelComputeAdapterTerminal::Produced(ModelComputeExecution {
                     request_identity: invocation.request_identity,
                     artifact_identity: invocation.artifact_identity,
                     checkpoint_identity: invocation.checkpoint_identity,
                     inputs_identity,
-                    outputs,
+                    outputs: outputs.encoded_ref(),
                     consumed_work_units: self.adapter.admitted_inference_work(),
-                    runtime: self.adapter.runtime().clone(),
-                }))
+                    runtime: self.adapter.runtime(),
+                })
             }
             Err(Error::ModelCompute(error)) => ModelComputeAdapterTerminal::Refused(error),
             Err(Error::InvalidTensor) => {
@@ -202,7 +223,7 @@ impl<D: BurnModelDefinition> ModelComputeAdapter for HostedBurnModelComputeAdapt
             _ => ModelComputeAdapterTerminal::Failed,
         }
     }
-    fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal, ModelComputeRefusal> {
+    fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal<'_>, ModelComputeRefusal> {
         self.adapter
             .ready_for_inference()
             .map_err(|_| ModelComputeRefusal::InvalidLifecycleTransition)?;

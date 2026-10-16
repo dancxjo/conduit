@@ -52,6 +52,8 @@ pub enum CheckSuite {
     TodoDurability,
     /// Check canonical IPA notation and first-class phone/phoneme authoring.
     SpeechIpa,
+    /// Prove imported model admission and prepared named-tensor Source/Plan/Play.
+    ModelInference,
     /// Prove bounded speech selection and explicit detail from exact Faces.
     TodoSpeech,
     InputSemantics,

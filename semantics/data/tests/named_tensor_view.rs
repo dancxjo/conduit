@@ -444,3 +444,39 @@ fn provider_tensor_writes_preserve_full_metadata_and_refuse_forged_digest() {
         assert!(output.view().is_ok());
     });
 }
+
+#[test]
+fn borrowed_output_keeps_identity_units_digest_and_failure_mask_without_allocation() {
+    let named = tensor("score", TensorElement::F32, &0.5_f32.to_le_bytes());
+    let template = NamedTensorBundle::from_values(vec![named.clone()]).unwrap();
+    let encoded = template.clone().encode().unwrap();
+    let reader = PreparedNamedTensorBundleView::prepare().unwrap();
+    let good = reader.read(&encoded).unwrap();
+    let mut drift = named;
+    drift.value.axes[0].identity = Some("changed".into());
+    drift.value.axes[0].unit = Some(conduit_core::Unit::Moment);
+    let drift = NamedTensorBundle::from_values(vec![drift])
+        .unwrap()
+        .encode()
+        .unwrap();
+    let drift = reader.read(&drift).unwrap();
+    let mut output = PreparedNamedTensorBundleOutput::prepare(&template).unwrap();
+    without_allocations(|| {
+        output.write_view(good.values().next().unwrap()).unwrap();
+        assert_eq!(output.encoded().unwrap(), encoded);
+        assert_eq!(
+            output.write_view(drift.values().next().unwrap()),
+            Err(NamedTensorOutputRefusal::MetadataMismatch)
+        );
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        let mut forged = *good.values().next().unwrap();
+        forged.content_digest[0] ^= 1;
+        assert_eq!(
+            output.write_view(&forged),
+            Err(NamedTensorOutputRefusal::InvalidTensor)
+        );
+        assert_eq!(output.encoded(), Err(NamedTensorOutputRefusal::Incomplete));
+        output.write_view(good.values().next().unwrap()).unwrap();
+        assert_eq!(output.encoded().unwrap(), encoded);
+    });
+}

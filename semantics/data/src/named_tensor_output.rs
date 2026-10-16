@@ -1,7 +1,8 @@
 //! Fixed-geometry canonical output storage admitted before model execution.
 use crate::{
-    tensor_content_digest, NamedTensorBundle, NamedTensorBundleView, PreparedNamedTensorBundleView,
-    TensorAxis, TensorBacking, TensorBackingView, TensorElement, TensorValue,
+    tensor_content_digest, NamedTensorBundle, NamedTensorBundleView, NamedTensorView,
+    PreparedNamedTensorBundleView, TensorAxis, TensorBacking, TensorBackingView, TensorElement,
+    TensorValue,
 };
 use alloc::{boxed::Box, string::String, vec::Vec};
 use conduit_core::validate_canonical_structured_value;
@@ -25,6 +26,7 @@ struct OutputSlot {
     element: TensorElement,
     dimensions: Box<[u64]>,
     axes: Box<[TensorAxis]>,
+    axes_node: Box<[u8]>,
     payload: Range<usize>,
     digest: [usize; 32],
 }
@@ -97,6 +99,7 @@ impl PreparedNamedTensorBundleOutput {
                 element: tensor.element,
                 dimensions: tensor.dimensions().into(),
                 axes: template.get()[index].value.axes.as_slice().into(),
+                axes_node: tensor.axes().value_node().into(),
                 payload: start..start + payload.len(),
                 digest,
             });
@@ -171,6 +174,37 @@ impl PreparedNamedTensorBundleOutput {
             return Err(R::UnsupportedBacking);
         };
         self.write(name, bytes.as_slice())
+    }
+
+    /// Admit borrowed provider metadata without materializing an owned tensor.
+    /// The complete canonical axes include roles, identities and units.
+    pub fn write_view(
+        &mut self,
+        tensor: &NamedTensorView<'_>,
+    ) -> Result<(), NamedTensorOutputRefusal> {
+        use NamedTensorOutputRefusal as R;
+        let Some(slot) = self.slots.iter().find(|slot| slot.name == tensor.name) else {
+            self.written = 0;
+            return Err(R::UnknownPort);
+        };
+        if slot.element != tensor.element
+            || slot.dimensions.as_ref() != tensor.dimensions()
+            || slot.axes_node.as_ref() != tensor.axes().value_node()
+        {
+            self.written = 0;
+            return Err(R::MetadataMismatch);
+        }
+        let TensorBackingView::Inline(payload) = tensor.backing else {
+            self.written = 0;
+            return Err(R::UnsupportedBacking);
+        };
+        if payload.len() as u64 != tensor.byte_count()
+            || tensor_content_digest(payload) != tensor.content_digest
+        {
+            self.written = 0;
+            return Err(R::InvalidTensor);
+        }
+        self.write(tensor.name, payload)
     }
 
     /// Partial, reset or failed invocations cannot publish a mixed bundle.

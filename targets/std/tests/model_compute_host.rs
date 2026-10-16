@@ -101,7 +101,7 @@ impl InvocationFixture {
             request_identity: self.request_identity,
             artifact_identity: self.artifact_identity,
             checkpoint_identity: self.checkpoint_identity,
-            requirement: self.requirement.clone(),
+            requirement: &self.requirement,
             inputs: self.reader.read(&self.encoded).unwrap(),
         }
     }
@@ -139,11 +139,13 @@ fn invocation(artifact: [u8; 32], values: [f32; 2]) -> InvocationFixture {
     }
 }
 
-fn values(tensor: &TensorValue) -> [f32; 2] {
-    let TensorBacking::Inline(bytes) = &tensor.backing else {
+fn values(bundle: conduit_data::NamedTensorBundleRef<'_>) -> [f32; 2] {
+    let reader = conduit_data::PreparedNamedTensorBundleView::prepare().unwrap();
+    let view = reader.read(bundle.encoded()).unwrap();
+    let conduit_data::TensorBackingView::Inline(bytes) = view.values().next().unwrap().backing
+    else {
         panic!()
     };
-    let bytes = bytes.as_slice();
     [
         f32::from_le_bytes(bytes[0..4].try_into().unwrap()),
         f32::from_le_bytes(bytes[4..8].try_into().unwrap()),
@@ -160,7 +162,7 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     else {
         panic!("reference adapter must produce")
     };
-    assert_eq!(values(&reference_result.outputs.get()[0].value), [2.0, 3.0]);
+    assert_eq!(values(reference_result.outputs), [2.0, 3.0]);
     assert_eq!(reference_result.artifact_identity, artifact);
     assert_ne!(
         reference_result.runtime.adapter_artifact_identity,
@@ -185,7 +187,7 @@ fn reference_adapter_proves_exact_boundary_and_real_linear_model_computes() {
     else {
         panic!("real linear model must produce")
     };
-    assert_eq!(values(&result.outputs.get()[0].value), [5.0, 1.0]);
+    assert_eq!(values(result.outputs), [5.0, 1.0]);
     assert_eq!(result.consumed_work_units, 8);
     assert_eq!(
         result.inputs_identity,
@@ -285,6 +287,6 @@ fn named_mixed_bundle_preserves_custody_and_refusal_releases_the_session() {
     let ModelComputeAdapterTerminal::Produced(result) = host.execute(request.request()) else {
         panic!("a refused output must leave the admitted session available");
     };
-    assert_eq!(result.outputs, expected);
+    assert_eq!(result.outputs.encoded(), expected.clone().encode().unwrap());
     assert_eq!(result.inputs_identity, expected.semantic_digest().unwrap());
 }

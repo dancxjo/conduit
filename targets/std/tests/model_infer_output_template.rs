@@ -56,10 +56,13 @@ impl ModelComputeAdapter for FaultTemplate {
             .map(Some)
             .map_err(|_| ModelComputeRefusal::UnsupportedShape)
     }
-    fn execute(&mut self, invocation: ModelComputeInvocation<'_>) -> ModelComputeAdapterTerminal {
+    fn execute(
+        &mut self,
+        invocation: ModelComputeInvocation<'_>,
+    ) -> ModelComputeAdapterTerminal<'_> {
         self.inner.execute(invocation)
     }
-    fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal, ModelComputeRefusal> {
+    fn cancel(&mut self) -> Result<ModelComputeAdapterTerminal<'_>, ModelComputeRefusal> {
         self.inner.cancel()
     }
     fn unload(&mut self) -> Result<(), ModelComputeRefusal> {

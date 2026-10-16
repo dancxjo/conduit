@@ -6,7 +6,6 @@ use crate::hosted_model_work::{HostedModelWorkAdapter, ModelWorkTerminal};
 use conduit_ai::model_infer_catalog::{model_infer_contract, signature_configuration};
 use conduit_ai::{AdmittedModelResource, ModelComputeOperation, ModelComputeRequirement};
 use conduit_core::*;
-use conduit_plot::rust_binding::NativeRustBinding;
 
 pub const MODEL_INFER_OPERATION: &str = "conduit.host/model-infer@1";
 pub const MODEL_INFER_IMPLEMENTATION: &str = "std/model-compute@1";
@@ -19,6 +18,7 @@ pub struct PreparedModelInfer<A: ModelComputeAdapter> {
     model: AdmittedModelResource,
     adapter: A,
     requirement: ModelComputeRequirement,
+    maximum_input_bytes: u64,
     capability: CapabilityOffer,
     resource: ResourceOffer,
     next_request: u32,
@@ -156,6 +156,7 @@ impl<A: ModelComputeAdapter> PreparedModelInfer<A> {
         Ok(Self {
             model,
             adapter,
+            maximum_input_bytes: requirement.input_bytes,
             requirement,
             capability,
             resource: ResourceOffer {
@@ -215,7 +216,7 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
             return ModelWorkTerminal::MalformedInput;
         }
         let bytes = inputs.tensor_bytes();
-        if bytes > self.requirement.input_bytes {
+        if bytes > self.maximum_input_bytes {
             return ModelWorkTerminal::Refused;
         }
         let Some(next) = self.next_request.checked_add(1) else {
@@ -224,39 +225,34 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
         let mut identity = self.model.descriptor_identity();
         identity[..4].copy_from_slice(&self.next_request.to_le_bytes());
         self.next_request = next;
-        let mut requirement = self.requirement.clone();
-        requirement.input_bytes = bytes;
+        // Keep admission immutable while reusing the one in-flight request.
+        self.requirement.input_bytes = bytes;
         let inputs_identity = inputs.semantic_digest();
         let terminal = self.adapter.execute(ModelComputeInvocation {
             request_identity: identity,
             artifact_identity: self.model.artifact().content_identity(),
             checkpoint_identity: None,
-            requirement,
+            requirement: &self.requirement,
             inputs,
         });
         match terminal {
             ModelComputeAdapterTerminal::Produced(result) => {
+                let Ok(outputs) = self.input_reader.read(result.outputs.encoded()) else {
+                    return ModelWorkTerminal::Failed;
+                };
                 if result.request_identity != identity
                     || result.artifact_identity != self.model.artifact().content_identity()
                     || result.inputs_identity != inputs_identity
                     || result.checkpoint_identity.is_some()
-                    || self
-                        .signature_io
-                        .validate_owned_outputs(&result.outputs)
-                        .is_err()
-                    || result
-                        .outputs
-                        .tensor_bytes()
-                        .ok()
-                        .is_none_or(|n| n > self.requirement.output_bytes)
+                    || self.signature_io.validate_outputs(&outputs).is_err()
+                    || outputs.tensor_bytes() > self.requirement.output_bytes
                 {
                     return ModelWorkTerminal::Failed;
                 }
-                let allocated;
                 let bytes: &[u8] = if let Some(prepared) = self.prepared_output.as_mut() {
                     prepared.reset();
-                    for named in result.outputs.get().iter() {
-                        if prepared.write_tensor(&named.name, &named.value).is_err() {
+                    for named in outputs.values() {
+                        if prepared.write_view(named).is_err() {
                             return ModelWorkTerminal::Failed;
                         }
                     }
@@ -265,13 +261,7 @@ impl<A: ModelComputeAdapter + Send> HostedModelWorkAdapter for PreparedModelInfe
                     };
                     bytes
                 } else {
-                    // Providers without a fixed output geometry retain the
-                    // existing representation path; this is one inference API.
-                    allocated = match result.outputs.encode() {
-                        Ok(bytes) => bytes,
-                        Err(_) => return ModelWorkTerminal::Failed,
-                    };
-                    &allocated
+                    result.outputs.encoded()
                 };
                 if bytes.len() > MODEL_INFER_MAXIMUM_BYTES as usize
                     || bytes.len() > output.capacity()

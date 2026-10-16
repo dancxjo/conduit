@@ -84,6 +84,25 @@ impl PreparedNamedTensorBundleView {
     }
 }
 
+/// Exact validated canonical bundle bytes without copying descriptor storage.
+/// This reference transports values; it grants no access to referenced resources.
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub struct NamedTensorBundleRef<'a> {
+    canonical: &'a [u8],
+}
+impl<'a> NamedTensorBundleRef<'a> {
+    pub fn encoded(self) -> &'a [u8] {
+        self.canonical
+    }
+}
+impl core::fmt::Debug for NamedTensorBundleRef<'_> {
+    fn fmt(&self, f: &mut core::fmt::Formatter<'_>) -> core::fmt::Result {
+        f.debug_struct("NamedTensorBundleRef")
+            .field("encoded_bytes", &self.canonical.len())
+            .finish()
+    }
+}
+
 #[derive(Clone)]
 pub struct NamedTensorBundleView<'a> {
     canonical: &'a [u8],
@@ -92,6 +111,12 @@ pub struct NamedTensorBundleView<'a> {
     tensor_bytes: u64,
 }
 impl<'a> NamedTensorBundleView<'a> {
+    pub fn encoded_ref(&self) -> NamedTensorBundleRef<'a> {
+        NamedTensorBundleRef {
+            canonical: self.canonical,
+        }
+    }
+
     /// Exact admitted canonical bytes; borrowing does not grant resource access.
     pub fn encoded(&self) -> &'a [u8] {
         self.canonical
