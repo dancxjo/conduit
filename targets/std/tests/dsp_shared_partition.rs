@@ -248,3 +248,75 @@ fn shared_filter_matches_independent_ordered_i32_profile_and_refuses_bad_coeffic
         .join()
         .unwrap();
 }
+
+#[test]
+fn musical_periodic_source_matches_cubic_reference_and_block_partitions() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let source = source::source();
+            let initial = seed::music(&source, 7);
+            let tick = seed::tick(&source);
+            let mut reference = None;
+            for blocks in [&[64][..], &[1, 15, 17, 31][..]] {
+                let prepared = planning::prepare(&initial, &tick, 64);
+                let states = producer::run(
+                    prepared.plan,
+                    &prepared.front,
+                    &prepared.registry,
+                    &prepared.items,
+                    blocks,
+                    producer::Delivery {
+                        gap: 7,
+                        hold: 4,
+                        signs: conduit_composite::KernelCompositeSignStorage {
+                            additional_local_items: 8192,
+                            additional_remote_items: 4096,
+                        },
+                    },
+                );
+                let mut samples = Vec::new();
+                for (frame, encoded) in states.iter().enumerate() {
+                    let value = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
+                    let StructuredInfoValueShape::Variant { payload, .. } = value.shape() else {
+                        panic!("context")
+                    };
+                    let cursor = field(payload, "cursor");
+                    let value = field(&cursor, "sample");
+                    let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                        panic!("sample")
+                    };
+                    let actual = i32::from_le_bytes(bytes.try_into().unwrap());
+                    let phase = (frame % 16) as i64 * 256;
+                    let current = phase * 256 / 3072;
+                    let previous = if phase < 256 {
+                        0
+                    } else {
+                        (phase - 256) * 256 / 3072
+                    };
+                    let cubic = |x: i64| {
+                        if x <= 0 || x >= 256 {
+                            0
+                        } else {
+                            x * x * (256 - x) / 256
+                        }
+                    };
+                    let level = if frame < 8 { frame as i64 * 32 } else { 256 };
+                    let expected = (cubic(current) - cubic(previous)) * level / 256;
+                    assert_eq!(i64::from(actual), expected);
+                    samples.push(actual);
+                }
+                assert!(samples.iter().any(|x| *x > 0));
+                assert!(samples.iter().any(|x| *x < 0));
+                assert_eq!(&samples[16..32], &samples[32..48]);
+                assert_eq!(&samples[32..48], &samples[48..64]);
+                if let Some(previous) = &reference {
+                    assert_eq!(&states, previous);
+                }
+                reference = Some(states);
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

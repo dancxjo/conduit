@@ -37,6 +37,23 @@ pub fn seed(source: &str, word: i32) -> Vec<u8> {
     .unwrap();
     program.evaluate(&input.canonical_bytes().unwrap()).unwrap()
 }
+pub fn music(source: &str, word: i32) -> Vec<u8> {
+    let program = program(source, "shared-excitation-music-start");
+    let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
+        panic!("seed")
+    };
+    let input = StructuredInfoValue::record(
+        program.input_type.clone(),
+        vec![StructuredFieldValue::new(
+            "word",
+            StructuredInfoValue::leaf(fields[0].value_type().clone(), word.to_le_bytes().to_vec())
+                .unwrap(),
+        )
+        .unwrap()],
+    )
+    .unwrap();
+    program.evaluate(&input.canonical_bytes().unwrap()).unwrap()
+}
 pub fn tick(source: &str) -> Vec<u8> {
     program(source, "shared-excitation-tick")
         .evaluate(&[0])

@@ -13,6 +13,9 @@ type SharedExcitationCursor = {
     attack: I32
     release: I32
     sample: I32
+    periodic: Boolean
+    period_q8: I32
+    phase_q8: I32
     b: I32
     c: I32
     y1: I32
@@ -25,6 +28,19 @@ type SharedExcitationControl = {
     noise: I32
     level: I32
     valid: Boolean
+}
+type SharedExcitationPhaseCoordinates = {
+    phase_q8: I32
+    open_q8: I32
+}
+type SharedExcitationPeriodicInput = {
+    source: SharedExcitationPhaseCoordinates
+    control: SharedExcitationControl
+}
+type SharedExcitationPeriodicPair = {
+    input: SharedExcitationPeriodicInput
+    current: I32
+    previous: I32
 }
 type SharedExcitationResonatorInput = {
     control: SharedExcitationControl
@@ -51,12 +67,17 @@ type SharedExcitationProfileSeed = {
 plot shared-excitation-start (
     >> value: SharedExcitationSeed
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: false, period_q8: 4096, phase_q8: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-music-start (
+    >> value: SharedExcitationSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: true, period_q8: 4096, phase_q8: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
 
 plot shared-excitation-profile-start (
     >> value: SharedExcitationProfileSeed
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, b: .b, c: .c, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, periodic: false, period_q8: 4096, phase_q8: 0, b: .b, c: .c, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
 
 plot shared-excitation-tick (
     >> value: Boolean
@@ -82,7 +103,15 @@ plot shared-excitation-noise-tag (
 plot shared-excitation-after-noise (
     >> pair: SharedExcitationPair
     result: SharedExcitationControl >>
-) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: .1.noise is advanced && .0.context.cursor.b >= -8192 && .0.context.cursor.b <= 8192 && .0.context.cursor.c >= -4096 && .0.context.cursor.c <= 4096 && .0.context.cursor.y1 >= -32767 && .0.context.cursor.y1 <= 32767 && .0.context.cursor.y2 >= -32767 && .0.context.cursor.y2 <= 32767})
+) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: (((.1.noise is advanced && (.0.context.cursor.period_q8 >= 2048 && .0.context.cursor.period_q8 <= 131072)) && (.0.context.cursor.phase_q8 >= 0 && (.0.context.cursor.phase_q8 < .0.context.cursor.period_q8 && .0.context.cursor.b >= -8192))) && ((.0.context.cursor.b <= 8192 && (.0.context.cursor.c >= -4096 && .0.context.cursor.c <= 4096)) && ((.0.context.cursor.y1 >= -32767 && .0.context.cursor.y1 <= 32767) && (.0.context.cursor.y2 >= -32767 && .0.context.cursor.y2 <= 32767))))})
+plot shared-excitation-periodic-input (
+    >> value: SharedExcitationControl
+    result: SharedExcitationPeriodicInput >>
+) = ({source: {phase_q8: (.valid ? .cursor.phase_q8 : 0), open_q8: (.valid ? (.cursor.period_q8 * 3 / 4 / 256) * 256 : 1536)}, control: .})
+plot shared-excitation-after-periodic (
+    >> value: SharedExcitationPeriodicPair
+    result: SharedExcitationControl >>
+) = ({cursor: .input.control.cursor, next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: (.input.control.cursor.periodic ? .current - .previous : .input.control.noise), level: 0, valid: .input.control.valid})
 plot shared-excitation-envelope-input (
     >> value: SharedExcitationControl
     result: EnvelopeControl >>
@@ -113,7 +142,7 @@ plot shared-excitation-filter-input (
 plot shared-excitation-finish (
     >> value: SharedExcitationResonatorPair
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: (.input.control.valid ? {word: .input.control.next_word, remaining: .input.control.next_remaining, frame: .input.control.cursor.frame + 1, total: .input.control.cursor.total, attack: .input.control.cursor.attack, release: .input.control.cursor.release, sample: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), b: .input.b, c: .input.c, y1: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), y2: .input.y1} : .input.control.cursor), next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: .input.control.noise, level: .input.control.level, valid: .input.control.valid}))
+) = (SharedExcitationStage.context({cursor: (.input.control.valid ? {word: .input.control.next_word, remaining: .input.control.next_remaining, frame: .input.control.cursor.frame + 1, total: .input.control.cursor.total, attack: .input.control.cursor.attack, release: .input.control.cursor.release, sample: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), periodic: .input.control.cursor.periodic, period_q8: .input.control.cursor.period_q8, phase_q8: (.input.control.cursor.phase_q8 + 256) % .input.control.cursor.period_q8, b: .input.b, c: .input.c, y1: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), y2: .input.y1} : .input.control.cursor), next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: .input.control.noise, level: .input.control.level, valid: .input.control.valid}))
 
 plot shared-excitation-frame (
     >> value: SharedExcitationStage
@@ -126,6 +155,10 @@ plot shared-excitation-frame (
     noise_tag: shared-excitation-noise-tag()
     noise_pair: data/pair()
     after_noise: shared-excitation-after-noise()
+    periodic_input: shared-excitation-periodic-input()
+    phase: dsp/periodic-phase-pair(item = SharedExcitationPeriodicInput, output = SharedExcitationPeriodicPair)
+    waveform: dsp/cubic-flow-pair(item = SharedExcitationPeriodicPair, output = SharedExcitationPeriodicPair)
+    after_periodic: shared-excitation-after-periodic()
     envelope_context: shared-excitation-context()
     envelope_input: shared-excitation-envelope-input()
     envelope: dsp/envelope-value()
@@ -148,8 +181,12 @@ plot shared-excitation-frame (
     noise.next >> noise_tag.value
     noise_tag.result >> noise_pair.right
     noise_pair.paired >> after_noise.pair
-    after_noise.result >> envelope_context.value
-    after_noise.result >> envelope_input.value
+    after_noise.result >> periodic_input.value
+    periodic_input.result >> phase.value
+    phase.result >> waveform.value
+    waveform.result >> after_periodic.value
+    after_periodic.result >> envelope_context.value
+    after_periodic.result >> envelope_input.value
     envelope_context.result >> envelope_pair.left
     envelope_input.result >> envelope.control
     envelope.result >> envelope_tag.value
