@@ -9,8 +9,12 @@ use crate::{
 use alloc::vec::Vec;
 use core::{cmp::Ordering, mem::size_of};
 mod interval;
+mod inverse_trigonometry;
+pub use inverse_trigonometry::*;
 mod pi;
+mod typed_atan2;
 pub use interval::MathematicalInterval;
+pub use typed_atan2::*;
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum MathematicalEnclosureRefusal {
     Numeric(ExactNumericRefusal),
