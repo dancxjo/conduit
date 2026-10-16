@@ -6,6 +6,7 @@ type AcousticTrajectoryStage =
     request AudioTrajectoryU8Arithmetic
     | weight AudioTrajectoryWeight
     | result AudioTrajectoryRatio
+    | observation AcousticTrajectoryObservation
 type AcousticTrajectoryObservation = {
     original: AudioTrajectoryU8Arithmetic
     result: AudioTrajectoryRatio
@@ -31,7 +32,7 @@ plot trajectory-observation (
     result: AcousticTrajectoryObservation >>
 ) = ({original: .0.request, result: .1.result})
 plot acoustic-trajectory-value (
-    >> value: AudioTrajectoryU8Arithmetic <= 32768B
+    >> value: AudioTrajectoryU8Arithmetic
     result: AcousticTrajectoryObservation >>
 ) {
     retained: trajectory-retain-request()
