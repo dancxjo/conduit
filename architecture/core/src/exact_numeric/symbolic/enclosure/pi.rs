@@ -12,8 +12,7 @@ struct Arctangent {
     terms: u16,
 }
 impl Arctangent {
-    fn new(denominator: i128, work: &mut Work) -> Result<Self, R> {
-        let power = Q::ratio(1, denominator, work)?;
+    fn new(power: Q, work: &mut Work) -> Result<Self, R> {
         Ok(Self {
             sum: Q::ZERO,
             power,
@@ -58,8 +57,8 @@ pub(super) fn enclose(
     if maximum_width == Q::ZERO {
         return Err(R::ExactConstantEnclosureUnsupported);
     }
-    let mut fifth = Arctangent::new(5, work)?;
-    let mut other = Arctangent::new(239, work)?;
+    let mut fifth = Arctangent::new(Q::ratio(1, 5, work)?, work)?;
+    let mut other = Arctangent::new(Q::ratio(1, 239, work)?, work)?;
     loop {
         let bounds = fifth
             .bounds(work)?
@@ -73,5 +72,51 @@ pub(super) fn enclose(
         }
         fifth.advance(work)?;
         other.advance(work)?;
+    }
+}
+
+/// Shared alternating-series certificate for a reduced argument |x| <= 1/2.
+pub(super) fn enclose_arctangent(
+    argument: Q,
+    maximum_width: Q,
+    maximum_terms: u16,
+    work: &mut Work,
+) -> Result<(Interval, u16), R> {
+    let magnitude = if argument.is_negative() {
+        argument.negated()
+    } else {
+        argument
+    };
+    if magnitude.checked_compare(Q::ratio(1, 2, work)?, work)? == Ordering::Greater {
+        return Err(R::InvalidExpression);
+    }
+    if magnitude == Q::ZERO {
+        return Ok((Interval::point(Q::ZERO), 0));
+    }
+    if maximum_width == Q::ZERO {
+        return Err(R::ExactConstantEnclosureUnsupported);
+    }
+    let mut series = Arctangent::new(magnitude, work)?;
+    loop {
+        let interval = series.bounds(work)?;
+        // A nonzero reduced argument needs one term even under a coarse
+        // width profile: x - x³/3 > 0 proves a strict sign, keeping reciprocal
+        // and atan2 branch enclosures away from excluded principal limits.
+        if series.terms > 0
+            && interval.width(work)?.checked_compare(maximum_width, work)? != Ordering::Greater
+        {
+            return Ok((
+                if argument.is_negative() {
+                    interval.negated()
+                } else {
+                    interval
+                },
+                series.terms,
+            ));
+        }
+        if series.terms == maximum_terms {
+            return Err(R::ConstantTermLimit);
+        }
+        series.advance(work)?;
     }
 }

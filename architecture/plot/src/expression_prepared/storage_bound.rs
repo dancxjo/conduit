@@ -63,6 +63,7 @@ fn leaf(kind: &str) -> usize {
         PrimitiveInfoKind::Unit => conduit_core::UNIT_ENCODED_LEN,
         PrimitiveInfoKind::Dimension => conduit_core::DIMENSION_ENCODED_LEN,
         PrimitiveInfoKind::MathematicalValue => conduit_core::MATHEMATICAL_VALUE_MAX_ENCODED_BYTES,
+        PrimitiveInfoKind::MathematicalAngle => conduit_core::MATHEMATICAL_ANGLE_MAX_ENCODED_BYTES,
         PrimitiveInfoKind::Quantity => conduit_core::QUANTITY_ENCODED_LEN,
         PrimitiveInfoKind::F32 => 4,
         PrimitiveInfoKind::F64 => 8,

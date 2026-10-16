@@ -1,0 +1,12 @@
+type LengthPair = {
+ y: Distance
+ x: Distance
+}
+type InverseObservation = {
+ original: LengthPair
+ angle: MathematicalAngle
+}
+plot inverse (
+ >> value: LengthPair
+ result: InverseObservation >>
+) = ({original: ., angle: math/atan2(.y, .x)})

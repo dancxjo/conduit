@@ -32,6 +32,7 @@ pub enum PrimitiveInfoKind {
     Unit,
     Dimension,
     MathematicalValue,
+    MathematicalAngle,
     Distance,
     Frequency,
     Duration,
@@ -73,6 +74,7 @@ pub enum PrimitiveInfoRefusal {
     Unit(crate::UnitRefusal),
     Dimension(crate::PhysicalDefinitionRefusal),
     MathematicalValue(crate::MathematicalValueRefusal),
+    MathematicalAngle(crate::MathematicalAngleRefusal),
     Terminal(TerminalInfoDecodeRefusal),
     WrongQuantityDimension {
         /// Full fingerprint of the ordered expected/actual dimension descriptors.
@@ -119,6 +121,7 @@ pub fn primitive_info_kind(identity: &str) -> Option<PrimitiveInfoKind> {
         b"value/unit@1" => Some(PrimitiveInfoKind::Unit),
         b"value/dimension@1" => Some(PrimitiveInfoKind::Dimension),
         b"numeric/mathematical-value@1" => Some(PrimitiveInfoKind::MathematicalValue),
+        b"numeric/mathematical-angle@1" => Some(PrimitiveInfoKind::MathematicalAngle),
         b"value/u8" => Some(PrimitiveInfoKind::U8),
         b"value/u16" => Some(PrimitiveInfoKind::U16),
         b"value/u32" => Some(PrimitiveInfoKind::U32),
@@ -195,6 +198,12 @@ pub fn validate_primitive_info(identity: &str, encoded: &[u8]) -> Result<(), Pri
         )
         .map(|_| ())
         .map_err(PrimitiveInfoRefusal::MathematicalValue),
+        Some(PrimitiveInfoKind::MathematicalAngle) => crate::MathematicalAngleView::decode(
+            encoded,
+            &mut crate::ExactNumericWork::new(crate::MATHEMATICAL_VALUE_VALIDATION_WORK),
+        )
+        .map(|_| ())
+        .map_err(PrimitiveInfoRefusal::MathematicalAngle),
         Some(PrimitiveInfoKind::Dimension) => crate::Dimension::decode(encoded)
             .map(|_| ())
             .map_err(PrimitiveInfoRefusal::Dimension),

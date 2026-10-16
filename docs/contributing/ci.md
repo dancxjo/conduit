@@ -6,8 +6,8 @@ through `cargo xtask ci pipeline`. Actions schedules work; xtask performs it.
 
 The default dispatcher keeps Host, semantic and product packages out of its
 transitive dependency graph. The no-option `cargo xtask check acoustic-flow`,
-`cargo xtask check acoustic-control`, `cargo xtask check angle-reference` and
-`cargo xtask check dsp-shared-compositions`
+`cargo xtask check acoustic-control`, `cargo xtask check angle-reference`,
+`cargo xtask check dsp-shared-compositions` and `cargo xtask check inverse-angle`
 entrances execute their same shared suites directly; option-bearing forms retain
 the full CLI parser. A regression test checks the actual default Cargo graph,
 including transitive dependencies. Focused entrances also compare their compiled

@@ -58,6 +58,8 @@ pub enum CheckSuite {
     ModelInference,
     /// Prove exact Angle-to-radian reference transport and certified numerical realization.
     AngleReference,
+    /// Prove exact inverse Angle Source, error bounds and installed kernel execution.
+    InverseAngle,
     /// Prove authored finite acoustic state and PCM transport through the production kernel.
     AcousticFlow,
     /// Prove shared speech/music DSP components, finite state and compact-voice parity.
