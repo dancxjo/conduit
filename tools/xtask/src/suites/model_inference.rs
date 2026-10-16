@@ -6,6 +6,8 @@ pub const STEPS: &[Step] = &[Step::new(
     "cargo",
     &[
         "test", "--locked",
+        "-p", "conduit-core", "--test", "exact_realization_property",
+        "-p", "conduit-planner", "--test", "model_signature_realization",
         "-p", "conduit-data", "--test", "named_tensor_view", "--test", "tensor_view_axis",
         "-p", "conduit-ai", "--test", "native_model_signature_vocabulary",
         "--test", "onnx_metadata", "--test", "imported_onnx", "--test", "onnx_tensor_io",
