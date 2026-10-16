@@ -10,6 +10,8 @@ mod angle_reference;
 mod dsp_shared_compositions;
 #[path = "../../xtask/src/suites/inverse_angle.rs"]
 mod inverse_angle;
+#[path = "../../xtask/src/suites/print_pool.rs"]
+mod print_pool;
 
 struct Suite {
     steps: &'static [Step],
@@ -43,6 +45,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: inverse_angle::STEPS,
             path: "tools/xtask/src/suites/inverse_angle.rs",
             source: include_bytes!("../../xtask/src/suites/inverse_angle.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "print-pool" => Some(Suite {
+            steps: print_pool::STEPS,
+            path: "tools/xtask/src/suites/print_pool.rs",
+            source: include_bytes!("../../xtask/src/suites/print_pool.rs"),
         }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,
@@ -101,6 +108,7 @@ mod tests {
             ("angle-reference", angle_reference::STEPS),
             ("dsp-shared-compositions", dsp_shared_compositions::STEPS),
             ("inverse-angle", inverse_angle::STEPS),
+            ("print-pool", print_pool::STEPS),
         ] {
             let steps = selected(&arguments(&["check", name])).unwrap().steps;
             assert_eq!(format!("{steps:?}"), format!("{expected:?}"), "{name}");
@@ -115,6 +123,8 @@ mod tests {
             vec!["check", "acoustic-flow", "unexpected"],
             vec!["check", "dsp-shared-compositions", "--dry-run"],
             vec!["--json", "check", "dsp-shared-compositions"],
+            vec!["check", "print-pool", "--dry-run"],
+            vec!["--json", "check", "print-pool"],
             vec!["check", "workspace"],
             vec!["--json", "check", "acoustic-control"],
             vec!["check", "acoustic-control", "--dry-run"],
