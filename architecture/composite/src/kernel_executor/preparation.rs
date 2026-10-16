@@ -1,7 +1,7 @@
 //! Lower exact plans and admit child kernels, boundary routes and Host Call obligations.
 use super::*;
 use conduit_core::{bind_active_play, semantic_digest};
-use conduit_plan_lowering::lowering::{lower_plan_fragment, RemoteCordDirection};
+use conduit_plan_lowering::lowering::{lower_plan_fragment_from_plan, RemoteCordDirection};
 
 impl KernelCompositePreparation {
     pub fn prepare(plan: Plan) -> Result<Self, KernelCompositeError> {
@@ -11,8 +11,9 @@ impl KernelCompositePreparation {
         let mut children = BTreeMap::new();
         for fragment in &plan.fragments {
             let child = fragment.host_id.clone();
-            let lowered =
-                lower_plan_fragment(fragment).map_err(|error| KernelCompositeError::Lowering {
+            let lowered = lower_plan_fragment_from_plan(&plan, &fragment.fragment_id)
+                .map(|(lowered, _)| lowered)
+                .map_err(|error| KernelCompositeError::Lowering {
                     child: child.clone(),
                     error,
                 })?;

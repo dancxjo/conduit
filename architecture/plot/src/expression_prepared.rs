@@ -328,6 +328,12 @@ impl PreparedPortableExpressionEvaluator {
         Ok(&self.output)
     }
 
+    /// Most recent prepared result, borrowed by a kernel Back until its Step
+    /// commits. Evaluation/refusal ownership remains with the caller.
+    pub fn output_bytes(&self) -> &[u8] {
+        &self.output
+    }
+
     pub fn output_capacity(&self) -> usize {
         self.output.capacity()
     }
