@@ -1,0 +1,52 @@
+# Candidate development proof of the existing prepared exact dB profile.
+# Audio owner admission precedes Play. The authored graph performs the numeric
+# projection and retains the original ratio, reference, unit and provenance.
+# This does not claim dynamic construction of a refined eligibility value.
+with data/pair/paired as AcousticDecibelPair
+
+type AcousticAdmittedDecibelProjection = {
+    original: AudioReferencedLevelRatio
+    eligible: AudioExactPowerOfTenEligible
+}
+type AcousticDecibelStage =
+    original AudioReferencedLevelRatio
+    | projected AudioDecibelValue
+type AcousticDecibelObservation = {
+    original: AudioReferencedLevelRatio
+    projected: AudioDecibelLevel
+}
+plot decibel-retain-original (
+    >> value: AcousticAdmittedDecibelProjection
+    result: AcousticDecibelStage >>
+) = (AcousticDecibelStage.original(.original))
+plot decibel-admitted-profile (
+    >> value: AcousticAdmittedDecibelProjection
+    result: AudioExactPowerOfTenEligible >>
+) = (.eligible)
+plot decibel-retain-projection (
+    >> value: AudioDecibelValue
+    result: AcousticDecibelStage >>
+) = (AcousticDecibelStage.projected(.))
+plot decibel-observation (
+    >> pair: AcousticDecibelPair
+    result: AcousticDecibelObservation >>
+) = ({original: .0.original, projected: {basis: .0.original.basis, value: .1.projected}})
+plot acoustic-referenced-db-value (
+    >> value: AcousticAdmittedDecibelProjection
+    result: AcousticDecibelObservation >>
+) {
+    retained: decibel-retain-original()
+    admitted: decibel-admitted-profile()
+    projection: audio/decibel-from-power-of-ten()
+    tagged-projection: decibel-retain-projection()
+    projection-context: data/pair
+    observed: decibel-observation()
+    value >> retained.value
+    value >> admitted.value
+    admitted.result >> projection.value
+    projection.result >> tagged-projection.value
+    retained.result >> projection-context.left
+    tagged-projection.result >> projection-context.right
+    projection-context.paired >> observed.pair
+    observed.result >> result
+}
