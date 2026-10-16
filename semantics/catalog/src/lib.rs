@@ -330,7 +330,9 @@ mod copy_file;
 pub use copy_file::*;
 mod sound;
 pub use sound::*;
+#[cfg(feature = "plot-catalog")]
 mod audio_dsp_package;
+#[cfg(feature = "plot-catalog")]
 pub use audio_dsp_package::*;
 mod audio_render_demand;
 pub use audio_render_demand::*;

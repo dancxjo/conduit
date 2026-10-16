@@ -1,6 +1,14 @@
 pack audio/dsp (
     version = 0.1.0
 ) {
+    ship SharedExcitationStage
+    ship SharedExcitationProfileSeed
+    ship SharedExcitationSeed
+    ship DspDualControl
+    ship shared-excitation-profile-start
+    ship shared-excitation-music-start
+    ship experimental-q14-two-source
+    ship experimental-q14-frame
     ship oscillator-prepare
     ship oscillator-step
     ship AudioPeriodicRequest

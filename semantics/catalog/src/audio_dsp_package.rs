@@ -2,7 +2,8 @@
 use alloc::{format, string::String};
 use conduit_plot::{
     check_package_bundle, parse_syntax_document, prepare_source_types, CheckedPackageBundle,
-    CheckedSyntaxDocument, PackageExportCatalog, PackageMemberSource, StartupCatalog,
+    CheckedSyntaxDocument, PackageExportCatalog, PackageMemberSource, ProfileCatalog,
+    StartupCatalog,
 };
 
 #[path = "audio_dsp_profiles.rs"]
@@ -18,6 +19,8 @@ pub struct DspSourcePackage {
     pub exports: PackageExportCatalog,
     /// Exact structural tuple aliases needed by the authored mixer Fores.
     pub startup: StartupCatalog,
+    /// Ordinary finite pairing definitions required by the authored frame.
+    pub profiles: ProfileCatalog,
 }
 
 /// Rebuilds the package from immutable owned Source. The compound oscillator
@@ -89,7 +92,55 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
     startup
         .insert_structured_type("MixerQuad", quad)
         .map_err(|e| format!("DSP mixer quad catalog: {e:?}"))?;
+    let frame = include_str!("../../audio/dsp/experimental-q14-frame.conduit");
+    // Prepare the closed Stage Type before its pair Fore. Type declarations are
+    // copied by ordinary parser spans; imports and executable bodies are not
+    // part of this bootstrap. The checked package must retain this exact Type.
+    let mut stage_source = String::new();
+    for source in [
+        &*noise,
+        &*envelope,
+        &*gain,
+        &*mixer,
+        conduit_audio::RESONATOR_RECURRENCE_SOURCE,
+        frame,
+    ] {
+        let document = parse_syntax_document(source);
+        for declaration in &document.types {
+            stage_source.push_str(&source[declaration.span.start..declaration.span.end]);
+            stage_source.push('\n');
+        }
+    }
+    let stage_types = prepare_source_types(&parse_syntax_document(&stage_source), &startup)
+        .map_err(|e| format!("DSP frame Types: {e:?}"))?;
+    let stage = stage_types
+        .named_type("SharedExcitationStage")
+        .ok_or_else(|| String::from("DSP frame Stage Type missing"))?
+        .clone();
+    let contract = conduit_core::CheckedValueContract::new(
+        stage
+            .profile()
+            .map_err(|e| format!("DSP Stage profile: {e:?}"))?
+            .value_kind()
+            .clone(),
+        32768,
+        alloc::vec![],
+    )
+    .map_err(|e| format!("DSP Stage bound: {e:?}"))?;
+    let mut profiles = ProfileCatalog::new();
+    super::install_value_pair_kind(
+        &contract,
+        &stage,
+        &contract,
+        &stage,
+        &mut startup,
+        &mut profiles,
+    )?;
     let members = [
+        PackageMemberSource {
+            path: "frame",
+            source: frame,
+        },
         PackageMemberSource {
             path: "types",
             source: &types,
@@ -136,6 +187,16 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         .map_err(|e| format!("DSP package bundle: {e:?}"))?;
     let checked = check_package_bundle(&bundle, DSP_PACKAGE_MANIFEST, manifest, &members, &startup)
         .map_err(|e| format!("DSP package check: {e:?}"))?;
+    let checked_stage = checked
+        .native_types
+        .iter()
+        .find(|ty| ty.name == "SharedExcitationStage")
+        .ok_or_else(|| String::from("checked DSP frame Stage missing"))?;
+    if checked_stage.value_type != stage {
+        return Err(String::from(
+            "DSP frame Stage changed across package preparation",
+        ));
+    }
     let exports =
         PackageExportCatalog::from_bundle(&bundle, DSP_PACKAGE_MANIFEST, manifest, &members)
             .map_err(|e| format!("DSP package exports: {e:?}"))?;
@@ -144,5 +205,6 @@ pub fn prepare_dsp_source_package() -> Result<DspSourcePackage, String> {
         checked,
         exports,
         startup,
+        profiles,
     })
 }
