@@ -1,0 +1,170 @@
+{
+  "source": "68ef71fbccc7c2342ec28e2d9909aba5086d7cc0",
+  "proof_class": "development actual authored reference-linear multi-input/output Source/Plan/Play via installed production Kernel HostCall",
+  "checks": [
+    {
+      "log": "work/onnx-model-numerical-multi-io-tests.log",
+      "sha256": "993cf77d9eec19662b7591d27673a02a144ba2ba19f6202c13083f93986d44d1",
+      "passed": 8
+    },
+    {
+      "log": "work/onnx-model-infer-burn-compatibility-tests.log",
+      "sha256": "c93a68733c610e275ecca1d7e438c8b4accf673702a29a1bb86e76d09f2fe5fd",
+      "passed": 3,
+      "description": "existing numerical Burn host and both actual model-authoring Source/Plan/Play journeys"
+    },
+    {
+      "log": "work/onnx-model-multi-io-clippy.log",
+      "sha256": "6fd36e3ffc8930969d1eabd7789b386c41b308f30ff907528121e75dff7ce383",
+      "result": "PASS",
+      "description": "strict std Host lib plus model_infer_plot and model_compute_host with burn-model enabled"
+    }
+  ],
+  "numerical_contract": {
+    "semantic_input_order": [
+      "left",
+      "right"
+    ],
+    "delivered_bundle_order": [
+      "right",
+      "left"
+    ],
+    "values_by_name": {
+      "left": 2,
+      "right": 3
+    },
+    "model_weights": [
+      [
+        2,
+        0
+      ],
+      [
+        0,
+        -1
+      ]
+    ],
+    "model_bias": [
+      1,
+      4
+    ],
+    "expected_named_outputs": {
+      "upper": 5,
+      "lower": 1
+    },
+    "coefficient_custody": "six little-endian F32 coefficients read from one SHA-verified admitted immutable resource"
+  },
+  "observed": [
+    "actual authored named ports and typed signature",
+    "normal planner exact property and resource selection",
+    "one actual Kernel HostCall requested/completed per positive journey",
+    "fixed Kernel value-store capacities",
+    "provider ineligibility/memory and bounded dynamic output refusal before advertisement",
+    "old canonical one-port linear invocation still passes"
+  ],
+  "limits": [
+    "reference-linear CPU profile, not ONNX/ORT execution",
+    "runtime codec/provider allocations not yet bounded by the capacity assertion",
+    "cancellation/timeout/provider loss and full workspace validation remain"
+  ],
+  "remaining": [
+    "retained ONNX metadata/sidecar must reach actual model execution",
+    "cancel/timeout/provider-loss distinct outcomes for new Fore",
+    "runtime storage admission proof",
+    "workspace validation and current-dev refresh"
+  ],
+  "passed_focused_tests": 11,
+  "terminal_storage_followup": {
+    "source": "0381bb26801245f783232e5050d89cdd1549c7f2",
+    "proof_class": "development source-linked terminal propagation and measured current-thread Play allocation requests",
+    "checks": [
+      {
+        "log": "work/onnx-model-retained-contract-play-tests.log",
+        "sha256": "9a52214fa4ec518dd4b4b6d6e4867b3bce39f6d893c757d842ce2f7cebf420a8",
+        "source": "0381bb26801245f783232e5050d89cdd1549c7f2"
+      },
+      {
+        "log": "work/onnx-model-retained-contract-compatibility-tests.log",
+        "sha256": "449526aaeb3ee6ba29a9d3d2872277cb2ed95786f9a561df0aa9211b5a4aabe1",
+        "source": "0381bb26801245f783232e5050d89cdd1549c7f2",
+        "passed": 7,
+        "description": "actual Burn checkpoint and two authoring journeys plus canonical model-compute host regressions"
+      },
+      {
+        "source": "2946f5bae339406b9aadfd4b9b8d4f5206caa5dd",
+        "log": "work/onnx-model-terminal-storage-fixed-clippy.log",
+        "sha256": "07c7fb654af5e45cf5a6a4fe8e434d87c468200b97e364cd46e7691dd9209d5d",
+        "result": "PASS",
+        "description": "strict std Host lib and all six affected model integration test targets"
+      }
+    ],
+    "passed_current_source_tests": 13,
+    "terminal_cases": {
+      "provider_lost": {
+        "code": "HostCallFailed",
+        "detail": 71,
+        "provider_calls": 1
+      },
+      "provider_reported_timeout": {
+        "code": "HostCallFailed",
+        "detail": 73,
+        "provider_calls": 1
+      },
+      "wrong_shape": {
+        "code": "InvalidInput",
+        "detail": 72,
+        "provider_calls": 0
+      },
+      "cancelled_before_execution": {
+        "code": "Cancelled",
+        "detail": 83,
+        "provider_calls": 0
+      }
+    },
+    "allocation_observation": {
+      "scope": "System allocator alloc/alloc_zeroed/realloc requests on current test thread between production PlayStarted and PlayFinished markers; sink copies into a buffer allocated before Play and decodes only afterward",
+      "before": {
+        "source": "94f3c2cc92199b8eb623912e595dcc2a94ef5f4f",
+        "metrics": {
+          "calls": 164434,
+          "requested_bytes_sum": 14360466,
+          "output_bytes": 2064
+        },
+        "log": "work/onnx-model-play-allocation-characterization-heap.log",
+        "sha256": "98aa3a2c90cd4da4651585980767b408b28fa234b69b8d23aa719b8c4ce26070"
+      },
+      "after": {
+        "source": "0381bb26801245f783232e5050d89cdd1549c7f2",
+        "metrics": {
+          "calls": 9206,
+          "requested_bytes_sum": 674610,
+          "output_bytes": 2064
+        }
+      },
+      "request_count_reduction_percent": 94.401,
+      "requested_bytes_sum_reduction_percent": 95.302,
+      "change": "Retain exact typed configuration and compare planned offer fields without reconstructing or decoding the Native signature/Kind during each HostCall",
+      "limitations": [
+        "requested byte sum is cumulative allocation demand, not peak live memory",
+        "no zero-allocation or enforced workspace-cap claim",
+        "not a wall/CPU timing benchmark"
+      ]
+    },
+    "remaining": [
+      "runtime codec/provider storage admission and bounded execution allocation",
+      "actual ONNX execution with retained sidecar and symbols",
+      "full workspace validation and current-dev refresh"
+    ],
+    "limits": [
+      "provider timeout is injected as a reported terminal; no deadline enforcement/preemption claim",
+      "cancellation guard prevents provider execution; this does not prove interruption of an executing provider"
+    ],
+    "lint_followup": {
+      "source": "2946f5bae339406b9aadfd4b9b8d4f5206caa5dd",
+      "changed_paths_since_executed_source": [
+        "targets/std/tests/model_infer_terminals.rs"
+      ],
+      "production_paths_changed": false,
+      "change": "Only unexpected-success reporting in the test changed; the full runtime report is not dumped"
+    }
+  }
+}

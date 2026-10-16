@@ -112,6 +112,7 @@ pub mod hosted_microphone;
 pub mod hosted_midi;
 pub mod hosted_model;
 pub mod hosted_model_compute;
+pub mod hosted_model_infer;
 pub mod hosted_model_work;
 pub mod hosted_network;
 pub mod hosted_reminder;

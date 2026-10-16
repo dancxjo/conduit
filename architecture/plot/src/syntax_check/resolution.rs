@@ -181,23 +181,40 @@ impl<'a> Resolver<'a> {
                         other => other,
                     });
             }
+            let mut owned_refinement = None;
             let checked = crate::structured_startup::check_startup_expression(
                 &expression.syntax,
                 expected,
                 &mut |syntax, atomic_expected| {
                     use crate::structured_startup::StartupValueSyntax;
-                    match syntax {
-                        StartupValueSyntax::Atomic(atomic) => self
-                            .resolve_spanned(atomic, Some(atomic_expected))
-                            .map_err(|error| error.diagnostic(atomic.span)),
-                        StartupValueSyntax::AngleReference(call) => self
-                            .resolve_angle_reference(expression, call, Some(atomic_expected))
-                            .map_err(|error| error.diagnostic(call.span())),
-                    }
+                    let (resolved, span) = match syntax {
+                        StartupValueSyntax::Atomic(atomic) => (
+                            self.resolve_spanned(atomic, Some(atomic_expected)),
+                            atomic.span,
+                        ),
+                        StartupValueSyntax::AngleReference(call) => (
+                            self.resolve_angle_reference(expression, call, Some(atomic_expected)),
+                            call.span(),
+                        ),
+                    };
+                    resolved.map_err(|error| match error {
+                        SyntaxCheckError::NativeRefinement(diagnostic) => {
+                            owned_refinement = Some(diagnostic.clone());
+                            diagnostic
+                        }
+                        other => other.diagnostic(span),
+                    })
                 },
             )
             .map_err(|diagnostic| {
-                SyntaxCheckError::StructuredExpression(diagnostic.message, Some(diagnostic.span))
+                if let Some(owned) = owned_refinement {
+                    SyntaxCheckError::NativeRefinement(owned)
+                } else {
+                    SyntaxCheckError::StructuredExpression(
+                        diagnostic.message,
+                        Some(diagnostic.span),
+                    )
+                }
             })?;
             if !checked.satisfies_concrete_bounds() {
                 return Err(SyntaxCheckError::StructuredExpression(
@@ -205,6 +222,13 @@ impl<'a> Resolver<'a> {
                     Some(expression.span),
                 ));
             }
+            crate::native_type::validate_concrete_value_type(
+                &checked,
+                self.catalog,
+                crate::NativeRefinementSource::new(&expression.syntax, &self.locals),
+                expression.span,
+            )
+            .map_err(SyntaxCheckError::NativeRefinement)?;
             return Ok(CanonicalStartupValue::Structured(checked));
         }
         let negative_integer = matches!(

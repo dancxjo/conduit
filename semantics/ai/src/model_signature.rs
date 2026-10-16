@@ -77,6 +77,12 @@ impl ModelSignature {
     }
 
     pub fn validate(&self) -> Result<(), ModelSignatureRefusal> {
+        if self.compatibility_version == 0
+            || self.identity.is_empty()
+            || self.identity.len() > MAXIMUM_MODEL_IDENTITY_BYTES
+        {
+            return Err(ModelSignatureRefusal::InvalidIdentity);
+        }
         let operations = self.operations.get().as_slice();
         let inputs = self.inputs.get().as_slice();
         let outputs = self.outputs.get().as_slice();

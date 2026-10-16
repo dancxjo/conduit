@@ -55,48 +55,66 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
     .unwrap();
     let mut host = HostedBurnModelComputeAdapter::from_inference(inference).unwrap();
     host.load(artifact, 4096).unwrap();
+    let input_bundle =
+        conduit_data::NamedTensorBundle::from_values(vec![conduit_data::NamedTensor {
+            name: host.signature().inputs.get()[0].identity.get().clone(),
+            value: batch.inputs[0].clone(),
+        }])
+        .unwrap();
+    let encoded_input =
+        conduit_plot::rust_binding::NativeRustBinding::encode(input_bundle).unwrap();
+    let input_reader = conduit_data::PreparedNamedTensorBundleView::prepare().unwrap();
+    let requirement = ModelComputeRequirement {
+        operation: ModelComputeOperation::Inference,
+        model_format: "model/burn-safetensors@1".into(),
+        elements: vec![conduit_data::TensorElement::F32],
+        rank: 2,
+        model_bytes: 4096,
+        working_memory_bytes: 86016,
+        device_memory_bytes: 0,
+        input_bytes: 16,
+        output_bytes: 32,
+        batch_items: 4,
+        compute_class: PortableComputeClass::GeneralCpu,
+        minimum_lanes: 1,
+        preferred_lanes: 1,
+        maximum_lanes: 1,
+        minimum_service: ComputeServiceGuarantee::Shared,
+        solver_profile: None,
+        determinism_profile: "seeded-order/f32-not-bitwise@1".into(),
+        requires_checkpoint_load: false,
+        requires_checkpoint_write: false,
+    };
     let request = ModelComputeInvocation {
         request_identity: [31; 32],
         artifact_identity: artifact,
         checkpoint_identity: Some(checkpoint_id),
-        input: batch.inputs[0].clone(),
-        requirement: ModelComputeRequirement {
-            operation: ModelComputeOperation::Inference,
-            model_format: "model/burn-safetensors@1".into(),
-            element: conduit_data::TensorElement::F32,
-            rank: 2,
-            model_bytes: 4096,
-            working_memory_bytes: 86016,
-            device_memory_bytes: 0,
-            input_bytes: 16,
-            output_bytes: 32,
-            batch_items: 4,
-            compute_class: PortableComputeClass::GeneralCpu,
-            minimum_lanes: 1,
-            preferred_lanes: 1,
-            maximum_lanes: 1,
-            minimum_service: ComputeServiceGuarantee::Shared,
-            solver_profile: None,
-            determinism_profile: "seeded-order/f32-not-bitwise@1".into(),
-            requires_checkpoint_load: false,
-            requires_checkpoint_write: false,
-        },
+        inputs: input_reader.read(&encoded_input).unwrap(),
+        requirement: &requirement,
     };
     let offers = [host.offer().clone()];
     assert_eq!(
-        conduit_ai::select_model_compute_offer(&offers, &request.requirement)
+        conduit_ai::select_model_compute_offer(&offers, request.requirement)
             .unwrap()
             .identity,
         host.offer().identity
     );
-    let mut short = request.clone();
-    short.requirement.output_bytes = 16;
+    let mut short_requirement = requirement.clone();
+    short_requirement.output_bytes = 16;
+    let short = ModelComputeInvocation {
+        requirement: &short_requirement,
+        ..request.clone()
+    };
     assert!(matches!(
         host.execute(short),
         ModelComputeAdapterTerminal::Refused(_)
     ));
-    let mut too_few = request.clone();
-    too_few.requirement.batch_items = 1;
+    let mut too_few_requirement = requirement.clone();
+    too_few_requirement.batch_items = 1;
+    let too_few = ModelComputeInvocation {
+        requirement: &too_few_requirement,
+        ..request.clone()
+    };
     assert!(matches!(
         host.execute(too_few),
         ModelComputeAdapterTerminal::Refused(_)
@@ -107,8 +125,12 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
         host.execute(stale),
         ModelComputeAdapterTerminal::Refused(_)
     ));
-    let mut scarce = request.clone();
-    scarce.requirement.working_memory_bytes = 1;
+    let mut scarce_requirement = requirement.clone();
+    scarce_requirement.working_memory_bytes = 1;
+    let scarce = ModelComputeInvocation {
+        requirement: &scarce_requirement,
+        ..request.clone()
+    };
     assert!(matches!(
         host.execute(scarce),
         ModelComputeAdapterTerminal::Refused(_)
@@ -117,7 +139,12 @@ fn exported_burn_checkpoint_uses_existing_host_boundary() {
         panic!("exact checkpoint should produce");
     };
     assert_eq!(output.checkpoint_identity, Some(checkpoint_id));
-    assert_eq!(output.output, expected);
+    let decoded =
+        <conduit_data::NamedTensorBundle as conduit_plot::rust_binding::NativeRustBinding>::decode(
+            output.outputs.encoded(),
+        )
+        .unwrap();
+    assert_eq!(decoded.get()[0].value, expected);
     assert_eq!(output.runtime.device_evidence, "burn/flex-cpu");
     assert_eq!(output.consumed_work_units, 1000);
     host.unload().unwrap();
