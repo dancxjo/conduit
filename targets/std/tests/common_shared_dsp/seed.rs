@@ -42,3 +42,29 @@ pub fn tick(source: &str) -> Vec<u8> {
         .evaluate(&[0])
         .unwrap()
 }
+
+pub fn profile(source: &str, word: i32, b: i32, c: i32) -> Vec<u8> {
+    let program = program(source, "shared-excitation-profile-start");
+    let StructuredInfoTypeShape::Record { fields, .. } = program.input_type.shape() else {
+        panic!("profile seed")
+    };
+    let values = fields
+        .iter()
+        .map(|field| {
+            let value: i32 = match field.name() {
+                "word" => word,
+                "b" => b,
+                "c" => c,
+                _ => panic!("profile seed field"),
+            };
+            StructuredFieldValue::new(
+                field.name(),
+                StructuredInfoValue::leaf(field.value_type().clone(), value.to_le_bytes().to_vec())
+                    .unwrap(),
+            )
+            .unwrap()
+        })
+        .collect();
+    let input = StructuredInfoValue::record(program.input_type.clone(), values).unwrap();
+    program.evaluate(&input.canonical_bytes().unwrap()).unwrap()
+}

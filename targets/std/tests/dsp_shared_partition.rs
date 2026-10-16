@@ -172,3 +172,79 @@ fn complete_attack_sustain_release_and_seed_survive_fresh_play_windows() {
         .join()
         .unwrap();
 }
+
+#[test]
+fn shared_filter_matches_independent_ordered_i32_profile_and_refuses_bad_coefficients() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let source = source::source();
+            let tick = seed::tick(&source);
+            for (b, c, valid) in [
+                (-8192, -4096, true),
+                (8192, -4096, true),
+                (i32::MAX, 0, false),
+                (0, i32::MIN, false),
+            ] {
+                let initial = seed::profile(&source, 7, b, c);
+                let prepared = planning::prepare(&initial, &tick, 64);
+                let states = producer::run(
+                    prepared.plan,
+                    &prepared.front,
+                    &prepared.registry,
+                    &prepared.items,
+                    &[1, 15, 17, 31],
+                    producer::Delivery {
+                        gap: 7,
+                        hold: 4,
+                        signs: conduit_composite::KernelCompositeSignStorage {
+                            additional_local_items: 8192,
+                            additional_remote_items: 4096,
+                        },
+                    },
+                );
+                let initial_value = StructuredInfoValue::from_canonical_bytes(&initial).unwrap();
+                let StructuredInfoValueShape::Variant { payload, .. } = initial_value.shape()
+                else {
+                    panic!("initial context")
+                };
+                let initial_cursor = field(payload, "cursor");
+                let (mut word, mut y1, mut y2) = (7_u64, 0_i32, 0_i32);
+                for (frame, encoded) in states.iter().enumerate() {
+                    let value = StructuredInfoValue::from_canonical_bytes(encoded).unwrap();
+                    let StructuredInfoValueShape::Variant { payload, .. } = value.shape() else {
+                        panic!("context")
+                    };
+                    let cursor = field(payload, "cursor");
+                    if !valid {
+                        assert_eq!(cursor, initial_cursor);
+                        continue;
+                    }
+                    word = (word * 25173 + 13849) & 65535;
+                    let level = if frame < 8 { frame as i32 * 32 } else { 256 };
+                    let drive = ((word as i32 - 32768) * level / 256).clamp(-32767, 32767);
+                    let filtered = drive
+                        .checked_mul(16384)
+                        .unwrap()
+                        .checked_add(b.checked_mul(y1).unwrap())
+                        .unwrap()
+                        .checked_add(c.checked_mul(y2).unwrap())
+                        .unwrap()
+                        / 16384;
+                    let sample = filtered.clamp(-32767, 32767);
+                    for (name, expected) in [("sample", sample), ("y1", sample), ("y2", y1)] {
+                        let value = field(&cursor, name);
+                        let StructuredInfoValueShape::Leaf(bytes) = value.shape() else {
+                            panic!("integer")
+                        };
+                        assert_eq!(i32::from_le_bytes(bytes.try_into().unwrap()), expected);
+                    }
+                    y2 = y1;
+                    y1 = sample;
+                }
+            }
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}

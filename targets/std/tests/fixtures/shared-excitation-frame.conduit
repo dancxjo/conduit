@@ -13,6 +13,10 @@ type SharedExcitationCursor = {
     attack: I32
     release: I32
     sample: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
 }
 type SharedExcitationControl = {
     cursor: SharedExcitationCursor
@@ -22,6 +26,15 @@ type SharedExcitationControl = {
     level: I32
     valid: Boolean
 }
+type SharedExcitationResonatorInput = {
+    control: SharedExcitationControl
+    drive: I32
+    b: I32
+    c: I32
+    y1: I32
+    y2: I32
+}
+type SharedExcitationResonatorPair = ResonatorRecurrenceResult<SharedExcitationResonatorInput,I32>
 type SharedExcitationStage =
     context SharedExcitationControl
     | noise NoiseStepOutcome
@@ -30,10 +43,20 @@ type SharedExcitationStage =
     | tick Boolean
     | rejected
 
+type SharedExcitationProfileSeed = {
+    word: I32 in 0..=65535
+    b: I32
+    c: I32
+}
 plot shared-excitation-start (
     >> value: SharedExcitationSeed
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, b: 0, c: 0, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
+
+plot shared-excitation-profile-start (
+    >> value: SharedExcitationProfileSeed
+    result: SharedExcitationStage >>
+) = (SharedExcitationStage.context({cursor: {word: .word, remaining: 160, frame: 0, total: 160, attack: 8, release: 16, sample: 0, b: .b, c: .c, y1: 0, y2: 0}, next_word: .word, next_remaining: 160, noise: 0, level: 0, valid: false}))
 
 plot shared-excitation-tick (
     >> value: Boolean
@@ -59,7 +82,7 @@ plot shared-excitation-noise-tag (
 plot shared-excitation-after-noise (
     >> pair: SharedExcitationPair
     result: SharedExcitationControl >>
-) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: .1.noise is advanced})
+) = ({cursor: .0.context.cursor, next_word: (.1.noise is advanced ? .1.noise.advanced.word : .0.context.cursor.word), next_remaining: (.1.noise is advanced ? .1.noise.advanced.remaining : .0.context.cursor.remaining), noise: (.1.noise is advanced ? .1.noise.advanced.sample : 0), level: 0, valid: .1.noise is advanced && .0.context.cursor.b >= -8192 && .0.context.cursor.b <= 8192 && .0.context.cursor.c >= -4096 && .0.context.cursor.c <= 4096 && .0.context.cursor.y1 >= -32767 && .0.context.cursor.y1 <= 32767 && .0.context.cursor.y2 >= -32767 && .0.context.cursor.y2 <= 32767})
 plot shared-excitation-envelope-input (
     >> value: SharedExcitationControl
     result: EnvelopeControl >>
@@ -80,10 +103,17 @@ plot shared-excitation-gain-tag (
     >> value: GainOutcome
     result: SharedExcitationStage >>
 ) = (SharedExcitationStage.gain(.))
-plot shared-excitation-finish (
+# The bounded Q14 profile uses the same recurrence as the compact voice.
+# |b| <= 8192, |c| <= 4096 and clamped histories keep all I32
+# products and ordered sums below 2^31; state is never hidden in a Back.
+plot shared-excitation-filter-input (
     >> pair: SharedExcitationPair
+    result: SharedExcitationResonatorInput >>
+) = ({control: .0.context, drive: (.0.context.valid && .1.gain is sample ? .1.gain.sample * 16384 : 0), b: (.0.context.valid ? .0.context.cursor.b : 0), c: (.0.context.valid ? .0.context.cursor.c : 0), y1: (.0.context.valid ? .0.context.cursor.y1 : 0), y2: (.0.context.valid ? .0.context.cursor.y2 : 0)})
+plot shared-excitation-finish (
+    >> value: SharedExcitationResonatorPair
     result: SharedExcitationStage >>
-) = (SharedExcitationStage.context({cursor: (.0.context.valid && .1.gain is sample ? {word: .0.context.next_word, remaining: .0.context.next_remaining, frame: .0.context.cursor.frame + 1, total: .0.context.cursor.total, attack: .0.context.cursor.attack, release: .0.context.cursor.release, sample: .1.gain.sample} : .0.context.cursor), next_word: .0.context.next_word, next_remaining: .0.context.next_remaining, noise: .0.context.noise, level: .0.context.level, valid: .0.context.valid && .1.gain is sample}))
+) = (SharedExcitationStage.context({cursor: (.input.control.valid ? {word: .input.control.next_word, remaining: .input.control.next_remaining, frame: .input.control.cursor.frame + 1, total: .input.control.cursor.total, attack: .input.control.cursor.attack, release: .input.control.cursor.release, sample: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), b: .input.b, c: .input.c, y1: (.sample < -32767 ? -32767 : .sample > 32767 ? 32767 : .sample), y2: .input.y1} : .input.control.cursor), next_word: .input.control.next_word, next_remaining: .input.control.next_remaining, noise: .input.control.noise, level: .input.control.level, valid: .input.control.valid}))
 
 plot shared-excitation-frame (
     >> value: SharedExcitationStage
@@ -107,6 +137,8 @@ plot shared-excitation-frame (
     gain: dsp/gain-value()
     gain_tag: shared-excitation-gain-tag()
     gain_pair: data/pair()
+    filter_input: shared-excitation-filter-input()
+    filter: dsp/resonator-recurrence-carry(item = SharedExcitationResonatorInput, output = SharedExcitationResonatorPair)
     finish: shared-excitation-finish()
     value >> unpack.value
     unpack.result >> noise_context.value
@@ -129,7 +161,9 @@ plot shared-excitation-frame (
     gain_input.result >> gain.control
     gain.result >> gain_tag.value
     gain_tag.result >> gain_pair.right
-    gain_pair.paired >> finish.pair
+    gain_pair.paired >> filter_input.pair
+    filter_input.result >> filter.value
+    filter.result >> finish.value
     finish.result >> result
 }
 

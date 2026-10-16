@@ -1,6 +1,7 @@
 //! Explicit temporal profiles of unchanged owned DSP equations.
 pub fn source() -> String {
     let units = [
+        include_str!("../../../../semantics/audio/dsp/resonator-recurrence.conduit"),
         include_str!("../../../../semantics/audio/dsp/seeded-noise.conduit"),
         include_str!("../../../../semantics/audio/dsp/envelope.conduit"),
         include_str!("../../../../semantics/audio/dsp/gain.conduit"),
