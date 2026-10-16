@@ -9,6 +9,8 @@ mod generated {
 
 pub use generated::*;
 
+mod print_registry;
+pub use print_registry::*;
 mod printing;
 pub use printing::*;
 

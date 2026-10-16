@@ -101,7 +101,8 @@ impl PreparedPrinters {
             hosts.push(HostAdvertisement {
                 protocol_version: PROTOCOL_VERSION, host_id,
                 boot_id: format!("fixture/{name}/boot").into(), offer_generation: OfferGeneration(1),
-                profile: "fixture/typed-print-model@1".into(), bases: vec![], resources: vec![],
+                profile: "fixture/typed-print-model@1".into(), bases: vec![],
+                resources: vec![resource_offer(&format!("fixture/{name}/slot"), "fixture/print-slot", 1)],
                 capabilities: vec![conduit_core::capability_offer_from_parts! {
                     semantic_contract: kind.semantic_contract(),
                     startup_parameters: vec![], shorthand: None,
@@ -113,7 +114,9 @@ impl PreparedPrinters {
                         artifact_id: "fixture/print-protocol-model@1".into(),
                     },
                     inputs: kind.inputs.clone(), outputs: kind.outputs.clone(),
-                    host_calls: vec![], resource_requirements: vec![], authority_requirements: vec![],
+                    host_calls: vec![], resource_requirements: vec![ResourceRequirement {
+                        class_id: "fixture/print-slot".into(), units: 1, protected_role: None, compute: None, content: None,
+                    }], authority_requirements: vec![],
                     limits: kind.limits.clone(),
                 }], planner_capabilities: vec![],
             });
@@ -227,7 +230,21 @@ plot fixture-print-service {{
                     PoolRealizationHealth::Ready
                 },
                 sign_id: format!("fixture/provider-observation/{i}").into(),
-                resources: vec![],
+                resources: r
+                    .resources
+                    .iter()
+                    .map(|resource| ResourceObservation {
+                        host_id: r.host_id.clone(),
+                        boot_id: r.boot_id.clone(),
+                        offer_generation: r.offer_generation,
+                        pool_id: resource.pool_id.clone(),
+                        class_id: resource.class_id.clone(),
+                        health: ResourceHealth::Ready,
+                        unreserved_units: 1,
+                        utilized_units: 0,
+                        sign_id: format!("fixture/slot-observation/{i}").into(),
+                    })
+                    .collect(),
             })
             .collect()
     }
