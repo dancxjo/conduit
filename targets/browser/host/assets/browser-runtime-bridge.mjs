@@ -26,6 +26,16 @@ function nonnegativeInteger(value, label) {
   return value;
 }
 
+function requireU64(value, label) {
+  if (typeof value !== "bigint") throw new TypeError(`${label} must be a u64 bigint`);
+  if (value < 0n || value > 0xffff_ffff_ffff_ffffn) throw new RangeError(`${label} exceeds its u64 bound`);
+}
+
+function requireU32(value, label) {
+  if (typeof value !== "number") throw new TypeError(`${label} must be a u32 integer`);
+  if (!Number.isSafeInteger(value) || value < 0 || value > 0xffff_ffff) throw new RangeError(`${label} exceeds its u32 bound`);
+}
+
 function boundedLength(length, { minimum = 0, maximum, label }) {
   if (!Number.isSafeInteger(length) || length < minimum || length > maximum) {
     throw new Error(`${label} exceeds its bound`);
@@ -330,6 +340,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     projectPatchbay(source, sequence) {
+      requireU64(sequence, "Patchbay projection sequence");
       const { input } = encodeTextInput(api, [source], "conduit_browser_projection_input_capacity", "Patchbay Plot source");
       return withInput(api, input, {
         pointerExport: "conduit_browser_projection_input_ptr",
@@ -368,6 +379,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheAdmitSourceInteraction(source, sequence) {
+      requireU64(sequence, "source interaction sequence");
       const { input } = encodeTextInput(api, [source], "conduit_creche_input_capacity", "Plot source interaction");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
@@ -385,6 +397,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheBirth({ host, boot, friendlyName, initialPlots, source, sequence }) {
+      requireU64(sequence, "Body birth sequence");
       const { input, parts } = encodeTextInput(api, [host, boot, friendlyName, JSON.stringify(initialPlots), source],
         "conduit_creche_input_capacity", "Body birth input");
       return withInput(api, input, {
@@ -414,6 +427,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }) };
     },
     crecheAttachHere(hostBytes, bootBytes, sequence) {
+      requireU64(sequence, "Body attachment sequence");
       const input = new Uint8Array(hostBytes.length + bootBytes.length);
       input.set(hostBytes);
       input.set(bootBytes, hostBytes.length);
@@ -480,6 +494,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotAcknowledgeCancellation(activePlayId, placementId, sequence) {
+      requireU32(sequence, "cancellation request sequence");
       const play = encoder.encode(activePlayId);
       const placement = encoder.encode(placementId);
       const bytes = new Uint8Array(play.length + placement.length);
@@ -495,6 +510,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotCompleteEffect(activePlayId, placementId, sequence, effectOutputBytes) {
+      requireU32(sequence, "effect completion request sequence");
       if (!(effectOutputBytes instanceof Uint8Array)) throw new TypeError("effect output must be encoded bytes");
       const outputLength = effectOutputBytes.length;
       const outputBuffer = effectOutputBytes.buffer;
@@ -512,6 +528,9 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotRefuseEffect(activePlayId, placementId, sequence, disposition, detail) {
+      requireU32(sequence, "effect refusal request sequence");
+      requireU32(disposition, "effect refusal disposition");
+      requireU32(detail, "effect refusal detail");
       const play = encoder.encode(activePlayId);
       const placement = encoder.encode(placementId);
       const bytes = new Uint8Array(play.length + placement.length);

@@ -1346,6 +1346,24 @@ existing ABI argument order, sequence value and retirement remain unchanged.
 All eight negative regressions reproduced before repair. All 81 focused
 runtime-bridge/SDK Plot tests pass, including pre-allocation overflow, combined
 budget preflight, non-scalar identity refusal, exact non-UTF-8 subview payload,
-u64 sequence preservation and complete frame retirement. These are mocked-native
+sequence forwarding in a JS-only fixture and complete frame retirement. The
+fixture's sequence type was corrected to the actual u32 ABI in the numeric
+admission follow-up below. These are mocked-native
 ABI admission/custody proofs, not actual Rust typed-Port execution, Body/Play or
 packaged/release acceptance; #5653 remains open. Protected work remains intact.
+
+Exact ABI integer admission (#5653): Rust source/projection/birth/attachment
+sequences are u64 BigInts; effect request sequences, dispositions and details
+are u32 Numbers. The bridge now validates those exact primitive types/ranges
+before staging or native entry, preventing WebAssembly coercion/modulo narrowing
+from aliasing another request. Rust still owns semantic sequence/disposition
+admission; this adds no alternative authorization path.
+
+The earlier effect-output fixture used a BigInt for a real u32 argument and
+proved only JavaScript forwarding. Its fixture and proof claim are corrected
+above. Nine numeric regressions reproduced before repair. All 98 focused bridge/
+SDK Plot tests and one effect-runner test pass. Tiny real WebAssembly i32/i64
+echo functions prove the aliasing and exact unsigned endpoints, while native
+bridge entry remains a fixture. These are ABI admission proofs, not actual
+Conduit Rust/compiler/kernel Play or packaged/release acceptance; #5653 remains
+open. Protected and uncertain work remains preserved.
