@@ -345,6 +345,11 @@ export function encodeApplicationEvent(event) {
   return encoded;
 }
 
+function copyApplicationEvent(event) {
+  return Object.freeze({ ...event,
+    value: new Uint8Array(event.value), encoded: new Uint8Array(event.encoded) });
+}
+
 export function manifestApplicationView(input, root, options = {}) {
   if (!(root instanceof Element)) throw new TypeError("application face requires an Element");
   const view = decodeApplicationView(input);
@@ -429,12 +434,12 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: encodedValue };
+    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: new Uint8Array(encodedValue) };
     const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
     queue.push(event);
     queuedBytes += event.encoded.length;
-    options.onEvent?.(event);
-    return event;
+    options.onEvent?.(copyApplicationEvent(event));
+    return copyApplicationEvent(event);
   };
   for (const [nodeIndex, node] of view.nodes.entries()) {
     if (node.component === 16) {
@@ -623,7 +628,7 @@ export function manifestApplicationView(input, root, options = {}) {
     nextEvent() {
       const event = queue.shift() ?? null;
       if (event) queuedBytes -= event.encoded.length;
-      return event;
+      return event ? copyApplicationEvent(event) : null;
     },
     queuedEvents() { return queue.length; },
     queuedEventBytes() { return queuedBytes; },

@@ -351,3 +351,30 @@ for (const forged of ['dom-option', 'string', 'bytes', 'malformed-bytes', 'bom-b
     expect(await page.evaluate(() => globalThis.choiceCalls)).toEqual(['é😀']);
   });
 }
+
+for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
+  test(`generic event queue retains private admitted bytes (${mutation})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async mutation => {
+      const { encodeApplicationView, encodeApplicationEvent, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const expected = encodeApplicationEvent({ revision: 1, action: 'fixture.custody', kind: 2, value: new TextEncoder().encode('yes') });
+      const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.custody', event: 'change' }], nodes: [
+          { parent: null, component: 'select', key: 'choice', text: 'Private choice', value: 'yes', valueCapacity: 8, action: 0 },
+          { parent: 0, component: 'option', key: 'yes', text: 'Yes', value: 'yes', valueCapacity: 8, action: null },
+        ] }), root, { onEvent(event) {
+          if (mutation === 'callback') { event.value.fill(0); event.encoded.fill(0); }
+          if (mutation === 'transfer') structuredClone(event.encoded, { transfer: [event.encoded.buffer] });
+        } });
+      const input = new TextEncoder().encode('yes');
+      const returned = manifest.requestAction('choice', input);
+      if (mutation === 'input') input.fill(0);
+      if (mutation === 'returned') { returned.value.fill(0); returned.encoded.fill(0); }
+      const queued = manifest.nextEvent();
+      return { value: new TextDecoder().decode(queued.value), exactEncoding: Array.from(queued.encoded).join() === Array.from(expected).join(),
+        queued: manifest.queuedEvents(), queuedBytes: manifest.queuedEventBytes() };
+    }, mutation);
+    expect(result).toEqual({ value: 'yes', exactEncoding: true, queued: 0, queuedBytes: 0 });
+  });
+}

@@ -632,3 +632,17 @@ Chromium fixtures pass (one worker, zero retries), each select case followed by
 native keyboard selection of the exact declared accented/emoji value. This is
 renderer admission/queue proof; authoritative Body and missing-WASM full runtime
 acceptance remain open.
+
+Generic event byte custody follow-up (#5644): admitted input bytes are copied
+into the private queue. Callback notifications, explicit request results and
+dequeued events receive separate bounded byte copies, rather than exposing the
+queue's value/encoding buffers through a frozen wrapper. Input mutation, public
+array mutation and transfer/detachment cannot change the queued action bytes
+or its byte accounting. Queue capacity and byte limits remain unchanged.
+
+Four mutation cases reproduced corruption before the repair, including leaked
+queued-byte accounting after transfer. All 18 targeted pinned Chromium fixtures
+pass with one worker and zero retries; exact admitted values/encodings survive
+and dequeue returns byte accounting to zero. This is renderer queue custody,
+not arbitrary same-origin confinement or authoritative Body proof. The prior
+missing local WASM full-suite limitation remains.
