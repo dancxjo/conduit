@@ -36,6 +36,7 @@ mod ready_reference;
 mod ready_set;
 mod remote_fanout;
 mod retirement;
+mod route_membership;
 mod terminal_admission;
 use ready_set::ReadySet;
 #[cfg(test)]
@@ -3589,6 +3590,8 @@ fn validate_plan<
     cords: &[CordSpec; CORDS],
     routes: &FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
 ) -> Result<(), SchedulerError> {
+    // Every cord has one exact source, so membership is global across routes.
+    let mut membership = None::<route_membership::RouteMembership<CORDS>>;
     for (node_index, node) in nodes[..active_nodes].iter().enumerate() {
         if node.maximum_step_fuel == 0 {
             return Err(SchedulerError::InvalidPlan);
@@ -3610,21 +3613,21 @@ fn validate_plan<
             else {
                 continue;
             };
-            let mut seen = [false; CORDS];
             for target in targets {
                 let cord = usize::from(target.cord.0);
                 let spec = cords
                     .get(cord)
                     .filter(|_| cord < active_cords)
                     .ok_or(SchedulerError::InvalidPlan)?;
-                if seen[cord]
+                let seen = membership.get_or_insert_with(route_membership::RouteMembership::new);
+                if seen.contains(cord)
                     || spec.source_local()
                         != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?)))
                     || spec.sink != target.sink
                 {
                     return Err(SchedulerError::InvalidPlan);
                 }
-                seen[cord] = true;
+                seen.mark(cord);
             }
         }
     }
