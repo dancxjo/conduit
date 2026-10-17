@@ -19,6 +19,15 @@ fn main() {
     println!("cargo:rerun-if-changed=parser_beam.conduit");
     println!("cargo:rerun-if-changed=discourse.conduit");
     println!("cargo:rerun-if-changed=prosody.conduit");
+    for file in [
+        "parser_scorer_features.conduit",
+        "parser_scorer_actions.conduit",
+        "parser_scorer_search.conduit",
+        "parser_scorer_ranking.conduit",
+        "parser_scorer_tournament.conduit",
+    ] {
+        println!("cargo:rerun-if-changed={file}");
+    }
     let source = [
         include_str!("types.conduit"),
         include_str!("identity.conduit"),
@@ -34,6 +43,11 @@ fn main() {
         include_str!("parser_available.conduit"),
         include_str!("parser_revision_rebase.conduit"),
         include_str!("parser_beam_commit.conduit"),
+        include_str!("parser_scorer_features.conduit"),
+        include_str!("parser_scorer_search.conduit"),
+        include_str!("parser_scorer_actions.conduit"),
+        include_str!("parser_scorer_ranking.conduit"),
+        include_str!("parser_scorer_tournament.conduit"),
         include_str!("discourse.conduit"),
         include_str!("prosody.conduit"),
     ]

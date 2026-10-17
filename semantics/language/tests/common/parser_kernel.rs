@@ -6,7 +6,7 @@ use conduit_kernel::{HostCallDisposition, HostCallOutcome, NodeId};
 use conduit_plan_lowering::lowering::lower_plan_fragment;
 use conduitos::{
     expression_host_call::{ExpressionHostCall, ExpressionOperationFactory},
-    protocol_source::{PreparedProtocolEntry, ProtocolSourcePackage},
+    protocol_source::{PreparedProtocolSource, ProtocolSourcePackage},
     structured_selector_host_call::{SelectorHostCall, SelectorOperationFactory},
 };
 use std::collections::BTreeMap;
@@ -22,9 +22,30 @@ pub struct Execution {
 impl Execution {
     pub fn prepare(source: String, entry_name: &str) -> Self {
         let package = ProtocolSourcePackage::compile(source, &[]).unwrap();
-        let entry =
-            PreparedProtocolEntry::prepare(&serde_json::to_vec(&package).unwrap(), entry_name)
-                .unwrap();
+        Self::prepare_package(&package, entry_name)
+    }
+    pub fn prepare_package(package: &ProtocolSourcePackage, entry_name: &str) -> Self {
+        let artifact = ArtifactId::from(format!(
+            "language/parser-proof/package/{}",
+            semantic_digest(
+                "language/parser-proof/package@1",
+                &serde_json::to_vec(package).unwrap()
+            )
+            .iter()
+            .map(|b| format!("{b:02x}"))
+            .collect::<String>()
+        ));
+        let source = PreparedProtocolSource::prepare(package.clone()).unwrap();
+        Self::prepare_source(&source, entry_name, &artifact)
+    }
+    pub fn prepare_source(
+        source: &PreparedProtocolSource,
+        entry_name: &str,
+        artifact: &ArtifactId,
+    ) -> Self {
+        let expanded = source
+            .expand(entry_name)
+            .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
         let mut host = HostAdvertisement {
             protocol_version: PROTOCOL_VERSION,
             host_id: "fixture/language-parser".into(),
@@ -36,17 +57,18 @@ impl Execution {
             capabilities: vec![],
             planner_capabilities: vec![],
         };
-        entry.publish_pure_backs(&mut host).unwrap();
+        source.publish_pure_backs(&expanded, &mut host).unwrap();
         let hosts = [host];
-        let choices = entry.placements(&hosts).unwrap();
-        let mut limits = entry.queue_limits(&hosts, &choices).unwrap();
+        let choices =
+            conduit_planner::default_expanded_placements(&expanded.expanded, &hosts).unwrap();
+        let mut limits = source.queue_limits(&expanded, &hosts, &choices).unwrap();
         // This hosted proof reserves the selected exact schema envelope. The
         // ConduitOS packaged protocol convenience entrance caps Fore at 4096B.
         for (key, limit) in &mut limits.boundaries {
             let bindings = if key.direction == PortDirection::Input {
-                &entry.expanded().input_bindings
+                &expanded.input_bindings
             } else {
-                &entry.expanded().output_bindings
+                &expanded.output_bindings
             };
             let binding = bindings
                 .iter()
@@ -62,7 +84,7 @@ impl Execution {
                 .max_queue_bytes;
         }
         let plan = conduit_planner::plan_expanded_authoring_with_connection_limits(
-            entry.expanded(),
+            &expanded,
             &hosts,
             &choices,
             &[BaseImplementationId::from("conduit.base/local@1")],
@@ -78,13 +100,13 @@ impl Execution {
             &limits.connections,
             &limits.boundaries,
         )
-        .unwrap();
+        .unwrap_or_else(|error| panic!("{entry_name}: {error:?}"));
         let artifact = conduitos::protocol_artifact::AdmittedProtocolArtifact::admit(
             conduitos::protocol_artifact::ProtocolArtifactIdentity {
                 source: plan.source_document_id.clone(),
                 checked: plan.checked_plot_id.clone(),
                 expanded: plan.expanded_plot_id.clone(),
-                artifact: entry.artifact_id().clone(),
+                artifact: artifact.clone(),
             },
             plan,
         )
@@ -96,7 +118,7 @@ impl Execution {
         let owners = fragment
             .placements
             .iter()
-            .map(|gear| {
+            .filter_map(|gear| {
                 assert!(
                     gear.base.is_none() && gear.authority.is_empty() && gear.resources.is_empty()
                 );
@@ -114,15 +136,16 @@ impl Execution {
                         SelectorHostCall::prepare(fragment, &lowered, &active, &gear.placement_id)
                             .unwrap(),
                     ),
+                    conduitos::flow_zip::IMPLEMENTATION => return None,
                     other => panic!("unexpected non-generic implementation: {other}"),
                 };
-                (
+                Some((
                     lowered
                         .identity
                         .node_for_placement(&gear.placement_id)
                         .unwrap(),
                     owner,
-                )
+                ))
             })
             .collect();
         let mut registry = KernelOperationRegistry::new();
@@ -132,12 +155,40 @@ impl Execution {
         registry
             .install(SelectorOperationFactory::default())
             .unwrap();
+        if source.capabilities.iter().any(|offer| {
+            offer.implementation.implementation_id.as_str() == conduitos::flow_zip::IMPLEMENTATION
+        }) {
+            let mut joins = conduitos::flow_zip::FlowZipOperationFactory::default();
+            let value = |name| {
+                let schema = source
+                    .checked
+                    .native_types
+                    .iter()
+                    .find(|ty| ty.name == name)
+                    .unwrap()
+                    .value_type
+                    .clone();
+                let contract = CheckedValueContract::new(
+                    schema.profile().unwrap().value_kind().clone(),
+                    16384,
+                    vec![],
+                )
+                .unwrap();
+                (schema, contract)
+            };
+            let (left, left_contract) = value("LanguageParserScorerSelected");
+            let (right, right_contract) = value("LanguageParserResult");
+            joins
+                .install(&left_contract, &left, &right_contract, &right)
+                .unwrap();
+            registry.install(joins).unwrap();
+        }
         let kernel = KernelCompositeHost::prepare_with_sign_storage(
             definition,
             &registry,
             KernelCompositeSignStorage {
                 additional_local_items: 60000,
-                additional_remote_items: 1024,
+                additional_remote_items: 60000,
             },
         )
         .unwrap();

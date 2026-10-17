@@ -108,6 +108,7 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),

@@ -86,7 +86,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline"
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model"
     ]
 );
 
@@ -383,6 +383,18 @@ mod tests {
             unique, members,
             "test shards must cover the exact workspace"
         );
+    }
+
+    #[test]
+    fn foundation_exercises_the_optional_admitted_language_scorer() {
+        let features = FOUNDATION_TEST_STEP
+            .args
+            .windows(2)
+            .find_map(|pair| (pair[0] == "--features").then_some(pair[1]))
+            .expect("foundation feature context");
+        assert!(features
+            .split(',')
+            .any(|feature| feature == "conduit-language/parser-model"));
     }
 
     #[test]
