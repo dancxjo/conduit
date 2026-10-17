@@ -127,3 +127,14 @@ absent release inventory. All six focused Node-side builder/verifier tests now
 pass through the pinned runner (one worker, zero retries); these five variants
 refuse with `ArtifactBindingMismatch`. This proves the tested content bindings,
 not runtime execution, publisher authority or public release provenance.
+
+Builder consumer-bound follow-up: manifest admission now checks positive safe
+integer asset sizes against the existing browser consumer limits (20 MiB runtime,
+256 KiB other assets) before hashing or copying distribution payloads. A declared
+large bundle budget no longer permits individually unusable assets.
+
+Empty runtime and one-byte-over runtime/module envelopes all reproduced BUILD
+acceptance before repair. Seven focused Node-side builder/verifier tests pass
+through the pinned runner (one worker, zero retries), including exact-boundary
+acceptance and all three refusals. Padded/header payloads establish envelope
+bounds, not executable module, runtime ABI or packaged browser proof.

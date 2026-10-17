@@ -182,6 +182,12 @@ function requireDistribution(distribution) {
     || new Set(manifest.files.map(item => item?.path)).size !== manifest.files.length) {
     refuse("ArtifactBound", "reviewed browser distribution inventory must be finite and unique");
   }
+  for (const file of manifest.files) {
+    const maximum = file?.path === "runtime.wasm" ? 20 * 1024 * 1024 : 256 * 1024;
+    if (!Number.isSafeInteger(file?.bytes) || file.bytes < 1 || file.bytes > maximum) {
+      refuse("ArtifactBound", "reviewed browser asset exceeds its browser consumer byte bound");
+    }
+  }
   const paths = new Set(manifest.files.map((item) => item.path));
   const modules = new Map();
   for (const module of reviewed.modules) {

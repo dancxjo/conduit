@@ -154,6 +154,37 @@ test("BrowserBundle verification binds release declarations and bytes to the rev
     .map(mode => ({ mode, code: "ArtifactBindingMismatch" })));
 });
 
+test("BrowserBundle BUILD applies browser per-asset bounds before hashing payloads", async () => {
+  const cases = [
+    { path: "runtime.wasm", size: 0, accepted: false },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024, accepted: true },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024 + 1, accepted: false },
+    { path: "host.mjs", size: 256 * 1024, accepted: true },
+    { path: "host.mjs", size: 256 * 1024 + 1, accepted: false },
+  ];
+  const results = [];
+  for (const entry of cases) {
+    const distribution = await fixture();
+    const bytes = new Uint8Array(entry.size);
+    if (entry.path === "runtime.wasm" && entry.size >= 8) bytes.set([0, 97, 115, 109, 1, 0, 0, 0]);
+    const digest = await sha256(bytes);
+    const declared = distribution.manifest.files.find(file => file.path === entry.path);
+    declared.bytes = entry.size; declared.sha256 = digest;
+    const payload = distribution.payloads.find(file => file.path === entry.path);
+    payload.bytes = bytes; payload.sha256 = digest;
+    distribution.manifest.reviewed_distribution.maximum_bundle_bytes = 48 * 1024 * 1024;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push({ ...entry, accepted: true });
+    } catch (error) {
+      expect(error.code).toBe("ArtifactBound");
+      results.push({ ...entry, accepted: false });
+    }
+  }
+  expect(results).toEqual(cases);
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",
