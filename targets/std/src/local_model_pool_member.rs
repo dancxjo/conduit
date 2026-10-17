@@ -14,7 +14,7 @@ mod completion;
 mod request_binding;
 pub use completion::{
     LocalModelCompletedWork, LocalModelCompletionCalibrationRefusal, LocalModelMeasurementRefusal,
-    LocalModelPreparedCalibration,
+    LocalModelPreparedCalibration, OwnedLocalModelCompletedWork,
 };
 
 pub struct AdmittedLocalModelPoolMember {
