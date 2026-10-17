@@ -22,6 +22,9 @@ use std::{
     time::{Duration, Instant},
 };
 
+mod fusion;
+mod fusion_measurement;
+
 const ITEMS: usize = 64;
 const ADDS: usize = 32;
 struct NoTimer;
@@ -81,6 +84,7 @@ struct Prepared {
     plan: Plan,
     inputs: Vec<ExternalForeInput>,
     phases: Vec<(&'static str, timing::Metrics)>,
+    selection_evidence: Option<Value>,
 }
 fn source(gears: usize) -> String {
     let expression = crate::expression::addition_source(ADDS / gears);
@@ -90,6 +94,23 @@ fn source(gears: usize) -> String {
     )
 }
 fn prepare(gears: usize, source: &str, boot: &str) -> Result<Prepared, Box<dyn Error>> {
+    prepare_profile(gears, source, boot, false)
+}
+fn prepare_profile(
+    gears: usize,
+    source: &str,
+    boot: &str,
+    local: bool,
+) -> Result<Prepared, Box<dyn Error>> {
+    prepare_mode(gears, source, boot, local, false)
+}
+fn prepare_mode(
+    gears: usize,
+    source: &str,
+    boot: &str,
+    local: bool,
+    fused: bool,
+) -> Result<Prepared, Box<dyn Error>> {
     let mut phases = Vec::with_capacity(6);
     let (syntax, m) = timing::measure(|| parse_syntax_document(source));
     phases.push(("parse", m));
@@ -124,9 +145,12 @@ fn prepare(gears: usize, source: &str, boot: &str) -> Result<Prepared, Box<dyn E
             };
             let program = PortableExpressionProgram::from_canonical_hex(program)
                 .map_err(|e| format!("program: {e:?}"))?;
-            let offer =
+            let offer = if local {
+                conduit_std_offers::pure_expression_local_flow_offer(&program)
+            } else {
                 conduit_std_offers::pure_expression_std_offer(&program, gear.inputs[0].temporal)
-                    .map_err(|e| format!("offer: {e:?}"))?;
+            }
+            .map_err(|e| format!("offer: {e:?}"))?;
             if !gear.accepts_realization(&offer) {
                 return Err("std expression offer violates checked meaning".into());
             }
@@ -169,23 +193,51 @@ fn prepare(gears: usize, source: &str, boot: &str) -> Result<Prepared, Box<dyn E
         )
     })
     .collect();
+    let (selection, m) = timing::measure(|| -> Result<_, Box<dyn Error>> {
+        if fused && gears > 1 {
+            Ok(Some(fusion::select(
+                &authoring,
+                &hosts,
+                &placements,
+                1,
+                &[],
+            )?))
+        } else {
+            Ok(None)
+        }
+    });
+    phases.push(("physical-fusion-selection", m));
+    let selection = selection?;
     let (plan, m) = timing::measure(|| {
-        plan_expanded_authoring_with_options(
-            &authoring,
-            &hosts,
-            &placements,
-            &[BaseImplementationId::from("conduit.base/local@1")],
-            PlanningOptions {
-                connection_bases: &BTreeMap::new(),
-                line_candidates: &BTreeMap::new(),
-                connection_item_capacity: 1,
-                connection_byte_capacity: 8,
-                authority_grants: &[],
-                protected_resource_grants: &[],
-                line_offers: &[],
-            },
-            &boundaries,
-        )
+        let options = PlanningOptions {
+            connection_bases: &BTreeMap::new(),
+            line_candidates: &BTreeMap::new(),
+            connection_item_capacity: 1,
+            connection_byte_capacity: 8,
+            authority_grants: &[],
+            protected_resource_grants: &[],
+            line_offers: &[],
+        };
+        if let Some(selection) = &selection {
+            conduit_planner::plan_expanded_selected_optimization(
+                &authoring,
+                &hosts,
+                selection,
+                &[BaseImplementationId::from("conduit.base/local@1")],
+                options,
+                &boundaries,
+            )
+            .map(|optimized| optimized.plan)
+        } else {
+            plan_expanded_authoring_with_options(
+                &authoring,
+                &hosts,
+                &placements,
+                &[BaseImplementationId::from("conduit.base/local@1")],
+                options,
+                &boundaries,
+            )
+        }
     });
     phases.push(("plan-realization-validation-and-sealing", m));
     let plan = plan.map_err(|e| format!("Plan: {e:?}"))?;
@@ -204,6 +256,11 @@ fn prepare(gears: usize, source: &str, boot: &str) -> Result<Prepared, Box<dyn E
         plan,
         inputs,
         phases,
+        selection_evidence: selection.as_ref().map(|selection| json!({
+            "selected_candidate":selection.selected_candidate_id,
+            "cost_basis":"frozen useful-addition and dispatch work assumptions; timing and transport accounting are separate",
+            "candidates":selection.considered.iter().map(|c| json!({"candidate":c.candidate_id,"disposition":format!("{:?}",c.disposition),"compute_work":c.compute_work_units,"transport_work":c.transport_work_units,"total_work":c.total_work_units})).collect::<Vec<_>>(),
+        })),
     })
 }
 fn validate(values: &[ExternalForeDelivery]) -> Result<String, Box<dyn Error>> {
@@ -376,7 +433,7 @@ pub fn run(
             eprintln!("validated {id} repetition {}", repetition + 1);
         }
     }
-    Ok(())
+    fusion_measurement::run(config, raw, summaries)
 }
 
 #[cfg(test)]

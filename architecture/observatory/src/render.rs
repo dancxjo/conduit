@@ -152,6 +152,12 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             region.isolation_required
         );
     }
+    for row in &report.execution_fusions {
+        let fusion = &row.fusion;
+        let _ = writeln!(output, "execution_fusion plan={} fragment={} fusion={} profile={} implementation={} artifact={} logical_placements={:?} logical_cords={:?}",
+            row.plan_id.as_str(), row.fragment_id.as_str(), fusion.fusion_id.as_str(), fusion.execution_profile_id.as_str(),
+            fusion.implementation_id.as_str(), fusion.artifact_id.as_str(), fusion.preserved_placements, fusion.preserved_connections);
+    }
     let _ = writeln!(output, "fragments {}", report.fragments.len());
     for fragment in &report.fragments {
         let _ = writeln!(

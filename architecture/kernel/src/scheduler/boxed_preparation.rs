@@ -91,6 +91,7 @@ where
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
+            region_successors: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),

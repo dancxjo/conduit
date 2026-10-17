@@ -36,12 +36,9 @@ impl KernelOperationFactory for LocalExpressionFactory {
         placement: &PlannedGear,
         _: &mut HostedValueStore,
     ) -> Result<Box<dyn StepBack<{ FIXED_KERNEL_STORAGE_PORTS_PER_NODE }> + Send>, String> {
-        let mut back = PreparedLocalExpressionBack::prepare(&validate(placement)?)?;
-        back.flow = matches!(
-            placement.inputs[0].temporal,
-            PortTemporal::Flow { closes: true }
-        );
-        Ok(Box::new(back))
+        Ok(Box::new(PreparedLocalExpressionBack::from_placement(
+            placement,
+        )?))
     }
 }
 fn validate(placement: &PlannedGear) -> Result<PortableExpressionProgram, String> {
@@ -123,6 +120,14 @@ impl PreparedLocalExpressionBack {
             complete: false,
             flow: false,
         })
+    }
+    pub(crate) fn from_placement(placement: &PlannedGear) -> Result<Self, String> {
+        let mut back = Self::prepare(&validate(placement)?)?;
+        back.flow = matches!(
+            placement.inputs[0].temporal,
+            PortTemporal::Flow { closes: true }
+        );
+        Ok(back)
     }
     pub fn output_capacity(&self) -> usize {
         self.evaluator.output_capacity()

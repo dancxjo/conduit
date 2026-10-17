@@ -128,6 +128,23 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         })
         .collect::<Vec<_>>();
 
+    let execution_fusions = snapshot
+        .plans
+        .iter()
+        .flat_map(|plan| {
+            plan.fragments.iter().flat_map(move |fragment| {
+                fragment
+                    .execution_fusions
+                    .iter()
+                    .map(move |fusion| crate::ExecutionFusionRow {
+                        plan_id: plan.plan_id.clone(),
+                        fragment_id: fragment.fragment_id.clone(),
+                        fusion: fusion.clone(),
+                    })
+            })
+        })
+        .collect();
+
     let fragments = snapshot
         .plans
         .iter()
@@ -234,6 +251,7 @@ pub fn build_report(snapshot: &ObservatorySnapshot) -> Result<ObservatoryReport,
         lines,
         plans,
         execution_regions,
+        execution_fusions,
         fragments,
         placements,
         connections,

@@ -17,6 +17,16 @@ pub fn select_data_locality_candidate(
 ) -> Result<LocalitySelection, PlannerError> {
     plot.validate_identities()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
+    select_data_locality_candidate_validated(plot, hosts, candidates, basis, line_offers)
+}
+
+pub(crate) fn select_data_locality_candidate_validated(
+    plot: &CheckedPlot,
+    hosts: &[HostAdvertisement],
+    candidates: &[LocalityCandidate],
+    basis: &LocalityPlanningBasis,
+    line_offers: &[LineOffer],
+) -> Result<LocalitySelection, PlannerError> {
     validate_resource_observations(hosts, &basis.resources)?;
     validate_inputs(plot, hosts, candidates, basis)?;
     if line_offers.len() > MAXIMUM_LOCALITY_LINE_OFFERS {

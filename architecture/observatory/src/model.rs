@@ -297,6 +297,13 @@ pub struct ExecutionRegionRow {
 }
 
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct ExecutionFusionRow {
+    pub plan_id: PlanId,
+    pub fragment_id: FragmentId,
+    pub fusion: conduit_core::PlannedFusion,
+}
+
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
 pub struct FragmentRow {
     pub plan_id: PlanId,
     pub fragment_id: FragmentId,
@@ -367,6 +374,8 @@ pub struct ObservatoryReport {
     pub lines: Vec<LineRow>,
     pub plans: Vec<PlanRow>,
     pub execution_regions: Vec<ExecutionRegionRow>,
+    #[serde(default)]
+    pub execution_fusions: Vec<ExecutionFusionRow>,
     pub fragments: Vec<FragmentRow>,
     pub placements: Vec<PlacementRow>,
     pub connections: Vec<ConnectionRow>,

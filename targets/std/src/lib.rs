@@ -54,6 +54,7 @@ mod body_live_fore;
 pub mod external_signal;
 pub mod external_websocket;
 pub mod flow_activation;
+pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
 pub mod hosted_audio;

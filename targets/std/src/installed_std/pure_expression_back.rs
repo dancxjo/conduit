@@ -123,7 +123,7 @@ impl PureExpressionHost {
     }
 }
 
-fn program_from_placement(
+pub(super) fn program_from_placement(
     placement: &PlannedGear,
 ) -> Result<conduit_plot::PortableExpressionProgram, String> {
     let [entry] = placement.configuration.as_slice() else {
@@ -241,6 +241,35 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
             }
         }
     }
+}
+
+// Reuse the computational Back already used by admitted child kernels. Its
+// exact local Offer is checked before storage is prepared; no Host Call is
+// silently removed from a hosted realization.
+pub(super) static LOCAL_FACTORY: BackFactory = BackFactory {
+    implementation_id: conduit_std_offers::PURE_EXPRESSION_LOCAL_IMPLEMENTATION,
+    budget: local_budget,
+    prepare: prepare_local,
+};
+pub(super) fn local_budget(placement: &PlannedGear) -> Result<BackBudget, String> {
+    let factory = crate::flow_activation::LocalExpressionFactory;
+    let budget = conduit_composite::KernelOperationFactory::budget(&factory, placement)?;
+    Ok(BackBudget {
+        value_items: budget.value_items,
+        value_bytes: budget.value_bytes,
+        maximum_value_bytes: budget.maximum_value_bytes,
+        host_requests: budget.host_requests as usize,
+        sign_items: budget.sign_items,
+    })
+}
+fn prepare_local(
+    placement: &PlannedGear,
+    _: &mut conduit_kernel::HostedValueStore,
+) -> Result<InstalledBack, String> {
+    local_budget(placement)?;
+    Ok(InstalledBack::LocalExpression(
+        crate::flow_activation::PreparedLocalExpressionBack::from_placement(placement)?,
+    ))
 }
 
 #[cfg(test)]

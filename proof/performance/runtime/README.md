@@ -182,3 +182,29 @@ output directories and the same committed clean source. Keep raw counter samples
 exact source/Plan/Play/Boot custody and uncontrolled-host variation. The separate
 fixed-kernel scan/copy entrance is documented in
 [`kernel-overhead-attribution.md`](../../../docs/audits/kernel-overhead-attribution.md).
+
+## Physical pure-chain dispatch
+
+The hosted profile also runs the unchanged 1/8/32-Gear authored U64 pipelines
+with the installed local computational Back, both without fusion and with the
+reviewed `std/pure-chain-dispatch@1` alternative. The original hosted Host Call
+baseline remains in the same run. Local/fused trial order alternates, every
+output and mandatory output Sign is checked, and each exact Host/Plan/Play is
+retained. A singleton retains its ordinary realization.
+
+Fusion changes ready selection, not expression evaluation: the existing prepared
+evaluator, all logical Gear/Cord identities, per-Gear transactions, source spans,
+canonical intermediate values and bounded queues remain. Raw rows separately
+report physical scheduler decisions, fixed-fixture intermediate materializations
+and bytes, value-storage capacity, cold fusion selection, full-call wall/CPU,
+first output, completion-window throughput and allocator observations. The
+materialization counts describe this exact fixture; an internal-copy hardware
+counter is explicitly unavailable. No transport elimination or zero-copy gain
+is claimed.
+
+Planner alternatives retain explicit addition/dispatch work assumptions and
+zero assumed transport savings. They are not nanoseconds or measured provider
+costs. Expensive fusion and required observation boundaries keep the unfused
+choice. Target-specific timing observations stay separate from these policy
+assumptions. Browser/WASM refuses this physical profile; native kernel tests do
+not establish browser execution parity.

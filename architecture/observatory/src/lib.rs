@@ -69,3 +69,6 @@ mod global_placement_explanation_tests;
 
 #[cfg(test)]
 mod global_placement_transfer_tests;
+
+#[cfg(test)]
+mod fusion_tests;
