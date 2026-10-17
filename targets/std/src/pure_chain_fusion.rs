@@ -2,7 +2,7 @@
 //! Every logical Cord is materialized and every logical Step retains its Sign.
 use conduit_core::{ConfigurationValue, HostAdvertisement, Kind};
 use conduit_planner::FusionRealizationOffer;
-use conduit_plot::{ExpandedCanonicalPlot, PortableExpressionProgram};
+use conduit_plot::{ExpandedAuthoringPlot, PortableExpressionProgram};
 
 pub const PURE_CHAIN_FUSION_PROFILE: &str = "std/pure-chain-dispatch@1";
 pub const PURE_CHAIN_FUSION_IMPLEMENTATION: &str = "std/kernel-pure-chain-dispatch@1";
@@ -11,9 +11,10 @@ pub const PURE_CHAIN_FUSION_ARTIFACT: &str = "conduit-kernel/logical-step-chain@
 /// An immutable current-Boot alternative. The Planner still owns selection and
 /// required observation/authority refusals. Unsupported targets have no such Back.
 pub fn pure_chain_fusion_offer(
-    plot: &ExpandedCanonicalPlot,
+    authoring: &ExpandedAuthoringPlot,
     host: &HostAdvertisement,
 ) -> Result<(FusionRealizationOffer, Vec<Kind>), String> {
+    let plot = &authoring.expanded;
     plot.validate_expansion().map_err(|e| e.to_string())?;
     if !(2..=32).contains(&plot.gears.len())
         || plot.connections.len() + 1 != plot.gears.len()
@@ -93,6 +94,15 @@ pub fn pure_chain_fusion_offer(
     }
     if ordered.len() != plot.gears.len() {
         return Err("pure-chain disconnected graph".into());
+    }
+    if authoring.input_bindings.len() != 1
+        || authoring.output_bindings.len() != 1
+        || authoring.input_bindings[0].gear_id != ordered[0]
+        || Some(&authoring.output_bindings[0].gear_id) != ordered.last()
+        || authoring.input_bindings[0].track != conduit_core::ConnectionTrack::Payload
+        || authoring.output_bindings[0].track != conduit_core::ConnectionTrack::Payload
+    {
+        return Err("pure-chain fusion forbids independent Fore or observation boundaries inside the region".into());
     }
     Ok((
         FusionRealizationOffer {

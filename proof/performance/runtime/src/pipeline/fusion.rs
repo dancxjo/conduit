@@ -11,7 +11,8 @@ pub(super) fn select(
 ) -> Result<FusionSelection, Box<dyn Error>> {
     let plot = &authoring.expanded;
     let host = &hosts[0];
-    let (offer, kinds) = conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(plot, host)?;
+    let (offer, kinds) =
+        conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(authoring, host)?;
     let provenance = |id: &str| ObservationProvenance {
         sign_id: format!("sign/runtime-chain/{id}").into(),
         source: "frozen dispatch work assumptions; runtime counters separately measured".into(),

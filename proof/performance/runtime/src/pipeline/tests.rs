@@ -244,10 +244,17 @@ fn ordinary_planner_can_keep_unfused_cost_or_required_observation() -> Result<()
     assert_eq!(observed.selected_candidate_id, "unfused");
     assert!(observed.considered.iter().any(|candidate|matches!(&candidate.disposition,
         conduit_planner::CandidatePlacementDisposition::Rejected(reason) if reason.contains("observation or authority"))));
+    let mut independent_fore = authoring.clone();
+    independent_fore.output_bindings[0].gear_id =
+        independent_fore.input_bindings[0].gear_id.clone();
+    let refusal =
+        conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(&independent_fore, &hosts[0])
+            .unwrap_err();
+    assert!(refusal.contains("independent Fore or observation"));
     let hosted = prepare(32, &authored, "boot/host-call-refusal")?;
     assert!(
         conduit_std_host::pure_chain_fusion::pure_chain_fusion_offer(
-            &authoring.expanded,
+            &authoring,
             hosted.host.advertisement()
         )
         .is_err()
