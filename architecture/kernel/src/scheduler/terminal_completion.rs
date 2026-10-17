@@ -7,11 +7,12 @@ struct Tail {
     complete: bool,
 }
 impl StepBack<1> for Tail {
-    fn step(&mut self, _: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
+    fn step(&mut self, io: &mut StepIo<1>, _: &StepInputBytes<'_, 1>) -> StepOutcome {
         self.calls += 1;
         if self.complete {
             StepOutcome::Complete
         } else if self.calls <= 9 {
+            io.consume_fuel(io.remaining_fuel()).unwrap();
             StepOutcome::Yield
         } else {
             StepOutcome::Await
