@@ -1,5 +1,6 @@
 //! Pre-admitted matching and completion for face construction operations.
 
+use super::prepared_host_calls::PreparedHostCalls;
 use super::{face_composition, layout_backs, InstalledScheduler};
 use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment};
 use conduit_kernel::scheduler::HostCallRequest;
@@ -64,7 +65,7 @@ impl FaceConstructionHost {
         contract: &HostCallContractId,
         target: Option<&KindId>,
         scheduler: &mut InstalledScheduler,
-        requests: &mut Vec<HostCallRequest>,
+        requests: &mut PreparedHostCalls<'_>,
     ) -> Result<(), String> {
         let input = scheduler
             .host_value(request.input.value)
@@ -80,7 +81,7 @@ impl FaceConstructionHost {
             let value = scheduler
                 .store_host_value(&encoded[..encoded_len])
                 .map_err(|error| format!("store layout frame output: {error:?}"))?;
-            requests.push(request);
+            requests.push(request)?;
             scheduler
                 .complete_host_call(
                     request.node,
@@ -111,7 +112,7 @@ impl FaceConstructionHost {
             let value = scheduler
                 .store_host_value(&encoded[..encoded_len])
                 .map_err(|error| format!("store graphics scene: {error:?}"))?;
-            requests.push(request);
+            requests.push(request)?;
             scheduler
                 .complete_host_call(
                     request.node,
@@ -141,7 +142,7 @@ impl FaceConstructionHost {
             let value = scheduler
                 .store_host_value(&encoded[..encoded_len])
                 .map_err(|error| format!("store face composition: {error:?}"))?;
-            requests.push(request);
+            requests.push(request)?;
             scheduler
                 .complete_host_call(
                     request.node,

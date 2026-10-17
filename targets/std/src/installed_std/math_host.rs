@@ -1,5 +1,6 @@
 //! Exact hosted math request matching and completion.
 
+use super::prepared_host_calls::PreparedHostCalls;
 use super::{math_backs, InstalledScheduler};
 use conduit_core::{kind_id, HostCallContractId, KindId, PlanFragment, SCALAR_ENCODED_LEN};
 use conduit_kernel::scheduler::HostCallRequest;
@@ -68,7 +69,7 @@ impl MathHost {
         fragment: &PlanFragment,
         request: HostCallRequest,
         scheduler: &mut InstalledScheduler,
-        requests: &mut Vec<HostCallRequest>,
+        requests: &mut PreparedHostCalls<'_>,
     ) -> Result<(), String> {
         let placement = fragment
             .placements
@@ -105,7 +106,7 @@ impl MathHost {
                     failure: None,
                 }
             };
-            requests.push(request);
+            requests.push(request)?;
             if let Some(failure) = outcome.failure {
                 self.failures[usize::from(request.node.0)] = Some((request, failure));
             }
@@ -136,7 +137,7 @@ impl MathHost {
                     failure: Some(failure),
                 },
             };
-            requests.push(request);
+            requests.push(request)?;
             if let Some(failure) = outcome.failure {
                 self.failures[usize::from(request.node.0)] = Some((request, failure));
             }
@@ -148,7 +149,7 @@ impl MathHost {
         let value = scheduler
             .store_host_value(&encoded)
             .map_err(|error| format!("store math scalar output: {error:?}"))?;
-        requests.push(request);
+        requests.push(request)?;
         scheduler
             .complete_host_call(
                 request.node,
