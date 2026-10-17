@@ -153,3 +153,27 @@ observation, not a zero-retry CI/acceptance-gate claim or evidence for unpromote
 `live` changes. Malformed packaged inventory and malformed retained recovery
 were not injected. Historical reporting-browser custody and exact release-train/
 accepted-main evidence remain unverified; #5453/#5510 remain open.
+
+## Malformed packaged lesson in Chromium — 17 October 2026
+
+[Receipt](evidence/handbook-malformed-package-chromium-2026-10-17.json) and
+[opt-in probe](../../proof/browser/handbook-public-malformed-package.mjs) retain
+one successful fresh Chromium run using the real HTTPS-delivered runtime. Only
+the pitch lesson and its resource/package hashes are intercepted locally. The
+public package digest is `sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449`;
+the deliberately malformed fixture package is
+`sha256:1fea41377bd98cb32bfe797e4bcdc9c0d8448ba76d5ad130c7f67bf16aa9a6ef`.
+
+The quoted-quantity packaged lesson refuses startup while the source editor and
+selector remain enabled. The exact malformed lesson is inspectable. Native
+editing and Try save the checked canonical correction under its original-source
+identity; `body-continuity` remains null before and after saving. Explicit Try
+again reloads the same fixture package with the saved correction, admits a Body
+and executes the lesson to `Exactly 1000 Hz`, with no observed page errors.
+The probe requires an explicit receipt destination and performs no public writes.
+
+This is actual packaged-runtime Chromium execution with a local admission-
+consistent malformed source fixture, not evidence of a malformed public
+deployment. It does not exercise malformed retained recovery, historical
+reporting-browser custody, unpromoted `live` changes or release-train/accepted-
+main gates. Those remaining obligations keep #5453/#5510 open.
