@@ -573,3 +573,38 @@ test('generic graph requests require exact resident subject identities', async (
   expect(await page.evaluate(() => ({ calls: globalThis.graphIdentityCalls, queued: globalThis.graphIdentityManifest.queuedEvents() })))
     .toEqual({ calls: ['\ufeffport/in', 'cord/link', 'gear/source', 'port/out', 'cord/link'], queued: 5 });
 });
+
+
+for (const mode of ['membership', 'capacity']) {
+  test(`shared actions satisfy every bound control (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const nodes = [{ parent: null, component: 'shell', key: 'root', action: null }];
+      for (const [index, label] of ['First', 'Second'].entries()) {
+        const parent = nodes.length;
+        nodes.push({ parent: 0, component: mode === 'membership' ? 'select' : 'text-input',
+          key: label, text: label, valueCapacity: index === 1 && mode === 'capacity' ? 2 : 16, action: 0 });
+        if (mode === 'membership') for (const value of [index === 0 ? 'first-only' : 'second-only', 'ok']) {
+          nodes.push({ parent, component: 'option', key: `${label}-${value}`, text: value, value, valueCapacity: 16, action: null });
+        }
+      }
+      globalThis.sharedCalls = [];
+      globalThis.sharedRefusals = [];
+      globalThis.sharedManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.shared', event: mode === 'membership' ? 'change' : 'input' }], nodes }), root,
+        { onEvent: event => globalThis.sharedCalls.push(new TextDecoder().decode(event.value)),
+          onRefusal: reason => globalThis.sharedRefusals.push(reason) });
+      globalThis.sharedManifest.requestAction('First', mode === 'membership' ? 'first-only' : 'abc');
+    }, mode);
+    expect(await page.evaluate(() => ({ calls: globalThis.sharedCalls, refusals: globalThis.sharedRefusals,
+      queued: globalThis.sharedManifest.queuedEvents() })))
+      .toEqual({ calls: [], refusals: ['invalid-control-value'], queued: 0 });
+    const first = page.getByRole(mode === 'membership' ? 'combobox' : 'textbox', { name: 'First', exact: true });
+    if (mode === 'membership') await first.selectOption('ok');
+    else await first.fill('ok');
+    expect(await page.evaluate(() => ({ calls: globalThis.sharedCalls, queued: globalThis.sharedManifest.queuedEvents() })))
+      .toEqual({ calls: ['ok'], queued: 1 });
+  });
+}

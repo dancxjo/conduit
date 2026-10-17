@@ -933,3 +933,20 @@ valid byte/text requests and native keyboard node/port/cord selection, pointer
 selection, detached-subject refusal, background decoration and typed controls.
 This proves renderer correspondence and queue admission, not authoritative
 Body/Play or fresh packaged/released browser acceptance; #5644 remains open.
+
+Shared action argument follow-up (#5644): browser requests now satisfy every
+node bound to their exact action, matching portable ApplicationEvent admission.
+Wire events carry an action identity rather than an originating node identity;
+checking only the initiating node admitted values that the portable receiver
+would refuse. Preparation derives bounded binding lists and their minimum
+argument capacity. Text is decoded once, then all declared choice memberships
+and boolean constraints are checked before callback or queue insertion.
+Non-value-bearing bindings require an empty argument, as in portable admission.
+
+Both new regressions reproduced admission before repair: a value owned only by
+the first of two shared selects, and text exceeding a second binding's byte
+capacity. Fifteen focused pinned Chromium fixtures pass with one worker and
+zero retries, including valid native shared-control input, exact graph subjects,
+malformed typed values, pre-encoding bounds and embedding-form isolation.
+This is renderer correspondence/queue evidence, not authoritative Body/Play or
+fresh packaged/released browser acceptance; #5644 remains open.
