@@ -1,0 +1,204 @@
+{
+  "schema": "conduit.llm-generate-pool-proof/v1",
+  "proof_class": "deterministic-hosted-integration",
+  "physical_evidence": false,
+  "body_id": "body/local-model-pool-fixture",
+  "wake_id": "wake/local-model-pool-fixture/1",
+  "source_document_id": "1c1480327d08d40c02d06fdce9a5d54b9c35cb9b134ee5e92394c39e2a82dc91",
+  "checked_plot_id": "7afab9b05a70d96b52b162d2bd712fc6b014ad1c418495e35e5f4fbd1678ac06",
+  "expanded_plot_id": "e6581675be6a11aa0d15ec65a5d7d596f900334f06f5ffdb8e4569a4b09646a0",
+  "plan_id": "25d4f8a77da9dbd017e055f173c95133842a4d95f793b52f379022b31015f2b7",
+  "play_id": "0e17322e6f75f39d30a797ae98a7e3a29ef11d50c7a8742c2fbe524edf8f0c04",
+  "pool_id": "model-service/workers",
+  "realization_envelope": [
+    {
+      "host_id": "host/compact",
+      "boot_id": "boot/compact/1",
+      "offer_generation": 1,
+      "capability_id": "local-model/llm/generate",
+      "implementation_id": "std/local-open-weight-model@1",
+      "artifact_id": "conduit-std-host/local-model-adapter@1/sha256-compact",
+      "member_capacity": 1,
+      "resources": [
+        {
+          "pool_id": "compact/compute",
+          "class_id": "conduit.resource/compute/shared-lane@1",
+          "units": 4,
+          "protected": null,
+          "compute": {
+            "selected_lanes": 4,
+            "service_guarantee": "Shared",
+            "architecture_base_id": "compact/hosted-compute",
+            "architecture_base_kind": "HostedOs",
+            "topology_group_id": null,
+            "performance_class": null,
+            "nominal_clock_hz": null
+          }
+        },
+        {
+          "pool_id": "compact/slot",
+          "class_id": "conduit.resource/local-model-inference-slot@1",
+          "units": 1,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "compact/memory",
+          "class_id": "conduit.resource/local-model-memory-mib@1",
+          "units": 8,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "compact/queue-items",
+          "class_id": "conduit.resource/local-model-queue-item@1",
+          "units": 2,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "compact/queue-kib",
+          "class_id": "conduit.resource/local-model-queue-kib@1",
+          "units": 8,
+          "protected": null,
+          "compute": null
+        }
+      ],
+      "admitted_lines": []
+    },
+    {
+      "host_id": "host/wide",
+      "boot_id": "boot/wide/1",
+      "offer_generation": 1,
+      "capability_id": "local-model/llm/generate",
+      "implementation_id": "std/local-open-weight-model@1",
+      "artifact_id": "conduit-std-host/local-model-adapter@1/sha256-wide",
+      "member_capacity": 1,
+      "resources": [
+        {
+          "pool_id": "wide/compute",
+          "class_id": "conduit.resource/compute/shared-lane@1",
+          "units": 8,
+          "protected": null,
+          "compute": {
+            "selected_lanes": 8,
+            "service_guarantee": "Shared",
+            "architecture_base_id": "wide/hosted-compute",
+            "architecture_base_kind": "HostedOs",
+            "topology_group_id": null,
+            "performance_class": null,
+            "nominal_clock_hz": null
+          }
+        },
+        {
+          "pool_id": "wide/slot",
+          "class_id": "conduit.resource/local-model-inference-slot@1",
+          "units": 1,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "wide/memory",
+          "class_id": "conduit.resource/local-model-memory-mib@1",
+          "units": 8,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "wide/queue-items",
+          "class_id": "conduit.resource/local-model-queue-item@1",
+          "units": 2,
+          "protected": null,
+          "compute": null
+        },
+        {
+          "pool_id": "wide/queue-kib",
+          "class_id": "conduit.resource/local-model-queue-kib@1",
+          "units": 8,
+          "protected": null,
+          "compute": null
+        }
+      ],
+      "admitted_lines": []
+    }
+  ],
+  "selections": [
+    {
+      "operation_id": "model-request/1",
+      "disposition": "selected",
+      "realization": 1,
+      "observation_signs": [
+        "sign/provider/1",
+        "sign/resource/1/0",
+        "sign/resource/1/1",
+        "sign/resource/1/2",
+        "sign/resource/1/3",
+        "sign/resource/1/4"
+      ],
+      "planning_requested": false
+    },
+    {
+      "operation_id": "model-request/2",
+      "disposition": "selected-after-capacity-refusal",
+      "realization": 0,
+      "observation_signs": [
+        "sign/provider/0",
+        "sign/resource/0/0",
+        "sign/resource/0/1",
+        "sign/resource/0/2",
+        "sign/resource/0/3",
+        "sign/resource/0/4"
+      ],
+      "planning_requested": false
+    },
+    {
+      "operation_id": "model-request/1",
+      "disposition": "provider-lost-no-replay",
+      "realization": 1,
+      "observation_signs": [
+        "sign/provider/1",
+        "sign/resource/1/0",
+        "sign/resource/1/1",
+        "sign/resource/1/2",
+        "sign/resource/1/3",
+        "sign/resource/1/4"
+      ],
+      "planning_requested": false
+    },
+    {
+      "operation_id": "model-request/3",
+      "disposition": "selected-sealed-fallback",
+      "realization": 0,
+      "observation_signs": [
+        "sign/provider/0",
+        "sign/resource/0/0",
+        "sign/resource/0/1",
+        "sign/resource/0/2",
+        "sign/resource/0/3",
+        "sign/resource/0/4"
+      ],
+      "planning_requested": false
+    },
+    {
+      "operation_id": "model-request/4",
+      "disposition": "capacity-unavailable",
+      "realization": null,
+      "observation_signs": [],
+      "planning_requested": false
+    },
+    {
+      "operation_id": "model-request/5",
+      "disposition": "envelope-exhausted",
+      "realization": null,
+      "observation_signs": [],
+      "planning_requested": true
+    }
+  ],
+  "unsealed_host_refused": true,
+  "replacement_plan_id": "c332a62cfbde711b712f97831f0eab1305a8391e02df25a6dba395900a9ce2a4",
+  "replacement_play_id": "7348e075f52d1febd6f1c1046cfe2b23060803d4f62cd546abcb845f7ee1e1d9",
+  "replacement_preserved_body_and_wake": true,
+  "successful_recovery_semantic_terminal": null,
+  "unrecoverable_terminal_kind": "conduit/terminal-info@1",
+  "unrecoverable_terminal_category": "UnavailableRealization"
+}

@@ -1,0 +1,53 @@
+{
+  "schema": "conduit.evidence-manifest/v1",
+  "result": "complete",
+  "git_commit": "a4d119e1cd52057a10f1768135c4a35c8e419746",
+  "proof_id": "local-model-pool",
+  "suite_id": "prove.local-model-pool",
+  "limits": {
+    "maximum_outputs": 128,
+    "maximum_bytes_per_output": 16777216
+  },
+  "outputs": [
+    {
+      "id": "local-model-pool.deterministic-receipt",
+      "kind": "machine-readable-manifest",
+      "path": "receipt.json",
+      "media_type": "application/json",
+      "required": true,
+      "bytes": 6458,
+      "sha256": "ed0b6829a6450b9a8f1a493474fbc31e1b8c275c84bdf8d4593e9c6f018ad101",
+      "scenario_id": "local-model-pool.deterministic@1",
+      "step_id": "prove.local-model-pool.plan-play",
+      "browser_engine": null,
+      "browser_version": null,
+      "viewport": null,
+      "device_scale_factor": null,
+      "locale": null,
+      "timezone": null,
+      "face_id": null,
+      "face_revision": null,
+      "plan_id": "25d4f8a77da9dbd017e055f173c95133842a4d95f793b52f379022b31015f2b7",
+      "active_play_id": "0e17322e6f75f39d30a797ae98a7e3a29ef11d50c7a8742c2fbe524edf8f0c04",
+      "manifestation_id": null,
+      "renderer_id": null,
+      "asserted_semantic_disposition": "sealed-load-sharing-provider-loss-no-replay-exhaustion-and-replan-asserted",
+      "proof_class": "deterministic-hosted-integration",
+      "architecture": null,
+      "architecture_rung": null,
+      "emulator": null,
+      "emulator_version": null,
+      "machine": null,
+      "firmware": null,
+      "host_id": null,
+      "boot_id": null,
+      "kernel_artifact_id": null,
+      "kernel_artifact_sha256": null,
+      "capture_trigger": null,
+      "capture_byte_limit": null,
+      "image_width": null,
+      "image_height": null,
+      "physical_evidence": false
+    }
+  ]
+}
