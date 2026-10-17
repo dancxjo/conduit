@@ -601,9 +601,10 @@ for (const hidden of ['attribute', 'visibility', 'disclosure', 'fieldset']) {
 }
 
 // Production Handbook orchestration with a fixture SDK, not a real owner Body.
-test('Handbook acknowledgement and refresh keep current owner controls attached', async ({ page }) => {
+for (const interruption of [null, 'prepare', 'acknowledge']) {
+test(`Handbook refresh preserves current controls and refuses interrupted ${interruption ?? 'none'} routes`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
-  await page.evaluate(async view => {
+  await page.evaluate(async ({ view, interruption }) => {
     const { startOwnerParticipation } = await import('/targets/browser/handbook/owner-participation.mjs');
     document.body.innerHTML = `<header class="handbook-introduction"><h1></h1><p class="lede"></p></header>
       <a class="handbook-start"></a><div class="handbook-first-steps"></div>
@@ -614,13 +615,32 @@ test('Handbook acknowledgement and refresh keep current owner controls attached'
         mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
     globalThis.calls = [];
     let revision = 0;
+    let onState;
+    const pause = async stage => {
+      if (revision === 2 && stage === interruption) {
+        await new Promise(resolve => { globalThis.releaseFace = resolve; });
+      }
+    };
+    globalThis.interruptRoute = () => {
+      onState('offline');
+      // Presence may recover before the old async result arrives.
+      onState('admitted');
+      globalThis.releaseFace();
+    };
     const participation = {
       hostId: 'host/browser', bootId: 'boot/browser',
       presenceState: () => 'available', membershipCredential: () => ({ body_id: shown.body_id }),
       biographyEvidence: () => null,
-      prepareOwnerFaceMask: async () => ({ ...shown, face_revision: String(++revision),
-        show_id: `fixture/show/${revision}`, show_state: 'prepared', interactions_admitted: false }),
-      acknowledgeOwnerFaceMask: async prepared => ({ ...prepared, show_state: 'available', interactions_admitted: true }),
+      prepareOwnerFaceMask: async () => {
+        revision++;
+        await pause('prepare');
+        return { ...shown, face_revision: String(revision), show_id: `fixture/show/${revision}`,
+          show_state: 'prepared', interactions_admitted: false };
+      },
+      acknowledgeOwnerFaceMask: async prepared => {
+        await pause('acknowledge');
+        return { ...prepared, show_state: 'available', interactions_admitted: true };
+      },
       inspectOwnerWardrobe: async () => { throw new Error('No wardrobe in this renderer fixture'); },
       submitOwnerFaceInteraction: async call => { globalThis.calls.push(call); return { accepted: true }; },
     };
@@ -628,9 +648,9 @@ test('Handbook acknowledgement and refresh keep current owner controls attached'
       storage: { readJson: async () => null, writeJson: async () => {} },
       browser: async () => ({ id: 'host/browser', bootId: 'boot/browser',
         admissionIdentity: () => ({ hostId: 'host/browser', bootId: 'boot/browser', verifyingKey: [] }),
-        participate: async () => participation }),
+        participate: async options => { onState = options.onState; return participation; } }),
     }, document.querySelector('main'));
-  }, view);
+  }, { view, interruption });
   await page.getByLabel('Body ID', { exact: true }).fill('body/fixture');
   await page.getByLabel('Owner window URL', { exact: true }).fill('ws://127.0.0.1:41000/conduit');
   await page.getByRole('button', { name: 'Join this Body', exact: true }).click();
@@ -649,16 +669,31 @@ test('Handbook acknowledgement and refresh keep current owner controls attached'
     observer.observe(node.parentNode, { childList: true });
   });
   await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
-  await expect(owner).toHaveAttribute('data-face-revision', '2');
+  if (interruption) {
+    await expect.poll(() => page.evaluate(() => typeof globalThis.releaseFace)).toBe('function');
+    await page.evaluate(() => globalThis.interruptRoute());
+    await expect(page.locator('[data-owner-face-status]')).toHaveAttribute('data-refused', 'true');
+    await expect(page.locator('[data-owner-face-status]')).toContainText('The owner route changed during Face preparation.');
+    await expect(page.locator('main')).not.toHaveAttribute('data-owner-show-acknowledged');
+    await expect(page.locator('main')).not.toHaveAttribute('data-owner-face-shown', 'true');
+    await expect(button).toBeDisabled();
+    await owner.evaluate(node => node.shadowRoot.querySelector('form')
+      .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    await page.getByRole('button', { name: 'Refresh this Face', exact: true }).click();
+  }
+  const currentRevision = interruption ? '3' : '2';
+  await expect(owner).toHaveAttribute('data-face-revision', currentRevision);
   await expect(button).toBeEnabled();
   expect(await owner.evaluate(node => node === globalThis.originalOwner && globalThis.disconnects === 0)).toBe(true);
   await button.focus();
   await page.keyboard.press('Enter');
   await expect.poll(() => page.evaluate(() => globalThis.calls.length)).toBe(1);
-  await expect(owner).toHaveAttribute('data-face-revision', '3');
+  await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
   await expect(button).toBeEnabled();
   expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
-    view: { show_id: 'fixture/show/2', face_revision: '2' },
+    view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
     actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [], sequence: 1,
   });
 });
+}

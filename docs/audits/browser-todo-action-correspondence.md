@@ -141,3 +141,20 @@ prepared-to-acknowledged rendering, stable attachment during refresh, trusted
 keyboard submission correlated to the refreshed Show and enabled controls after
 the next refresh. It is orchestration/renderer evidence, not a real owner Body
 receipt or packaged/public acceptance.
+
+
+Interrupted-route follow-up (#5644 / #5631): Handbook Face preparation and
+acknowledgement now retain the local route generation. An offline/refused state
+invalidates pending work and clears current-Show markers. Check that generation
+and current presence after each async response before rendering or enabling an
+acknowledged Show. Presence recovering before the response arrives does not
+revive the interrupted encounter; a fresh refresh remains available. This local
+lifecycle fence does not replace SDK/owner route admission.
+
+Both held-response regressions reproduced before repair (preparation and
+acknowledgement). All twenty-eight component Chromium tests pass with one worker
+and zero retries. The three Handbook cases also pass with strengthened checks
+for the exact route-change refusal, cleared acknowledgement, zero callback on
+an adversarial stale submit and trusted keyboard activation after a fresh Show;
+the three owner-route unit tests pass. These use a fixture SDK carrier through
+production Handbook orchestration, not real Body state or packaged acceptance.
