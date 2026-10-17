@@ -129,8 +129,7 @@ pub(super) fn execute_supplied(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "front-door-ready", false)?;
 
-        journey_input::birth_from_creche(&mut qmp, &mut reader)?;
-        journey_input::wait_status_retaining_guest(&serial_path, &mut child, "born-lulled")?;
+        journey_input::birth_from_creche(&mut qmp, &mut reader, &serial_path, &mut child)?;
         artifacts.capture(&mut qmp, &mut reader, "body-born", true)?;
         for (key, status, frame) in [
             ("f4", "awake", "body-woken"),
