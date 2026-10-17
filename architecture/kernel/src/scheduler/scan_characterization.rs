@@ -183,7 +183,10 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
     assert_eq!(counts.context_pending_slots, steps as u64);
     assert_eq!(counts.input_ports, steps as u64);
     assert!(counts.queue_peeks >= steps as u64);
-    assert!(counts.cord_scans >= active as u64);
+    assert_eq!(
+        counts.cord_scans, 0,
+        "payload-only graphs need no quiescence probes"
+    );
     for node in 0..active {
         assert_eq!(
             scheduler.drivers[node].received,
