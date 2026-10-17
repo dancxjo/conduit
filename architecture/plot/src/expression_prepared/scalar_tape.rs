@@ -4,6 +4,9 @@ const MAXIMUM_INSTRUCTIONS: usize = 128;
 pub(super) struct ScalarTape {
     instructions: Vec<Instruction>,
     result: usize,
+    // Every entry owns its finite scalar bytes. No input borrow survives a
+    // call; storage is reserved once for this exact admitted instruction tape.
+    scratch: Vec<Option<PrimitiveValue<'static>>>,
 }
 struct Instruction {
     kind: PrimitiveInfoKind,
@@ -40,8 +43,11 @@ impl ScalarTape {
         let mut tape = Self {
             instructions: Vec::with_capacity(MAXIMUM_INSTRUCTIONS),
             result: 0,
+            scratch: Vec::new(),
         };
         tape.result = tape.lower(root)?;
+        tape.scratch = Vec::with_capacity(tape.instructions.len());
+        tape.scratch.resize_with(tape.instructions.len(), || None);
         Ok(tape)
     }
     fn push(&mut self, kind: PrimitiveInfoKind, operation: Operation) -> Result<usize, Refusal> {
@@ -105,15 +111,19 @@ impl ScalarTape {
         self.instructions.len()
     }
     pub(super) fn scratch_bytes(&self) -> usize {
-        core::mem::size_of::<Option<PrimitiveValue<'static>>>() * MAXIMUM_INSTRUCTIONS
+        core::mem::size_of::<Option<PrimitiveValue<'static>>>() * self.scratch.capacity()
     }
-    pub(super) fn evaluate<'a>(
-        &'a self,
-        input: &'a [u8],
+    pub(super) fn evaluate(
+        &mut self,
+        input: &[u8],
         input_kind: Option<PrimitiveInfoKind>,
-    ) -> Result<PrimitiveValue<'a>, Refusal> {
-        let mut slots: [Option<PrimitiveValue<'a>>; MAXIMUM_INSTRUCTIONS] =
-            core::array::from_fn(|_| None);
+    ) -> Result<PrimitiveValue<'static>, Refusal> {
+        let slots = &mut self.scratch;
+        // Clear results left by either branch or an arithmetic refusal. This
+        // touches the actual admitted tape, not the maximum profile size.
+        for slot in slots.iter_mut() {
+            *slot = None;
+        }
         let mut pc = 0;
         while pc < self.instructions.len() {
             let instruction = &self.instructions[pc];
@@ -128,9 +138,9 @@ impl ScalarTape {
                     if input_kind != Some(instruction.kind) {
                         return Err(Refusal::InvalidProgram);
                     }
-                    PrimitiveValue::borrowed(instruction.kind, input)?
+                    PrimitiveValue::new(instruction.kind, input)?
                 }
-                Operation::Literal(bytes) => PrimitiveValue::borrowed(instruction.kind, bytes)?,
+                Operation::Literal(bytes) => PrimitiveValue::new(instruction.kind, bytes)?,
                 Operation::Unary(op, index) => evaluate_unary(*op, instruction.kind, get(*index)?)?,
                 Operation::Binary(op, proven, left, right) => {
                     evaluate_binary(*op, *proven, instruction.kind, get(*left)?, get(*right)?)?

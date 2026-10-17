@@ -146,3 +146,55 @@ fn checked_record_profile_stays_with_declared_reference_evaluator() {
         Err(PortableExpressionEvaluationRefusal::UnsupportedType(_))
     ));
 }
+
+#[test]
+fn tape_scratch_is_reserved_for_the_actual_instruction_count() {
+    let identity = program(
+        "plot identity (\n >> value: U64\n result: U64 >>\n) = (.)\n",
+        "identity",
+    );
+    let tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&identity).unwrap();
+    let (instructions, slot_bytes) = tape.scalar_tape_limits().unwrap();
+    assert_eq!(instructions, 1);
+    let source = include_str!("fixtures/expression_baseline.conduit");
+    for operations in [1u64, 3, 8, 32] {
+        let p = program(source, &format!("baseline-{operations}"));
+        let tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+        let (instructions, scratch) = tape.scalar_tape_limits().unwrap();
+        assert_eq!(instructions, operations as usize * 2 + 1);
+        assert_eq!(scratch, instructions * slot_bytes);
+        assert!(scratch < 128 * slot_bytes);
+    }
+}
+
+#[test]
+fn reusable_scratch_clears_failed_and_unselected_branch_values_without_allocating() {
+    let p = program(
+        "plot conditional (\n >> value: U64\n result: U64 >>\n) = (. == 0 ? . : (. + .))\n",
+        "conditional",
+    );
+    let mut tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
+    let cases: Vec<_> = [0u64, u64::MAX, 1, u64::MAX / 2, 2, u64::MAX, 0]
+        .into_iter()
+        .map(|n| {
+            let input = n.to_le_bytes();
+            (input, p.evaluate(&input))
+        })
+        .collect();
+    let limits = tape.scalar_tape_limits();
+    let output_capacity = tape.output_capacity();
+    let (_, observed) = allocation_probe::observe(|| {
+        for _ in 0..64 {
+            for (input, expected) in &cases {
+                match expected {
+                    Ok(bytes) => assert_eq!(tape.evaluate(input).unwrap(), bytes),
+                    Err(error) => assert_eq!(tape.evaluate(input).unwrap_err(), *error),
+                }
+            }
+        }
+    });
+    assert_eq!(observed.allocations, 0);
+    assert_eq!(observed.reallocations, 0);
+    assert_eq!(tape.scalar_tape_limits(), limits);
+    assert_eq!(tape.output_capacity(), output_capacity);
+}
