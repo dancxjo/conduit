@@ -677,22 +677,14 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
     ),
     Step::typed(
         "prove.browser-host.wasm-build",
-        "Build conduit-browser-runtime WASM artifact",
+        "Seal optimized browser runtime for standalone Host and static fixtures",
         "cargo",
-        &[
-            "build",
-            "-p",
-            "conduit-browser-runtime",
-            "--target",
-            "wasm32-unknown-unknown",
-            "--release",
-        ],
+        crate::commands::browser::RUNTIME_RELEASE_ARGS,
         None,
-        Some("wasm32-unknown-unknown"),
+        Some("wasm-opt"),
         Some(ProofClass::ContractCompile),
-        &["proof/browser/conduit_browser_runtime.wasm"],
-    )
-    .with_environment(&crate::process::BROWSER_RELEASE_ENVIRONMENT),
+        &["target/browser-host-release/runtime.wasm"],
+    ),
     Step::typed(
         "prove.browser-host.entrance-build",
         "Build the standalone browser Host entrance",
@@ -820,7 +812,8 @@ pub const PROVE_BROWSER_HOST_STEPS: &[Step] = &[
         Some("playwright"),
         Some(ProofClass::LiveBrowser),
         &[],
-    ),
+    )
+    .with_environment(crate::commands::browser::RUNTIME_ENVIRONMENT),
     Step::typed(
         "prove.browser-host.conduit-browser-patchbay-workbench-matrix",
         "Run read-only HTML Patchbay browser matrix",
