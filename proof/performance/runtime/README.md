@@ -254,3 +254,28 @@ witnesses and timing statistics. Three independent expanded captures are still
 needed for expanded-workload process variation; one capture does not establish
 a calibrated performance gate. DSP/numerical-projection and four-mode coverage
 remain parent #5395 acceptance work.
+
+## Representative control and numerical meaning
+
+The hosted command also measures the canonical Theremin Distance-to-Frequency
+law as an explicit checked Flow expression, retaining the original instrument
+Source and exact parameter substitution. It validates 1,024 controls with
+alternating centimetre/millimetre framing, both clamp boundaries, native
+Quantity-framed results, normal Plan/Play and mandatory output Signs. Scope is
+pitch control updates, with no audio/playback or physical acceptance claim.
+
+A paired exact/certified-binary64 numerical fixture retains one authored 3/10
+meaning, selected installed Back identities, actual structured receipt bytes,
+exact error and refusal proof. Certificate preparation/limb-work/allocation
+observations remain separate from the prepared receipt emission during Play.
+The independent verifier decodes actual numerical and Quantity bytes.
+
+The eligible optimization matrix has two temporal families. Existing Flow
+reference/fused trials keep their identical checked Source and 64 inputs. New
+Value reference/scalar-tape trials use identical checked Source and frames
+within their family: 64 separate ordinary Plays on one Plan/Host with distinct
+Play identities. Each batch includes cold Back preparation for every Play.
+The actual installed profiles refuse Flow tape and combined Value/fusion;
+these refusal cells are recorded instead of changing product eligibility for
+the benchmark. Do not compare different protocols as a four-way speedup.
+See `docs/audits/runtime-domain-and-value-matrix.md` for boundaries and receipts.
