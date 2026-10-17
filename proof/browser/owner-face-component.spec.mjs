@@ -251,6 +251,11 @@ test('a replaced exclusive-choice listener cannot dispatch or reset current sele
     globalThis.calls = [];
     const invoke = async call => { globalThis.calls.push(call); };
     element.show(view, { invoke });
+    const look = element.shadowRoot.querySelector('link');
+    if (!look.sheet) await new Promise((resolve, reject) => {
+      look.addEventListener('load', resolve, { once: true });
+      look.addEventListener('error', () => reject(new Error('owner Look did not load')), { once: true });
+    });
     const obsolete = element.shadowRoot.querySelector('input[type=radio]');
     if (!obsolete) throw new Error('fixture did not render an exclusive choice');
     element.show(view, { invoke });
@@ -535,7 +540,7 @@ for (const reattach of [false, true]) {
   });
 }
 
-for (const unavailable of ['disconnected', 'hidden', 'transparent']) {
+for (const unavailable of ['disconnected', 'hidden', 'transparent', 'collapsed']) {
 test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset current selection`, async ({ page }) => {
   await page.goto('/proof/browser/signal-dom-host.test.html');
   const choices = {
@@ -559,6 +564,11 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
     globalThis.calls = [];
     const invoke = async call => { globalThis.calls.push(call); };
     element.show(view, { invoke });
+    const look = element.shadowRoot.querySelector('link');
+    if (!look.sheet) await new Promise((resolve, reject) => {
+      look.addEventListener('load', resolve, { once: true });
+      look.addEventListener('error', () => reject(new Error('owner Look did not load')), { once: true });
+    });
     const obsolete = element.shadowRoot.querySelector('input[type=radio]');
     if (!obsolete) throw new Error('fixture did not render an exclusive choice');
     if (unavailable === 'disconnected') {
@@ -566,6 +576,7 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
       document.body.append(element);
       element.disabled = false;
     } else if (unavailable === 'transparent') obsolete.closest('label').style.opacity = '0';
+    else if (unavailable === 'collapsed') obsolete.closest('label').style.transform = 'scale(0)';
     else obsolete.hidden = true;
     obsolete.dispatchEvent(new Event('change', { bubbles: true }));
   }, { view: choices, unavailable });
@@ -584,7 +595,7 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
 });
 }
 
-for (const hidden of ['attribute', 'visibility', 'opacity', 'owner-opacity', 'disclosure', 'fieldset']) {
+for (const hidden of ['attribute', 'owner-attribute', 'visibility', 'opacity', 'owner-opacity', 'scale', 'owner-scale', 'disclosure', 'fieldset']) {
   test(`hidden owner actions refuse dispatch (${hidden})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     await page.evaluate(async ({ view, hidden }) => {
@@ -594,11 +605,19 @@ for (const hidden of ['attribute', 'visibility', 'opacity', 'owner-opacity', 'di
       document.body.append(element);
       globalThis.calls = [];
       element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const look = element.shadowRoot.querySelector('link');
+      if (!look.sheet) await new Promise((resolve, reject) => {
+        look.addEventListener('load', resolve, { once: true });
+        look.addEventListener('error', () => reject(new Error('owner Look did not load')), { once: true });
+      });
       const form = element.shadowRoot.querySelector('form');
       if (hidden === 'attribute') form.hidden = true;
+      if (hidden === 'owner-attribute') element.hidden = true;
       if (hidden === 'visibility') form.style.visibility = 'hidden';
       if (hidden === 'opacity') form.style.opacity = '0';
       if (hidden === 'owner-opacity') element.style.opacity = '0';
+      if (hidden === 'scale') form.style.transform = 'scale(0)';
+      if (hidden === 'owner-scale') element.style.transform = 'scale(0)';
       if (hidden === 'disclosure') {
         const details = document.createElement('details');
         const summary = document.createElement('summary'); summary.textContent = 'Actions';
@@ -613,9 +632,10 @@ for (const hidden of ['attribute', 'visibility', 'opacity', 'owner-opacity', 'di
     }, { view, hidden });
     expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
     const element = page.locator('conduit-owner-face');
+    if (hidden === 'attribute' || hidden === 'owner-attribute') await expect(element.locator('form')).toBeHidden();
     await element.evaluate(node => {
       const form = node.shadowRoot.querySelector('form');
-      form.hidden = false; form.style.visibility = ''; form.style.opacity = ''; node.style.opacity = '';
+      form.hidden = false; node.hidden = false; form.style.visibility = ''; form.style.opacity = ''; node.style.opacity = ''; form.style.transform = ''; node.style.transform = '';
       const fieldset = form.closest('fieldset');
       if (fieldset) fieldset.disabled = false;
     });

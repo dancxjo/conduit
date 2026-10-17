@@ -66,11 +66,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     // Inertness follows the composed tree, including slotted content and
     // ancestors outside this element's shadow root. It does not hide boxes.
     for (let node = control; node; node = node.assignedSlot ?? node.parentElement ?? node.getRootNode().host) {
-      if (node.inert) return false;
+      if (node.inert || node.hidden) return false;
     }
     // Custom radio inputs are transparent inside their visible native label.
-    return control.checkVisibility({ visibilityProperty: true })
-      && visibleControl.checkVisibility({ visibilityProperty: true, opacityProperty: true });
+    if (!control.checkVisibility({ visibilityProperty: true })
+      || !visibleControl.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
+    const bounds = visibleControl.getBoundingClientRect();
+    return bounds.width > 0 && bounds.height > 0;
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {

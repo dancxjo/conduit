@@ -525,3 +525,20 @@ test-only extension. CSS magnification is not browser/OS zoom, differing system
 colors are not a contrast-ratio certification, and these callback fixtures do
 not establish arbitrary-CSS accessibility, assistive-technology enactment or
 authoritative Body state. #5632 remains open.
+
+Collapsed-surface/hidden follow-up (#5632): dispatch and focus reachability
+require positive rendered width and height for the visible control surface.
+Custom radio inputs still use their visible label. The composed-ancestor guard
+also honors `hidden`, and the reviewed Look explicitly hides hidden hosts and
+shadow descendants so its `form { display:flex }` cannot override that state.
+No minimum target-size policy or floating-point tolerance is introduced.
+
+Three scale-zero cases reproduced callback dispatch against the original guard
+with the Look loaded. Correcting the fixtures to await stylesheet loading also
+exposed hidden forms becoming visible/dispatchable under the old Look; that is
+now repaired. Initial inline elements ignored transforms before CSS loaded, so
+those earlier fixture failures were setup errors, not numerical rectangle noise.
+All 91 pinned Chromium component fixtures pass with one worker and zero retries,
+including restored native activation and the twelve narrow/media cases. This
+proves reviewed renderer/Look behavior, not arbitrary clipping/occlusion CSS,
+physical target-size certification or authoritative Body acceptance.
