@@ -531,3 +531,29 @@ test("corrupt host byte accounting refuses every publication without changing re
   });
   expect(result).toEqual({ codes: Array(5).fill('CorruptRecord'), unchanged: true });
 });
+
+test("application namespace separators cannot alias and delete another application's record", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const selected = { implementationRegistry: ['browser/indexeddb@1'] };
+    const digest = `sha256:${'f'.repeat(64)}`;
+    const application = 'proof/namespace';
+    const key = 'branch@1\u0000record';
+    const owner = await openBrowserApplicationStorage(application, 1, digest, selected);
+    await owner.writeJson(key, { source: 'original' });
+    let code = 'accepted';
+    try {
+      const alias = await openBrowserApplicationStorage(`${application}@1\u0000branch`, 1, digest, selected);
+      await alias.deleteJson('record');
+      alias.close();
+    } catch (error) { code = error.code; }
+    const retained = await owner.readJson(key);
+    // An ordinary identity containing @ remains valid and independent.
+    const independent = await openBrowserApplicationStorage(`${application}@1`, 2, digest, selected);
+    await independent.writeJson(key, { source: 'independent' });
+    const other = await independent.readJson(key);
+    await owner.clearApplication(); await independent.clearApplication(); owner.close(); independent.close();
+    return { code, retained, other };
+  });
+  expect(result).toEqual({ code: 'AdmissionBound', retained: { source: 'original' }, other: { source: 'independent' } });
+});

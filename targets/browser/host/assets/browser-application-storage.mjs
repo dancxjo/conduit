@@ -94,6 +94,11 @@ export async function openBrowserApplicationStorage(applicationIdentity, applica
     refuse("StorageUnavailable", "the selected browser durable-storage API is unavailable");
   }
   exactText(applicationIdentity, "application identity", MAXIMUM_KEY_BYTES);
+  // The first NUL separates application/version from the caller's record key.
+  // An identity containing it could alias and delete another application's key.
+  if (applicationIdentity.includes("\u0000")) {
+    refuse("AdmissionBound", "application identity contains the storage namespace separator");
+  }
   if (!Number.isSafeInteger(applicationVersion) || applicationVersion < 1) {
     refuse("VersionInvalid", "application storage version is invalid");
   }

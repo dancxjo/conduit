@@ -169,6 +169,12 @@ corrupt records, application and host admission exhaustion, browser quota
 exhaustion, unavailable storage, explicit deletion, and a stale application
 generation are distinct failures or lifecycle states.
 
+Application identities cannot contain the NUL storage namespace separator.
+Admission refuses such identities before opening the database; this prevents
+an application/version prefix from aliasing another application's record key.
+Ordinary `@` characters in identities and NUL characters in record keys remain
+valid. Existing record identities are not rewritten or migrated by this check.
+
 JSON reads verify that retained values are strings with exact, nonnegative,
 safe-integer UTF-8 byte metadata within the admitted value bound before parsing.
 Malformed metadata or oversized retained JSON receives `CorruptRecord`; refusal
