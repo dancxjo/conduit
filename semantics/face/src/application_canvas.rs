@@ -56,6 +56,7 @@ impl ApplicationCanvas {
         {
             return Err(invalid);
         }
+        self.validate_encoding_bounds()?;
         let mut subjects = BTreeSet::new();
         for node in &self.nodes {
             if node.identity.is_empty() || !subjects.insert(node.identity.as_str()) {
@@ -82,6 +83,59 @@ impl ApplicationCanvas {
         }
         if !self.selected.is_empty() && !subjects.contains(self.selected.as_str()) {
             return Err(invalid);
+        }
+        Ok(())
+    }
+    fn validate_encoding_bounds(&self) -> Result<(), ApplicationViewRefusal> {
+        let mut total = 0;
+        let mut admit = |length: usize| {
+            if length > MAX_FIELD_BYTES {
+                return false;
+            }
+            let encoded = decimal_digits(length) + 1 + length;
+            if encoded > MAX_CANVAS_BYTES - total {
+                return false;
+            }
+            total += encoded;
+            true
+        };
+        let fields = [
+            CANVAS_SCHEMA,
+            &self.checked_plot,
+            &self.expanded_plot,
+            &self.plan,
+            &self.body_plan,
+            &self.play,
+            &self.selected,
+        ];
+        if fields.iter().any(|field| !admit(field.len()))
+            || [self.nodes.len(), self.ports.len(), self.cords.len()]
+                .iter()
+                .any(|count| !admit(decimal_digits(*count)))
+            || self.nodes.iter().any(|node| {
+                [&node.identity, &node.label, &node.kind]
+                    .iter()
+                    .any(|field| !admit(field.len()))
+            })
+            || self.ports.iter().any(|port| {
+                [
+                    &port.identity,
+                    &port.owner,
+                    &port.label,
+                    &port.direction,
+                    &port.info,
+                    &port.temporal,
+                ]
+                .iter()
+                .any(|field| !admit(field.len()))
+            })
+            || self.cords.iter().any(|cord| {
+                [&cord.identity, &cord.source, &cord.sink]
+                    .iter()
+                    .any(|field| !admit(field.len()))
+            })
+        {
+            return Err(ApplicationViewRefusal::InvalidControlValue);
         }
         Ok(())
     }
@@ -176,6 +230,15 @@ impl ApplicationCanvas {
         Ok(result)
     }
 }
+fn decimal_digits(mut value: usize) -> usize {
+    let mut digits = 1;
+    while value >= 10 {
+        value /= 10;
+        digits += 1;
+    }
+    digits
+}
+
 fn push(output: &mut String, field: &str) -> Result<(), ApplicationViewRefusal> {
     let prefix = format!("{}:", field.len());
     if field.len() > MAX_FIELD_BYTES || output.len() + prefix.len() + field.len() > MAX_CANVAS_BYTES

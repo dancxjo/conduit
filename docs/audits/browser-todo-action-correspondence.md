@@ -819,3 +819,16 @@ four control-contract tests and 15 application-view tests pass under conduit-fac
 absent-subject refusal and stale revision refusal. Rust formatting passes. This
 is portable Face admission proof, not native/browser/linear equal-topology or
 actual Body/Play/public acceptance; #5518 remains open.
+
+Portable canvas bounds follow-up (#5518/#5653): ApplicationCanvas validation
+preflights all existing field byte limits and exact serialized envelope size
+before building the subject set or comparing topology. Validation no longer
+admits a canvas that its encoder must later refuse solely for byte bounds.
+The preflight counts framing/count fields without serializing another graph.
+
+Oversized provenance/wording and total-envelope regressions reproduced successful
+validation before repair. All four new canvas-bound tests pass, including a
+1024-byte multibyte label and exact 65,536-byte canvas; one extra byte refuses.
+The unchanged repair also passed four control-return and 15 application-view
+tests: 23 focused Rust tests across these runs, --no-default-features, with Rust
+formatting clean. No browser WASM or release/Body/Play acceptance is claimed.
