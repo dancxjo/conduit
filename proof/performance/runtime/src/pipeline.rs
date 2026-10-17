@@ -17,11 +17,19 @@ use conduit_std_host::{
 use serde_json::{json, Value};
 use std::{collections::BTreeMap, error::Error, io::Write, time::Instant};
 
+mod domain;
 mod fusion;
 mod fusion_measurement;
 mod phase_observation;
 mod streaming;
+mod value_matrix;
 
+#[derive(Clone, Copy)]
+enum BackProfile {
+    Hosted,
+    Local,
+    ScalarTape,
+}
 const ITEMS: usize = 64;
 const ADDS: usize = 32;
 #[cfg(test)]
@@ -110,14 +118,26 @@ fn prepare_mode(
     local: bool,
     fused: bool,
 ) -> Result<Prepared, Box<dyn Error>> {
-    prepare_queue_mode(gears, source, boot, local, fused, 1, 8)
+    prepare_queue_mode(
+        gears,
+        source,
+        boot,
+        if local {
+            BackProfile::Local
+        } else {
+            BackProfile::Hosted
+        },
+        fused,
+        1,
+        8,
+    )
 }
 #[allow(clippy::too_many_arguments)]
 fn prepare_queue_mode(
     gears: usize,
     source: &str,
     boot: &str,
-    local: bool,
+    back: BackProfile,
     fused: bool,
     item_capacity: u16,
     byte_capacity: u32,
@@ -156,12 +176,16 @@ fn prepare_queue_mode(
             };
             let program = PortableExpressionProgram::from_canonical_hex(program)
                 .map_err(|e| format!("program: {e:?}"))?;
-            let offer = if local {
-                conduit_std_offers::pure_expression_local_flow_offer(&program)
+            let offer = if matches!(back, BackProfile::ScalarTape) {
+                conduit_std_offers::pure_scalar_tape_std_offer(&program, gear.inputs[0].temporal)?
             } else {
-                conduit_std_offers::pure_expression_std_offer(&program, gear.inputs[0].temporal)
-            }
-            .map_err(|e| format!("offer: {e:?}"))?;
+                let offer = if matches!(back, BackProfile::Local) {
+                    conduit_std_offers::pure_expression_local_flow_offer(&program)
+                } else {
+                    conduit_std_offers::pure_expression_std_offer(&program, gear.inputs[0].temporal)
+                };
+                offer.map_err(|e| format!("offer: {e:?}"))?
+            };
             if !gear.accepts_realization(&offer) {
                 return Err("std expression offer violates checked meaning".into());
             }
@@ -455,7 +479,9 @@ pub fn run(
         }
     }
     fusion_measurement::run(config, raw, summaries)?;
-    streaming::run(config, raw, summaries)
+    streaming::run(config, raw, summaries)?;
+    domain::run(config, raw, summaries)?;
+    value_matrix::run(config, raw, summaries)
 }
 
 #[cfg(test)]
