@@ -209,3 +209,21 @@ test('select initial values require an owned option while empty scaffolding rema
   view.nodes.length = 1;
   assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes.length, 1);
 });
+
+test('exclusive initial selection agrees with source lowering while independent choices remain independent', () => {
+  const view = { revision: 1, actions: [], nodes: [
+    { parent: null, component: 'choice-group', key: 'group', text: 'group', action: null },
+    { parent: 0, component: 'choice-group-label', key: 'legend', text: 'Choices', action: null },
+    { parent: 0, component: 'choice-option-label', key: 'first-label', text: 'First', action: null },
+    { parent: 2, component: 'exclusive-choice', key: 'first', text: 'First', value: 'true', valueCapacity: 5, action: null },
+    { parent: 0, component: 'choice-option-label', key: 'second-label', text: 'Second', action: null },
+    { parent: 4, component: 'exclusive-choice', key: 'second', text: 'Second', value: 'true', valueCapacity: 5, action: null },
+  ] };
+  assert.throws(() => encodeApplicationView(view), { code: 'invalid-control-value' });
+  view.nodes[5].value = 'false';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[3].value, 'true');
+  view.nodes[3].value = 'false';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[3].value, 'false');
+  for (const index of [3, 5]) { view.nodes[index].component = 'independent-choice'; view.nodes[index].value = 'true'; }
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[5].value, 'true');
+});

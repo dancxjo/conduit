@@ -193,11 +193,13 @@ export function decodeApplicationView(input) {
     if (node.component === 38 && children.filter((child) => child.component === 8).length !== Number(node.value.split("/")[1])) refuse("invalid-control-value");
     if (node.component === 40) {
       const labels = children.filter((child) => child.component === 42);
-      const kinds = new Set(labels.flatMap((label) => {
+      const choices = labels.flatMap((label) => {
         const labelIndex = nodes.indexOf(label);
-        return nodes.filter((child) => child.parent === labelIndex && (child.component === 43 || child.component === 44)).map((child) => child.component);
-      }));
-      if (children.filter((child) => child.component === 41).length !== 1 || labels.length === 0 || kinds.size !== 1) refuse("invalid-control-value");
+        return nodes.filter((child) => child.parent === labelIndex && (child.component === 43 || child.component === 44));
+      });
+      const kinds = new Set(choices.map(child => child.component));
+      if (children.filter((child) => child.component === 41).length !== 1 || labels.length === 0 || kinds.size !== 1
+        || choices.filter(child => child.component === 44 && child.value === "true").length > 1) refuse("invalid-control-value");
     }
     if (node.component === 41 && (node.parent === null || nodes[node.parent].component !== 40)) refuse("invalid-control-value");
     if (node.component === 42 && (node.parent === null || nodes[node.parent].component !== 40 || children.filter((child) => child.component === 43 || child.component === 44).length !== 1)) refuse("invalid-control-value");

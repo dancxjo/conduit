@@ -866,3 +866,16 @@ select fixtures pass; browser proof uses one worker and zero retries. Unicode
 initial selection and empty scaffolding remain valid. Rust formatting passes.
 This is view/event admission and native select proof, not Body/Play or a rebuilt
 browser runtime/release acceptance claim.
+
+Exclusive-selection admission follow-up (#5644): direct Rust structure
+validation and browser view decoding now enforce the source lowerer's existing
+at-most-one selected option rule for each exclusive group. They no longer
+admit multiple true radio values that native grouping would silently reconcile
+to a different initial state. Zero/one exclusive selection and multiple
+independent selections remain valid. Canonical source-key grouping is retained.
+
+Both regressions reproduced admission before repair. All 39 focused Rust tests
+(--no-default-features, including 13 semantic-lowering tests), 18 Node codec
+tests and four pinned Chromium boolean fixtures pass; browser proof uses one
+worker and zero retries. Rust formatting passes. This is lowering/admission and
+native control proof, not actual Body/Play or rebuilt/released browser acceptance.

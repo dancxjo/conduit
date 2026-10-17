@@ -100,6 +100,15 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
                     != 1
                     || option_parents.is_empty()
                     || (has_independent && has_exclusive)
+                    || nodes
+                        .iter()
+                        .filter(|child| {
+                            child.component == ApplicationComponent::ExclusiveChoice
+                                && child.value == "true"
+                                && option_parents.contains(&child.parent)
+                        })
+                        .count()
+                        > 1
                 {
                     return Err(ApplicationViewRefusal::InvalidControlValue);
                 }

@@ -222,3 +222,45 @@ fn initial_selection_must_be_an_owned_option_unless_it_is_empty() {
     view.nodes.truncate(1);
     assert_eq!(view.validate(), Ok(()));
 }
+
+#[test]
+fn exclusive_initial_selection_matches_source_lowering() {
+    let mut first = node(ApplicationComponent::ExclusiveChoice, Some(2), "first");
+    first.value = "true".into();
+    first.value_capacity = 5;
+    let mut second = node(ApplicationComponent::ExclusiveChoice, Some(4), "second");
+    second.value = "true".into();
+    second.value_capacity = 5;
+    let mut view = view(vec![
+        node(ApplicationComponent::ChoiceGroup, None, "group"),
+        node(ApplicationComponent::ChoiceGroupLabel, Some(0), "legend"),
+        node(
+            ApplicationComponent::ChoiceOptionLabel,
+            Some(0),
+            "first-label",
+        ),
+        first,
+        node(
+            ApplicationComponent::ChoiceOptionLabel,
+            Some(0),
+            "second-label",
+        ),
+        second,
+    ]);
+    assert_eq!(
+        view.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+    view.nodes[5].value = "false".into();
+    assert_eq!(
+        ApplicationView::decode(&view.encode().unwrap()),
+        Ok(view.clone())
+    );
+    view.nodes[3].value = "false".into();
+    assert_eq!(view.validate(), Ok(()));
+    for index in [3, 5] {
+        view.nodes[index].component = ApplicationComponent::IndependentChoice;
+        view.nodes[index].value = "true".into();
+    }
+    assert_eq!(view.validate(), Ok(()));
+}
