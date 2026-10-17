@@ -111,3 +111,49 @@ No compiler jobs overlapped this capture, but ordinary system activity,
 frequency and placement remain uncontrolled. These within-process batches
 are descriptive measurements, not independent confidence intervals or a
 universal selection rule.
+
+## Integer and Boolean operation matrix
+
+Source `929a2aa9a2c18920c9ca02b52312f0e0aa88ba4f` adds the missing Boolean
+measurement shapes. The separate checked Boolean fixture has balanced trees
+of exactly 1/3/8/32 conjunctions. Both false and true inputs, malformed Boolean
+bytes and invalid lengths have untimed reference/tape parity and allocation
+checks. Nine Plot tests and twelve installed std tests pass; the installed
+matrix also compares terminal/Sign kinds and all three semantic identities
+while observing zero post-Play allocations and fixed Value-store capacities.
+
+The clean-source release capture passes 128 result-checked trials and retains
+512 raw CPU/wall records in
+[`scalar-tape-mixed-cpu-samples.json`](evidence/scalar-tape-mixed-cpu-samples.json).
+Every product row names its actual authored Source document, checked/expanded
+Plot, Plan, Play, provider and artifact. Paired reference/tape rows retain the
+same semantic identities and distinct realization identities. The performance
+inputs are integer 7 and Boolean true; false and malformed inputs are separate
+untimed conformance cases.
+
+| Domain | Operations | Reference warm CPU, ns/value | Tape warm CPU, ns/value | Reference Play wall, µs | Tape Play wall, µs |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| Integer | 1 | 71.03 | 51.17 | 10.50 | 9.50 |
+| Integer | 3 | 167.59 | 102.10 | 11.11 | 9.98 |
+| Integer | 8 | 414.95 | 232.92 | 11.40 | 9.87 |
+| Integer | 32 | 1581.61 | 926.27 | 15.03 | 14.01 |
+| Boolean | 1 | 60.91 | 39.37 | 11.41 | 10.35 |
+| Boolean | 3 | 131.19 | 69.91 | 9.43 | 10.81 |
+| Boolean | 8 | 317.95 | 144.11 | 12.08 | 11.10 |
+| Boolean | 32 | 1191.39 | 524.57 | 14.02 | 11.11 |
+
+The warmed 32-operation evaluator loops observe about 1.08 million integer
+values/sec for tape versus 0.63 million for reference, and 1.91 million Boolean
+values/sec versus 0.84 million. These are evaluator-loop throughputs, not
+whole-Play sustained rates. The Boolean three-operation actual Play loses in
+this capture despite its faster evaluator loop. Boolean evaluator preparation
+costs 4.15/4.47/5.33/9.98 µs for tape versus 1.69/1.46/2.06/8.25 µs for reference;
+actual installed preparation also costs more for all four Boolean shapes.
+
+The native Boolean comparison reduces an idempotent conjunction tree to its
+input, just as the integer comparison uses equivalent checked multiplication.
+Its approximately 0.41–0.52 ns/value loop does not perform the product's
+primitive validation, dispatch or kernel work. It is a separate optimized
+computation reference, not evidence that the tape compiles authored expressions
+to native instructions. This capture retains the same uncontrolled-host,
+within-process and diagnostic-clock limitations as the preceding capture.
