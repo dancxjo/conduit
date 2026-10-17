@@ -1,6 +1,7 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 mod host_call_back;
+mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
 pub use host_call_back::HostCallBack;
@@ -1735,42 +1736,6 @@ where
             .get(usize::from(cord.0))
             .map(|state| state.abnormal_terminal)
             .ok_or(SchedulerError::InvalidRemoteCordAccess)
-    }
-
-    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
-        self.next_host_request_matching(|_| true)
-    }
-
-    /// Selects the next undispatched request accepted by the host adapter.
-    /// Non-matching requests remain undispatched and retain their exact order
-    /// for a later call.
-    pub fn next_host_request_matching(
-        &mut self,
-        mut accepts: impl FnMut(&HostCallRequest) -> bool,
-    ) -> Option<HostCallRequest> {
-        if self.undispatched_host_count == 0 {
-            return None;
-        }
-        for offset in 0..PENDING_REQUESTS {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.dispatch_pending_slots += 1;
-                self.scan_counts.set(counts);
-            }
-            let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
-            let Some(pending) = self.pending_host_calls[slot].as_mut() else {
-                continue;
-            };
-            if pending.dispatched || !accepts(&pending.request) {
-                continue;
-            }
-            pending.dispatched = true;
-            self.undispatched_host_count -= 1;
-            self.host_request_cursor = (slot + 1) % PENDING_REQUESTS;
-            return Some(pending.request);
-        }
-        None
     }
 
     pub fn has_ready_work(&self) -> bool {

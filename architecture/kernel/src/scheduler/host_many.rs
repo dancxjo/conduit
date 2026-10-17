@@ -146,6 +146,19 @@ fn run(cancel_all: bool) {
                 node: NodeId(node as u16)
             })
         );
+    }
+    let mut visited = 0;
+    assert!(scheduler
+        .next_host_request_matching(|request| {
+            assert_eq!(request.node, NodeId(visited as u16));
+            visited += 1;
+            false
+        })
+        .is_none());
+    assert_eq!(visited, N);
+    assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, N as u64);
+    assert_eq!(scheduler.host_request_cursor, 0);
+    for node in 0..N {
         let request = scheduler.next_host_request().unwrap();
         assert_eq!(
             (request.node, request.request),

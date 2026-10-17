@@ -72,3 +72,46 @@ fn cancellation_polling_skips_absent_settled_and_dispatched_obligations() {
         .join()
         .unwrap();
 }
+
+#[test]
+fn rejecting_adapter_stops_after_last_undispatched_request_without_moving_cursor() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let mut scheduler = scheduler_with_pending::<_, _, 4096>(
+                FixedValueStore::<4, 8>::new(32).unwrap(),
+                FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                    .unwrap(),
+            );
+            scheduler.step().unwrap();
+            // Exercise a short prefix, a wrapped cursor, and a full worst-case traversal.
+            for (cursor, probes) in [(0, 1), (4095, 2), (1, 4096)] {
+                scheduler.host_request_cursor = cursor;
+                scheduler.scan_counts.set(Default::default());
+                let mut calls = 0;
+                let signs = scheduler.signs.entries;
+                assert!(scheduler
+                    .next_host_request_matching(|request| {
+                        assert_eq!(request.node, NodeId(0));
+                        calls += 1;
+                        false
+                    })
+                    .is_none());
+                assert_eq!(calls, 1);
+                assert_eq!(scheduler.host_request_cursor, cursor);
+                assert_eq!(scheduler.undispatched_host_count, 1);
+                assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, probes);
+                assert_eq!(scheduler.signs.entries, signs);
+            }
+            assert_eq!(scheduler.next_host_request().unwrap().node, NodeId(0));
+            scheduler.scan_counts.set(Default::default());
+            assert!(scheduler
+                .next_host_request_matching(|_| panic!("already dispatched"))
+                .is_none());
+            assert_eq!(scheduler.scan_counts.get().dispatch_pending_slots, 0);
+            scheduler.cancel().unwrap();
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
