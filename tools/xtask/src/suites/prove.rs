@@ -71,6 +71,16 @@ pub const PROVE_EMERGENCY_CONTROL_STEPS: &[Step] = &[
 
 pub const PROVE_RECURSIVE_RECOVERY_STEPS: &[Step] = &[
     Step::typed(
+        "prove.recursive-recovery.source-owner",
+        "Prove selected Source Backs retain their checked private context without granting caller authority",
+        "cargo",
+        &["test", "--locked", "-p", "conduit-plot", "--test", "source_back_owner_context"],
+        None,
+        None,
+        Some(ProofClass::DeterministicUnit),
+        &[],
+    ),
+    Step::typed(
         "prove.recursive-recovery.vertical",
         "Prove bounded full-profile recovery from a lost direct implementation through an exact cross-host Back",
         "cargo",

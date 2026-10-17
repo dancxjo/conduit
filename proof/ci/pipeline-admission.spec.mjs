@@ -126,3 +126,65 @@ test('numerical consumers share one compiler context and actual CLI smoke', () =
     assert.ok(commands.some(([,args])=>args.includes('alloc') && args.includes('conduit-kernel')));
   }
 });
+
+
+test('parallel broad workspace proof preserves every additional admission command', () => {
+  const model = {workspace_members:[...names,'catalog'],packages:[...metadata.packages,
+    {id:'catalog',name:'conduit-semantic-catalog',manifest_path:'/repo/semantics/catalog/Cargo.toml'}]};
+  for (const paths of [
+    ['Cargo.toml'],
+    ['Cargo.lock','architecture/kernel/src/lib.rs'],
+    ['Cargo.toml','architecture/core/src/exact_numeric/number.rs','targets/browser/src/lib.rs'],
+  ]) {
+    const ordinary=[], parallel=[];
+    runAdmission(paths, model, '/repo', (...args)=>ordinary.push(args));
+    runAdmission(paths, model, '/repo', (...args)=>parallel.push(args), {workspaceChecked:true});
+    const supplemental=ordinary.filter(([,args])=>args[0]!=='clippy' && !args.includes('--no-fail-fast'));
+    assert.deepEqual(parallel,supplemental);
+    assert.ok(parallel.some(([,args])=>args.includes('conduit-kernel') && args.includes('alloc')));
+    if (paths.some(path=>path.startsWith('architecture/'))) {
+      for (const proof of ['std','triple','r1-new-plan-recovery'])
+        assert.ok(parallel.some(([,args])=>args.includes(proof)),proof);
+    }
+    if (paths.some(path=>path.startsWith('targets/browser/')))
+      assert.ok(parallel.some(([,args])=>args.includes('wasm32-unknown-unknown')));
+    if (paths.some(path=>path.includes('exact_numeric')))
+      assert.ok(parallel.some(([,args])=>args.includes('kernel-step') && args.includes('numerical_realization')));
+  }
+});
+
+test('narrow admission cannot suppress its package proof using the broad route', () => {
+  const commands=[];
+  assert.throws(()=>runAdmission(['products/conduit/src/main.rs'],metadata,'/repo',
+    (...args)=>commands.push(args),{workspaceChecked:true}),/only for broad admission/);
+  assert.deepEqual(commands,[]);
+});
+
+test('language package admission exercises and lints the optional admitted scorer', () => {
+  const language = { id: 'language', name: 'conduit-language', manifest_path: '/repo/semantics/language/Cargo.toml' };
+  const model = { workspace_members: [...metadata.workspace_members, language.id], packages: [...metadata.packages, language] };
+  for (const paths of [
+    ['semantics/language/parser_scorer_features.conduit'],
+    ['semantics/language/tests/parser_selection.rs'],
+    ['semantics/language/tests/parser_model_admission.rs'],
+    ['Cargo.lock'],
+  ]) {
+    const commands = [];
+    runAdmission(paths, model, '/repo', (...args) => commands.push(args));
+    const tests = commands.filter(([, args]) => args[0] === 'test' && args.includes('conduit-language'));
+    assert.equal(tests.length, 1, 'retain one owning-package test command');
+    for (const [, args] of [commands[0], ...tests]) {
+      const feature = args.indexOf('--features');
+      assert.ok(feature >= 0);
+      assert.equal(args[feature + 1], 'conduit-language/parser-model');
+      assert.ok(feature < args.indexOf('--'), 'feature belongs to Cargo, not the test harness');
+    }
+  }
+  const parallel = [];
+  runAdmission(['Cargo.lock'], model, '/repo', (...args) => parallel.push(args), {workspaceChecked:true});
+  assert.equal(parallel.filter(([,args]) => args[0] === 'clippy' && args.includes('conduit-language/parser-model')).length, 1);
+  assert.ok(parallel.every(([,args]) => !(args.includes('--no-fail-fast') && args.includes('conduit-language'))), 'foundation owns the already-proven broad package tests');
+  const unrelated = [];
+  runAdmission(['products/conduit/src/main.rs'], model, '/repo', (...args) => unrelated.push(args));
+  assert.ok(unrelated.every(([, args]) => !args.includes('conduit-language/parser-model')));
+});

@@ -20,6 +20,7 @@ pub fn source() -> String {
         include_str!("../translation.conduit"),
         include_str!("../timing.conduit"),
         include_str!("../intent.conduit"),
+        include_str!("../correspondence.conduit"),
         include_str!("../syllables.conduit"),
         include_str!("../inventory.conduit"),
         include_str!("../profile_phones.conduit"),

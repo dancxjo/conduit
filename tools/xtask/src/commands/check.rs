@@ -12,6 +12,8 @@ mod inverse_angle;
 mod model_inference;
 #[path = "../suites/parser_scorer.rs"]
 mod parser_scorer;
+#[path = "../suites/physical_values.rs"]
+mod physical_values;
 #[path = "../suites/print_pool.rs"]
 mod print_pool;
 #[path = "../suites/speech_ipa.rs"]
@@ -106,11 +108,13 @@ pub fn run(args: CheckArgs, opts: &GlobalOpts) -> Result<(), StepError> {
         CheckSuite::TodoDurability => run_suite(todo::TODO_DURABILITY_STEPS, &root, opts),
         CheckSuite::ModelInference => run_suite(model_inference::STEPS, &root, opts),
         CheckSuite::AcousticFlow => run_suite(acoustic_flow::STEPS, &root, opts),
+        CheckSuite::ParserSelection => run_suite(parser_scorer::SELECTION, &root, opts),
         CheckSuite::ParserScorer => run_suite(parser_scorer::STEPS, &root, opts),
         CheckSuite::ParserScorerReproduce => run_suite(parser_scorer::REPRODUCE, &root, opts),
         CheckSuite::PrintPool => run_suite(print_pool::STEPS, &root, opts),
         CheckSuite::DspSharedCompositions => run_suite(dsp_shared_compositions::STEPS, &root, opts),
         CheckSuite::SpeechIpa => run_suite(speech_ipa::STEPS, &root, opts),
+        CheckSuite::PhysicalValues => run_suite(physical_values::STEPS, &root, opts),
         CheckSuite::AngleReference => run_suite(angle_reference::STEPS, &root, opts),
         CheckSuite::InverseAngle => run_suite(inverse_angle::STEPS, &root, opts),
         CheckSuite::TodoSpeech => run_suite(todo_speech::STEPS, &root, opts),

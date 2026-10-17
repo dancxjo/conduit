@@ -92,42 +92,7 @@ fn offer_for(kind: &str) -> Option<CapabilityOffer> {
         dimension::QUANTITY_KIND => QUANTITY_DIMENSION_ID,
         _ => return None,
     };
-    let digest = semantic_digest(
-        "quantity/compiled-browser-back@1",
-        concat!(
-            include_str!("quantity_conversion.rs"),
-            include_str!("../../../../../architecture/plot/src/dimension_operation.rs"),
-            include_str!("../../../../../architecture/core/src/dimension.rs"),
-            include_str!("../../../../../semantics/catalog/src/converted_equals_back.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals/validation.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/encoding.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/comparison.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/comparison/operand.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/profile.rs"),
-            include_str!("../../../../../architecture/plot/src/quantity_conversion/temperature_difference.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/temperature_difference.rs"),
-            include_str!("../../../../../architecture/core/src/quantity.rs"),
-            include_str!("../../../../../architecture/core/src/unit.rs"),
-            include_str!("../../../../../architecture/core/definitions/physical.conduit"),
-            include_str!("../../../../../architecture/core/src/physical_definition.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/dimension.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/family.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/generated.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/role_kind.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/scalar.rs"),
-            include_str!("../../../../../architecture/core/src/physical_definition/unit.rs"),
-            include_str!("../../../../../architecture/core/src/quantity_configuration.rs"),
-            include_str!("../../../../../architecture/core/src/quantity_suffix.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/exact.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/target.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/receipt.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/conversion_law.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/wide_conversion.rs"),
-            include_str!("../../../../../architecture/core/src/quantity/magnitude.rs")
-        ).as_bytes(),
-    );
+    let digest = *include_bytes!(concat!(env!("OUT_DIR"), "/quantity_compiled_digest.bin"));
     let mut artifact = String::from("sha256:");
     for byte in digest {
         write!(&mut artifact, "{byte:02x}").expect("write compiled artifact digest");
@@ -275,4 +240,49 @@ fn operation_contract(kind: &str) -> Option<Kind> {
     } else {
         conversion::operation_contract(kind)
     }
+}
+
+#[cfg(test)]
+#[test]
+fn compiled_quantity_digest_matches_source_concatenation() {
+    let digest = semantic_digest(
+        "quantity/compiled-browser-back@1",
+        concat!(
+            include_str!("quantity_conversion.rs"),
+            include_str!("../../../../../architecture/plot/src/dimension_operation.rs"),
+            include_str!("../../../../../architecture/core/src/dimension.rs"),
+            include_str!("../../../../../semantics/catalog/src/converted_equals_back.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/converted_equals/validation.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/encoding.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/comparison.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/comparison/operand.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/profile.rs"),
+            include_str!("../../../../../architecture/plot/src/quantity_conversion/temperature_difference.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/temperature_difference.rs"),
+            include_str!("../../../../../architecture/core/src/quantity.rs"),
+            include_str!("../../../../../architecture/core/src/unit.rs"),
+            include_str!("../../../../../architecture/core/definitions/physical.conduit"),
+            include_str!("../../../../../architecture/core/src/physical_definition.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/dimension.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/family.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/generated.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/role_kind.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/scalar.rs"),
+            include_str!("../../../../../architecture/core/src/physical_definition/unit.rs"),
+            include_str!("../../../../../architecture/core/src/quantity_configuration.rs"),
+            include_str!("../../../../../architecture/core/src/quantity_suffix.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/exact.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/target.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/receipt.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/conversion_law.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/wide_conversion.rs"),
+            include_str!("../../../../../architecture/core/src/quantity/magnitude.rs")
+        ).as_bytes(),
+    );
+    assert_eq!(
+        digest,
+        *include_bytes!(concat!(env!("OUT_DIR"), "/quantity_compiled_digest.bin"))
+    );
 }

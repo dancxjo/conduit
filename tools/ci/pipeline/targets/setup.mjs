@@ -19,7 +19,8 @@ export function targetPackages(target) {
     const required = byArch[target.id.slice('conduitos-'.length)];
     if (!required) throw new Error(`Unknown ConduitOS architecture: ${target.id}`);
     packages.push('curl', 'tar', 'xorriso', ...required);
-  } else if (target.id === 'raspberry-pi') packages.push('dosfstools', 'mtools');
+  } else if (target.family === 'browser') packages.push('binaryen');
+  else if (target.id === 'raspberry-pi') packages.push('dosfstools', 'mtools');
   else if (target.id === 'orange-pi') packages.push('dosfstools');
   return packages;
 }

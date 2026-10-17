@@ -33,6 +33,7 @@ jobs:
       conduitos-proof: ${{ steps.scan.outputs.conduitos-proof }}
       docs-only: ${{ steps.scan.outputs.docs-only }}
       has-targets: ${{ steps.scan.outputs.has-targets }}
+      broad-admission: ${{ steps.scan.outputs.broad-admission }}
     steps:
       - uses: actions/checkout@v7.0.1
         with:
@@ -90,7 +91,7 @@ jobs:
           retention-days: 14
   unit:
     needs: preflight
-    if: inputs.exhaustive && needs.preflight.outputs.docs-only != 'true'
+    if: ${{ (inputs.exhaustive || needs.preflight.outputs.broad-admission == 'true') && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
     # Cold foundation tests, doc-tests and the separate alloc pass need headroom.
     # Products also compiles and executes the optimized browser Owner proof.
@@ -149,8 +150,8 @@ jobs:
           if-no-files-found: warn
           retention-days: 14
   admission:
-    needs: preflight
-    if: ${{ !inputs.exhaustive && needs.preflight.outputs.docs-only != 'true' }}
+    needs: [preflight, unit]
+    if: ${{ always() && !cancelled() && !inputs.exhaustive && needs.preflight.result == 'success' && needs.preflight.outputs.docs-only != 'true' }}
     runs-on: ubuntu-24.04
     # Admission can own the same cold ConduitOS tests as the 120-minute unit shard.
     timeout-minutes: 120
@@ -159,6 +160,16 @@ jobs:
       # Preserve debug assertions and overflow checks while optimizing execution.
       CARGO_PROFILE_TEST_OPT_LEVEL: 1
     steps:
+      - name: Require the selected admission route
+        env:
+          BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
+          UNIT_RESULT: ${{ needs.unit.result }}
+        run: |
+          case "$BROAD_ADMISSION" in
+            true) test "$UNIT_RESULT" = success ;;
+            false) ;; # Existing affected-package commands below own this route.
+            *) echo "Missing or invalid admission route" >&2; exit 1 ;;
+          esac
       - uses: actions/checkout@v7.0.1
         with:
           ref: ${{ inputs.sha }}
@@ -179,7 +190,13 @@ jobs:
       - name: Lint, affected tests and relevant integration smoke
         env:
           BASE: ${{ needs.preflight.outputs.base }}
-        run: cargo xtask ci pipeline admission "$BASE"
+          BROAD_ADMISSION: ${{ needs.preflight.outputs.broad-admission }}
+        run: |
+          if test "$BROAD_ADMISSION" = true; then
+            cargo xtask ci pipeline admission "$BASE" --workspace-checked
+          else
+            cargo xtask ci pipeline admission "$BASE"
+          fi
   target:
     needs: preflight
     if: needs.preflight.outputs.has-targets == 'true'

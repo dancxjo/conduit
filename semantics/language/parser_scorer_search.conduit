@@ -1,0 +1,84 @@
+# Optional scoring does not own parser state. Every branch derives from admitted
+# lexical alternatives; every expansion consumes an existing checked transition.
+# No future lexical choice is selected before its token reaches the buffer head.
+type LanguageParserScorerHypothesis = {
+    parser: LanguageParserHypothesis
+    choices: collection U64 = 4
+    selected: U64 in 0..=4
+    where .selected >= .parser.state.unread
+    where .selected <= .parser.state.token_count
+    where .selected <= .parser.state.unread + 1
+}
+type LanguageParserScorerRawHypothesis = {
+    parser: LanguageParserRawHypothesis
+    choices: collection U64 = 4
+    selected: U64
+}
+type LanguageParserScorerBranch = {
+    prior: LanguageParserScorerHypothesis
+    lexical: LanguageParserAvailableLexical
+    choice: U64 in 0..=3
+    where .prior.parser.state.unread < .lexical.token_count
+    where .prior.parser.state.token_count == .lexical.token_count
+    where .prior.parser.state.basis.text == .lexical.tape.source.material.identity
+    where .prior.parser.state.basis.source_revision == .lexical.tape.source.material.revision
+}
+type LanguageParserScorerBranchResult = {
+    candidate: LanguageParserScorerRawHypothesis
+    accepted: Boolean
+}
+plot language-parser-scorer-branch (
+    input: LanguageParserScorerBranch...| <= 65536B >> output: LanguageParserScorerBranchResult...|
+) = { candidate: { parser: { state: { basis: .prior.parser.state.basis, token_count: .prior.parser.state.token_count, unread: .prior.parser.state.unread, depth: .prior.parser.state.depth, stack: .prior.parser.state.stack, heads: .prior.parser.state.heads, relation0: .prior.parser.state.relation0, relation1: .prior.parser.state.relation1, relation2: .prior.parser.state.relation2, relation3: .prior.parser.state.relation3, committed: .prior.parser.state.committed }, identity: .prior.parser.identity, score: .prior.parser.score, active: .prior.parser.active }, choices: [(.prior.selected == 0 && .prior.parser.state.unread == 0 ? .choice : .prior.choices.0), (.prior.selected == 1 && .prior.parser.state.unread == 1 ? .choice : .prior.choices.1), (.prior.selected == 2 && .prior.parser.state.unread == 2 ? .choice : .prior.choices.2), (.prior.selected == 3 && .prior.parser.state.unread == 3 ? .choice : .prior.choices.3)], selected: (.prior.selected == .prior.parser.state.unread ? .prior.selected + 1 : .prior.selected) }, accepted: (.prior.selected == .prior.parser.state.unread ? .choice < sequence/length(sequence/at(.lexical.tape.tokens, .prior.parser.state.unread).candidates) : .choice == sequence/at(.prior.choices, .prior.parser.state.unread)) }
+type LanguageParserScorerExpansion = {
+    prior: LanguageParserScorerHypothesis
+    result: LanguageParserResult
+    score: I64 in -128525..=128525
+    identity: U64
+}
+type LanguageParserScorerExpansionContext = {
+    expansion: LanguageParserScorerExpansion
+    admitted: Boolean
+}
+plot language-parser-scorer-expansion-check (
+    input: LanguageParserScorerExpansion...| >> output: LanguageParserScorerExpansionContext...|
+) = { expansion: ., admitted: .result.accepted && .result.state.basis == .prior.parser.state.basis && .prior.parser.score + .score <= 1000000 && .prior.parser.score + .score >= -1000000 }
+# Out-of-range sums refuse; they are never saturated into optimistic evidence.
+plot language-parser-scorer-expansion-apply (
+    input: LanguageParserScorerExpansionContext...| >> output: LanguageParserScorerRawHypothesis...|
+) = { parser: { state: { basis: (.admitted ? .expansion.result.state.basis : .expansion.prior.parser.state.basis), token_count: (.admitted ? .expansion.result.state.token_count : .expansion.prior.parser.state.token_count), unread: (.admitted ? .expansion.result.state.unread : .expansion.prior.parser.state.unread), depth: (.admitted ? .expansion.result.state.depth : .expansion.prior.parser.state.depth), stack: (.admitted ? .expansion.result.state.stack : .expansion.prior.parser.state.stack), heads: (.admitted ? .expansion.result.state.heads : .expansion.prior.parser.state.heads), relation0: (.admitted ? .expansion.result.state.relation0 : .expansion.prior.parser.state.relation0), relation1: (.admitted ? .expansion.result.state.relation1 : .expansion.prior.parser.state.relation1), relation2: (.admitted ? .expansion.result.state.relation2 : .expansion.prior.parser.state.relation2), relation3: (.admitted ? .expansion.result.state.relation3 : .expansion.prior.parser.state.relation3), committed: (.admitted ? .expansion.result.state.committed : .expansion.prior.parser.state.committed) }, identity: .expansion.identity, score: (.admitted ? .expansion.prior.parser.score + .expansion.score : .expansion.prior.parser.score), active: .admitted && .expansion.prior.parser.active }, choices: .expansion.prior.choices, selected: .expansion.prior.selected }
+plot language-parser-scorer-expand (
+    input: LanguageParserScorerExpansion...| >> output: LanguageParserScorerRawHypothesis...|
+) {
+    input >> language-parser-scorer-expansion-check() >> language-parser-scorer-expansion-apply() >> output
+}
+type LanguageParserScorerBeam = {
+    candidate0: LanguageParserScorerHypothesis
+    candidate1: LanguageParserScorerHypothesis
+    candidate2: LanguageParserScorerHypothesis
+    candidate3: LanguageParserScorerHypothesis
+}
+type LanguageParserScorerMerge = {
+    beam: LanguageParserScorerBeam
+    candidate: LanguageParserScorerHypothesis
+}
+plot language-parser-scorer-insert-0 (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerMerge...|
+) = { beam: { candidate0: (((.candidate.parser.active && !.beam.candidate0.parser.active) || (.candidate.parser.active == .beam.candidate0.parser.active && (.candidate.parser.score > .beam.candidate0.parser.score || (.candidate.parser.score == .beam.candidate0.parser.score && .candidate.parser.identity < .beam.candidate0.parser.identity)))) ? .candidate : .beam.candidate0), candidate1: .beam.candidate1, candidate2: .beam.candidate2, candidate3: .beam.candidate3 }, candidate: (((.candidate.parser.active && !.beam.candidate0.parser.active) || (.candidate.parser.active == .beam.candidate0.parser.active && (.candidate.parser.score > .beam.candidate0.parser.score || (.candidate.parser.score == .beam.candidate0.parser.score && .candidate.parser.identity < .beam.candidate0.parser.identity)))) ? .beam.candidate0 : .candidate) }
+plot language-parser-scorer-insert-1 (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerMerge...|
+) = { beam: { candidate0: .beam.candidate0, candidate1: (((.candidate.parser.active && !.beam.candidate1.parser.active) || (.candidate.parser.active == .beam.candidate1.parser.active && (.candidate.parser.score > .beam.candidate1.parser.score || (.candidate.parser.score == .beam.candidate1.parser.score && .candidate.parser.identity < .beam.candidate1.parser.identity)))) ? .candidate : .beam.candidate1), candidate2: .beam.candidate2, candidate3: .beam.candidate3 }, candidate: (((.candidate.parser.active && !.beam.candidate1.parser.active) || (.candidate.parser.active == .beam.candidate1.parser.active && (.candidate.parser.score > .beam.candidate1.parser.score || (.candidate.parser.score == .beam.candidate1.parser.score && .candidate.parser.identity < .beam.candidate1.parser.identity)))) ? .beam.candidate1 : .candidate) }
+plot language-parser-scorer-insert-2 (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerMerge...|
+) = { beam: { candidate0: .beam.candidate0, candidate1: .beam.candidate1, candidate2: (((.candidate.parser.active && !.beam.candidate2.parser.active) || (.candidate.parser.active == .beam.candidate2.parser.active && (.candidate.parser.score > .beam.candidate2.parser.score || (.candidate.parser.score == .beam.candidate2.parser.score && .candidate.parser.identity < .beam.candidate2.parser.identity)))) ? .candidate : .beam.candidate2), candidate3: .beam.candidate3 }, candidate: (((.candidate.parser.active && !.beam.candidate2.parser.active) || (.candidate.parser.active == .beam.candidate2.parser.active && (.candidate.parser.score > .beam.candidate2.parser.score || (.candidate.parser.score == .beam.candidate2.parser.score && .candidate.parser.identity < .beam.candidate2.parser.identity)))) ? .beam.candidate2 : .candidate) }
+plot language-parser-scorer-insert-3 (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerMerge...|
+) = { beam: { candidate0: .beam.candidate0, candidate1: .beam.candidate1, candidate2: .beam.candidate2, candidate3: (((.candidate.parser.active && !.beam.candidate3.parser.active) || (.candidate.parser.active == .beam.candidate3.parser.active && (.candidate.parser.score > .beam.candidate3.parser.score || (.candidate.parser.score == .beam.candidate3.parser.score && .candidate.parser.identity < .beam.candidate3.parser.identity)))) ? .candidate : .beam.candidate3) }, candidate: (((.candidate.parser.active && !.beam.candidate3.parser.active) || (.candidate.parser.active == .beam.candidate3.parser.active && (.candidate.parser.score > .beam.candidate3.parser.score || (.candidate.parser.score == .beam.candidate3.parser.score && .candidate.parser.identity < .beam.candidate3.parser.identity)))) ? .beam.candidate3 : .candidate) }
+plot language-parser-scorer-merged-beam (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerBeam...|
+) = .beam
+plot language-parser-scorer-merge (
+    input: LanguageParserScorerMerge...| >> output: LanguageParserScorerBeam...|
+) {
+    input >> language-parser-scorer-insert-0() >> language-parser-scorer-insert-1() >> language-parser-scorer-insert-2() >> language-parser-scorer-insert-3() >> language-parser-scorer-merged-beam() >> output
+}

@@ -1,0 +1,6 @@
+# Reconstruct the existing intent Type through ordinary checked Source.
+# The original text, inventory, correspondence and commitment are retained
+# separate components; this flow does not infer or grant any of them.
+plot committed-linguistic-transport (
+    input: SpeechUtteranceIntent...| <= 262144B >> output: SpeechUtteranceIntent...|
+) = ({ utterance_id: .utterance_id, revision_id: .revision_id, language: .language, inventory_id: .inventory_id, events: .events, provenance: .provenance })

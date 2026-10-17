@@ -1,0 +1,51 @@
+# Ranking is finite checked Source policy. Legality bits are obtained from
+# language-parser-transition for this exact state; the selected action is
+# checked again before expansion. Scores alone cannot authorize an edge.
+# Raw scan state is guarded before every lookup; publication as ScoredClass
+# separately admits the finite0..75 class. No refined value is fabricated.
+type LanguageParserScorerRanking = {
+    scores: collection I64 = 76
+    allowed: collection Boolean = 76
+    cursor: U64
+    found: Boolean
+    class: U64
+    score: I64
+}
+plot language-parser-scorer-ranking-step (
+    input: LanguageParserScorerRanking...| >> output: LanguageParserScorerRanking...|
+) = { scores: .scores, allowed: .allowed, cursor: (.cursor < 76 ? .cursor + 1 : .cursor), found: .found || (.cursor < 76 ? sequence/at(.allowed, .cursor) : false), class: ((.cursor < 76 ? sequence/at(.allowed, .cursor) && (!.found || sequence/at(.scores, .cursor) > .score) : false) ? .cursor : .class), score: ((.cursor < 76 ? sequence/at(.allowed, .cursor) && (!.found || sequence/at(.scores, .cursor) > .score) : false) ? sequence/at(.scores, .cursor) : .score) }
+# Five calls scan all76 classes. Equal scores retain the lower class.
+plot language-parser-scorer-ranking-chunk (
+    input: LanguageParserScorerRanking...| >> output: LanguageParserScorerRanking...|
+) {
+    input >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> language-parser-scorer-ranking-step() >> output
+}
+# Disable only the selected class and restart the scan for the next candidate.
+plot language-parser-scorer-ranking-next (
+    input: LanguageParserScorerRanking...| >> output: LanguageParserScorerRanking...|
+) = { scores: .scores, allowed: [(.class == 0 ? false : .allowed.0), (.class == 1 ? false : .allowed.1), (.class == 2 ? false : .allowed.2), (.class == 3 ? false : .allowed.3), (.class == 4 ? false : .allowed.4), (.class == 5 ? false : .allowed.5), (.class == 6 ? false : .allowed.6), (.class == 7 ? false : .allowed.7), (.class == 8 ? false : .allowed.8), (.class == 9 ? false : .allowed.9), (.class == 10 ? false : .allowed.10), (.class == 11 ? false : .allowed.11), (.class == 12 ? false : .allowed.12), (.class == 13 ? false : .allowed.13), (.class == 14 ? false : .allowed.14), (.class == 15 ? false : .allowed.15), (.class == 16 ? false : .allowed.16), (.class == 17 ? false : .allowed.17), (.class == 18 ? false : .allowed.18), (.class == 19 ? false : .allowed.19), (.class == 20 ? false : .allowed.20), (.class == 21 ? false : .allowed.21), (.class == 22 ? false : .allowed.22), (.class == 23 ? false : .allowed.23), (.class == 24 ? false : .allowed.24), (.class == 25 ? false : .allowed.25), (.class == 26 ? false : .allowed.26), (.class == 27 ? false : .allowed.27), (.class == 28 ? false : .allowed.28), (.class == 29 ? false : .allowed.29), (.class == 30 ? false : .allowed.30), (.class == 31 ? false : .allowed.31), (.class == 32 ? false : .allowed.32), (.class == 33 ? false : .allowed.33), (.class == 34 ? false : .allowed.34), (.class == 35 ? false : .allowed.35), (.class == 36 ? false : .allowed.36), (.class == 37 ? false : .allowed.37), (.class == 38 ? false : .allowed.38), (.class == 39 ? false : .allowed.39), (.class == 40 ? false : .allowed.40), (.class == 41 ? false : .allowed.41), (.class == 42 ? false : .allowed.42), (.class == 43 ? false : .allowed.43), (.class == 44 ? false : .allowed.44), (.class == 45 ? false : .allowed.45), (.class == 46 ? false : .allowed.46), (.class == 47 ? false : .allowed.47), (.class == 48 ? false : .allowed.48), (.class == 49 ? false : .allowed.49), (.class == 50 ? false : .allowed.50), (.class == 51 ? false : .allowed.51), (.class == 52 ? false : .allowed.52), (.class == 53 ? false : .allowed.53), (.class == 54 ? false : .allowed.54), (.class == 55 ? false : .allowed.55), (.class == 56 ? false : .allowed.56), (.class == 57 ? false : .allowed.57), (.class == 58 ? false : .allowed.58), (.class == 59 ? false : .allowed.59), (.class == 60 ? false : .allowed.60), (.class == 61 ? false : .allowed.61), (.class == 62 ? false : .allowed.62), (.class == 63 ? false : .allowed.63), (.class == 64 ? false : .allowed.64), (.class == 65 ? false : .allowed.65), (.class == 66 ? false : .allowed.66), (.class == 67 ? false : .allowed.67), (.class == 68 ? false : .allowed.68), (.class == 69 ? false : .allowed.69), (.class == 70 ? false : .allowed.70), (.class == 71 ? false : .allowed.71), (.class == 72 ? false : .allowed.72), (.class == 73 ? false : .allowed.73), (.class == 74 ? false : .allowed.74), (.class == 75 ? false : .allowed.75)], cursor: 0, found: false, class: 0, score: 0 }
+# Explicit deterministic fallback: class order among legal actions, no model
+# invocation and no inferred finality. Its distinct custody is reported by caller.
+plot language-parser-scorer-fallback (
+    input: LanguageParserScorerRanking...| >> output: LanguageParserScorerRanking...|
+) = { scores: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], allowed: .allowed, cursor: 0, found: false, class: 0, score: 0 }
+
+# Relation labels do not change checked transition legality except root.
+# These five results come from real checked transitions on the same basis.
+# The chosen class is always checked again, so this mask grants no authority.
+type LanguageParserScorerLegality = {
+    basis: LanguageParserBasis
+    shift: LanguageParserResult
+    reduce: LanguageParserResult
+    left: LanguageParserResult
+    right: LanguageParserResult
+    root: LanguageParserResult
+    where .shift.state.basis == .basis
+    where .reduce.state.basis == .basis
+    where .left.state.basis == .basis
+    where .right.state.basis == .basis
+    where .root.state.basis == .basis
+}
+plot language-parser-scorer-legality (
+    input: LanguageParserScorerLegality...| >> output: LanguageParserScorerRanking...|
+) = { scores: [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0], allowed: [.shift.accepted, .reduce.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, .left.accepted, false, .left.accepted, .left.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .right.accepted, .root.accepted, .right.accepted, .right.accepted], cursor: 0, found: false, class: 0, score: 0 }

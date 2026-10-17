@@ -13,8 +13,26 @@ use byte_facts::ByteFacts;
 pub(super) fn validate(
     gears: &[CheckedGear],
     types: &[CheckedNativeType],
+    provenance: &[ExpandedGearProvenance],
+    backs: &CanonicalBackCatalog,
 ) -> Result<(), CanonicalExpansionDiagnostic> {
+    let owners = provenance
+        .iter()
+        .filter_map(|entry| {
+            entry
+                .construction_owner
+                .as_ref()
+                .map(|kind| (entry.gear_id.as_str(), kind))
+        })
+        .collect::<BTreeMap<_, _>>();
     for gear in gears {
+        let types = owners
+            .get(gear.gear_id.as_str())
+            .copied()
+            .and_then(|kind| backs.context(kind))
+            .map_or(types, |owner| {
+                owner.document.retained_native_types.as_slice()
+            });
         if gear.kind_contract_revision.as_str() != crate::PURE_EXPRESSION_REVISION {
             continue;
         }

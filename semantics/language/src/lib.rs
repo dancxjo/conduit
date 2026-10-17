@@ -119,3 +119,10 @@ pub use parser_revision::*;
 
 pub use generated::{LanguageParserBeamCommitRequest, LanguageParserBeamCommitResult};
 pub const PARSER_BEAM_COMMIT_SOURCE: &str = include_str!("../parser_beam_commit.conduit");
+
+/// Optional exact model admission; checked Source still owns parser decisions.
+#[cfg(all(feature = "parser-model", target_has_atomic = "ptr"))]
+pub mod parser_model;
+
+mod parser_scorer;
+pub use parser_scorer::*;

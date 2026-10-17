@@ -1,5 +1,9 @@
 use crate::process::Step;
 
+#[cfg(test)]
+#[path = "workspace_shard_features_tests.rs"]
+mod feature_coverage;
+
 macro_rules! package_test_shard {
     ($packages:ident, $step:ident, $id:literal, $description:literal, [$($package:literal),+ $(,)?], [$($trailing:literal),* $(,)?]) => {
         #[cfg(test)]
@@ -82,7 +86,7 @@ package_test_shard!(
     ],
     [
         "--features",
-        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline"
+        "conduit-speech/semantic-bindings,conduit-runtime-performance/hosted-pipeline,conduit-language/parser-model"
     ]
 );
 
@@ -120,7 +124,7 @@ package_test_shard!(
     ["conduit-std-host", "conduit-std-offers",],
     [
         "--features",
-        "conduit-std-host/burn-model",
+        "conduit-std-host/burn-model,conduit-std-host/local-model-proof,conduit-std-host/pete-create",
         "--",
         "--test-threads=1"
     ]
@@ -379,6 +383,18 @@ mod tests {
             unique, members,
             "test shards must cover the exact workspace"
         );
+    }
+
+    #[test]
+    fn foundation_exercises_the_optional_admitted_language_scorer() {
+        let features = FOUNDATION_TEST_STEP
+            .args
+            .windows(2)
+            .find_map(|pair| (pair[0] == "--features").then_some(pair[1]))
+            .expect("foundation feature context");
+        assert!(features
+            .split(',')
+            .any(|feature| feature == "conduit-language/parser-model"));
     }
 
     #[test]

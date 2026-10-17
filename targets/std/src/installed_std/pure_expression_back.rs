@@ -209,6 +209,11 @@ pub(super) fn refusal_detail(refusal: &conduit_plot::PortableExpressionEvaluatio
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidProgram => 2,
         conduit_plot::PortableExpressionEvaluationRefusal::InvalidLiteral => 3,
         conduit_plot::PortableExpressionEvaluationRefusal::Arithmetic => 4,
+        conduit_plot::PortableExpressionEvaluationRefusal::QuantityProduct(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityProjection(_)
+        | conduit_plot::PortableExpressionEvaluationRefusal::QuantityEncoding(_) => {
+            conduit_plot::quantity_arithmetic_failure_detail(refusal)
+        }
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedSemanticCall(_) => 5,
         conduit_plot::PortableExpressionEvaluationRefusal::UnsupportedType(_) => 6,
         conduit_plot::PortableExpressionEvaluationRefusal::UnprovedMathematicalComparison => 7,

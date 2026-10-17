@@ -40,11 +40,17 @@ export function admissionPlan(paths, metadata, root) {
   return { packages: [...selected].sort(), broad, native: nativeRisk(paths), smoke: paths.some(name => /^(?:architecture|targets\/std|targets\/browser)\//.test(name)) };
 }
 
-export function runAdmission(paths, metadata, root, run) {
+export function runAdmission(paths, metadata, root, run, { workspaceChecked = false } = {}) {
   const plan = admissionPlan(paths, metadata, root);
+  if (workspaceChecked && !plan.broad) throw new Error('parallel workspace proof is valid only for broad admission');
   if (paths.length && paths.every(name => /^(?:docs\/.+\.md|[^/]+\.md|LICENSE)$/.test(name))) return;
   console.log(`Admission packages: ${plan.packages.join(', ')}`);
-  run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', '--', '-D', 'warnings']);
+  const languageFeatures = plan.packages.includes('conduit-language') ? ['--features', 'conduit-language/parser-model'] : [];
+  if (!workspaceChecked) run('cargo', ['clippy', '--locked', '--workspace', '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
+  else if (languageFeatures.length) {
+    // Parallel workspace lint does not enable this optional consumer feature.
+    run('cargo', ['clippy', '--locked', '-p', 'conduit-language', '--all-targets', ...languageFeatures, '--', '-D', 'warnings']);
+  }
   const catalogChanges = paths.filter(name => name.startsWith('semantics/catalog/') && !name.endsWith('.md'));
   const numericalCatalog = !plan.broad && catalogChanges.length > 0 && catalogChanges.every(name =>
     /^semantics\/catalog\/(?:src\/numerical_realization(?:_back)?\.rs|numerical\/|tests\/numerical_realization(?:\.rs|\/))/.test(name));
@@ -59,7 +65,7 @@ export function runAdmission(paths, metadata, root, run) {
     return !plan.broad && plan.packages.includes(consumer.name) && changes.some(name => name.includes('numerical')) && changes.every(name => consumer.allowed.test(name));
   });
   const packages = plan.packages.filter(name => !(numericalCatalog && name === 'conduit-semantic-catalog') && !consumers.some(consumer => consumer.name === name));
-  if (packages.length) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), '--', '--test-threads=1']);
+  if (packages.length && !workspaceChecked) run('cargo', ['test', '--locked', '--no-fail-fast', ...packages.flatMap(name => ['-p', name]), ...languageFeatures, '--', '--test-threads=1']);
   const libraries = [...consumers.map(consumer => consumer.name), ...(numericalCatalog ? ['conduit-semantic-catalog'] : [])];
   if (libraries.length) {
     // One feature-unified compiler context avoids rebuilding the same Host and

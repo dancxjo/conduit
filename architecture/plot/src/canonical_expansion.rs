@@ -132,15 +132,32 @@ fn expand_instance(
             format!("expanded plot exceeds the {MAXIMUM_PLOT_NESTING_DEPTH}-level bound"),
         ));
     }
-    if stack.iter().any(|name| name == &plot.name) {
+    // Local names and even a root's checked identity may coincide while its
+    // private helper definitions differ. Detect recursion in the lexical scope.
+    let scope = plots
+        .values()
+        .map(|plot| plot.checked_plot_id.as_str())
+        .collect::<Vec<_>>()
+        .join("|");
+    let scoped_plot = format!("{}@{}", plot.name, hash_string(&scope));
+    if stack.iter().any(|identity| identity == &scoped_plot) {
         let mut cycle = stack.clone();
-        cycle.push(plot.name.clone());
+        cycle.push(scoped_plot.clone());
         return Err(CanonicalExpansionDiagnostic::new(
             "CND-FRM-035",
-            format!("recursive plot expansion cycle: {}", cycle.join(" > ")),
+            format!(
+                "recursive plot expansion cycle: {}",
+                cycle
+                    .iter()
+                    .map(|entry| entry
+                        .rsplit_once('@')
+                        .map_or(entry.as_str(), |(name, _)| name))
+                    .collect::<Vec<_>>()
+                    .join(" > ")
+            ),
         ));
     }
-    stack.push(plot.name.clone());
+    stack.push(scoped_plot);
     let result = expand_instance_inner(
         plot,
         plots,
@@ -578,6 +595,7 @@ fn instantiate_gear(
             pool_references: Vec::new(),
         });
         provenance.push(ExpandedGearProvenance {
+            construction_owner: None,
             gear_id: gear_id.as_str().to_string(),
             plot_path: path.to_vec(),
             source_plot: source_plot.name.clone(),
@@ -675,6 +693,7 @@ fn instantiate_gear(
             }
             gears.push(state);
             provenance.push(ExpandedGearProvenance {
+                construction_owner: None,
                 gear_id: gear_id.as_str().to_string(),
                 plot_path: path.to_vec(),
                 source_plot: source_plot.name.clone(),
@@ -811,6 +830,7 @@ fn instantiate_gear(
                 pool_references: Vec::new(),
             });
             provenance.push(ExpandedGearProvenance {
+                construction_owner: None,
                 gear_id: gear_id.as_str().to_string(),
                 plot_path: path.to_vec(),
                 source_plot: source_plot.name.clone(),
@@ -880,12 +900,27 @@ fn instantiate_gear(
         selected.invocation_path = child_path.join("/");
         realization_backs.push(selected);
         let child_environment = bind_child_environment(gear, environment)?;
-        let fragment = expand_instance(
+        let owner = backs.context(&kind_id).ok_or_else(|| {
+            CanonicalExpansionDiagnostic::new(
+                "CND-FRM-037",
+                "selected Source Back has no checked owner context".into(),
+            )
+        })?;
+        let owner_plots = owner
+            .document
+            .plots
+            .iter()
+            .map(|plot| (plot.name.as_str(), plot))
+            .collect();
+        let mut owner_catalog = owner.catalog.as_ref().unwrap_or(catalog).clone();
+        owner_catalog.physical = owner.document.physical.clone();
+        owner_catalog.install_type_invariants(&owner.document.native_types);
+        let mut fragment = expand_instance(
             &back.plot,
-            plots,
-            structured_types,
-            exact_initial_info,
-            catalog,
+            &owner_plots,
+            &owner.document.structured_types,
+            &owner.document.exact_initial_info,
+            &owner_catalog,
             backs,
             &child_environment,
             &child_path,
@@ -893,6 +928,11 @@ fn instantiate_gear(
             realization_backs,
             depth + 1,
         )?;
+        for provenance in &mut fragment.provenance {
+            if provenance.construction_owner.is_none() {
+                provenance.construction_owner = Some(kind_id.clone());
+            }
+        }
         gear_ids.extend(fragment.gears.iter().map(|op| op.gear_id.clone()));
         let abnormal = fragment.abnormal;
         gears.extend(fragment.gears);
@@ -946,6 +986,7 @@ fn instantiate_gear(
         pool_references,
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),

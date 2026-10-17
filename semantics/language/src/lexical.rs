@@ -88,7 +88,9 @@ pub fn prepare_lexical_tape(
         let partial = word
             && cursor == chars.len()
             && matches!(source.finality(), LanguageTextFinality::Partial);
-        let candidates = if partial || !word {
+        // Complete punctuation may have explicitly reviewed profile alternatives.
+        // Availability does not infer POS for unlisted surfaces or partial words.
+        let candidates = if partial {
             BoundedSequence::new()
         } else {
             profile

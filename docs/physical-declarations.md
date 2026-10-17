@@ -98,9 +98,10 @@ The default `origin` is unique within a family. A separate exact coordinate
 anchor is explicit. `Angle` uses `turn` as its canonical, reference, and default
 Unit; degrees are declared with an exact scale of `1/360` relative to `turn`.
 Thus `90°` converts exactly to `0.25turn`. Radians currently use the independent
-named anchor `origin(radian)`. Conversion between radians and turns returns the
-typed `Inexact` refusal until the symbolic `2π` relationship is implemented in
-#5392; the catalogue does not substitute an approximate decimal for π.
+named anchor `origin(radian)`. The decimal `units/convert` path between radians and turns returns the
+typed `Inexact` refusal; the catalogue does not substitute an approximate decimal
+for π. The separate mathematical reference bridge carries the exact symbolic
+`2π` relationship without changing that decimal conversion contract.
 
 After admission, `Hz` is a Unit and `1kHz` is a Quantity. Startup parameters,
 ordinary values, record fields, and runtime ports use those same typed values.
@@ -171,12 +172,54 @@ extract the pinned Dimension from an immutable typed startup value and emit it
 on their `dimension: Dimension` runtime port. Preparation consumes the checked
 capsule; it does not parse a unit string or consult a mutable catalogue.
 
-The remaining #5390 acceptance includes checked Quantity multiplication/division,
-Angle-consuming trigonometry, full integration and the required stable proof.
-Nominal quantity families and point/difference roles remain separate from
-dimension algebra. Exact symbolic
-constants, including the turn/radian relationship, and planner-selected numeric
-precision belong to the separate #5392 implementation.
+## Quantity products and quotients
+
+Ordinary checked multiplication and division can produce a Quantity with a
+derived Dimension:
+
+```conduit
+plot speed (
+    >> distance: Distance
+    result: Quantity >>
+) = (distance / 2s)
+```
+
+The result has normalized Length/Time dimensions. Its coordinates are exact
+reference coordinates and its derived Unit has scale one, zero offset and no
+prefix policy. A product uses the sum of dimensional exponents; a quotient
+uses their difference, subject to the existing finite dimension bounds.
+Same-family expression division retains the established explicit Scalar ratio
+contract. Quantity/scalar scaling retains its original Unit.
+
+Operation-derived anonymous family identities retain both operand nominal
+families. Derived Unit identities also retain both immutable reference anchors.
+Equal dimensional exponents therefore do not merge Energy with Torque or
+independent reference origins. Product identity is commutative. Identity records
+binary expression provenance; it does not promise a complete associative or
+cancelling family algebra. A derived Length/Time Quantity does not implicitly
+become an authored named Speed family. Such an interpretation requires an
+explicit admitted law.
+
+Product and quotient operands must be linear quantities. Temperature points
+and deltas refuse this operation; dimension algebra does not erase their roles.
+The Core rational-coordinate API retains exact nonterminating coordinates.
+An ordinary decimal Quantity result must separately fit its finite decimal
+profile: nonterminating coordinates, coefficient overflow and exponent overflow
+refuse at that projection instead of rounding or silently changing carrier.
+
+Typed `math/sin`, `math/cos` and `math/tan` consume Angle and retain exact
+mathematical denotations. Bare scalars and other dimensions refuse. Exact
+quarter-turn identities need no numerical approximation; other admitted angles
+retain symbolic trigonometric denotations, with numerical realization admitted
+separately. The explicit symbolic turn-to-radian bridge retains the exact
+`1turn = 2π rad` law without installing a rational or floating-point Unit scale.
+It supports turn-origin to radian-origin projection; this does not make every
+independent reference origin interchangeable.
+
+These development contracts and focused tests do not by themselves establish
+full integration, hosted publication or stable acceptance for #5390.
+Planner-selected numerical precision and broader symbolic numerical work remain
+owned by #5392.
 
 ## Full-turn spellings
 

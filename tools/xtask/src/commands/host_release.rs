@@ -97,8 +97,8 @@ fn build_browser(output: &Path, source_identity: &str) -> Result<(), Box<dyn std
         "compile browser Host release",
     )?;
     fs::create_dir_all(output)?;
-    copy(
-        cargo_release_artifact(
+    browser::optimize_runtime(
+        &cargo_release_artifact(
             Some("wasm32-unknown-unknown"),
             "conduit_browser_runtime.wasm",
         ),
