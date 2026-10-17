@@ -17,34 +17,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
   const reviewed = requireDistribution(distribution);
   const selected = resolveImplementations(checked.selected_implementations, reviewed);
   const files = await verifyDistributionPayloads(distribution, reviewed);
-  const buildBasis = {
-    schema: "conduit.browser/bundle-build-basis@1",
-    target_id: TARGET,
-    profile_id: checked.profile_id,
-    source_configuration_id: checked.configuration_id,
-    distribution_id: reviewed.distribution_id,
-    distribution_digest: distribution.manifest.bundle_sha256,
-    runtime_abi: reviewed.runtime_abi,
-    implementations: selected,
-  };
-  const buildId = `build:${await sha256(encodeCanonical(buildBasis))}`;
-  const imagePayload = {
-    schema: IMAGE_SCHEMA,
-    build_id: buildId,
-    target_id: TARGET,
-    profile_id: checked.profile_id,
-    source_configuration_id: checked.configuration_id,
-    reviewed_distribution: {
-      distribution_id: reviewed.distribution_id,
-      distribution_digest: distribution.manifest.bundle_sha256,
-      runtime_abi: reviewed.runtime_abi,
-      toolchain_identity: reviewed.toolchain_identity,
-      source_commit: reviewed.source_commit,
-    },
-    implementations: selected,
-    boot_module: requireBootModule(files),
-    files: files.map(({ path, bytes, sha256: digest, media_type }) => ({ path, bytes: bytes.byteLength, sha256: digest, media_type })),
-  };
+  const imagePayload = await expectedImagePayload(checked, distribution, reviewed, selected, files);
   const imageId = `image:${await sha256(encodeCanonical(imagePayload))}`;
   const binding = encoder.encode(JSON.stringify({ ...imagePayload, image_id: imageId }, null, 2));
   const bindingDigest = await sha256(binding);
@@ -61,7 +34,7 @@ export async function buildBrowserBundleImage({ checked, distribution }) {
       source_identity: reviewed.source_commit,
       bundle_sha256: bundleDigest,
       browser_image_id: imageId,
-      browser_build_id: buildId,
+      browser_build_id: imagePayload.build_id,
       browser_profile_id: checked.profile_id,
       browser_configuration_id: checked.configuration_id,
       distribution_id: reviewed.distribution_id,
@@ -114,7 +87,43 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     || payload.boot_module.path !== BOOT_MODULE_PATH || payload.boot_module.sha256 !== bootModule.sha256) {
     refuse("BootModuleBindingMismatch", "BrowserBundle Boot entry is absent or stale");
   }
+  const files = await verifyDistributionPayloads(distribution, reviewed);
+  const expected = await expectedImagePayload(checked, distribution, reviewed, selected, files);
+  if (JSON.stringify(payload) !== JSON.stringify(expected)) {
+    refuse("ImageBindingMismatch", "BrowserBundle IMAGE claims do not match its checked configuration and reviewed distribution");
+  }
   return Object.freeze({ build_id: payload.build_id, image_id: imageId, profile_id: payload.profile_id, configuration_id: payload.source_configuration_id });
+}
+
+async function expectedImagePayload(checked, distribution, reviewed, selected, files) {
+  const buildBasis = {
+    schema: "conduit.browser/bundle-build-basis@1",
+    target_id: TARGET,
+    profile_id: checked.profile_id,
+    source_configuration_id: checked.configuration_id,
+    distribution_id: reviewed.distribution_id,
+    distribution_digest: distribution.manifest.bundle_sha256,
+    runtime_abi: reviewed.runtime_abi,
+    implementations: selected,
+  };
+  const buildId = `build:${await sha256(encodeCanonical(buildBasis))}`;
+  return {
+    schema: IMAGE_SCHEMA,
+    build_id: buildId,
+    target_id: TARGET,
+    profile_id: checked.profile_id,
+    source_configuration_id: checked.configuration_id,
+    reviewed_distribution: {
+      distribution_id: reviewed.distribution_id,
+      distribution_digest: distribution.manifest.bundle_sha256,
+      runtime_abi: reviewed.runtime_abi,
+      toolchain_identity: reviewed.toolchain_identity,
+      source_commit: reviewed.source_commit,
+    },
+    implementations: selected,
+    boot_module: requireBootModule(files),
+    files: files.map(({ path, bytes, sha256: digest, media_type }) => ({ path, bytes: bytes.byteLength, sha256: digest, media_type })),
+  };
 }
 
 function requireBootModule(files) {
@@ -156,12 +165,35 @@ function requireDistribution(distribution) {
     }
     providers.add(item.id);
   }
+  if (!Array.isArray(manifest.files) || manifest.files.length < 1 || manifest.files.length >= MAXIMUM_FILES
+    || new Set(manifest.files.map(item => item?.path)).size !== manifest.files.length) {
+    refuse("ArtifactBound", "reviewed browser distribution inventory must be finite and unique");
+  }
   const paths = new Set(manifest.files.map((item) => item.path));
+  const modules = new Map();
   for (const module of reviewed.modules) {
-    if (!paths.has(module.path) || !Array.isArray(module.dependencies) || module.dependencies.some((path) => !paths.has(path))) {
+    if (!module || !boundedText(module.path, 256) || modules.has(module.path)
+      || !Array.isArray(module.dependencies) || module.dependencies.length > 16) {
+      refuse("ModuleDeclarationInvalid", "reviewed browser module declarations must be unique and finite");
+    }
+    if (!paths.has(module.path)) {
       refuse("ModuleDependencyMissing", "reviewed browser module dependency closure is incomplete");
     }
+    modules.set(module.path, module);
   }
+  const active = new Set();
+  const complete = new Set();
+  const visit = path => {
+    if (active.has(path)) refuse("ModuleDependencyCycle", "reviewed browser module dependency graph contains a cycle");
+    if (complete.has(path)) return;
+    const module = modules.get(path);
+    if (!module) refuse("ModuleDependencyMissing", "reviewed browser dependency has no module declaration");
+    active.add(path);
+    for (const dependency of module.dependencies) visit(dependency);
+    active.delete(path);
+    complete.add(path);
+  };
+  for (const path of modules.keys()) visit(path);
   return reviewed;
 }
 
@@ -194,11 +226,15 @@ async function verifyDistributionPayloads(distribution, reviewed) {
     declarations.delete(payload.path);
   }
   if (declarations.size) refuse("ArtifactMissing", "reviewed browser distribution omitted a declared artifact");
+  if (await digestFileIdentities(distribution.manifest.files) !== distribution.manifest.bundle_sha256) {
+    refuse("DigestMismatch", "reviewed browser distribution aggregate identity is stale");
+  }
   for (const implementation of reviewed.implementations) {
     const artifact = implementation.artifact === "browser-runtime-superset.wasm" ? "runtime.wasm" : implementation.artifact;
     if (!files.some((item) => item.path === artifact)) refuse("ArtifactMissing", `implementation ${implementation.id} artifact is unavailable`);
   }
-  return files;
+  const verified = new Map(files.map(file => [file.path, file]));
+  return distribution.manifest.files.map(file => verified.get(file.path));
 }
 
 async function digestFileIdentities(files) {
