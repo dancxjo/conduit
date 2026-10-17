@@ -119,6 +119,12 @@ fn independent_current_residency_controls_use_and_retains_refusal_custody() {
             Some(CostEvidenceRefusal::ExecutionConditionChanged),
         ),
         (
+            Some(CostExecutionCondition::ResidentObserved),
+            100,
+            200,
+            Some(CostEvidenceRefusal::ExecutionConditionChanged),
+        ),
+        (
             Some(CostExecutionCondition::Unknown),
             100,
             200,
