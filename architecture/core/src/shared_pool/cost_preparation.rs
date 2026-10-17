@@ -12,6 +12,26 @@ use crate::{
 };
 use alloc::vec::Vec;
 
+/// Exact encoded-input correlation shared by preparation and completion owners.
+/// The digest carries no producer trust or authority to execute an operation.
+pub fn pool_operation_input_digest(bytes: &[u8]) -> [u8; 32] {
+    crate::semantic_digest("conduit.std/local-model-completed-input@1", bytes)
+}
+
+/// Exact startup configuration correlation without retaining authored contents.
+/// Preparation only: callers supply the already admitted finite configuration.
+pub fn pool_operation_configuration_digest(
+    configuration: &[crate::ConfigurationEntry],
+) -> [u8; 32] {
+    let mut canonical = Vec::new();
+    canonical.extend_from_slice(&(configuration.len() as u64).to_le_bytes());
+    for entry in configuration {
+        crate::push_string(&mut canonical, &entry.key);
+        crate::plan_fingerprint::push_configuration_value(&mut canonical, &entry.value);
+    }
+    crate::semantic_digest("conduit.core/pool-operation-configuration@1", &canonical)
+}
+
 pub const MAXIMUM_PREPARED_POOL_COSTS: usize = 32;
 #[derive(Debug, Copy, Clone, PartialEq, Eq)]
 pub enum PoolCostPreparationRefusal {

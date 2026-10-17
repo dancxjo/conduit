@@ -4,6 +4,7 @@
 //! does not separately measure queue/transport/warmup, predict completion, assert
 //! residency, or grant authority to publish a cost observation.
 mod calibration;
+mod inspection;
 pub use calibration::{LocalModelCompletionCalibrationRefusal, LocalModelPreparedCalibration};
 
 use crate::{hosted_local_model::LocalModelAdapterTerminal, ThreadTimer, TimerAdapter};
@@ -138,8 +139,7 @@ impl MeasurementSlot {
         self.input_bytes = bytes;
         // Exact encoded request custody, not retained prompt text or an owner-
         // selected workload label. Hashing precedes the timed adapter interval.
-        self.input_digest =
-            conduit_core::semantic_digest("conduit.std/local-model-completed-input@1", input);
+        self.input_digest = conduit_core::pool_operation_input_digest(input);
         self.started = ThreadTimer.monotonic_now_micros();
     }
     pub(super) fn input_identity(&self) -> Option<(u32, [u8; 32])> {

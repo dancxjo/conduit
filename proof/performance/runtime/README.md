@@ -166,3 +166,19 @@ each raw row. Compare matched workloads and clock scopes; neither ratio is a
 universal claim of native speed. Cold Plot/Plan phases and the hosted full-call
 boundary remain separate from evaluator warm bulk measurements. Finer inside-
 kernel cold/warm phase measurements remain the distinct #5536 proof surface.
+
+## Allocation window after actual execution begins
+
+Hosted raw rows also retain `post_first_output_allocations`: process allocator
+counter differences between the first and last real Fore acknowledgements. This
+is the same finite 63-additional-output window as the callback wall samples,
+after Play has begun, separated from earlier Back/Plan preparation. It includes
+Host and collection work, not exclusively kernel allocation. Missing snapshots
+refuse the measurement rather than producing zero. These counters are not a
+whole-Play peak or a count of bytes physically copied.
+
+For independent-process attribution, repeat the public command with three new
+output directories and the same committed clean source. Keep raw counter samples,
+exact source/Plan/Play/Boot custody and uncontrolled-host variation. The separate
+fixed-kernel scan/copy entrance is documented in
+[`kernel-overhead-attribution.md`](../../../docs/audits/kernel-overhead-attribution.md).

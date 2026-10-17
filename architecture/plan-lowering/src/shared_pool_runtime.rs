@@ -25,7 +25,7 @@ pub use waiting::*;
 mod costs;
 pub use costs::{
     CostAwareSharedPoolAdmissionOutcome, PoolCostEvaluation, PoolCostLoweringError,
-    PoolCostSourceReceipt,
+    PoolCostSourceReceipt, PoolDispatchPopulation,
 };
 
 const ADMISSION_AUTHORITY_TOKEN: u16 = 0;

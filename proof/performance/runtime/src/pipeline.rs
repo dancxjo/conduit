@@ -32,6 +32,8 @@ struct Collector {
     values: Vec<ExternalForeDelivery>,
     first: Option<Instant>,
     last: Option<Instant>,
+    first_allocations: Option<crate::allocation::Counts>,
+    last_allocations: Option<crate::allocation::Counts>,
 }
 impl Collector {
     fn new() -> Self {
@@ -39,7 +41,22 @@ impl Collector {
             values: Vec::with_capacity(ITEMS),
             first: None,
             last: None,
+            first_allocations: None,
+            last_allocations: None,
         }
+    }
+}
+impl Collector {
+    fn allocation_window(&self) -> Result<crate::allocation::Interval, &'static str> {
+        self.first_allocations
+            .as_ref()
+            .ok_or("first allocation snapshot absent")?
+            .interval_to(
+                self.last_allocations
+                    .as_ref()
+                    .ok_or("last allocation snapshot absent")?,
+            )
+            .ok_or("allocation counters changed during completion window")
     }
 }
 impl ExternalForeOutputAdapter for Collector {
@@ -49,9 +66,11 @@ impl ExternalForeOutputAdapter for Collector {
         }
         if self.values.is_empty() {
             self.first = Some(Instant::now());
+            self.first_allocations = crate::allocation::snapshot();
         }
         if self.values.len() == ITEMS - 1 {
             self.last = Some(Instant::now());
+            self.last_allocations = crate::allocation::snapshot();
         }
         self.values.push(value);
         Ok(())
@@ -336,9 +355,11 @@ pub fn run(
             }
             let first = collector.first.ok_or("first acknowledgement absent")?;
             let last = collector.last.ok_or("last acknowledgement absent")?;
+            let post_first_output_allocations = collector.allocation_window()?;
             let row = json!({"case":id,"phase":"finite-ordinary-hosted-pipeline","repetition":repetition,"gears":gears,"values":ITEMS,"adds_per_value":ADDS,
                 "source_sha256":artifact::digest(source.as_bytes()),"ordered_output_sha256":digest,"full_host_call":full_call,"native_canonical_loop":native_metrics,
-                "first_acknowledgement_from_call_start_ns":timing::ns(first.duration_since(started)),"first_to_last_acknowledgement_ns":timing::ns(last.duration_since(first)),"completion_window_items":ITEMS-1,
+                "first_acknowledgement_from_call_start_ns":timing::ns(first.duration_since(started)),"first_to_last_acknowledgement_ns":timing::ns(last.duration_since(first)),"completion_window_items":ITEMS-1,"post_first_output_allocations":post_first_output_allocations,
+                "allocation_window_scope":"process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
                 "measurement_scope":"full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
                 "kernel_decisions":kernel.decisions,"retained_kernel_events":kernel.kernel_events,"active_play":play,"plan_id":prepared.plan.plan_id.as_str(),"signs":signs,"observations":report.observations,
                 "value_capacity_before":kernel.value_allocation_capacity_before,"value_capacity_after":kernel.value_allocation_capacity_after});

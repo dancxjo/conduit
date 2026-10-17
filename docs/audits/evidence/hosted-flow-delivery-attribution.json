@@ -1,0 +1,49 @@
+{
+  "measured_source": "0861fe53462bec4fe7b99885aee2a54f6c5be778",
+  "current_pr_head": "c39eddc74d53efa3e88e0055a4b45c7bcabe8947",
+  "receipt_sha256": "856856030433f1e47d0e6e94d9b07da63a3fe09667434ac88e93e58de7ebbb5a",
+  "source_files": {
+    "targets/std/src/installed_std.rs": {
+      "measured_blob": "ee89ed58eb89e44dd03b4819c662aa59194765b8",
+      "current_blob": "ee89ed58eb89e44dd03b4819c662aa59194765b8",
+      "unchanged": true,
+      "accepted_blob": "ee89ed58eb89e44dd03b4819c662aa59194765b8"
+    },
+    "targets/std/src/lib.rs": {
+      "measured_blob": "9a8b9b0dca404a0828737218b5d3d6289e2d54b9",
+      "current_blob": "9a8b9b0dca404a0828737218b5d3d6289e2d54b9",
+      "unchanged": true,
+      "accepted_blob": "9a8b9b0dca404a0828737218b5d3d6289e2d54b9"
+    },
+    "architecture/core/src/lib.rs": {
+      "measured_blob": "1aa34cd6444ee8de742e00daf0ba6162d0ae6411",
+      "current_blob": "1aa34cd6444ee8de742e00daf0ba6162d0ae6411",
+      "unchanged": true,
+      "accepted_blob": "1aa34cd6444ee8de742e00daf0ba6162d0ae6411"
+    }
+  },
+  "verified_windows": 27,
+  "source_explanation": {
+    "original_delivery": [
+      "front_port_id String clone: 6 bytes",
+      "value_kind String clone: 9 bytes",
+      "payload to_vec: 8 bytes"
+    ],
+    "adapter_delivery": "derived Clone repeats the same three owned-buffer allocations",
+    "per_output_allocations": 6,
+    "per_output_requested_bytes": 46,
+    "outputs_per_window": 63,
+    "window_expected": {
+      "allocations": 378,
+      "requested_bytes": 2898
+    }
+  },
+  "classification": "Source-supported attribution whose predicted count and requested byte extent match all 27 measured windows; not allocation stack sampling",
+  "limits": [
+    "Only this U64 Flow Fore delivery path; no whole-Host allocation or total compiler-copy claim",
+    "No optimization or speedup measured",
+    "Value-temporal outputs already have a distinct prepared-slot path; do not conflate it with this Flow path"
+  ],
+  "accepted_dev": "c339a75e8ce5015e3d35b289552176fc6a526790",
+  "all_source_files_identical_at_acceptance": true
+}

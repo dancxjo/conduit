@@ -361,7 +361,11 @@ fn source(source: &CostEvidenceSource<'_>, label: &str, out: &mut impl Write) ->
     )
 }
 
-fn stage_range(name: &str, range: Option<CostDurationRange>, out: &mut impl Write) -> fmt::Result {
+pub(super) fn stage_range(
+    name: &str,
+    range: Option<CostDurationRange>,
+    out: &mut impl Write,
+) -> fmt::Result {
     write!(out, "stage {name}=")?;
     if let Some(range) = range {
         for (index, duration) in [range.lower(), range.upper()].into_iter().enumerate() {
