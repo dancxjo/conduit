@@ -12,27 +12,6 @@ pub(crate) struct CanonicalSource {
 }
 
 pub(crate) fn load(path: &Path) -> Result<CanonicalSource, String> {
-    let (startup, profiles) = standard_catalogs()?;
-    load_with_catalogs(path, startup, profiles)
-}
-
-// Used by the library entrance; the binary compiles this module independently.
-#[allow(dead_code)]
-pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
-    let (startup, profiles) = standard_catalogs()?;
-    Ok(CanonicalSource {
-        source: source.into(),
-        syntax: conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup),
-        startup,
-        profiles,
-    })
-}
-
-fn load_with_catalogs(
-    path: &Path,
-    startup: StartupCatalog,
-    profiles: ProfileCatalog,
-) -> Result<CanonicalSource, String> {
     if path.extension().and_then(std::ffi::OsStr::to_str) != Some("conduit") {
         return Err(format!(
             "canonical Plot source must use the .conduit suffix: {}",
@@ -40,9 +19,27 @@ fn load_with_catalogs(
         ));
     }
     let source = fs::read_to_string(path).map_err(|error| error.to_string())?;
-    let syntax = conduit_plot::parse_syntax_document_with_glyph_notations(&source, &startup);
+    parse(&source)
+}
+
+// Used by the library entrance; the binary compiles this module independently.
+#[allow(dead_code)]
+pub(crate) fn parse(source: &str) -> Result<CanonicalSource, String> {
+    let (mut startup, mut profiles) = standard_catalogs()?;
+    let mut syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+    // Canonical paths remain present in direct invocations, Type references or
+    // explicit `with` declarations. Kind aliases resolve only to exact installed
+    // paths, so their declarations retain the dependency. Quoted text and
+    // comments must not turn an unrelated Body into DSP preparation.
+    if syntax.tokens.iter().any(|token| {
+        token.kind == conduit_plot::CstTokenKind::Lexeme
+            && (token.text == "audio/dsp" || token.text.starts_with("audio/dsp/"))
+    }) {
+        (startup, profiles) = dsp_catalogs()?;
+        syntax = conduit_plot::parse_syntax_document_with_glyph_notations(source, &startup);
+    }
     Ok(CanonicalSource {
-        source,
+        source: source.into(),
         syntax,
         startup,
         profiles,
@@ -179,7 +176,7 @@ fn dsp_source_backs_for(
     static BACKS: std::sync::OnceLock<Result<CanonicalBackCatalog, String>> =
         std::sync::OnceLock::new();
     match BACKS.get_or_init(|| {
-        let (_, profiles) = standard_catalogs()?;
+        let (_, profiles) = dsp_catalogs()?;
         let mut backs = CanonicalBackCatalog::new();
         conduit_semantic_catalog::install_dsp_source_backs(&profiles, &mut backs)?;
         Ok(backs)
@@ -195,10 +192,16 @@ fn standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
     // authority and each authored document are still admitted independently.
     static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
         std::sync::OnceLock::new();
-    CATALOGS.get_or_init(prepare_standard_catalogs).clone()
+    CATALOGS.get_or_init(|| prepare_catalogs(false)).clone()
 }
 
-fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+fn dsp_catalogs() -> Result<(StartupCatalog, ProfileCatalog), String> {
+    static CATALOGS: std::sync::OnceLock<Result<(StartupCatalog, ProfileCatalog), String>> =
+        std::sync::OnceLock::new();
+    CATALOGS.get_or_init(|| prepare_catalogs(true)).clone()
+}
+
+fn prepare_catalogs(include_dsp: bool) -> Result<(StartupCatalog, ProfileCatalog), String> {
     let mut startup = conduit_plot::checked_physical_catalog_for_document(
         &conduit_plot::parse_syntax_document(""),
         &conduit_signal::primary_signal_startup_catalog(),
@@ -206,7 +209,11 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
-    conduit_semantic_catalog::install_dsp_source_catalogs(&mut startup, &mut profiles)?;
+    if include_dsp {
+        // Keep shipped Types before other catalogs, as in the original full
+        // catalog. Extending an already prepared base would redeclare Types.
+        conduit_semantic_catalog::install_dsp_source_catalogs(&mut startup, &mut profiles)?;
+    }
     // This first Todo vertical has one exact authored initial Form and a leaf
     // combine Kind. Retained source uses the same catalog after owner restart.
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
@@ -269,6 +276,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn dsp_names_in_comments_and_text_do_not_prepare_the_component_catalog() {
+        let text = "# audio/dsp/gain\nplot message {\n value: text/literal(\"audio/dsp/gain\")\n show: face/text(\"Message\")\n value >> show.text\n}.\n";
+        let source = parse(text).unwrap();
+        source.check().unwrap();
+        assert!(source
+            .authoring_catalog()
+            .canonical_kind(&conduit_core::KindId::from("audio/dsp/gain"))
+            .is_none());
+    }
+
+    #[test]
+    fn a_shipped_dsp_type_selects_its_catalog_without_a_dsp_gear() {
+        let text = "with audio/dsp/GainControl as Input\nplot echo (\n >> value: Input...|\n result: Input...| >>\n) = (.)\n";
+        let source = parse(text).unwrap();
+        let checked = source.check().unwrap();
+        assert!(source
+            .authoring_catalog()
+            .canonical_kind(&conduit_core::KindId::from("audio/dsp/gain"))
+            .is_some());
+        assert!(dsp_source_backs_for(&checked).unwrap().is_none());
+    }
+
+    #[test]
     fn product_authoring_expands_the_owned_public_dsp_back() {
         let original = include_str!("../../../semantics/audio/dsp/public-gain.conduit");
         let alias = format!(
@@ -309,6 +339,13 @@ mod tests {
     #[test]
     fn ordinary_todo_source_expands_without_preparing_unused_dsp_owners() {
         let source = parse(include_str!("../../../plots/todo/live.conduit")).unwrap();
+        assert!(
+            source
+                .authoring_catalog()
+                .canonical_kind(&conduit_core::KindId::from("audio/dsp/gain"))
+                .is_none(),
+            "DSP catalog must remain unprepared for an unrelated Todo Source"
+        );
         assert!(dsp_source_backs_for(&source.check().unwrap())
             .unwrap()
             .is_none());
