@@ -15,6 +15,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #projectCollections;
   #supportsAction = () => true;
   #disabled = true;
+  #dispatched = false;
   #render;
   #layoutObserver;
   constructor() {
@@ -31,6 +32,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     // A removed surface no longer owns an active encounter. Reattachment or
     // re-enabling controls must not revive its old event-to-action bindings.
     this.#render = undefined;
+    this.#dispatched = true;
     this.disabled = true;
   }
   set disabled(value) {
@@ -55,13 +57,15 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     supportsAction = () => true } = {}) {
     const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
     const drafts = new Map();
-    // Retain unsent UI input only. A dispatched/disabled form starts fresh.
-    if (!this.#disabled && typeof view.body_id === 'string' && view.body_id) {
+    // Temporary refresh/preparation disables controls without submitting them.
+    // A dispatched or disconnected encounter starts with fresh input.
+    if (!this.#dispatched && typeof view.body_id === 'string' && view.body_id) {
       for (const input of this.#surface.querySelectorAll('[data-owner-draft]')) {
-        if (!input.disabled) drafts.set(input.dataset.ownerDraft, input.value);
+        if (input.dataset.unavailable !== 'true') drafts.set(input.dataset.ownerDraft, input.value);
       }
     }
     const render = this.#render = {};
+    this.#dispatched = false;
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
@@ -114,12 +118,19 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
-      let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
-      for (const argument of action.arguments ?? []) {
+      const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
+      let supported = Array.isArray(action.arguments) && argumentCount <= 64;
+      for (const argument of supported ? action.arguments : []) {
+        if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
+          || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {
+          supported = false;
+          continue;
+        }
         const label = faceNode('label', argument.value_name);
         let input;
         if (Array.isArray(argument.choices) && argument.choices.length) {
-          if (argument.choices.length > 64 || argument.choices.includes('')) {
+          if (argument.choices.length > 64 || argument.choices.some(choice =>
+            typeof choice !== 'string' || choice === '' || encoder.encode(choice).length > argument.maximum_bytes)) {
             supported = false;
             continue;
           }
@@ -133,8 +144,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
             input.append(option);
           }
           input.required = true;
-        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
-          && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
+        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text') {
           input = document.createElement('input');
           input.type = 'text'; input.maxLength = argument.maximum_bytes;
           input.addEventListener('input', () => input.setCustomValidity(
@@ -150,7 +160,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         input.dataset.ownerDraft = JSON.stringify([view.body_id, action.identity, action.target, argument]);
         const draft = drafts.get(input.dataset.ownerDraft);
-        if (draft !== undefined && actionReady(action)
+        if (draft !== undefined && input.dataset.unavailable !== 'true'
           && (argument.choices.length ? argument.choices.includes(draft)
             : encoder.encode(draft).length <= argument.maximum_bytes)) input.value = draft;
         label.append(input);
@@ -161,9 +171,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       button.setAttribute('part', 'button');
       button.type = 'submit';
       button.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'submit']);
-      button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
+      button.disabled = !actionReady(action) || !supported || inputs.length !== argumentCount;
       button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
-        || !supported || inputs.length !== action.arguments.length);
+        || !supported || inputs.length !== argumentCount);
       control.append(button);
       if (button.disabled) control.append(faceNode('p', !this.#supportsAction(action)
         ? 'This action is unavailable in this view.' : action.explanation ??
@@ -171,16 +181,18 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.addEventListener('submit', async event => {
         event.preventDefault();
         if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
-          || !supported || inputs.length !== action.arguments.length) return;
+          || !supported || inputs.length !== argumentCount) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
         for (const { input, argument } of inputs) {
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
-          } else input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
+          }
+          input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
             ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : '');
           if (!input.checkValidity()) return;
         }
+        this.#dispatched = true;
         this.disabled = true;
         await this.#invoke({ view, action, arguments: inputs.map(({ name, input }) => ({ name, value: input.value })) });
       });
@@ -284,10 +296,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       // A radio group requires exact semantic selection flags and one offered
       // zero-input action per option. Unfamiliar contracts keep the generic view.
       const offered = options.map(option => view.actions.filter(action => action.target === option?.identity));
-      if (!options.length || options.some((option, index) => !option
-        || option.flags?.filter(flag => flag.name === 'selected' && typeof flag.value === 'boolean').length !== 1
-        || offered[index].length !== 1 || offered[index][0].arguments.length !== 0)
-        || options.filter(option => option.flags.find(flag => flag.name === 'selected').value).length > 1) continue;
+      const selectedFlags = options.map(option => Array.isArray(option?.flags)
+        ? option.flags.filter(flag => flag?.name === 'selected') : []);
+      if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
+        || options.some((option, index) => !option || selectedFlags[index].length !== 1
+          || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
+          || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
+        || selectedFlags.filter(flags => flags[0].value).length > 1) continue;
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'owner-face-choice-group';
       bindRegion(fieldset, group);
@@ -306,7 +321,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'choice']);
         input.name = group.identity;
         input.value = option.identity;
-        input.checked = option.flags.find(flag => flag.name === 'selected').value;
+        input.checked = selectedFlags[index][0].value;
         input.disabled = !actionReady(action);
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         label.dataset.ownerAction = action.identity;
@@ -317,8 +332,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           if (!this.#reachable(input) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
-            control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;
+            control.checked = selectedFlags[optionIndex][0].value;
           });
+          this.#dispatched = true;
           this.disabled = true;
           await this.#invoke({ view, action, arguments: [] });
         });

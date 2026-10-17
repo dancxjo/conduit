@@ -158,3 +158,49 @@ for the exact route-change refusal, cleared acknowledgement, zero callback on
 an adversarial stale submit and trusted keyboard activation after a fresh Show;
 the three owner-route unit tests pass. These use a fixture SDK carrier through
 production Handbook orchestration, not real Body state or packaged acceptance.
+
+Malformed argument-contract follow-up (#5644): form rendering now refuses
+non-array/excessive argument lists without iterating them, validates nonnegative
+finite byte bounds before assigning native input properties, and refuses
+non-string/empty/oversized finite choice values. Submission rechecks byte limits for
+choice values as well as free text. Unsupported actions retain an explicit
+unsupported-form message while neighboring valid actions remain usable.
+
+Negative bounds reproduced a native DOM exception and oversized UTF-8 choices
+remained enabled before repair. The missing-list case already refused safely
+and remains a characterization. All thirty-three component Chromium tests pass
+with one worker and zero retries, including non-array lists, the 64-argument
+ceiling, no callback from forged submit and trusted keyboard activation of an
+unrelated valid action. These are renderer fixtures; authoritative Face/SDK/Body
+validation and packaged/public acceptance remain separate.
+
+Exclusive-choice fallback (#5367 / #5644): native radios now require distinct
+option identities, exactly one boolean selected flag per option and a well-formed
+zero-input action. Duplicate selected flags cannot be ignored merely because one
+has a nonboolean value. Unknown/malformed flag or argument lists use the existing
+generic subject/action rendering rather than throwing or inventing radio state.
+The validated selection flags also supply rendering and selection restoration.
+
+All four adversarial cases reproduced before repair: ambiguous flags, duplicate
+options, absent arguments and non-array flags. All thirty-seven component
+Chromium tests pass with one worker and zero retries. Each fallback case retains
+trusted keyboard activation of the valid individual action with its exact target
+and arguments; ordinary radio and stale-listener cases still pass. This is
+renderer fallback evidence, not authoritative admission of a malformed Face,
+unchanged Body state or packaged/public acceptance.
+
+Prepared-Show draft continuity (#5631): the actual Handbook refresh temporarily
+disables controls and renders a prepared Show before acknowledgement. Treating
+all disabled controls as dispatched erased unsent arguments along that path.
+The element now records dispatch separately: same-Body, unchanged-contract drafts
+can cross temporary disabling and prepared Shows without enabling actions.
+Dispatched and disconnected encounters discard drafts; current availability,
+exact argument contracts and byte/choice checks still govern restoration.
+
+The production Handbook fixture reproduced lost text before repair. All
+thirty-seven component Chromium tests pass with one worker and zero retries.
+The three orchestration cases now retain a Unicode draft through ordinary or
+interrupted refresh, submit that exact value through the current Show using
+trusted keyboard input, and verify empty fields after dispatch. SDK carrier
+remains a fixture; actual Body receipts, full focus continuity and packaged/public
+acceptance remain separate.

@@ -610,6 +610,8 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
       <a class="handbook-start"></a><div class="handbook-first-steps"></div>
       <div class="handbook-next"></div><div class="handbook-local-note"></div><main></main>`;
     const shown = { ...view, body_id: 'body/fixture', face_revision: '1',
+      actions: [{ ...view.actions[0], arguments: [{ name: 'draft', value_name: 'Draft',
+        value_kind: 'value/text', maximum_bytes: 16, choices: [] }] }],
       mask_plot_id: 'fixture/mask', mask_plan_id: 'fixture/plan', mask_play_id: 'fixture/play',
       route: { plan_id: 'fixture/route', owner_host_id: 'host/owner', owner_boot_id: 'boot/owner',
         mask_host_id: 'host/browser', mask_boot_id: 'boot/browser' } };
@@ -658,6 +660,8 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   await expect(page.locator('main')).toHaveAttribute('data-owner-face-shown', 'true');
   const button = owner.getByRole('button', { name: 'Complete task', exact: true });
   await expect(button).toBeEnabled();
+  const draft = owner.getByRole('textbox', { name: 'Draft', exact: true });
+  await draft.fill('é draft');
   await owner.evaluate(node => {
     globalThis.originalOwner = node;
     globalThis.disconnects = 0;
@@ -685,15 +689,85 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   const currentRevision = interruption ? '3' : '2';
   await expect(owner).toHaveAttribute('data-face-revision', currentRevision);
   await expect(button).toBeEnabled();
+  await expect(draft).toHaveValue('é draft');
   expect(await owner.evaluate(node => node === globalThis.originalOwner && globalThis.disconnects === 0)).toBe(true);
   await button.focus();
   await page.keyboard.press('Enter');
   await expect.poll(() => page.evaluate(() => globalThis.calls.length)).toBe(1);
   await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
+  await expect(draft).toHaveValue('');
   await expect(button).toBeEnabled();
   expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
     view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
-    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [], sequence: 1,
+    actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [{ name: 'draft', value: 'é draft' }], sequence: 1,
   });
 });
+}
+
+for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many']) {
+  test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const broken = { ...view.actions[0], identity: 'fixture/broken', name: 'Broken action', arguments: [{
+      name: 'value', value_name: 'Value', value_kind: 'value/text', maximum_bytes: 4, choices: [],
+    }] };
+    if (malformed === 'missing') delete broken.arguments;
+    if (malformed === 'non-array') broken.arguments = {};
+    if (malformed === 'too-many') broken.arguments = Array.from({ length: 65 }, (_, index) => ({
+      name: `value/${index}`, value_name: `Value ${index}`, value_kind: 'value/text', maximum_bytes: 4, choices: [],
+    }));
+    if (malformed === 'negative-bound') broken.arguments[0].maximum_bytes = -1;
+    if (malformed === 'choice-bytes') broken.arguments[0].choices = ['ééé'];
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, { ...view, actions: [broken, ...view.actions] });
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('button', { name: 'Broken action', exact: true })).toBeDisabled();
+    await expect(element.getByText('This input has no supported browser form.', { exact: true })).toBeVisible();
+    await expect(element.locator('form[data-owner-action="fixture/broken"] input')).toHaveCount(0);
+    await element.locator('form[data-owner-action="fixture/broken"]').evaluate(form =>
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const current = element.getByRole('button', { name: 'Complete task', exact: true });
+    await current.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.length)).toBe(1);
+    expect(await page.evaluate(() => globalThis.calls[0].action.identity)).toBe('fixture/complete');
+  });
+}
+
+for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-arguments', 'non-array-flags']) {
+  test(`exclusive-choice contracts use reachable generic fallback (${malformed})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const choices = { ...view,
+      subjects: [
+        { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
+          semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+        ...[0, 1].map(index => ({ ...view.subjects[0], identity: `fixture/option/${index}`,
+          name: `Mode ${index}`, flags: [{ name: 'selected', value: false }] })),
+      ],
+      relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
+      actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
+        target: `fixture/option/${index}`, name: `Select ${index}` })),
+    };
+    if (malformed === 'ambiguous-flag') choices.subjects[1].flags.unshift({ name: 'selected', value: 'false' });
+    if (malformed === 'duplicate-option') choices.relationships.push(choices.relationships[0]);
+    if (malformed === 'missing-arguments') delete choices.actions[0].arguments;
+    if (malformed === 'non-array-flags') choices.subjects[1].flags = {};
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, choices);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('radio')).toHaveCount(0);
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const action = element.getByRole('button', { name: 'Select 1', exact: true });
+    await expect(action).toBeEnabled();
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
+  });
 }
