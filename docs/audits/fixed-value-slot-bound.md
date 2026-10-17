@@ -34,3 +34,7 @@ formatting and diff checks. Existing production many-Host and 10,000-target
 allocation/ownership suites pass. Whole-workspace tests were not run for this
 slice. No CI dispatched or awaited; stable/physical/browser and parent acceptance
 remain open.
+
+Follow-up: `value-generation-retirement.md` supersedes the earlier wrapping
+behavior. The bound now excludes occupied **or retired** slots; ordinary dense
+fill and reusable-hole identity/probe observations above remain valid.

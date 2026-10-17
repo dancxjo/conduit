@@ -154,17 +154,23 @@ impl ValueStorage for HostedValueStore {
         {
             return Err(StorageError::ByteCapacityExceeded);
         }
+        let mut retired_fit = false;
         let (slot_index, slot) = self
             .slots
             .iter_mut()
             .enumerate()
-            .filter(|(_, slot)| slot.references == 0 && slot.bytes.capacity() >= bytes.len())
+            .filter(|(_, slot)| {
+                let free_fit = slot.references == 0 && slot.bytes.capacity() >= bytes.len();
+                retired_fit |= free_fit && slot.generation == u16::MAX;
+                free_fit && slot.generation != u16::MAX
+            })
             .min_by_key(|(_, slot)| slot.bytes.capacity())
-            .ok_or(StorageError::ItemCapacityExceeded)?;
-        slot.generation = slot.generation.wrapping_add(1);
-        if slot.generation == 0 {
-            slot.generation = 1;
-        }
+            .ok_or(if retired_fit {
+                StorageError::GenerationExhausted
+            } else {
+                StorageError::ItemCapacityExceeded
+            })?;
+        slot.generation += 1;
         slot.references = 1;
         slot.bytes.clear();
         slot.bytes.extend_from_slice(bytes);

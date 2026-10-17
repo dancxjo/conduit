@@ -409,6 +409,8 @@ pub enum StorageError {
     ValueTooLarge,
     StaleReference,
     ReferenceOverflow,
+    /// No reusable slot remains after finite reference generations retired.
+    GenerationExhausted,
 }
 
 pub trait ValueStorage {

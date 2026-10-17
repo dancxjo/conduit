@@ -24,8 +24,9 @@ pub struct FixedValueStore<const SLOTS: usize, const MAX_VALUE_BYTES: usize> {
     byte_capacity: u32,
     used_items: u16,
     used_bytes: u32,
-    // Every slot before this bound is occupied. Final release rewinds it.
+    // Every earlier slot is occupied or retired. Reusable release rewinds it.
     free_search_start: usize,
+    has_retired_slots: bool,
     #[cfg(test)]
     slot_probes: u64,
 }
@@ -50,6 +51,7 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> FixedValueStore<SLOTS, MA
             used_items: 0,
             used_bytes: 0,
             free_search_start: 0,
+            has_retired_slots: false,
             #[cfg(test)]
             slot_probes: 0,
         })
@@ -126,14 +128,15 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
                     *probes += 1;
                 }
             })
-            .find(|(_, slot)| slot.references == 0)
-            .ok_or(StorageError::ItemCapacityExceeded)?;
+            .find(|(_, slot)| slot.references == 0 && slot.generation != u16::MAX)
+            .ok_or(if self.has_retired_slots {
+                StorageError::GenerationExhausted
+            } else {
+                StorageError::ItemCapacityExceeded
+            })?;
         let slot_index = self.free_search_start + offset;
         self.free_search_start = slot_index + 1;
-        slot.generation = slot.generation.wrapping_add(1);
-        if slot.generation == 0 {
-            slot.generation = 1;
-        }
+        slot.generation += 1;
         slot.references = 1;
         slot.len = byte_len;
         slot.bytes[..bytes.len()].copy_from_slice(bytes);
@@ -175,13 +178,18 @@ impl<const SLOTS: usize, const MAX_VALUE_BYTES: usize> ValueStorage
             slot.len = 0;
             self.used_items -= 1;
             self.used_bytes -= len;
-            self.free_search_start = self.free_search_start.min(usize::from(value.slot));
+            if self.slots[usize::from(value.slot)].generation == u16::MAX {
+                self.has_retired_slots = true;
+            } else {
+                self.free_search_start = self.free_search_start.min(usize::from(value.slot));
+            }
         }
         Ok(())
     }
 
     fn clear(&mut self) {
         for slot in &mut self.slots {
+            self.has_retired_slots |= slot.generation == u16::MAX;
             slot.references = 0;
             slot.len = 0;
         }
