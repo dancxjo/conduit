@@ -67,8 +67,14 @@ work. The frame commits that cursor only after its noise, envelope and gain
 results are admitted; a refused frame retains its original cursor. Filter output
 clamps to ±32767 before envelope/gain. The experimental recurrence admits
 |b|≤8192 and |c|≤4096 in Q14, with histories in ±32767. Its absolute feedback
-sum is at most 3/4, and intermediate ordered sums fit I32. It is not an acoustic
-frequency/bandwidth projection. The cubic periodic source remains a limited
+sum is at most 3/4, and intermediate ordered sums fit I32. The caller may
+replace these experimental coefficients before each frame; every frame admits
+the same bounds, with no implicit interpolation or hidden retuning state. The
+uniform absolute feedback bound applies across abrupt changes, and the explicit
+clamp keeps committed histories within ±32767. Independent integer-reference
+and fresh-checkpoint tests exercise alternating coefficient-domain corners.
+This is not an acoustic frequency/bandwidth projection. The separate acoustic
+resonator retains its fixed-coefficient preparation/reset policy. The cubic periodic source remains a limited
 diagnostic profile; this composition supplies no new antialiasing claim.
 
 The two-source result includes both controls only when both frames are valid
