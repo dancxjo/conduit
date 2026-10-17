@@ -85,6 +85,7 @@ pub fn prepare_with_catalogues(
     let authored = expand_canonical_plot_for_authoring(&checked, entry, &profiles).unwrap();
     let pair = PreparedValuePairFactory::new(&contract, &stage, &contract, &stage).unwrap();
     let mut offers = vec![pair.offer().clone()];
+    let mut expression_capacity = 0;
     for gear in &authored.expanded.gears {
         if gear.kind_id.as_str() == conduit_semantic_catalog::VALUE_PAIR_KIND {
             continue;
@@ -93,7 +94,14 @@ pub fn prepare_with_catalogues(
             panic!("Source program")
         };
         let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
-        let offer = conduit_std_offers::pure_expression_local_offer(&program).unwrap();
+        expression_capacity = expression_capacity
+            .max(program.maximum_prepared_input_bytes().unwrap())
+            .max(program.maximum_prepared_output_bytes().unwrap());
+        let offer = if gear.inputs[0].temporal == PortTemporal::Value {
+            conduit_std_offers::pure_expression_local_offer(&program).unwrap()
+        } else {
+            conduit_std_offers::pure_expression_local_flow_offer(&program).unwrap()
+        };
         assert!(gear.accepts_realization(&offer));
         assert!(offer.host_calls.is_empty());
         if !offers
@@ -109,25 +117,25 @@ pub fn prepare_with_catalogues(
     let hosts = [host];
     let placements =
         conduit_planner::default_expanded_placements(&authored.expanded, &hosts).unwrap();
-    let boundaries = [
-        (PortDirection::Input, "value"),
-        (PortDirection::Output, "result"),
-    ]
-    .into_iter()
-    .map(|(direction, name)| {
-        (
-            conduit_planner::ForeBoundaryKey {
-                direction,
-                front_port_id: name.into(),
-                track: ConnectionTrack::Payload,
-            },
-            conduit_planner::ConnectionQueueLimits {
-                item_capacity: 1,
-                byte_capacity: 32768,
-            },
-        )
-    })
-    .collect();
+    let boundaries = authored
+        .front
+        .inputs()
+        .iter()
+        .chain(authored.front.outputs())
+        .map(|port| {
+            (
+                conduit_planner::ForeBoundaryKey {
+                    direction: port.direction,
+                    front_port_id: port.port_id.clone(),
+                    track: ConnectionTrack::Payload,
+                },
+                conduit_planner::ConnectionQueueLimits {
+                    item_capacity: 1,
+                    byte_capacity: 32768,
+                },
+            )
+        })
+        .collect();
     let capacity = authored
         .expanded
         .gears
@@ -135,7 +143,9 @@ pub fn prepare_with_catalogues(
         .flat_map(|gear| gear.semantic_contract.value_contracts())
         .map(|contract| contract.contract.maximum_bytes)
         .max()
-        .unwrap();
+        // Fixed-size records need no variable ValueContract; their prepared
+        // codec bounds still admit the exact connection storage.
+        .unwrap_or(expression_capacity);
     assert!(capacity as usize <= MAXIMUM_STRUCTURED_CANONICAL_BYTES);
     let plan = conduit_planner::plan_expanded_authoring_with_options(
         &authored,
