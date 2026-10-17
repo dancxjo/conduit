@@ -248,7 +248,23 @@ impl ApplicationView {
             }
         }
         structure::validate(&self.nodes)?;
+        if self.encoded_len() > MAX_APPLICATION_VIEW_BYTES {
+            return Err(ApplicationViewRefusal::OversizedEncoding);
+        }
         Ok(())
+    }
+
+    fn encoded_len(&self) -> usize {
+        7 + self
+            .actions
+            .iter()
+            .map(|action| 2 + action.id.len())
+            .sum::<usize>()
+            + self
+                .nodes
+                .iter()
+                .map(|node| 15 + node.key.len() + node.text.len() + node.value.len())
+                .sum::<usize>()
     }
 
     fn depth(&self, mut index: usize) -> Result<usize, ApplicationViewRefusal> {
@@ -270,7 +286,7 @@ impl ApplicationView {
 
     pub fn encode(&self) -> Result<Vec<u8>, ApplicationViewRefusal> {
         self.validate()?;
-        let mut out = Vec::with_capacity(8 + self.nodes.len() * 16);
+        let mut out = Vec::with_capacity(self.encoded_len());
         out.push(APPLICATION_VIEW_VERSION);
         out.extend_from_slice(&self.revision.to_le_bytes());
         out.push(self.nodes.len() as u8);

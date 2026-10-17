@@ -892,3 +892,15 @@ formatting passes. The browser fixture proves valid padded values render, arrow
 focus navigation emits no action, and native Enter emits the exact step action
 once. One worker, zero retries. These are admission/rendering proofs, not
 authoritative Body/Play or rebuilt/released browser acceptance.
+
+Portable view envelope follow-up (#5653): ApplicationView validation checks
+its exact version-10 encoded size after field/structure admission. Oversized
+views refuse before output allocation, and encoding reserves the admitted
+size up front instead of growing a small initial buffer through large fields.
+Existing field, topology and final output guards remain.
+
+Both regressions reproduced late successful validation before repair. All 43
+focused Rust tests pass with --no-default-features, including exact 131,072-byte
+view round-trip and one-byte-over refusal; Rust formatting passes. This is
+portable view work/size admission, not actual Body/Play or rebuilt/released
+browser acceptance.
