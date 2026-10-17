@@ -60,34 +60,43 @@ where
     }
 
     pub fn discard_host_value(&mut self, value: ValueRef) -> Result<(), HostValueDiscardRefusal> {
-        let pending = self
-            .pending_host_calls
-            .iter()
-            .take(if self.pending_host_count == 0 {
-                0
-            } else {
-                PENDING_REQUESTS
-            });
-        #[cfg(test)]
-        let pending = pending.inspect(|_| {
-            let mut counts = self.scan_counts.get();
-            counts.value_owner_pending_slots += 1;
-            self.scan_counts.set(counts);
-        });
-        if pending.flatten().any(|pending| {
-            pending.request.input.value == value
-                || pending
-                    .completion
-                    .and_then(|outcome| outcome.output)
-                    .map(|output| output.value)
-                    == Some(value)
-        }) || self.queue_owns_host_value(value)
-        {
+        if self.pending_owns_host_value(value) || self.queue_owns_host_value(value) {
             return Err(HostValueDiscardRefusal::ValueOwned);
         }
         self.values
             .release(value)
             .map_err(HostValueDiscardRefusal::Storage)
+    }
+
+    fn pending_owns_host_value(&self, value: ValueRef) -> bool {
+        let mut remaining = self.pending_host_count;
+        for entry in &self.pending_host_calls {
+            // Occupancy includes completions awaiting consumption. Once all
+            // live entries were visited, the remaining reserved tail is empty.
+            if remaining == 0 {
+                break;
+            }
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.value_owner_pending_slots += 1;
+                self.scan_counts.set(counts);
+            }
+            let Some(pending) = entry else {
+                continue;
+            };
+            remaining -= 1;
+            if pending.request.input.value == value
+                || pending
+                    .completion
+                    .and_then(|outcome| outcome.output)
+                    .map(|output| output.value)
+                    == Some(value)
+            {
+                return true;
+            }
+        }
+        false
     }
 
     fn queue_owns_host_value(&self, value: ValueRef) -> bool {
