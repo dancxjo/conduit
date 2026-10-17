@@ -50,6 +50,31 @@ test("BrowserBundle BUILD keeps distribution, revisions, dependencies, targets, 
   await expect(verifyBrowserBundleImage({ checked: checked(ids, "3"), release: widened, distribution })).rejects.toMatchObject({ code: "UnexpectedAsset" });
 });
 
+test("BrowserBundle BUILD refuses cyclic, ambiguous and unbounded module graphs", async () => {
+  const cases = [
+    ["self cycle", modules => { modules[0].dependencies = [modules[0].path]; }, "ModuleDependencyCycle"],
+    ["two-node cycle", modules => { modules[1].dependencies = [modules[0].path]; }, "ModuleDependencyCycle"],
+    ["duplicate declaration", modules => { modules.push({ ...modules[0] }); }, "ModuleDeclarationInvalid"],
+    ["undeclared dependency", modules => { modules[0].dependencies = ["runtime.wasm"]; }, "ModuleDependencyMissing"],
+    ["oversized dependencies", modules => { modules[0].dependencies = Array(17).fill(modules[1].path); }, "ModuleDeclarationInvalid"],
+  ];
+  const results = [];
+  for (const [name, mutate, code] of cases) {
+    const distribution = await fixture(value => mutate(value.manifest.reviewed_distribution.modules));
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push({ name, code: "accepted" });
+    } catch (error) { results.push({ name, code: error.code }); }
+  }
+  expect(results).toEqual(cases.map(([name, , code]) => ({ name, code })));
+
+  // A shared dependency is a DAG, not a cycle.
+  const shared = await fixture(value => {
+    value.manifest.reviewed_distribution.modules[2].dependencies = ["browser-host-bootstrap.mjs"];
+  });
+  await expect(buildBrowserBundleImage({ checked: checked(ids, "b"), distribution: shared })).resolves.toBeDefined();
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",

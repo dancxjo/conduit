@@ -157,11 +157,30 @@ function requireDistribution(distribution) {
     providers.add(item.id);
   }
   const paths = new Set(manifest.files.map((item) => item.path));
+  const modules = new Map();
   for (const module of reviewed.modules) {
-    if (!paths.has(module.path) || !Array.isArray(module.dependencies) || module.dependencies.some((path) => !paths.has(path))) {
+    if (!module || !boundedText(module.path, 256) || modules.has(module.path)
+      || !Array.isArray(module.dependencies) || module.dependencies.length > 16) {
+      refuse("ModuleDeclarationInvalid", "reviewed browser module declarations must be unique and finite");
+    }
+    if (!paths.has(module.path)) {
       refuse("ModuleDependencyMissing", "reviewed browser module dependency closure is incomplete");
     }
+    modules.set(module.path, module);
   }
+  const active = new Set();
+  const complete = new Set();
+  const visit = path => {
+    if (active.has(path)) refuse("ModuleDependencyCycle", "reviewed browser module dependency graph contains a cycle");
+    if (complete.has(path)) return;
+    const module = modules.get(path);
+    if (!module) refuse("ModuleDependencyMissing", "reviewed browser dependency has no module declaration");
+    active.add(path);
+    for (const dependency of module.dependencies) visit(dependency);
+    active.delete(path);
+    complete.add(path);
+  };
+  for (const path of modules.keys()) visit(path);
   return reviewed;
 }
 

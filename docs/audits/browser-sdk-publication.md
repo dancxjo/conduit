@@ -72,3 +72,18 @@ and stale digests all reproduced publication before repair, even with correctly
 rehashed IMAGE and release payloads. The focused fixture now refuses all four
 without output or staging residue; its valid fixture includes an exact boot
 declaration. This establishes producer consistency, not actual Boot execution.
+
+Bundle-build graph follow-up: reviewed module declarations must be unique,
+each dependency list must fit the SDK loader's existing 16-entry bound, every
+dependency must name a declared module, and the graph must be acyclic. Admission
+uses active/completed visitation over at most 32 modules and 16 edges per module;
+shared dependencies remain valid. Refusals distinguish invalid declarations,
+missing dependencies and cycles before emitting an IMAGE.
+
+Self-cycles, two-module cycles, duplicate declarations, dependencies on an asset
+without a module declaration and oversized dependency lists all reproduced
+acceptance before repair. Three focused builder tests now pass, including all
+five negative graphs and a positive shared-dependency graph, using the pinned
+Playwright runner with one worker and zero retries. These tests call production
+builder code in Node; they do not exercise browser module imports, establish
+public provenance or close #5453/#5510.
