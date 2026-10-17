@@ -1122,3 +1122,36 @@ for (const mode of ['held-space', 'blur-cancel']) {
       .toEqual({ calls: [{ action: 'select', value: 'gear' }], queued: 1 });
   });
 }
+
+for (const key of ['Control+ArrowRight', 'Alt+ArrowDown', 'Meta+End', 'Shift+ArrowRight', 'claimed-ArrowRight']) {
+  test(`roving focus respects modified or claimed navigation (${key})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async key => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.shortcutCalls = [];
+      manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'first', event: 'activate' }, { id: 'second', event: 'activate' }], nodes: [
+          { parent: null, component: 'stepper', key: 'steps', text: 'Steps', value: '1/2', valueCapacity: 16, action: null },
+          { parent: 0, component: 'button', key: 'first', text: 'First shortcut control', action: 0 },
+          { parent: 0, component: 'button', key: 'second', text: 'Second shortcut control', action: 1 },
+        ] }), root, { onEvent: event => globalThis.shortcutCalls.push(event.action) });
+      if (key === 'claimed-ArrowRight') {
+        const claim = event => event.preventDefault();
+        root.addEventListener('keydown', claim, { capture: true });
+        globalThis.releaseShortcutClaim = () => root.removeEventListener('keydown', claim, { capture: true });
+      }
+    }, key);
+    const first = page.getByRole('button', { name: 'First shortcut control', exact: true });
+    await first.focus();
+    await page.keyboard.press(key === 'claimed-ArrowRight' ? 'ArrowRight' : key);
+    await expect(first).toBeFocused();
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual([]);
+    if (key === 'claimed-ArrowRight') await page.evaluate(() => globalThis.releaseShortcutClaim());
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('button', { name: 'Second shortcut control', exact: true })).toBeFocused();
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual([]);
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual(['second']);
+  });
+}

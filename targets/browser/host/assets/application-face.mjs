@@ -385,6 +385,7 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
   const current = available.includes(selected) ? selected : available[0];
   controls.forEach(control => { control.tabIndex = control === current ? 0 : -1; });
   container.addEventListener("keydown", (event) => {
+    if (event.defaultPrevented || event.altKey || event.ctrlKey || event.metaKey || event.shiftKey) return;
     const available = controls.filter(control => control.isConnected && container.contains(control) && controlAvailable(control));
     const focused = available.indexOf(document.activeElement);
     if (focused < 0) return;

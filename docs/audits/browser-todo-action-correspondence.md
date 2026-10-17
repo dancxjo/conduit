@@ -1180,3 +1180,18 @@ held, one exact subject on release, cancellation after blur and later recovery.
 Existing native Enter/pointer routes, node/port/cord identities and closed
 availability also pass. These are renderer keyboard/queue proofs, not
 Body/Play, fresh packaged WASM or release acceptance; #5631 remains open.
+
+Roving keyboard ownership follow-up (#5631): generic navigation/stepper roving
+focus handles only unmodified, unconsumed key events. Control/Alt/Meta/Shift
+shortcuts and keys already claimed by another handler retain their native/Host
+path instead of being overwritten by local arrow/Home/End focus decoration.
+No semantic action or alternate authorization path is added.
+
+Four initial regressions reproduced focus capture before repair. Eleven focused
+pinned Chromium checks pass with one worker and zero retries, including all four
+modifier classes, a consumed native ArrowRight event, ordinary arrow recovery,
+exact subsequent Enter action, temporary peer availability, nested groups and
+stepper indices. These are renderer keyboard proofs, not authoritative Body/Play
+or packaged/release acceptance; #5631 remains open. Branch inventory found no
+ordinary branch with an identical archive/recovery tip eligible for deduplication;
+uncertain work remains preserved.
