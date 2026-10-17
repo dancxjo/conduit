@@ -42,6 +42,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
     const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
+    const drafts = new Map();
+    // Retain unsent UI input only. A dispatched/disabled form starts fresh.
+    if (!this.#disabled && typeof view.body_id === 'string' && view.body_id) {
+      for (const input of this.#surface.querySelectorAll('[data-owner-draft]')) {
+        if (!input.disabled) drafts.set(input.dataset.ownerDraft, input.value);
+      }
+    }
     const render = this.#render = {};
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
@@ -127,8 +134,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         }
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
-        input.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'argument', argument.name]);
+        input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'argument', argument.name]);
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
+        input.dataset.ownerDraft = JSON.stringify([view.body_id, action.identity, action.target, argument]);
+        const draft = drafts.get(input.dataset.ownerDraft);
+        if (draft !== undefined && actionReady(action)
+          && (argument.choices.length ? argument.choices.includes(draft)
+            : encoder.encode(draft).length <= argument.maximum_bytes)) input.value = draft;
         label.append(input);
         control.append(label);
         inputs.push({ name: argument.name, input, argument });
@@ -136,7 +148,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.setAttribute('part', 'button');
       button.type = 'submit';
-      button.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'submit']);
+      button.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'submit']);
       button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
       button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
         || !supported || inputs.length !== action.arguments.length);
@@ -279,7 +291,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.setAttribute('part', 'choice');
         input.setAttribute('part', 'input');
         input.type = 'radio';
-        input.dataset.ownerFocus = JSON.stringify([action.identity, action.target, 'choice']);
+        input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'choice']);
         input.name = group.identity;
         input.value = option.identity;
         input.checked = option.flags.find(flag => flag.name === 'selected').value;

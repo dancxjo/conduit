@@ -75,3 +75,20 @@ fixtures cover an unavailable action, a changed target and external focus that
 must not be stolen. This covers renderer-local refresh continuity, not recovery
 of focus already lost while awaiting an action, retention of unsubmitted edits,
 all hidden/removed-control paths or SDK/Body keyboard acceptance for #5631.
+
+
+Unsent text and finite-choice drafts now survive an ordinary enabled-form
+refresh only when Body, action, target and the complete serialized argument
+descriptor remain equal. Restoration rechecks UTF-8 bounds or offered choice
+membership and requires current action availability. Drafts are transient DOM
+state, not Body facts or submitted interactions; disabled/dispatched forms are
+not carried forward. Focus keys also include Body identity. No draft history
+or cross-Body cache is introduced.
+
+Both text and choice regressions failed before repair. All seventeen component
+Chromium tests pass with one worker and zero retries, covering unchanged
+contracts, contract changes, Body switches, completed dispatch and discarded
+programmatic over-limit/foreign-choice values. Current keyboard submission still
+uses the current view and argument guard. This extends #5631's local editing
+continuity; durable editing, asynchronous pending-action focus recovery and
+SDK/Body acceptance remain separate work.

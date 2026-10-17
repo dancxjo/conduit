@@ -2,7 +2,7 @@ import { expect, test } from '@playwright/test';
 
 // Renderer fixture only: the callback is not a Body/action receipt.
 const view = {
-  face_id: 'fixture/face', face_revision: 1, show_id: 'fixture/show',
+  body_id: 'fixture/body', face_id: 'fixture/face', face_revision: 1, show_id: 'fixture/show',
   show_state: 'available', interactions_admitted: true,
   subjects: [{ identity: 'fixture/task', name: 'Read the handbook', role: 'Info',
     disclosure: 'Primary', text: [], properties: [],
@@ -424,3 +424,53 @@ test('Face refresh neither transfers focus to a different target nor steals exte
   await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
   await expect(outside).toBeFocused();
 });
+
+for (const kind of ['text', 'choice']) {
+  test(`unsent ${kind} survives only an unchanged same-Body argument contract`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const argument = { name: 'value', value_name: 'Value', value_kind: 'value/text',
+      maximum_bytes: 16, choices: kind === 'choice' ? ['one', 'two'] : [] };
+    const currentView = { ...view, actions: [{ ...view.actions[0], arguments: [argument] }] };
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      globalThis.refresh = next => element.show(next, { invoke: async call => { globalThis.calls.push(call); } });
+      globalThis.refresh(view);
+    }, currentView);
+    const element = page.locator('conduit-owner-face');
+    const input = element.getByRole(kind === 'text' ? 'textbox' : 'combobox');
+    const value = kind === 'text' ? 'é draft' : 'two';
+    const edit = async () => kind === 'text' ? input.fill(value) : input.selectOption(value);
+    await input.evaluate((node, kind) => {
+      if (kind === 'text') node.value = 'x'.repeat(17);
+      else { node.add(new Option('foreign', 'foreign')); node.value = 'foreign'; }
+    }, kind);
+    await page.evaluate(next => globalThis.refresh(next), currentView);
+    await expect(input).toHaveValue('');
+    await edit();
+    const next = { ...currentView, face_revision: 2, show_id: 'fixture/draft-refresh' };
+    await page.evaluate(next => globalThis.refresh(next), next);
+    await expect(input).toHaveValue(value);
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const changed = { ...next, actions: [{ ...next.actions[0], arguments: [{
+      ...argument, maximum_bytes: 8,
+    }] }] };
+    await page.evaluate(next => globalThis.refresh(next), changed);
+    await expect(input).toHaveValue('');
+    await edit();
+    await input.focus();
+    await page.evaluate(next => globalThis.refresh({ ...next, body_id: 'fixture/other-body' }), changed);
+    await expect(input).toHaveValue('');
+    await expect(input).not.toBeFocused();
+    await edit();
+    const button = element.getByRole('button', { name: 'Complete task', exact: true });
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.length)).toBe(1);
+    await page.evaluate(next => globalThis.refresh({ ...next, body_id: 'fixture/other-body' }), changed);
+    await expect(input).toHaveValue('');
+  });
+}
