@@ -800,3 +800,38 @@ for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-argument
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   });
 }
+
+for (const enriched of ['collection', 'item', 'status']) {
+  test(`collection layout preserves additional ${enriched} semantics`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], values: [] });
+    const collection = subject('fixture/list', 'Tasks', 'Collection');
+    const item = { ...subject('fixture/item', 'Read', 'Item'), flags: [{ name: 'complete', value: false }] };
+    const status = { ...subject('fixture/status', 'Progress', 'Status'), text: ['1 thing left · 0 completed'] };
+    const extra = { collection, item, status }[enriched];
+    extra.properties = ['Important authored fact'];
+    extra.values = [{ name: 'Priority', text: 'Urgent' }];
+    if (enriched !== 'status') extra.text = ['Additional explanation'];
+    const currentView = { ...view, subjects: [collection, item, status],
+      relationships: [item, status].map(subject => ({ kind: 'Contains', source: collection.identity, target: subject.identity })),
+      actions: [{ ...view.actions[0], target: item.identity }],
+    };
+    await page.evaluate(async view => {
+      const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { projectCollections: projectFaceCollections,
+        invoke: async call => { globalThis.calls.push(call); } });
+    }, currentView);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('term')).toHaveText('Priority');
+    await expect(element.getByRole('definition')).toHaveText('Urgent');
+    if (enriched !== 'status') await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
+    await element.getByText('Exact facts', { exact: true }).click();
+    await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
+    const action = element.getByRole('button', { name: /^Complete task/ });
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
+      action: currentView.actions[0], arguments: [] }]);
+  });
+}

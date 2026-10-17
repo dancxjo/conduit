@@ -233,3 +233,18 @@ The strengthened focused selection/external-focus cases also pass, using trusted
 keyboard selection, replacement typing and Backspace to verify the preserved
 range through direct and prepared Show refreshes without invoking an action.
 Renderer fixtures do not establish actual Body or packaged/public acceptance.
+
+Collection semantic completeness (#5367): the specialized collection layout now
+falls back to generic subjects when collection/item named values or properties,
+or item explanatory text, would be omitted by its simplified rows. A count
+Status is folded only when it has no additional facts or targeted actions.
+Generic rendering preserves those authored values, facts and action routes;
+plain Todo collections retain their existing projection and counts.
+
+All three semantic-loss cases reproduced before repair. All forty component
+Chromium tests pass with one worker and zero retries, including visible named
+values, explanatory text, native disclosure of exact facts and trusted keyboard
+action invocation for enriched collection/item/status subjects. Four Handbook
+unit tests pass, including positive simple count projection and preservation of
+an actionable count Status. These are renderer/projector fixtures, not complete
+Face grammar coverage, real Body state or packaged/public acceptance.

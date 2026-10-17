@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence } from './owner-participation.mjs';
+import { checkedExpectedBodyId, checkedLoopbackOwnerWindow, checkedOwnerRouteEvidence, projectFaceCollections } from './owner-participation.mjs';
 
 test('Handbook owner window accepts only the local admitted carrier', () => {
   assert.equal(checkedLoopbackOwnerWindow('ws://127.0.0.1:41000/conduit'), 'ws://127.0.0.1:41000/conduit');
@@ -36,4 +36,23 @@ test('Handbook requires an exact bounded owner Body identity', () => {
   assert.equal(checkedExpectedBodyId(' body/owner '), 'body/owner');
   assert.throws(() => checkedExpectedBodyId(''), /exact Body ID/);
   assert.throws(() => checkedExpectedBodyId('x'.repeat(129)), /exact Body ID/);
+});
+
+
+test('simple collection projection folds only redundant count status', () => {
+  const collection = { identity: 'list', role: 'Collection', disclosure: 'Primary', properties: [], values: [] };
+  const item = { identity: 'item', role: 'Item', disclosure: 'Primary', text: [], properties: [], values: [],
+    flags: [{ name: 'complete', value: false }] };
+  const status = { identity: 'status', role: 'Status', text: ['1 thing left · 0 completed'], properties: [], values: [] };
+  const view = { subjects: [collection, item, status], actions: [], relationships: [item, status]
+    .map(subject => ({ kind: 'Contains', source: collection.identity, target: subject.identity })) };
+  const projected = projectFaceCollections(view);
+  assert.equal(projected.collections.length, 1);
+  assert.deepEqual(projected.collections[0].open, [item]);
+  assert.deepEqual(projected.collections[0].completed, []);
+  assert.equal(projected.collections[0].count, status.text[0]);
+  assert.deepEqual([...projected.placed], ['list', 'item', 'status']);
+  const actionable = projectFaceCollections({ ...view, actions: [{ identity: 'inspect', target: status.identity }] });
+  assert.equal(actionable.collections.length, 1);
+  assert.equal(actionable.placed.has(status.identity), false);
 });
