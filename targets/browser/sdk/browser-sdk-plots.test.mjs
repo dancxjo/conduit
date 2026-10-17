@@ -392,3 +392,54 @@ test("recovery preserves previously sealed pending history before replacing the 
   assert.equal(writes[0][1].key, "body-continuity");
   assert.equal(writes[0][1].value.source, source);
 });
+
+for (const operation of ['current', 'events', 'install']) {
+  test(`Body handles refuse a foreign Workspace snapshot before ${operation}`, async () => {
+    let current = bodySnapshot(3);
+    const requests = [];
+    const bridge = {
+      crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+      crecheBirth: () => ({ status: 0, outputJson: { body_id: 'body/1' } }),
+      crecheAttachHere: () => ({ status: 0, outputJson: { body_id: 'body/1' } }),
+      workspaceRequest(request) { requests.push(request); return { status: 0, outputJson: current }; },
+    };
+    const checked = { schema: 'conduit.browser/checked-plot@1', name: 'clock', source, documentSource: source,
+      sourceDocumentId: 'sha256:source', checkedPlotId: 'sha256:checked' };
+    const body = await birthBrowserBody({ bridge, host: 'host/1', boot: 'boot/1', membership: { advertisement: () => ({}) },
+      name: 'Clock', plots: [checked], sequence: () => 1 });
+    current = bodySnapshot(3); current.evidence.body_id = 'body/foreign';
+    current.evidence.records = [{ sequence: 1, sign_id: 'sign/foreign', kind: { Born: {} } }];
+    const request = operation === 'current' ? body.current()
+      : operation === 'events' ? body.events({ replay: true })[Symbol.asyncIterator]().next()
+        : body.install(checked);
+    await assert.rejects(request, error => error.code === 'BodyIdentityMismatch'
+      && error.identities.bodyId === 'body/1' && error.identities.bootId === 'boot/1');
+    assert.equal(requests.some(request => request.action === 'ChangeWorkset'), false);
+    assert.equal(body.id, 'body/1');
+    current = bodySnapshot(4);
+    assert.equal((await body.current()).evidence.body_id, 'body/1');
+    await body.close();
+  });
+}
+
+test('Body identity is anchored to an immutable private attachment receipt', async () => {
+  const receipt = { body_id: 'body/1', attachment: { host_id: 'host/1' } };
+  const bridge = {
+    crecheAdmitSourceInteraction: () => ({ status: 0, outputJson: {} }),
+    crecheBirth: () => ({ status: 0, outputJson: { body_id: 'body/1' } }),
+    crecheAttachHere: () => ({ status: 0, outputJson: receipt }),
+    workspaceRequest: () => ({ status: 0, outputJson: bodySnapshot(1) }),
+  };
+  const checked = { schema: 'conduit.browser/checked-plot@1', name: 'clock', source, documentSource: source,
+    sourceDocumentId: 'sha256:source', checkedPlotId: 'sha256:checked' };
+  const body = await birthBrowserBody({ bridge, host: 'host/1', boot: 'boot/1', membership: { advertisement: () => ({}) },
+    name: 'Clock', plots: [checked], sequence: () => 1 });
+  receipt.body_id = 'body/foreign'; receipt.attachment.host_id = 'host/foreign';
+  assert.equal(body.id, 'body/1');
+  assert.equal(body.receipt.attachment.host_id, 'host/1');
+  assert(Object.isFrozen(body.receipt));
+  assert(Object.isFrozen(body.receipt.attachment));
+  assert.throws(() => { body.receipt.body_id = 'body/forged'; }, TypeError);
+  assert.equal((await body.current()).evidence.body_id, 'body/1');
+  await body.close();
+});

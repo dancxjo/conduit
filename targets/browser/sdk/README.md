@@ -191,6 +191,11 @@ Body biography records, membership records, workload revision, realization,
 and current Host offers remain Rust evidence; the SDK returns a recursively
 frozen projection and keeps no second mutable Body store.
 
+The Body handle owns an immutable private snapshot of its attachment receipt.
+A current snapshot must retain the Body identity from that receipt.
+A foreign Workspace response refuses with `BodyIdentityMismatch` before returning
+it, projecting its event stream, or issuing a workset change based on it.
+
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a
 wake record to its indexed Rust wake event and returns the raw structured

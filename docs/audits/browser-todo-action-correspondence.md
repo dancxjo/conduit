@@ -1254,3 +1254,20 @@ records/history gap, cancellation before Host-offer notification and exact
 reservation/release counts. README states the boundary explicitly. These use
 canonical-shaped fixture snapshots and prove SDK iterator lifecycle, not actual
 Rust Body/Play, Custom Element or packaged/release acceptance; #5376 remains open.
+
+SDK Body identity continuity (#5622 boundary support): BrowserBody takes an
+immutable private snapshot of its attachment receipt. Current Workspace snapshots
+must match that exact Body identity before return, event replay or workset-change
+preparation; mismatches produce BodyIdentityMismatch with the handle's original
+Body/Host/Boot identities. This guards these read/preparation paths, not every
+Workspace effect or durable-storage boundary.
+
+All four regressions reproduced before repair: foreign current response, foreign
+event replay, foreign workset preparation and producer mutation of the retained
+receipt. The empty-record event baseline initially waited for a poll; that owned
+test process was stopped and its fixture corrected with one retained record.
+All 31 focused SDK Plot/event tests pass, including no ChangeWorkset request on
+mismatch, immutable nested receipt, original handle identity and recovery when a
+matching response returns. README records the exact refusal boundary. These use
+bridge fixtures and prove SDK identity custody, not actual Rust Body/Play,
+cross-Mask continuity or packaged/release acceptance; #5622 remains open.

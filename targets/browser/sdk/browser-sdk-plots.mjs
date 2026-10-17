@@ -107,7 +107,7 @@ export class BrowserBody {
     this.#createPlay = createPlay;
     this.#acquireBodyHost = acquireBodyHost;
     this.#advertisement = advertisement; this.#source = source;
-    this.#receipt = receipt; this.#sequence = sequence;
+    this.#receipt = freezeJsonValue(structuredClone(receipt)); this.#sequence = sequence;
     this.#storage = storage;
     this.#opened = opened;
   }
@@ -121,7 +121,12 @@ export class BrowserBody {
     await this.#openWorkspace();
     const { status, outputJson } = this.#bridge.workspaceRequest({ action: "Current" });
     if (status < 0) throw sdkRefusal("Body.current", outputJson, this.#identities());
-    return projectBodySnapshot(outputJson);
+    const snapshot = projectBodySnapshot(outputJson);
+    if (snapshot.evidence.body_id !== this.id) throw sdkRefusal("Body.current", {
+      code: "BodyIdentityMismatch",
+      message: "Workspace snapshot does not belong to this Body handle",
+    }, this.#identities());
+    return snapshot;
   }
 
   snapshot() { return this.current(); }
