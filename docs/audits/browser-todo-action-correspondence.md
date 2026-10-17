@@ -904,3 +904,16 @@ focused Rust tests pass with --no-default-features, including exact 131,072-byte
 view round-trip and one-byte-over refusal; Rust formatting passes. This is
 portable view work/size admission, not actual Body/Play or rebuilt/released
 browser acceptance.
+
+Generic action allocation follow-up (#5644): Host string requests whose UTF-16
+length already exceeds the event or control byte ceiling refuse before UTF-8
+encoding. The existing exact byte checks still handle multibyte strings and
+byte inputs. This prevents a transient encoded allocation proportional to an
+unadmitted string while preserving the existing refusal codes and empty queue.
+
+Both new Chromium regressions reproduced the oversized encoding attempt before
+repair. Ten focused pinned Chromium fixtures pass with one worker and zero
+retries, including malformed typed values, pre-encoding refusal, subsequent
+valid multibyte requests and native text input. All 19 Node codec tests pass.
+These are renderer admission/queue proofs, not authoritative Body/Play or fresh
+packaged/released browser acceptance; #5644 remains open.

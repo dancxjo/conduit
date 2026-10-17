@@ -503,3 +503,35 @@ test('padded numeric controls keep progress and focus-only navigation distinct',
   await page.keyboard.press('Enter');
   expect(await page.evaluate(() => globalThis.numericCalls)).toEqual(['step.second']);
 });
+
+for (const [capacity, length, refusal] of [[65_536, 65_537, 'event-too-large'], [4, 5, 'invalid-control-value']]) {
+  test(`generic text requests preflight string length (${refusal})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async ({ capacity, length }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const calls = [], refusals = [];
+      globalThis.preflightCalls = calls;
+      const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.input', event: 'input' }], nodes: [
+          { parent: null, component: 'text-input', key: 'input', text: 'Bounded input', valueCapacity: capacity, action: 0 },
+        ] }), root, { onEvent: event => calls.push(new TextDecoder().decode(event.value)),
+          onRefusal: reason => refusals.push(reason) });
+      const original = TextEncoder.prototype.encode;
+      let attemptedEncoding = false;
+      TextEncoder.prototype.encode = function(value) {
+        if (value.length === length) { attemptedEncoding = true; throw new Error('oversized allocation attempted'); }
+        return original.call(this, value);
+      };
+      try { manifest.requestAction('input', 'x'.repeat(length)); }
+      finally { TextEncoder.prototype.encode = original; }
+      const queued = manifest.queuedEvents();
+      manifest.requestAction('input', 'é');
+      return { attemptedEncoding, queued, refusals, calls };
+    }, { capacity, length });
+    expect(result).toEqual({ attemptedEncoding: false, queued: 0, refusals: [refusal], calls: ['é'] });
+    const input = page.getByRole('textbox', { name: 'Bounded input', exact: true });
+    await input.fill('ok');
+    expect(await page.evaluate(() => globalThis.preflightCalls)).toEqual(['é', 'ok']);
+  });
+}
