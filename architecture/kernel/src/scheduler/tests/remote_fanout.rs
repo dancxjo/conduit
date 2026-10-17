@@ -338,3 +338,84 @@ fn remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing() {
         }
     }
 }
+
+fn retire_value_slots(scheduler: &mut FanoutScheduler, slots: u16) -> ValueRef {
+    let mut first = None;
+    for slot in 0..slots {
+        for generation in 1..=u16::MAX {
+            let value = scheduler.store_host_value(b"x").unwrap();
+            first.get_or_insert(value);
+            assert_eq!((value.slot, value.generation), (slot, generation));
+            scheduler.discard_host_value(value).unwrap();
+        }
+    }
+    first.unwrap()
+}
+#[test]
+fn exhausted_generations_refuse_remote_publication_without_state_changes() {
+    for fanout in [false, true] {
+        let mut scheduler = scheduler(16);
+        scheduler.step().unwrap();
+        scheduler.step().unwrap();
+        assert_eq!(scheduler.step(), Ok(SchedulerStatus::Idle));
+        let stale = retire_value_slots(&mut scheduler, 2);
+        let signs = scheduler.signs.entries;
+        assert!(!scheduler.has_ready_work());
+        for _ in 0..2 {
+            let result = if fanout {
+                scheduler.admit_remote_input_fanout(&TARGETS, 0, b"n")
+            } else {
+                scheduler.admit_remote_input(TARGETS[0].0, TARGETS[0].1, 0, b"n")
+            };
+            assert_eq!(
+                result,
+                Err(SchedulerError::Storage(
+                    crate::StorageError::GenerationExhausted
+                ))
+            );
+            assert_eq!(scheduler.signs.entries, signs);
+            assert_eq!(scheduler.signs.remote_len(), 0);
+            assert_eq!(scheduler.values.used_items(), 0);
+            assert_eq!(scheduler.values.used_bytes(), 0);
+            assert!(!scheduler.has_ready_work());
+            assert_eq!(
+                scheduler.host_value(stale),
+                Err(SchedulerError::Storage(crate::StorageError::StaleReference))
+            );
+            for state in &scheduler.cords {
+                assert_eq!(state.len, 0);
+                assert_eq!(state.next_remote_sequence, 0);
+                assert!(!state.producer_closed);
+            }
+        }
+        // Remote closure is metadata-only and still fits its admitted Sign storage.
+        scheduler.close_remote_input_fanout(&TARGETS).unwrap();
+        assert_eq!(scheduler.signs.remote_len(), 2);
+        assert!(scheduler.cords.iter().all(|cord| cord.producer_closed));
+        assert_eq!(
+            scheduler.admit_remote_input_fanout(&TARGETS, 0, b"n"),
+            Err(SchedulerError::RemoteSequenceRejected)
+        );
+        scheduler.cancel().unwrap();
+    }
+}
+#[test]
+fn shared_remote_publication_uses_remaining_fresh_generation_slot() {
+    let mut scheduler = scheduler(16);
+    let stale = retire_value_slots(&mut scheduler, 1);
+    assert_eq!(
+        scheduler.admit_remote_input_fanout(&TARGETS, 0, b"n"),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 0 })
+    );
+    let value = scheduler.peek(0).unwrap().unwrap();
+    assert_eq!((value.slot, value.generation), (1, 1));
+    assert_eq!(scheduler.peek(1).unwrap(), Some(value));
+    assert_eq!(scheduler.values.reference_count(value), Ok(2));
+    assert_eq!(scheduler.values.used_items(), 1);
+    assert_eq!(
+        scheduler.host_value(stale),
+        Err(SchedulerError::Storage(crate::StorageError::StaleReference))
+    );
+    scheduler.cancel().unwrap();
+    assert_eq!(scheduler.values.used_items(), 0);
+}

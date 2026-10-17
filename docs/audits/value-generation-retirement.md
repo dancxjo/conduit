@@ -35,3 +35,23 @@ whole-workspace, browser, physical or stable acceptance claim is made. This adds
 an observable storage refusal for genuinely exhausted identity space; long-lived
 Hosts must propagate that refusal rather than retry forever. No CI dispatched
 or awaited; parent acceptance remains open.
+
+## Kernel remote-publication boundary
+
+Two focused scheduler regressions now retire slots through the public
+store_host_value/discard_host_value API rather than mutating internal generation
+fields. After retiring both fixed-store slots and reaching Idle, single-target
+and shared fan-out admission each refuse twice with GenerationExhausted. Exact
+Sign entries, remote Sign count, queue usage/sequence/open flags, value occupancy
+and unready state remain unchanged. Stale Host value inspection still refuses.
+Metadata-only remote closure remains admissible, and subsequent input correctly
+reports RemoteSequenceRejected before storage admission.
+
+With only the first slot retired, shared admission selects slot one at generation
+one, creates two references to a single one-byte value, and keeps the old
+same-length slot-zero reference stale. Cancellation releases the shared value.
+Both focused regressions pass under packed and linear ready selectors, alongside
+strict all-target kernel Clippy and formatting/diff checks. No production code
+changes in this proof slice. This establishes remote ingress behavior; broader
+terminal-publication rollback is not inferred from these cases. No CI dispatched
+or awaited.
