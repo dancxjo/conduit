@@ -5,7 +5,7 @@ use super::parser_selection_io::SourceGraph;
 use conduit_language::{
     discourse::prepare_vocative_fact, parser_model::english_parser_scorer_descriptor, *,
 };
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 
 pub fn observe(
     beam: &LanguageParserScorerBeam,

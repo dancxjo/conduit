@@ -233,18 +233,45 @@ fn unicode_runs_are_honest_unknown_units_not_segmented_language_claims() {
 
 #[test]
 fn explicit_punctuation_candidates_enter_available_prefix_without_granting_finality() {
-    let entries = [("Hello", LanguageLexicalPos::Interjection), (",", LanguageLexicalPos::Punctuation), (".", LanguageLexicalPos::Punctuation)]
-        .into_iter().map(|(surface, pos)| {
-            LanguageLexicalEntry::new(BoundedSequence::try_from_iter([
-                LanguageLexicalCandidate::new(surface.into(), BoundedSequence::new(), pos).unwrap()
-            ]).unwrap(), surface.into()).unwrap()
-        });
-    let profile = LanguageLexicalProfile::new(BoundedSequence::try_from_iter(entries).unwrap(), "explicit-punctuation".into(), LanguageId::new("language/en".into()).unwrap(), provenance()).unwrap();
-    for (text, available) in [("Hello ", 1), ("Hello, ", 2), ("Hello, Tr", 2), ("Hello,.", 3)] {
+    let entries = [
+        ("Hello", LanguageLexicalPos::Interjection),
+        (",", LanguageLexicalPos::Punctuation),
+        (".", LanguageLexicalPos::Punctuation),
+    ]
+    .into_iter()
+    .map(|(surface, pos)| {
+        LanguageLexicalEntry::new(
+            BoundedSequence::try_from_iter([LanguageLexicalCandidate::new(
+                surface.into(),
+                BoundedSequence::new(),
+                pos,
+            )
+            .unwrap()])
+            .unwrap(),
+            surface.into(),
+        )
+        .unwrap()
+    });
+    let profile = LanguageLexicalProfile::new(
+        BoundedSequence::try_from_iter(entries).unwrap(),
+        "explicit-punctuation".into(),
+        LanguageId::new("language/en".into()).unwrap(),
+        provenance(),
+    )
+    .unwrap();
+    for (text, available) in [
+        ("Hello ", 1),
+        ("Hello, ", 2),
+        ("Hello, Tr", 2),
+        ("Hello,.", 3),
+    ] {
         let source = revision(text, 0, None, None, LanguageTextFinality::Partial);
         let prepared = prepare_lexical_tape(&source, &profile, None).unwrap();
         assert!(LanguageParserAvailableLexical::new(prepared.tape().clone(), available).is_ok());
-        assert!(matches!(prepared.tape().source().finality(), LanguageTextFinality::Partial));
+        assert!(matches!(
+            prepared.tape().source().finality(),
+            LanguageTextFinality::Partial
+        ));
         if text.ends_with("Tr") {
             assert!(prepared.tape().tokens()[2].candidates().is_empty());
             assert!(LanguageParserAvailableLexical::new(prepared.tape().clone(), 3).is_err());

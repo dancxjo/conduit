@@ -4,7 +4,7 @@
 use super::parser_selection_driver::Decoder;
 use super::parser_selection_values::{profile, revision_with_text};
 use conduit_language::{lexical::prepare_lexical_tape, *};
-use serde_json::{Value, json};
+use serde_json::{json, Value};
 use std::time::Instant;
 
 fn ratio(numerator: u64, denominator: u64) -> Value {

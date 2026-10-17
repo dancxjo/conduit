@@ -3,8 +3,8 @@
 use conduit_ai::{integer_categorical_step::*, *};
 use conduit_core::*;
 use conduit_kernel::{
-    FixedRoutes, HostedSignLog, HostedValueStore, KernelEvent, PortId as KPort, ValueRef,
     scheduler::{FixedScheduler, StepBack, StepInputBytes, StepIo, StepOutcome},
+    FixedRoutes, HostedSignLog, HostedValueStore, KernelEvent, PortId as KPort, ValueRef,
 };
 use conduit_language::parser_model::*;
 use std::{cell::RefCell, rc::Rc, sync::Arc};
