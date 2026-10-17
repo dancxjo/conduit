@@ -163,7 +163,12 @@ impl ApplicationView {
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
-            if node.component == ApplicationComponent::Stepper && node.value.starts_with("0/") {
+            if node.component == ApplicationComponent::Stepper
+                && node
+                    .value
+                    .split_once('/')
+                    .is_some_and(|(current, _)| current.parse::<u16>() == Ok(0))
+            {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
             if node.component == ApplicationComponent::Navigation

@@ -153,6 +153,11 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
 
 pub(super) fn valid_progress(value: &str) -> bool {
     value.split_once('/').is_some_and(|(current, total)| {
+        if [current, total].iter().any(|part| {
+            part.is_empty() || part.len() > 5 || !part.bytes().all(|byte| byte.is_ascii_digit())
+        }) {
+            return false;
+        }
         current
             .parse::<u16>()
             .ok()

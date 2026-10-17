@@ -879,3 +879,16 @@ Both regressions reproduced admission before repair. All 39 focused Rust tests
 tests and four pinned Chromium boolean fixtures pass; browser proof uses one
 worker and zero retries. Rust formatting passes. This is lowering/admission and
 native control proof, not actual Body/Play or rebuilt/released browser acceptance.
+
+Numeric control admission follow-up (#5653): portable progress/stepper fields
+require the same one-to-five ASCII decimal digits per coordinate as the browser.
+Both admissions reject a numeric zero current step even when padded with zeroes;
+zero progress remains valid. Existing u16/range and child-count bounds remain.
+
+Regressions reproduced signed/overlong Rust acceptance and padded-zero stepper
+acceptance at both boundaries. All 41 focused Rust tests (--no-default-features),
+19 Node codec tests and one pinned Chromium numeric-control fixture pass; Rust
+formatting passes. The browser fixture proves valid padded values render, arrow
+focus navigation emits no action, and native Enter emits the exact step action
+once. One worker, zero retries. These are admission/rendering proofs, not
+authoritative Body/Play or rebuilt/released browser acceptance.

@@ -476,3 +476,30 @@ for (const input of ['keyboard', 'pointer', 'background', 'detached-subject', 'l
       .toEqual({ calls: expected, queued: expected.length });
   });
 }
+
+test('padded numeric controls keep progress and focus-only navigation distinct', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    globalThis.numericCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'step.first', event: 'activate' }, { id: 'step.second', event: 'activate' }], nodes: [
+        { parent: null, component: 'shell', key: 'root', text: '', action: null },
+        { parent: 0, component: 'progress', key: 'progress', text: 'Progress', value: '00/2', valueCapacity: 16, action: null },
+        { parent: 0, component: 'stepper', key: 'stepper', text: 'Steps', value: '01/2', valueCapacity: 16, action: null },
+        { parent: 2, component: 'button', key: 'first', text: 'First step', action: 0 },
+        { parent: 2, component: 'button', key: 'second', text: 'Second step', action: 1 },
+      ] }), root, { onEvent: event => globalThis.numericCalls.push(event.action) });
+  });
+  const progress = page.getByRole('progressbar', { name: 'Progress', exact: true });
+  await expect(progress).toHaveAttribute('value', '0'); await expect(progress).toHaveAttribute('max', '2');
+  const first = page.getByRole('button', { name: 'First step', exact: true });
+  const second = page.getByRole('button', { name: 'Second step', exact: true });
+  await expect(first).toHaveAttribute('aria-current', 'step');
+  await first.focus(); await page.keyboard.press('ArrowRight');
+  await expect(second).toBeFocused();
+  expect(await page.evaluate(() => globalThis.numericCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.numericCalls)).toEqual(['step.second']);
+});

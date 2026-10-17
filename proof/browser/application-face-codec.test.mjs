@@ -227,3 +227,20 @@ test('exclusive initial selection agrees with source lowering while independent 
   for (const index of [3, 5]) { view.nodes[index].component = 'independent-choice'; view.nodes[index].value = 'true'; }
   assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[5].value, 'true');
 });
+
+test('numeric control syntax and padded zero steps agree across masks', () => {
+  const control = (component, value) => ({ revision: 1, actions: [], nodes: [
+    { parent: null, component, key: 'control', text: 'Control', value, valueCapacity: 16, action: null },
+    ...(component === 'stepper' ? ['first', 'second'].map(key => ({ parent: 0, component: 'button', key, text: key, action: null })) : []),
+  ] });
+  for (const value of ['+1/2', '1/+2', '000001/2', '1/000002']) {
+    assert.throws(() => encodeApplicationView(control('progress', value)), { code: 'invalid-control-value' });
+  }
+  for (const value of ['0/2', '00/2', '00000/2']) {
+    assert.throws(() => encodeApplicationView(control('stepper', value)), { code: 'invalid-control-value' });
+    assert.equal(decodeApplicationView(encodeApplicationView(control('progress', value))).nodes[0].value, value);
+  }
+  for (const [component, value] of [['progress', '65535/65535'], ['stepper', '01/2']]) {
+    assert.equal(decodeApplicationView(encodeApplicationView(control(component, value))).nodes[0].value, value);
+  }
+});

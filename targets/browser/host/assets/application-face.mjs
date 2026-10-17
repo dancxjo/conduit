@@ -268,7 +268,7 @@ export function encodeApplicationView(view) {
       || (!hasValue && component !== 12 && (valueCapacity !== 0 || value.length !== 0))) refuse("invalid-control-value");
     if (component === 12 && ((value.length > 0 && (valueCapacity === 0 || valueCapacity > MAX_CONTROL_VALUE_BYTES || value.length > valueCapacity)) || (value.length === 0 && valueCapacity !== 0))) refuse("invalid-control-value");
     if ((component === 38 || component === 39) && !validProgress(new TextDecoder().decode(value))) refuse("invalid-control-value");
-    if (component === 38 && new TextDecoder().decode(value).startsWith("0/")) refuse("invalid-control-value");
+    if (component === 38 && Number(new TextDecoder().decode(value).split("/")[0]) === 0) refuse("invalid-control-value");
     const stateful = component === 8 || component === 15 || component === 16 || component === 17 || component === 43 || component === 44;
     if (state !== NODE_STATE_IDENTITIES.ready && (!stateful || action !== 255)) refuse("invalid-node-state");
     const nodeHeader = new Uint8Array(15);
