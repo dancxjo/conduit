@@ -7,7 +7,7 @@ use super::{
 use alloc::vec::Vec;
 use conduit_core::{
     ArtifactId, CostExecutionCondition, ExactNumericWork, ExactRational, HostAdvertisement,
-    MonotonicInstant, Plan, PoolCostCalibrationRevision, PoolCostPreparation,
+    MonotonicInstant, Plan, PlanId, PoolCostCalibrationRevision, PoolCostPreparation,
     PoolCostPreparationRefusal, PoolOperationId, PreparedPoolCost, QuantityRole, RationalQuantity,
     SharedPoolId, SignId, Unit,
 };
@@ -44,9 +44,21 @@ impl From<PoolCostPreparationRefusal> for PoolForecastPreparationRefusal {
         Self::Preparation(value)
     }
 }
+/// Exact operation owner that admitted this forecast's demand and realization.
+/// This is correlation for retained inspection, not authority to schedule work.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct PoolForecastBinding {
+    pub plan: PlanId,
+    pub pool: SharedPoolId,
+    pub operation: PoolOperationId,
+    pub demand: [u8; 32],
+    pub realization: u16,
+}
+
 /// Owned explanation retains stages and sources without canonical input bytes.
 #[derive(Debug)]
 pub struct PoolForecastPreparationAccount {
+    pub binding: PoolForecastBinding,
     pub source: CostSourceAttribution,
     pub calibration: Option<CostSourceAttribution>,
     pub execution_assumption: Option<(CostSourceAttribution, CostExecutionCondition)>,
@@ -157,6 +169,13 @@ pub fn prepare_pool_cost_forecast<'a>(
     Ok(PreparedPoolForecast {
         cost,
         account: PoolForecastPreparationAccount {
+            binding: PoolForecastBinding {
+                plan: input.plan.plan_id.clone(),
+                pool: input.pool.clone(),
+                operation: input.operation.clone(),
+                demand: input.demand_identity,
+                realization: input.realization,
+            },
             source: CostSourceAttribution::from_source(source),
             calibration: forecast
                 .calibration()
