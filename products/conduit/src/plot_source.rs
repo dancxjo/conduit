@@ -106,13 +106,19 @@ impl CanonicalSource {
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
         let checked = self.check()?;
         let entry = self.authored_entry_name()?;
-        let mut backs = CanonicalBackCatalog::new();
-        conduit_semantic_catalog::install_dsp_source_backs(&self.profiles, &mut backs)?;
+        let Some(backs) = dsp_source_backs_for(&checked)? else {
+            return conduit_plot::expand_canonical_plot_for_authoring(
+                &checked,
+                entry,
+                &self.profiles,
+            )
+            .map_err(|diagnostic| diagnostic.to_string());
+        };
         conduit_plot::expand_canonical_plot_for_authoring_with_backs(
             &checked,
             entry,
             &self.profiles,
-            &backs,
+            backs,
         )
         .map_err(|diagnostic| diagnostic.to_string())
     }
@@ -126,13 +132,60 @@ impl CanonicalSource {
     fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalPlot, String> {
         let checked = self.check()?;
         let entry = self.authored_entry_name()?;
-        let mut backs = CanonicalBackCatalog::new();
-        conduit_semantic_catalog::install_dsp_source_backs(&self.profiles, &mut backs)?;
+        let dsp = dsp_source_backs_for(&checked)?;
         if recursive {
+            let mut backs = dsp.cloned().unwrap_or_default();
             conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
+            return conduit_plot::expand_canonical_plot_with_backs(
+                &checked,
+                entry,
+                &self.profiles,
+                &backs,
+            )
+            .map_err(|diagnostic| diagnostic.to_string());
         }
-        conduit_plot::expand_canonical_plot_with_backs(&checked, entry, &self.profiles, &backs)
-            .map_err(|diagnostic| diagnostic.to_string())
+        match dsp {
+            Some(backs) => conduit_plot::expand_canonical_plot_with_backs(
+                &checked,
+                entry,
+                &self.profiles,
+                backs,
+            ),
+            None => conduit_plot::expand_canonical_plot(&checked, entry, &self.profiles),
+        }
+        .map_err(|diagnostic| diagnostic.to_string())
+    }
+}
+
+// Resolve aliases through checked meaning before selecting optional Source Backs.
+// Only immutable compiled definitions are cached; no Host offers or live state.
+fn dsp_source_backs_for(
+    checked: &conduit_plot::CheckedSyntaxDocument,
+) -> Result<Option<&'static CanonicalBackCatalog>, String> {
+    if !checked.plots.iter().any(|plot| {
+        plot.gears
+            .iter()
+            .chain(plot.cords.iter().flat_map(|cord| &cord.stages).filter_map(
+                |stage| match stage {
+                    conduit_plot::CheckedCordStage::InlineGear(gear)
+                    | conduit_plot::CheckedCordStage::RelationalGear { gear, .. } => Some(gear),
+                    _ => None,
+                },
+            ))
+            .any(|gear| gear.kind.starts_with("audio/dsp/"))
+    }) {
+        return Ok(None);
+    }
+    static BACKS: std::sync::OnceLock<Result<CanonicalBackCatalog, String>> =
+        std::sync::OnceLock::new();
+    match BACKS.get_or_init(|| {
+        let (_, profiles) = standard_catalogs()?;
+        let mut backs = CanonicalBackCatalog::new();
+        conduit_semantic_catalog::install_dsp_source_backs(&profiles, &mut backs)?;
+        Ok(backs)
+    }) {
+        Ok(backs) => Ok(Some(backs)),
+        Err(error) => Err(error.clone()),
     }
 }
 
@@ -217,13 +270,52 @@ mod tests {
 
     #[test]
     fn product_authoring_expands_the_owned_public_dsp_back() {
-        let source = parse(include_str!(
-            "../../../semantics/audio/dsp/public-gain.conduit"
-        ))
-        .unwrap();
-        let expanded = source.expand_entry_for_authoring().unwrap();
-        assert_eq!(expanded.expanded.name, "caller");
-        assert!(!expanded.expanded.gears.is_empty());
+        let original = include_str!("../../../semantics/audio/dsp/public-gain.conduit");
+        let alias = format!(
+            "with audio/dsp/gain as ApplyGain\n{}",
+            original.replace("audio/dsp/gain()", "ApplyGain()")
+        );
+        for text in [original, alias.as_str()] {
+            let source = parse(text).unwrap();
+            let checked = source.check().unwrap();
+            let first = dsp_source_backs_for(&checked).unwrap().unwrap();
+            let second = dsp_source_backs_for(&checked).unwrap().unwrap();
+            assert!(std::ptr::eq(first, second));
+            let expanded = source.expand_entry_for_authoring().unwrap();
+            assert_eq!(expanded.expanded.name, "caller");
+            assert!(!expanded.expanded.gears.is_empty());
+        }
+    }
+
+    #[test]
+    fn inline_dsp_selection_preserves_the_exact_port_contract() {
+        for (kind, import) in [
+            ("audio/dsp/gain", ""),
+            ("ApplyGain", "with audio/dsp/gain as ApplyGain\n"),
+        ] {
+            let text = format!("with audio/dsp/GainControl as Input\nwith audio/dsp/GainOutcome as Output\n{import}plot caller (\n >> value: Input...|\n result: Output...| >>\n) {{\n value >> {kind}() >> result\n}}\n");
+            let source = parse(&text).unwrap();
+            assert!(dsp_source_backs_for(&source.check().unwrap())
+                .unwrap()
+                .is_some());
+            // This Fore deliberately has named ports and no implicit shorthand.
+            let Err(error) = source.expand_entry_for_authoring() else {
+                panic!("DSP ports cannot be invented by inline selection")
+            };
+            assert!(error.contains("CND-FRM-044"), "{error}");
+        }
+    }
+
+    #[test]
+    fn ordinary_todo_source_expands_without_preparing_unused_dsp_owners() {
+        let source = parse(include_str!("../../../plots/todo/live.conduit")).unwrap();
+        assert!(dsp_source_backs_for(&source.check().unwrap())
+            .unwrap()
+            .is_none());
+        assert_eq!(
+            source.expand_entry_for_authoring().unwrap().expanded.name,
+            "todo/main"
+        );
     }
 
     #[test]
