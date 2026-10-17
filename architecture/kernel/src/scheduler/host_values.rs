@@ -60,23 +60,59 @@ where
     }
 
     pub fn discard_host_value(&mut self, value: ValueRef) -> Result<(), HostValueDiscardRefusal> {
-        if self.pending_host_calls.iter().flatten().any(|pending| {
+        let pending = self
+            .pending_host_calls
+            .iter()
+            .take(if self.pending_host_count == 0 {
+                0
+            } else {
+                PENDING_REQUESTS
+            });
+        #[cfg(test)]
+        let pending = pending.inspect(|_| {
+            let mut counts = self.scan_counts.get();
+            counts.value_owner_pending_slots += 1;
+            self.scan_counts.set(counts);
+        });
+        if pending.flatten().any(|pending| {
             pending.request.input.value == value
                 || pending
                     .completion
                     .and_then(|outcome| outcome.output)
                     .map(|output| output.value)
                     == Some(value)
-        }) || self
-            .queue_slots
-            .iter()
-            .flatten()
-            .any(|queued| *queued == value)
+        }) || self.queue_owns_host_value(value)
         {
             return Err(HostValueDiscardRefusal::ValueOwned);
         }
         self.values
             .release(value)
             .map_err(HostValueDiscardRefusal::Storage)
+    }
+
+    fn queue_owns_host_value(&self, value: ValueRef) -> bool {
+        self.cords[..self.active_cords]
+            .iter()
+            .enumerate()
+            .any(|(cord, state)| {
+                let spec = self.cord_specs[cord];
+                (0..state.len).any(|offset| {
+                    // Preserve ring order without overflowing a u16 head+offset.
+                    let until_wrap = spec.item_capacity - state.head;
+                    let position = if offset < until_wrap {
+                        state.head + offset
+                    } else {
+                        offset - until_wrap
+                    };
+                    let slot = usize::from(spec.slot_start) + usize::from(position);
+                    #[cfg(test)]
+                    {
+                        let mut counts = self.scan_counts.get();
+                        counts.value_owner_queue_slots += 1;
+                        self.scan_counts.set(counts);
+                    }
+                    self.queue_slots[slot] == Some(value)
+                })
+            })
     }
 }

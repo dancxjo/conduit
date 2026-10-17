@@ -11,6 +11,8 @@ pub(super) struct ScanCounts {
     pub retained_pending_slots: u64,
     pub dispatch_pending_slots: u64,
     pub cancellation_pending_slots: u64,
+    pub value_owner_pending_slots: u64,
+    pub value_owner_queue_slots: u64,
     pub input_ports: u64,
     pub cord_scans: u64,
     pub queue_peeks: u64,

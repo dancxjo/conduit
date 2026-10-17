@@ -17,6 +17,7 @@ mod host_alias;
 mod host_cancellation;
 mod host_cancellation_polling;
 mod host_index;
+mod host_value_occupancy;
 
 const NODES: usize = 6;
 const CORDS: usize = 5;
