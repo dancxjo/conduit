@@ -494,7 +494,7 @@
       "role": "browser-application-storage",
       "kind": "module",
       "path": "browser-application-storage.mjs",
-      "maximum_bytes": 16384,
+      "maximum_bytes": 24576,
       "dependencies": []
     },
     {
