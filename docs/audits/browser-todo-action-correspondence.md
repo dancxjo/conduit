@@ -92,3 +92,18 @@ programmatic over-limit/foreign-choice values. Current keyboard submission still
 uses the current view and argument guard. This extends #5631's local editing
 continuity; durable editing, asynchronous pending-action focus recovery and
 SDK/Body acceptance remain separate work.
+
+
+Disconnect follow-up for #5644: removing an owner Face surface invalidates its
+render token and disables its controls. Neither reattachment nor setting
+`disabled = false` restores the removed encounter's bindings; a fresh Show is
+required. Form and radio handlers also refuse while the element is detached,
+including a Show prepared before its first attachment.
+
+Both detached and reattached stale-form fixtures reproduced callback escape
+before repair. After repair the full fourteen-test component Chromium suite
+passed, followed by the added disconnected-radio fixture. After integrating
+the concurrent focus-preservation change, all eighteen component tests passed
+with one worker and zero retries. Fresh Shows restore trusted keyboard button/radio activation.
+Synthetic negative events establish renderer refusal only; these checks do not
+prove unchanged Body state, packaged acceptance or completion of #5644.

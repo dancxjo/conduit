@@ -26,7 +26,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#surface = document.createElement('div');
     shadow.append(look, this.#surface);
   }
-  disconnectedCallback() { this.#layoutObserver?.disconnect(); }
+  disconnectedCallback() {
+    this.#layoutObserver?.disconnect();
+    // A removed surface no longer owns an active encounter. Reattachment or
+    // re-enabling controls must not revive its old event-to-action bindings.
+    this.#render = undefined;
+    this.disabled = true;
+  }
   set disabled(value) {
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
@@ -158,7 +164,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
-        if (!this.#ready(view, action, render) || !this.#invoke
+        if (!this.isConnected || !this.#ready(view, action, render) || !this.#invoke
           || !supported || inputs.length !== action.arguments.length) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
@@ -302,7 +308,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.#ready(view, action, render) || !this.#invoke) return;
+          if (!this.isConnected || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;
