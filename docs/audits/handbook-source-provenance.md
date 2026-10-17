@@ -47,3 +47,18 @@ zero retries. The final record retains both successful corrections or only the
 successful sibling after failure. These are production recovery UI with fixture
 storage/checker tests; real IndexedDB failure, cross-tab persistence and packaged
 runtime acceptance are separate evidence.
+
+Storage-independent inspection (#5453): original packaged lessons, the selector
+and the plain source editor now initialize before reading saved corrections.
+Delayed storage no longer leaves an empty disabled rescue tool. Exact-source
+corrections are applied after the read; lesson selection and per-lesson unsent
+drafts entered during that wait survive both a successful read and read refusal.
+Host startup still uses the checked effective sources and does not silently
+reset continuity.
+
+The delayed-read fixture reproduced the disabled editor before repair. Six
+focused pinned Chromium fixtures pass with one worker and zero retries: the
+existing provenance and save-order/failure cases plus two held-read cases that
+exercise two lesson drafts and successful/refused storage. These exercise real
+Handbook orchestration with fixture storage/Host, not packaged WASM or public
+release acceptance.

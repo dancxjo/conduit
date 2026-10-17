@@ -74,14 +74,8 @@ export async function startApplication(application) {
   // A corrected packaged lesson may be retried without changing the signed package
   // or the original source. Overrides are exact-source scoped and independently
   // checked by the Rust checker on the next Boot.
-  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
-  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
-  const packagedPlots = specification.plots.map(plot => {
-    const original = application.text(plot.role);
-    const rescue = validRescueEdits.find(item => item?.name === plot.name && item.original === original
-      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
-    return { slug: plot.name, entry: plot.name, title: plot.title, source: rescue?.source ?? original };
-  });
+  const packagedPlots = specification.plots.map(plot => ({ slug: plot.name, entry: plot.name,
+    title: plot.title, source: application.text(plot.role) }));
   // Source inspection is available before any checker, Host or Body starts.
   // Drafts remain unapplied UI input; the original reviewed bundle stays exact.
   const openingDrafts = new Map();
@@ -112,6 +106,16 @@ export async function startApplication(application) {
   source.disabled = false; selector.disabled = false;
   selector.addEventListener('change', chooseOpeningSource);
   source.addEventListener('input', editOpeningSource);
+  // Storage can be slow or unavailable. Keep original sources inspectable
+  // while loading saved corrections, preserving any drafts made in that time.
+  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
+  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
+  for (const plot of packagedPlots) {
+    const rescue = validRescueEdits.find(item => item?.name === plot.entry && item.original === plot.source
+      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
+    if (rescue) plot.source = rescue.source;
+  }
+  inspectOpeningSource();
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;

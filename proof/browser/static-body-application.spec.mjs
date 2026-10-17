@@ -708,3 +708,45 @@ test(`Handbook correction saves retain sibling edits while a write is pending (f
   await expect(page.locator('[data-check]')).toContainText('Correction saved');
 });
 }
+
+for (const storageFails of [false, true]) {
+  test(`Handbook source inspection precedes rescue storage (failure: ${storageFails})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(storageFails => {
+      globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
+        document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+        return startApplication({
+          text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+            plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+          storage: {
+            readJson: async key => {
+              if (key !== 'handbook-source-rescue') return null;
+              await new Promise(resolve => { globalThis.releaseRescueRead = resolve; });
+              if (storageFails) throw new Error('Fixture storage read failure');
+              return ['first', 'second'].map(name => ({ name, original: `original ${name}`, source: `saved ${name}` }));
+            },
+            writeJson: async () => { throw new Error('Inspection must not write storage'); },
+          },
+          browser: async () => { throw new Error('Fixture Host unavailable'); },
+        });
+      });
+    }, storageFails);
+    const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+    const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+    await expect(editor).toBeEnabled();
+    await expect(chooser).toBeEnabled();
+    await expect(editor).toHaveValue('original first');
+    await editor.fill('unsent first draft');
+    await chooser.selectOption('second');
+    await editor.fill('unsent second draft');
+    await page.evaluate(async () => { globalThis.releaseRescueRead(); await globalThis.pendingHandbook; });
+    await expect(editor).toHaveValue('unsent second draft');
+    await chooser.selectOption({ label: `first (${storageFails ? 'packaged' : 'saved correction'})` });
+    await expect(editor).toHaveValue('unsent first draft');
+    if (!storageFails) {
+      await chooser.selectOption({ label: 'first (packaged)' });
+      await expect(editor).toHaveValue('original first');
+    }
+    await expect(editor).toBeEnabled();
+  });
+}
