@@ -81,7 +81,9 @@ fn narrow_page_golden_keeps_each_exact_gear_and_unicode_label_bounded() {
             .scene
             .commands()
             .iter()
-            .find(|c| c.text_role() == GraphicsTextRole::Heading && c.payload().starts_with("É中"))
+            .find(|c| {
+                c.text_role() == GraphicsTextRole::Heading && c.payload().starts_with("1 · É中")
+            })
             .expect("one visible Gear heading");
         assert!(title.payload().ends_with("..."));
         let layout = conduitos::display::typography::TextLayout::new(
@@ -233,4 +235,38 @@ fn selected_long_unicode_name_survives_all_rendered_details_pages() {
         "complete name must survive page/UTF-8 splits"
     );
     assert_eq!(scene.face(), &face);
+}
+
+#[test]
+fn numbered_card_keyboard_reading_works_without_semantic_input_authority() {
+    use conduit_human::{KeyEvent, KeyModifiers, KeyTransition};
+    use conduitos::native_face_scene::{FaceSceneError, FaceSceneInput};
+    let face = patchbay();
+    let show = fixture::show(&face);
+    let press = |usage| KeyEvent::new(usage, KeyTransition::Pressed, KeyModifiers::NONE).unwrap();
+    for admitted in [false, true] {
+        let mut scene =
+            NativeFaceScene::prepare_with_input(face.clone(), 640, 720, admitted).unwrap();
+        scene.show_diagram(true);
+        assert!(matches!(
+            scene.key(press(35), &show, 1),
+            Ok(FaceSceneInput::Unchanged)
+        ));
+        assert!(scene.showing_diagram());
+        assert!(matches!(
+            scene.key(press(31), &show, 2),
+            Ok(FaceSceneInput::Changed)
+        ));
+        assert!(scene.showing_details());
+        assert_eq!(scene.face(), &face);
+        scene.show_diagram(true);
+        let mut stale = show.clone();
+        stale.face_revision += 1;
+        assert!(matches!(
+            scene.key(press(30), &stale, 3),
+            Err(FaceSceneError::StaleFace)
+        ));
+        assert!(scene.showing_diagram());
+        assert_eq!(scene.face(), &face);
+    }
 }

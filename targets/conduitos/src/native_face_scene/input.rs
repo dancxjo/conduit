@@ -195,6 +195,20 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if self.showing_diagram
+            && event.transition() == KeyTransition::Pressed
+            && (30..=35).contains(&event.usage())
+        {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected =
+                hits[usize::from(event.usage() - 30)].map(|(_, identity)| String::from(identity));
+            if let Some(identity) = selected {
+                self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
+                return Ok(FaceSceneInput::Changed);
+            }
+            return Ok(FaceSceneInput::Unchanged);
+        }
         if !self.interaction_admitted {
             if event.transition() != KeyTransition::Pressed {
                 return Ok(FaceSceneInput::Unchanged);
