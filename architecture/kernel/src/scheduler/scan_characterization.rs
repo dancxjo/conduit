@@ -292,3 +292,6 @@ fn capture_small_and_large_selector_replay() {
         .join()
         .unwrap();
 }
+
+#[path = "sparse_large.rs"]
+mod sparse_large;
