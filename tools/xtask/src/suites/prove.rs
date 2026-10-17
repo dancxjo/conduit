@@ -231,7 +231,7 @@ pub const PROVE_LOCAL_MODEL_POOL_STEPS: &[Step] = &[
         "prove.local-model-pool.plan-play",
         "Prove two exact llm/generate Hosts use bounded in-Plan selection, refusal, and fresh replanning truth",
         "cargo",
-        &["test", "-p", "conduit-planner", "--test", "local_model_pool"],
+        &["test", "-p", "conduit-planner", "--test", "local_model_pool", "--test", "replan_triggers"],
         None,
         None,
         Some(ProofClass::HostedIntegration),
