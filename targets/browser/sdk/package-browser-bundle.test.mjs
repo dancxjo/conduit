@@ -191,6 +191,38 @@ try {
   }
   assert.deepEqual(runtimeResults, runtimeCases.map(entry => ({ name: entry.name, accepted: entry.accepted === true })));
 
+  const metadataCases = ["distribution-schema", "image-abi", "release-package", "release-output"];
+  const metadataResults = [];
+  for (const name of metadataCases) {
+    const variantSource = path.join(scratch, name);
+    const variantOutput = path.join(scratch, `${name}-package`);
+    await mkdir(variantSource);
+    const variantDistribution = structuredClone(distribution);
+    const variantImage = structuredClone(image);
+    const variantRelease = structuredClone(release);
+    if (name === "distribution-schema") variantDistribution.reviewed_distribution.schema = "unknown@1";
+    if (name === "image-abi") variantImage.reviewed_distribution.runtime_abi = "unknown@1";
+    if (name === "release-package") variantRelease.make_package_id = "native@1";
+    if (name === "release-output") variantRelease.output = "native-bundle";
+    const bytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    variantRelease.files = [runtimeFile, bootFile, await fileIdentity("conduit-browser-image.json", bytes)];
+    variantRelease.bundle_sha256 = await digestFiles(variantRelease.files);
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify(variantDistribution));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify(variantRelease));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), bytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), boot);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    metadataResults.push({ name, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /exact reviewed BrowserBundle/);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    }
+  }
+  assert.deepEqual(metadataResults, metadataCases.map(name => ({ name, accepted: false })));
+
   const inventoryCases = ["distribution-missing", "distribution-duplicate", "distribution-size", "distribution-order",
     "distribution-digest", "image-size", "image-digest", "image-media-type"];
   const inventoryResults = [];

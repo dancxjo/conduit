@@ -32,11 +32,14 @@ const manifests = await Promise.all([
 const [distribution, release, image] = manifests.map(manifest => manifest.value);
 if (distribution.schema !== RELEASE_SCHEMA || distribution.target_id !== "browser/wasm32/page"
   || distribution.make_package_id !== "browser-wasm@1" || distribution.output !== "browser-bundle"
+  || distribution.reviewed_distribution?.schema !== "conduit.browser/reviewed-distribution@1"
   || distribution.reviewed_distribution?.runtime_abi !== "conduit.browser/runtime-abi@1"
   || release.schema !== RELEASE_SCHEMA || release.target_id !== distribution.target_id
+  || release.make_package_id !== "browser-wasm@1" || release.output !== "browser-bundle"
   || release.distribution_id !== distribution.reviewed_distribution.distribution_id
   || release.distribution_sha256 !== distribution.bundle_sha256
   || image.schema !== "conduit.browser/bundle-image@1"
+  || image.reviewed_distribution?.runtime_abi !== distribution.reviewed_distribution.runtime_abi
   || image.image_id !== release.browser_image_id || image.profile_id !== release.browser_profile_id
   || image.reviewed_distribution?.distribution_digest !== distribution.bundle_sha256) {
   throw new Error("SDK package source is not an exact reviewed BrowserBundle for the supported runtime ABI");

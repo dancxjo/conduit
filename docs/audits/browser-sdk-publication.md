@@ -49,3 +49,10 @@ producer fixture now refuses all eight without output or staging residue and
 retains successful packaging and the earlier envelope/publication checks. This
 is producer fixture evidence; executable runtime, packaged browser, historical
 source provenance and public release acceptance remain unproven.
+
+Consumer-metadata follow-up: producer admission now checks the reviewed-
+distribution schema, IMAGE runtime ABI and release package/output fields that
+the browser SDK requires. All four incompatible variants were accepted before
+repair despite correctly hashed payloads. The focused fixture now refuses each
+without output or staging residue and retains the valid-package checks. These
+metadata fixtures do not establish executable ABI or packaged browser proof.
