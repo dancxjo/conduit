@@ -1,0 +1,326 @@
+{
+  "source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "kernel_observations_verified": 192,
+  "kernel_artifact_sha256": {
+    "build.jsonl": "b224926098fb6cf856f769603b0ea516bad2a389d95b4f7b3bc29e19b159a17a",
+    "build.stderr.log": "76e954b20d86b56ddb1b2bdb75de05a45cbd483815f9eaa5f65207ef15922f28",
+    "clean.stderr.log": "e78241112edca65d2535fd3974d7b9bd98c2c897843483ceca924bbc98b5a339",
+    "clean.stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "metadata.json": "2394c3de96115518c72eb880dc6ff15d7c4ac6b020f526e89346d70cad70b354",
+    "process-0.replays.json": "a37b42db25d1ef7c3a8dee30043e2a344c6d7a1deafbe0eb18bda4e56f8a1436",
+    "process-0.resource.log": "57f20a21e1a6acb77c5931fb032b7992f2204b7ded811912d07d33c4a272921f",
+    "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-0.stdout.log": "ddf5db6675a3361629d5f5626c3eb707e5c4ef4dcaa24f1573add444f809a065",
+    "process-1.replays.json": "a37b42db25d1ef7c3a8dee30043e2a344c6d7a1deafbe0eb18bda4e56f8a1436",
+    "process-1.resource.log": "0b5d8c7bf6ae85227f87130d3d0500125ee130e47cc5b83045ac6758db0941da",
+    "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-1.stdout.log": "cdd69792215d9169db1e2ba65f5a950d3cc9bf78fbc3ca07c5e11f3d7dd8b988",
+    "process-2.replays.json": "a37b42db25d1ef7c3a8dee30043e2a344c6d7a1deafbe0eb18bda4e56f8a1436",
+    "process-2.resource.log": "9c40d8e95de9abde4f67c18ec80060077e48a9fba5589e2e6e3c934d4675c3c2",
+    "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-2.stdout.log": "a1e3a0c2f3cf5ee89cad5bba0c420647e484540b9fb11133ea27446e655aa46e",
+    "processes.json": "554ddeef68772d5d974ca273cfe490f92d390755eca37bc915dbf90092229687",
+    "raw.json": "1306adbd10cdfdcc363618fc0f614892d299b742e5b57590863764cff53307c9",
+    "summary.json": "68bf866a760d6489c44bd9e3e853e8a322378ff907dde7719a556701293e07a7"
+  },
+  "kernel_summary": [
+    {
+      "active": 1,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": [
+        637,
+        504.375,
+        623.375
+      ],
+      "mean_fixture_advance_ns": 588.25,
+      "sample_sd_process_mean_ns": 72.95664380301496,
+      "mean_ns_per_useful_received_value": 588.25,
+      "useful_received_values_per_fixture": 1,
+      "samples": 24
+    },
+    {
+      "active": 1,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": [
+        271.75,
+        275.75,
+        262.75
+      ],
+      "mean_fixture_advance_ns": 270.0833333333333,
+      "sample_sd_process_mean_ns": 6.6583281184793925,
+      "mean_ns_per_useful_received_value": 270.0833333333333,
+      "useful_received_values_per_fixture": 1,
+      "samples": 24
+    },
+    {
+      "active": 8,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": [
+        1041.75,
+        1001.25,
+        1009
+      ],
+      "mean_fixture_advance_ns": 1017.3333333333334,
+      "sample_sd_process_mean_ns": 21.49757738288976,
+      "mean_ns_per_useful_received_value": 127.16666666666667,
+      "useful_received_values_per_fixture": 8,
+      "samples": 24
+    },
+    {
+      "active": 8,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": [
+        241.75,
+        278.125,
+        237.375
+      ],
+      "mean_fixture_advance_ns": 252.41666666666666,
+      "sample_sd_process_mean_ns": 22.371275295193463,
+      "mean_ns_per_useful_received_value": 252.41666666666666,
+      "useful_received_values_per_fixture": 1,
+      "samples": 24
+    },
+    {
+      "active": 32,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": [
+        2955.875,
+        2931.75,
+        2928.125
+      ],
+      "mean_fixture_advance_ns": 2938.5833333333335,
+      "sample_sd_process_mean_ns": 15.084311662562973,
+      "mean_ns_per_useful_received_value": 91.83072916666667,
+      "useful_received_values_per_fixture": 32,
+      "samples": 24
+    },
+    {
+      "active": 32,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": [
+        248.625,
+        237,
+        254.75
+      ],
+      "mean_fixture_advance_ns": 246.79166666666666,
+      "sample_sd_process_mean_ns": 9.015900306310698,
+      "mean_ns_per_useful_received_value": 246.79166666666666,
+      "useful_received_values_per_fixture": 1,
+      "samples": 24
+    },
+    {
+      "active": 256,
+      "sparse": false,
+      "process_mean_fixture_advance_ns": [
+        21930.625,
+        21594.5,
+        21670.875
+      ],
+      "mean_fixture_advance_ns": 21732.0,
+      "sample_sd_process_mean_ns": 176.20216549463856,
+      "mean_ns_per_useful_received_value": 84.890625,
+      "useful_received_values_per_fixture": 256,
+      "samples": 24
+    },
+    {
+      "active": 256,
+      "sparse": true,
+      "process_mean_fixture_advance_ns": [
+        305.625,
+        261.875,
+        244.625
+      ],
+      "mean_fixture_advance_ns": 270.7083333333333,
+      "sample_sd_process_mean_ns": 31.4447266379171,
+      "mean_ns_per_useful_received_value": 270.7083333333333,
+      "useful_received_values_per_fixture": 1,
+      "samples": 24
+    }
+  ],
+  "sign_observations_verified": 480,
+  "sign_artifact_sha256": {
+    "build.jsonl": "a243fc5b9a0e3d04357f4ed9fe3b0267b521c04772e064549c9fe1f688d524ed",
+    "build.stderr.log": "8bfde1c3963b7c9a32c6b341960bb8dadc8d6198b652156daa5ef04692f2e54f",
+    "metadata.json": "7f724a4a1cff115253dbf9ea368db0065894754ca7ed0845140f0045f3e14a73",
+    "observations.json": "d285320d6ef4007ae8e9bb25edbdb637df2154fee28b1cf52ea1560be05dc9aa",
+    "process-0.resource.log": "f8ec7b7e0a0bccaae914f8a0b9d949f9ae0749cbfdfe8a544c52315f2e0ffe03",
+    "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-0.stdout.log": "d4348b2c5ff788c4105f8710a1251cb5ef328f6c56b6f2a8dce7300774fc372a",
+    "process-1.resource.log": "95b70abc2fe469294bd9e231824fe99325a7730f68e0168ce9394fb095522f11",
+    "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-1.stdout.log": "4249b893c34d44329a54160bc6250ddda9ebe8569567088a827660a9c67602c0",
+    "process-2.resource.log": "1fd7393ace65a79e6c3a2dd60b2b778dcf2406cd1880553ec4ba45f9b52489a0",
+    "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+    "process-2.stdout.log": "33d6b790f12bbfc2280121fe8cafbf6622db5015de40298c1222d0feeeccf477"
+  },
+  "sign_summary": [
+    {
+      "capacity": 1,
+      "phase": "prepare_ns",
+      "process_means_ns": [
+        12.40625,
+        12.1875,
+        12.1875
+      ],
+      "mean_ns": 12.260416666666666,
+      "process_mean_sample_sd_ns": 0.12629537138523064
+    },
+    {
+      "capacity": 1,
+      "phase": "append_ns",
+      "process_means_ns": [
+        19.9375,
+        20.5,
+        21.09375
+      ],
+      "mean_ns": 20.510416666666668,
+      "process_mean_sample_sd_ns": 0.5781953785990799
+    },
+    {
+      "capacity": 1,
+      "phase": "full_retention_ns",
+      "process_means_ns": [
+        26.90625,
+        27.21875,
+        26.8125
+      ],
+      "mean_ns": 26.979166666666668,
+      "process_mean_sample_sd_ns": 0.21271435267356392
+    },
+    {
+      "capacity": 8,
+      "phase": "prepare_ns",
+      "process_means_ns": [
+        13.71875,
+        14.125,
+        18
+      ],
+      "mean_ns": 15.28125,
+      "process_mean_sample_sd_ns": 2.363252195069329
+    },
+    {
+      "capacity": 8,
+      "phase": "append_ns",
+      "process_means_ns": [
+        114.65625,
+        111.90625,
+        113
+      ],
+      "mean_ns": 113.1875,
+      "process_mean_sample_sd_ns": 1.3845548698047325
+    },
+    {
+      "capacity": 8,
+      "phase": "full_retention_ns",
+      "process_means_ns": [
+        168.25,
+        172.4375,
+        168.15625
+      ],
+      "mean_ns": 169.61458333333334,
+      "process_mean_sample_sd_ns": 2.445166895292289
+    },
+    {
+      "capacity": 32,
+      "phase": "prepare_ns",
+      "process_means_ns": [
+        15.53125,
+        16.1875,
+        16.375
+      ],
+      "mean_ns": 16.03125,
+      "process_mean_sample_sd_ns": 0.44304521496118204
+    },
+    {
+      "capacity": 32,
+      "phase": "append_ns",
+      "process_means_ns": [
+        270.78125,
+        269.21875,
+        274.9375
+      ],
+      "mean_ns": 271.6458333333333,
+      "process_mean_sample_sd_ns": 2.955783085044187
+    },
+    {
+      "capacity": 32,
+      "phase": "full_retention_ns",
+      "process_means_ns": [
+        605.1875,
+        613.34375,
+        600.03125
+      ],
+      "mean_ns": 606.1875,
+      "process_mean_sample_sd_ns": 6.712351604504937
+    },
+    {
+      "capacity": 128,
+      "phase": "prepare_ns",
+      "process_means_ns": [
+        143.59375,
+        145.71875,
+        144.46875
+      ],
+      "mean_ns": 144.59375,
+      "process_mean_sample_sd_ns": 1.0680004681646913
+    },
+    {
+      "capacity": 128,
+      "phase": "append_ns",
+      "process_means_ns": [
+        1063.46875,
+        1067.28125,
+        1058.25
+      ],
+      "mean_ns": 1063.0,
+      "process_mean_sample_sd_ns": 4.533835469279846
+    },
+    {
+      "capacity": 128,
+      "phase": "full_retention_ns",
+      "process_means_ns": [
+        3498.5,
+        3529.40625,
+        3517.5
+      ],
+      "mean_ns": 3515.1354166666665,
+      "process_mean_sample_sd_ns": 15.588217121301374
+    },
+    {
+      "capacity": 1024,
+      "phase": "prepare_ns",
+      "process_means_ns": [
+        1741.84375,
+        1662.90625,
+        1696.84375
+      ],
+      "mean_ns": 1700.53125,
+      "process_mean_sample_sd_ns": 39.5977331264051
+    },
+    {
+      "capacity": 1024,
+      "phase": "append_ns",
+      "process_means_ns": [
+        8266.9375,
+        8261,
+        8257.59375
+      ],
+      "mean_ns": 8261.84375,
+      "process_mean_sample_sd_ns": 4.728673340642172
+    },
+    {
+      "capacity": 1024,
+      "phase": "full_retention_ns",
+      "process_means_ns": [
+        133768.875,
+        132990.28125,
+        132783.6875
+      ],
+      "mean_ns": 133180.94791666666,
+      "process_mean_sample_sd_ns": 519.5324204247468
+    }
+  ],
+  "proof_sha256": "5f914806d377d9d45a990b55299111495b6960566bdbbbfa4f3392afa679eb35",
+  "kernel_verifier_sha256": "410388538b3b1edda025cda43a0e8208ebfbdfa88c4df4ccca49962bf4a29c0b",
+  "limits": "Instrumented fixed-kernel byte sinks and real native Sign-record batches; not whole-Host CPU share, total memory traffic, physical or browser proof."
+}

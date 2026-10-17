@@ -1,3 +1,7 @@
+> Current parent #5395 results are in [the final report](runtime-performance-5395-final.md)
+> and [acceptance audit](runtime-performance-5395-closure.md). This older #5538
+> report remains historical evidence at its original Source.
+
 # Repeated runtime measurements and report-only CI
 
 For #5538, the existing `cargo xtask prove runtime-performance` entrance retains

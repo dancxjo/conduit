@@ -1,0 +1,65 @@
+{
+  "before": {
+    "source": "9fff9e82256b0a4c2e0d9376bda99d2fb4ccb93d",
+    "executable_sha256": "dec1837380d28985263cb669af2d9cd0197038dffe52780faf7180ab03ad78c4",
+    "production_file_sha256": "6b73918f66226ca9a487ea31d58851a5fb722071c786801745d1298de81f1b4c",
+    "log_sha256": "b82c96d27f5e9c3451e0d3a599d4c46b9837c2c4901c3556cf0166f209533346",
+    "outcome": "SIGABRT stack overflow",
+    "stack_environment": "RUST_MIN_STACK explicitly absent",
+    "profile": "unoptimized test, debug=0, incremental=0",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n"
+  },
+  "after": {
+    "source": "634257f89d1ab5fa70f4f1855e2c929a49bcc9d8",
+    "executable_sha256": "4e9b2c1cfab0b37ae7e1f0fac92c0dd19ab64a84095de20e8b418ffdea950974",
+    "production_file_sha256": "f8ca314b98ac2ba36ee6d726c259933d486374ca92d1e91353eb0040e2f54fb7",
+    "suite_log_sha256": "7bd540ded0d2869e81d4ece5457fc773e26c48c9cd16273720938793e298c5be",
+    "focused_log_sha256": "ec9cb4bd2879337710088a68a315f64f3d6ab5f617dac022968842d1d11babc9",
+    "outcome": "all-target package suite passed",
+    "passed": 62,
+    "test_groups": [
+      39,
+      1,
+      0,
+      0,
+      0,
+      2,
+      1,
+      1,
+      1,
+      13,
+      4
+    ],
+    "stack_environment": "RUST_MIN_STACK explicitly absent",
+    "profile": "unoptimized test, debug=0, incremental=0",
+    "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n"
+  },
+  "clippy": {
+    "exit_code": 0,
+    "log_sha256": "b96308edfa0fc333fa834ed625944b00a4c899aa5caf14747c0d6febb00a8b85"
+  },
+  "ci_failure": {
+    "run": 39069133638,
+    "job": 117503350781,
+    "head_sha": "5736225b211f25a0e41e9b34647d7061047a1c07",
+    "merge_preview": "bc1a16097f74a1925ffbd45ee943a0d728bda673",
+    "native_equivalence": {
+      "base_commit": "9fff9e82256b0a4c2e0d9376bda99d2fb4ccb93d",
+      "files": [
+        "docs/audits/evidence/large-sparse-release-20261017-raw.tar.gz",
+        "docs/audits/evidence/large-sparse-release-20261017.json",
+        "docs/audits/large-sparse-release-20261017.md",
+        "proof/performance/large-sparse-replay.py"
+      ],
+      "merge_base": "9fff9e82256b0a4c2e0d9376bda99d2fb4ccb93d",
+      "status": "ahead"
+    }
+  },
+  "changed_production_file": "targets/std/src/installed_std/kernel_preparation.rs",
+  "patch_sha256": "35804f5cac5ff58796251d8ec706744503a86404a9cbe2c1a60d7774abd8efb7",
+  "limits": [
+    "Local native unchanged default test-thread stack, not a portable minimum-stack guarantee.",
+    "Existing allocating-preparation entrance; fixed-storage execution semantics are unchanged.",
+    "Candidate, combined integration and stable acceptance remain required."
+  ]
+}

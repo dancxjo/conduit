@@ -1,0 +1,84 @@
+{
+  "schema": "conduit.browser/choice-projection-repair@1",
+  "code_source": "a519da5ff6a809930c2ca463aeca3804d88b042f",
+  "proof_class": "local-browser-execution",
+  "runtime_sha256": "2becb77f95233bbaf89349e648e90119a10f5da9dfae03c6e932f8e84276c0cf",
+  "runtime_bytes": 18964181,
+  "archive": "browser-choice-projection-20261017-raw.tar.gz",
+  "archive_sha256": "a09c026af1fb5fe7d80b11687cfd115ebf756de61101e9bb7512285fe036035e",
+  "observed_real_subjects": [
+    {
+      "name": "Mode",
+      "semantic_role": "conduit.face/choice-group@1",
+      "properties": [
+        "choice-multiplicity: exclusive"
+      ],
+      "flags": [],
+      "unmodeled_property_count": 0
+    },
+    {
+      "name": "Off",
+      "semantic_role": null,
+      "properties": [
+        "selected: true"
+      ],
+      "flags": [
+        {
+          "name": "selected",
+          "value": true
+        }
+      ],
+      "unmodeled_property_count": 0
+    },
+    {
+      "name": "Heat",
+      "semantic_role": null,
+      "properties": [
+        "selected: false"
+      ],
+      "flags": [
+        {
+          "name": "selected",
+          "value": false
+        }
+      ],
+      "unmodeled_property_count": 0
+    },
+    {
+      "name": "Fan",
+      "semantic_role": "conduit.face/choice-group@1",
+      "properties": [
+        "choice-multiplicity: exclusive"
+      ],
+      "flags": [],
+      "unmodeled_property_count": 0
+    },
+    {
+      "name": "Preset",
+      "semantic_role": "conduit.face/choice-group@1",
+      "properties": [
+        "choice-multiplicity: exclusive"
+      ],
+      "flags": [],
+      "unmodeled_property_count": 0
+    }
+  ],
+  "validation": {
+    "real_fragment_rust_regression": "1 passed",
+    "browser_runtime_strict_lib_clippy": "passed",
+    "renderer_fixtures": "95 passed at initial projection fix; additional nested-contract regression failed before guard, then all96 passed with guard. Pinned Chromium, workers1,retries0. Actual Thermostat sourcea519 remains recorded separately; later guard only excludes unsupported nested contracts.",
+    "actual_thermostat": "1 passed; pinned Chromium; workers1,retries0",
+    "collector": "existing retainThermostatEvidence accepted source/runtime, logical Back, accessibility, refusals, revision pressure and recovery",
+    "capture_note": "Initial end-to-end invocation passed but omitted source-pin environment (null); retained log. Separate successful custody capture used explicit actual code source. Neither receipt was relabelled; no failed behavior was retried.",
+    "format": "workspace formatting and patch hygiene passed"
+  },
+  "baseline": {
+    "run": 39073615415,
+    "browser_job": 117516738019,
+    "merge_preview": "5af5a458dd91b00832742fd869174d7788f37b7f",
+    "outcome": "254 passed, Thermostat locator timed out because actual known choices rendered generic cards",
+    "independent_foundation_failure": "Patchbay invalid-control test owned by #5958"
+  },
+  "limits": "Development browser proof only; full combined Candidate, dev integration and exact-main publication remain required. No hardware/equipment operation claim.",
+  "renderer_guard_source": "39528beab63af17bf565b4981c3b85f6d227c360"
+}

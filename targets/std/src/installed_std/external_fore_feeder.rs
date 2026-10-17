@@ -24,6 +24,19 @@ pub(super) struct SingleInput<'a> {
 }
 
 impl<'a> PreparedForeInputs<'a> {
+    pub(super) fn prepare_stream(
+        planned: &[&LoweredForePort],
+        supplied: &'a [ExternalForeInput],
+        config: crate::ExternalForeStreamConfig,
+    ) -> Result<Self, String> {
+        SequentialForeFeeder::prepare_stream(planned, supplied, config).map(Self::Sequential)
+    }
+    pub(super) fn stream_stats(&self) -> Option<crate::ExternalForeStreamStats> {
+        match self {
+            Self::Sequential(feeder) => feeder.stream,
+            _ => None,
+        }
+    }
     pub(super) fn prepare_live(
         planned: &[&LoweredForePort],
         queue: &BodyLiveForeQueue,
