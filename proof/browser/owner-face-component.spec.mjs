@@ -1292,3 +1292,26 @@ test('an unchecked exclusive-choice change cannot dispatch an owner action', asy
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   await expect(current).toBeDisabled();
 });
+
+test('nested choice metadata retains the generic facts instead of becoming a radio option', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const choices = { ...view, subjects: [
+    { ...view.subjects[0], identity: 'fixture/group', name: 'Mode', values: [],
+      semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive',
+      properties: ['choice-multiplicity: exclusive'] },
+    { ...view.subjects[0], identity: 'fixture/nested', name: 'Nested choices', values: [],
+      semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive',
+      properties: ['choice-multiplicity: exclusive', 'selected: true'],
+      flags: [{name: 'selected', value: true}] },
+  ], relationships: [{kind: 'Contains', source: 'fixture/group', target: 'fixture/nested'}],
+  actions: [{...view.actions[0], identity: 'fixture/select-nested', target: 'fixture/nested'}] };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, {invoke: async () => {}});
+  }, choices);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('radio')).toHaveCount(0);
+  await expect(element.getByText('choice-multiplicity: exclusive', {exact: true})).toHaveCount(2);
+});

@@ -350,6 +350,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         ? option.flags.filter(flag => flag?.name === 'selected') : []);
       if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
         || options.some((option, index) => !option || option.text?.length || option.values?.length
+          || option.semantic_role === 'conduit.face/choice-group@1' || option.choice_multiplicity != null
           || option.unmodeled_property_count !== 0 || selectedFlags[index].length !== 1 || option.flags.length !== 1
           || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
           || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
