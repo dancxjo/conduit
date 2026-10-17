@@ -1102,3 +1102,20 @@ identical to the preservation branch. Current control-owner production changes
 are additions, and its test fixture now delegates to the shared selected-operation
 fixture. The old branch is retained because its exact-tip remote ancestry has
 not been established; no USB code or evidence was discarded or replayed.
+
+CSS-concealed DOM action follow-up (#5632 / #5644): connected generic controls
+check computed display/opacity through their composed ancestry, their effective
+visibility and rendered bounds before DOM action admission or focus movement.
+Collapsed HTML boxes refuse; SVG stroke subjects may retain a one-dimensional
+geometric box. Detached preparation retains structural checks so focus groups
+can be built before attachment. Explicit Host semantic requests retain their
+existing path; this does not certify arbitrary CSS or recover hidden controls.
+
+All four regressions reproduced queue/callback admission before repair:
+ancestor display:none, visibility:hidden, opacity:0 and scale(0). Twenty-six
+focused pinned Chromium checks pass across focused runs with one worker and
+zero retries, including native pointer recovery, native keyboard graph/choice/
+text routes, closed disclosures, roving peers and reentrant restoration. These
+prove the listed concealment refusals and queue behavior, not authoritative
+Body/Play, arbitrary styling accessibility or packaged/release acceptance.
+The owning issues remain open; uncertain USB preservation work remains intact.

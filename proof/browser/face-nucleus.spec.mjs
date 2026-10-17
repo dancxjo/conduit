@@ -956,3 +956,28 @@ for (const mode of ['body-button', 'graph-subject', 'summary-button']) {
       .toEqual({ calls: [mode === 'graph-subject' ? 'gear' : ''], queued: 1 });
   });
 }
+
+for (const [property, value] of [['display', 'none'], ['visibility', 'hidden'], ['opacity', '0'], ['transform', 'scale(0)']]) {
+  test(`CSS-concealed generic actions refuse until restored (${property})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ property, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const outer = document.createElement('section'); document.body.append(outer);
+      const root = document.createElement('section'); outer.append(root);
+      globalThis.cssConcealedCalls = [];
+      globalThis.cssConcealedManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'visible.action', event: 'activate' }], nodes: [
+          { parent: null, component: 'button', key: 'action', text: 'Visible action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.cssConcealedCalls.push(event.action) });
+      outer.style.setProperty(property, value);
+      root.querySelector('button').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      globalThis.restoreCssConcealed = () => outer.style.removeProperty(property);
+    }, { property, value });
+    expect(await page.evaluate(() => ({ calls: globalThis.cssConcealedCalls, queued: globalThis.cssConcealedManifest.queuedEvents(),
+      refusal: globalThis.cssConcealedManifest.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+    await page.evaluate(() => globalThis.restoreCssConcealed());
+    await page.getByRole('button', { name: 'Visible action', exact: true }).click();
+    expect(await page.evaluate(() => globalThis.cssConcealedCalls)).toEqual(['visible.action']);
+  });
+}

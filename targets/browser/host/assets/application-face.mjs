@@ -356,10 +356,21 @@ function controlAvailable(control) {
   for (let ancestor = control; ancestor;
     ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
     if (ancestor.inert || ancestor.hidden) return false;
+    if (control.isConnected) {
+      const style = getComputedStyle(ancestor);
+      if (style.display === "none" || Number(style.opacity) === 0) return false;
+    }
     // A closed disclosure exposes its first summary, while its body controls
     // remain unavailable. The disclosure itself may still emit its toggle.
     if (ancestor !== control && ancestor.matches("details:not([open])")
       && !ancestor.querySelector(":scope > summary")?.contains(control)) return false;
+  }
+  if (control.isConnected) {
+    if (getComputedStyle(control).visibility !== "visible") return false;
+    const bounds = control.getBoundingClientRect();
+    // SVG strokes may have a zero-width or zero-height geometric box.
+    if (control instanceof SVGElement ? bounds.width === 0 && bounds.height === 0
+      : bounds.width <= 0 || bounds.height <= 0) return false;
   }
   return true;
 }
