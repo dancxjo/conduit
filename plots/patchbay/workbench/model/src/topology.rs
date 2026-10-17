@@ -217,11 +217,17 @@ fn render_plans_and_plays(
             ),
         )?;
     }
+    for row in &report.execution_fusions {
+        let fusion = &row.fusion;
+        push_line(lines, format!("    FUSION {} plan={} fragment={} profile={} implementation={} artifact={} logical-placements={:?} logical-cords={:?}",
+            fusion.fusion_id.as_str(), row.plan_id.as_str(), row.fragment_id.as_str(), fusion.execution_profile_id.as_str(),
+            fusion.implementation_id.as_str(), fusion.artifact_id.as_str(), fusion.preserved_placements, fusion.preserved_connections))?;
+    }
     for placement in &report.placements {
         push_line(
             lines,
             format!(
-                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?}",
+                "    PLACEMENT {} plan={} host={} boot={} capability={} kind={} contract={} profile={} implementation={} artifact={} Host Calls={:?} resources={:?} logical={:?}",
                 placement.placement_id.as_str(),
                 placement.plan_id.as_str(),
                 placement.host_id.as_str(),
@@ -233,7 +239,8 @@ fn render_plans_and_plays(
                 placement.implementation_id.as_str(),
                 placement.artifact_id.as_str(),
                 placement.host_calls,
-                placement.resources
+                placement.resources,
+                placement.logical_gear
             ),
         )?;
         if let Some(device) = super::topology_hosts::current_device_for_placement(report, placement)
@@ -258,14 +265,15 @@ fn render_plans_and_plays(
         push_line(
             lines,
             format!(
-                "    CORD {} plan={} source={} sink={} info={} items={} bytes={}",
+                "    CORD {} plan={} source={} sink={} info={} items={} bytes={} logical={:?}",
                 connection.connection_id.as_str(),
                 connection.plan_id.as_str(),
                 connection.source_placement_id.as_str(),
                 connection.sink_placement_id.as_str(),
                 connection.value_kind.as_str(),
                 connection.item_capacity,
-                connection.byte_capacity
+                connection.byte_capacity,
+                connection.logical_cord
             ),
         )?;
     }
@@ -423,6 +431,7 @@ fn topology_line_upper_bound(report: &ObservatoryReport) -> usize {
         .saturating_add(report.bases.len())
         .saturating_add(report.plans.len())
         .saturating_add(report.fragments.len())
+        .saturating_add(report.execution_fusions.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.placements.len())
         .saturating_add(report.connections.len())

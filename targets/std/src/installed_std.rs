@@ -56,6 +56,7 @@ pub(crate) mod parsec_instruction_source_admission;
 pub(crate) mod parsec_instruction_source_back;
 mod quantity_conversion_back;
 pub(super) use quantity_conversion_back::offers as quantity_conversion_offers;
+mod fusion;
 mod json_backs;
 mod json_summary_back;
 mod kernel_preparation;
@@ -439,7 +440,8 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         .sum::<usize>();
     let value_allocation_before = values.allocation_capacities();
 
-    let kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    let mut kernel_tables = kernel_preparation::KernelTables::prepare(&[&lowered])?;
+    kernel_tables.bind_fusions(fragment, &lowered)?;
     let external_input_items = fore_inputs.input_items();
     let remote_sign_items =
         external_fore_feeder::remote_sign_items(&lowered.fore_ports, external_input_items)?;
@@ -3369,7 +3371,12 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
         if accepted_stop.is_none() && control.stop_requested() {
             continue;
         }
-        let status = match scheduler.step() {
+        let step = if lowered.fusions.is_empty() {
+            scheduler.step()
+        } else {
+            scheduler.step_with_checkpoint(|_| accepted_stop.is_some() || !control.stop_requested())
+        };
+        let status = match step {
             Ok(status) => status,
             Err(conduit_kernel::scheduler::SchedulerError::BackFailed(failure))
                 if math_host.accept_failure(
@@ -3392,8 +3399,11 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     reason: conduit_core::FailureReason::RequiredBranchFailed,
                 };
             }
-            Err(error) => return Err(format!("installed kernel step: {error:?}")),
+            Err(error) => return Err(fusion::step_failure(error, &scheduler, fragment, &lowered)),
         };
+        if !lowered.fusions.is_empty() && accepted_stop.is_none() && control.stop_requested() {
+            continue;
+        }
         match status {
             SchedulerStatus::Progress { .. } => {}
             SchedulerStatus::Drained if lifecycle::drained_completes(fragment, attach_live) => {
@@ -3721,6 +3731,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             active_play_id: active_play.active_play_id.clone(),
             active_play,
             decisions: scheduler.decisions(),
+            logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,

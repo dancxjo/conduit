@@ -152,6 +152,12 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             region.isolation_required
         );
     }
+    for row in &report.execution_fusions {
+        let fusion = &row.fusion;
+        let _ = writeln!(output, "execution_fusion plan={} fragment={} fusion={} profile={} implementation={} artifact={} logical_placements={:?} logical_cords={:?}",
+            row.plan_id.as_str(), row.fragment_id.as_str(), fusion.fusion_id.as_str(), fusion.execution_profile_id.as_str(),
+            fusion.implementation_id.as_str(), fusion.artifact_id.as_str(), fusion.preserved_placements, fusion.preserved_connections);
+    }
     let _ = writeln!(output, "fragments {}", report.fragments.len());
     for fragment in &report.fragments {
         let _ = writeln!(
@@ -167,7 +173,7 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
     for placement in &report.placements {
         let _ = writeln!(
             output,
-            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_calls={:?} resources={:?} authority={:?}",
+            "placement plan={} placement={} host={} boot={} capability={} kind={} contract={} execution_profile={} implementation={} artifact={} host_calls={:?} resources={:?} authority={:?} logical={:?}",
             placement.plan_id.as_str(),
             placement.placement_id.as_str(),
             placement.host_id.as_str(),
@@ -180,14 +186,15 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             placement.artifact_id.as_str(),
             placement.host_calls,
             placement.resources,
-            placement.authority
+            placement.authority,
+            placement.logical_gear
         );
     }
     let _ = writeln!(output, "connections {}", report.connections.len());
     for connection in &report.connections {
         let _ = writeln!(
             output,
-            "connection plan={} connection={} source={} sink={} value_kind={} selected_line={:?} admitted_lines={} queue_items={} queue_bytes={}",
+            "connection plan={} connection={} source={} sink={} value_kind={} selected_line={:?} admitted_lines={} queue_items={} queue_bytes={} logical={:?}",
             connection.plan_id.as_str(),
             connection.connection_id.as_str(),
             connection.source_placement_id.as_str(),
@@ -196,7 +203,8 @@ pub fn render_text_report(report: &ObservatoryReport) -> String {
             connection.selected_line,
             connection.admitted_lines.len(),
             connection.item_capacity,
-            connection.byte_capacity
+            connection.byte_capacity,
+            connection.logical_cord
         );
     }
     let _ = writeln!(output, "plays {}", report.plays.len());

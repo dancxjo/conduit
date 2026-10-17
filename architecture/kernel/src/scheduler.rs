@@ -22,6 +22,7 @@ mod active_capacity;
 mod boxed_preparation;
 mod debug_control;
 mod derived_value;
+mod execution_region;
 mod host_call_settlement;
 mod quiescence;
 #[cfg(feature = "linear-ready-reference-test")]
@@ -944,6 +945,8 @@ pub struct FixedScheduler<
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
+    logical_invocations: u64,
+    region_successors: [Option<NodeId>; NODES],
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1049,6 +1052,8 @@ where
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
+            logical_invocations: 0,
+            region_successors: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1116,92 +1121,18 @@ where
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        if self.cancelled {
-            return Ok(SchedulerStatus::Cancelled);
-        }
-        if self.debug_control.suspension().is_some() {
-            return Err(SchedulerError::DebugSuspended);
-        }
-        let Some(node) = self.next_ready() else {
-            if let Some(node) = self.emit_quiescence_transitions()? {
-                return Ok(SchedulerStatus::Progress { node });
-            }
-            return if self.completed[..self.active_nodes]
-                .iter()
-                .all(|value| *value)
-                && self.cords[..self.active_cords]
-                    .iter()
-                    .all(|cord| cord.len == 0)
-            {
-                self.drained_status()
-            } else {
-                Ok(SchedulerStatus::Idle)
-            };
-        };
-        if self.debug_control.suspend_before(NodeId(as_u16(node)?)) {
-            return Err(SchedulerError::DebugSuspended);
-        }
-        self.decisions = self
-            .decisions
-            .checked_add(1)
-            .ok_or(SchedulerError::DecisionLimitExceeded)?;
-        self.signs.record(
-            NodeId(as_u16(node)?),
-            None,
-            None,
-            KernelEventKind::StepFuelGranted,
-        )?;
-        self.signs.observe_debug(DebugRuntimeEvent {
-            node: NodeId(as_u16(node)?),
-            port: None,
-            cord: None,
-            kind: DebugEventKind::GearStarted,
-            type_identity: None,
-            value: None,
-            fault_code: None,
-        });
+        self.step_region(&mut |_| true)
+    }
 
-        let mut io = self.context(node)?;
-        let mut current_input_bytes = [None; PORTS];
-        for (port, value) in io.inputs.iter().copied().enumerate() {
-            if let Some(value) = value {
-                current_input_bytes[port] = Some(self.values.get(value)?);
-            }
-        }
-        let input_bytes = StepInputBytes {
-            inputs: current_input_bytes,
-            host_output: io
-                .host_completion
-                .and_then(|(_, outcome)| outcome.output)
-                .map(|output| self.values.get(output.value))
-                .transpose()?,
-        };
-        let outcome = self.drivers[node].step(&mut io, &input_bytes);
-        if let Some(fault) = io.fault {
-            if fault == SchedulerError::StepFuelExceeded {
-                self.signs.record(
-                    NodeId(as_u16(node)?),
-                    None,
-                    None,
-                    KernelEventKind::StepFuelExceeded,
-                )?;
-            }
-            return Err(fault);
-        }
-        self.apply_step(node, outcome, io)?;
-        if self.completed[..self.active_nodes]
-            .iter()
-            .all(|value| *value)
-            && self.cords[..self.active_cords]
-                .iter()
-                .all(|cord| cord.len == 0)
-        {
-            self.drained_status()
-        } else {
-            Ok(SchedulerStatus::Progress {
-                node: NodeId(as_u16(node)?),
-            })
-        }
+    /// Poll the execution owner's finite control checkpoint before each
+    /// logical Gear, including members of an admitted physical region. A false
+    /// result defers the next Gear: Idle before any invocation, or Progress for
+    /// the completed prefix. The caller retains cancellation ownership.
+    pub fn step_with_checkpoint(
+        &mut self,
+        mut proceed: impl FnMut(NodeId) -> bool,
+    ) -> Result<SchedulerStatus, SchedulerError> {
+        self.step_region(&mut proceed)
     }
 
     /// Bind the exact Plan-lowered terminal contracts before play. A prepared
@@ -1303,6 +1234,11 @@ where
 
     pub fn decisions(&self) -> u32 {
         self.decisions
+    }
+
+    /// Actual Back invocations, including Await and terminal invocations.
+    pub fn logical_invocations(&self) -> u64 {
+        self.logical_invocations
     }
 
     pub fn drivers(&self) -> &[D; NODES] {

@@ -54,6 +54,7 @@ mod body_live_fore;
 pub mod external_signal;
 pub mod external_websocket;
 pub mod flow_activation;
+pub mod pure_chain_fusion;
 pub use body_live_fore::{BodyLiveForeAdmission, BodyLiveForeQueue, BodyLiveForeStatus};
 mod host_execution;
 pub mod hosted_audio;
@@ -355,6 +356,7 @@ pub struct StdKernelExecutionReport {
     pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
+    pub logical_invocations: u64,
     pub kernel_events: u16,
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),

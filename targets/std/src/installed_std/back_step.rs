@@ -335,6 +335,7 @@ installed_step_dispatch!(
     StructuredSelector,
     PureFilter,
     PureExpression,
+    LocalExpression,
     Numerical,
     StructuredLiteral,
     StructuredFace,

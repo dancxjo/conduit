@@ -153,17 +153,7 @@ pub fn plan_expanded_canonical_with_options(
 ) -> Result<Plan, PlannerError> {
     plot.validate_expansion()
         .map_err(|error| PlannerError::InvalidPlotIdentity(error.to_string()))?;
-    let planning_plot = CheckedPlot {
-        source_document_id: plot.source_document_id.clone(),
-        checked_plot_id: plot.checked_plot_id.clone(),
-        expanded_plot_id: plot.expanded_plot_id.clone(),
-        name: plot.name.clone(),
-        completion: plot.completion,
-        gears: plot.gears.clone(),
-        connections: plot.connections.clone(),
-        exports: Vec::new(),
-        nested_plots: Vec::new(),
-    };
+    let planning_plot = expanded_planning_plot(plot);
     let mut plan = plan_validated_plot(&planning_plot, hosts, placements, bases, options)?;
     attach_source_spans(plot, &mut plan)?;
     Ok(
@@ -266,3 +256,17 @@ pub use shared_pools::{
     SharedPoolPlanningRequirement, SharedPoolPolicyPlanningError, SharedPoolPolicySelection,
     MAXIMUM_SHARED_POOL_POLICY_SELECTIONS,
 };
+
+pub(crate) fn expanded_planning_plot(plot: &ExpandedCanonicalPlot) -> CheckedPlot {
+    CheckedPlot {
+        source_document_id: plot.source_document_id.clone(),
+        checked_plot_id: plot.checked_plot_id.clone(),
+        expanded_plot_id: plot.expanded_plot_id.clone(),
+        name: plot.name.clone(),
+        completion: plot.completion,
+        gears: plot.gears.clone(),
+        connections: plot.connections.clone(),
+        exports: Vec::new(),
+        nested_plots: Vec::new(),
+    }
+}
