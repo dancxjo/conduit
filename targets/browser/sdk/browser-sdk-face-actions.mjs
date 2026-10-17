@@ -33,6 +33,9 @@ export function checkedOwnerFaceArguments(view, actionId, target, supplied) {
     }
     names.add(argument.name);
     const declaration = declarations.get(argument.name);
+    if (typeof argument.value === 'string' && !argument.value.isWellFormed()) {
+      throw new Error('Face action input must be valid Unicode text.');
+    }
     if (!declaration || typeof argument.value !== 'string'
       || !Number.isSafeInteger(declaration.maximum_bytes)
       || declaration.maximum_bytes < 0 || declaration.maximum_bytes > 4096
@@ -41,7 +44,7 @@ export function checkedOwnerFaceArguments(view, actionId, target, supplied) {
     }
     const choices = declaration.choices;
     if (!Array.isArray(choices) || choices.length > 64
-      || choices.some(choice => typeof choice !== 'string' || choice === ''
+      || choices.some(choice => typeof choice !== 'string' || choice === '' || !choice.isWellFormed()
         || encoder.encode(choice).length > declaration.maximum_bytes)
       || (choices.length ? !choices.includes(argument.value)
         : declaration.value_kind !== 'value/text')) {

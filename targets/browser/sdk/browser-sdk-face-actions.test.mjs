@@ -89,3 +89,17 @@ test('owner interaction arguments bind to the last acknowledged Show and its dec
   assert.throws(() => checkedAcknowledgedOwnerFaceArguments(acknowledged, forged,
     action.identity, action.target, [supplied[0], { name: 'clock/interval-ms', value: '750' }]), /supported browser text form/);
 });
+
+test('Face text admission rejects unpaired surrogates without changing valid Unicode', () => {
+  const invalid = ['\ud800', '\udfff', '\udfff\ud800'];
+  const accepted = invalid.map(value => {
+    try { submit([{ name: 'body/name', value }, { name: 'clock/interval-ms', value: '250' }]); return true; }
+    catch { return false; }
+  });
+  const malformedChoices = { ...action, arguments: [{ name: 'value', value_kind: 'value/text', maximum_bytes: 8, choices: ['yes', '\ud800'] }] };
+  try { checkedOwnerFaceArguments({ actions: [malformedChoices] }, action.identity, action.target, [{ name: 'value', value: 'yes' }]); accepted.push(true); }
+  catch { accepted.push(false); }
+  assert.deepEqual(accepted, [false, false, false, false]);
+  assert.deepEqual(submit([{ name: 'body/name', value: 'é 😀' }, { name: 'clock/interval-ms', value: '250' }])[0],
+    { name: 'body/name', value: 'é 😀' });
+});

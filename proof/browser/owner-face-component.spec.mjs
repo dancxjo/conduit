@@ -737,7 +737,7 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
 }
 
 for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many',
-  'missing-name', 'empty-name', 'duplicate-name', 'missing-label', 'empty-label']) {
+  'missing-name', 'empty-name', 'duplicate-name', 'missing-label', 'empty-label', 'choice-unicode']) {
   test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const broken = { ...view.actions[0], identity: 'fixture/broken', name: 'Broken action', arguments: [{
@@ -755,6 +755,7 @@ for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes
     }));
     if (malformed === 'negative-bound') broken.arguments[0].maximum_bytes = -1;
     if (malformed === 'choice-bytes') broken.arguments[0].choices = ['ééé'];
+    if (malformed === 'choice-unicode') broken.arguments[0].choices = ['\ud800'];
     await page.evaluate(async view => {
       await import('/targets/browser/handbook/owner-face-component.mjs');
       document.body.replaceChildren();
@@ -1131,3 +1132,25 @@ test('owner forms do not dispatch an argument while text composition is active',
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
     arguments: [{ name: 'first', value: '日本語' }, { name: 'second', value: 'other argument' }] }]);
 });
+
+for (const value of ['\ud800', '\udfff']) {
+  test(`owner forms refuse ill-formed Unicode text (${value.charCodeAt(0).toString(16)})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const inputView = { ...view, actions: [{ ...view.actions[0], arguments: [{ name: 'text', value_name: 'Text',
+      value_kind: 'value/text', maximum_bytes: 8, choices: [] }] }] };
+    await page.evaluate(async ({ view, value }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const input = element.shadowRoot.querySelector('input'); input.value = value;
+      input.dispatchEvent(new Event('input', { bubbles: true }));
+      element.shadowRoot.querySelector('form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view: inputView, value });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const input = page.locator('conduit-owner-face').getByRole('textbox', { name: 'Text', exact: true });
+    expect(await input.evaluate(node => node.validationMessage)).toBe('Use valid Unicode text.');
+    await input.fill('é 😀'); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls[0].arguments)).toEqual([{ name: 'text', value: 'é 😀' }]);
+  });
+}
