@@ -72,3 +72,14 @@ current ownership.
 | Sign reservation headroom (#5231 / #5395) | Handed-over local branch `codex/5231-sign-capacity-headroom`, through `254405e69` | Checked physical item/byte headroom fast path, unchanged pressured retention rule, differential tests and retained native observations | Browser artifact custody edits and unrelated historical branches remain separate | Current-dev kernel regression and linear-ready reference checks are recorded in the PR; retained timing is historical source-bound evidence, not a fresh whole-workload speedup or parent acceptance. |
 
 | Staged browser runtime publication (supports #5453 / #5510) | Handed-over `576676ebe`, archived at `archive/progress-20261017/browser-runtime-custody` | Exact 20 MiB browser admission ceiling and Wasm version-header guard; exclusive staged optimization and atomic destination replacement | Replacing the Cargo artifact with optimized bytes is deliberately excluded; original linked input remains diagnostic truth | Focused native publication tests cover malformed/truncated headers, over-limit refusal, exact ceiling and repeated publication while preserving the previous destination on validation failure. Binaryen execution and packaged Chromium/public release remain separate proof obligations. |
+
+- #5231 FARGAN workload: recover the fixed numerical operators, Value conditioner,
+  recurrent subframe Source, and finite scalar-oracle fixtures from
+  `f813938ba22cb23e36181f3e1b9ee2e3c3edb61c`, preserving the xiph/opus pin and
+  private-model hashes. Adapt to current parameterized Types, retained native
+  laws, and exact port envelopes under a new numerical contract revision.
+  Positive and refusal tests cover arithmetic, resource shape, malformed values,
+  bounds, pressure, cancellation, and atomic state publication. See
+  [the recovery and proof boundary](../../proof/fargan/README.md). Streaming,
+  native feature/audio pipelines, training, compact precision, and quality
+  claims are excluded; implementation validation does not imply stable acceptance.
