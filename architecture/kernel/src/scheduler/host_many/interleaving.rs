@@ -268,3 +268,71 @@ fn adapter_selection_matches_full_scan_through_competition_completion_and_reuse(
         }
     }
 }
+
+#[test]
+fn completion_sign_refusal_preserves_queued_cancellation_until_accepted_retry() {
+    for cancellation_first in [false, true] {
+        let (mut scheduler, _) = pair();
+        for node in 0..2 {
+            step(&mut scheduler, node);
+            request(&mut scheduler, node, 0);
+            control(&mut scheduler, node, 0);
+        }
+        step(&mut scheduler, 0);
+        step(&mut scheduler, 1);
+        assert_eq!(scheduler.undispatched_cancellation_count, 2);
+        assert!(!scheduler.has_ready_work());
+        let sequence = scheduler.signs.next_sequence;
+        let signs = scheduler.signs.entries;
+        let used_items = scheduler.values.used_items();
+        let slots = scheduler.pending_host_slots;
+        // Fault injection: no next Sign identity can be assigned. Admission
+        // must refuse before changing completion, readiness, or cancellation.
+        scheduler.signs.next_sequence = u32::MAX;
+        for _ in 0..2 {
+            assert_eq!(
+                scheduler.complete_host_call(
+                    NodeId(0),
+                    RequestId(0),
+                    HostCallOutcome {
+                        disposition: HostCallDisposition::Cancelled,
+                        output: None,
+                        failure: None,
+                    }
+                ),
+                Err(SchedulerError::Sign(crate::SignError::SequenceOverflow))
+            );
+            assert_eq!(scheduler.undispatched_cancellation_count, 2);
+            assert_eq!(scheduler.pending_host_slots, slots);
+            assert_eq!(scheduler.values.used_items(), used_items);
+            assert_eq!(scheduler.signs.entries, signs);
+            assert!(!scheduler.has_ready_work());
+            for pending in scheduler.pending_host_calls.iter().flatten() {
+                assert!(pending.completion.is_none());
+                assert!(pending.cancellation_requested);
+                assert!(!pending.cancellation_dispatched);
+            }
+        }
+        scheduler.signs.next_sequence = sequence;
+        let mut observed = [u32::MAX; 4];
+        let mut count = 0;
+        if cancellation_first {
+            poll(&mut scheduler, 0, 0, &mut observed, &mut count);
+        }
+        complete(&mut scheduler, 0, 0);
+        assert_eq!(scheduler.undispatched_cancellation_count, 1);
+        poll(&mut scheduler, 1, 0, &mut observed, &mut count);
+        assert!(scheduler.next_host_cancellation().is_none());
+        complete(&mut scheduler, 1, 0);
+        assert_eq!(scheduler.undispatched_cancellation_count, 0);
+        assert_eq!(count, if cancellation_first { 2 } else { 1 });
+        assert_eq!(observed[count - 1], 10);
+        step(&mut scheduler, 0);
+        step(&mut scheduler, 1);
+        request(&mut scheduler, 0, 1);
+        request(&mut scheduler, 1, 1);
+        scheduler.cancel().unwrap();
+        assert_eq!(scheduler.pending_host_call_count(), 0);
+        assert_eq!(scheduler.values.used_items(), 0);
+    }
+}
