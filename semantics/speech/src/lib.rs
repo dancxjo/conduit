@@ -48,6 +48,8 @@ pub mod context_match;
 #[cfg(feature = "semantic-bindings")]
 pub mod control;
 #[cfg(feature = "semantic-bindings")]
+pub mod correspondence;
+#[cfg(feature = "semantic-bindings")]
 pub mod declared_context;
 #[cfg(feature = "semantic-bindings")]
 pub mod declared_realization;

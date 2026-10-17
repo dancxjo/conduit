@@ -21,6 +21,7 @@ fn main() {
     println!("cargo:rerun-if-changed=translation.conduit");
     println!("cargo:rerun-if-changed=timing.conduit");
     println!("cargo:rerun-if-changed=intent.conduit");
+    println!("cargo:rerun-if-changed=correspondence.conduit");
     println!("cargo:rerun-if-changed=inventory.conduit");
     println!("cargo:rerun-if-changed=profile_phones.conduit");
     println!("cargo:rerun-if-changed=voice_profile.conduit");

@@ -68,6 +68,8 @@ pub const STEPS: &[Step] = &[
             "--test",
             "ipa_source_execution",
             "--test",
+            "correspondence",
+            "--test",
             "profile_phones",
             "--locked",
             "--",

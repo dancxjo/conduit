@@ -918,3 +918,20 @@ portable patterns. Existing collections, indexing and bare regex forms retain
 their meanings.
 The compact `EnglishPhone`/`EnglishPhoneme` tags used by the native renderer are
 its terminal profile codes; they do not define canonical linguistic IPA.
+
+`correspondence::PreparedSpeechCorrespondence` checks a supplied
+`SpeechRealizationAlignment` component against the original intent, phoneme and
+phone sequences, complete text and executed `PreparedIpaInventory`. One-to-one,
+one-to-many, many-to-one, many-to-many, inserted and deleted occurrences retain
+separate identities. Each tape occurrence must appear exactly once; duplicate,
+missing, foreign, dangling and unresolved members refuse. Groups permit 1–8
+members on a populated side, and the component permits 1–64 groups. Each target
+phone must also have one matching original intent event. A multi-phoneme group
+or inserted phone uses `not_applicable` for the event's scalar phoneme slot;
+multiple simultaneous phonemes are carried by the group, never relabeled as
+uncertain alternatives. Existing nonempty `realized_as` copies must agree with
+the ordered targets; empty legacy copies supply no replacement correspondence.
+This explicit grouping is caller-supplied linguistic
+meaning, not pronunciation inference. A supplied relation does not establish
+external authenticity or commitment. Inventory revision and Variety stay on
+the retained full IPA basis, independently of utterance/text revisions.
