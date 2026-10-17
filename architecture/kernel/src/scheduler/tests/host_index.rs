@@ -94,10 +94,13 @@ fn distinct_nodes_keep_exact_slots_through_out_of_order_completion() {
     scheduler
         .complete_host_call(second.node, second.request, outcome)
         .unwrap();
+    scheduler.scan_counts.set(Default::default());
     assert_eq!(
         scheduler.step(),
         Ok(SchedulerStatus::Progress { node: NodeId(1) })
     );
+    assert_eq!(scheduler.scan_counts.get().preflight_completion_slots, 1);
+    assert_eq!(scheduler.scan_counts.get().consumed_completion_slots, 1);
     assert!(!scheduler.drivers[0].completed && scheduler.drivers[1].completed);
     assert_eq!(
         scheduler

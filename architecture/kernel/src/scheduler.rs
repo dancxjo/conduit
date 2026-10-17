@@ -2688,11 +2688,12 @@ where
         let admitted_host_request = self.preflight_step(node, &staged, &retained_values)?;
 
         if let Some(request) = host_cancellation {
-            let pending = self
-                .pending_host_calls
-                .iter_mut()
-                .flatten()
-                .find(|pending| {
+            let slot = self
+                .indexed_host_slot(node)
+                .ok_or(SchedulerError::HostCallCancellationRejected)?;
+            let pending = self.pending_host_calls[slot]
+                .as_mut()
+                .filter(|pending| {
                     usize::from(pending.request.node.0) == node
                         && pending.request.request == request
                 })
@@ -2757,18 +2758,19 @@ where
 
         let (consumed_host_input, consumed_host_value) = if consumed_host_completion {
             let slot = self
-                .pending_host_calls
-                .iter()
-                .position(|pending| {
-                    pending
-                        .and_then(|pending| pending.completion)
-                        .is_some_and(|_| {
-                            pending
-                                .map(|pending| usize::from(pending.request.node.0) == node)
-                                .unwrap_or(false)
-                        })
+                .indexed_host_slot(node)
+                .filter(|slot| {
+                    self.pending_host_calls[*slot].is_some_and(|pending| {
+                        usize::from(pending.request.node.0) == node && pending.completion.is_some()
+                    })
                 })
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.consumed_completion_slots += 1;
+                self.scan_counts.set(counts);
+            }
             let pending = self.pending_host_calls[slot]
                 .take()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
@@ -2985,7 +2987,14 @@ where
         }) {
             return Err(SchedulerError::InvalidPortAccess);
         }
-        let completed_pending = self.pending_host_calls.iter().flatten().find(|pending| {
+        let node_pending = self.indexed_host_call(node);
+        #[cfg(test)]
+        if node_pending.is_some() {
+            let mut counts = self.scan_counts.get();
+            counts.preflight_completion_slots += 1;
+            self.scan_counts.set(counts);
+        }
+        let completed_pending = node_pending.filter(|pending| {
             usize::from(pending.request.node.0) == node && pending.completion.is_some()
         });
         let available_host_value = completed_pending
@@ -3003,11 +3012,8 @@ where
         };
         let node_id = NodeId(as_u16(node)?);
         if let Some(request) = host_cancellation {
-            let pending = self
-                .pending_host_calls
-                .iter()
-                .flatten()
-                .find(|pending| {
+            let pending = node_pending
+                .filter(|pending| {
                     pending.request.node == node_id && pending.request.request == request
                 })
                 .ok_or(SchedulerError::HostCallCancellationRejected)?;
@@ -3023,21 +3029,16 @@ where
         }
         let admitted_host_request = if let Some((request, call, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
-                || self.pending_host_calls.iter().flatten().any(|pending| {
+                || node_pending.is_some_and(|pending| {
                     pending.request.node == node_id && pending.request.request == request
                 })
             {
                 return Err(SchedulerError::HostCallRequestDuplicate);
             }
-            let pending_for_node = self
-                .pending_host_calls
-                .iter()
-                .flatten()
-                .any(|pending| usize::from(pending.request.node.0) == node);
-            if pending_for_node && !consumed_host_completion {
+            if node_pending.is_some() && !consumed_host_completion {
                 return Err(SchedulerError::InvalidHostCallAccess);
             }
-            if !consumed_host_completion && self.pending_host_calls.iter().all(Option::is_some) {
+            if !consumed_host_completion && self.pending_host_count >= PENDING_REQUESTS {
                 return Err(SchedulerError::HostCallCapacityExceeded);
             }
             self.values.get(input.value)?;

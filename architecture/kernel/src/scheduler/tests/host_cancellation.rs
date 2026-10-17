@@ -369,12 +369,14 @@ fn unrelated_ready_node_does_not_scan_a_large_live_host_table() {
             let counts = scheduler.scan_counts.get();
             assert_eq!(counts.pending_slots, 0);
             assert_eq!(counts.context_pending_slots, 0);
+            assert_eq!(counts.preflight_completion_slots, 0);
             assert_eq!(scheduler.pending_host_call_count(), 1);
             scheduler.scan_counts.set(Default::default());
             scheduler.step().unwrap();
             let counts = scheduler.scan_counts.get();
             assert_eq!(counts.pending_slots, 1);
             assert_eq!(counts.context_pending_slots, 1);
+            assert_eq!(counts.preflight_completion_slots, 1);
         })
         .unwrap()
         .join()

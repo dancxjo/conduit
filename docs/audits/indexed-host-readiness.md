@@ -60,3 +60,27 @@ production layouts; prior replay size receipts remain source-pinned.
 This is bounded-work and identity/refusal proof, not a measured wall-clock
 speedup. Adapter request selection, completion consumption and other table
 queries remain linear. Full #5231 acceptance remains open.
+
+
+## Indexed Step preflight and completion consumption
+
+Step preflight now borrows its node's canonical pending entry once, reusing it
+for completion availability, cancellation correlation, duplicate/re-arm guards
+and pending-membership checks. The existing occupancy count answers whether the
+request table is full. Cancellation commit and completion consumption use the
+same indexed slot, preserving exact node/request/completion checks and clearing
+index and occupancy together. No production state or allocation was added.
+
+Two strengthened work assertions failed before repair. The 4,096-slot fixture
+now records zero preflight completion probes for an unrelated ready node and
+one for a node with a pending call. The two-node out-of-order fixture records
+one preflight entry and one consumed entry, rather than searching through the
+other node's slot. Alloc/reference-ready suites each pass 182 tests; 20
+fixed-only Host tests and strict all-target kernel Clippy pass, including
+cancellation, re-arm, duplicate and Host value-alias ownership vectors.
+
+New work counters exist only in test instrumentation. This is bounded-work and
+semantic regression evidence, not a wall-clock speedup claim. Free-slot search,
+adapter request/cancellation selection and other table queries remain linear.
+Earlier replay/layout receipts retain their pinned sources. Full #5231
+acceptance remains open.
