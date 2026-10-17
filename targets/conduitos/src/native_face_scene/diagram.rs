@@ -176,7 +176,7 @@ pub(super) fn append<'a>(
                 screen,
                 GraphicsPaintRole::Foreground,
                 &crate::display::typography::single_line_preview(
-                    &readable(title),
+                    &alloc::format!("{} · {}", index + 1, readable(title)),
                     crate::display::typography::TextRole::Heading,
                     bounds.width - 20,
                 )
