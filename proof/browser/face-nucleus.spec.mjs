@@ -414,3 +414,24 @@ for (const invalid of ['string', 'bytes']) {
   });
 }
 }
+
+for (const input of ['keyboard', 'pointer']) {
+  test(`generic action buttons do not submit an embedding form (${input})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const form = document.createElement('form'); document.body.append(form);
+      const root = document.createElement('section'); form.append(root);
+      globalThis.embeddedProof = { actions: [], submissions: 0 };
+      form.addEventListener('submit', event => { event.preventDefault(); globalThis.embeddedProof.submissions++; });
+      manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.activate', event: 'activate' }], nodes: [
+          { parent: null, component: 'button', key: 'action', text: 'Embedded action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.embeddedProof.actions.push(event.action) });
+    });
+    const button = page.getByRole('button', { name: 'Embedded action', exact: true });
+    if (input === 'keyboard') { await button.focus(); await page.keyboard.press('Enter'); }
+    else await button.click();
+    expect(await page.evaluate(() => globalThis.embeddedProof)).toEqual({ actions: ['fixture.activate'], submissions: 0 });
+  });
+}

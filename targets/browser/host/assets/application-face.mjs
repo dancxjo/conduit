@@ -495,6 +495,7 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
+    if (node.component === 8) element.type = "button";
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     if (node.component === 10) {

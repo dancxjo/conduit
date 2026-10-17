@@ -743,3 +743,13 @@ Two regressions reproduced iterator execution and source-growth/header mismatch
 before repair. All 13 focused Node codec tests pass, including exact inventory
 and envelope ceilings. No browser/runtime build was needed for this encoder
 traversal change; real compiler/Play and full runtime acceptance remain open.
+
+Embedded-form button follow-up (#5644): generic action buttons explicitly use
+`type="button"`. Embedding a manifestation in an existing HTML form must not
+add native form submission to its declared activation. Both native Enter and
+pointer fixtures reproduced the extra submission before repair. All 28
+targeted pinned Chromium fixtures pass (one worker, zero retries), including
+one exact declared action and zero embedding-form submissions for each path.
+No synthetic positive interaction or callback filtering was added. These prove
+renderer/browser default behavior, not authoritative Body or full runtime
+acceptance; the prior missing local WASM limitation remains.
