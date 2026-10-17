@@ -29,7 +29,10 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         "check.browser.runtime-bridge",
         "Check finite exact-text ingress and byte custody at the browser runtime ABI",
         "node",
-        &["--test", "targets/browser/host/assets/browser-runtime-bridge.test.mjs"],
+        &[
+            "--test",
+            "targets/browser/host/assets/browser-runtime-bridge.test.mjs",
+        ],
     ),
     Step::new(
         "check.browser.browser-runtime",
