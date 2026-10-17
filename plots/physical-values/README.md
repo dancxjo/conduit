@@ -18,3 +18,14 @@ catalog and initial Body. Parent #5390 retains its broader acceptance gates.
 
 Omitting `--plot` preserves the full reviewed deterministic inventory run. An
 unknown selected slug refuses instead of reporting an empty successful proof.
+
+`triad.conduit` is the reviewed companion Source for first-class physical
+transport and dimensional arithmetic. It declares basis and composed Dimensions,
+two exact related custom Units, and a record carrying Dimension, Unit and Quantity
+through startup arguments and runtime Cords. Its `speed` and `area` roots derive
+Length/Time and Length² from ordinary typed operands. Run
+`cargo xtask check physical-values` for the codec, checked expression, refusal and
+installed Source/Plan/Play conformance, including allocation checks. Derived results
+keep anonymous nominal provenance; dimensional equality alone does not make one
+an authored Speed or Area family. The existing same-family ratio still returns
+Scalar. No rounding or Point/Delta product is implicit.

@@ -112,7 +112,10 @@ different successful result. Malformed evidence fails admission.
 `units/compare` returns `less`, `equal`, `greater`, or `refused(reason)`.
 `1kHz` and `1000Hz` compare physically equal, as do `21°C` and `69.8°F`.
 Physical equality, representation identity, and source spelling remain distinct.
-This does not introduce a direct Boolean quantity `==` law.
+Rust `Quantity` equality/order and `semantic_digest()` identify the checked
+representation, including its Unit capsule; physically equal `1kHz` and `1000Hz`
+can have different encodings and digests. Use typed quantity comparison for
+physical equality. No universal physical hash or implicit normalization is promised.
 
 ```conduit
 plot change {

@@ -12,6 +12,8 @@ mod dsp_shared_compositions;
 mod inverse_angle;
 #[path = "../../xtask/src/suites/parser_scorer.rs"]
 mod parser_scorer;
+#[path = "../../xtask/src/suites/physical_values.rs"]
+mod physical_values;
 #[path = "../../xtask/src/suites/print_pool.rs"]
 mod print_pool;
 
@@ -47,6 +49,11 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: inverse_angle::STEPS,
             path: "tools/xtask/src/suites/inverse_angle.rs",
             source: include_bytes!("../../xtask/src/suites/inverse_angle.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "physical-values" => Some(Suite {
+            steps: physical_values::STEPS,
+            path: "tools/xtask/src/suites/physical_values.rs",
+            source: include_bytes!("../../xtask/src/suites/physical_values.rs"),
         }),
         [check, suite] if check == "check" && suite == "print-pool" => Some(Suite {
             steps: print_pool::STEPS,

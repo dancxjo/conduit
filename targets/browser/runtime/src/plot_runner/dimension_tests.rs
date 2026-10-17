@@ -53,3 +53,39 @@ fn browser_dimension_advertisement_preserves_the_codec_queue_bound() {
         );
     }
 }
+
+#[test]
+fn browser_derived_quantities_execute_exact_products_and_quotients() {
+    for predicate in [
+        "(30cm / 2s) == (15cm / 1s)",
+        "(2m * 3s) == (3s * 2m)",
+        "(2km * 3m) == (2000m * 300cm)",
+        "(30cm / 2s) != (14cm / 1s)",
+    ] {
+        let source = format!(
+            "plot derived {{\n operation: units/dimension(source=m)\n show: face/bool-value(\"Derived Quantity comparison\")\n operation.dimension >> ({predicate}) >> show.value\n}}.\n"
+        );
+        let (mut session, effect) = TourSession::prepare(
+            "browser/derived-quantity",
+            "boot/derived-quantity",
+            &source,
+            1,
+        )
+        .unwrap_or_else(|error| panic!("{error}\n{source}"));
+        let TourHostEffect::Manifestation(effect) = effect else {
+            panic!("Boolean manifestation");
+        };
+        assert_eq!(effect.text.as_deref(), Some("true"));
+        assert_eq!(effect.plan_id, session.fragments[0].plan_id.as_str());
+        assert!(effect.expanded_gears.iter().any(|gear| {
+            gear.kind_id == conduit_plot::dimension_operation::UNIT_KIND
+                && gear.implementation_id == "browser/unit-dimension@1"
+        }));
+        let capacity = session.scheduler.values().allocation_capacities();
+        let TourProgress::Receipt(receipt) = session.advance().unwrap() else {
+            panic!("completion receipt");
+        };
+        assert_eq!(receipt.disposition, "completed");
+        assert_eq!(session.scheduler.values().allocation_capacities(), capacity);
+    }
+}

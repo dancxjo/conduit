@@ -319,7 +319,8 @@ Their presence is not an additional physical or release acceptance claim:
 - **Reusable applications:** plots-as-gears is implemented, while several
   complete reusable application compositions still have open acceptance work.
   [The roadmap](docs/roadmap.md#reusable-plots) names those remaining slices.
-- **First-class units and quantities (#5390):** catalogue-resolved `Unit`,
+- **First-class physical values (#5390):** standalone normalized `Dimension`,
+  catalogue-resolved `Unit`,
   bounded exact `Quantity`, and the distinct empty value `Empty` have canonical
   checked codecs. Bare unit symbols and quantity literals pass through typed
   startup parameters, structured fields and runtime connections; conversion
@@ -331,8 +332,12 @@ Their presence is not an additional physical or release acceptance claim:
   share one exact conversion law. std and browser Backs prepare finite receipts
   before Play; no_std arithmetic and consumer checking do not imply an installed
   firmware realization. [The quantity guide](docs/architecture/quantity-prefixes.md)
-  records profiles, refusals and proof classes. Local implementation and test
-  evidence must be distinguished from hosted candidate and stable acceptance.
+  records profiles, refusals and proof classes. Linear Quantity products and
+  quotients derive bounded dimensions with exact reference coordinates and
+  retained nominal-family/origin identity; decimal projection refuses precision
+  or extent loss. The [physical acceptance map](docs/audits/physical-values-acceptance.md)
+  names focused std and browser proof. Local implementation and test evidence
+  must be distinguished from hosted candidate and stable acceptance.
 
 - **Browser-local Thermostat (#5399):** the static Handbook packages the original
   `thermostat/main` and checks, plans and executes it in its own browser Body.

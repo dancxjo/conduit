@@ -71,6 +71,36 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
       || kinds.size !== 5 || comparisons.size !== 8 || expectedKinds.some(kind => !kinds.has(kind))) {
     throw new Error('Quantity proof does not cover all four complete corpora and all five roles');
   }
+  const derivedReports = readdirSync(results, { recursive: true })
+    .filter(name => path.basename(name) === 'derived-quantity-browser-evidence.json');
+  if (derivedReports.length !== 1) throw new Error('Expected one current derived quantity browser proof');
+  const derivedFile = path.join(results, derivedReports[0]);
+  const derivedBytes = readFileSync(derivedFile);
+  if (derivedBytes.length > 4 * 1024 * 1024) throw new Error('Derived quantity proof exceeds capture bound');
+  const derived = JSON.parse(derivedBytes);
+  const predicates = new Set([
+    '(30cm / 2s) == (15cm / 1s)',
+    '(2m * 3s) == (3s * 2m)',
+    '(2km * 3m) == (2000m * 300cm)',
+    '(30cm / 2s) != (14cm / 1s)',
+  ]);
+  if (derived.wasm_sha256 !== wasmDigest || !derived.browser?.includes('Chrome/')
+      || !Array.isArray(derived.rows) || derived.rows.length !== 4) {
+    throw new Error('Derived quantity proof differs from sealed Chromium runtime or complete corpus');
+  }
+  for (const row of derived.rows) {
+    const planned = row.effect?.expanded_gears?.find(gear => gear.kind_id === 'units/dimension');
+    if (row.kind !== 'units/dimension' || row.right !== 'true' || !predicates.delete(row.left)
+        || !row.source?.includes(`operation.dimension >> (${row.left}) >> show.value`)
+        || !row.source.includes('operation: units/dimension(source=m)')
+        || row.effect?.effect_kind !== 'manifestation' || row.effect.face_kind !== 'face/bool-value'
+        || row.effect.text !== 'true' || planned?.implementation_id !== 'browser/unit-dimension@1'
+        || !row.effect.active_play_id || row.receipt?.disposition !== 'completed'
+        || row.receipt.active_play_id !== row.effect.active_play_id) {
+      throw new Error('Derived quantity proof lacks distinct completed predicates and installed dimension Back');
+    }
+  }
+  captures.push({ file: derivedFile, bytes: derivedBytes, cases: 4, browser: derived.browser });
   mkdirSync(destination);
   const evidence = captures.map(capture => {
     const name = `corpus-${capture.cases}.json`;
@@ -80,7 +110,7 @@ export function retainExactQuantityEvidence(results, destination, runtime, sourc
   writeFileSync(path.join(destination, 'manifest.json'), JSON.stringify({
     schema: 'conduit.browser/exact-quantity-proof@1', source_head: sourceHead,
     wasm_sha256: wasmDigest, project: 'chromium', workers: 1, retries: 0,
-    kernel_cases: 54, evidence,
+    kernel_cases: 58, evidence,
     proof_class: 'Actual WebAssembly browser kernel execution; no physical or firmware claim',
   }, null, 2));
 }

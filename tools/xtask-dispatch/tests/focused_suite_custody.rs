@@ -51,6 +51,11 @@ fn changed_or_missing_suite_refuses_before_launching_cargo() {
             include_bytes!("../../xtask/src/suites/inverse_angle.rs").as_slice(),
         ),
         (
+            "physical-values",
+            "physical_values.rs",
+            include_bytes!("../../xtask/src/suites/physical_values.rs").as_slice(),
+        ),
+        (
             "parser-scorer",
             "parser_scorer.rs",
             include_bytes!("../../xtask/src/suites/parser_scorer.rs").as_slice(),

@@ -12,6 +12,9 @@ pub(crate) fn is_quantity(kind: &str) -> bool {
         || kind == conduit_core::QUANTITY_INFO_ID
 }
 fn linear(kind: &str) -> bool {
+    if kind == conduit_core::QUANTITY_INFO_ID {
+        return true; // The generic carrier checks its concrete role at evaluation.
+    }
     if let Some((_, role)) = conduit_core::parse_quantity_role_info_id(kind) {
         role == QuantityRole::Linear
     } else {
@@ -31,7 +34,12 @@ pub(crate) fn result_kind(op: O, left: &str, right: &str) -> Option<Result<KindI
     }
     Some(match op {
         O::Add | O::Subtract if left == right && linear(left) => Ok(kind_id(left)),
-        O::Divide if left == right && linear(left) => Ok(kind_id(SCALAR_INFO_ID)),
+        O::Divide if left == right && linear(left) && left != conduit_core::QUANTITY_INFO_ID => {
+            Ok(kind_id(SCALAR_INFO_ID))
+        }
+        O::Multiply | O::Divide if linear(left) && linear(right) => {
+            Ok(kind_id(conduit_core::QUANTITY_INFO_ID))
+        }
         O::Multiply | O::Divide if linear(left) && right == SCALAR_INFO_ID => Ok(kind_id(left)),
         O::Multiply if left == SCALAR_INFO_ID && linear(right) => Ok(kind_id(right)),
         _ => Err(()),
@@ -66,7 +74,9 @@ impl Encoded {
 fn rational(bytes: &[u8], work: &mut ExactNumericWork) -> Result<RationalQuantity, R> {
     let value = Quantity::decode(bytes).map_err(|_| R::InvalidProgram)?;
     if value.role() != QuantityRole::Linear {
-        return Err(R::Arithmetic);
+        return Err(R::QuantityProduct(
+            conduit_core::RationalQuantityRefusal::InvalidRole,
+        ));
     }
     RationalQuantity::from_quantity(value, work).map_err(|_| R::Arithmetic)
 }
@@ -82,9 +92,9 @@ fn encoded_quantity(
 ) -> Result<Encoded, R> {
     let (coefficient, exponent) = coordinate
         .checked_decimal_parts(work)
-        .map_err(|_| R::Arithmetic)?;
+        .map_err(R::QuantityProjection)?;
     Ok(Encoded::quantity(
-        Quantity::from_decimal(coefficient, exponent, unit).map_err(|_| R::Arithmetic)?,
+        Quantity::from_decimal(coefficient, exponent, unit).map_err(R::QuantityEncoding)?,
     ))
 }
 pub(crate) fn evaluate(
@@ -114,7 +124,20 @@ fn arithmetic(
     let mut work = ExactNumericWork::new(3 * conduit_core::MATHEMATICAL_VALUE_VALIDATION_WORK);
     if is_quantity(left_kind) && is_quantity(right_kind) {
         let left = rational(left, &mut work)?;
-        let right = rational(right, &mut work)?
+        let right = rational(right, &mut work)?;
+        if op == O::Multiply
+            || (op == O::Divide
+                && (left_kind != right_kind || left_kind == conduit_core::QUANTITY_INFO_ID))
+        {
+            let result = if op == O::Multiply {
+                left.checked_product(right, &mut work)
+            } else {
+                left.checked_quotient(right, &mut work)
+            }
+            .map_err(R::QuantityProduct)?;
+            return encoded_quantity(result.coordinate(), result.unit(), &mut work);
+        }
+        let right = right
             .convert_to_unit(left.unit(), &mut work)
             .map_err(|_| R::Arithmetic)?;
         let coordinate = match op {
@@ -165,4 +188,21 @@ fn arithmetic(
     }
     .map_err(|_| R::Arithmetic)?;
     encoded_quantity(coordinate, value.unit(), &mut work)
+}
+
+/// Stable Host-call details for the finite derived-quantity failure boundary.
+/// Values 40..47 are separate from scalar arithmetic and Angle domains.
+pub fn quantity_arithmetic_failure_detail(refusal: &R) -> u16 {
+    use conduit_core::{ExactNumericRefusal as N, RationalQuantityRefusal as Q};
+    match refusal {
+        R::QuantityProduct(Q::InvalidRole) => 40,
+        R::QuantityProduct(Q::Numeric(N::DivisionByZero)) => 41,
+        R::QuantityProduct(Q::Numeric(N::WorkLimit)) => 42,
+        R::QuantityProduct(Q::Unit(_)) => 44,
+        R::QuantityProduct(_) => 43,
+        R::QuantityProjection(N::InexactProjection) => 45,
+        R::QuantityEncoding(_) => 46,
+        R::QuantityProjection(_) => 47,
+        _ => 0,
+    }
 }

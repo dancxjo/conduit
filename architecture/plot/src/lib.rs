@@ -31,6 +31,7 @@ mod expression_evaluate;
 mod expression_f32;
 mod expression_inverse_trigonometry;
 pub use expression_inverse_trigonometry::inverse_angle_failure_detail;
+pub use expression_quantity::quantity_arithmetic_failure_detail;
 mod expression_numeric_type;
 mod expression_prepared;
 mod expression_program;

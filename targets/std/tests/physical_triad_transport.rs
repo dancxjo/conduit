@@ -5,7 +5,7 @@ use conduit_std_host::{
     ExternalForeDelivery, ExternalForeInput, ExternalForeOutputAdapter, StdHost, TimerAdapter,
 };
 use std::{collections::BTreeMap, time::Duration};
-const SOURCE: &str = "dimension travel\ndimension clock\ndimension velocity = travel / clock\ntype Motion = quantity {dimension:velocity}\nunit stepper : Motion = {reference:origin,scale:1}\ntype PhysicalTriad = {\n dimension: Dimension\n coordinate: Unit\n magnitude: Quantity\n}\nplot emit (\n dimension: Dimension\n coordinate: Unit\n magnitude: Quantity\n >> tick: Boolean\n result: PhysicalTriad >>\n) = ({dimension:dimension,coordinate:coordinate,magnitude:magnitude})\nplot relay (\n >> value: PhysicalTriad <=8192B\n result: PhysicalTriad >>\n) = ({dimension:.dimension,coordinate:.coordinate,magnitude:.magnitude})\nplot demo (\n >> tick: Boolean\n result: PhysicalTriad >>\n) {\n initial: emit(dimension=velocity,coordinate=stepper,magnitude=3stepper)\n copy: relay\n tick >> initial.tick\n initial.result >> copy.value\n copy.result >> result\n}\n";
+const SOURCE: &str = include_str!("../../../plots/physical-values/triad.conduit");
 struct NoTimer;
 impl TimerAdapter for NoTimer {
     fn wait(&mut self, _: Duration) {
@@ -138,7 +138,7 @@ fn field<'a>(value: &'a StructuredInfoValue, name: &str) -> &'a [u8] {
 #[test]
 fn physical_triad_arguments_fields_connections_and_old_play_keep_original_definition() {
     let (mut host, plan) = prepare(SOURCE, "demo", "tick", 8192);
-    let changed = SOURCE.replace("reference:origin,scale:1", "reference:origin,scale:2");
+    let changed = SOURCE.replace("reference: origin, scale: 1", "reference: origin, scale: 2");
     let (mut later, later_plan) = prepare(&changed, "demo", "tick", 8192);
     let newer = execute(
         &mut later,
@@ -167,6 +167,21 @@ fn physical_triad_arguments_fields_connections_and_old_play_keep_original_defini
     assert_eq!(
         unit.definition_identity(),
         quantity.unit().definition_identity()
+    );
+    let (mut alternate, alternate_plan) = prepare(SOURCE, "demo-other", "tick", 8192);
+    let alternate = execute(
+        &mut alternate,
+        &alternate_plan,
+        "tick",
+        InfoBool::TRUE.encode().to_vec(),
+    )
+    .unwrap();
+    let alternate = StructuredInfoValue::from_canonical_bytes(&alternate.0[0]).unwrap();
+    let same_magnitude = Quantity::decode(field(&alternate, "magnitude")).unwrap();
+    assert_ne!(quantity.encode(), same_magnitude.encode());
+    assert_eq!(
+        quantity.compare(same_magnitude),
+        Ok(core::cmp::Ordering::Equal)
     );
     let later_unit = Unit::decode(field(&new, "coordinate")).unwrap();
     assert_ne!(unit.definition_identity(), later_unit.definition_identity());

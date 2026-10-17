@@ -21,6 +21,8 @@ fn reviewed_units_and_prefixes_retain_coordinates_and_physical_equality() {
     let first = Exact::parse_plot_literal("1000mm").unwrap();
     let second = Exact::parse_plot_literal("1m").unwrap();
     assert_ne!(first.encode(), second.encode());
+    assert_ne!(first, second);
+    assert_ne!(first.semantic_digest(), second.semantic_digest());
     assert_eq!(first.compare(second), Ok(core::cmp::Ordering::Equal));
     assert_eq!(
         second.compare(Exact::parse_plot_literal("0.001km").unwrap()),

@@ -68,7 +68,22 @@ const snapshotCases = [["1.7018", 17018, -4], ["2", 2, 0], ["1.7018", 17018, -4]
   source: `unit smoot : Distance = { reference: m, scale: ${scale} }\n${source("units/convert", "1smoot", "m", converted(coefficient, exponent))}`,
 }));
 
-for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases], ["full-name and scoped alias receipt comparator", comparatorCases], ["immutable authored unit snapshots", snapshotCases]]) {
+const derivedCases = [
+  "(30cm / 2s) == (15cm / 1s)",
+  "(2m * 3s) == (3s * 2m)",
+  "(2km * 3m) == (2000m * 300cm)",
+  "(30cm / 2s) != (14cm / 1s)",
+].map((predicate) => ({
+  kind: "units/dimension", left: predicate, right: "true",
+  implementation: "browser/unit-dimension@1",
+  source: `plot derived-quantity {
+ operation: units/dimension(source=m)
+ show: face/bool-value("Derived Quantity comparison")
+ operation.dimension >> (${predicate}) >> show.value
+}.`,
+}));
+
+for (const [name, cases] of [["official prefix and affine corpus", convertedCases], ["semantic roles and retained refusals", roleCases], ["full-name and scoped alias receipt comparator", comparatorCases], ["immutable authored unit snapshots", snapshotCases], ["derived quantity products and quotients", derivedCases]]) {
   test(`exact quantities execute ${name} through the browser kernel`, async ({ page }, testInfo) => {
     test.setTimeout(60_000);
     const errors = [];
@@ -119,8 +134,9 @@ for (const [name, cases] of [["official prefix and affine corpus", convertedCase
     expect(errors).toEqual([]);
     expect(evidence.rows).toHaveLength(cases.length);
     await expect(page.locator("#result")).toHaveText(sources.at(-1).expected_text ?? "true");
-    const evidencePath = testInfo.outputPath("exact-quantity-browser-evidence.json");
+    const evidenceName = cases === derivedCases ? "derived-quantity-browser-evidence.json" : "exact-quantity-browser-evidence.json";
+    const evidencePath = testInfo.outputPath(evidenceName);
     await writeFile(evidencePath, JSON.stringify(evidence, null, 2));
-    await testInfo.attach("exact-quantity-browser-evidence.json", { path: evidencePath, contentType: "application/json" });
+    await testInfo.attach(evidenceName, { path: evidencePath, contentType: "application/json" });
   });
 }
