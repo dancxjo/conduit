@@ -93,3 +93,9 @@ choice, model and analysis custody must be proved by #5754 before downstream use
 invocations, 866,905 ns total, 15,412 ns maximum, 1,368 reported working bytes,
 and 6,364 KiB process RSS/HWM. These are numeric microbenchmarks, not parser
 latency or a whole-process memory bound.
+
+`numeric_failure_evidence.json` retains the subsequent run with the actual failed
+TEST decision: `email-enronsent04_02-0007` selects class 73 (right-arc/root) instead
+of reference class 0 (shift). It reports 63 calls, 1,408,331 ns total and 23,734 ns
+maximum; the earlier observation is preserved. Timing variation does not alter
+the 25/26 result. No reference action replaces the selected action.
