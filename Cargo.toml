@@ -125,3 +125,10 @@ strip = "symbols"
 
 [profile.release]
 strip = "symbols"
+
+# Source checking and binding generation also run inside build dependencies.
+[profile.dev.build-override]
+opt-level = 1
+
+[profile.test.build-override]
+opt-level = 1
