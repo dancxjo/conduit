@@ -509,3 +509,19 @@ worker and zero retries, including malformed-choice refusal and subsequent
 native submission of exact accented text plus emoji. The 24 focused SDK tests
 and producer fixture pass. These prove renderer/SDK fidelity fences, not
 authoritative Body receipts or deployment of the unpromoted changes.
+
+Narrow Unicode/media proof follow-up (#5632): twelve new pinned Chromium
+fixtures cover text inputs and long native choice values at a 320-pixel viewport
+with 100%/200% CSS magnification, under normal, forced-color and reduced-motion
+preferences. Long CJK/emoji labels remain in bounds, with no document horizontal
+overflow and a visible focus outline. Each case submits the exact argument once
+through native keyboard activation. Forced-color foreground/background differ;
+the reduced-motion rule suppresses a deliberately added animation/transition.
+
+All twelve new fixtures pass with one worker and zero retries. The existing
+Look required no CSS repair; these are new regression coverage. The prior full
+component run remains 75 passing tests; that run was not repeated for this
+test-only extension. CSS magnification is not browser/OS zoom, differing system
+colors are not a contrast-ratio certification, and these callback fixtures do
+not establish arbitrary-CSS accessibility, assistive-technology enactment or
+authoritative Body state. #5632 remains open.
