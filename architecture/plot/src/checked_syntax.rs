@@ -294,6 +294,8 @@ impl CheckedSyntaxDocument {
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct ExpandedGearProvenance {
+    /// Compiler-owned validation scope; authored gear paths cannot grant it.
+    pub(crate) construction_owner: Option<conduit_core::KindId>,
     pub gear_id: String,
     pub plot_path: Vec<String>,
     pub source_plot: String,
