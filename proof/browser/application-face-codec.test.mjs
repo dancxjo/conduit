@@ -108,3 +108,39 @@ test('view decoding respects padded typed-array and Node Buffer offsets', () => 
     assert.deepEqual(decodeApplicationView(input), expected);
   }
 });
+
+test('oversized text fields refuse before UTF-8 allocation', () => {
+  const NativeEncoder = globalThis.TextEncoder;
+  try {
+    for (const [field, maximum, code] of [['action', 48, 'action-id-too-long'], ['key', 32, 'text-too-long'],
+      ['text', 256, 'text-too-long'], ['value', 65_536, 'invalid-control-value']]) {
+      const oversized = 'x'.repeat(maximum + 1);
+      globalThis.TextEncoder = class extends NativeEncoder {
+        encode(value) { assert.notEqual(value, oversized, 'oversized field must refuse before UTF-8 encoding'); return super.encode(value); }
+      };
+      const source = description();
+      if (field === 'action') source.actions[0].id = oversized;
+      else source.nodes[0][field] = oversized;
+      assert.throws(() => encodeApplicationView(source), { code });
+    }
+  } finally { globalThis.TextEncoder = NativeEncoder; }
+});
+
+function largeView() {
+  return { revision: 1, actions: [], nodes: [
+    { parent: null, component: 'shell', key: 'root', text: '', action: null },
+    ...['a', 'b'].map(key => ({ parent: 0, component: 'textarea', key, text: key,
+      value: '', valueCapacity: 65_536, action: null })),
+  ] };
+}
+test('view envelope refuses before processing later fields and accepts its exact ceiling', () => {
+  const source = largeView();
+  const overhead = encodeApplicationView(source).length;
+  source.nodes[1].value = 'x'.repeat(65_536);
+  source.nodes[2].value = 'y'.repeat(131_072 - overhead - 65_536);
+  assert.equal(encodeApplicationView(source).length, 131_072);
+  source.nodes[2].value += 'y';
+  source.nodes.push({ parent: 0, component: 'paragraph', key: 'later', action: null,
+    get text() { assert.fail('oversized envelope must refuse before later fields'); } });
+  assert.throws(() => encodeApplicationView(source), { code: 'oversized-encoding' });
+});

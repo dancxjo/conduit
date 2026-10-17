@@ -29,9 +29,13 @@ export class ApplicationFaceRefusal extends Error {
 
 const refuse = (code) => { throw new ApplicationFaceRefusal(code); };
 
-function encodeExactText(value) {
-  if (typeof value !== "string" || !value.isWellFormed()) refuse("malformed-encoding");
-  return new TextEncoder().encode(value);
+function encodeExactText(value, maximum, boundCode) {
+  if (typeof value !== "string") refuse("malformed-encoding");
+  if (value.length > maximum) refuse(boundCode);
+  if (!value.isWellFormed()) refuse("malformed-encoding");
+  const bytes = new TextEncoder().encode(value);
+  if (bytes.length > maximum) refuse(boundCode);
+  return bytes;
 }
 
 
@@ -212,20 +216,28 @@ export function encodeApplicationView(view) {
   if (view.nodes.length > MAX_NODES) refuse("too-many-nodes");
   if (view.actions.length > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
-  const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
+  let length = 0;
+  const append = (...values) => {
+    for (const chunk of values) {
+      if (chunk.length > MAX_BYTES - length) refuse("oversized-encoding");
+      chunks.push(chunk);
+      length += chunk.length;
+    }
+  };
+  const push = (...bytes) => append(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);
   header[0] = VERSION;
   new DataView(header.buffer).setUint32(1, view.revision, true);
   header[5] = view.nodes.length;
   header[6] = view.actions.length;
-  chunks.push(header);
+  append(header);
   for (const action of view.actions) {
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
-    const encoded = encodeExactText(action.id ?? "");
+    const encoded = encodeExactText(action.id ?? "", MAX_ACTION_ID_BYTES, "action-id-too-long");
     if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
     push(kind, encoded.length);
-    chunks.push(encoded);
+    append(encoded);
   }
   for (const node of view.nodes) {
     const component = COMPONENT_IDENTITIES[node?.component];
@@ -235,9 +247,9 @@ export function encodeApplicationView(view) {
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
-    const key = encodeExactText(node.key ?? "");
-    const content = encodeExactText(node.text ?? "");
-    const value = encodeExactText(node.value ?? "");
+    const key = encodeExactText(node.key ?? "", MAX_KEY_BYTES, "text-too-long");
+    const content = encodeExactText(node.text ?? "", MAX_TEXT_BYTES, "text-too-long");
+    const value = encodeExactText(node.value ?? "", MAX_CONTROL_VALUE_BYTES, "invalid-control-value");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
@@ -254,10 +266,8 @@ export function encodeApplicationView(view) {
     const headerView = new DataView(nodeHeader.buffer);
     headerView.setUint32(7, value.length, true);
     headerView.setUint32(11, valueCapacity, true);
-    chunks.push(nodeHeader, key, content, value);
+    append(nodeHeader, key, content, value);
   }
-  const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
-  if (length > MAX_BYTES) refuse("oversized-encoding");
   const encoded = new Uint8Array(length);
   let offset = 0;
   for (const chunk of chunks) { encoded.set(chunk, offset); offset += chunk.length; }
@@ -359,7 +369,7 @@ function checkedBytes(value, maximum, boundCode) {
 export function encodeApplicationEvent(event) {
   if (!event || !Number.isSafeInteger(event.revision) || event.revision < 0 || event.revision > 0xffff_ffff) refuse("malformed-encoding");
   if (!Number.isInteger(event.kind) || !Object.hasOwn(EVENTS, event.kind)) refuse("unknown-event");
-  const action = encodeExactText(event.action);
+  const action = encodeExactText(event.action, MAX_ACTION_ID_BYTES, "action-id-too-long");
   const value = checkedBytes(event.value, MAX_EVENT_BYTES, "event-too-large");
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");

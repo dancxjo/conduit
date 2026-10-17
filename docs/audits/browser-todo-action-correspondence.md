@@ -720,3 +720,15 @@ refusal before repair. All nine focused Node codec tests pass, including padded
 typed arrays, padded Node buffers and ordinary Node buffers with exact decoded
 identity/fields. No browser/runtime build was needed for this reader correction;
 compiler/Play and full runtime acceptance remain open.
+
+Encoder allocation follow-up (#5653): exact-text encoding checks each field's
+character count against its existing UTF-8 cap before encoding, then checks the
+actual encoded bytes. View chunk accumulation maintains the existing 128 KiB
+envelope limit incrementally and stops before processing later nodes once the
+envelope cannot fit. It does not first build every oversized view chunk.
+
+Both new regressions reproduced late encoding/processing before repair. All
+11 focused Node codec tests pass, including exact 128 KiB envelope acceptance,
+early field rejection and no access to later nodes after envelope exhaustion.
+These prove codec work admission, not compiler/Play or public runtime acceptance;
+no browser/runtime rebuild was performed.
