@@ -1225,3 +1225,17 @@ typed values, shared bindings and graph identity membership. The boundary hook
 simulates caller storage changes; this is not a concurrent-worker stress test.
 These are renderer admission/queue proofs, not authoritative Body/Play or
 packaged/release acceptance; #5644 remains open.
+
+Event metadata snapshot follow-up (#5653 / #5644): the browser event encoder
+captures revision and kind once, validates those primitives and writes the same
+values to the wire. Later action/payload conversion cannot replace an admitted
+revision with a wrapping integer or change its registered event kind. Existing
+argument, byte-budget and exact identity checks remain unchanged.
+
+All three new regressions reproduced before repair: repeated revision/kind
+getters and payload conversion rewriting already-validated metadata. All 32
+focused Face/Look/syntax codec tests pass, including unchanged size/Unicode and
+input-form negative cases. This is deterministic wire admission proof, not
+actual source/compiler/kernel Play, browser interaction or packaged/release
+acceptance; the owning issues remain open. No protected or uncertain branch
+work was changed.

@@ -419,16 +419,18 @@ function checkedBytes(value, maximum, boundCode) {
 }
 
 export function encodeApplicationEvent(event) {
-  if (!event || !Number.isSafeInteger(event.revision) || event.revision < 0 || event.revision > 0xffff_ffff) refuse("malformed-encoding");
-  if (!Number.isInteger(event.kind) || !Object.hasOwn(EVENTS, event.kind)) refuse("unknown-event");
+  const revision = event?.revision;
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 0xffff_ffff) refuse("malformed-encoding");
+  const kind = event.kind;
+  if (!Number.isInteger(kind) || !Object.hasOwn(EVENTS, kind)) refuse("unknown-event");
   const action = encodeExactText(event.action, MAX_ACTION_ID_BYTES, "action-id-too-long");
   const value = checkedBytes(event.value, MAX_EVENT_BYTES, "event-too-large");
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
   const encoded = new Uint8Array(EVENT_HEADER_BYTES + action.length + value.length);
   encoded[0] = VERSION;
-  new DataView(encoded.buffer).setUint32(1, event.revision, true);
-  encoded[5] = event.kind;
+  new DataView(encoded.buffer).setUint32(1, revision, true);
+  encoded[5] = kind;
   encoded[6] = action.length;
   new DataView(encoded.buffer).setUint32(7, value.length, true);
   encoded.set(action, EVENT_HEADER_BYTES);
