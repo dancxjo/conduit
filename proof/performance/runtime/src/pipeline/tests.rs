@@ -160,6 +160,10 @@ fn installed_local_pipeline_preserves_outputs_and_refuses_bad_values() -> Result
 #[test]
 fn fused_pipeline_uses_one_region_with_equal_outputs() -> Result<(), Box<dyn Error>> {
     let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
+    assert_eq!(
+        source(32),
+        include_str!("../../fixtures/pure-chain-32.conduit")
+    );
     for gears in [1, 8, 32] {
         let mut prepared = prepare_mode(gears, &source(gears), "boot/fused-pipeline", true, true)?;
         assert_eq!(
