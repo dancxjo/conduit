@@ -207,6 +207,9 @@ def verify(root, output):
         'raw_records': len(raw),
         'verified_repeated_distributions': len(groups),
         'expression_cases_with_cross_mode_output_parity': len(checksums),
+        'expression_outputs': {case: {'validation_sum': next(iter(digests))[0],
+                                      'validation_sha256': next(iter(digests))[1]}
+                               for case, digests in sorted(checksums.items())},
         'hosted_rows': ordinary,
         'all_pipeline_rows': len(pipelines),
         'verified_pipeline_execution_identities': identities,

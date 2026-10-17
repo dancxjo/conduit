@@ -53,6 +53,7 @@ def compare(captures, control_path, process_path, output, verifier_path):
     assert len({r['executable'] for r in workers}) == 1
     assert all(c == configs[0] for c in configs)
     assert all(p == plot_hashes[0] for p in plot_hashes)
+    assert all(r['expression_outputs'] == receipts[0]['expression_outputs'] for r in receipts), 'expression outputs differ across processes'
     for key in ['compiler', 'cargo', 'os', 'profile', 'debug_assertions', 'rustflags', 'release_overrides']:
         assert all(r['metadata'][key] == receipts[0]['metadata'][key] for r in receipts), key
     cpu_models = [{line for line in r['metadata']['cpu'].splitlines() if line.startswith('model name')} for r in receipts]
@@ -83,6 +84,7 @@ def compare(captures, control_path, process_path, output, verifier_path):
         'verified_batch_distributions': sum(r['verified_repeated_distributions'] for r in receipts),
         'metric_groups': comparisons,
         'capture_receipts': receipts,
+        'expression_outputs': receipts[0]['expression_outputs'],
         'verifier_sha256': hashlib.sha256(verifier_path.read_bytes()).hexdigest(),
         'comparison_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
         'control_sha256': hashlib.sha256(control_path.read_bytes()).hexdigest(),

@@ -1,0 +1,20 @@
+{
+  "checks": [
+    {
+      "field": "validation_sum",
+      "changed_rows": 6,
+      "refused": true,
+      "reason": "expression outputs differ across processes"
+    },
+    {
+      "field": "validation_sha256",
+      "changed_rows": 6,
+      "refused": true,
+      "reason": "expression outputs differ across processes"
+    }
+  ],
+  "comparison_sha256": "be7147f3b3d2a2953b2b777d1d1cff6f7b02d91c5a40a797fcddfaa850dabb30",
+  "verifier_sha256": "3ba7b3627e6b2e2a8fa746f5f501d0ff8580c224c71b7d39589d0506b6528fb2",
+  "proof_sha256": "9838114de9a1959b83b4ee04f44c7468f4522b27d8001f4192e618aa262f9786",
+  "scope": "Rehashed mutated copies; original immutable captures are untouched."
+}

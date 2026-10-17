@@ -63,3 +63,26 @@ python3 proof/performance/compare-runtime-processes.py \
 ```
 
 The original recorded output paths remain inside capture status and match the process receipt even after archival relocation. The comparison is a developer evidence tool, not a new product entrance. Hardware instruction/copy counters, million-value end-to-end streaming, DSP/pressure/fairness, browser/physical/stable acceptance and parent completion remain open. No CI dispatched or awaited.
+
+## Cross-process expression output custody follow-up
+
+The comparator now also requires identical expression validation sums and output
+digests across processes, for every expression case. Previously it verified
+within-process parity only: a rehashed copy with all six `u64-add1` rows changed
+together passed despite disagreeing with the other two captures. This was
+reproduced before the fix. The original captures still pass all 267 artifact
+hashes and all 12 expression cases agree across processes. Timing observations
+are unchanged; this check does not independently derive arithmetic outputs.
+
+`check-runtime-process-parity.py` supplies repeatable negative proof using the
+same `--capture`, `--control`, `--process-observations` and `--output` arguments
+as the comparator. It mutates temporary copies, independently changes the sum
+and digest across every mode/repetition of one case, updates the artifact hash,
+and requires refusal specifically at the cross-process parity check with no
+output receipt. Both mutations are refused. Original captures remain untouched.
+
+Updated positive and negative receipts are retained separately, preserving the
+original analysis receipts:
+
+- `evidence/hosted-runtime-cross-process-parity-20261017.json`
+- `evidence/hosted-runtime-cross-process-negative-20261017.json`
