@@ -2,6 +2,7 @@
 use crate::{KernelEvent, KernelEventKind, SignError, SignRetentionGap};
 use core::mem::size_of;
 
+#[inline]
 pub(super) fn transient_sign(kind: KernelEventKind) -> bool {
     !matches!(
         kind,
