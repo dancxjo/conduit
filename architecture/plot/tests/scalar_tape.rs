@@ -148,13 +148,14 @@ fn checked_record_profile_stays_with_declared_reference_evaluator() {
 }
 
 #[test]
-fn tape_scratch_is_reserved_for_the_actual_instruction_count() {
+fn tape_scratch_profile_is_bounded_by_the_admitted_instruction_count() {
     let identity = program(
         "plot identity (\n >> value: U64\n result: U64 >>\n) = (.)\n",
         "identity",
     );
     let tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&identity).unwrap();
-    let (instructions, slot_bytes) = tape.scalar_tape_limits().unwrap();
+    let (instructions, tiny_bytes) = tape.scalar_tape_limits().unwrap();
+    let slot_bytes = tiny_bytes / 4;
     assert_eq!(instructions, 1);
     let source = include_str!("fixtures/expression_baseline.conduit");
     for operations in [1u64, 3, 8, 32] {
@@ -162,13 +163,20 @@ fn tape_scratch_is_reserved_for_the_actual_instruction_count() {
         let tape = PreparedPortableExpressionEvaluator::new_scalar_tape(&p).unwrap();
         let (instructions, scratch) = tape.scalar_tape_limits().unwrap();
         assert_eq!(instructions, operations as usize * 2 + 1);
-        assert_eq!(scratch, instructions * slot_bytes);
-        assert!(scratch < 128 * slot_bytes);
+        let slots = match instructions {
+            0..=4 => 4,
+            5..=8 => 8,
+            9..=32 => 32,
+            _ => 128,
+        };
+        assert_eq!(scratch, slots * slot_bytes);
+        assert!(instructions <= slots);
+        assert!(scratch <= 128 * slot_bytes);
     }
 }
 
 #[test]
-fn reusable_scratch_clears_failed_and_unselected_branch_values_without_allocating() {
+fn scratch_profiles_keep_failed_and_unselected_branch_values_isolated_without_allocating() {
     let p = program(
         "plot conditional (\n >> value: U64\n result: U64 >>\n) = (. == 0 ? . : (. + .))\n",
         "conditional",

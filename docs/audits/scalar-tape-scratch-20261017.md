@@ -1,37 +1,47 @@
-# Scalar tape scratch prepared to its admitted size
+# Scalar tape stack profiles selected before Play
 
 Local #5396 implementation slice coordinated with #5395, 17 October 2026.
 
-The explicit fixed-integer/Boolean tape previously initialized a 128-slot stack
-array on every evaluation, including tiny tapes. Preparation now reserves a
-reusable scratch vector for the exact admitted instruction count. Runtime
-clearing touches that tape's slots, while the 128-instruction admission ceiling
-and all lowering/jump/arithmetic semantics stay the same. The reference evaluator
-and explicit std profile selection are unchanged.
+The fixed-integer/Boolean tape previously initialized a 128-slot evaluation
+array for every expression. Preparation now chooses one of four finite stack
+profiles: 4, 8, 32 or 128 slots. Each profile runs the same instruction loop,
+with a separate fixed-size array. Keeping those loops out of line prevents the
+maximum array from becoming part of every tiny evaluation's stack frame.
 
-Scratch values own their at-most-16-byte scalar encodings. Input and literal
-bytes are copied into those bounded inline values, so no borrowed input or
-prepared-literal reference can survive in reusable storage. Each evaluation
-clears results left by either conditional branch or an arithmetic refusal.
-No unsafe code or allocation during warm evaluation is introduced.
+The 128-instruction admission ceiling, branch/overflow behavior, borrowed input
+and literal bytes, output buffer and explicit profile selection are unchanged.
+No new heap scratch or persistent evaluated values are retained. Instruction
+and literal allocation still happens during preparation. Scratch-limit inspection
+reports the chosen array payload bound; it does not establish whole-Host stack
+usage, total memory or code footprint. Four compiled loop variants can add code
+size, and the prepared tape now retains its finite scratch-profile selector.
 
-This moves scratch ownership from an evaluation stack array to pre-Play heap
-storage; it does not claim lower total resident memory. Preparation adds a
-scratch allocation and the tape owns another vector header. Existing instruction,
-literal and output allocations remain separate. `scalar_tape_limits` reports
-actual reserved scratch payload bytes; whole-Host stack/heap/Plan footprint is
-not established by that number. No installed browser/no_std/tiny-device tape
-profile or physical performance claim follows from this change.
+On this native ABI, the 1/3/8/32-operation fixtures select 160/320/1280/5120
+scratch bytes, respectively, versus 5120 bytes each before. The largest profile
+retains the original array ceiling. No installed browser/no_std/tiny-device tape
+profile or physical performance claim follows from a portable compile check.
 
-Tests compare the identity and 1/3/8/32-operation scratch bounds, retain the
-127/129-instruction boundary, and alternate lazy branches, successful values and
-overflow refusals repeatedly on one evaluator with no allocations/reallocations
-and stable scratch/output capacities. Existing differential tests preserve exact
-bytes and refusals against the reference.
+Eight evaluator tests cover all four profiles, identity, the 127/129-instruction
+admission boundary, bytes/refusals versus the reference, and repeated transitions
+between lazy branches, overflow and success without allocation/reallocation or
+capacity growth. Ten installed std tests exercise actual selected tape Plans,
+terminal/Sign parity, invalid frames/provenance and adapter refusal.
 
-The retained before/after diagnostic uses the existing ignored std release test
-`scalar_tape_performance`, with an explicit clean git source pin. Each variant
-retains eight rows per 1/3/8/32-operation shape and both reference/tape modes,
-including 100,000-evaluation warm batches and real sealed-Plan preparation/Play
-with validated output. These are descriptive same-process batches on an
-uncontrolled host, not independent confidence intervals or performance gates.
+## Reusable-buffer experiment retained
+
+An initial implementation at `f3069d9db` moved scratch into an exact-size
+pre-Play reusable vector and owned inline scalar bytes. It passed correctness
+and allocation tests. Its warm one-operation median improved 29%, but the
+32-operation median increased 22% while the unchanged reference increased
+about 11%. That result did not justify retaining the vector/copy tradeoff.
+The final stack profiles preserve the original borrowed-value loop and avoid
+adding a heap allocation. The rejected experiment and all its unfavorable
+samples remain in `evidence/scalar-tape-reusable-experiment-20261017.json`.
+
+The existing ignored `scalar_tape_performance` std release test supplies the
+report-only diagnostic. Each clean-source invocation retains eight rows per
+1/3/8/32-operation shape for reference and tape: 100,000-evaluation warm batches
+and real sealed-Plan preparation/Play with validated output. These are single
+processes with within-process batches on an uncontrolled host, with no affinity
+or frequency control, independent confidence interval, stable regression gate
+or native-code compilation claim. Compiled test binaries are not retained.
