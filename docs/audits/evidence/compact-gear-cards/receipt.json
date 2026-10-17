@@ -1,0 +1,272 @@
+{
+  "issue": 5512,
+  "producing_source": "998051327007afc1b9d9cd81cba70022b16e38c8",
+  "candidate_base": "c339a75e8ce5015e3d35b289552176fc6a526790",
+  "source_comparison": [
+    {
+      "path": "targets/conduitos/README.md",
+      "sha256": "2bee60525abe3c6e72c7db830122dbcbbbe08da46416926ac4fbbf1f0cb3c08d",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/make/xtask/journey_proof.rs",
+      "sha256": "806578b8946c03d3f82bcdfc725f350bcae0bd2c480cbcbe18f6d842adbb6174",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/display/typography.rs",
+      "sha256": "7a65d27e7441415c941cf2169441a01edb5113b0cf85bf515c23514c6a296964",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/display/typography/preview.rs",
+      "sha256": "12673f787efd3120533cb9d89f951d6a767b7ebc0e0251fdccf3b271c4602a8e",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/diagram.rs",
+      "sha256": "aa7eccefd51e0f93f1b5cac3938a268e382b6c7fa10547d2974cce95e876300f",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/diagram_geometry.rs",
+      "sha256": "4c3c56658dd27f80966c7ea1a33c37333be4d0870b7c4b66296b951e4b97f021",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/document.rs",
+      "sha256": "548ebf308516878d83a386f299560004827a372881f5cfc40db08dd3bb011e83",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/input.rs",
+      "sha256": "be97238434aad0e66bb3ec58f42ce454a7f7c3fde091467bb2f3baccb07e4317",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/layout.rs",
+      "sha256": "3204926ba3cb043bb7e8174ebdf252132fe5ec32fade7325ad43a95141601769",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/src/native_face_scene/tests.rs",
+      "sha256": "5cd1f67b3cbc4ebe33a3b8a3b82bff1486e5259cb1bbcab6f2762829dafc0b88",
+      "identical_to_qemu_source": true
+    },
+    {
+      "path": "targets/conduitos/tests/compact_gear_cards.rs",
+      "sha256": "b74cbb0ac9fc8f16b7974a236f06414a8374e22fb361b303729043c6841a0eba",
+      "identical_to_qemu_source": true
+    }
+  ],
+  "proof_class": "freestanding-emulator",
+  "command": "cargo xtask make conduitos journey-proof",
+  "image_sha256": "4b9b236124953404dfe418a967036819c018849796f24879566b6c846e07d279",
+  "iso_digest_verified": true,
+  "all14PNG_and_decoded_pixel_hashes_verified": true,
+  "frames": [
+    {
+      "checkpoint": "front-door-ready",
+      "height": 800,
+      "non_background_pixels": 1017406,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "e036fa5e570f37901651bb80d4fb268099219712470491f4cd9d0097179d2db2",
+      "png": "front-door-ready.png",
+      "png_bytes": 115667,
+      "png_sha256": "c8526fe3cb9bb83f42b1a40ee16e8b77c99b1bbe7a0bcd5925d7c4b0e7c4c91a",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-born",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "57002eaf6214e96f86e20aee0e806cdd1bd96938e350e350d88142dbb7ec6312",
+      "png": "body-born.png",
+      "png_bytes": 101411,
+      "png_sha256": "3c676c70914e9c4d8b35c1cb463e4b5ba4904049a0c08e4d1984771b3a697b22",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-woken",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "2ef20ea91cb3976b7e9dcf073b43a6e41748b3221b987a38dcac7b0825e32c90",
+      "png": "body-woken.png",
+      "png_bytes": 99630,
+      "png_sha256": "bcd2ee177a7666bd3200c6373286b4dc35c9b27a9a0425b1de0bb089833418bd",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-planned",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "c000b9871cc20fdeee69763431a496456ceef5e20884ec135e1db521f7435e16",
+      "png": "body-planned.png",
+      "png_bytes": 100840,
+      "png_sha256": "ee4f2c5b620619044d207656f387734ddd2f8e949e31fe206e4dd67bb07b376b",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-playing",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "3e7f435e0471c2f67cc7c30e10376450d88f1142e6ad5f1b7cde06985e9bf85e",
+      "png": "body-playing.png",
+      "png_bytes": 106952,
+      "png_sha256": "f1c7e66ec5b49711a2d0b5c94eaf9d4049833c965d6104eb17973d5c1ea9de70",
+      "width": 1280
+    },
+    {
+      "checkpoint": "protected-keyboard-canvas",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "0560bd2419d2a7b330ff43b614166142fd7d1225e93c606cd13cb01c04fc35e8",
+      "png": "protected-keyboard-canvas.png",
+      "png_bytes": 67209,
+      "png_sha256": "0911e21f1c8feec414cb9aa103da17a76dee5f4c9cad8bc04ccc01d2fde4ec97",
+      "width": 1280
+    },
+    {
+      "checkpoint": "protected-memory-lantern",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "b2fcd67dee6b40c25a9836905b310b2c334378cef57d628a17d567885c251595",
+      "png": "protected-memory-lantern.png",
+      "png_bytes": 66641,
+      "png_sha256": "781763b61e8f388a332e150c5a24e3e2c6a63196555535c45e6a3a891b5b5707",
+      "width": 1280
+    },
+    {
+      "checkpoint": "home",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "69ffbfd80a267c66167b466d324f1c93e590ee213cc4e16cc4ddaaeaf4b01494",
+      "png": "home.png",
+      "png_bytes": 105079,
+      "png_sha256": "a50ed2d0170a11a4ff5e01eb6ed1367448d6997b4a162ae9af4084d86365b973",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-workspace",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "33048f5df9e6f5b6517866e7e50a0ef03178006c3422782225158b116ddfeafa",
+      "png": "patchbay-workspace.png",
+      "png_bytes": 106225,
+      "png_sha256": "52ffc0ca5d6e7fd6271e94f19fab952fdef8afb95901ef596f28a478635b1d43",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-face",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "50d12d6a4e48820fe5f6f25492c7cad6a257dcd17160369eab642cf36295d9f9",
+      "png": "patchbay-face.png",
+      "png_bytes": 149779,
+      "png_sha256": "14e5e698e7ab9226e266fc8cea648d888a2d12c2c3d858469ed7fd7b507733f2",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-diagram",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "7a88a71737a83de3ae05dc052b65bdf48551e2141c352dc9f080e91a9f0022d7",
+      "png": "patchbay-diagram.png",
+      "png_bytes": 140977,
+      "png_sha256": "b08d56f2eb4d05df1160558882c5a71f5baa4244ded20c235d0e10f743063071",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-gear-details",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "6969be88fb9be899df738aed07038baac171b33fefe35a313f94b21e53ccce7f",
+      "png": "patchbay-gear-details.png",
+      "png_bytes": 262652,
+      "png_sha256": "9df849f666f9454169469305fb5d0355a953b7e31a37db343b55034f468d3d3a",
+      "width": 1280
+    },
+    {
+      "checkpoint": "patchbay-diagram-returned",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "7a88a71737a83de3ae05dc052b65bdf48551e2141c352dc9f080e91a9f0022d7",
+      "png": "patchbay-diagram-returned.png",
+      "png_bytes": 140977,
+      "png_sha256": "b08d56f2eb4d05df1160558882c5a71f5baa4244ded20c235d0e10f743063071",
+      "width": 1280
+    },
+    {
+      "checkpoint": "body-stopped",
+      "height": 800,
+      "non_background_pixels": 1019844,
+      "pixel_format": "RGBA8",
+      "pixel_sha256": "a110999f480b8c456ae6a68d736cb08aba09dc92af09a49a504a32759021449b",
+      "png": "body-stopped.png",
+      "png_bytes": 76502,
+      "png_sha256": "e8bb574b1843ed0a5cfffc54624c61a126aa95000e8df5f65ab8a2660d6c334c",
+      "width": 1280
+    }
+  ],
+  "inspection_identity_invariants": {
+    "patchbay-diagram": {
+      "face_id": "fc024617ce5567d15ee90dda25eac418261ab4bbb27ea1919b621e4274c82a70",
+      "body_id": "4adb962b71e64af40519128b90770caa55fa73a765648c02553fffd2fcd35e21",
+      "view_sha256": "e3d9a32b62213e181841a55f9633d10aa28f34df7a55832342a1bfe4dffa919e",
+      "status": "quiescent-awaiting-input"
+    },
+    "patchbay-gear-details": {
+      "face_id": "fc024617ce5567d15ee90dda25eac418261ab4bbb27ea1919b621e4274c82a70",
+      "body_id": "4adb962b71e64af40519128b90770caa55fa73a765648c02553fffd2fcd35e21",
+      "view_sha256": "e3d9a32b62213e181841a55f9633d10aa28f34df7a55832342a1bfe4dffa919e",
+      "status": "quiescent-awaiting-input"
+    },
+    "patchbay-diagram-returned": {
+      "face_id": "fc024617ce5567d15ee90dda25eac418261ab4bbb27ea1919b621e4274c82a70",
+      "body_id": "4adb962b71e64af40519128b90770caa55fa73a765648c02553fffd2fcd35e21",
+      "view_sha256": "e3d9a32b62213e181841a55f9633d10aa28f34df7a55832342a1bfe4dffa919e",
+      "status": "quiescent-awaiting-input"
+    }
+  },
+  "serial_record_boundaries": {
+    "patchbay-diagram": {
+      "record_start": 140605,
+      "frame_serial_frontier": 141659,
+      "complete_record_end": 144292
+    },
+    "patchbay-gear-details": {
+      "record_start": 150351,
+      "frame_serial_frontier": 151047,
+      "complete_record_end": 154038
+    },
+    "patchbay-diagram-returned": {
+      "record_start": 160097,
+      "frame_serial_frontier": 160451,
+      "complete_record_end": 163784
+    }
+  },
+  "serial_frontier_caveat": "Frames may bisect serial emissions; complete retained records whose emission had begun at the frame frontier are compared.",
+  "diagram_return_pixels_identical": true,
+  "physical_evidence": false,
+  "focused_tests": 46,
+  "strict_workspace_clippy": "passedon9980",
+  "full_workspace_tests": "stillrunningon9980; draft remainsunreadyuntilterminalpass",
+  "visual_inspection": "Actual 1280x800 guest has four bounded readable Gear cards, three visible Cords and honest ellipses; selecting1 opens exact Keyboard Gear details andF3 restores the identical diagram.",
+  "limits": [
+    "Pinned scalar glyph/fallback typography; no general shaping claim",
+    "Actual product inspection proved through numbered keyboard path; fullPort/Cord/pointergraphnavigation remains5516",
+    "Parent5358QEMU/crossMask acceptance remainsseparate"
+  ]
+}
