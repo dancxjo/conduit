@@ -197,6 +197,10 @@ fn assert_pending_count<S: ValueStorage, E: SignSink>(
             scheduler.pending_host_slots[node].map(|slot| usize::try_from(slot.get() - 1).unwrap()),
             actual
         );
+        assert_eq!(
+            scheduler.has_retained_host_call_for_nodes(&[NodeId(node as u16)]),
+            actual.is_some()
+        );
     }
 }
 
@@ -394,6 +398,13 @@ fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
                     .unwrap(),
             );
             scheduler.step().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[NodeId(1)]));
+            assert_eq!(scheduler.scan_counts.get().retained_pending_slots, 0);
+            assert!(scheduler.has_retained_host_call_for_nodes(&[NodeId(0)]));
+            assert_eq!(scheduler.scan_counts.get().retained_pending_slots, 1);
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[NodeId(u16::MAX)]));
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[]));
             let outcome = HostCallOutcome {
                 disposition: HostCallDisposition::Cancelled,
                 output: None,
@@ -430,6 +441,7 @@ fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
                 .complete_host_call(request.node, request.request, outcome)
                 .unwrap();
             assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert!(scheduler.has_retained_host_call_for_nodes(&[request.node]));
             let signs = scheduler.signs.entries;
             scheduler.scan_counts.set(Default::default());
             assert_eq!(
@@ -439,6 +451,7 @@ fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
             assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
             assert_eq!(scheduler.signs.entries, signs);
             scheduler.cancel().unwrap();
+            assert!(!scheduler.has_retained_host_call_for_nodes(&[request.node]));
             scheduler.scan_counts.set(Default::default());
             assert_eq!(
                 scheduler.complete_host_call(request.node, request.request, outcome),

@@ -84,3 +84,23 @@ semantic regression evidence, not a wall-clock speedup claim. Free-slot search,
 adapter request/cancellation selection and other table queries remain linear.
 Earlier replay/layout receipts retain their pinned sources. Full #5231
 acceptance remains open.
+
+
+## Retained obligations for selected nodes
+
+`has_retained_host_call_for_nodes` now iterates the requested node set and uses
+the per-node index, instead of scanning every reserved pending slot and testing
+membership. It bounds-checks node IDs against the active prefix and retains an
+exact node match. Empty and inactive sets remain false; completed outcomes still
+count until consumption. This borrowed inspection neither consumes a request
+nor certifies native idle. No production state or allocation was added.
+
+The 4,096-slot regression failed before repair for an unrelated-node query.
+Tests now require zero pending-entry probes for an unrelated node, one for a
+retained call, and unchanged answers across undispatched/completed/cancelled
+states. Fixed/hosted lifecycle fixtures compare the query with actual request
+table membership through consumption and re-arming. Alloc/reference-ready
+suites each pass 182 tests; 20 fixed-only Host tests and strict all-target
+kernel Clippy pass. Work is proportional to the supplied node set, not an
+unconditional constant; no wall-clock speedup is claimed. Other table queries
+and full #5231 acceptance remain separate.
