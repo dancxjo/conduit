@@ -188,3 +188,10 @@ test('graph codec refuses schema normalization and surrogate replacement', () =>
   const malformed = graphFields(); malformed[9] = '\ud800';
   assert.throws(() => decodeGraphCanvas(encodeGraphFields(malformed)), /scalar Unicode/);
 });
+
+test('graph record counts refuse signed decimal forms for every collection', () => {
+  for (const index of [7, 11, 12]) {
+    const fields = graphFields(); fields[index] = '+' + fields[index];
+    assert.throws(() => decodeGraphCanvas(encodeGraphFields(fields)), /Graph record count exceeds its bound/);
+  }
+});

@@ -82,3 +82,40 @@ fn exact_canvas_envelope_is_admitted_and_one_more_byte_refuses() {
         Err(ApplicationViewRefusal::InvalidControlValue)
     );
 }
+
+#[test]
+fn graph_record_counts_use_unsigned_decimal_syntax_across_masks() {
+    let fields = [
+        "conduit.face/graph-canvas@1",
+        "checked",
+        "expanded",
+        "plan",
+        "body-plan",
+        "play",
+        "",
+        "1",
+        "gear",
+        "Gear",
+        "kind",
+        "0",
+        "0",
+    ];
+    for index in [7, 11, 12] {
+        let source: String = fields
+            .iter()
+            .enumerate()
+            .map(|(position, field)| {
+                let value = if position == index {
+                    format!("+{field}")
+                } else {
+                    (*field).into()
+                };
+                format!("{}:{value}", value.len())
+            })
+            .collect();
+        assert_eq!(
+            ApplicationCanvas::decode(&source),
+            Err(ApplicationViewRefusal::InvalidControlValue)
+        );
+    }
+}

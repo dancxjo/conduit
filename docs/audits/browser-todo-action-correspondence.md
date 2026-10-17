@@ -832,3 +832,15 @@ validation before repair. All four new canvas-bound tests pass, including a
 The unchanged repair also passed four control-return and 15 application-view
 tests: 23 focused Rust tests across these runs, --no-default-features, with Rust
 formatting clean. No browser WASM or release/Body/Play acceptance is claimed.
+
+Graph count syntax follow-up (#5518): portable canvas record counts require
+nonempty ASCII decimal digits before integer parsing, matching browser graph
+admission. Rust previously admitted signed forms such as +0 that the browser
+refused, despite both consuming the same graph encoding. Leading zeroes retain
+the existing shared behavior; record ceilings are unchanged.
+
+The Rust regression reproduced signed-count acceptance before repair. All 24
+focused Rust tests pass with --no-default-features and all 16 Node codec tests
+pass, covering signed node/port/cord counts at both boundaries. Rust formatting
+passes. This proves codec syntax agreement, not full cross-Mask topology, actual
+Body/Play or rebuilt/released browser acceptance.

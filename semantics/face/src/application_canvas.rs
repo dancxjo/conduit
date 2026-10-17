@@ -267,6 +267,9 @@ impl Cursor<'_> {
     }
     fn count(&mut self, maximum: usize) -> Result<usize, ApplicationViewRefusal> {
         let value = self.field()?;
+        if value.is_empty() || !value.bytes().all(|byte| byte.is_ascii_digit()) {
+            return Err(ApplicationViewRefusal::InvalidControlValue);
+        }
         let count = value
             .parse::<usize>()
             .map_err(|_| ApplicationViewRefusal::InvalidControlValue)?;
