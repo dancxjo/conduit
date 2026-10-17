@@ -60,8 +60,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #reachable(control) {
     // Native focus/activation requires a visible, enabled control. This is a
     // renderer guard; the SDK and owner still check interaction authority.
-    return this.isConnected && !control.matches(':disabled')
-      && control.checkVisibility({ visibilityProperty: true });
+    if (!this.isConnected || control.matches(':disabled')) return false;
+    // Inertness follows the composed tree, including slotted content and
+    // ancestors outside this element's shadow root. It does not hide boxes.
+    for (let node = control; node; node = node.assignedSlot ?? node.parentElement ?? node.getRootNode().host) {
+      if (node.inert) return false;
+    }
+    return control.checkVisibility({ visibilityProperty: true });
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {

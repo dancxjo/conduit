@@ -263,3 +263,17 @@ then invoke the exact current action by keyboard. Plain-radio fixtures now
 explicitly omit unrelated Completion values inherited from the shared subject;
 enriched fixtures cover their generic fallback. These are renderer semantics
 and callback fixtures, not full Face grammar, Body or packaged/public acceptance.
+
+Inert input refusal (#5631 / #5644): the shared dispatch reachability guard now
+walks composed ancestors, including assigned slots and shadow hosts, to refuse
+explicit inertness. Visible layout and an enabled native control are insufficient
+when its encounter is inert. This local renderer check neither changes Face
+availability nor replaces SDK/owner authority.
+
+All four original inert regressions reproduced callback escape before repair.
+The full forty-six-test Chromium component suite passes with one worker and zero
+retries, followed by the added slotted-ancestor fixture passing separately. Cases
+cover the owner element, a light-DOM ancestor, an ancestor inside its shadow root,
+an outer shadow host and a slot's inert ancestor. Synthetic submits are negative
+fixtures; removing inertness restores trusted keyboard activation. These are
+explicit inertness/renderer checks, not actual Body or packaged/public proof.

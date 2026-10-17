@@ -877,3 +877,41 @@ for (const enriched of ['group', 'option']) {
       action: choices.actions[1], arguments: [] }]);
   });
 }
+
+for (const scope of ['owner', 'light-ancestor', 'shadow-ancestor', 'outer-shadow-host', 'slotted-ancestor']) {
+  test(`inert owner controls refuse dispatch (${scope})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ view, scope }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      let inert = element;
+      if (scope === 'light-ancestor' || scope === 'outer-shadow-host') {
+        inert = document.createElement('div'); element.before(inert);
+        if (scope === 'outer-shadow-host') inert.attachShadow({ mode: 'open' }).append(element);
+        else inert.append(element);
+        // Moving a surface requires a fresh current render.
+        element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      }
+      if (scope === 'slotted-ancestor') {
+        const host = document.createElement('div'); element.before(host);
+        inert = document.createElement('div');
+        inert.append(document.createElement('slot'));
+        host.attachShadow({ mode: 'open' }).append(inert); host.append(element);
+        element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      }
+      if (scope === 'shadow-ancestor') inert = element.shadowRoot.querySelector('[part=document]');
+      inert.inert = true;
+      globalThis.inertContainer = inert;
+      element.shadowRoot.querySelector('form')
+        .dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view, scope });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    await page.evaluate(() => { globalThis.inertContainer.inert = false; });
+    const action = page.locator('conduit-owner-face').getByRole('button', { name: 'Complete task', exact: true });
+    await expect(action).toBeEnabled();
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view, action: view.actions[0], arguments: [] }]);
+  });
+}
