@@ -75,3 +75,18 @@ fixtures cover an unavailable action, a changed target and external focus that
 must not be stolen. This covers renderer-local refresh continuity, not recovery
 of focus already lost while awaiting an action, retention of unsubmitted edits,
 all hidden/removed-control paths or SDK/Body keyboard acceptance for #5631.
+
+
+Disconnect follow-up for #5644: removing an owner Face surface invalidates its
+render token and disables its controls. Neither reattachment nor setting
+`disabled = false` restores the removed encounter's bindings; a fresh Show is
+required. Form and radio handlers also refuse while the element is detached,
+including a Show prepared before its first attachment.
+
+Both detached and reattached stale-form fixtures reproduced callback escape
+before repair. After repair the full fourteen-test component Chromium suite
+passed, followed by the added disconnected-radio fixture. After integrating
+the concurrent focus-preservation change, all eighteen component tests passed
+with one worker and zero retries. Fresh Shows restore trusted keyboard button/radio activation.
+Synthetic negative events establish renderer refusal only; these checks do not
+prove unchanged Body state, packaged acceptance or completion of #5644.
