@@ -97,9 +97,10 @@ python3 proof/performance/verify-quiescence-comparison.py \
 
 For footprint reproduction, use the receipt's exact Source and run the ignored
 `scheduler_footprint` integration test with the retained release/profile flags.
-The probe and its complete build/run records are retained by the footprint
-[raw capture archive](evidence/quiescence-production-footprint-raw.tar.gz); it
-measures the ordinary library, not its unit-test executable.
+The [probe source](../../architecture/kernel/tests/scheduler_footprint.rs) is
+retained in Git; complete build/run records are in the
+[raw capture archive](evidence/quiescence-production-footprint-raw.tar.gz).
+The probe measures the ordinary library, not its unit-test executable.
 
 Validation completed: 143 pre-change kernel tests; 145 after-change tests plus
 the linear-ready reference suite; strict all-target Clippy; exact ordinary and
