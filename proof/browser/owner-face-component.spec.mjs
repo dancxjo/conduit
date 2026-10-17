@@ -420,6 +420,11 @@ test('Face refresh neither transfers focus to a different target nor steals exte
   await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
   await expect(control).not.toBeFocused();
   const outside = page.getByRole('button', { name: 'Outside', exact: true });
+  await control.focus();
+  await element.evaluate((node, view) => {
+    node.disabled = true;
+    node.show({ ...view, show_state: 'prepared', interactions_admitted: false }, { invoke: async () => {} });
+  }, changed);
   await outside.focus();
   await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
   await expect(outside).toBeFocused();
@@ -697,6 +702,7 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
   await expect(draft).toHaveValue('');
   await expect(button).toBeEnabled();
+  await expect(button).toBeFocused();
   expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
     view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
     actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [{ name: 'draft', value: 'é draft' }], sequence: 1,

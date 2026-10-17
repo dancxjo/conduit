@@ -16,6 +16,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #supportsAction = () => true;
   #disabled = true;
   #dispatched = false;
+  #pendingFocus;
   #render;
   #layoutObserver;
   constructor() {
@@ -32,10 +33,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     // A removed surface no longer owns an active encounter. Reattachment or
     // re-enabling controls must not revive its old event-to-action bindings.
     this.#render = undefined;
+    this.#pendingFocus = undefined;
     this.#dispatched = true;
     this.disabled = true;
   }
   set disabled(value) {
+    if (value && this.shadowRoot.activeElement?.dataset.ownerFocus) {
+      this.#pendingFocus = this.shadowRoot.activeElement.dataset.ownerFocus;
+    }
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
     for (const control of this.#surface.querySelectorAll('button, input, select')) {
@@ -55,7 +60,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
-    const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus;
+    const focusedKey = this.shadowRoot.activeElement?.dataset.ownerFocus ?? this.#pendingFocus;
     const drafts = new Map();
     // Temporary refresh/preparation disables controls without submitting them.
     // A dispatched or disconnected encounter starts with fresh input.
@@ -411,7 +416,15 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const current = [...this.#surface.querySelectorAll('[data-owner-focus]')]
         .find(control => control.dataset.ownerFocus === focusedKey);
       // Focus is local presentation state, never an action or permission.
-      if (current && !current.disabled && current.getClientRects().length) current.focus();
+      // A disabled control can lose focus to the document while a Show is
+      // prepared. Carry its key, but never take focus from another control.
+      const active = this.ownerDocument.activeElement;
+      const mayRestore = active === this || active === this.ownerDocument.body;
+      this.#pendingFocus = undefined;
+      if (mayRestore && current) {
+        if (!current.disabled && current.checkVisibility({ visibilityProperty: true })) current.focus();
+        else if (this.#disabled) this.#pendingFocus = focusedKey;
+      }
     }
   }
 }

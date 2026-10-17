@@ -204,3 +204,18 @@ interrupted refresh, submit that exact value through the current Show using
 trusted keyboard input, and verify empty fields after dispatch. SDK carrier
 remains a fixture; actual Body receipts, full focus continuity and packaged/public
 acceptance remain separate.
+
+Prepared-Show focus continuity (#5631): disabling a focused owner control now
+retains its exact local focus key before the browser blurs it. Preparation can
+carry that key until an enabled, visible control with the same Body/action/target
+identity exists. Disconnect clears it; changed/removed/unavailable controls do
+not inherit it. Focus on an external control cancels restoration, and focus
+restoration does not invoke an action or confer permission.
+
+The real Handbook orchestration fixture reproduced lost button focus after a
+trusted keyboard submission. All thirty-seven component Chromium tests pass with
+one worker and zero retries; the three Handbook cases now assert focus on the
+new current button. A strengthened focused negative fixture also passes when the
+user moves focus outside during preparation, alongside changed-target refusal.
+This remains renderer/orchestration evidence with a fixture SDK, not full
+assistive-technology enactment or actual Body/packaged acceptance.
