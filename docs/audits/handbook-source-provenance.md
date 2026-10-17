@@ -127,3 +127,29 @@ public observation cannot establish what that browser received historically.
 #5510 and its parent remain open. The old issue path `plots/convert-pitch.conduit`
 is absent in this checkout; the current source is under
 `targets/browser/handbook/plots/convert-pitch.conduit`.
+
+## Public Chromium observation — 17 October 2026
+
+[Browser receipt](evidence/handbook-public-chromium-2026-10-17.json) records a
+fresh pinned Chromium 151.0.7922.34 context on the public Handbook. The observed
+package digest is
+`sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449`,
+which differs from the earlier source-only observation; they are separate
+package observations, not interchangeable receipts.
+
+Native example selection and Try execute the public bare-quantity pitch lesson
+and display `Exactly 1000 Hz`. Editing its source to quoted `"1kHz"` and trying
+it yields outer `PlotCheckRefused` with diagnostic `CND-FRM-051`. The editor stays
+enabled with the rejected draft. BodyId, selected checked Plot, PlanId, PlayId,
+installed plots and the SHA-256 of the complete projected Body evidence remain
+identical before/after the refusal. The current admitted output remains visible,
+and there are no observed page errors. The receipt includes source, identities,
+diagnostic and exact comparison digests.
+
+The first probe expected the wrong outer code (`PlotSyntaxInvalid`) and failed
+its assertion after observing the real diagnostic. After correcting that
+expectation, one subsequent probe passed. This is a recorded manual browser
+observation, not a zero-retry CI/acceptance-gate claim or evidence for unpromoted
+`live` changes. Malformed packaged inventory and malformed retained recovery
+were not injected. Historical reporting-browser custody and exact release-train/
+accepted-main evidence remain unverified; #5453/#5510 remain open.

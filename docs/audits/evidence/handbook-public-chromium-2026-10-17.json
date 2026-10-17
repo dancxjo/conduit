@@ -1,0 +1,56 @@
+{
+  "observed_at_utc": "2026-10-17T17:53:42.924Z",
+  "url": "https://dancxjo.github.io/conduit/handbook/",
+  "browser": "151.0.7922.34",
+  "fresh_context": true,
+  "method": "One fresh pinned Chromium context; native Playwright selectOption/fill/click. Corrected refusal-code assertion after one failed probe; this is a subsequent verification run, not zero-retry acceptance.",
+  "package": {
+    "applicationId": "conduit.application/handbook",
+    "packageDigest": "sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449"
+  },
+  "source": "plot convert-pitch-demo {\n    operation: units/convert(source = 1kHz, to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+  "source_sha256": "sha256:20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e",
+  "checked_lesson": "convert-pitch-demo",
+  "output": "Exactly 1000 Hz",
+  "identities": {
+    "bodyId": "f0aea82e77cde36eada59063f72a0c27cc8df31f36396a84aa206dea063c6c0a",
+    "selectedPlot": "e293652ec4a5260afef4db89c8e597708aed1c274b7b4a84d48acc58fcc7a48a",
+    "planId": "body-plan/sha256:758f0574682c28e3a86aeb938f037b77d4722a099ad154a786a7b2f9d7867c0a",
+    "playId": "body-play/sha256:030c7b42632810588c11f5dbd1a7c4613925c6eab9b51133959193af7e719fb2",
+    "installedPlots": [
+      {
+        "source_document_id": "28d183f5a74de23b9b9c76bd3ec6e82ffea3600ee1cad52907d69a3cf34ed3be",
+        "checked_plot_id": "3de5d2f5dcfefb501afc8883e3fd1d94ee4fc055daef528c90c6b2c6f50dc8b8"
+      },
+      {
+        "source_document_id": "60e6d64ab0a366aa723fbd2d9452a5dd291dab3a06754fe31bb65a79d5b86f3e",
+        "checked_plot_id": "e293652ec4a5260afef4db89c8e597708aed1c274b7b4a84d48acc58fcc7a48a"
+      },
+      {
+        "source_document_id": "aa98b04cce0746f84fc8965cd59890e2d45cf79677e17b7a4eb908e8bff212b3",
+        "checked_plot_id": "ecac33a08de2f696f8745a4cc1882adf207cf023d7dbc9fd977149841f0847ab"
+      }
+    ]
+  },
+  "rejected_source": "plot convert-pitch-demo {\n    operation: units/convert(source = \"1kHz\", to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+  "refusal": "edited source convert-pitch-demo — checking refused. PlotCheckRefused: check reviewed plot inventory: SyntaxCheckDiagnostic { code: \"CND-FRM-051\", span: Span { start: 64, end: 70, line: 2, column: 39, end_line: 2, end_column: 45 }, message: \"'\\\"1kHz\\\"' is not a checked quantity value: InvalidNumber; '=' is declarative and there is no later assignment\" }",
+  "refusal_code": "PlotCheckRefused",
+  "diagnostic": "CND-FRM-051",
+  "unchanged": {
+    "bodyId": true,
+    "selectedPlot": true,
+    "planId": true,
+    "playId": true,
+    "installedPlots": true
+  },
+  "body_evidence_sha256_before": "sha256:e409b95a6da8fc99eeed27d56939bf6c8a31d651b36c1298e54c3141be17fadc",
+  "body_evidence_sha256_after": "sha256:e409b95a6da8fc99eeed27d56939bf6c8a31d651b36c1298e54c3141be17fadc",
+  "editor_enabled": true,
+  "page_errors": [],
+  "limits": [
+    "Current published package only; no unpromoted live-change proof.",
+    "Historical reporting browser cache/retained source unavailable.",
+    "No malformed packaged lesson or malformed retained recovery injected.",
+    "No release-train/accepted-main receipt verified."
+  ]
+}
