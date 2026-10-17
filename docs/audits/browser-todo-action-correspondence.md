@@ -806,3 +806,101 @@ caches created by the completed baseline were removed while preserving kernel
 caches/evidence; a package-native Face cleanup also removed 445.6 MiB. The final
 nonincremental focused run passed, leaving 1.9 GiB free. No workspace rebuild,
 workflow dispatch or acceptance-claim upgrade was performed.
+
+Portable graph return admission follow-up (#5518): populated application
+canvases validate returned selection bytes against the exact Gear, Port or Cord
+identities in their existing serialized canvas. UTF-8 and capacity checks remain
+first; no coordinates, labels, plan IDs or new graph store define membership.
+Empty placeholder canvases retain their prior behavior.
+
+The Rust regression reproduced absent-subject acceptance before repair. All
+four control-contract tests and 15 application-view tests pass under conduit-face
+--no-default-features, including exact Gear/Port/Cord encode/decode, alias/label/
+absent-subject refusal and stale revision refusal. Rust formatting passes. This
+is portable Face admission proof, not native/browser/linear equal-topology or
+actual Body/Play/public acceptance; #5518 remains open.
+
+Portable canvas bounds follow-up (#5518/#5653): ApplicationCanvas validation
+preflights all existing field byte limits and exact serialized envelope size
+before building the subject set or comparing topology. Validation no longer
+admits a canvas that its encoder must later refuse solely for byte bounds.
+The preflight counts framing/count fields without serializing another graph.
+
+Oversized provenance/wording and total-envelope regressions reproduced successful
+validation before repair. All four new canvas-bound tests pass, including a
+1024-byte multibyte label and exact 65,536-byte canvas; one extra byte refuses.
+The unchanged repair also passed four control-return and 15 application-view
+tests: 23 focused Rust tests across these runs, --no-default-features, with Rust
+formatting clean. No browser WASM or release/Body/Play acceptance is claimed.
+
+Graph count syntax follow-up (#5518): portable canvas record counts require
+nonempty ASCII decimal digits before integer parsing, matching browser graph
+admission. Rust previously admitted signed forms such as +0 that the browser
+refused, despite both consuming the same graph encoding. Leading zeroes retain
+the existing shared behavior; record ceilings are unchanged.
+
+The Rust regression reproduced signed-count acceptance before repair. All 24
+focused Rust tests pass with --no-default-features and all 16 Node codec tests
+pass, covering signed node/port/cord counts at both boundaries. Rust formatting
+passes. This proves codec syntax agreement, not full cross-Mask topology, actual
+Body/Play or rebuilt/released browser acceptance.
+
+Long graph wording follow-up (#5518): the existing shortened-label budget no
+longer leaves a trailing unpaired high surrogate when an emoji crosses its cut.
+Visible text remains scalar Unicode; the complete title and accessible name
+retain the exact label, and selection still returns its exact subject identity.
+The new Chromium fixture reproduced the split surrogate before repair. All five
+pinned graph fixtures pass with one worker and zero retries, including native
+activation of the long-label subject. This is not full grapheme typography or
+cross-Mask/Body acceptance.
+
+Initial-select admission follow-up (#5644): a nonempty initial select value
+must match an Option directly owned by that select in both Rust structure
+validation and browser view decoding. Invalid initial selection refuses during
+codec admission rather than depending on a later DOM manifestation failure.
+Empty values retain the existing unselected/no-option scaffolding behavior.
+
+Both new regressions reproduced late acceptance before repair. All 25 focused
+Rust tests (--no-default-features), 17 Node codec tests and five pinned Chromium
+select fixtures pass; browser proof uses one worker and zero retries. Unicode
+initial selection and empty scaffolding remain valid. Rust formatting passes.
+This is view/event admission and native select proof, not Body/Play or a rebuilt
+browser runtime/release acceptance claim.
+
+Exclusive-selection admission follow-up (#5644): direct Rust structure
+validation and browser view decoding now enforce the source lowerer's existing
+at-most-one selected option rule for each exclusive group. They no longer
+admit multiple true radio values that native grouping would silently reconcile
+to a different initial state. Zero/one exclusive selection and multiple
+independent selections remain valid. Canonical source-key grouping is retained.
+
+Both regressions reproduced admission before repair. All 39 focused Rust tests
+(--no-default-features, including 13 semantic-lowering tests), 18 Node codec
+tests and four pinned Chromium boolean fixtures pass; browser proof uses one
+worker and zero retries. Rust formatting passes. This is lowering/admission and
+native control proof, not actual Body/Play or rebuilt/released browser acceptance.
+
+Numeric control admission follow-up (#5653): portable progress/stepper fields
+require the same one-to-five ASCII decimal digits per coordinate as the browser.
+Both admissions reject a numeric zero current step even when padded with zeroes;
+zero progress remains valid. Existing u16/range and child-count bounds remain.
+
+Regressions reproduced signed/overlong Rust acceptance and padded-zero stepper
+acceptance at both boundaries. All 41 focused Rust tests (--no-default-features),
+19 Node codec tests and one pinned Chromium numeric-control fixture pass; Rust
+formatting passes. The browser fixture proves valid padded values render, arrow
+focus navigation emits no action, and native Enter emits the exact step action
+once. One worker, zero retries. These are admission/rendering proofs, not
+authoritative Body/Play or rebuilt/released browser acceptance.
+
+Portable view envelope follow-up (#5653): ApplicationView validation checks
+its exact version-10 encoded size after field/structure admission. Oversized
+views refuse before output allocation, and encoding reserves the admitted
+size up front instead of growing a small initial buffer through large fields.
+Existing field, topology and final output guards remain.
+
+Both regressions reproduced late successful validation before repair. All 43
+focused Rust tests pass with --no-default-features, including exact 131,072-byte
+view round-trip and one-byte-over refusal; Rust formatting passes. This is
+portable view work/size admission, not actual Body/Play or rebuilt/released
+browser acceptance.

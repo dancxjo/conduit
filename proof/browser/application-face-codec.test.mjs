@@ -188,3 +188,59 @@ test('graph codec refuses schema normalization and surrogate replacement', () =>
   const malformed = graphFields(); malformed[9] = '\ud800';
   assert.throws(() => decodeGraphCanvas(encodeGraphFields(malformed)), /scalar Unicode/);
 });
+
+test('graph record counts refuse signed decimal forms for every collection', () => {
+  for (const index of [7, 11, 12]) {
+    const fields = graphFields(); fields[index] = '+' + fields[index];
+    assert.throws(() => decodeGraphCanvas(encodeGraphFields(fields)), /Graph record count exceeds its bound/);
+  }
+});
+
+test('select initial values require an owned option while empty scaffolding remains valid', () => {
+  const view = { revision: 1, actions: [], nodes: [
+    { parent: null, component: 'select', key: 'select', text: 'Choice', value: 'absent', valueCapacity: 16, action: null },
+    { parent: 0, component: 'option', key: 'one', text: 'Unicode', value: 'é😀', valueCapacity: 16, action: null },
+  ] };
+  assert.throws(() => encodeApplicationView(view), { code: 'invalid-control-value' });
+  view.nodes[0].value = 'é😀';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[0].value, 'é😀');
+  view.nodes[0].value = '';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[0].value, '');
+  view.nodes.length = 1;
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes.length, 1);
+});
+
+test('exclusive initial selection agrees with source lowering while independent choices remain independent', () => {
+  const view = { revision: 1, actions: [], nodes: [
+    { parent: null, component: 'choice-group', key: 'group', text: 'group', action: null },
+    { parent: 0, component: 'choice-group-label', key: 'legend', text: 'Choices', action: null },
+    { parent: 0, component: 'choice-option-label', key: 'first-label', text: 'First', action: null },
+    { parent: 2, component: 'exclusive-choice', key: 'first', text: 'First', value: 'true', valueCapacity: 5, action: null },
+    { parent: 0, component: 'choice-option-label', key: 'second-label', text: 'Second', action: null },
+    { parent: 4, component: 'exclusive-choice', key: 'second', text: 'Second', value: 'true', valueCapacity: 5, action: null },
+  ] };
+  assert.throws(() => encodeApplicationView(view), { code: 'invalid-control-value' });
+  view.nodes[5].value = 'false';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[3].value, 'true');
+  view.nodes[3].value = 'false';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[3].value, 'false');
+  for (const index of [3, 5]) { view.nodes[index].component = 'independent-choice'; view.nodes[index].value = 'true'; }
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[5].value, 'true');
+});
+
+test('numeric control syntax and padded zero steps agree across masks', () => {
+  const control = (component, value) => ({ revision: 1, actions: [], nodes: [
+    { parent: null, component, key: 'control', text: 'Control', value, valueCapacity: 16, action: null },
+    ...(component === 'stepper' ? ['first', 'second'].map(key => ({ parent: 0, component: 'button', key, text: key, action: null })) : []),
+  ] });
+  for (const value of ['+1/2', '1/+2', '000001/2', '1/000002']) {
+    assert.throws(() => encodeApplicationView(control('progress', value)), { code: 'invalid-control-value' });
+  }
+  for (const value of ['0/2', '00/2', '00000/2']) {
+    assert.throws(() => encodeApplicationView(control('stepper', value)), { code: 'invalid-control-value' });
+    assert.equal(decodeApplicationView(encodeApplicationView(control('progress', value))).nodes[0].value, value);
+  }
+  for (const [component, value] of [['progress', '65535/65535'], ['stepper', '01/2']]) {
+    assert.equal(decodeApplicationView(encodeApplicationView(control(component, value))).nodes[0].value, value);
+  }
+});

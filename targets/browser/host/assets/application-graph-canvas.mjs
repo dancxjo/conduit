@@ -96,7 +96,9 @@ export function renderGraphCanvas(element, source, select) {
     const group = create('g', {});
     create('rect', { x, y, width: 320, height, rx: 10, fill: 'var(--conduit-surface, #17241e)', stroke: node.identity === graph.selected ? 'var(--conduit-emphasis, #76ddb0)' : 'var(--conduit-structure-secondary, #456055)', 'stroke-width': 2 }, group);
     const heading = create('text', { x: x + 16, y: y + 28, fill: 'var(--conduit-text-primary, #ecf7ee)', 'font-size': 17 }, group);
-    heading.textContent = node.label.length > 28 ? `${node.label.slice(0, 25)}…` : node.label;
+    // Preserve the existing UTF-16 display budget without splitting a scalar.
+    const shortened = node.label.slice(0, 25).replace(/[\ud800-\udbff]$/u, '');
+    heading.textContent = node.label.length > 28 ? `${shortened}…` : node.label;
     create('title', {}, heading).textContent = node.label;
     const kind = create('text', { x: x + 16, y: y + 50, fill: 'var(--conduit-text-secondary, #91aaa0)', 'font-size': 12 }, group); kind.textContent = node.kind;
     if (node.identity) selectable(heading, node.identity, `Gear ${node.label}, ${node.kind}`);

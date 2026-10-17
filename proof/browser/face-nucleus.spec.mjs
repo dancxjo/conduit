@@ -436,22 +436,27 @@ for (const input of ['keyboard', 'pointer']) {
   });
 }
 
-for (const input of ['keyboard', 'pointer', 'background', 'detached-subject']) {
+for (const input of ['keyboard', 'pointer', 'background', 'detached-subject', 'long-label']) {
   test(`graph selection has one exact action route (${input})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
-    await page.evaluate(async () => {
+    const label = input === 'long-label' ? 'Source'.repeat(4) + '😀more words' : 'Source';
+    await page.evaluate(async label => {
       const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
       const root = document.createElement('section'); root.id = 'graph-route-proof'; document.body.append(root);
       const fields = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
-        '1', 'gear/source', 'Source', 'source-kind', '0', '0'];
+        '1', 'gear/source', label, 'source-kind', '0', '0'];
       const source = fields.map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
       globalThis.graphRouteCalls = [];
       globalThis.graphRouteManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
         actions: [{ id: 'fixture.graph-select', event: 'activate' }], nodes: [
           { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
         ] }), root, { onEvent: event => globalThis.graphRouteCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
-    });
-    const subject = page.getByRole('button', { name: 'Gear Source, source-kind', exact: true });
+    }, label);
+    const subject = page.getByRole('button', { name: `Gear ${label}, source-kind`, exact: true });
+    if (input === 'long-label') {
+      expect(await subject.evaluate(node => ({ text: node.firstChild.textContent, valid: node.firstChild.textContent.isWellFormed(), title: node.querySelector('title').textContent })))
+        .toEqual({ text: 'Source'.repeat(4) + '…', valid: true, title: label });
+    }
     if (input === 'detached-subject') {
       await subject.evaluate(node => {
         const parent = node.parentElement;
@@ -463,7 +468,7 @@ for (const input of ['keyboard', 'pointer', 'background', 'detached-subject']) {
         refusal: globalThis.graphRouteManifest.lastRefusal() }))).toEqual({ calls: [], refusal: 'unavailable-action' });
       await page.evaluate(() => globalThis.restoreGraphSubject());
       await subject.focus(); await page.keyboard.press('Enter');
-    } else if (input === 'keyboard') { await subject.focus(); await page.keyboard.press('Enter'); }
+    } else if (input === 'keyboard' || input === 'long-label') { await subject.focus(); await page.keyboard.press('Enter'); }
     else if (input === 'pointer') await subject.click();
     else await page.locator('#graph-route-proof p').click();
     const expected = input === 'background' ? [] : [{ action: 'fixture.graph-select', value: 'gear/source' }];
@@ -471,3 +476,30 @@ for (const input of ['keyboard', 'pointer', 'background', 'detached-subject']) {
       .toEqual({ calls: expected, queued: expected.length });
   });
 }
+
+test('padded numeric controls keep progress and focus-only navigation distinct', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    globalThis.numericCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'step.first', event: 'activate' }, { id: 'step.second', event: 'activate' }], nodes: [
+        { parent: null, component: 'shell', key: 'root', text: '', action: null },
+        { parent: 0, component: 'progress', key: 'progress', text: 'Progress', value: '00/2', valueCapacity: 16, action: null },
+        { parent: 0, component: 'stepper', key: 'stepper', text: 'Steps', value: '01/2', valueCapacity: 16, action: null },
+        { parent: 2, component: 'button', key: 'first', text: 'First step', action: 0 },
+        { parent: 2, component: 'button', key: 'second', text: 'Second step', action: 1 },
+      ] }), root, { onEvent: event => globalThis.numericCalls.push(event.action) });
+  });
+  const progress = page.getByRole('progressbar', { name: 'Progress', exact: true });
+  await expect(progress).toHaveAttribute('value', '0'); await expect(progress).toHaveAttribute('max', '2');
+  const first = page.getByRole('button', { name: 'First step', exact: true });
+  const second = page.getByRole('button', { name: 'Second step', exact: true });
+  await expect(first).toHaveAttribute('aria-current', 'step');
+  await first.focus(); await page.keyboard.press('ArrowRight');
+  await expect(second).toBeFocused();
+  expect(await page.evaluate(() => globalThis.numericCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.numericCalls)).toEqual(['step.second']);
+});
