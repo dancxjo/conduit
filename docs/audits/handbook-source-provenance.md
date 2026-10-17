@@ -177,3 +177,30 @@ consistent malformed source fixture, not evidence of a malformed public
 deployment. It does not exercise malformed retained recovery, historical
 reporting-browser custody, unpromoted `live` changes or release-train/accepted-
 main gates. Those remaining obligations keep #5453/#5510 open.
+
+## Malformed retained source in Chromium — 17 October 2026
+
+[Receipt](evidence/handbook-retained-source-chromium-2026-10-17.json) and
+[opt-in probe](../../proof/browser/handbook-public-retained-source.mjs) exercise
+the real public package `sha256:fdd92ab3401bb299ed8838c735653e24838ef4abbb3917f2b4b2af113dfba449`
+in an isolated fresh Chromium context. A Body is created and paused normally;
+only that context's retained pitch source is replaced with quoted `"1kHz"`.
+After releasing the tab and reopening, retained recovery refuses with
+`CND-FRM-051`, while the editor and selector remain enabled. Exact retained and
+canonical packaged sources are independently inspectable.
+
+Native editing/checking accepts the canonical correction without rewriting the
+retained continuity record. A native download produces the exact original
+record (byte comparison with its JSON serialization); receipt hashes retain
+the record/backup comparisons. New-Body replacement is disabled by default,
+enabled only after checking consent and disabled again after unchecking. No
+replacement is started, and continuity stays unchanged throughout inspection,
+checking, export and consent toggling. No page errors were observed.
+
+The initial probe stopped on an ambiguous disclosure text locator; the scoped
+locator was corrected before the subsequent successful run. This manual
+observation is not a zero-retry acceptance gate. Fault injection is synthetic
+and confined to the test context, so it does not identify historical reporting-
+browser custody or prove semantic migration, separately archived history backup,
+unpromoted `live` changes or release-train/accepted-main gates. #5453/#5510 remain
+open despite evidence at the packaged, retained and rejected-edit seams.
