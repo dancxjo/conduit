@@ -21,6 +21,7 @@ pub(super) fn transient_sign(kind: KernelEventKind) -> bool {
     )
 }
 
+#[inline]
 pub(super) fn ensure_retained_sign_capacity(
     events: impl Iterator<Item = KernelEvent>,
     item_capacity: u16,
