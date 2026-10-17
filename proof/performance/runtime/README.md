@@ -213,3 +213,44 @@ Region binding requires the kernel's `alloc` preparation feature, matching the
 reviewed installed std Back. No-alloc products refuse binding and retain one
 logical Step per dispatch. This keeps their fixed private image bounds intact;
 it does not introduce allocation during admitted Play.
+
+## Bounded overlapping stream measurements
+
+The hosted profile additionally measures 1,024 inputs through the ordinary
+checked Plan, std expression Backs and production kernel. Fourteen cases cover
+1/8/32-Gear arithmetic chains with 32 useful additions per result; one/four
+fan-out branches; queue capacities one/four; ingress batch budgets one/eight;
+32/256-byte Text identity payloads; and fast versus synchronous slow output
+acknowledgement. The existing 64-item causal sequence trials remain unchanged.
+
+The std Host's explicit finite stream entrance validates at most 4,096 inputs
+before Play and performs at most 64 atomic ingress attempts per kernel turn.
+It preserves the current typed Cord capacities and pressure/closure rules.
+The stream's order within every Fore is exact; its overlapping input cadence is
+distinct from the existing drain-between-inputs causal sequence. All value,
+identity and Sign storage is admitted before Play. This does not claim the
+whole std Host allocates nothing after Start.
+
+A slow sink sleeps for 20 microseconds in acknowledgement of output0. Actual
+sleep duration is OS-controlled and remains in the measurements; it blocks
+this cooperative Host, rather than inventing an asynchronous scheduling model.
+The native fused-loop and iterator-library controls retain the same canonical
+payloads and sink dwell, but omit typed Plan/Sign transactions. Their trial
+order rotates across repetitions. Per-output Instant observations are included
+in Host timings. No timer overhead is subtracted.
+
+Raw rows retain every output's branch/sequence/size/hash, observed event offsets
+and inter-acknowledgement percentiles; per-branch completed-output gaps; actual
+accepted/full ingress attempts; full-call and installed phase wall times,
+process CPU and allocator counts; first-to-last output allocation snapshots;
+canonical boundary byte counts; Source/Host/Plan/Boot/Play and terminal evidence.
+A boundary byte count is not an internal-copy counter. Fairness describes the
+observed finite cooperative run, not a preemption or priority guarantee.
+
+The capture verifier additionally checks the complete fourteen-case matrix,
+exact authored arithmetic/Text source, every ordered output digest, source/Plan/
+Host/Play custody, retained mandatory output Signs, bounded storage, pressure
+witnesses and timing statistics. Three independent expanded captures are still
+needed for expanded-workload process variation; one capture does not establish
+a calibrated performance gate. DSP/numerical-projection and four-mode coverage
+remain parent #5395 acceptance work.
