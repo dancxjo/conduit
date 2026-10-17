@@ -77,3 +77,24 @@ its Host preparation can overlap another test's active counter window. It now
 uses the same test-only exclusion guard. The production allocator and cancellation
 assertions are unchanged; this does not serialize product execution or convert
 a missing measurement into zero allocations.
+
+## Browser exclusive-choice projection
+
+The replacement candidate passed every native lane, all std/browser/workbench
+unit shards and its runtime-performance report. Foundation exposed the separate
+Patchbay invalid-control fixture correction owned by #5958. The browser suite
+passed 254 cases but Thermostat could not locate its Heat radio control.
+
+The retained screenshot shows generic fallback cards for known choice groups.
+The actual browser projection includes all properties in its generic facts list,
+including selection flags and choice metadata already represented by typed fields.
+The renderer incorrectly required that complete facts list to be empty. Handwritten
+renderer fixtures omitted the duplicated properties and missed the mismatch.
+
+The projection now reports the count of unmodeled properties separately, retaining
+the complete facts list. The radio profile requires that count to be exactly zero,
+plus its existing exact role, multiplicity, selection, action and input checks.
+Unknown metadata and duplicate/contradictory multiplicity retain the generic
+fallback. Missing count evidence also retains that fallback. A regression uses
+the real Thermostat contribution, including adversarial extra properties.
+This changes presentation eligibility, not action authority or thermostat state.

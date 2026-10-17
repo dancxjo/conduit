@@ -5,7 +5,7 @@ const view = {
   body_id: 'fixture/body', face_id: 'fixture/face', face_revision: 1, show_id: 'fixture/show',
   show_state: 'available', interactions_admitted: true,
   subjects: [{ identity: 'fixture/task', name: 'Read the handbook', role: 'Info',
-    disclosure: 'Primary', text: [], properties: [],
+    disclosure: 'Primary', text: [], properties: [], unmodeled_property_count: 0,
     values: [{ name: 'Completion', text: 'Open' }] }], relationships: [],
   actions: [{ identity: 'fixture/complete', target: 'fixture/task', name: 'Complete task',
     availability: 'available', disclosure: 'CurrentAction', arguments: [] }],
@@ -835,14 +835,14 @@ for (const fact of ['content', 'flag']) {
 for (const enriched of ['collection', 'item', 'status']) {
   test(`collection layout preserves additional ${enriched} semantics (${fact})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
-    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], values: [] });
+    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], unmodeled_property_count: 0, values: [] });
     const collection = subject('fixture/list', 'Tasks', 'Collection');
     const item = { ...subject('fixture/item', 'Read', 'Item'), flags: [{ name: 'complete', value: false }] };
     const status = { ...subject('fixture/status', 'Progress', 'Status'), text: ['1 thing left · 0 completed'] };
     const extra = { collection, item, status }[enriched];
     if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
     else {
-      extra.properties = ['Important authored fact'];
+      extra.properties = ['Important authored fact']; extra.unmodeled_property_count = 1;
       extra.values = [{ name: 'Priority', text: 'Urgent' }];
       if (enriched !== 'status') extra.text = ['Additional explanation'];
     }
@@ -899,7 +899,7 @@ for (const enriched of ['group', 'option']) {
     if (fact === 'flag') extra.flags = [...(extra.flags ?? []), { name: 'authored-flag', value: true }];
     else {
       extra.values = [{ name: 'Authored value', text: 'Exact meaning' }];
-      extra.properties = ['Important authored fact'];
+      extra.properties = ['Important authored fact']; extra.unmodeled_property_count = 1;
       extra.text = ['Additional explanation'];
     }
     await page.evaluate(async view => {
