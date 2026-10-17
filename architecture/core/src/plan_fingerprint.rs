@@ -422,7 +422,7 @@ pub fn compute_fragment_id(fragment: &PlanFragment) -> FragmentId {
     FragmentId::from(hash_bytes(&canonical))
 }
 
-fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue) {
+pub(crate) fn push_configuration_value(canonical: &mut Vec<u8>, value: &ConfigurationValue) {
     match value {
         ConfigurationValue::Bool(value) => {
             canonical.push(0);

@@ -12,6 +12,8 @@ mod cost_policy_explanation;
 mod evidence_lineage;
 mod execution_artifact;
 mod model;
+mod pool_dispatch_explanation;
+pub use pool_dispatch_explanation::render_pool_dispatch;
 mod pool_cost_explanation;
 pub use pool_cost_explanation::render_pool_cost_selection;
 mod printing;

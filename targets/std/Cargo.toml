@@ -18,6 +18,7 @@ physical-effect-proof = []
 native-webrtc = ["dep:async-trait", "dep:bytes", "dep:tokio", "dep:webrtc"]
 
 [dependencies]
+conduit-observatory = { path = "../../architecture/observatory" }
 conduit-burn-model = { path = "../../mechanisms/implementations/burn-model", optional = true }
 conduit-ai = { path = "../../semantics/ai", features = ["plot-catalog"] }
 conduit-audio = { path = "../../semantics/audio" }
@@ -122,7 +123,6 @@ required-features = ["native-webrtc"]
 
 [dev-dependencies]
 tempfile = "3"
-conduit-observatory = { path = "../../architecture/observatory" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc", "step-test-support"] }
 conduit-workspace-make = { path = "../../make/workspace" }
 ed25519-dalek = "2.2"

@@ -28,8 +28,16 @@ pub enum PoolCostLoweringError {
     DuplicateCalibration,
 }
 pub use conduit_core::PoolCostSourceReceipt;
+/// Owner-sampled occupation immediately before the atomic selection attempt.
+/// Waiting includes the selected queue head until its owner retires it.
+#[derive(Debug, Copy, Clone, PartialEq, Eq)]
+pub struct PoolDispatchPopulation {
+    pub occupied_members: u16,
+    pub waiting_operations: usize,
+}
 #[derive(Debug)]
 pub struct CostAwareSharedPoolAdmissionOutcome {
+    pub population_before_selection: PoolDispatchPopulation,
     pub admission: SharedPoolAdmissionOutcome,
     pub account: conduit_core::PoolCostSelectionAccount,
 }
@@ -252,6 +260,10 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
         }
         let mut selected_signs = [0_u16; OBSERVATION_SIGNS];
         let mut decisions = [PoolCostCandidateDecision::EMPTY; MAXIMUM_POOL_COST_REALIZATIONS];
+        let population_before_selection = PoolDispatchPopulation {
+            occupied_members: self.population(),
+            waiting_operations: self.waiting_population(),
+        };
         let selected = admit_cost_selected_pool_member(
             &mut self.kernel,
             key,
@@ -372,6 +384,10 @@ impl<const MEMBER_SLOTS: usize, const POOL_SIGNS: usize, const OBSERVATION_SIGNS
             sources,
         };
         debug_assert!(account.validate(&self.plan).is_ok());
-        Ok(CostAwareSharedPoolAdmissionOutcome { admission, account })
+        Ok(CostAwareSharedPoolAdmissionOutcome {
+            admission,
+            account,
+            population_before_selection,
+        })
     }
 }

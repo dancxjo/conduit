@@ -29,6 +29,7 @@ struct FixtureAdapter {
     offer: conduit_ai::LocalModelOffer,
     calls_and_output_bound: Arc<Mutex<(usize, u64)>>,
     result: Vec<u8>,
+    terminal: LocalModelAdapterTerminal,
 }
 impl HostedLocalModelAdapter for FixtureAdapter {
     fn offer(&self) -> &conduit_ai::LocalModelOffer {
@@ -54,7 +55,7 @@ impl HostedLocalModelAdapter for FixtureAdapter {
             .unwrap();
         output.clear();
         output.extend_from_slice(&self.result);
-        LocalModelAdapterTerminal::Produced
+        self.terminal
     }
 }
 struct NativeFixture {
@@ -66,6 +67,9 @@ struct NativeFixture {
     state: Arc<Mutex<(usize, u64)>>,
 }
 fn native_fixture() -> NativeFixture {
+    native_fixture_for_terminal(LocalModelAdapterTerminal::Produced)
+}
+fn native_fixture_for_terminal(terminal: LocalModelAdapterTerminal) -> NativeFixture {
     use conduit_ai::*;
     let state = Arc::new(Mutex::new((0, 0)));
     let model = LocalModelOffer {
@@ -132,6 +136,7 @@ fn native_fixture() -> NativeFixture {
             offer: model,
             calls_and_output_bound: state.clone(),
             result,
+            terminal,
         }),
     )
     .unwrap();
@@ -436,3 +441,6 @@ fn forecast_prepared_before_native_execution_calibrates_actual_completed_interva
         host.release_local_model_pool_member(member).unwrap();
     });
 }
+
+#[path = "request_binding_inspection_tests.rs"]
+mod inspection;

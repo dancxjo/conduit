@@ -89,10 +89,7 @@ impl RequestBinding {
         let binding = Self {
             bytes: u32::try_from(value.encoded.len())
                 .map_err(|_| "local-model demand extent overflowed")?,
-            digest: conduit_core::semantic_digest(
-                "conduit.std/local-model-completed-input@1",
-                &value.encoded,
-            ),
+            digest: conduit_core::pool_operation_input_digest(&value.encoded),
         };
         // Retain the checked meaning used by the forecast, not offer defaults.
         placement.configuration.clone_from(&gear.configuration);
