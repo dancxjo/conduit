@@ -277,3 +277,17 @@ cover the owner element, a light-DOM ancestor, an ancestor inside its shadow roo
 an outer shadow host and a slot's inert ancestor. Synthetic submits are negative
 fixtures; removing inertness restores trusted keyboard activation. These are
 explicit inertness/renderer checks, not actual Body or packaged/public proof.
+
+Additional flag completeness (#5367): collection/item/status specialization now
+recognizes only its represented `complete` flag; additional flags retain generic
+subjects and Exact facts. Radio specialization likewise represents only the
+option's single `selected` flag and no group flags. Additional authored flags
+therefore cannot disappear merely because a subject also fits a familiar layout.
+Plain count/selection layouts retain their existing behavior.
+
+All five flag-loss cases reproduced before repair. All fifty-two component
+Chromium tests and four Handbook unit tests pass with one worker and zero retries
+for Chromium. The cases cover collection, item, count Status, choice group and
+choice option flags, alongside their existing content-rich variants; each keeps
+keyboard access to the same current action. This is renderer/projector semantic
+coverage, not full Face grammar or actual Body/packaged/public acceptance.

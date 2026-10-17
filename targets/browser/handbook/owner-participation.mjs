@@ -9,7 +9,8 @@ export function projectFaceCollections(view) {
   const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
   const collections = [];
   const placed = new Set();
-  const hasExtraFacts = subject => Boolean(subject.properties?.length || subject.values?.length);
+  const hasExtraFacts = (subject, representedFlag) => Boolean(subject.properties?.length || subject.values?.length
+    || (Array.isArray(subject.flags) && subject.flags.some(flag => flag?.name !== representedFlag)));
   for (const collection of view.subjects ?? []) {
     if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)
       || hasExtraFacts(collection)) continue;
@@ -19,7 +20,7 @@ export function projectFaceCollections(view) {
       .filter(item => item?.role === 'Item');
     if (items.some(item => {
       const complete = Array.isArray(item.flags) ? item.flags.filter(flag => flag?.name === 'complete') : [];
-      return hasExtraFacts(item) || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
+      return hasExtraFacts(item, 'complete') || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
         || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
     })) continue;
     const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);

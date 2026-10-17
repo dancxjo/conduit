@@ -308,7 +308,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     inspection.append(faceNode('summary', 'Inspect other Face subjects'));
     for (const group of view.subjects) {
       if (group.semantic_role !== 'conduit.face/choice-group@1'
-        || group.choice_multiplicity !== 'exclusive' || group.values?.length || group.properties?.length) continue;
+        || group.choice_multiplicity !== 'exclusive' || group.values?.length || group.properties?.length
+        || group.flags?.length) continue;
       const options = view.relationships
         .filter(relation => relation.kind === 'Contains' && relation.source === group.identity)
         .map(relation => view.subjects.find(subject => subject.identity === relation.target));
@@ -319,7 +320,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         ? option.flags.filter(flag => flag?.name === 'selected') : []);
       if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
         || options.some((option, index) => !option || option.text?.length || option.values?.length
-          || option.properties?.length || selectedFlags[index].length !== 1
+          || option.properties?.length || selectedFlags[index].length !== 1 || option.flags.length !== 1
           || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
           || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
         || selectedFlags.filter(flags => flags[0].value).length > 1) continue;
