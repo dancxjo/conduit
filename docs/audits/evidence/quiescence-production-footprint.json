@@ -1,0 +1,184 @@
+{
+  "proof_class": "compiler-observed native production-library object extent",
+  "captures": {
+    "before": {
+      "source": "192265a8b26f5485424d9588d1eb7ba8221246a6",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "conduit-kernel",
+        "--features",
+        "alloc,step-test-support",
+        "--test",
+        "scheduler_footprint",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "rows": [
+        {
+          "node_capacity": 1,
+          "cord_capacity": 1,
+          "pending_request_capacity": 1,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 6600,
+          "driver_bytes": 16,
+          "value_store_bytes": 24,
+          "sign_log_bytes": 5680
+        },
+        {
+          "node_capacity": 8,
+          "cord_capacity": 8,
+          "pending_request_capacity": 8,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 11096,
+          "driver_bytes": 16,
+          "value_store_bytes": 108,
+          "sign_log_bytes": 5680
+        },
+        {
+          "node_capacity": 32,
+          "cord_capacity": 32,
+          "pending_request_capacity": 32,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 26504,
+          "driver_bytes": 16,
+          "value_store_bytes": 396,
+          "sign_log_bytes": 5680
+        }
+      ],
+      "kernel_library_compiled_as_test": false,
+      "kernel_rlib_sha256": "8a148df6398b354f5dd643f4072a4376929c556fe9369f45c05dfbecc292452f",
+      "executable_sha256": "eb4c18c1f78fc00f23aa7fa6e0b82f0dcab59c7f5a70a7c0a9c1cee3023947e9",
+      "probe_sha256": "2ef40c97be26cd8e31db79872c07a6afa7637dc57cb5e9b621d5d22f84819eff",
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+      "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+      "pointer_bits": 64,
+      "profile": {
+        "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+        "CARGO_PROFILE_RELEASE_DEBUG": "0",
+        "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false"
+      },
+      "scope": "Native ordinary kernel library object size with production HostCallBack driver; explicit finite capacities",
+      "limits": "Compiler/profile-specific object extents; not runtime heap usage, all possible profiles or physical execution."
+    },
+    "after": {
+      "source": "5f9b293e35ba7d502376fd23ac0023d7cf3a0ae7",
+      "command": [
+        "cargo",
+        "test",
+        "--locked",
+        "--release",
+        "-p",
+        "conduit-kernel",
+        "--features",
+        "alloc,step-test-support",
+        "--test",
+        "scheduler_footprint",
+        "--no-run",
+        "--message-format=json"
+      ],
+      "rows": [
+        {
+          "node_capacity": 1,
+          "cord_capacity": 1,
+          "pending_request_capacity": 1,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 6600,
+          "driver_bytes": 16,
+          "value_store_bytes": 24,
+          "sign_log_bytes": 5680
+        },
+        {
+          "node_capacity": 8,
+          "cord_capacity": 8,
+          "pending_request_capacity": 8,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 11096,
+          "driver_bytes": 16,
+          "value_store_bytes": 108,
+          "sign_log_bytes": 5680
+        },
+        {
+          "node_capacity": 32,
+          "cord_capacity": 32,
+          "pending_request_capacity": 32,
+          "payload_width": 1,
+          "sign_event_capacity": 128,
+          "scheduler_bytes": 26504,
+          "driver_bytes": 16,
+          "value_store_bytes": 396,
+          "sign_log_bytes": 5680
+        }
+      ],
+      "kernel_library_compiled_as_test": false,
+      "kernel_rlib_sha256": "789a6afefd2c44b2601bc5c57eb4d966d6281536dcefdc5736622dad72927cd8",
+      "executable_sha256": "eb4c18c1f78fc00f23aa7fa6e0b82f0dcab59c7f5a70a7c0a9c1cee3023947e9",
+      "probe_sha256": "2ef40c97be26cd8e31db79872c07a6afa7637dc57cb5e9b621d5d22f84819eff",
+      "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+      "platform": "Linux-7.0.0-38-generic-x86_64-with-glibc2.43",
+      "pointer_bits": 64,
+      "profile": {
+        "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+        "CARGO_PROFILE_RELEASE_DEBUG": "0",
+        "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+        "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false"
+      },
+      "scope": "Native ordinary kernel library object size with production HostCallBack driver; explicit finite capacities",
+      "limits": "Compiler/profile-specific object extents; not runtime heap usage, all possible profiles or physical execution."
+    }
+  },
+  "same_probe_and_profile": true,
+  "artifact_hashes_verified": 10,
+  "comparison": [
+    {
+      "node_capacity": 1,
+      "before_bytes": 6600,
+      "after_bytes": 6600,
+      "delta_bytes": 0
+    },
+    {
+      "node_capacity": 8,
+      "before_bytes": 11096,
+      "after_bytes": 11096,
+      "delta_bytes": 0
+    },
+    {
+      "node_capacity": 32,
+      "before_bytes": 26504,
+      "after_bytes": 26504,
+      "delta_bytes": 0
+    }
+  ],
+  "baseline_recovery_tag": "checkpoint/quiescence-before-footprint-20261017",
+  "limits": "Only explicit1/8/32capacities withHostCallBack/128Signs onthisnativecompilerprofile; not allgenericprofiles or heap/physicalproof.",
+  "capture_artifact_hashes": {
+    "before": {
+      "build.stderr.log": "998c462bd26c8e892e3a5bdcd70546e4f6be052b7bf48959379c7bdffbb38c46",
+      "receipt.json": "b514cb262351b76dd364f01d0282087b89d2c5d7bb3a58526d9142fbf6a575d0",
+      "stdout.log": "27af3c660a6205fa2421d4923ba69076fbad093eea19dc5860eea80a3c0e2d6c",
+      "build.jsonl": "de466eea69c09f9daf272fbbc4fd608acf666c524835723797d215008187a927",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "after": {
+      "build.stderr.log": "3f00bc1da9939cee45359c74c7ee451043fd8297c9b5e424e2a3d11ba2f6c9de",
+      "receipt.json": "bb2426c66b58d3b1f84ee02b849b01a851d08a938e76c3a29dc128a247c8e3ad",
+      "stdout.log": "27af3c660a6205fa2421d4923ba69076fbad093eea19dc5860eea80a3c0e2d6c",
+      "build.jsonl": "15416629f9393307adea07fb66bc1d9de16aa42c92e521ed689ae0b152c2dc49",
+      "stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    }
+  },
+  "raw_archive": {
+    "path": "quiescence-production-footprint-raw.tar.gz",
+    "sha256": "59241fb3bd0706ca106decc055cc7d7b0b2cf9b5035a045adc68103ff24f2a6a",
+    "bytes": 9562
+  }
+}

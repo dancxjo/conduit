@@ -1,0 +1,484 @@
+{
+  "before_source": "d9e579e6a1b313c9108c8a8c9adcc933473934d4",
+  "after_source": "33f01225da164644e7545303f8d05facd2314094",
+  "verified_artifact_hashes": 36,
+  "cases_per_side": 144,
+  "all_replayed_signs_remote_lifecycle_outputs_readiness_and_values_identical": true,
+  "all_other_work_and_allocation_counters_identical": true,
+  "payload_only_quiescence_probes_after": 0,
+  "summary": [
+    {
+      "active": 1,
+      "capacity": 1,
+      "sparse": false,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            51295.875,
+            39671.625,
+            49204.125
+          ],
+          "mean": 46723.875,
+          "process_mean_sample_sd": 6196.3317424505285
+        },
+        "step_ns": {
+          "process_means": [
+            4402.875,
+            3198.125,
+            4281.875
+          ],
+          "mean": 3960.9583333333335,
+          "process_mean_sample_sd": 663.3975209731593
+        },
+        "instrumented_scheduler_bytes": 181248,
+        "cord_probes": 2
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            37888.625,
+            43881.125,
+            31070
+          ],
+          "mean": 37613.25,
+          "process_mean_sample_sd": 6410.000349795232
+        },
+        "step_ns": {
+          "process_means": [
+            3238.375,
+            4087.375,
+            2211
+          ],
+          "mean": 3178.9166666666665,
+          "process_mean_sample_sd": 939.5995185228296
+        },
+        "instrumented_scheduler_bytes": 181248,
+        "cord_probes": 0
+      }
+    },
+    {
+      "active": 1,
+      "capacity": 1,
+      "sparse": true,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            41598.875,
+            31173.375,
+            41108
+          ],
+          "mean": 37960.083333333336,
+          "process_mean_sample_sd": 5882.584216796929
+        },
+        "step_ns": {
+          "process_means": [
+            3662,
+            2552.5,
+            3646
+          ],
+          "mean": 3286.8333333333335,
+          "process_mean_sample_sd": 636.0016378385619
+        },
+        "instrumented_scheduler_bytes": 181248,
+        "cord_probes": 2
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            32767.25,
+            36678.25,
+            22468.75
+          ],
+          "mean": 30638.083333333332,
+          "process_mean_sample_sd": 7340.1284446073105
+        },
+        "step_ns": {
+          "process_means": [
+            2655.5,
+            3313.875,
+            1739.125
+          ],
+          "mean": 2569.5,
+          "process_mean_sample_sd": 790.889619747914
+        },
+        "instrumented_scheduler_bytes": 181248,
+        "cord_probes": 0
+      }
+    },
+    {
+      "active": 8,
+      "capacity": 8,
+      "sparse": false,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            50044.375,
+            37280.375,
+            49255.25
+          ],
+          "mean": 45526.666666666664,
+          "process_mean_sample_sd": 7152.389408806565
+        },
+        "step_ns": {
+          "process_means": [
+            27814.625,
+            19599,
+            29276.75
+          ],
+          "mean": 25563.458333333332,
+          "process_mean_sample_sd": 5216.850082804597
+        },
+        "instrumented_scheduler_bytes": 185216,
+        "cord_probes": 72
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            38060.625,
+            46989.625,
+            25135
+          ],
+          "mean": 36728.416666666664,
+          "process_mean_sample_sd": 10988.04999784804
+        },
+        "step_ns": {
+          "process_means": [
+            19847.75,
+            25231,
+            13638.375
+          ],
+          "mean": 19572.375,
+          "process_mean_sample_sd": 5801.216436285152
+        },
+        "instrumented_scheduler_bytes": 185216,
+        "cord_probes": 0
+      }
+    },
+    {
+      "active": 8,
+      "capacity": 8,
+      "sparse": true,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            50774.5,
+            36218.875,
+            47010.875
+          ],
+          "mean": 44668.083333333336,
+          "process_mean_sample_sd": 7555.3331746659815
+        },
+        "step_ns": {
+          "process_means": [
+            3703.875,
+            2637.25,
+            3643.875
+          ],
+          "mean": 3328.3333333333335,
+          "process_mean_sample_sd": 599.2471361703227
+        },
+        "instrumented_scheduler_bytes": 185216,
+        "cord_probes": 16
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            33962.75,
+            44757,
+            25417.125
+          ],
+          "mean": 34712.291666666664,
+          "process_mean_sample_sd": 9691.700097839303
+        },
+        "step_ns": {
+          "process_means": [
+            2539.125,
+            3304.25,
+            1812.625
+          ],
+          "mean": 2552.0,
+          "process_mean_sample_sd": 745.8958435163719
+        },
+        "instrumented_scheduler_bytes": 185216,
+        "cord_probes": 0
+      }
+    },
+    {
+      "active": 32,
+      "capacity": 32,
+      "sparse": false,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            40860.875,
+            35895.25,
+            39133.75
+          ],
+          "mean": 38629.958333333336,
+          "process_mean_sample_sd": 2520.855498180793
+        },
+        "step_ns": {
+          "process_means": [
+            111251.125,
+            70041.125,
+            110683.625
+          ],
+          "mean": 97325.29166666667,
+          "process_mean_sample_sd": 23630.48512162485
+        },
+        "instrumented_scheduler_bytes": 198800,
+        "cord_probes": 1056
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            30105.75,
+            79916.875,
+            25729.25
+          ],
+          "mean": 45250.625,
+          "process_mean_sample_sd": 30101.49672124918
+        },
+        "step_ns": {
+          "process_means": [
+            70316.5,
+            104106.25,
+            45708.75
+          ],
+          "mean": 73377.16666666667,
+          "process_mean_sample_sd": 29318.8124230132
+        },
+        "instrumented_scheduler_bytes": 198800,
+        "cord_probes": 0
+      }
+    },
+    {
+      "active": 32,
+      "capacity": 32,
+      "sparse": true,
+      "before": {
+        "prepare_ns": {
+          "process_means": [
+            40284.375,
+            29222.125,
+            38498
+          ],
+          "mean": 36001.5,
+          "process_mean_sample_sd": 5938.663818833745
+        },
+        "step_ns": {
+          "process_means": [
+            3871.5,
+            2625.125,
+            3904.875
+          ],
+          "mean": 3467.1666666666665,
+          "process_mean_sample_sd": 729.4203856202083
+        },
+        "instrumented_scheduler_bytes": 198800,
+        "cord_probes": 64
+      },
+      "after": {
+        "prepare_ns": {
+          "process_means": [
+            28509.5,
+            34551.625,
+            23125.375
+          ],
+          "mean": 28728.833333333332,
+          "process_mean_sample_sd": 5716.281798420922
+        },
+        "step_ns": {
+          "process_means": [
+            2441.75,
+            3408.75,
+            1557.75
+          ],
+          "mean": 2469.4166666666665,
+          "process_mean_sample_sd": 925.8100957179789
+        },
+        "instrumented_scheduler_bytes": 198800,
+        "cord_probes": 0
+      }
+    }
+  ],
+  "limits": [
+    "instrumented native scheduler fixture, not whole hosted Play or FARGAN",
+    "observed wall times include counters/harness and shared-host variation; no calibrated threshold",
+    "object bytes include cfg(test) counters; production object footprint requires separate proof",
+    "graphs containing quiescence connections retain their scan path; no speedup claimed for them",
+    "parent5231 retains original large-graph, fairness/transition and production benchmark acceptance"
+  ],
+  "captures": {
+    "before": {
+      "metadata": {
+        "source": "d9e579e6a1b313c9108c8a8c9adcc933473934d4",
+        "build_command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit-kernel",
+          "--features",
+          "alloc,step-test-support",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+        "executable": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/quiescence-absence-fast-path/../quiescence-absence-target/release/deps/conduit_kernel-a0d81f604a53611a",
+        "executable_sha256": "f8361303eba26daa0a80bda378f926a0504a308fd79683d0b577d939b9f575cd",
+        "system": "Linux",
+        "release": "7.0.0-38-generic",
+        "machine": "x86_64",
+        "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700",
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "profile": {
+          "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+          "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false",
+          "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+          "CARGO_PROFILE_RELEASE_DEBUG": "0"
+        },
+        "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+        "limits": [
+          "instrumented Step wall time includes observation/harness work",
+          "copy bytes count successful fixed-value-store writes only",
+          "compiler moves, Sign copies and Host transport copies are unmeasured",
+          "test-only allocator/scan observations are absent from product builds",
+          "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+          "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+        ]
+      },
+      "artifact_hashes": {
+        "build.jsonl": "2492af146e0f63f94d77e57caa18e7fc22f0e9f32ffe8fbd4d5c6cd8761150d5",
+        "build.stderr.log": "b65d97c967cb13bb2fd061b2f5b86011ef366acea387375a92a9808f93395384",
+        "metadata.json": "7edfd2a4975dfba7947cb5c288f4009c183d9f6c13dc8f11b2dcaeddbd2bb72a",
+        "process-0.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-0.resource.log": "11dafe348b6140f884f34b8f13d225894127fbe4772bc1e52d0ff0273373e3d6",
+        "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-0.stdout.log": "9a1cd97afd3d668b46fa22833ee9bce1a54f766231b40a04f4a7460351a7e414",
+        "process-1.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-1.resource.log": "950f6a82ef86a0a9c3c3119365591f29821906f1d96232e989692a8f8c21c265",
+        "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-1.stdout.log": "24fd3c8ef544dd643d0b790c733b386eef9ccf69cee292f06e29d75d662852d4",
+        "process-2.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-2.resource.log": "b09f17f6986ba90e9258f90ec7a73f937b3790b279d1d3ac05f73849c77964ad",
+        "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-2.stdout.log": "3b52fee675e272cd4c188e6e164211e735c8a3d5d3e51999f4d5fe53163e02f6",
+        "processes.json": "e8c31bc656f8ad0d10fdc92f32feecb816da008c6f171872cdb9c1bee45db5e3",
+        "raw.json": "89a4181d2c4d888284812d0e2ff662d2235038437c01fe8981c576924d515968",
+        "summary.json": "f5a3a6cbd41e319d846a1025e16ad1943d7c95e151ad4ccb754ba391abebe70f"
+      }
+    },
+    "after": {
+      "metadata": {
+        "source": "33f01225da164644e7545303f8d05facd2314094",
+        "build_command": [
+          "cargo",
+          "test",
+          "--locked",
+          "--release",
+          "-p",
+          "conduit-kernel",
+          "--features",
+          "alloc,step-test-support",
+          "--lib",
+          "--no-run",
+          "--message-format=json"
+        ],
+        "rustc": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8\n",
+        "executable": "/home/dancxjo/Documents/Codex/2026-10-13/goal-scan-the-open-conduit-issues/work/quiescence-absence-fast-path/../quiescence-absence-target/release/deps/conduit_kernel-a0d81f604a53611a",
+        "executable_sha256": "f240cd34fe12f31f5e98eabb0e77544ffdd5d6188f423524d1bc7030ea17a73b",
+        "system": "Linux",
+        "release": "7.0.0-38-generic",
+        "machine": "x86_64",
+        "cpu_model": "12th Gen Intel(R) Core(TM) i7-12700",
+        "affinity": [
+          0,
+          1,
+          2,
+          3,
+          4,
+          5,
+          6,
+          7,
+          8,
+          9,
+          10,
+          11,
+          12,
+          13,
+          14,
+          15,
+          16,
+          17,
+          18,
+          19
+        ],
+        "profile": {
+          "CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS": "true",
+          "CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS": "false",
+          "CARGO_PROFILE_RELEASE_OPT_LEVEL": "3",
+          "CARGO_PROFILE_RELEASE_DEBUG": "0"
+        },
+        "scope": "test-only observations of production FixedScheduler/FixedValueStore; native Linux",
+        "limits": [
+          "instrumented Step wall time includes observation/harness work",
+          "copy bytes count successful fixed-value-store writes only",
+          "compiler moves, Sign copies and Host transport copies are unmeasured",
+          "test-only allocator/scan observations are absent from product builds",
+          "no browser/WASM attribution: native test allocator and observation seams are not installed in that product",
+          "no timing threshold, causal speedup, independent confidence interval or parent5395 completion"
+        ]
+      },
+      "artifact_hashes": {
+        "build.jsonl": "064aa513623280b741b01a3431cc9115e450b62ca2d519fac6a71108784b1ea1",
+        "build.stderr.log": "1ff8bbcb4151dc887e69b78a29bc241d5062cba4757aa5f4639926ae712a8181",
+        "metadata.json": "7399def9e19eee428f6f1193a4efcf7c9d4363a08b65c6e377c93ffdf12a942f",
+        "process-0.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-0.resource.log": "288758e09d52aa13281e17b6f10b7f7e7cc019cf43661ce3a4bbb4f6c7d23fd1",
+        "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-0.stdout.log": "47bab4f887a0b73d60fe8aa4f3a1ebedb8ebb9d311107e682ad350ebf3c2a125",
+        "process-1.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-1.resource.log": "c53ce355f310d339773a6e9a28a523666de116c19e3cbf324d84eb20b159a9a5",
+        "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-1.stdout.log": "2e9b16ad2b8a77f56fa9eb0c5d36553450cdbfc7c654f56e37b52804f725f27d",
+        "process-2.replays.json": "92f4a5ff60ba8c3bfdb7fdcbf80c7256a43f6ec911f513dfcf0523d173a55c18",
+        "process-2.resource.log": "1a11fa4731b08b1d304b0908cd7bec68232850d8c4cd0b80d9e2c94ec6ab8f7e",
+        "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+        "process-2.stdout.log": "02ac8a162017c9fc178b5ba1f57c51cb79a9a7e0e102c91a7821c9070a2f39d1",
+        "processes.json": "58f3ff5faf08d2b3772f1ffb77d2e6c6a09db27dc333f6e31cc178f76343dfd8",
+        "raw.json": "5215b3e889f2baff42a1df23ebef533da9787d63af6e78f5de5404a45ab4818c",
+        "summary.json": "9b6a53b03ab8ab5bc08590b090a5bc82d28afb867f8681e18af6001a8d5f3416"
+      }
+    }
+  },
+  "raw_archive": {
+    "path": "quiescence-absence-native-raw.tar.gz",
+    "sha256": "d42fc772ff1ce42cd125524c2580a52de176a5c49bff83b475893132462784a5",
+    "bytes": 168444,
+    "contents": "Complete before/after capture directories: build records,metadata,raw rows,replays,process stdout/stderr/resources,status and18artifact hashes per side"
+  }
+}
