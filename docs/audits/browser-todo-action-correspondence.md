@@ -173,3 +173,18 @@ with one worker and zero retries, including non-array lists, the 64-argument
 ceiling, no callback from forged submit and trusted keyboard activation of an
 unrelated valid action. These are renderer fixtures; authoritative Face/SDK/Body
 validation and packaged/public acceptance remain separate.
+
+Exclusive-choice fallback (#5367 / #5644): native radios now require distinct
+option identities, exactly one boolean selected flag per option and a well-formed
+zero-input action. Duplicate selected flags cannot be ignored merely because one
+has a nonboolean value. Unknown/malformed flag or argument lists use the existing
+generic subject/action rendering rather than throwing or inventing radio state.
+The validated selection flags also supply rendering and selection restoration.
+
+All four adversarial cases reproduced before repair: ambiguous flags, duplicate
+options, absent arguments and non-array flags. All thirty-seven component
+Chromium tests pass with one worker and zero retries. Each fallback case retains
+trusted keyboard activation of the valid individual action with its exact target
+and arguments; ordinary radio and stale-listener cases still pass. This is
+renderer fallback evidence, not authoritative admission of a malformed Face,
+unchanged Body state or packaged/public acceptance.

@@ -291,10 +291,13 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       // A radio group requires exact semantic selection flags and one offered
       // zero-input action per option. Unfamiliar contracts keep the generic view.
       const offered = options.map(option => view.actions.filter(action => action.target === option?.identity));
-      if (!options.length || options.some((option, index) => !option
-        || option.flags?.filter(flag => flag.name === 'selected' && typeof flag.value === 'boolean').length !== 1
-        || offered[index].length !== 1 || offered[index][0].arguments.length !== 0)
-        || options.filter(option => option.flags.find(flag => flag.name === 'selected').value).length > 1) continue;
+      const selectedFlags = options.map(option => Array.isArray(option?.flags)
+        ? option.flags.filter(flag => flag?.name === 'selected') : []);
+      if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
+        || options.some((option, index) => !option || selectedFlags[index].length !== 1
+          || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
+          || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
+        || selectedFlags.filter(flags => flags[0].value).length > 1) continue;
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'owner-face-choice-group';
       bindRegion(fieldset, group);
@@ -313,7 +316,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'choice']);
         input.name = group.identity;
         input.value = option.identity;
-        input.checked = option.flags.find(flag => flag.name === 'selected').value;
+        input.checked = selectedFlags[index][0].value;
         input.disabled = !actionReady(action);
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         label.dataset.ownerAction = action.identity;
@@ -324,7 +327,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           if (!this.#reachable(input) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
-            control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;
+            control.checked = selectedFlags[optionIndex][0].value;
           });
           this.disabled = true;
           await this.#invoke({ view, action, arguments: [] });

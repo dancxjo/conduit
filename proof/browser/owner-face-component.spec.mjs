@@ -731,3 +731,37 @@ for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes
     expect(await page.evaluate(() => globalThis.calls[0].action.identity)).toBe('fixture/complete');
   });
 }
+
+for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-arguments', 'non-array-flags']) {
+  test(`exclusive-choice contracts use reachable generic fallback (${malformed})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const choices = { ...view,
+      subjects: [
+        { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
+          semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+        ...[0, 1].map(index => ({ ...view.subjects[0], identity: `fixture/option/${index}`,
+          name: `Mode ${index}`, flags: [{ name: 'selected', value: false }] })),
+      ],
+      relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
+      actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
+        target: `fixture/option/${index}`, name: `Select ${index}` })),
+    };
+    if (malformed === 'ambiguous-flag') choices.subjects[1].flags.unshift({ name: 'selected', value: 'false' });
+    if (malformed === 'duplicate-option') choices.relationships.push(choices.relationships[0]);
+    if (malformed === 'missing-arguments') delete choices.actions[0].arguments;
+    if (malformed === 'non-array-flags') choices.subjects[1].flags = {};
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, choices);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('radio')).toHaveCount(0);
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const action = element.getByRole('button', { name: 'Select 1', exact: true });
+    await expect(action).toBeEnabled();
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
+  });
+}
