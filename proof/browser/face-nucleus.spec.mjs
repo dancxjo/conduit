@@ -285,3 +285,38 @@ for (const input of ['keyboard', 'pointer']) {
       .toEqual({ actions: ['fixture.button'], queued: 1 });
   });
 }
+
+for (const unavailable of ['disabled', 'fieldset', 'inert', 'hidden', 'detached']) {
+  test(`unavailable generic DOM controls refuse queueing (${unavailable})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async unavailable => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const outer = document.createElement('fieldset'); document.body.append(outer);
+      const root = document.createElement('section'); outer.append(root);
+      globalThis.availableCalls = [];
+      const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.available', event: 'activate' }], nodes: [
+          { parent: null, component: 'button', key: 'action', text: 'Available action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.availableCalls.push(event.action) });
+      const button = root.querySelector('button');
+      if (unavailable === 'disabled') button.disabled = true;
+      else if (unavailable === 'fieldset') outer.disabled = true;
+      else if (unavailable === 'inert') outer.inert = true;
+      else if (unavailable === 'hidden') outer.hidden = true;
+      else root.remove();
+      // Adversarial event; successful activation below uses native keyboard input.
+      button.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      globalThis.availableProof = { manifest, restore() {
+        button.disabled = false; outer.disabled = false; outer.inert = false; outer.hidden = false;
+        if (!root.isConnected) outer.append(root);
+      } };
+    }, unavailable);
+    expect(await page.evaluate(() => ({ calls: globalThis.availableCalls,
+      queued: globalThis.availableProof.manifest.queuedEvents(), refusal: globalThis.availableProof.manifest.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+    await page.evaluate(() => globalThis.availableProof.restore());
+    await page.getByRole('button', { name: 'Available action', exact: true }).focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.availableCalls)).toEqual(['fixture.available']);
+  });
+}

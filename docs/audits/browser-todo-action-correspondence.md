@@ -604,3 +604,17 @@ the duplicate before the production change. All four targeted pinned Chromium
 fixtures pass with one worker and zero retries, including both prior stale
 manifestation cases. The missing local WASM limitation from the prior full run
 remains; these renderer queues do not establish authoritative Body mutation.
+
+Generic DOM availability follow-up (#5644): DOM-derived actions recheck that
+their bound surface is connected, remains under its root, is not natively
+disabled (including a disabled fieldset), and has no hidden/inert composed
+ancestor. Explicit Host action requests retain their semantic admission route.
+Stale manifestation identity still refuses before availability checks.
+
+Five adversarial event cases reproduced queue/callback dispatch while disabled,
+fieldset-disabled, inert, hidden or detached. All nine targeted pinned Chromium
+fixtures pass with one worker and zero retries, including restored native Enter
+activation and prior nested/stale cases. Temporary DOM unavailability does not
+revoke the underlying manifestation: restoring its surface allows activation.
+This is not arbitrary CSS visibility, permanent lifecycle revocation or
+authoritative Body proof; the prior missing-WASM full-suite limit remains.

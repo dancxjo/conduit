@@ -370,11 +370,23 @@ export function manifestApplicationView(input, root, options = {}) {
   const elements = [];
   const actionEvents = new WeakMap();
   const nodesByKey = new Map();
-  const requestAction = (node, value = "") => {
+  const requestAction = (node, value = "", control = null) => {
     if (activeManifestations.get(root) !== render) {
       lastRefusal = "stale-revision";
       options.onRefusal?.(lastRefusal);
       return null;
+    }
+    if (control) {
+      let available = control.isConnected && root.contains(control) && !control.matches(":disabled");
+      for (let ancestor = control; available && ancestor;
+        ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
+        if (ancestor.inert || ancestor.hidden) available = false;
+      }
+      if (!available) {
+        lastRefusal = "unavailable-action";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
     }
     if (node.state === "busy") {
       lastRefusal = "action-busy";
@@ -507,7 +519,7 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     if (node.component === 11) {
       element.dataset.renderer = "patchbay";
-      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity));
+      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity, element));
     }
     if (node.action !== null) {
       const action = view.actions[node.action];
@@ -517,7 +529,7 @@ export function manifestApplicationView(input, root, options = {}) {
         // A child binding owns its event; bubbling must not invent a second
         // semantic action on an ancestor. Decorative descendants still route here.
         if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;
-        requestAction(node, eventValue(browserEvent));
+        requestAction(node, eventValue(browserEvent), element);
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
