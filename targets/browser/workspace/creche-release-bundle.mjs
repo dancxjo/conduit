@@ -37,12 +37,12 @@ export async function acquireHostRelease(profile, signal, {
     totalBytes += bytes.byteLength;
     if (bytes.byteLength !== file.bytes || bytes.byteLength < 1 || bytes.byteLength > MAXIMUM_FILE_BYTES
       || totalBytes > MAXIMUM_BUNDLE_BYTES) {
-      refuse("ArtifactBound", "reviewed host release violated its sealed byte bounds");
+      refuse("ArtifactBound", "reviewed host release violated its sealed byte bounds", undefined, true);
     }
     payloads.push(Object.freeze({ ...file, bytes }));
   }
   const bundleDigest = await digestFileIdentities(payloads);
-  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale");
+  if (bundleDigest !== manifest.bundle_sha256) refuse("StaleArtifact", "reviewed host release bundle identity is stale", undefined, true);
   return Object.freeze({ manifest: Object.freeze(manifest), payloads: Object.freeze(payloads), totalBytes });
 }
 
@@ -63,7 +63,7 @@ export async function acquireExactReleaseBytes({ url, expected, maximumBytes, si
   const bytes = new Uint8Array(await response.arrayBuffer());
   if (bytes.byteLength < 1 || bytes.byteLength > maximumBytes
     || expected && (bytes.byteLength !== expected.bytes || await sha256(bytes) !== expected.sha256)) {
-    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`);
+    refuse("StaleArtifact", `reviewed host release ${label} failed its exact identity`, undefined, label !== "manifest");
   }
   if (expected && cache) await cache.put(expected.sha256, bytes);
   return Object.freeze({ bytes, url: response.url || String(url), cache_hit: false });

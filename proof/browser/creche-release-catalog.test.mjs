@@ -31,6 +31,19 @@ test("release fetch failures retain manifest versus payload work custody", async
   }
 });
 
+test("stale payload bytes retain attempted artifact work", async () => {
+  for (const label of ["manifest", "host.bin"]) {
+    await assert.rejects(acquireExactReleaseBytes({
+      url: "https://mirror.example/releases/" + label, maximumBytes: 1,
+      fetcher: async () => new Response("too large"), label,
+    }), (error) => error.code === "StaleArtifact"
+      && error.evidence.operation === "obtain"
+      && error.evidence.artifact_work_started === (label !== "manifest")
+      && error.evidence.authority_requested === false
+      && error.evidence.external_work_started === false);
+  }
+});
+
 test("selected target alone is fetched, verified, and reused from immutable cache", async () => {
   const payload = encoder.encode("reviewed-host-bundle");
   const payloadDigest = await sha256(payload);
