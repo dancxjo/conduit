@@ -1149,3 +1149,21 @@ including empty queue on forged edit, native Tab/selection, blocked native edit,
 restored native insertion, typed values, initial Unicode and selection restoration.
 These prove renderer DOM-edit admission, not authoritative Body/Play or packaged/
 release acceptance; #5644 remains open. Preserved branch work remains intact.
+
+Native child routing follow-up (#5644): native controls and associated labels
+form interaction boundaries even when the child's semantic binding uses a
+different event kind. Checkbox click/change and text-field focus no longer
+borrow an ancestor click action. Disabled or unbound native child controls
+produce unavailable-action without queueing the ancestor. Native links and
+summary controls retain their browser behavior; ordinary decoration still routes
+to its nearest matching declared binding.
+
+Five initial regressions reproduced before repair. A label-text fixture was
+refined to click a decorative child inside the label, which reproduced the
+additional label-forwarding route after the first guard; the associated-control
+guard fixes it. All sixteen focused pinned Chromium fixtures pass with one
+worker and zero retries, including native checkbox pointer/Space/label activation,
+focus-only text interaction, later native text editing, exact missing-binding
+refusal, decorative parent clicks, nested same-event bindings, graph routing and
+closed disclosures. These are renderer correspondence/queue proofs, not
+authoritative Body/Play or packaged/release acceptance; #5644 remains open.

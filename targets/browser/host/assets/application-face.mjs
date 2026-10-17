@@ -664,9 +664,20 @@ export function manifestApplicationView(input, root, options = {}) {
       // Populated graph canvases return exact subject identities through their
       // selection callback; a second generic listener would add an empty action.
       if (node.component !== 11 || !node.value) element.addEventListener(action.event, (browserEvent) => {
-        // A child binding owns its event; bubbling must not invent a second
-        // semantic action on an ancestor. Decorative descendants still route here.
-        if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;
+        // Native controls own their interaction even when their semantic binding
+        // uses a different event kind. Focus or a missing child binding must not
+        // borrow an ancestor's action. Decorative descendants still route here.
+        const owner = browserEvent.composedPath().find(candidate => actionEvents.get(candidate) === browserEvent.type
+          || (candidate instanceof Element && candidate.matches("button, input, select, textarea, a[href], summary"))
+          || (candidate instanceof HTMLLabelElement && candidate.control));
+        if (owner !== element) {
+          const control = owner instanceof HTMLLabelElement ? owner.control : owner;
+          if (control && !actionEvents.has(control) && !owner.matches("a[href], summary")) {
+            lastRefusal = "unavailable-action";
+            options.onRefusal?.(lastRefusal);
+          }
+          return;
+        }
         requestAction(node, eventValue(browserEvent), element);
       });
     }

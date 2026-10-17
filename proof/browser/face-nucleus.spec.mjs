@@ -1039,3 +1039,49 @@ for (const component of ['text-input', 'textarea']) {
     expect(await page.evaluate(() => globalThis.readonlyCalls)).toEqual(['original!']);
   });
 }
+
+for (const mode of ['checkbox-pointer', 'checkbox-keyboard', 'checkbox-label', 'field-focus', 'disabled-child', 'unbound-child']) {
+  test(`native child controls cannot borrow ancestor click actions (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const nodes = [{ parent: null, component: 'panel', key: 'panel', text: 'Parent', action: 0 },
+        { parent: 0, component: 'paragraph', key: 'decoration', text: 'Panel decoration', action: null }];
+      if (mode.startsWith('checkbox')) nodes.push(
+        { parent: 0, component: 'choice-group', key: 'group', text: 'choices', action: null },
+        { parent: 2, component: 'choice-group-label', key: 'legend', text: 'Choices', action: null },
+        { parent: 2, component: 'choice-option-label', key: 'label', text: 'Child choice', action: null },
+        { parent: 4, component: 'independent-choice', key: 'choice', text: 'choice', value: 'false', valueCapacity: 5, action: 1 });
+      else if (mode === 'field-focus') nodes.push(
+        { parent: 0, component: 'text-input', key: 'field', text: 'Child field', valueCapacity: 32, action: 1 });
+      else if (mode === 'disabled-child') nodes.push(
+        { parent: 0, component: 'button', key: 'disabled', text: 'Unavailable child', action: null });
+      if (mode === 'checkbox-label') nodes.push({ parent: 4, component: 'code', key: 'label-detail', text: 'Choice detail', action: null });
+      globalThis.childBoundaryCalls = [];
+      globalThis.childBoundaryManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'parent', event: 'activate' }, { id: 'child', event: mode.startsWith('checkbox') ? 'change' : 'input' }], nodes }), root,
+        { onEvent: event => globalThis.childBoundaryCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
+      if (mode === 'unbound-child') {
+        const button = document.createElement('button'); button.textContent = 'Unbound child'; root.firstChild.append(button);
+      }
+    }, mode);
+    if (mode === 'checkbox-label') await page.getByText('Choice detail', { exact: true }).click();
+    else if (mode === 'checkbox-pointer') await page.getByRole('checkbox', { name: 'Child choice', exact: true }).click();
+    else if (mode === 'checkbox-keyboard') {
+      await page.getByRole('checkbox', { name: 'Child choice', exact: true }).focus(); await page.keyboard.press('Space');
+    } else if (mode === 'field-focus') await page.getByRole('textbox', { name: 'Child field', exact: true }).click();
+    else await page.getByRole('button', { name: mode === 'disabled-child' ? 'Unavailable child' : 'Unbound child', exact: true })
+      .evaluate(element => element.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(await page.evaluate(() => ({ calls: globalThis.childBoundaryCalls, queued: globalThis.childBoundaryManifest.queuedEvents() })))
+      .toEqual({ calls: mode.startsWith('checkbox') ? [{ action: 'child', value: 'true' }] : [], queued: mode.startsWith('checkbox') ? 1 : 0 });
+    if (mode === 'field-focus') {
+      await page.keyboard.insertText('é');
+      expect(await page.evaluate(() => globalThis.childBoundaryCalls)).toEqual([{ action: 'child', value: 'é' }]);
+    } else if (!mode.startsWith('checkbox')) {
+      expect(await page.evaluate(() => globalThis.childBoundaryManifest.lastRefusal())).toBe('unavailable-action');
+      await page.getByText('Panel decoration', { exact: true }).click();
+      expect(await page.evaluate(() => globalThis.childBoundaryCalls)).toEqual([{ action: 'parent', value: '' }]);
+    }
+  });
+}
