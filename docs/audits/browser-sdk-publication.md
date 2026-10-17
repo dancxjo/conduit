@@ -56,3 +56,11 @@ the browser SDK requires. All four incompatible variants were accepted before
 repair despite correctly hashed payloads. The focused fixture now refuses each
 without output or staging residue and retains the valid-package checks. These
 metadata fixtures do not establish executable ABI or packaged browser proof.
+
+Non-runtime bound follow-up: the SDK consumer caps each non-runtime payload at
+256 KiB, while the producer previously admitted up to 48 MiB per asset. A
+correctly hashed 256-KiB-plus-one module reproduced publication before repair.
+The focused fixture now accepts exactly 256 KiB with independent hash verification
+and refuses one byte over without output or staging residue. The existing
+20 MiB runtime and 48 MiB total bounds remain intact. The padded module is an
+envelope fixture, not executable module or packaged browser proof.

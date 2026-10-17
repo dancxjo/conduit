@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
+const MAXIMUM_MODULE_BYTES = 256 * 1024;
 const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
 const RUNTIME_HEADER = [0, 97, 115, 109, 1, 0, 0, 0];
 const encoder = new TextEncoder();
@@ -87,6 +88,9 @@ try {
     }
     if (file.path === "runtime.wasm" && file.bytes > MAXIMUM_RUNTIME_BYTES) {
       throw new Error("BrowserBundle runtime exceeds the browser consumer 20 MiB ceiling");
+    }
+    if (file.path !== "runtime.wasm" && file.bytes > MAXIMUM_MODULE_BYTES) {
+      throw new Error(`BrowserBundle asset ${file.path} exceeds the browser consumer 256 KiB ceiling`);
     }
     const source = path.resolve(bundleRoot, file.path);
     if (!source.startsWith(`${bundleRoot}${path.sep}`)) throw new Error("BrowserBundle path escaped its source directory");

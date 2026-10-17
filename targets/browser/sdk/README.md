@@ -290,6 +290,7 @@ the image and every content digest, then writes the verified bytes into a privat
 sibling staging directory. The new output directory appears only after the whole
 package is ready. A failed attempt removes its staging files and can be retried
 at the same output path; an existing package is never replaced.
+Non-runtime assets must fit the SDK consumer’s 256 KiB per-asset ceiling.
 The runtime must be present, fit the browser consumer's 20 MiB ceiling, and have
 the supported Wasm version header. Duplicate release paths are refused. Distribution and IMAGE inventories must agree
 exactly, their distribution digest is recomputed, and each IMAGE asset must match

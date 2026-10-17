@@ -191,6 +191,39 @@ try {
   }
   assert.deepEqual(runtimeResults, runtimeCases.map(entry => ({ name: entry.name, accepted: entry.accepted === true })));
 
+  const moduleResults = [];
+  for (const size of [256 * 1024, 256 * 1024 + 1]) {
+    const variantSource = path.join(scratch, `module-${size}`);
+    const variantOutput = path.join(scratch, `module-${size}-package`);
+    await mkdir(variantSource);
+    const bytes = new Uint8Array(size).fill(32);
+    const variantBoot = await fileIdentity("browser-boot-profile.mjs", bytes);
+    const inventory = [runtimeFile, variantBoot];
+    const inventoryDigest = await digestFiles(inventory);
+    const variantImage = { ...image, files: inventory,
+      reviewed_distribution: { ...image.reviewed_distribution, distribution_digest: inventoryDigest } };
+    const imageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
+    const releaseFiles = [...inventory, await fileIdentity("conduit-browser-image.json", imageBytes)];
+    await writeFile(path.join(variantSource, "browser-page.json"), JSON.stringify({ ...distribution,
+      files: inventory, bundle_sha256: inventoryDigest }));
+    await writeFile(path.join(variantSource, "browser-bundle-release.json"), JSON.stringify({ ...release,
+      distribution_sha256: inventoryDigest, files: releaseFiles, bundle_sha256: await digestFiles(releaseFiles) }));
+    await writeFile(path.join(variantSource, "conduit-browser-image.json"), imageBytes);
+    await writeFile(path.join(variantSource, "runtime.wasm"), runtime);
+    await writeFile(path.join(variantSource, "browser-boot-profile.mjs"), bytes);
+    const before = (await readdir(scratch)).sort();
+    const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
+    moduleResults.push({ size, accepted: result.status === 0 });
+    if (result.status !== 0) {
+      assert.match(result.stderr, /256 KiB/);
+      await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
+      assert.deepEqual((await readdir(scratch)).sort(), before);
+    } else {
+      assert.equal(await sha256(await readFile(path.join(variantOutput, "bundle/browser-boot-profile.mjs"))), variantBoot.sha256);
+    }
+  }
+  assert.deepEqual(moduleResults, [{ size: 256 * 1024, accepted: true }, { size: 256 * 1024 + 1, accepted: false }]);
+
   const metadataCases = ["distribution-schema", "image-abi", "release-package", "release-output"];
   const metadataResults = [];
   for (const name of metadataCases) {
