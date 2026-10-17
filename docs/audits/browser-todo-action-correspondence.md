@@ -1320,3 +1320,18 @@ preceding-field accounting and existing memory/custody cases. The bridge suite
 is registered in browser checks; Rust registration formatting passes. These
 are mocked-native-ABI admission proofs, not Rust syntax semantics, actual
 Body/Play or packaged/release acceptance; #5453 remains open.
+
+Native input retirement span (#5653 boundary support): withInput captures its
+admitted byte length once and uses it for bounds, staging, invocation and finally
+cleanup. Caller-buffer growth/transfer or WebAssembly memory growth during the
+native call can no longer shorten cleanup to zero or extend it into adjacent
+bytes. Native failure still follows the same retirement path.
+
+All six regressions reproduced before repair. All 72 focused runtime-bridge/SDK
+Plot tests pass, including actual WebAssembly.Memory growth with a borrowed input
+view, resizable caller-buffer growth, transfer and throwing native fixtures.
+Each fixture verifies exact staged bytes and length, retirement of the original
+span and preservation of its adjacent sentinel. These are mocked-entry ABI
+lifecycle proofs using real memory/view behavior, not Rust compiler/kernel Play
+or packaged/release acceptance; #5653 remains open. Protected and uncertain work
+remains preserved.

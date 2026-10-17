@@ -367,3 +367,30 @@ for (const [name, invoke] of sourceOperations) {
     assert.equal(fixture.calls(), 0);
   });
 }
+
+for (const mutation of ['wasm-grow', 'source-grow', 'source-transfer']) for (const fail of [false, true]) {
+  test(`input retirement keeps its admitted span (${mutation}, failure=${fail})`, () => {
+    const api = runtime();
+    const buffer = mutation === 'wasm-grow' ? api.memory.buffer : new ArrayBuffer(4, { maxByteLength: 16 });
+    const input = mutation === 'wasm-grow' ? new Uint8Array(buffer, 128, 4) : new Uint8Array(buffer);
+    input.set([1, 2, 3, 4]);
+    new Uint8Array(api.memory.buffer)[4] = 99;
+    let calls = 0;
+    api.conduit_creche_restore_durable = length => {
+      calls++;
+      assert.equal(length, 4);
+      assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, length)], [1, 2, 3, 4]);
+      if (mutation === 'wasm-grow') api.memory.grow(1);
+      else if (mutation === 'source-grow') buffer.resize(16);
+      else structuredClone(input, { transfer: [input.buffer] });
+      if (fail) throw new Error('native failure');
+      return 1;
+    };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'input retirement proof' });
+    if (fail) assert.throws(() => bridge.crecheRestoreDurable(input), /native failure/);
+    else assert.equal(bridge.crecheRestoreDurable(input).status, 1);
+    assert.equal(calls, 1);
+    assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 4)], [0, 0, 0, 0]);
+    assert.equal(new Uint8Array(api.memory.buffer)[4], 99, 'adjacent bytes are outside the admitted input');
+  });
+}

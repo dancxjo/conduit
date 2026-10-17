@@ -83,17 +83,18 @@ function readBytes(api, { pointerExport, lengthExport, capacityExport = null, mi
 
 function withInput(api, bytes, { pointerExport, capacityExport, minimum = 0, label }, invoke, { retireInput = false } = {}) {
   if (!(bytes instanceof Uint8Array)) throw new TypeError(`${label} must be encoded bytes`);
+  const length = bytes.length;
   const capacity = readCapacity(api, capacityExport, label);
-  boundedLength(bytes.length, { minimum, maximum: capacity, label });
+  boundedLength(length, { minimum, maximum: capacity, label });
   const pointer = readPointer(api, pointerExport, label);
-  const start = boundedPointer(api.memory.buffer, pointer, bytes.length, label);
-  new Uint8Array(api.memory.buffer, start, bytes.length).set(bytes);
+  const start = boundedPointer(api.memory.buffer, pointer, length, label);
+  new Uint8Array(api.memory.buffer, start, length).set(bytes);
   try {
-    return invoke(bytes.length);
+    return invoke(length);
   } finally {
     if (retireInput) {
-      const activeStart = boundedPointer(api.memory.buffer, pointer, bytes.length, label);
-      new Uint8Array(api.memory.buffer, activeStart, bytes.length).fill(0);
+      const activeStart = boundedPointer(api.memory.buffer, pointer, length, label);
+      new Uint8Array(api.memory.buffer, activeStart, length).fill(0);
     }
   }
 }
