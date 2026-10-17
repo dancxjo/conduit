@@ -555,3 +555,14 @@ Three new cases check normalized native option labels, unique accessible names,
 and native keyboard submission of exact space, newline and repeated-space values.
 These establish renderer callback fidelity, not authoritative Body receipts,
 arbitrary Unicode display certification or public deployment. #5644 remains open.
+
+Unchecked exclusive-choice follow-up (#5644): a native radio change must
+identify a checked input before it may return its action. An adversarial change
+on a current, visible, enabled but unchecked option previously dispatched that
+option's action; the regression reproduces that callback before the repair.
+The event now leaves the acknowledged selection and callback list unchanged.
+Native focus plus Space on that same option still dispatches its exact action
+once, with selection remaining the acknowledged Face's fact until a fresh Show.
+All 95 pinned Chromium component tests pass, one worker and zero retries.
+This is renderer proof, not a hostile-script confinement boundary or evidence
+of unmodified authoritative Body state. #5644 remains open.
