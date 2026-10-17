@@ -1,0 +1,50 @@
+{
+  "source": "162f2576bab33a2bfd599f3c1e63fcc4d4d65b50",
+  "checks": [
+    {
+      "mutation": "payload",
+      "refused": true,
+      "expected_reason": "stream output payload differs"
+    },
+    {
+      "mutation": "sequence",
+      "refused": true,
+      "expected_reason": "stream output order/size differs"
+    },
+    {
+      "mutation": "pressure-count",
+      "refused": true,
+      "expected_reason": "ingress attempt accounting differs"
+    },
+    {
+      "mutation": "pressure-witness",
+      "refused": true,
+      "expected_reason": "stream pressure not witnessed"
+    },
+    {
+      "mutation": "boot",
+      "refused": true,
+      "expected_reason": "stream Host/Boot custody"
+    },
+    {
+      "mutation": "terminal",
+      "refused": true,
+      "expected_reason": "stream terminal differs"
+    },
+    {
+      "mutation": "latency",
+      "refused": true,
+      "expected_reason": "stream latency percentile differs"
+    },
+    {
+      "mutation": "matrix",
+      "refused": true,
+      "expected_reason": "stream matrix incomplete or repeated"
+    }
+  ],
+  "capture_status_sha256": "c83dcd7c5b22778b5343ced63003721b39a20be6b10c9b6212907d4460294f6e",
+  "verifier_sha256": "179149753a5772afa41118bde2bb371290fa7d843b446181da2b0669c3befca4",
+  "stream_verifier_sha256": "784d4fdf20af9fbfeb3b174add6bd0c6ca663edc3d2c4bb609e43188482577eb",
+  "proof_sha256": "7e02c25dd19582874360d4de6b3e07003716cf546f9dd298a61cc697b839ed8e",
+  "scope": "Independent verifier against rehashed copied artifacts; original capture remains unchanged."
+}

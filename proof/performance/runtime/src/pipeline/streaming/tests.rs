@@ -97,6 +97,7 @@ fn malformed_overflow_cancel_and_unplanned_fore_never_become_successful_outputs(
         } else {
             assert!(result.is_err());
         }
+        assert!(collector.is_empty());
         assert!(collector.report().is_err());
     }
     Ok(())
@@ -125,6 +126,83 @@ fn oversized_text_keeps_the_existing_checked_256_byte_refusal() -> Result<(), Bo
         )
     });
     assert!(result.unwrap_err().contains("sealed value contract"));
+    assert!(collector.is_empty());
     assert!(collector.report().is_err());
+    Ok(())
+}
+
+#[test]
+fn stop_under_real_fanout_pressure_keeps_exact_delivered_prefix_and_cancel_receipt(
+) -> Result<(), Box<dyn Error>> {
+    struct StopAfter {
+        outputs: Vec<ExternalForeDelivery>,
+        control: RunControl,
+    }
+    impl ExternalForeOutputAdapter for StopAfter {
+        fn deliver(&mut self, value: ExternalForeDelivery) -> Result<(), String> {
+            self.outputs.push(value);
+            if self.outputs.len() == 17 {
+                self.control
+                    .request_stop(conduit_std_host::RunControlRequestId::new("pressure-stop")?)
+                    .map_err(|_| "stop rejected")?;
+            }
+            Ok(())
+        }
+    }
+    let case = cases()
+        .into_iter()
+        .find(|c| c.branches == 4 && c.batch == 8 && c.slow_sink_us == 0)
+        .unwrap();
+    let mut prepared = prepare_case(case, "boot/stream-pressure-stop", 128)?;
+    let control = RunControl::default();
+    let mut collector = StopAfter {
+        outputs: Vec::with_capacity(512),
+        control: control.clone(),
+    };
+    let report = prepared.host.run_external_plot_stream_controlled_to(
+        prepared.plan.fragments[0].clone(),
+        &prepared.inputs,
+        &mut collector,
+        &mut std::io::sink(),
+        &mut NoTimer,
+        &control,
+        ExternalForeStreamConfig { admission_batch: 8 },
+    )?;
+    assert!(collector.outputs.len() >= 17 && collector.outputs.len() < 512);
+    let mut counts = [0; 4];
+    for output in &collector.outputs {
+        let branch = (0..4)
+            .find(|b| output.front_port_id.as_str() == format!("output{b}"))
+            .unwrap();
+        assert_eq!(output.sequence, counts[branch] as u64);
+        assert_eq!(output.bytes, case.expected(counts[branch]));
+        counts[branch] += 1;
+    }
+    assert!(matches!(
+        report.observations.last().map(|o| &o.kind),
+        Some(conduit_core::ObservationKind::PlanTerminal {
+            disposition: conduit_core::TerminalDisposition::Cancelled { .. }
+        })
+    ));
+    assert_eq!(report.control_receipts.len(), 1);
+    assert_eq!(
+        report.control_receipts[0].disposition,
+        conduit_std_host::RunControlDisposition::Accepted
+    );
+    let kernel = report.kernel.unwrap();
+    assert_eq!(
+        report.control_receipts[0].active_play_id,
+        kernel.active_play_id
+    );
+    let stats = kernel.external_fore_stream.unwrap();
+    assert!(stats.full > 0 && stats.accepted < 128);
+    assert_eq!(
+        kernel
+            .kernel_sign
+            .iter()
+            .filter(|e| e.kind == conduit_kernel::KernelEventKind::RemoteValueDelivered)
+            .count(),
+        collector.outputs.len()
+    );
     Ok(())
 }

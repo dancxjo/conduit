@@ -23,6 +23,10 @@ impl StreamCollector {
             last_allocations: None,
         }
     }
+    #[cfg(test)]
+    pub(super) fn is_empty(&self) -> bool {
+        self.samples.is_empty()
+    }
     pub(super) fn begin(&mut self) {
         self.start = Some(Instant::now());
     }
