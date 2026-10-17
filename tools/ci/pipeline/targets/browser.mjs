@@ -70,7 +70,8 @@ export function browser(directory) {
     '--config', 'proof/browser/playwright.config.mjs', '--project', 'chromium',
     '--workers', '1', '--retries', '0', ...SPECS.map(name => `${name}.spec.mjs`)], {
     env: { ...process.env, RUSTUP_TOOLCHAIN: process.env.RUSTUP_TOOLCHAIN || 'stable',
-      CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product },
+      CONDUIT_CRECHE_RENDEZVOUS_PRODUCT: product,
+      CONDUIT_BROWSER_RUNTIME_WASM: path.resolve(releases, 'runtime.wasm') },
   });
   retainExactQuantityEvidence('proof/browser/test-results', path.join(directory, 'exact-quantity'),
     path.join(releases, 'runtime.wasm'), process.env.CONDUIT_CHECKOUT_SHA);
