@@ -102,10 +102,7 @@ where
             return Ok(None);
         }
         self.ensure_sign_capacity(count)?;
-        let value = self.values.store(&[])?;
-        for _ in 1..count {
-            self.values.retain(value)?;
-        }
+        let value = store_fanout_value(&mut self.values, &[], count)?;
         for cord in 0..self.active_cords {
             #[cfg(test)]
             {

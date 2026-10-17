@@ -23,6 +23,8 @@ mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod execution_region;
+mod fanout_value;
+use fanout_value::store_fanout_value;
 mod host_call_index;
 mod host_call_settlement;
 mod queue_index;
@@ -3323,10 +3325,7 @@ where
         let normal_close = if normal_close_targets == 0 {
             None
         } else {
-            let value = self.values.store(&[])?;
-            for _ in 1..normal_close_targets {
-                self.values.retain(value)?;
-            }
+            let value = store_fanout_value(&mut self.values, &[], normal_close_targets)?;
             Some(value)
         };
         for port in 0..PORTS {
@@ -3423,10 +3422,7 @@ where
         self.ensure_sign_capacity(abnormal_targets)?;
         self.ensure_remote_sign_capacity(remote_closures)?;
         let bytes = terminal.as_slice();
-        let value = self.values.store(bytes)?;
-        for _ in 1..abnormal_targets {
-            self.values.retain(value)?;
-        }
+        let value = store_fanout_value(&mut self.values, bytes, abnormal_targets)?;
         let targets = self
             .routes
             .route(NodeId(as_u16(node)?), output)

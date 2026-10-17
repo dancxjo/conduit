@@ -79,15 +79,7 @@ where
         }
         self.ensure_sign_capacity(targets.len())?;
         self.ensure_remote_sign_capacity(targets.len())?;
-        let value = self.values.store(bytes)?;
-        for references in 1..targets.len() {
-            if let Err(error) = self.values.retain(value) {
-                for _ in 0..references {
-                    self.values.release(value)?;
-                }
-                return Err(error.into());
-            }
-        }
+        let value = store_fanout_value(&mut self.values, bytes, targets.len())?;
         for (endpoint, cord) in targets.iter().copied() {
             let cord_index = usize::from(cord.0);
             let spec = self.cord_specs[cord_index];

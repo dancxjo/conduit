@@ -13,6 +13,7 @@ use crate::{
     ValueStorage,
 };
 
+mod fanout_storage;
 mod host_alias;
 mod host_cancellation;
 mod host_cancellation_polling;
