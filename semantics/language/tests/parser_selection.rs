@@ -162,6 +162,43 @@ fn actual_text_enters_checked_model_action_selection_without_reference_edges() {
         std::fs::write(path, serde_json::to_vec_pretty(&report).unwrap()).unwrap();
     }
     eprintln!("{}", serde_json::to_string_pretty(&report).unwrap());
+    // These assertions observe model-selected outputs; they never feed edges
+    // into decoding. Keep the actual ambiguity and held-out errors visible.
+    assert!(report["revisions"]
+        .as_array()
+        .unwrap()
+        .iter()
+        .all(|r| r["complete"] == true));
+    for index in [2, 3] {
+        let observation = &report["revisions"][index]["observation"];
+        assert!(observation["actual_best_arcs"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|arc| arc["dependent"] == 2 && arc["head"] == 0 && arc["relation"] == "vocative"));
+        assert!(observation["discourse"]
+            .as_array()
+            .unwrap()
+            .iter()
+            .any(|fact| fact["role"] == "Addressee"));
+        assert_eq!(observation["stable"], 1);
+    }
+    assert_eq!(
+        report["revisions"][0]["observation"]["discourse_abstained"],
+        true
+    );
+    assert_eq!(
+        report["revisions"][1]["observation"]["discourse_abstained"],
+        true
+    );
+    assert_eq!(report["revisions"][2]["observation"]["committed"], 0);
+    assert_eq!(report["revisions"][3]["observation"]["committed"], 1);
+    assert_eq!(report["heldout"]["tokens"], 13);
+    assert_eq!(report["heldout"]["uas"]["correct"], 10);
+    assert_eq!(report["heldout"]["las"]["correct"], 10);
+    assert_eq!(report["heldout"]["vocative"]["true_positive"], 1);
+    assert_eq!(report["heldout"]["vocative"]["false_positive"], 1);
+    assert_eq!(report["heldout"]["vocative"]["false_negative"], 0);
     assert_eq!(
         decoder.model.invocations() as usize,
         decoder.model.receipts().len()

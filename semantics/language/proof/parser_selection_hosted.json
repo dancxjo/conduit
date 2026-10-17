@@ -1,0 +1,679 @@
+{
+  "accepted_gold_state_action_ranking": {
+    "dev": {
+      "accuracy": 0.8461538461538461,
+      "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy",
+      "correct": 11,
+      "total": 13
+    },
+    "test": {
+      "accuracy": 0.875,
+      "condition": "gold parser state/POS; available prefix ends at next; future candidate membership withheld; not blind attachment accuracy",
+      "correct": 14,
+      "total": 16
+    }
+  },
+  "committed_model_receipts": 172,
+  "fallback": {
+    "complete": true,
+    "heads": [
+      3,
+      3,
+      3,
+      4,
+      4
+    ],
+    "mode": "deterministic class order",
+    "model_invocations": 0,
+    "score": 0
+  },
+  "heldout": {
+    "elapsed_ns": 772466770311,
+    "las": {
+      "accuracy": 0.7692307692307693,
+      "correct": 10,
+      "total": 13
+    },
+    "model_invocations": 92,
+    "rows": [
+      {
+        "active": true,
+        "analysis_revision": "analysis/heldout/0",
+        "complete": true,
+        "decode_elapsed_ns": 208407025496,
+        "elapsed_ns": 209158251067,
+        "error": null,
+        "id": "email-enronsent27_02-0013",
+        "invocation_first": 81,
+        "invocation_last": 102,
+        "las_correct": 3,
+        "model_invocations": 22,
+        "predictions": [
+          {
+            "form": "Good",
+            "gold_head": 1,
+            "gold_relation": "amod",
+            "head": 1,
+            "las_correct": true,
+            "relation": "amod",
+            "token": 0,
+            "uas_correct": true
+          },
+          {
+            "form": "luck",
+            "gold_head": 4,
+            "gold_relation": "root",
+            "head": 4,
+            "las_correct": true,
+            "relation": "root",
+            "token": 1,
+            "uas_correct": true
+          },
+          {
+            "form": ",",
+            "gold_head": 1,
+            "gold_relation": "punct",
+            "head": 1,
+            "las_correct": true,
+            "relation": "punct",
+            "token": 2,
+            "uas_correct": true
+          }
+        ],
+        "source": "Good luck ,",
+        "source_revision": "source/heldout/0",
+        "steps": 6,
+        "text_identity": "heldout/0",
+        "tokens": 3,
+        "uas_correct": 3
+      },
+      {
+        "active": true,
+        "analysis_revision": "analysis/heldout/1",
+        "complete": true,
+        "decode_elapsed_ns": 196765758975,
+        "elapsed_ns": 197434623417,
+        "error": null,
+        "id": "email-enronsent04_02-0007",
+        "invocation_first": 103,
+        "invocation_last": 124,
+        "las_correct": 1,
+        "model_invocations": 22,
+        "predictions": [
+          {
+            "form": "Hi",
+            "gold_head": 1,
+            "gold_relation": "discourse",
+            "head": 4,
+            "las_correct": false,
+            "relation": "root",
+            "token": 0,
+            "uas_correct": false
+          },
+          {
+            "form": "David",
+            "gold_head": 4,
+            "gold_relation": "root",
+            "head": 0,
+            "las_correct": false,
+            "relation": "vocative",
+            "token": 1,
+            "uas_correct": false
+          },
+          {
+            "form": ":",
+            "gold_head": 1,
+            "gold_relation": "punct",
+            "head": 1,
+            "las_correct": true,
+            "relation": "punct",
+            "token": 2,
+            "uas_correct": true
+          }
+        ],
+        "source": "Hi David :",
+        "source_revision": "source/heldout/1",
+        "steps": 6,
+        "text_identity": "heldout/1",
+        "tokens": 3,
+        "uas_correct": 1
+      },
+      {
+        "active": true,
+        "analysis_revision": "analysis/heldout/2",
+        "complete": true,
+        "decode_elapsed_ns": 73407713053,
+        "elapsed_ns": 73954086916,
+        "error": null,
+        "id": "email-enronsent36_01-0001",
+        "invocation_first": 125,
+        "invocation_last": 135,
+        "las_correct": 2,
+        "model_invocations": 11,
+        "predictions": [
+          {
+            "form": "Sara",
+            "gold_head": 4,
+            "gold_relation": "root",
+            "head": 4,
+            "las_correct": true,
+            "relation": "root",
+            "token": 0,
+            "uas_correct": true
+          },
+          {
+            "form": ",",
+            "gold_head": 0,
+            "gold_relation": "punct",
+            "head": 0,
+            "las_correct": true,
+            "relation": "punct",
+            "token": 1,
+            "uas_correct": true
+          }
+        ],
+        "source": "Sara ,",
+        "source_revision": "source/heldout/2",
+        "steps": 4,
+        "text_identity": "heldout/2",
+        "tokens": 2,
+        "uas_correct": 2
+      },
+      {
+        "active": true,
+        "analysis_revision": "analysis/heldout/3",
+        "complete": true,
+        "decode_elapsed_ns": 103616749508,
+        "elapsed_ns": 104139176105,
+        "error": null,
+        "id": "email-enronsent36_01-0007",
+        "invocation_first": 136,
+        "invocation_last": 150,
+        "las_correct": 2,
+        "model_invocations": 15,
+        "predictions": [
+          {
+            "form": "Thanks",
+            "gold_head": 4,
+            "gold_relation": "root",
+            "head": 4,
+            "las_correct": true,
+            "relation": "root",
+            "token": 0,
+            "uas_correct": true
+          },
+          {
+            "form": "-",
+            "gold_head": 0,
+            "gold_relation": "punct",
+            "head": 0,
+            "las_correct": true,
+            "relation": "punct",
+            "token": 1,
+            "uas_correct": true
+          }
+        ],
+        "source": "Thanks -",
+        "source_revision": "source/heldout/3",
+        "steps": 4,
+        "text_identity": "heldout/3",
+        "tokens": 2,
+        "uas_correct": 2
+      },
+      {
+        "active": true,
+        "analysis_revision": "analysis/heldout/4",
+        "complete": true,
+        "decode_elapsed_ns": 187156570087,
+        "elapsed_ns": 187780632806,
+        "error": null,
+        "id": "email-enronsent36_01-0031",
+        "invocation_first": 151,
+        "invocation_last": 172,
+        "las_correct": 2,
+        "model_invocations": 22,
+        "predictions": [
+          {
+            "form": "Hi",
+            "gold_head": 4,
+            "gold_relation": "root",
+            "head": 4,
+            "las_correct": true,
+            "relation": "root",
+            "token": 0,
+            "uas_correct": true
+          },
+          {
+            "form": "Sara",
+            "gold_head": 0,
+            "gold_relation": "vocative",
+            "head": 0,
+            "las_correct": true,
+            "relation": "vocative",
+            "token": 1,
+            "uas_correct": true
+          },
+          {
+            "form": ",",
+            "gold_head": 0,
+            "gold_relation": "punct",
+            "head": 1,
+            "las_correct": false,
+            "relation": "punct",
+            "token": 2,
+            "uas_correct": false
+          }
+        ],
+        "source": "Hi Sara ,",
+        "source_revision": "source/heldout/4",
+        "steps": 6,
+        "text_identity": "heldout/4",
+        "tokens": 3,
+        "uas_correct": 2
+      }
+    ],
+    "scope": "blind finite-profile held-out text; all retained rows counted; punctuation included; relation subtypes projected to base",
+    "sentences": 5,
+    "source_reconstruction": "retained forms joined with single spaces; original token typography unavailable in retained annotations",
+    "tokens": 13,
+    "uas": {
+      "accuracy": 0.7692307692307693,
+      "correct": 10,
+      "total": 13
+    },
+    "vocative": {
+      "false_negative": 0,
+      "false_positive": 1,
+      "precision": 0.5,
+      "recall": 1.0,
+      "true_positive": 1
+    }
+  },
+  "illegal_scored_fixture": {
+    "accepted": false,
+    "class": 2,
+    "mode": "adversarial numerical proposal fixture",
+    "refusal": "IllegalAction",
+    "score": 128525,
+    "state_preserved": true
+  },
+  "limitations": [
+    "four tokens; finite admitted dictionary",
+    "held-out source reconstructed from corpus forms",
+    "debug hosted Plan/Play timings include generic transport",
+    "no speech or prosody inference",
+    "explicit commit observation is not applied back into decoder beam"
+  ],
+  "model_artifact_sha256": "5f9730de725d98d9ccd2c617755265d0bce2afd63ec85d4a43c6c1f11fd7d66f",
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "model_invocations": 172,
+  "prepare_ns": 386721252625,
+  "process_memory": [
+    "VmHWM:\t 1093184 kB",
+    "VmRSS:\t 1058512 kB"
+  ],
+  "profile": "finite English checked action selection",
+  "refused_selected_expansions": 0,
+  "rejected_checked_proposals": 550,
+  "revisions": [
+    {
+      "analysis_revision": "analysis/greeting/0",
+      "available_tokens": 1,
+      "complete": true,
+      "decode_elapsed_ns": 32821294384,
+      "initial_heads": [
+        5,
+        5,
+        5,
+        5,
+        4
+      ],
+      "initial_unread": 0,
+      "invocation_first": 1,
+      "invocation_last": 6,
+      "model_invocations": 6,
+      "observation": {
+        "actual_best_arcs": [
+          {
+            "dependent": 0,
+            "head": 4,
+            "native_admitted": true,
+            "relation": "root",
+            "subtype": ""
+          }
+        ],
+        "agreements": [
+          {
+            "advance": {
+              "accepted": true,
+              "refusal": "None"
+            },
+            "agrees": true,
+            "dependent": 0,
+            "reference_head": 4,
+            "reference_relation": "root",
+            "survivors": 2
+          }
+        ],
+        "analysis_revision": "analysis/greeting/0",
+        "commit_observation": {
+          "accepted": false,
+          "refusal": null,
+          "requested": false
+        },
+        "committed": 0,
+        "decoder_beam_committed": 0,
+        "decoder_beam_mutated": false,
+        "discourse": [],
+        "discourse_abstained": true,
+        "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+        "source_revision": "source/greeting/0",
+        "stable": 1
+      },
+      "revision_elapsed_ns": 34224779393,
+      "source_finality": "partial",
+      "source_revision": "source/greeting/0",
+      "steps": 2,
+      "text": "Hello "
+    },
+    {
+      "analysis_revision": "analysis/greeting/1",
+      "available_tokens": 2,
+      "complete": true,
+      "decode_elapsed_ns": 108084378549,
+      "initial_heads": [
+        5,
+        5,
+        5,
+        5,
+        4
+      ],
+      "initial_unread": 0,
+      "invocation_first": 7,
+      "invocation_last": 20,
+      "model_invocations": 14,
+      "observation": {
+        "actual_best_arcs": [
+          {
+            "dependent": 0,
+            "head": 4,
+            "native_admitted": true,
+            "relation": "root",
+            "subtype": ""
+          },
+          {
+            "dependent": 1,
+            "head": 0,
+            "native_admitted": true,
+            "relation": "punct",
+            "subtype": ""
+          }
+        ],
+        "agreements": [
+          {
+            "advance": {
+              "accepted": true,
+              "refusal": "None"
+            },
+            "agrees": true,
+            "dependent": 0,
+            "reference_head": 4,
+            "reference_relation": "root",
+            "survivors": 3
+          },
+          {
+            "advance": {
+              "accepted": false,
+              "refusal": "NotAgreed"
+            },
+            "agrees": false,
+            "dependent": 1,
+            "reference_head": 0,
+            "reference_relation": "punct",
+            "survivors": 3
+          }
+        ],
+        "analysis_revision": "analysis/greeting/1",
+        "commit_observation": {
+          "accepted": false,
+          "refusal": null,
+          "requested": false
+        },
+        "committed": 0,
+        "decoder_beam_committed": 0,
+        "decoder_beam_mutated": false,
+        "discourse": [],
+        "discourse_abstained": true,
+        "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+        "source_revision": "source/greeting/1",
+        "stable": 1
+      },
+      "revision_elapsed_ns": 111406592351,
+      "source_finality": "partial",
+      "source_revision": "source/greeting/1",
+      "steps": 4,
+      "text": "Hello, "
+    },
+    {
+      "analysis_revision": "analysis/greeting/2",
+      "available_tokens": 3,
+      "complete": true,
+      "decode_elapsed_ns": 224160990248,
+      "initial_heads": [
+        5,
+        5,
+        5,
+        5,
+        4
+      ],
+      "initial_unread": 0,
+      "invocation_first": 21,
+      "invocation_last": 46,
+      "model_invocations": 26,
+      "observation": {
+        "actual_best_arcs": [
+          {
+            "dependent": 0,
+            "head": 4,
+            "native_admitted": true,
+            "relation": "root",
+            "subtype": ""
+          },
+          {
+            "dependent": 1,
+            "head": 0,
+            "native_admitted": true,
+            "relation": "punct",
+            "subtype": ""
+          },
+          {
+            "dependent": 2,
+            "head": 0,
+            "native_admitted": true,
+            "relation": "vocative",
+            "subtype": ""
+          }
+        ],
+        "agreements": [
+          {
+            "advance": {
+              "accepted": true,
+              "refusal": "None"
+            },
+            "agrees": true,
+            "dependent": 0,
+            "reference_head": 4,
+            "reference_relation": "root",
+            "survivors": 4
+          },
+          {
+            "advance": {
+              "accepted": false,
+              "refusal": "NotAgreed"
+            },
+            "agrees": false,
+            "dependent": 1,
+            "reference_head": 0,
+            "reference_relation": "punct",
+            "survivors": 4
+          },
+          {
+            "advance": null,
+            "agrees": false,
+            "dependent": 2,
+            "reference_head": 0,
+            "reference_relation": "vocative",
+            "survivors": 4
+          }
+        ],
+        "analysis_revision": "analysis/greeting/2",
+        "commit_observation": {
+          "accepted": false,
+          "refusal": null,
+          "requested": false
+        },
+        "committed": 0,
+        "decoder_beam_committed": 0,
+        "decoder_beam_mutated": false,
+        "discourse": [
+          {
+            "dependent": 2,
+            "head": 0,
+            "refusal": null,
+            "role": "Addressee"
+          }
+        ],
+        "discourse_abstained": false,
+        "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+        "source_revision": "source/greeting/2",
+        "stable": 1
+      },
+      "revision_elapsed_ns": 228263805860,
+      "source_finality": "partial",
+      "source_revision": "source/greeting/2",
+      "steps": 6,
+      "text": "Hello, Travis "
+    },
+    {
+      "analysis_revision": "analysis/greeting/3",
+      "available_tokens": 4,
+      "complete": true,
+      "decode_elapsed_ns": 359654897854,
+      "initial_heads": [
+        5,
+        5,
+        5,
+        5,
+        4
+      ],
+      "initial_unread": 0,
+      "invocation_first": 47,
+      "invocation_last": 80,
+      "model_invocations": 34,
+      "observation": {
+        "actual_best_arcs": [
+          {
+            "dependent": 0,
+            "head": 4,
+            "native_admitted": true,
+            "relation": "root",
+            "subtype": ""
+          },
+          {
+            "dependent": 1,
+            "head": 2,
+            "native_admitted": true,
+            "relation": "punct",
+            "subtype": ""
+          },
+          {
+            "dependent": 2,
+            "head": 0,
+            "native_admitted": true,
+            "relation": "vocative",
+            "subtype": ""
+          },
+          {
+            "dependent": 3,
+            "head": 0,
+            "native_admitted": true,
+            "relation": "punct",
+            "subtype": ""
+          }
+        ],
+        "agreements": [
+          {
+            "advance": {
+              "accepted": true,
+              "refusal": "None"
+            },
+            "agrees": true,
+            "dependent": 0,
+            "reference_head": 4,
+            "reference_relation": "root",
+            "survivors": 3
+          },
+          {
+            "advance": {
+              "accepted": false,
+              "refusal": "NotAgreed"
+            },
+            "agrees": false,
+            "dependent": 1,
+            "reference_head": 2,
+            "reference_relation": "punct",
+            "survivors": 3
+          },
+          {
+            "advance": null,
+            "agrees": true,
+            "dependent": 2,
+            "reference_head": 0,
+            "reference_relation": "vocative",
+            "survivors": 3
+          },
+          {
+            "advance": null,
+            "agrees": false,
+            "dependent": 3,
+            "reference_head": 0,
+            "reference_relation": "punct",
+            "survivors": 3
+          }
+        ],
+        "analysis_revision": "analysis/greeting/3",
+        "commit_observation": {
+          "accepted": true,
+          "candidate_committed": [
+            1,
+            1,
+            1,
+            0
+          ],
+          "refusal": "None",
+          "requested": true
+        },
+        "committed": 1,
+        "decoder_beam_committed": 0,
+        "decoder_beam_mutated": false,
+        "discourse": [
+          {
+            "dependent": 2,
+            "head": 0,
+            "refusal": null,
+            "role": "Addressee"
+          }
+        ],
+        "discourse_abstained": false,
+        "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+        "source_revision": "source/greeting/3",
+        "stable": 1
+      },
+      "revision_elapsed_ns": 365547365253,
+      "source_finality": "partial",
+      "source_revision": "source/greeting/3",
+      "steps": 8,
+      "text": "Hello, Travis."
+    }
+  ]
+}
