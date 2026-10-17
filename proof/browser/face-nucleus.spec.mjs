@@ -677,3 +677,282 @@ for (const mode of ['disabled', 'hidden', 'inert']) {
     expect(await page.evaluate(() => globalThis.rovingCalls)).toEqual(['Third', 'Second']);
   });
 }
+
+test('nested navigation owns its focus movement without ancestor capture', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    globalThis.nestedFocusCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: ['outer-first', 'inner-first', 'inner-last', 'outer-last'].map(id => ({ id, event: 'activate' })), nodes: [
+        { parent: null, component: 'navigation', key: 'outer', text: 'Outer', value: 'outer-first', valueCapacity: 32, action: null },
+        { parent: 0, component: 'button', key: 'outer-first', text: 'Outer first', action: 0 },
+        { parent: 0, component: 'navigation', key: 'inner', text: 'Inner', value: 'inner-first', valueCapacity: 32, action: null },
+        { parent: 2, component: 'button', key: 'inner-first', text: 'Inner first', action: 1 },
+        { parent: 2, component: 'button', key: 'inner-last', text: 'Inner last', action: 2 },
+        { parent: 0, component: 'button', key: 'outer-last', text: 'Outer last', action: 3 },
+      ] }), root, { onEvent: event => globalThis.nestedFocusCalls.push(event.action) });
+  });
+  await page.getByRole('button', { name: 'Inner first', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('button', { name: 'Inner last', exact: true })).toBeFocused();
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Outer first', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('button', { name: 'Outer last', exact: true })).toBeFocused();
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual(['inner-last']);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual(['inner-last', 'outer-last']);
+});
+
+test('stepper tab entry preserves declared index across an unavailable peer', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.prepend(root);
+    globalThis.indexFocusCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'first', event: 'activate' }, { id: 'third', event: 'activate' }], nodes: [
+        { parent: null, component: 'stepper', key: 'steps', text: 'Steps', value: '3/3', valueCapacity: 16, action: null },
+        { parent: 0, component: 'button', key: 'first', text: 'First step', action: 0 },
+        { parent: 0, component: 'button', key: 'second', text: 'Busy step', state: 'busy', action: null },
+        { parent: 0, component: 'button', key: 'third', text: 'Third step', action: 1 },
+      ] }), root, { onEvent: event => globalThis.indexFocusCalls.push(event.action) });
+  });
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Third step', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Third step', exact: true })).toHaveAttribute('aria-current', 'step');
+  expect(await page.evaluate(() => globalThis.indexFocusCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.indexFocusCalls)).toEqual(['third']);
+});
+
+for (const mode of ['removed-graph-subject', 'control-becomes-text']) {
+  test(`revision focus restoration finds an available control (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const graph = identity => ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', identity, identity, 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      const view = revision => ({ revision,
+        actions: [{ id: 'select', event: 'activate' }, { id: 'edit', event: 'input' }, { id: 'safe', event: 'activate' }],
+        nodes: [{ parent: null, component: 'shell', key: 'root', action: null },
+          mode === 'removed-graph-subject'
+            ? { parent: 0, component: 'patchbay-canvas', key: 'focus', text: 'Graph', value: graph(revision === 1 ? 'old' : 'current'), valueCapacity: 65_536, action: 0 }
+            : revision === 1
+              ? { parent: 0, component: 'text-input', key: 'focus', text: 'Old editor', value: 'source', valueCapacity: 32, action: 1 }
+              : { parent: 0, component: 'paragraph', key: 'focus', text: 'Completed editing', action: null },
+          { parent: 0, component: 'button', key: 'safe', text: 'Safe next action', action: 2 }],
+      });
+      globalThis.restoredFocusCalls = [];
+      const present = revision => manifestApplicationView(encodeApplicationView(view(revision)), root,
+        { onEvent: event => globalThis.restoredFocusCalls.push({ revision: event.revision, action: event.action,
+          value: new TextDecoder().decode(event.value) }) });
+      present(1);
+      globalThis.reviseFocusFixture = () => present(2);
+    }, mode);
+    if (mode === 'removed-graph-subject') await page.getByRole('button', { name: 'Gear old, kind', exact: true }).focus();
+    else await page.getByRole('textbox', { name: 'Old editor', exact: true }).focus();
+    await page.evaluate(() => globalThis.reviseFocusFixture());
+    const target = page.getByRole('button', { name: mode === 'removed-graph-subject' ? 'Gear current, kind' : 'Safe next action', exact: true });
+    await expect(target).toBeFocused();
+    expect(await page.evaluate(() => globalThis.restoredFocusCalls)).toEqual([]);
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.restoredFocusCalls)).toEqual([
+      { revision: 2, action: mode === 'removed-graph-subject' ? 'select' : 'safe', value: mode === 'removed-graph-subject' ? 'current' : '' },
+    ]);
+  });
+}
+
+for (const retained of [true, false]) {
+  test(`text selection restoration follows the retained control only (${retained})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async retained => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.selectionRestoreCalls = [];
+      const present = revision => manifestApplicationView(encodeApplicationView({ revision,
+        actions: [{ id: 'edit', event: 'input' }], nodes: [
+          { parent: null, component: 'text-input', key: revision === 1 || retained ? 'editor' : 'replacement',
+            text: 'Source editor', value: 'source text', valueCapacity: 32, action: 0 },
+        ] }), root, { onEvent: event => globalThis.selectionRestoreCalls.push(event.action) });
+      present(1);
+      globalThis.reviseSelection = () => present(2);
+    }, retained);
+    const input = page.getByRole('textbox', { name: 'Source editor', exact: true });
+    await input.focus();
+    await input.evaluate(element => element.setSelectionRange(2, 4, 'backward'));
+    await page.evaluate(() => globalThis.reviseSelection());
+    await expect(input).toBeFocused();
+    expect(await input.evaluate(element => ({ start: element.selectionStart, end: element.selectionEnd, direction: element.selectionDirection })))
+      .toEqual(retained ? { start: 2, end: 4, direction: 'backward' } : { start: 11, end: 11, direction: 'forward' });
+    expect(await page.evaluate(() => globalThis.selectionRestoreCalls)).toEqual([]);
+  });
+}
+
+for (const mode of ['direct', 'slot-host']) {
+  test(`focus-triggered presentation keeps the newest manifestation (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView, createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.dataset.applicationSlot = 'reentrant'; document.body.append(root);
+      const host = createApplicationFaceHost(document);
+      const view = revision => ({ revision, actions: [{ id: 'current.action', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'action', text: `Revision ${revision}`, action: 0 },
+      ] });
+      globalThis.reentrantCalls = [];
+      const options = { onEvent: event => globalThis.reentrantCalls.push(event.revision) };
+      const present = revision => mode === 'direct'
+        ? manifestApplicationView(encodeApplicationView(view(revision)), root, options)
+        : host.present('reentrant', view(revision), options);
+      present(1);
+      globalThis.beginReentrantPresentation = () => {
+        let nested = false;
+        root.addEventListener('focusin', () => {
+          if (nested) return;
+          nested = true;
+          globalThis.newestPresentation = present(3);
+        });
+        try { present(2); }
+        catch (error) { globalThis.reentrantRefusal = error.code; }
+        return { revision: root.dataset.applicationRevision, refusal: globalThis.reentrantRefusal,
+          calls: globalThis.reentrantCalls };
+      };
+      globalThis.readReentrantEvent = () => mode === 'direct'
+        ? globalThis.newestPresentation.nextEvent()?.revision : host.nextEvent('reentrant')?.revision;
+    }, mode);
+    await page.getByRole('button', { name: 'Revision 1', exact: true }).focus();
+    expect(await page.evaluate(() => globalThis.beginReentrantPresentation()))
+      .toEqual({ revision: '3', refusal: 'stale-revision', calls: [] });
+    await expect(page.getByRole('button', { name: 'Revision 3', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => ({ calls: globalThis.reentrantCalls, revision: globalThis.readReentrantEvent() })))
+      .toEqual({ calls: [3], revision: 3 });
+  });
+}
+
+for (const mode of ['mutated-bytes', 'host-option-reentry', 'renderer-option-reentry']) {
+  test(`presentation preparation retains exact current custody (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView, createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.dataset.applicationSlot = 'preparation'; document.body.append(root);
+      const host = createApplicationFaceHost(document);
+      const view = revision => ({ revision, actions: [{ id: 'exact.action', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'action', text: `Prepared ${revision}`, action: 0 },
+      ] });
+      globalThis.preparationCalls = [];
+      const onEvent = event => globalThis.preparationCalls.push(event.revision);
+      let newest, refusal;
+      if (mode === 'mutated-bytes') {
+        const bytes = encodeApplicationView(view(1));
+        host.present('preparation', bytes, { onEvent, get eventCapacity() {
+          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).setUint32(1, 2, true);
+          return 8;
+        } });
+      } else {
+        const present = (revision, options = { onEvent }) => mode === 'host-option-reentry'
+          ? host.present('preparation', view(revision), options)
+          : manifestApplicationView(encodeApplicationView(view(revision)), root, options);
+        present(1);
+        let entered = false;
+        const options = { onEvent };
+        Object.defineProperty(options, mode === 'host-option-reentry' ? 'eventCapacity' : 'look', { get() {
+          if (!entered) { entered = true; newest = present(3); }
+          return mode === 'host-option-reentry' ? 8 : undefined;
+        } });
+        try { present(2, options); } catch (error) { refusal = error.code; }
+      }
+      globalThis.readPreparationEvent = () => mode === 'renderer-option-reentry'
+        ? newest.nextEvent()?.revision : host.nextEvent('preparation')?.revision;
+      return { revision: root.dataset.applicationRevision, refusal: refusal ?? null, calls: globalThis.preparationCalls };
+    }, mode);
+    const revision = mode === 'mutated-bytes' ? 1 : 3;
+    expect(result).toEqual({ revision: String(revision), refusal: mode === 'mutated-bytes' ? null : 'stale-revision', calls: [] });
+    await page.getByRole('button', { name: `Prepared ${revision}`, exact: true }).click();
+    expect(await page.evaluate(() => ({ calls: globalThis.preparationCalls, revision: globalThis.readPreparationEvent() })))
+      .toEqual({ calls: [revision], revision });
+  });
+}
+
+for (const [component, value] of [['text-input', 'line\nbreak'], ['text-input', 'line\r\nbreak'],
+  ['text-input', 'line\rbreak'], ['textarea', 'line\r\nbreak'], ['textarea', 'line\rbreak']]) {
+  test(`native initial text normalization refuses atomically (${component}, ${JSON.stringify(value)})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async ({ component, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.normalizationCalls = [];
+      const options = { onEvent: event => globalThis.normalizationCalls.push(event.revision) };
+      manifestApplicationView(encodeApplicationView({ revision: 1, actions: [{ id: 'safe', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'safe', text: 'Retained exact action', action: 0 },
+      ] }), root, options);
+      const previous = root.firstChild;
+      let refusal;
+      try { manifestApplicationView(encodeApplicationView({ revision: 2, actions: [{ id: 'edit', event: 'input' }], nodes: [
+        { parent: null, component, key: 'input', text: 'Exact text', value, valueCapacity: 64, action: 0 },
+      ] }), root, options); } catch (error) { refusal = error.code; }
+      return { refusal, unchanged: root.firstChild === previous, revision: root.dataset.applicationRevision, calls: globalThis.normalizationCalls };
+    }, { component, value });
+    expect(result).toEqual({ refusal: 'invalid-control-value', unchanged: true, revision: '1', calls: [] });
+    await page.getByRole('button', { name: 'Retained exact action', exact: true }).click();
+    expect(await page.evaluate(() => globalThis.normalizationCalls)).toEqual([1]);
+  });
+}
+
+for (const [component, value] of [['text-input', 'café😀'], ['textarea', 'line one\ncafé😀']]) {
+  test(`native initial text retains supported Unicode exactly (${component})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ component, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.exactInitialCalls = [];
+      manifestApplicationView(encodeApplicationView({ revision: 1, actions: [{ id: 'edit', event: 'input' }], nodes: [
+        { parent: null, component, key: 'input', text: 'Exact editable text', value, valueCapacity: 64, action: 0 },
+      ] }), root, { onEvent: event => globalThis.exactInitialCalls.push(new TextDecoder().decode(event.value)) });
+    }, { component, value });
+    const input = page.getByRole('textbox', { name: 'Exact editable text', exact: true });
+    await expect(input).toHaveValue(value);
+    expect(await page.evaluate(() => globalThis.exactInitialCalls)).toEqual([]);
+    await input.focus();
+    await page.keyboard.press('Control+End');
+    await page.keyboard.insertText('!');
+    expect(await page.evaluate(() => globalThis.exactInitialCalls)).toEqual([value + '!']);
+  });
+}
+
+for (const mode of ['body-button', 'graph-subject', 'summary-button']) {
+  test(`closed disclosures preserve exact control availability (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Gear', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.disclosureCalls = [];
+      globalThis.disclosureManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'exact.action', event: 'activate' }], nodes: [
+          { parent: null, component: 'disclosure', key: 'details', text: 'Details', action: null },
+          { parent: 0, component: 'summary', key: 'summary', text: 'Open details', action: null },
+          mode === 'graph-subject'
+            ? { parent: 0, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 }
+            : { parent: mode === 'summary-button' ? 1 : 0, component: 'button', key: 'action', text: 'Disclosure action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.disclosureCalls.push(new TextDecoder().decode(event.value)) });
+    }, mode);
+    const target = page.getByRole('button', { name: mode === 'graph-subject' ? 'Gear Gear, kind' : 'Disclosure action', exact: true, includeHidden: true });
+    if (mode !== 'summary-button') {
+      await target.evaluate(element => element.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      expect(await page.evaluate(() => ({ calls: globalThis.disclosureCalls,
+        queued: globalThis.disclosureManifest.queuedEvents(), refusal: globalThis.disclosureManifest.lastRefusal() })))
+        .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+      await page.locator('[data-application-key="summary"]').click();
+    }
+    await target.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => ({ calls: globalThis.disclosureCalls, queued: globalThis.disclosureManifest.queuedEvents() })))
+      .toEqual({ calls: [mode === 'graph-subject' ? 'gear' : ''], queued: 1 });
+  });
+}

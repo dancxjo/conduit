@@ -318,21 +318,34 @@ function rootIdentity(root) {
   return identity;
 }
 
-function restoreInteraction(root, snapshot) {
+function restoreInteraction(root, snapshot, render) {
   if (!snapshot) return;
-  let target = Array.from(root.querySelectorAll("[data-application-key]"))
-    .find((element) => element.dataset.applicationKey === snapshot.key && !element.disabled);
-  if (target && snapshot.subject) target = Array.from(target.querySelectorAll("[data-subject-identity]")).find(element => element.dataset.subjectIdentity === snapshot.subject) ?? target;
-  if (!target) target = root.querySelector('[tabindex="0"]')
-    ?? root.querySelector('button:not(:disabled), input:not(:disabled), select:not(:disabled), textarea:not(:disabled)');
-  if (!(target instanceof HTMLElement) && !(target instanceof SVGElement)) {
+  let preferred = Array.from(root.querySelectorAll("[data-application-key]"))
+    .find(element => element.dataset.applicationKey === snapshot.key);
+  if (preferred && snapshot.subject) preferred = Array.from(preferred.querySelectorAll("[data-subject-identity]"))
+    .find(element => element.dataset.subjectIdentity === snapshot.subject);
+  const candidates = new Set([preferred,
+    ...root.querySelectorAll('[tabindex="0"]'),
+    ...root.querySelectorAll('button, input, select, textarea, a[href], summary')]);
+  let target;
+  for (const candidate of candidates) {
+    if (!(candidate instanceof HTMLElement) && !(candidate instanceof SVGElement)) continue;
+    if (!candidate.isConnected || !root.contains(candidate) || !controlAvailable(candidate)) continue;
+    candidate.focus();
+    // Focus handlers can synchronously present a newer view. Leave its focus
+    // alone and let the superseded caller refuse before publishing its handle.
+    if (activeManifestations.get(root) !== render) return;
+    // A retained key may now name plain text or a non-focusable container.
+    if (candidate.ownerDocument.activeElement === candidate) { target = candidate; break; }
+  }
+  if (!target) {
     root.tabIndex = -1;
+    root.focus();
     target = root;
   }
-  target.focus();
   const textSelection = target instanceof HTMLTextAreaElement
     || (target instanceof HTMLInputElement && ["text", "search", "tel", "url", "password"].includes(target.type));
-  if (textSelection && snapshot.selection) {
+  if (target === preferred && textSelection && snapshot.selection) {
     const end = target.value.length;
     target.setSelectionRange(Math.min(snapshot.selection.start, end), Math.min(snapshot.selection.end, end), snapshot.selection.direction);
   }
@@ -343,16 +356,23 @@ function controlAvailable(control) {
   for (let ancestor = control; ancestor;
     ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
     if (ancestor.inert || ancestor.hidden) return false;
+    // A closed disclosure exposes its first summary, while its body controls
+    // remain unavailable. The disclosure itself may still emit its toggle.
+    if (ancestor !== control && ancestor.matches("details:not([open])")
+      && !ancestor.querySelector(":scope > summary")?.contains(control)) return false;
   }
   return true;
 }
 
 function installRovingFocus(container, selectedKey, selectedIndex) {
-  const controls = Array.from(container.querySelectorAll("button:not(:disabled)"));
-  if (controls.length === 0) return;
-  let current = selectedKey ? controls.findIndex((control) => control.dataset.applicationKey === selectedKey) : selectedIndex;
-  if (current < 0 || current >= controls.length) current = 0;
-  controls.forEach((control, index) => { control.tabIndex = index === current ? 0 : -1; });
+  // Navigation selections and step indices name direct children in the view.
+  // Descendant groups own their controls and must retain their own tab entry.
+  const controls = Array.from(container.children).filter(control => control.matches("button"));
+  const available = controls.filter(controlAvailable);
+  if (available.length === 0) return;
+  const selected = selectedKey ? controls.find(control => control.dataset.applicationKey === selectedKey) : controls[selectedIndex];
+  const current = available.includes(selected) ? selected : available[0];
+  controls.forEach(control => { control.tabIndex = control === current ? 0 : -1; });
   container.addEventListener("keydown", (event) => {
     const available = controls.filter(control => control.isConnected && container.contains(control) && controlAvailable(control));
     const focused = available.indexOf(document.activeElement);
@@ -411,6 +431,7 @@ function copyApplicationEvent(event) {
 
 export function manifestApplicationView(input, root, options = {}) {
   if (!(root instanceof Element)) throw new TypeError("application face requires an Element");
+  const previousManifestation = activeManifestations.get(root);
   const view = decodeApplicationView(input);
   const active = root.contains(document.activeElement) ? document.activeElement : null;
   const activeNode = active?.closest?.("[data-application-key]");
@@ -594,6 +615,9 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.component === 15 || node.component === 16 || node.component === 17) {
       element.setAttribute("aria-label", node.text);
       element.value = node.value;
+      // Native text controls sanitize line endings. Refuse before publication
+      // when the admitted value cannot be represented exactly by this control.
+      if (node.component !== 16 && element.value !== node.value) refuse("invalid-control-value");
       if (node.component !== 16) element.maxLength = node.valueCapacity;
     }
     if (node.component === 22) element.value = node.value;
@@ -684,9 +708,9 @@ export function manifestApplicationView(input, root, options = {}) {
       if (elements[index].value !== node.value) refuse("invalid-control-value");
     }
   }
+  if (activeManifestations.get(root) !== previousManifestation) refuse("stale-revision");
   root.replaceChildren(fragment);
   activeManifestations.set(root, render);
-  restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
   for (const role of appliedLookProperties.get(root) ?? []) {
     root.style.removeProperty(`--conduit-${role}`);
@@ -701,6 +725,8 @@ export function manifestApplicationView(input, root, options = {}) {
     appliedLookProperties.delete(root);
     delete root.dataset.applicationLook;
   }
+  restoreInteraction(root, interaction, render);
+  if (activeManifestations.get(root) !== render) refuse("stale-revision");
   return Object.freeze({
     view,
     nextEvent() {
@@ -733,24 +759,29 @@ export function createApplicationFaceHost(scope = document) {
   };
   return Object.freeze({
     present(slot, description, options = {}) {
-      const encoded = description instanceof Uint8Array ? description : encodeApplicationView(description);
+      const encoded = description instanceof Uint8Array
+        ? new Uint8Array(checkedBytes(description, MAX_BYTES, "oversized-encoding"))
+        : encodeApplicationView(description);
       const view = decodeApplicationView(encoded);
+      // Read caller-controlled options before the final revision check. Their
+      // getters may synchronously commit another presentation of this slot.
+      const { eventCapacity, eventByteCapacity, look, onEvent, onRefusal } = options;
       const previous = revisions.get(slot) ?? 0;
       if (view.revision <= previous) refuse("stale-revision");
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
-        eventCapacity: options.eventCapacity,
-        eventByteCapacity: options.eventByteCapacity,
+        eventCapacity,
+        eventByteCapacity,
         choiceScope,
-        look: options.look,
+        look,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {
             refusals.set(slot, "stale-revision");
-            options.onRefusal?.("stale-revision");
+            onRefusal?.("stale-revision");
             return;
           }
-          options.onEvent?.(event);
+          onEvent?.(event);
         },
-        onRefusal(code) { refusals.set(slot, code); options.onRefusal?.(code); },
+        onRefusal(code) { refusals.set(slot, code); onRefusal?.(code); },
       });
       revisions.set(slot, view.revision);
       refusals.delete(slot);

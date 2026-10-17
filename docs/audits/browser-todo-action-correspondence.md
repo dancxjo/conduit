@@ -986,3 +986,119 @@ browser-admission-probe binaries; workspace arrival/membership lacked their
 expected startup controls). Those failures are not counted as product acceptance.
 This is renderer keyboard/action proof, not authoritative Body/Play, fresh
 packaged browser execution or release acceptance; the owning issues remain open.
+
+Roving group ownership follow-up (#5631): navigation and stepper focus derives
+from direct button children, matching the portable view's selection/step-child
+rules. Nested groups retain their own tab entry and arrow movement; an ancestor
+no longer captures the nested group's newly focused button. Step indices are
+resolved against the complete declared child order before availability filtering,
+so an earlier busy control cannot shift the current step's tab entry.
+
+Both regressions reproduced before repair. Six focused pinned Chromium fixtures
+pass with one worker and zero retries: nested group movement/activation, native
+Tab into the exact current step, temporary disabled/hidden/inert peers, and padded
+numeric controls. Focus-only movement queues no semantic action; native Enter
+emits the exact focused action. These are renderer keyboard proofs, not
+Body/Play, rebuilt packaged browser or release acceptance; #5631 remains open.
+
+Source editor projection follow-up (#5453): the shared syntax adapter checks
+its 8 KiB source ceiling and scalar Unicode before UTF-8 allocation. Rendering
+encodes only after successful projection admission; oversized edits retain the
+exact plain-text fallback and remain editable. UTF-8 decoding preserves BOM
+characters at every span boundary instead of dropping text from the overlay.
+The adapter still consumes canonical Rust spans and never tokenizes source.
+
+Two Node regressions reproduced leading-BOM refusal and premature allocation;
+one Chromium regression reproduced interior-BOM text loss. All three Node tests
+and one pinned Chromium fixture pass (one worker, zero retries), including exact
+8,192-byte admission, multibyte overflow, malformed scalar refusal, lossless
+oversized fallback and native correction back to highlighted text. Both suites
+are registered in their existing browser check/proof entrances. The fixture
+supplies declared spans only: these prove adapter bounds/text fidelity, not
+actual Rust token classification, Body/Play or fresh packaged/released WASM.
+The owning issue's full acceptance remains open.
+
+Revision focus restoration follow-up (#5631): restoration verifies that a
+candidate actually receives focus, instead of trusting a retained key whose
+component may now be plain text or a canvas container. If the prior graph subject
+is gone, available current tab stops/native controls are tried in reading order,
+then the root fallback. Disabled/hidden/inert candidates use the existing action
+availability check. Text selection is restored only to the retained control,
+never copied to an unrelated fallback editor.
+
+Both focus-loss regressions reproduced before repair. Fourteen focused pinned
+Chromium checks pass across the focused runs (one worker, zero retries), including
+removed graph subject, control-to-text change, retained versus replacement editor
+selection, nested groups, step indices, temporary peer unavailability and graph
+routing. Restoration emits no action; subsequent native Enter emits the exact
+current revision/action/subject. This is renderer keyboard proof, not Body/Play,
+fresh packaged WASM or release acceptance; #5631 remains open.
+
+Reentrant focus presentation follow-up (#5644): revision/Look metadata is applied
+before restoring focus, and a manifestation verifies its private active token
+after restoration before returning its handle. A focus handler that presents a
+newer view supersedes the outer call, which refuses with stale-revision instead
+of overwriting newer Host slot bookkeeping. Restoration itself stops immediately
+on supersession so it cannot steal the newer manifestation's restored focus.
+
+Both direct-renderer and slot-Host regressions reproduced before repair. Seven
+focused pinned Chromium fixtures pass with one worker and zero retries, covering
+nested revision 3 during revision 2 focus restoration, exact current native
+activation, ordinary restoration/selection and forged Look preservation. Focus
+restoration queues no action; subsequent native Enter queues/calls revision 3.
+This is renderer/Host custody proof, not authoritative Body/Play or packaged/
+release acceptance; #5644 remains open.
+
+Presentation preparation custody follow-up (#5644): slot Hosts take a bounded
+private copy of supplied encoded view bytes before decoding, so option getters
+cannot mutate the second decode away from the revision checked by the Host.
+Host options/callbacks are captured before its final revision check. Direct
+rendering captures the previous manifestation token and verifies it immediately
+before DOM replacement, refusing preparation superseded by a reentrant render.
+The existing post-focus fence remains in place.
+
+All three regressions reproduced before repair: caller byte mutation, a newer
+slot presentation during option reads, and a newer direct render during option
+reads. Ten focused pinned Chromium fixtures pass with one worker and zero retries,
+including surviving current native pointer actions, post-focus reentrancy,
+restoration, forged Look refusal and argument preflight. This is browser
+renderer/Host custody proof, not authoritative Body/Play or packaged/release
+acceptance; #5644 remains open. Unique USB branch work remains preserved.
+
+Exact initial native text follow-up (#5644): after assigning admitted text to a
+native input/textarea, preparation verifies the resulting value is byte-for-byte
+equal as a scalar string. Input line-break stripping and textarea CR/CRLF
+normalization now refuse with invalid-control-value before replacing the current
+DOM or manifestation. Portable value admission remains unchanged; this is an
+explicit browser representation refusal rather than silent reinterpretation.
+
+All five normalization regressions reproduced before repair. Seventeen focused
+Chromium checks pass across focused runs (one worker, zero retries), including
+retained safe action after refusal, supported Unicode/LF initial values, native
+single-character editing, malformed typed values and selection restoration. A
+positive fixture initially assumed multiline fill emitted one input event; it
+was corrected to a native single-character insertion. This is renderer value/
+atomic-refusal proof, not authoritative Body/Play or packaged/release acceptance;
+#5644 remains open. The USB preservation branch's selected-operation helper is
+identical to current code and its control owner has later additions; the branch
+is retained pending the rest of the history review rather than replayed wholesale.
+
+Closed disclosure availability follow-up (#5644 / #5632): DOM action and focus
+availability now respects native closed details bodies. Only the first direct
+summary and its descendants remain available while closed; the disclosure itself
+can still report its toggle. Opening it restores ordinary action availability
+without revoking the current manifestation or changing typed action identity.
+
+The body-button and graph-subject regressions reproduced queue/callback admission
+before repair; the summary-button positive fixture already passed. All sixteen
+focused pinned Chromium fixtures pass with one worker and zero retries, including
+exact refusal/empty queue while closed, native summary opening, current Enter
+activation, graph routing, temporary availability and roving focus. This is
+renderer/native-disclosure proof, not arbitrary CSS certification, authoritative
+Body/Play or packaged/release acceptance; the owning issues remain open.
+
+USB preservation review: the selected-operation helper and register binding are
+identical to the preservation branch. Current control-owner production changes
+are additions, and its test fixture now delegates to the shared selected-operation
+fixture. The old branch is retained because its exact-tip remote ancestry has
+not been established; no USB code or evidence was discarded or replayed.
