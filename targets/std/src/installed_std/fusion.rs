@@ -35,6 +35,7 @@ pub(super) fn prepare_chains(
             crate::pure_chain_fusion::validate_program_profile(
                 &super::pure_expression_back::program_from_placement(placement)?,
                 placement.inputs[0].temporal,
+                &placement.capability_id,
             )?;
             if !fragment.execution_regions.is_empty()
                 && !fragment.execution_regions.iter().any(|r| {

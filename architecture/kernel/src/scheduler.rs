@@ -1123,7 +1123,9 @@ where
     }
 
     /// Poll the execution owner's finite control checkpoint before each
-    /// logical Gear, including members of an admitted physical region.
+    /// logical Gear, including members of an admitted physical region. A false
+    /// result defers the next Gear: Idle before any invocation, or Progress for
+    /// the completed prefix. The caller retains cancellation ownership.
     pub fn step_with_checkpoint(
         &mut self,
         mut proceed: impl FnMut(NodeId) -> bool,

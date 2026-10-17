@@ -48,7 +48,8 @@ pub fn pure_chain_fusion_offer(
         {
             return Err("pure-chain requires the exact installed computational Offer".into());
         }
-        let kind = validate_program_profile(&program, gear.inputs[0].temporal)?;
+        let kind =
+            validate_program_profile(&program, gear.inputs[0].temporal, &expected.capability_id)?;
         kinds.push(kind);
     }
     // Recover order from authored Cords, never lexicographic Gear/Placement IDs.
@@ -136,6 +137,7 @@ pub fn pure_chain_fusion_offer(
 pub(crate) fn validate_program_profile(
     program: &PortableExpressionProgram,
     temporal: conduit_core::PortTemporal,
+    capability_id: &conduit_core::CapabilityId,
 ) -> Result<Kind, String> {
     let u64_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
         .map_err(|e| format!("pure-chain type: {e:?}"))?;
@@ -145,7 +147,7 @@ pub(crate) fn validate_program_profile(
     let kind = conduit_semantic_catalog::pure_expression_contract(program, temporal)
         .map_err(|e| format!("pure-chain Kind: {e:?}"))?;
     let back = conduit_core::Back {
-        capability_id: "std/pure-chain-proof".into(),
+        capability_id: capability_id.clone(),
         execution_profile_id: PURE_CHAIN_FUSION_PROFILE.into(),
         implementation_id: PURE_CHAIN_FUSION_IMPLEMENTATION.into(),
         artifact_id: PURE_CHAIN_FUSION_ARTIFACT.into(),
