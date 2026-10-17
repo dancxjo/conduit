@@ -128,6 +128,32 @@ test("BrowserBundle verification refuses rehashed IMAGE claims detached from the
   expect(results).toEqual(mutations.map(() => "ImageBindingMismatch"));
 });
 
+test("BrowserBundle verification binds release declarations and bytes to the reviewed inventory", async () => {
+  const distribution = await fixture();
+  const configuration = checked(ids, "a");
+  const original = await buildBrowserBundleImage({ checked: configuration, distribution });
+  const results = [];
+  for (const mode of ["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]) {
+    const release = structuredClone(original);
+    if (mode === "runtime") {
+      release.payloads[0].bytes[0] ^= 1;
+      release.payloads[0].sha256 = await sha256(release.payloads[0].bytes);
+    }
+    if (mode === "payload-media") release.payloads[0].media_type = "text/plain";
+    release.manifest.files = release.payloads.map(({ path, bytes, sha256, media_type }) => ({ path, bytes: bytes.byteLength, sha256, media_type }));
+    release.manifest.bundle_sha256 = await bundleDigest(release.manifest.files);
+    if (mode === "declared-size") release.manifest.files[0].bytes++;
+    if (mode === "declared-digest") release.manifest.files[0].sha256 = `sha256:${"f".repeat(64)}`;
+    if (mode === "missing-inventory") delete release.manifest.files;
+    try {
+      await verifyBrowserBundleImage({ checked: configuration, release, distribution });
+      results.push({ mode, code: "accepted" });
+    } catch (error) { results.push({ mode, code: error.code }); }
+  }
+  expect(results).toEqual(["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]
+    .map(mode => ({ mode, code: "ArtifactBindingMismatch" })));
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",

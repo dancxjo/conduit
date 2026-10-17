@@ -115,3 +115,15 @@ cannot account for the refusal. All five focused Node-side builder/verifier
 tests pass through the pinned runner with one worker and zero retries. This
 proves these input-binding checks, not public provenance, browser execution or
 complete hostile-release admission.
+
+Release-payload binding follow-up: verification requires the release file
+inventory to match its payload sizes, digests and media types, then binds each
+non-IMAGE payload identity to the verified distribution. A self-consistent
+release aggregate cannot authorize replacing the IMAGE's declared runtime.
+
+Five variants reproduced acceptance before repair: replaced/rehashed runtime,
+changed payload media type, false declared size, false declared digest and an
+absent release inventory. All six focused Node-side builder/verifier tests now
+pass through the pinned runner (one worker, zero retries); these five variants
+refuse with `ArtifactBindingMismatch`. This proves the tested content bindings,
+not runtime execution, publisher authority or public release provenance.

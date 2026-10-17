@@ -64,6 +64,11 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     || release.payloads.some((item) => !expectedPaths.delete(item.path)) || expectedPaths.size !== 0) {
     refuse("UnexpectedAsset", "BrowserBundle contains an undeclared executable or static asset");
   }
+  const releaseFiles = release.payloads.map(({ path, bytes, sha256, media_type }) =>
+    ({ path, bytes: bytes.byteLength, sha256, media_type }));
+  if (JSON.stringify(release.manifest.files) !== JSON.stringify(releaseFiles)) {
+    refuse("ArtifactBindingMismatch", "BrowserBundle release inventory does not match its payload identities");
+  }
   for (const payload of release.payloads) {
     if (await sha256(payload.bytes) !== payload.sha256) refuse("DigestMismatch", `BrowserBundle asset ${payload.path} changed identity`);
   }
@@ -88,6 +93,14 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     refuse("BootModuleBindingMismatch", "BrowserBundle Boot entry is absent or stale");
   }
   const files = await verifyDistributionPayloads(distribution, reviewed);
+  const released = new Map(releaseFiles.map(file => [file.path, file]));
+  if (files.some(file => {
+    const actual = released.get(file.path);
+    return !actual || actual.bytes !== file.bytes.byteLength || actual.sha256 !== file.sha256
+      || actual.media_type !== file.media_type;
+  })) {
+    refuse("ArtifactBindingMismatch", "BrowserBundle payload identities differ from the reviewed distribution");
+  }
   const expected = await expectedImagePayload(checked, distribution, reviewed, selected, files);
   if (JSON.stringify(payload) !== JSON.stringify(expected)) {
     refuse("ImageBindingMismatch", "BrowserBundle IMAGE claims do not match its checked configuration and reviewed distribution");
