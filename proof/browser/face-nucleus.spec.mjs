@@ -677,3 +677,54 @@ for (const mode of ['disabled', 'hidden', 'inert']) {
     expect(await page.evaluate(() => globalThis.rovingCalls)).toEqual(['Third', 'Second']);
   });
 }
+
+test('nested navigation owns its focus movement without ancestor capture', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.append(root);
+    globalThis.nestedFocusCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: ['outer-first', 'inner-first', 'inner-last', 'outer-last'].map(id => ({ id, event: 'activate' })), nodes: [
+        { parent: null, component: 'navigation', key: 'outer', text: 'Outer', value: 'outer-first', valueCapacity: 32, action: null },
+        { parent: 0, component: 'button', key: 'outer-first', text: 'Outer first', action: 0 },
+        { parent: 0, component: 'navigation', key: 'inner', text: 'Inner', value: 'inner-first', valueCapacity: 32, action: null },
+        { parent: 2, component: 'button', key: 'inner-first', text: 'Inner first', action: 1 },
+        { parent: 2, component: 'button', key: 'inner-last', text: 'Inner last', action: 2 },
+        { parent: 0, component: 'button', key: 'outer-last', text: 'Outer last', action: 3 },
+      ] }), root, { onEvent: event => globalThis.nestedFocusCalls.push(event.action) });
+  });
+  await page.getByRole('button', { name: 'Inner first', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('button', { name: 'Inner last', exact: true })).toBeFocused();
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  await page.getByRole('button', { name: 'Outer first', exact: true }).focus();
+  await page.keyboard.press('ArrowRight');
+  await expect(page.getByRole('button', { name: 'Outer last', exact: true })).toBeFocused();
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual(['inner-last']);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.nestedFocusCalls)).toEqual(['inner-last', 'outer-last']);
+});
+
+test('stepper tab entry preserves declared index across an unavailable peer', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+    const root = document.createElement('section'); document.body.prepend(root);
+    globalThis.indexFocusCalls = [];
+    manifestApplicationView(encodeApplicationView({ revision: 1,
+      actions: [{ id: 'first', event: 'activate' }, { id: 'third', event: 'activate' }], nodes: [
+        { parent: null, component: 'stepper', key: 'steps', text: 'Steps', value: '3/3', valueCapacity: 16, action: null },
+        { parent: 0, component: 'button', key: 'first', text: 'First step', action: 0 },
+        { parent: 0, component: 'button', key: 'second', text: 'Busy step', state: 'busy', action: null },
+        { parent: 0, component: 'button', key: 'third', text: 'Third step', action: 1 },
+      ] }), root, { onEvent: event => globalThis.indexFocusCalls.push(event.action) });
+  });
+  await page.keyboard.press('Tab');
+  await expect(page.getByRole('button', { name: 'Third step', exact: true })).toBeFocused();
+  await expect(page.getByRole('button', { name: 'Third step', exact: true })).toHaveAttribute('aria-current', 'step');
+  expect(await page.evaluate(() => globalThis.indexFocusCalls)).toEqual([]);
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.indexFocusCalls)).toEqual(['third']);
+});

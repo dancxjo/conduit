@@ -348,11 +348,14 @@ function controlAvailable(control) {
 }
 
 function installRovingFocus(container, selectedKey, selectedIndex) {
-  const controls = Array.from(container.querySelectorAll("button:not(:disabled)"));
-  if (controls.length === 0) return;
-  let current = selectedKey ? controls.findIndex((control) => control.dataset.applicationKey === selectedKey) : selectedIndex;
-  if (current < 0 || current >= controls.length) current = 0;
-  controls.forEach((control, index) => { control.tabIndex = index === current ? 0 : -1; });
+  // Navigation selections and step indices name direct children in the view.
+  // Descendant groups own their controls and must retain their own tab entry.
+  const controls = Array.from(container.children).filter(control => control.matches("button"));
+  const available = controls.filter(controlAvailable);
+  if (available.length === 0) return;
+  const selected = selectedKey ? controls.find(control => control.dataset.applicationKey === selectedKey) : controls[selectedIndex];
+  const current = available.includes(selected) ? selected : available[0];
+  controls.forEach(control => { control.tabIndex = control === current ? 0 : -1; });
   container.addEventListener("keydown", (event) => {
     const available = controls.filter(control => control.isConnected && container.contains(control) && controlAvailable(control));
     const focused = available.indexOf(document.activeElement);

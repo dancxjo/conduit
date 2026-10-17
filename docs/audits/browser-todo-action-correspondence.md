@@ -986,3 +986,17 @@ browser-admission-probe binaries; workspace arrival/membership lacked their
 expected startup controls). Those failures are not counted as product acceptance.
 This is renderer keyboard/action proof, not authoritative Body/Play, fresh
 packaged browser execution or release acceptance; the owning issues remain open.
+
+Roving group ownership follow-up (#5631): navigation and stepper focus derives
+from direct button children, matching the portable view's selection/step-child
+rules. Nested groups retain their own tab entry and arrow movement; an ancestor
+no longer captures the nested group's newly focused button. Step indices are
+resolved against the complete declared child order before availability filtering,
+so an earlier busy control cannot shift the current step's tab entry.
+
+Both regressions reproduced before repair. Six focused pinned Chromium fixtures
+pass with one worker and zero retries: nested group movement/activation, native
+Tab into the exact current step, temporary disabled/hidden/inert peers, and padded
+numeric controls. Focus-only movement queues no semantic action; native Enter
+emits the exact focused action. These are renderer keyboard proofs, not
+Body/Play, rebuilt packaged browser or release acceptance; #5631 remains open.
