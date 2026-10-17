@@ -211,3 +211,16 @@ the actual module hash, compiler/runtime identities and matched std identities.
 The [validation record](evidence/scalar-tape-wasm-validation.json) retains
 the command and log hashes. This is development proof; exact stable publication
 acceptance remains required before parent closure.
+
+## Arithmetic hints are not retained proofs
+
+A forged portable Binary `proven` flag reproduced wrapping for U64 overflow.
+Tape lowering now binds checked addition, multiplication and subtraction even
+when this bare annotation is true: the flag carries no retained range witness.
+The regression checks successful input against the original checked Source and
+requires arithmetic refusal for overflow/underflow for all three operators.
+Valid proven programs remain eligible; this does not claim the reference
+interpreter validates forged annotations or nominal native laws. All 12 Plot
+evaluator/eligibility tests and 13 installed std tape tests pass; focused strict
+Clippy passes. Existing CPU receipts retain their historical source identities;
+the measured fixtures already used this checked instruction path.

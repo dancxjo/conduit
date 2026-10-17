@@ -105,10 +105,14 @@ impl ScalarTape {
             }
             PreparedOperation::Binary {
                 operator,
-                proven,
                 left,
                 right,
-            } => Operation::Binary(*operator, *proven, self.lower(left)?, self.lower(right)?),
+                ..
+            } => {
+                // The portable hint alone carries no retained range witness.
+                // Bind checked arithmetic, including for valid proven programs.
+                Operation::Binary(*operator, false, self.lower(left)?, self.lower(right)?)
+            }
             PreparedOperation::Conditional {
                 condition,
                 when_true,
