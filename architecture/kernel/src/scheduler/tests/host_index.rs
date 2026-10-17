@@ -49,7 +49,8 @@ fn distinct_nodes_keep_exact_slots_through_out_of_order_completion() {
             .unwrap();
     }
     bindings.seal().unwrap();
-    let mut scheduler = FixedScheduler::<_, _, _, 2, 0, PORTS, 0, 0, 0, 2, 2>::new_with_host_calls(
+    let mut scheduler = FixedScheduler::<_, _, _, 2, 0, PORTS, 1, 0, 0, 2, 2>::new_with_active_counts_and_host_calls(
+        2, 0,
         [node([None; PORTS]), node([None; PORTS])],
         [],
         routes,
