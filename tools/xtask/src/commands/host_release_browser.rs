@@ -1,10 +1,40 @@
-use std::{fs, path::Path};
+use std::{fs, path::Path, process::Command};
 
 use serde::Serialize;
 
 use super::{
     bundle_digest, sha256_file, ReleaseFile, ReleaseManifest, MAXIMUM_FILE_BYTES, RELEASE_SCHEMA,
 };
+
+/// Optimize the final linked browser module before any digest or package is sealed.
+/// Keep the Cargo artifact intact for diagnostics; failure never falls back to it.
+pub(super) fn optimize_runtime(
+    source: &Path,
+    destination: &Path,
+) -> Result<(), Box<dyn std::error::Error>> {
+    super::require_success(
+        Command::new("wasm-opt").arg("--version"),
+        "identify Binaryen browser optimizer (install wasm-opt if missing)",
+    )?;
+    super::require_success(
+        Command::new("wasm-opt")
+            .args(["-Oz", "--enable-bulk-memory", "--enable-sign-ext"])
+            .arg(source)
+            .arg("-o")
+            .arg(destination)
+            .env("BINARYEN_CORES", "2"),
+        "optimize browser Host release",
+    )?;
+    let bytes = fs::metadata(destination)?.len();
+    if bytes == 0 || bytes > MAXIMUM_FILE_BYTES {
+        return Err("optimized browser runtime violates its finite file bound".into());
+    }
+    println!(
+        "Browser runtime: {} linked bytes -> {bytes} optimized bytes",
+        fs::metadata(source)?.len()
+    );
+    Ok(())
+}
 
 #[derive(Serialize)]
 pub(super) struct ReviewedBrowserDistribution<'a> {

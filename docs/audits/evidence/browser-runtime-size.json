@@ -1,0 +1,75 @@
+{
+  "runtime_source": "42a571fd02308b35528879fe684e402e280eeb73",
+  "baseline": {
+    "bytes": 21454248,
+    "sha256": "9973540aca9a4ebce43328270cd3f7c539e2449e84f055754de155ce45de54ed",
+    "log": "work/browser-runtime-size-baseline-build.log"
+  },
+  "binaryen_120": {
+    "bytes": 19175029,
+    "sha256": "5368fdcb59965856967d3d3f2eac837ffa5ad9c135b02900a0b24db308d80bdf",
+    "log": "work/browser-runtime-size-current-optimization.log",
+    "arguments": [
+      "-Oz",
+      "--enable-bulk-memory"
+    ]
+  },
+  "binaryen_108": {
+    "optimizer_version": "108",
+    "package": {
+      "Package": "binaryen",
+      "Version": "108-1",
+      "Architecture": "amd64",
+      "Filename": "pool/universe/b/binaryen/binaryen_108-1_amd64.deb",
+      "Size": "3390376",
+      "SHA256": "ef81caebd1cc28028cc5a3054cdebf500c3c1c6243438d224dd8c1614ff90644",
+      "metadata_url": "https://archive.ubuntu.com/ubuntu/dists/noble/universe/binary-amd64/Packages.xz"
+    },
+    "arguments": [
+      "-Oz",
+      "--enable-bulk-memory",
+      "--enable-sign-ext"
+    ],
+    "bytes": 19219021,
+    "sha256": "527b117cc5e607159737c3ca714226c929b4d88a13579c5d8cffa79bdd253d2a",
+    "differential_cases": 60,
+    "full_receipts_equal": true,
+    "measurement_log": "work/browser-runtime-size-noble-sign-ext-optimization.log",
+    "differential_receipt": "work/browser-runtime-size-noble-full-differential.json",
+    "without_explicit_sign_ext": "Input validation refused; preserved work/browser-runtime-size-noble-optimization.log",
+    "user_cpu_seconds": "81.59",
+    "wall_time": "0:42.57",
+    "maximum_rss_kib": "610912"
+  },
+  "package_maximum_bytes": 20971520,
+  "node_differential_cases_per_optimizer": 60,
+  "playwright_version": "1.62.0",
+  "chromium_tests_binaryen_120": 8,
+  "pipeline_contract_tests": 223,
+  "doctor_tests": 2,
+  "strict_clippy_exit": 0,
+  "physical_evidence": false,
+  "accepted_release": false,
+  "chromium_tests_binaryen_108": 8,
+  "application_resource_bound_proof": {
+    "proof_class": "Isolated real package-builder runtime resource-bound check; not a runnable staged application",
+    "source_template_sha256": "4371a333822237496bb31ce6aac370f0daea5d121ea8402038435b9a3ff063b4",
+    "only_resource_retained": "runtime",
+    "application_limit_unchanged": true,
+    "rows": [
+      {
+        "artifact": "baseline",
+        "bytes": 21454248,
+        "maximum_bytes": 20971520,
+        "exit_code": 1
+      },
+      {
+        "artifact": "noble-optimized",
+        "bytes": 19219021,
+        "maximum_bytes": 20971520,
+        "exit_code": 0,
+        "sealed_resource_digest": "sha256:527b117cc5e607159737c3ca714226c929b4d88a13579c5d8cffa79bdd253d2a"
+      }
+    ]
+  }
+}
