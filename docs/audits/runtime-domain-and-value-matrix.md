@@ -54,3 +54,14 @@ cancellation test; the test now uses the same measurement ownership as other
 fixtures. Strict Clippy and formatting pass. Source-bound release capture and
 negative custody evidence follow below. No PR or CI requested; parent #5395
 remains open until its complete closure audit passes.
+
+## Frozen results and publication
+
+Clean Source `a52ddeff5fc3e047bdf311591a1c7ef8233d69ee` now has three
+independently observed pinned process captures covering all of these fixtures.
+The [final report](runtime-performance-5395-final.md) records results (including
+slower Value specialization), eligibility refusals and uncertainty; the
+[evidence index](runtime-5395-evidence.md) retains raw archives, positive/negative
+verifications and replay commands. The [complete parent audit](runtime-performance-5395-closure.md)
+supersedes this method note's earlier pending-capture statement. No CI or PR
+was requested; matched browser/WASM remains the explicit subsequent gate.

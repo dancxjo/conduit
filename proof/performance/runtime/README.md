@@ -1,5 +1,14 @@
 # Runtime performance reference worker
 
+> Current #5395 acceptance: [final report](../../../docs/audits/runtime-performance-5395-final.md),
+> [audit](../../../docs/audits/runtime-performance-5395-closure.md), and
+> [immutable evidence/replay](../../../docs/audits/runtime-5395-evidence.md).
+> The source-pinned expanded native cohort now covers the earlier pending
+> stream/control/numerical/eligible optimization matrix and attribution items.
+> Historical method notes below retain their original scope. Browser/WASM is
+> the explicitly scoped subsequent gate; thresholds remain uncalibrated.
+
+
 This hosted measurement slice of #5395 measures the existing prepared evaluator
 and production shared-pool selection function. An optional profile adds ordinary
 checked Plot/Plan/std Back/kernel execution through acknowledged typed Fores.
