@@ -6,8 +6,8 @@ use super::{
     bundle_digest, sha256_file, ReleaseFile, ReleaseManifest, MAXIMUM_FILE_BYTES, RELEASE_SCHEMA,
 };
 
-/// Optimize the final linked browser module before any digest or package is sealed.
-/// Keep the Cargo artifact intact for diagnostics; failure never falls back to it.
+/// Finalize the linked Cargo module before sealing or any browser proof consumes it.
+/// Browser fixtures and installed hosts use this same canonical artifact path.
 pub(super) fn optimize_runtime(
     source: &Path,
     destination: &Path,
@@ -16,24 +16,55 @@ pub(super) fn optimize_runtime(
         Command::new("wasm-opt").arg("--version"),
         "identify Binaryen browser optimizer (install wasm-opt if missing)",
     )?;
-    super::require_success(
-        Command::new("wasm-opt")
-            .args(["-Oz", "--enable-bulk-memory", "--enable-sign-ext"])
-            .arg(source)
-            .arg("-o")
-            .arg(destination)
-            .env("BINARYEN_CORES", "2"),
-        "optimize browser Host release",
-    )?;
-    let bytes = fs::metadata(destination)?.len();
-    if bytes == 0 || bytes > MAXIMUM_FILE_BYTES {
+    let linked_bytes = fs::metadata(source)?.len();
+    // A sibling allows atomic replacement on the same filesystem. Reserve it
+    // exclusively so concurrent release processes cannot overwrite each other.
+    let temporary = source.with_extension(format!("{}.optimized.wasm", std::process::id()));
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&temporary)?;
+    let result = (|| {
+        super::require_success(
+            Command::new("wasm-opt")
+                .args(["-Oz", "--enable-bulk-memory", "--enable-sign-ext"])
+                .arg(source)
+                .arg("-o")
+                .arg(&temporary)
+                .env("BINARYEN_CORES", "2"),
+            "optimize browser Host release",
+        )?;
+        let bytes = publish_runtime(source, &temporary, destination)?;
+        println!("Browser runtime: {linked_bytes} linked bytes -> {bytes} optimized bytes");
+        Ok(())
+    })();
+    if temporary.exists() {
+        fs::remove_file(&temporary)?;
+    }
+    result
+}
+
+fn publish_runtime(
+    source: &Path,
+    optimized: &Path,
+    destination: &Path,
+) -> Result<u64, Box<dyn std::error::Error>> {
+    use std::io::Read;
+    // Match every existing browser runtime consumer's finite 20 MiB admission.
+    let bytes = fs::metadata(optimized)?.len();
+    if !(8..=20 * 1024 * 1024).contains(&bytes) {
         return Err("optimized browser runtime violates its finite file bound".into());
     }
-    println!(
-        "Browser runtime: {} linked bytes -> {bytes} optimized bytes",
-        fs::metadata(source)?.len()
-    );
-    Ok(())
+    let mut header = [0; 8];
+    fs::File::open(optimized)?.read_exact(&mut header)?;
+    if header != *b"\0asm\x01\0\0\0" {
+        return Err("optimized browser runtime is not a WebAssembly module".into());
+    }
+    fs::rename(optimized, source)?;
+    // Copy only after finalization: defaults, fixtures and sealed receipts must
+    // all identify the same bytes, including when Cargo reuses a fresh artifact.
+    super::copy(source, destination)?;
+    Ok(bytes)
 }
 
 #[derive(Serialize)]
@@ -152,4 +183,45 @@ const fn module(
     dependencies: &'static [&'static str],
 ) -> ReviewedBrowserModule<'static> {
     ReviewedBrowserModule { path, dependencies }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn repeated_runtime_finalization_keeps_default_and_sealed_bytes_equal() {
+        let root =
+            std::env::temp_dir().join(format!("conduit-browser-custody-{}", std::process::id()));
+        fs::create_dir(&root).unwrap();
+        let source = root.join("conduit_browser_runtime.wasm");
+        let optimized = root.join("optimized.wasm");
+        let sealed = root.join("runtime.wasm");
+        fs::write(&source, b"linked diagnostic input").unwrap();
+        for bytes in [
+            b"\0asm\x01\0\0\0".as_slice(),
+            b"\0asm\x01\0\0\0\0\x01\0".as_slice(),
+        ] {
+            fs::write(&optimized, bytes).unwrap();
+            assert_eq!(
+                publish_runtime(&source, &optimized, &sealed).unwrap(),
+                bytes.len() as u64
+            );
+            assert_eq!(fs::read(&source).unwrap(), bytes);
+            assert_eq!(fs::read(&sealed).unwrap(), bytes);
+            assert!(!optimized.exists());
+        }
+        let retained = fs::read(&source).unwrap();
+        for bytes in [b"".as_slice(), b"not wasm".as_slice()] {
+            fs::write(&optimized, bytes).unwrap();
+            assert!(publish_runtime(&source, &optimized, &sealed).is_err());
+            assert_eq!(fs::read(&source).unwrap(), retained);
+            assert_eq!(fs::read(&sealed).unwrap(), retained);
+        }
+        let file = fs::File::create(&optimized).unwrap();
+        file.set_len(20 * 1024 * 1024 + 1).unwrap();
+        assert!(publish_runtime(&source, &optimized, &sealed).is_err());
+        assert_eq!(fs::read(&source).unwrap(), retained);
+        fs::remove_dir_all(root).unwrap();
+    }
 }
