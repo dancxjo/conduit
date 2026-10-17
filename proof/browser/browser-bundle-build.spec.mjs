@@ -75,6 +75,26 @@ test("BrowserBundle BUILD refuses cyclic, ambiguous and unbounded module graphs"
   await expect(buildBrowserBundleImage({ checked: checked(ids, "b"), distribution: shared })).resolves.toBeDefined();
 });
 
+test("BrowserBundle BUILD binds the complete ordered distribution inventory", async () => {
+  const stale = await fixture(value => { value.manifest.bundle_sha256 = `sha256:${"f".repeat(64)}`; });
+  const duplicate = await fixture(value => { value.manifest.files.push({ ...value.manifest.files[0] }); });
+  const results = [];
+  for (const distribution of [stale, duplicate]) {
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(["DigestMismatch", "ArtifactBound"]);
+
+  // Payload transport order supplies no new content identity.
+  const reordered = await fixture(value => value.payloads.reverse());
+  const release = await buildBrowserBundleImage({ checked: checked(ids, "b"), distribution: reordered });
+  const image = JSON.parse(new TextDecoder().decode(release.payloads.find(item => item.path === "conduit-browser-image.json").bytes));
+  expect(image.files).toEqual(reordered.manifest.files);
+  expect(release.manifest.files.slice(0, -1)).toEqual(reordered.manifest.files);
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",

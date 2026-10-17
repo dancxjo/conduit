@@ -87,3 +87,16 @@ five negative graphs and a positive shared-dependency graph, using the pinned
 Playwright runner with one worker and zero retries. These tests call production
 builder code in Node; they do not exercise browser module imports, establish
 public provenance or close #5453/#5510.
+
+Distribution aggregate/order follow-up: BUILD now recomputes the declared
+distribution digest from its ordered inventory and refuses duplicate or
+unbounded declarations before constructing an IMAGE. Verified assets are emitted
+in manifest order, so transport payload order cannot produce an IMAGE inventory
+that the SDK consumer refuses for disagreeing with the original distribution.
+
+A false aggregate digest and duplicate inventory entry both reproduced BUILD
+acceptance before repair. All four focused Node-side builder tests pass through
+the pinned Playwright runner (one worker, zero retries), including reordered
+payload transport with exact manifest/IMAGE/release inventory agreement. These
+are local content-admission fixtures, not public package/source corroboration
+or browser execution proof.

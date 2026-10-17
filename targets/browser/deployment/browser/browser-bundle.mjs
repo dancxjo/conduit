@@ -156,6 +156,10 @@ function requireDistribution(distribution) {
     }
     providers.add(item.id);
   }
+  if (!Array.isArray(manifest.files) || manifest.files.length < 1 || manifest.files.length >= MAXIMUM_FILES
+    || new Set(manifest.files.map(item => item?.path)).size !== manifest.files.length) {
+    refuse("ArtifactBound", "reviewed browser distribution inventory must be finite and unique");
+  }
   const paths = new Set(manifest.files.map((item) => item.path));
   const modules = new Map();
   for (const module of reviewed.modules) {
@@ -213,11 +217,15 @@ async function verifyDistributionPayloads(distribution, reviewed) {
     declarations.delete(payload.path);
   }
   if (declarations.size) refuse("ArtifactMissing", "reviewed browser distribution omitted a declared artifact");
+  if (await digestFileIdentities(distribution.manifest.files) !== distribution.manifest.bundle_sha256) {
+    refuse("DigestMismatch", "reviewed browser distribution aggregate identity is stale");
+  }
   for (const implementation of reviewed.implementations) {
     const artifact = implementation.artifact === "browser-runtime-superset.wasm" ? "runtime.wasm" : implementation.artifact;
     if (!files.some((item) => item.path === artifact)) refuse("ArtifactMissing", `implementation ${implementation.id} artifact is unavailable`);
   }
-  return files;
+  const verified = new Map(files.map(file => [file.path, file]));
+  return distribution.manifest.files.map(file => verified.get(file.path));
 }
 
 async function digestFileIdentities(files) {
