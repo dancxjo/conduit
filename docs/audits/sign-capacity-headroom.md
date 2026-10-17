@@ -1,5 +1,8 @@
 # Admit Sign reservations without scanning unused history
 
+The sections below retain the original headroom optimization and its evidence.
+The retained-count follow-up at the end describes the current implementation.
+
 `FixedSignLog` and `HostedSignLog` previously counted non-transient events for
 every `ensure_capacity` call, including the entire allocated event array's
 empty tail. The checked parser proof admits 60,000 local and remote Sign slots
@@ -109,3 +112,54 @@ queries and retained/missing remote identities, in both storage profiles.
 Current local kernel tests with `alloc` and strict all-target Clippy pass.
 This is a traversal-bound result; no new wall-clock speedup is claimed, and the
 historical timing table above remains tied to its original source artifacts.
+
+
+## Retained-count follow-up
+
+Fixed and hosted logs now maintain one bounded `u16` count of non-transient
+entries. These entries are never evicted. Every successful ordinary or remote
+publication increments the count only for a retained kind; transient eviction
+and refused publication leave it unchanged. Reservation admission uses this
+count directly, with the same item-before-byte refusal precedence. All
+reservation states now use constant work; history queries and transient
+**eviction** retain their separate traversal costs.
+
+The new history oracle checks count and admission after repeated publication,
+eviction and refused records over small capacities, every sticky/transient
+pattern and independent byte budgets. Remote-capacity and sequence-overflow
+refusals are checked on both storage profiles, along with maximum reservations.
+The alloc kernel suite and linear-ready reference suite each pass 159 tests;
+strict kernel all-target Clippy also passes.
+
+A fresh paired [receipt](evidence/sign-capacity-count-native.json) and
+[raw archive](evidence/sign-capacity-count-native-raw.tar.gz) retain three
+independent processes per clean source, eight trials per case and separate
+source-specific Cargo targets. The existing verifier checks all 26 artifact
+hashes, 2,160 raw rows, 90 summaries and exact non-timing equivalence.
+
+Mean microseconds per batch of 256 actual reservations:
+
+| Sink | Slots | State | Before | After |
+|---|---:|---|---:|---:|
+| hosted | 60,000 | Full transient | 6790.615 | 0.458 |
+| hosted | 60,000 | Full sticky | 6464.683 | 0.368 |
+| hosted | 60,000 | Empty | 0.461 | 0.454 |
+| hosted | 8 | Empty | 0.453 | 0.476 |
+| fixed | 1 | Full transient | 1.497 | 0.248 |
+
+The small hosted empty case is slightly slower in this capture; these are
+observations, not universal speedup or timing guarantees. Full variability and
+all states remain in the receipt. The timed probe measures reservation only;
+new count maintenance on publication and whole-Play performance are not
+measured here. It does not establish parser latency, FARGAN throughput, browser
+or physical acceptance.
+
+The archive also retains a native layout probe: `FixedSignLog<1>` remains 88
+bytes and `HostedSignLog` remains 96 bytes under the recorded compiler. The new
+counter occupies existing padding on that target. Other target layouts are
+unmeasured; no dynamic storage or allocation was added.
+
+After extracting the archive, recompute the receipt with the existing verifier
+using `--before /absolute/path/sign-count-before` and
+`--after /absolute/path/sign-count-after`. Historical headroom measurements
+above retain their original source identities.

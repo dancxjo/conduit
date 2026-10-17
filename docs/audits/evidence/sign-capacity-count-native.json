@@ -1,0 +1,518 @@
+{
+  "before": {
+    "source": "4b43865fa7e4abc9b06d2b780ba793ff1ad40b93",
+    "executable_sha256": "a32e24989dd0b4f382b291c5f2a7c97e2c81b9dc2a31831c1c9d7f6280b17a60",
+    "hashes": {
+      "build.jsonl": "3c5a48ffe4dd8c9ec6c9d2f932ea587fc8817b65d76a7b736eb6dfa90b6fcb62",
+      "build.stderr.log": "c11b8f1bfd52db11af8ef5fe5af6289bd5b3ab30f7739d20856b65dd75eab4b2",
+      "metadata.json": "ab8393cb0dc93e28639beb9cf79a34456c2b3d8688f10f9701c9ee05e9db5e27",
+      "observations.json": "7c40110cbce024c242165016a39251cee2d1b51c0ed303ac13827fb6a32ae468",
+      "process-0.resource.log": "a0405e7df3e3e1ea5f8f81b8260fdccd120b30bd93f1f5866c8fe48b9d143cd9",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "b4f24482b713167dfc208fad4b1260b365e694a336c144e6c713649dc90dd96e",
+      "process-1.resource.log": "4817e3454b19a4704eefd0643b41f1fb6ea7a76be1519d4a460e27a1b82c8603",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "fe7c069a273bad4db92a7a3bc67bc13d17c6c9896e8ebbdf6a68cb707dd04a89",
+      "process-2.resource.log": "62e2c40861e659331d5002c0c74c621c6628845e57af795bfc7f4e45ddee2764",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "8f37a3fb27e41ebc7d8b95f42150b156e8bb7d5d0a52063518e141c0a337be10"
+    },
+    "profile": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true"
+    },
+    "raw_rows_verified": 1080,
+    "summaries_recomputed": 45
+  },
+  "after": {
+    "source": "a92d12f30c62f82533b08ac693f7fd77b7bfc209",
+    "executable_sha256": "154dce6b7f669bd05bea5e8af2113040ef01bc99ce0cafa91106634e4befc962",
+    "hashes": {
+      "build.jsonl": "1cb5bb8bc90cf4a580556bc546869f550aedcb937dc07495ecf39742a6057316",
+      "build.stderr.log": "742e4eaf601e86a3dae21b6e8a695b585632b7397f675986a1a35aa641b59c71",
+      "metadata.json": "302b75f4b618013e11cb04aed4c1b5b17348e6bf3fa746df36669e10d85ee6ae",
+      "observations.json": "2ed5be3645d338da49cba6520f93f85a9eae23bb981bd0924507407a28ba8226",
+      "process-0.resource.log": "05b3ab08179426d4b85db051201b4c9f38018469b302b856e42400ff33824f09",
+      "process-0.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-0.stdout.log": "6b3b419a34a2fc55d2b0f87f4b2dbe7cb3cf687341233e3c03a123fd32d901b1",
+      "process-1.resource.log": "fc7dac53e6321e4be4ec218e63963781c69590159c630e2ecedca348f83652a9",
+      "process-1.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-1.stdout.log": "5504c4e884afcaa0df4e64a765297de75926c99bc6545bc386d76a6fbcdcec63",
+      "process-2.resource.log": "19d1183a27152bb499844814078eca08a6e2cfbbc55bf27b6d5e4b5291f9b4cf",
+      "process-2.stderr.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "process-2.stdout.log": "a2b491346675c677b705368e575268e94ba8db2cd356ebffe88857cefd5af8aa"
+    },
+    "profile": {
+      "CARGO_PROFILE_DEV_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OPT_LEVEL": "1",
+      "CARGO_PROFILE_TEST_DEBUG": "0",
+      "CARGO_PROFILE_TEST_OVERFLOW_CHECKS": "true",
+      "CARGO_PROFILE_TEST_DEBUG_ASSERTIONS": "true"
+    },
+    "raw_rows_verified": 1080,
+    "summaries_recomputed": 45
+  },
+  "exact_non_timing_rows_equal": true,
+  "comparison": [
+    {
+      "sink": "fixed",
+      "capacity": 1,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 557.5,
+      "after_mean_ns": 516.5416666666666,
+      "before_process_mean_sd_ns": 42.88811752688616,
+      "after_process_mean_sd_ns": 54.543751551697774
+    },
+    {
+      "sink": "fixed",
+      "capacity": 1,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 1210.875,
+      "after_mean_ns": 227.83333333333334,
+      "before_process_mean_sd_ns": 80.91343754284576,
+      "after_process_mean_sd_ns": 40.760798671435936
+    },
+    {
+      "sink": "fixed",
+      "capacity": 1,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 529.5833333333334,
+      "after_mean_ns": 275.0833333333333,
+      "before_process_mean_sd_ns": 27.822633921563455,
+      "after_process_mean_sd_ns": 36.83670327721162
+    },
+    {
+      "sink": "fixed",
+      "capacity": 1,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 1496.9166666666667,
+      "after_mean_ns": 248.20833333333334,
+      "before_process_mean_sd_ns": 104.14063007939473,
+      "after_process_mean_sd_ns": 35.84130240844121
+    },
+    {
+      "sink": "fixed",
+      "capacity": 1,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 1179.1666666666667,
+      "after_mean_ns": 220.83333333333334,
+      "before_process_mean_sd_ns": 88.76992147306053,
+      "after_process_mean_sd_ns": 38.544684566530485
+    },
+    {
+      "sink": "fixed",
+      "capacity": 8,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 551.7916666666666,
+      "after_mean_ns": 310.375,
+      "before_process_mean_sd_ns": 31.682096021780715,
+      "after_process_mean_sd_ns": 48.55747239097192
+    },
+    {
+      "sink": "fixed",
+      "capacity": 8,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 505.1666666666667,
+      "after_mean_ns": 265.4583333333333,
+      "before_process_mean_sd_ns": 34.81857741685225,
+      "after_process_mean_sd_ns": 42.421311959124196
+    },
+    {
+      "sink": "fixed",
+      "capacity": 8,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 507.0,
+      "after_mean_ns": 262.25,
+      "before_process_mean_sd_ns": 34.47349525360026,
+      "after_process_mean_sd_ns": 33.669580113211985
+    },
+    {
+      "sink": "fixed",
+      "capacity": 8,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 2904.0416666666665,
+      "after_mean_ns": 268.5833333333333,
+      "before_process_mean_sd_ns": 413.85369420645907,
+      "after_process_mean_sd_ns": 38.16377809302079
+    },
+    {
+      "sink": "fixed",
+      "capacity": 8,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 2668.5,
+      "after_mean_ns": 235.41666666666666,
+      "before_process_mean_sd_ns": 173.5578073726446,
+      "after_process_mean_sd_ns": 45.541247329572926
+    },
+    {
+      "sink": "fixed",
+      "capacity": 128,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 545.5833333333334,
+      "after_mean_ns": 350.625,
+      "before_process_mean_sd_ns": 21.457200617352985,
+      "after_process_mean_sd_ns": 43.47466934894388
+    },
+    {
+      "sink": "fixed",
+      "capacity": 128,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 519.0,
+      "after_mean_ns": 286.0833333333333,
+      "before_process_mean_sd_ns": 20.09080946602202,
+      "after_process_mean_sd_ns": 62.7466798590438
+    },
+    {
+      "sink": "fixed",
+      "capacity": 128,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 521.5,
+      "after_mean_ns": 269.7916666666667,
+      "before_process_mean_sd_ns": 23.076977163398155,
+      "after_process_mean_sd_ns": 47.620953458885445
+    },
+    {
+      "sink": "fixed",
+      "capacity": 128,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 24472.208333333332,
+      "after_mean_ns": 266.7916666666667,
+      "before_process_mean_sd_ns": 1161.9724362945678,
+      "after_process_mean_sd_ns": 40.31251614986757
+    },
+    {
+      "sink": "fixed",
+      "capacity": 128,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 23897.166666666668,
+      "after_mean_ns": 232.875,
+      "before_process_mean_sd_ns": 1290.5477176216048,
+      "after_process_mean_sd_ns": 44.26076846373095
+    },
+    {
+      "sink": "fixed",
+      "capacity": 4096,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 547.875,
+      "after_mean_ns": 304.9583333333333,
+      "before_process_mean_sd_ns": 21.19441258917076,
+      "after_process_mean_sd_ns": 52.11980389768685
+    },
+    {
+      "sink": "fixed",
+      "capacity": 4096,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 505.75,
+      "after_mean_ns": 251.66666666666666,
+      "before_process_mean_sd_ns": 25.772744809197178,
+      "after_process_mean_sd_ns": 45.7611552884467
+    },
+    {
+      "sink": "fixed",
+      "capacity": 4096,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 539.4583333333334,
+      "after_mean_ns": 479.2083333333333,
+      "before_process_mean_sd_ns": 24.645084871700753,
+      "after_process_mean_sd_ns": 361.17703271156836
+    },
+    {
+      "sink": "fixed",
+      "capacity": 4096,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 647648.7083333334,
+      "after_mean_ns": 260.4166666666667,
+      "before_process_mean_sd_ns": 37907.82172593419,
+      "after_process_mean_sd_ns": 50.744509144668385
+    },
+    {
+      "sink": "fixed",
+      "capacity": 4096,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 625392.125,
+      "after_mean_ns": 238.33333333333334,
+      "before_process_mean_sd_ns": 12941.140651402216,
+      "after_process_mean_sd_ns": 48.14696468452953
+    },
+    {
+      "sink": "hosted",
+      "capacity": 1,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 508.0833333333333,
+      "after_mean_ns": 507.0416666666667,
+      "before_process_mean_sd_ns": 6.699269238755323,
+      "after_process_mean_sd_ns": 47.81284041273153
+    },
+    {
+      "sink": "hosted",
+      "capacity": 1,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 823.375,
+      "after_mean_ns": 466.875,
+      "before_process_mean_sd_ns": 34.39953669746149,
+      "after_process_mean_sd_ns": 71.36843227225886
+    },
+    {
+      "sink": "hosted",
+      "capacity": 1,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 460.5,
+      "after_mean_ns": 494.4583333333333,
+      "before_process_mean_sd_ns": 49.694850085295556,
+      "after_process_mean_sd_ns": 49.89008752581351
+    },
+    {
+      "sink": "hosted",
+      "capacity": 1,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 770.9583333333334,
+      "after_mean_ns": 484.2916666666667,
+      "before_process_mean_sd_ns": 57.2898787599811,
+      "after_process_mean_sd_ns": 35.14086237321636
+    },
+    {
+      "sink": "hosted",
+      "capacity": 1,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 807.3333333333334,
+      "after_mean_ns": 453.8333333333333,
+      "before_process_mean_sd_ns": 47.978890757637714,
+      "after_process_mean_sd_ns": 41.389222127666685
+    },
+    {
+      "sink": "hosted",
+      "capacity": 8,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 453.0833333333333,
+      "after_mean_ns": 476.3333333333333,
+      "before_process_mean_sd_ns": 53.128137162273376,
+      "after_process_mean_sd_ns": 32.06836772168695
+    },
+    {
+      "sink": "hosted",
+      "capacity": 8,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 449.7916666666667,
+      "after_mean_ns": 474.5416666666667,
+      "before_process_mean_sd_ns": 49.75507721161061,
+      "after_process_mean_sd_ns": 29.368971012504563
+    },
+    {
+      "sink": "hosted",
+      "capacity": 8,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 453.7083333333333,
+      "after_mean_ns": 476.0416666666667,
+      "before_process_mean_sd_ns": 51.892968775483766,
+      "after_process_mean_sd_ns": 26.02472782438528
+    },
+    {
+      "sink": "hosted",
+      "capacity": 8,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 1482.9583333333333,
+      "after_mean_ns": 474.8333333333333,
+      "before_process_mean_sd_ns": 100.6999203491906,
+      "after_process_mean_sd_ns": 22.800881744646045
+    },
+    {
+      "sink": "hosted",
+      "capacity": 8,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 1433.3333333333333,
+      "after_mean_ns": 656.75,
+      "before_process_mean_sd_ns": 92.97364657973426,
+      "after_process_mean_sd_ns": 301.4982379716339
+    },
+    {
+      "sink": "hosted",
+      "capacity": 128,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 451.9583333333333,
+      "after_mean_ns": 476.375,
+      "before_process_mean_sd_ns": 49.542332487816246,
+      "after_process_mean_sd_ns": 24.444132731598394
+    },
+    {
+      "sink": "hosted",
+      "capacity": 128,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 448.7083333333333,
+      "after_mean_ns": 475.5416666666667,
+      "before_process_mean_sd_ns": 47.27418913459366,
+      "after_process_mean_sd_ns": 27.879297127677614
+    },
+    {
+      "sink": "hosted",
+      "capacity": 128,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 456.9166666666667,
+      "after_mean_ns": 478.3333333333333,
+      "before_process_mean_sd_ns": 50.05377316779759,
+      "after_process_mean_sd_ns": 29.073273092882634
+    },
+    {
+      "sink": "hosted",
+      "capacity": 128,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 36875.875,
+      "after_mean_ns": 478.3333333333333,
+      "before_process_mean_sd_ns": 35321.900231787855,
+      "after_process_mean_sd_ns": 22.50358767693128
+    },
+    {
+      "sink": "hosted",
+      "capacity": 128,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 16739.583333333332,
+      "after_mean_ns": 439.7083333333333,
+      "before_process_mean_sd_ns": 797.2826636979719,
+      "after_process_mean_sd_ns": 33.995480704548555
+    },
+    {
+      "sink": "hosted",
+      "capacity": 4096,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 447.6666666666667,
+      "after_mean_ns": 458.6666666666667,
+      "before_process_mean_sd_ns": 49.40431619133427,
+      "after_process_mean_sd_ns": 32.715949219506584
+    },
+    {
+      "sink": "hosted",
+      "capacity": 4096,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 448.4166666666667,
+      "after_mean_ns": 459.5833333333333,
+      "before_process_mean_sd_ns": 45.502461014030146,
+      "after_process_mean_sd_ns": 24.721679925388027
+    },
+    {
+      "sink": "hosted",
+      "capacity": 4096,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 463.1666666666667,
+      "after_mean_ns": 466.2916666666667,
+      "before_process_mean_sd_ns": 43.67356418170302,
+      "after_process_mean_sd_ns": 40.05042394698629
+    },
+    {
+      "sink": "hosted",
+      "capacity": 4096,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 460357.0833333333,
+      "after_mean_ns": 487.2083333333333,
+      "before_process_mean_sd_ns": 27109.79177988939,
+      "after_process_mean_sd_ns": 60.546254701123615
+    },
+    {
+      "sink": "hosted",
+      "capacity": 4096,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 466987.0416666667,
+      "after_mean_ns": 441.5416666666667,
+      "before_process_mean_sd_ns": 15832.964339834103,
+      "after_process_mean_sd_ns": 67.34847962896663
+    },
+    {
+      "sink": "hosted",
+      "capacity": 60000,
+      "state": "Empty",
+      "calls_per_batch": 256,
+      "before_mean_ns": 460.9166666666667,
+      "after_mean_ns": 453.625,
+      "before_process_mean_sd_ns": 49.90558794697577,
+      "after_process_mean_sd_ns": 58.69239196863594
+    },
+    {
+      "sink": "hosted",
+      "capacity": 60000,
+      "state": "Sparse",
+      "calls_per_batch": 256,
+      "before_mean_ns": 462.9583333333333,
+      "after_mean_ns": 445.625,
+      "before_process_mean_sd_ns": 51.49549939881478,
+      "after_process_mean_sd_ns": 47.42378754380548
+    },
+    {
+      "sink": "hosted",
+      "capacity": 60000,
+      "state": "HalfTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 481.7083333333333,
+      "after_mean_ns": 463.7916666666667,
+      "before_process_mean_sd_ns": 56.714517174470714,
+      "after_process_mean_sd_ns": 53.283049212046166
+    },
+    {
+      "sink": "hosted",
+      "capacity": 60000,
+      "state": "FullTransient",
+      "calls_per_batch": 256,
+      "before_mean_ns": 6790615.125,
+      "after_mean_ns": 458.3333333333333,
+      "before_process_mean_sd_ns": 372573.3130958716,
+      "after_process_mean_sd_ns": 106.55994009632951
+    },
+    {
+      "sink": "hosted",
+      "capacity": 60000,
+      "state": "FullSticky",
+      "calls_per_batch": 256,
+      "before_mean_ns": 6464683.125,
+      "after_mean_ns": 368.3333333333333,
+      "before_process_mean_sd_ns": 306420.87166364724,
+      "after_process_mean_sd_ns": 68.12836383132456
+    }
+  ],
+  "limits": [
+    "Native production SignSink reservation batches; no scheduler CPU attribution.",
+    "Loop, black-box and result storage included; no timer subtraction.",
+    "Shared host; process variation retained; no automatic timing threshold.",
+    "No claim that every occupancy/capacity improves; inspect all comparisons.",
+    "Historical binary paths are not required; source/executable hashes are capture-time custody."
+  ]
+}
