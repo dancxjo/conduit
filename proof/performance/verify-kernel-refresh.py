@@ -18,6 +18,10 @@ def capture(folder):
     nodes = metadata.get('node_counts', [1, 8, 32])
     assert 3 <= runs <= 9 and nodes in [[1, 8, 32], [1, 8, 32, 256]]
     assert len(status['artifacts_sha256']) == 6 + 4 * runs + (2 if 'clean_command' in metadata else 0), 'incomplete capture'
+    if 'clean_command' in metadata:
+        artifacts = [json.loads(line) for line in (folder / 'build.jsonl').read_text().splitlines()
+                     if line.startswith('{') and json.loads(line).get('executable')]
+        assert len(artifacts) == 1 and artifacts[0].get('fresh') is False, 'measured package not rebuilt'
     raw = json.loads((folder / 'raw.json').read_text())
     expected = {(p, n, sparse, trial) for p in range(runs) for n in nodes
                 for sparse in [False, True] for trial in range(8)}
