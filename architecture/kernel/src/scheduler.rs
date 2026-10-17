@@ -960,6 +960,7 @@ pub struct FixedScheduler<
     queue_slots: [Option<ValueRef>; QUEUE_SLOTS],
     ready: ReadySet<NODES>,
     completed: [bool; NODES],
+    completed_count: usize,
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
@@ -1074,6 +1075,7 @@ where
             queue_slots: [None; QUEUE_SLOTS],
             ready: ReadySet::new(active_nodes),
             completed: [false; NODES],
+            completed_count: 0,
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
@@ -2151,7 +2153,7 @@ where
             }
             StepOutcome::Await => self.ready.set(node, false),
             StepOutcome::Complete => {
-                self.completed[node] = true;
+                self.mark_completed(node);
                 self.ready.set(node, false);
                 self.close_outputs(node)?;
                 if let Some(source) = self.projected_recovery_source[node].take() {
@@ -2186,7 +2188,7 @@ where
                 });
             }
             StepOutcome::Abnormal { port, terminal } => {
-                self.completed[node] = true;
+                self.mark_completed(node);
                 self.ready.set(node, false);
                 let routed = self.abnormally_terminate_outputs(node, port, terminal)?;
                 self.signs.record(
