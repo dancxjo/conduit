@@ -128,7 +128,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         input.setAttribute('part', 'input');
         label.append(input);
         control.append(label);
-        inputs.push({ name: argument.name, input });
+        inputs.push({ name: argument.name, input, argument });
       }
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.setAttribute('part', 'button');
@@ -142,7 +142,17 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
-        if (!this.#ready(view, action, render) || !this.#invoke) return;
+        if (!this.#ready(view, action, render) || !this.#invoke
+          || !supported || inputs.length !== action.arguments.length) return;
+        // A submit event can be synthetic, and script can change values without
+        // firing input events. Recheck the admitted argument domain here.
+        for (const { input, argument } of inputs) {
+          if (argument.choices.length) {
+            if (!argument.choices.includes(input.value)) return;
+          } else input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
+            ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : '');
+          if (!input.checkValidity()) return;
+        }
         this.disabled = true;
         await this.#invoke({ view, action, arguments: inputs.map(({ name, input }) => ({ name, value: input.value })) });
       });

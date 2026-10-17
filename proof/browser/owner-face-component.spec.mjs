@@ -266,3 +266,49 @@ test('a replaced exclusive-choice listener cannot dispatch or reset current sele
   expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
   await expect(current).toBeDisabled();
 });
+
+for (const scenario of ['unsupported', 'utf8', 'choice']) {
+  test(`current forms refuse invalid ${scenario} arguments before invoking`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const argument = { name: 'value', value_name: 'Value', value_kind: 'value/text',
+      maximum_bytes: 4, choices: [] };
+    if (scenario === 'unsupported') argument.value_kind = 'value/unknown';
+    if (scenario === 'choice') argument.choices = ['one', 'two'];
+    const currentView = { ...view, actions: [{ ...view.actions[0], arguments: [argument] }] };
+    await page.evaluate(async ({ view, scenario }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      const form = element.shadowRoot.querySelector('form');
+      if (scenario === 'utf8') form.querySelector('input').value = 'ééé';
+      if (scenario === 'choice') {
+        const select = form.querySelector('select');
+        select.add(new Option('forged', 'forged'));
+        select.value = 'forged';
+      }
+      // Adversarial event intentionally bypasses normal browser form admission.
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+    }, { view: currentView, scenario });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const element = page.locator('conduit-owner-face');
+    const button = element.getByRole('button', { name: 'Complete task', exact: true });
+    if (scenario === 'unsupported') {
+      await expect(button).toBeDisabled();
+      await expect(element.getByText('This input has no supported browser form.', { exact: true })).toBeVisible();
+      return;
+    }
+    await expect(button).toBeEnabled();
+    if (scenario === 'utf8') {
+      const input = element.getByLabel('Value', { exact: true });
+      expect(await input.evaluate(node => node.validationMessage)).toBe('Use at most 4 UTF-8 bytes.');
+      await input.fill('éé');
+    } else await element.getByRole('combobox').selectOption('one');
+    await button.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
+      action: currentView.actions[0], arguments: [{ name: 'value', value: scenario === 'utf8' ? 'éé' : 'one' }] }]);
+  });
+}

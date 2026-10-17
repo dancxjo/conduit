@@ -29,3 +29,19 @@ activation of the current button/radio control. Adversarial synthetic stale
 events are negative fixtures; successful current keyboard actions are renderer
 callbacks, not Body mutation receipts. This establishes local renderer fencing,
 not packaged/public acceptance or the whole #5644 adversarial corpus.
+
+
+A further #5644 development slice checks current form arguments at submission,
+rather than relying on disabled controls or prior input events. Unsupported
+argument forms and incomplete argument sets cannot invoke the route. Choice
+values must belong to the offered finite choices; text is checked again against
+its UTF-8 byte ceiling, with the existing contextual validation message. Browser
+constraint validation still applies before the callback.
+
+All three adversarial fixtures failed on the preceding implementation. The
+updated owner-component Chromium suite passes ten tests with one worker and zero
+retries, covering unsupported forms, inserted foreign choices and multibyte
+text assigned without an input event. Valid keyboard submissions remain usable
+after refusal. These are renderer callbacks and local constraint checks; SDK
+and Body argument admission remain authoritative, and unchanged Body state or
+packaged/public acceptance is not claimed by this fixture.
