@@ -207,3 +207,67 @@ fn empty_remote_fanout_preserves_admitted_coalescing_policy() {
     assert_eq!(scheduler.values().used_items(), 1);
     assert_eq!(scheduler.values().used_bytes(), 0);
 }
+
+#[test]
+fn remote_fanout_pressure_cannot_hide_invalid_or_stale_sibling_targets() {
+    for scenario in 0..3 {
+        for reverse in [false, true] {
+            let mut scheduler = scheduler(16);
+            scheduler
+                .admit_remote_input_fanout(&TARGETS, 0, b"seed")
+                .unwrap();
+            scheduler.step().unwrap();
+            let other = match scenario {
+                0 => TARGETS[1], // Duplicate of the pressured branch.
+                1 => (RemoteEndpointId(99), CordId(0)),
+                _ => {
+                    scheduler.cords[0].next_remote_sequence = 0;
+                    TARGETS[0]
+                }
+            };
+            let targets = if reverse {
+                [other, TARGETS[1]]
+            } else {
+                [TARGETS[1], other]
+            };
+            let signs = scheduler.signs.entries;
+            let values = scheduler
+                .values
+                .slots
+                .map(|slot| (slot.generation, slot.references, slot.len, slot.bytes));
+            let expected = if scenario == 2 {
+                SchedulerError::RemoteSequenceRejected
+            } else {
+                SchedulerError::InvalidRemoteCordAccess
+            };
+            assert_eq!(
+                scheduler.admit_remote_input_fanout(&targets, 1, b"next"),
+                Err(expected)
+            );
+            assert_eq!(scheduler.signs.entries, signs);
+            assert_eq!(
+                scheduler.values.slots.map(|slot| (
+                    slot.generation,
+                    slot.references,
+                    slot.len,
+                    slot.bytes
+                )),
+                values
+            );
+            assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
+            assert_eq!(scheduler.cord_usage(CordId(1)).unwrap(), (1, 4));
+        }
+    }
+}
+
+#[test]
+fn remote_fanout_rejects_more_targets_than_admitted_cords_even_under_pressure() {
+    let mut scheduler = scheduler(16);
+    scheduler
+        .admit_remote_input_fanout(&TARGETS, 0, b"seed")
+        .unwrap();
+    assert_eq!(
+        scheduler.admit_remote_input_fanout(&[TARGETS[0], TARGETS[1], TARGETS[0]], 1, b"next"),
+        Err(SchedulerError::InvalidRemoteCordAccess)
+    );
+}

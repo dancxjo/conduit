@@ -44,7 +44,7 @@ where
         if self.cancelled {
             return Err(SchedulerError::Cancelled);
         }
-        if targets.is_empty() || targets.len() > usize::from(u16::MAX) {
+        if targets.is_empty() || targets.len() > self.active_cords {
             return Err(SchedulerError::InvalidRemoteCordAccess);
         }
         let byte_len =
@@ -52,6 +52,7 @@ where
         let next_sequence = sequence
             .checked_add(1)
             .ok_or(SchedulerError::RemoteSequenceRejected)?;
+        let mut pressured = false;
         for (index, (endpoint, cord)) in targets.iter().copied().enumerate() {
             if targets[..index].contains(&(endpoint, cord)) {
                 return Err(SchedulerError::InvalidRemoteCordAccess);
@@ -70,9 +71,11 @@ where
             if state.producer_closed || state.next_remote_sequence != sequence {
                 return Err(SchedulerError::RemoteSequenceRejected);
             }
-            if !self.payload_admissible(spec, state, byte_len)? {
-                return Ok(RemoteIngressOutcome::Full { sequence });
-            }
+            pressured |= !self.payload_admissible(spec, state, byte_len)?;
+        }
+        // Pressure is retryable only after every target has a valid current basis.
+        if pressured {
+            return Ok(RemoteIngressOutcome::Full { sequence });
         }
         self.ensure_sign_capacity(targets.len())?;
         self.ensure_remote_sign_capacity(targets.len())?;
