@@ -7,11 +7,6 @@ const root = resolve(process.argv[3] ?? ".");
 const port = Number.parseInt(process.argv[2] ?? "4173", 10);
 const mount = normalizeMount(process.argv[4] ?? "/");
 const mountEntrance = mount === "/" ? "/" : mount.slice(0, -1);
-// The browser lane and native entrance select the same sealed runtime. Keep
-// Cargo's linked artifact unchanged; never fall back when a selected file is absent.
-const selectedRuntime = process.env.CONDUIT_BROWSER_RUNTIME_WASM
-  ? resolve(process.env.CONDUIT_BROWSER_RUNTIME_WASM) : null;
-const runtimeAlias = "target/wasm32-unknown-unknown/release/conduit_browser_runtime.wasm";
 const mediaTypes = new Map([
   [".css", "text/css; charset=utf-8"],
   [".html", "text/html; charset=utf-8"],
@@ -34,9 +29,8 @@ const server = createServer(async (request, response) => {
       return;
     }
     const relative = pathname === mountEntrance ? "" : pathname.slice(mount.length);
-    const selectedRuntimeRequest = selectedRuntime && relative === runtimeAlias;
-    let file = selectedRuntimeRequest ? selectedRuntime : resolve(root, relative);
-    if (!selectedRuntimeRequest && file !== root && !file.startsWith(`${root}${sep}`)) {
+    let file = resolve(root, relative);
+    if (file !== root && !file.startsWith(`${root}${sep}`)) {
       response.writeHead(404).end();
       return;
     }
