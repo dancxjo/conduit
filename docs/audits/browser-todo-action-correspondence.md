@@ -383,3 +383,15 @@ fixtures pass with one worker and zero retries. Each new case verifies disabled
 refusal without input construction or callback and native keyboard activation
 of an unrelated valid action. This proves renderer contract admission, not
 authoritative Body receipts or complete accessibility acceptance.
+
+SDK argument-contract follow-up (#5644): direct browser SDK argument admission
+now requires unique nonblank declaration names and validates every choice in
+each admitted table as nonempty text within the existing UTF-8 bound. A valid
+selected option cannot hide another malformed table member. The renderer already
+refused those tables; runtime validation remains independent.
+
+Empty/blank names and tables containing a nontext, oversized-Unicode or empty
+member all reproduced admission before repair. Three focused SDK Node tests and
+the producer fixture pass, including a valid Unicode choice at its exact byte
+limit. These establish SDK contract refusal, not Body mutation/receipt or
+packaged/public acceptance for the unpromoted changes.
