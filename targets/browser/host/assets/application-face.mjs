@@ -210,11 +210,16 @@ export function decodeApplicationView(input) {
 }
 
 export function encodeApplicationView(view) {
-  if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
-  if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
-  if (view.nodes.length === 0) refuse("empty");
-  if (view.nodes.length > MAX_NODES) refuse("too-many-nodes");
-  if (view.actions.length > MAX_ACTIONS) refuse("too-many-actions");
+  const revision = view?.revision;
+  const nodes = view?.nodes;
+  const actions = view?.actions;
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Array.isArray(nodes) || !Array.isArray(actions)) refuse("malformed-encoding");
+  const nodeCount = nodes.length;
+  const actionCount = actions.length;
+  if (nodeCount === 0) refuse("empty");
+  if (nodeCount > MAX_NODES) refuse("too-many-nodes");
+  if (actionCount > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
   let length = 0;
   const append = (...values) => {
@@ -227,11 +232,12 @@ export function encodeApplicationView(view) {
   const push = (...bytes) => append(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);
   header[0] = VERSION;
-  new DataView(header.buffer).setUint32(1, view.revision, true);
-  header[5] = view.nodes.length;
-  header[6] = view.actions.length;
+  new DataView(header.buffer).setUint32(1, revision, true);
+  header[5] = nodeCount;
+  header[6] = actionCount;
   append(header);
-  for (const action of view.actions) {
+  for (let index = 0; index < actionCount; index++) {
+    const action = actions[index];
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
     const encoded = encodeExactText(action.id ?? "", MAX_ACTION_ID_BYTES, "action-id-too-long");
@@ -239,7 +245,8 @@ export function encodeApplicationView(view) {
     push(kind, encoded.length);
     append(encoded);
   }
-  for (const node of view.nodes) {
+  for (let index = 0; index < nodeCount; index++) {
+    const node = nodes[index];
     const component = COMPONENT_IDENTITIES[node?.component];
     if (!component) refuse("unknown-component");
     const state = NODE_STATE_IDENTITIES[node?.state ?? "ready"];

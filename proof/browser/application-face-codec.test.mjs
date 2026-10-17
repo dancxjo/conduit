@@ -144,3 +144,26 @@ test('view envelope refuses before processing later fields and accepts its exact
     get text() { assert.fail('oversized envelope must refuse before later fields'); } });
   assert.throws(() => encodeApplicationView(source), { code: 'oversized-encoding' });
 });
+
+test('view encoding uses admitted entries rather than custom array iteration', () => {
+  const source = description();
+  const expected = decodeApplicationView(encodeApplicationView(source));
+  for (const field of ['nodes', 'actions']) {
+    source[field][Symbol.iterator] = () => assert.fail('encoding must use the admitted indexed entries');
+  }
+  assert.deepEqual(decodeApplicationView(encodeApplicationView(source)), expected);
+});
+
+test('view encoding keeps admitted counts when source getters append entries', () => {
+  const source = description();
+  Object.defineProperty(source.actions[0], 'event', { get() {
+    source.actions.push({ id: 'not-admitted', event: 'activate' }); return 'input';
+  } });
+  Object.defineProperty(source.nodes[0], 'text', { get() {
+    source.nodes.push({ parent: 0, component: 'paragraph', key: 'not-admitted', text: 'late', action: null }); return 'Source';
+  } });
+  const decoded = decodeApplicationView(encodeApplicationView(source));
+  assert.equal(decoded.actions.length, 1);
+  assert.equal(decoded.nodes.length, 1);
+  assert.equal(decoded.nodes[0].text, 'Source');
+});

@@ -732,3 +732,14 @@ Both new regressions reproduced late encoding/processing before repair. All
 early field rejection and no access to later nodes after envelope exhaustion.
 These prove codec work admission, not compiler/Play or public runtime acceptance;
 no browser/runtime rebuild was performed.
+
+View count custody follow-up (#5653): encode captures the revision, array
+references and admitted node/action counts once, then processes bounded indexed
+entries. Caller-provided iterators cannot expand the traversal and appended
+entries cannot diverge from the header counts. This does not claim confinement
+of arbitrary JavaScript getters themselves.
+
+Two regressions reproduced iterator execution and source-growth/header mismatch
+before repair. All 13 focused Node codec tests pass, including exact inventory
+and envelope ceilings. No browser/runtime build was needed for this encoder
+traversal change; real compiler/Play and full runtime acceptance remain open.
