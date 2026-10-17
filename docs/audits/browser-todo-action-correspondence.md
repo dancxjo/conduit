@@ -658,3 +658,17 @@ boolean controls. All 26 targeted pinned Chromium fixtures pass with one worker
 and zero retries, including native Unicode text insertion and keyboard boolean
 activation after refusal. This is generic renderer admission proof, not Body
 state mutation or full runtime acceptance; the missing local WASM limit remains.
+
+Generic codec identity follow-up (#5644): decoding preserves leading BOM
+characters in length-delimited UTF-8 fields instead of silently stripping them.
+Encoding requires scalar Unicode strings for action IDs, node keys, wording
+and values; it refuses implicit coercion and surrogate replacement. Event
+action IDs use the same exact-text encoder.
+
+Two focused Node codec regressions reproduced normalization/admission failures
+before the repair. The codec plus saved-choice run passes all 12 tests, and
+all 26 targeted pinned Chromium routing fixtures pass (one worker, zero retries).
+The codec check is registered in the browser xtask check suite; Rust formatting
+passes. No fresh xtask/runtime build was run, and the prior missing local WASM
+limit remains. These are codec/renderer proofs, not authoritative Body or public
+release acceptance.

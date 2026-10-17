@@ -29,6 +29,12 @@ export class ApplicationFaceRefusal extends Error {
 
 const refuse = (code) => { throw new ApplicationFaceRefusal(code); };
 
+function encodeExactText(value) {
+  if (typeof value !== "string" || !value.isWellFormed()) refuse("malformed-encoding");
+  return new TextEncoder().encode(value);
+}
+
+
 class Cursor {
   constructor(encoded) { this.encoded = encoded; this.offset = 0; }
   bytes(length) {
@@ -42,7 +48,7 @@ class Cursor {
   u16() { const bytes = this.bytes(2); return bytes[0] | (bytes[1] << 8); }
   u32() { return new DataView(this.bytes(4).buffer).getUint32(0, true); }
   text(length) {
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(this.bytes(length)); }
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.bytes(length)); }
     catch { refuse("malformed-encoding"); }
   }
 }
@@ -211,7 +217,7 @@ export function encodeApplicationView(view) {
   for (const action of view.actions) {
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
-    const encoded = new TextEncoder().encode(action.id ?? "");
+    const encoded = encodeExactText(action.id ?? "");
     if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
     push(kind, encoded.length);
     chunks.push(encoded);
@@ -224,9 +230,9 @@ export function encodeApplicationView(view) {
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
-    const key = new TextEncoder().encode(node.key ?? "");
-    const content = new TextEncoder().encode(node.text ?? "");
-    const value = new TextEncoder().encode(node.value ?? "");
+    const key = encodeExactText(node.key ?? "");
+    const content = encodeExactText(node.text ?? "");
+    const value = encodeExactText(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
@@ -329,7 +335,7 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
 }
 
 export function encodeApplicationEvent(event) {
-  const action = new TextEncoder().encode(event.action);
+  const action = encodeExactText(event.action);
   const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
