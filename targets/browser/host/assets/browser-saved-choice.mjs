@@ -12,7 +12,7 @@ export class BrowserSavedChoiceRefusal extends Error {
 }
 const refusal = (code, message, cause) => new BrowserSavedChoiceRefusal(code, message, cause);
 function exactText(value, maximum) {
-  return typeof value === "string" && value.length > 0 && !value.includes("\0") && encoder.encode(value).length <= maximum;
+  return typeof value === "string" && value.isWellFormed() && value.length > 0 && !value.includes("\0") && encoder.encode(value).length <= maximum;
 }
 function validate(configuration) {
   if (!configuration || !exactText(configuration.label, 128) || !exactText(configuration.key, 128) ||
