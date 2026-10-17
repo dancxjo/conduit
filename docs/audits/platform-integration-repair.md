@@ -67,3 +67,13 @@ through the real package producer, checks its retained hash/bound, and confirms
 that a one-byte-too-small declaration still refuses. It is part of
 `cargo xtask check browser`. This is package admission proof; complete staging,
 browser execution and release publication remain separate CI evidence.
+
+## Process allocation measurement exclusion
+
+Candidate runtime-performance conformance failed with `nested allocation
+measurement` in the fan-out pressure cancellation test. That test omitted the
+process-wide measurement mutex used by the rest of the hosted pipeline corpus;
+its Host preparation can overlap another test's active counter window. It now
+uses the same test-only exclusion guard. The production allocator and cancellation
+assertions are unchanged; this does not serialize product execution or convert
+a missing measurement into zero allocations.

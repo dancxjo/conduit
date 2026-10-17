@@ -134,6 +134,7 @@ fn oversized_text_keeps_the_existing_checked_256_byte_refusal() -> Result<(), Bo
 #[test]
 fn stop_under_real_fanout_pressure_keeps_exact_delivered_prefix_and_cancel_receipt(
 ) -> Result<(), Box<dyn Error>> {
+    let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
     struct StopAfter {
         outputs: Vec<ExternalForeDelivery>,
         control: RunControl,
