@@ -1793,19 +1793,21 @@ where
             return Err(SchedulerError::HostCallCompletionRejected);
         }
         let slot = self
-            .pending_host_calls
-            .iter()
-            .position(|pending| {
-                pending
-                    .map(|pending| {
-                        pending.request.node == node && pending.request.request == request
-                    })
-                    .unwrap_or(false)
-            })
+            .indexed_host_slot(usize::from(node.0))
             .ok_or(SchedulerError::HostCallCompletionRejected)?;
+        #[cfg(test)]
+        {
+            let mut counts = self.scan_counts.get();
+            counts.completion_pending_slots += 1;
+            self.scan_counts.set(counts);
+        }
         let pending =
             self.pending_host_calls[slot].ok_or(SchedulerError::HostCallCompletionRejected)?;
-        if !pending.dispatched || pending.completion.is_some() {
+        if pending.request.node != node
+            || pending.request.request != request
+            || !pending.dispatched
+            || pending.completion.is_some()
+        {
             return Err(SchedulerError::HostCallCompletionRejected);
         }
         if let Some(output) = outcome.output {

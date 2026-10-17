@@ -37,3 +37,26 @@ After extracting the archive, rerun the verifier with `--before` pointing to
 files supplied through `--before-source`/`--after-source`, and a new JSON output.
 Raw test logs classify the large-live-table and lifecycle evidence separately
 from the empty-table replay. Parent acceptance remains open.
+
+
+## Indexed completion admission
+
+Completion admission now uses the same per-node slot index. It still checks
+both the exact node and RequestId, dispatch state, absence of an earlier
+completion, output bounds/value admission and Sign reservation before publishing
+an outcome. The index is an acceleration of lookup, not permission to complete
+a request. No production fields or allocation were added by this follow-up.
+
+A 4,096-slot regression failed before repair: a wrong RequestId scanned all
+slots. Admission now probes at most one entry for a node with a live request,
+and zero entries for an unbound node or after global cancellation. The fixture
+checks wrong IDs, the correct but undispatched request, duplicate completion,
+valid dispatch/completion and late completion without unintended Signs or
+pending-outcome changes. Alloc/reference-ready suites each pass 182 tests;
+20 fixed-only Host tests, the final targeted assertion and strict all-target
+kernel Clippy pass. A new test-only completion-probe counter is absent from
+production layouts; prior replay size receipts remain source-pinned.
+
+This is bounded-work and identity/refusal proof, not a measured wall-clock
+speedup. Adapter request selection, completion consumption and other table
+queries remain linear. Full #5231 acceptance remains open.

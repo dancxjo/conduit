@@ -32,9 +32,13 @@ where
     S: ValueStorage,
     E: SignSink,
 {
-    pub(super) fn indexed_host_call(&self, node: usize) -> Option<&PendingHostCall> {
+    pub(super) fn indexed_host_slot(&self, node: usize) -> Option<usize> {
         let slot = self.pending_host_slots[node]?;
-        self.pending_host_calls[usize::try_from(slot.get() - 1).ok()?].as_ref()
+        usize::try_from(slot.get() - 1).ok()
+    }
+
+    pub(super) fn indexed_host_call(&self, node: usize) -> Option<&PendingHostCall> {
+        self.pending_host_calls[self.indexed_host_slot(node)?].as_ref()
     }
 }
 

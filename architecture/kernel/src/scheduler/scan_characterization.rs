@@ -5,6 +5,7 @@ pub(super) struct ScanCounts {
     pub ready_bytes: u64,
     pub pending_slots: u64,
     pub context_pending_slots: u64,
+    pub completion_pending_slots: u64,
     pub input_ports: u64,
     pub cord_scans: u64,
     pub queue_peeks: u64,

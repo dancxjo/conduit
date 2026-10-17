@@ -380,3 +380,64 @@ fn unrelated_ready_node_does_not_scan_a_large_live_host_table() {
         .join()
         .unwrap();
 }
+
+#[test]
+fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
+    std::thread::Builder::new()
+        .stack_size(8 * 1024 * 1024)
+        .spawn(|| {
+            let mut scheduler = scheduler_with_pending::<_, _, 4096>(
+                FixedValueStore::<4, 8>::new(32).unwrap(),
+                FixedSignLog::<64>::new(64 * core::mem::size_of::<crate::KernelEvent>() as u32)
+                    .unwrap(),
+            );
+            scheduler.step().unwrap();
+            let outcome = HostCallOutcome {
+                disposition: HostCallDisposition::Cancelled,
+                output: None,
+                failure: None,
+            };
+            let signs = scheduler.signs.entries;
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(0), RequestId(99), outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            assert!(scheduler.pending_host_calls[0]
+                .unwrap()
+                .completion
+                .is_none());
+            let request = scheduler.next_host_request().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(1), request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 0);
+            scheduler.scan_counts.set(Default::default());
+            scheduler
+                .complete_host_call(request.node, request.request, outcome)
+                .unwrap();
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            let signs = scheduler.signs.entries;
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(request.node, request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
+            scheduler.cancel().unwrap();
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(request.node, request.request, outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 0);
+        })
+        .unwrap()
+        .join()
+        .unwrap();
+}
