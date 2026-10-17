@@ -34,7 +34,8 @@ fn specimen<const N: usize>(trial: usize) {
             complete: node + 1 != N,
         }),
         ObservedValues::<4>::new(),
-        FixedSignLog::<2048>::new(2048 * core::mem::size_of::<crate::KernelEvent>() as u32),
+        FixedSignLog::<2048>::new(2048 * core::mem::size_of::<crate::KernelEvent>() as u32)
+            .unwrap(),
     )
     .unwrap();
     for node in 0..N {
