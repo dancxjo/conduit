@@ -17,3 +17,18 @@ original-source custody when explicitly saving. These use a fake Host/checker;
 they do not establish Rust syntax acceptance, actual packaged execution or public
 release identity. The historical reported quoted `1kHz` provenance, released
 package/digest and public HTTPS corroboration remain unproved; #5510 stays open.
+
+The source inspector now includes a read-only provenance panel with the admitted
+application/package identity, selected source origin, packaged resource role and
+digest, local-edit state and SHA-256 of the exact displayed UTF-8 source. Missing
+manifest evidence remains explicitly null. Source hashing is asynchronous and
+cannot block editing or Host startup; a generation fence prevents late digest
+results from overwriting newer source evidence. Saving a rescue correction or
+installing checked source updates the inspection basis.
+
+Both focused Chromium fixtures pass with independent Node SHA-256 expectations
+for package source and edited correction text, matching fixture manifest metadata
+and explicit unknown metadata when the Host is unavailable. Explicit save also
+clears the local-edit marker. These remain source-inspection fixtures with a fake
+Host/checker; no public release/package corroboration is implied by the panel or
+these local tests.
