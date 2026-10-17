@@ -118,11 +118,8 @@ fn dimension_and_numeric_capacity_limits_remain_checked() {
     // Build the largest power-of-two coordinate that fits the finite profile,
     // then ensure product overflow refuses rather than narrowing that value.
     let mut coordinate = ExactRational::ONE;
-    loop {
-        match coordinate.checked_multiply(ExactRational::from_i128(2), &mut work()) {
-            Ok(next) => coordinate = next,
-            Err(_) => break,
-        }
+    while let Ok(next) = coordinate.checked_multiply(ExactRational::from_i128(2), &mut work()) {
+        coordinate = next;
     }
     let huge = RationalQuantity::new(
         coordinate,
