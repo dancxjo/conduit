@@ -427,6 +427,7 @@ function copyApplicationEvent(event) {
 
 export function manifestApplicationView(input, root, options = {}) {
   if (!(root instanceof Element)) throw new TypeError("application face requires an Element");
+  const previousManifestation = activeManifestations.get(root);
   const view = decodeApplicationView(input);
   const active = root.contains(document.activeElement) ? document.activeElement : null;
   const activeNode = active?.closest?.("[data-application-key]");
@@ -700,6 +701,7 @@ export function manifestApplicationView(input, root, options = {}) {
       if (elements[index].value !== node.value) refuse("invalid-control-value");
     }
   }
+  if (activeManifestations.get(root) !== previousManifestation) refuse("stale-revision");
   root.replaceChildren(fragment);
   activeManifestations.set(root, render);
   root.dataset.applicationRevision = String(view.revision);
@@ -750,24 +752,29 @@ export function createApplicationFaceHost(scope = document) {
   };
   return Object.freeze({
     present(slot, description, options = {}) {
-      const encoded = description instanceof Uint8Array ? description : encodeApplicationView(description);
+      const encoded = description instanceof Uint8Array
+        ? new Uint8Array(checkedBytes(description, MAX_BYTES, "oversized-encoding"))
+        : encodeApplicationView(description);
       const view = decodeApplicationView(encoded);
+      // Read caller-controlled options before the final revision check. Their
+      // getters may synchronously commit another presentation of this slot.
+      const { eventCapacity, eventByteCapacity, look, onEvent, onRefusal } = options;
       const previous = revisions.get(slot) ?? 0;
       if (view.revision <= previous) refuse("stale-revision");
       const manifestation = manifestApplicationView(encoded, rootFor(slot), {
-        eventCapacity: options.eventCapacity,
-        eventByteCapacity: options.eventByteCapacity,
+        eventCapacity,
+        eventByteCapacity,
         choiceScope,
-        look: options.look,
+        look,
         onEvent(event) {
           if (revisions.get(slot) !== event.revision) {
             refusals.set(slot, "stale-revision");
-            options.onRefusal?.("stale-revision");
+            onRefusal?.("stale-revision");
             return;
           }
-          options.onEvent?.(event);
+          onEvent?.(event);
         },
-        onRefusal(code) { refusals.set(slot, code); options.onRefusal?.(code); },
+        onRefusal(code) { refusals.set(slot, code); onRefusal?.(code); },
       });
       revisions.set(slot, view.revision);
       refusals.delete(slot);

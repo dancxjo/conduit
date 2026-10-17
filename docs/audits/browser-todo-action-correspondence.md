@@ -1048,3 +1048,19 @@ activation, ordinary restoration/selection and forged Look preservation. Focus
 restoration queues no action; subsequent native Enter queues/calls revision 3.
 This is renderer/Host custody proof, not authoritative Body/Play or packaged/
 release acceptance; #5644 remains open.
+
+Presentation preparation custody follow-up (#5644): slot Hosts take a bounded
+private copy of supplied encoded view bytes before decoding, so option getters
+cannot mutate the second decode away from the revision checked by the Host.
+Host options/callbacks are captured before its final revision check. Direct
+rendering captures the previous manifestation token and verifies it immediately
+before DOM replacement, refusing preparation superseded by a reentrant render.
+The existing post-focus fence remains in place.
+
+All three regressions reproduced before repair: caller byte mutation, a newer
+slot presentation during option reads, and a newer direct render during option
+reads. Ten focused pinned Chromium fixtures pass with one worker and zero retries,
+including surviving current native pointer actions, post-focus reentrancy,
+restoration, forged Look refusal and argument preflight. This is browser
+renderer/Host custody proof, not authoritative Body/Play or packaged/release
+acceptance; #5644 remains open. Unique USB branch work remains preserved.

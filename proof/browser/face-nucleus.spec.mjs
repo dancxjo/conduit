@@ -833,3 +833,47 @@ for (const mode of ['direct', 'slot-host']) {
       .toEqual({ calls: [3], revision: 3 });
   });
 }
+
+for (const mode of ['mutated-bytes', 'host-option-reentry', 'renderer-option-reentry']) {
+  test(`presentation preparation retains exact current custody (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const result = await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView, createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.dataset.applicationSlot = 'preparation'; document.body.append(root);
+      const host = createApplicationFaceHost(document);
+      const view = revision => ({ revision, actions: [{ id: 'exact.action', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'action', text: `Prepared ${revision}`, action: 0 },
+      ] });
+      globalThis.preparationCalls = [];
+      const onEvent = event => globalThis.preparationCalls.push(event.revision);
+      let newest, refusal;
+      if (mode === 'mutated-bytes') {
+        const bytes = encodeApplicationView(view(1));
+        host.present('preparation', bytes, { onEvent, get eventCapacity() {
+          new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).setUint32(1, 2, true);
+          return 8;
+        } });
+      } else {
+        const present = (revision, options = { onEvent }) => mode === 'host-option-reentry'
+          ? host.present('preparation', view(revision), options)
+          : manifestApplicationView(encodeApplicationView(view(revision)), root, options);
+        present(1);
+        let entered = false;
+        const options = { onEvent };
+        Object.defineProperty(options, mode === 'host-option-reentry' ? 'eventCapacity' : 'look', { get() {
+          if (!entered) { entered = true; newest = present(3); }
+          return mode === 'host-option-reentry' ? 8 : undefined;
+        } });
+        try { present(2, options); } catch (error) { refusal = error.code; }
+      }
+      globalThis.readPreparationEvent = () => mode === 'renderer-option-reentry'
+        ? newest.nextEvent()?.revision : host.nextEvent('preparation')?.revision;
+      return { revision: root.dataset.applicationRevision, refusal: refusal ?? null, calls: globalThis.preparationCalls };
+    }, mode);
+    const revision = mode === 'mutated-bytes' ? 1 : 3;
+    expect(result).toEqual({ revision: String(revision), refusal: mode === 'mutated-bytes' ? null : 'stale-revision', calls: [] });
+    await page.getByRole('button', { name: `Prepared ${revision}`, exact: true }).click();
+    expect(await page.evaluate(() => ({ calls: globalThis.preparationCalls, revision: globalThis.readPreparationEvent() })))
+      .toEqual({ calls: [revision], revision });
+  });
+}
