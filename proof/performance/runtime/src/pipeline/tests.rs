@@ -314,3 +314,18 @@ fn checked_fused_and_local_refusals_name_every_original_gear_and_span() -> Resul
     }
     Ok(())
 }
+
+#[test]
+fn reviewed_physical_profile_refuses_other_numeric_representations() -> Result<(), Box<dyn Error>> {
+    let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
+    let source = source(8).replace("U64", "Scalar");
+    let refusal = prepare_mode(8, &source, "boot/unsupported-scalar-fusion", true, true)
+        .err()
+        .ok_or("unsupported Scalar fusion was admitted")?
+        .to_string();
+    assert!(
+        refusal.contains("supports exact U64 input/output only"),
+        "{refusal}"
+    );
+    Ok(())
+}

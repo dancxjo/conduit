@@ -31,10 +31,11 @@ pub(super) fn prepare_chains(
                 .iter()
                 .find(|p| p.placement_id == identity.placement_id)
                 .ok_or("fusion placement absent")?;
+            super::pure_expression_back::local_budget(placement)?;
             crate::pure_chain_fusion::validate_program_profile(
                 &super::pure_expression_back::program_from_placement(placement)?,
+                placement.inputs[0].temporal,
             )?;
-            super::pure_expression_back::local_budget(placement)?;
             if !fragment.execution_regions.is_empty()
                 && !fragment.execution_regions.iter().any(|r| {
                     !r.preemption_required

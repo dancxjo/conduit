@@ -33,7 +33,6 @@ pub fn pure_chain_fusion_offer(
         };
         let program = PortableExpressionProgram::from_canonical_hex(encoded)
             .map_err(|e| format!("pure-chain program: {e:?}"))?;
-        validate_program_profile(&program)?;
         let expected = match gear.inputs.first().map(|p| p.temporal) {
             Some(conduit_core::PortTemporal::Flow { closes: true }) => {
                 conduit_std_offers::pure_expression_local_flow_offer(&program)
@@ -48,22 +47,7 @@ pub fn pure_chain_fusion_offer(
         {
             return Err("pure-chain requires the exact installed computational Offer".into());
         }
-        let kind =
-            conduit_semantic_catalog::pure_expression_contract(&program, gear.inputs[0].temporal)
-                .map_err(|e| format!("pure-chain Kind: {e:?}"))?;
-        let back = conduit_core::Back {
-            capability_id: expected.capability_id.clone(),
-            execution_profile_id: expected.implementation.execution_profile_id.clone(),
-            implementation_id: expected.implementation.implementation_id.clone(),
-            artifact_id: expected.implementation.artifact_id.clone(),
-            host_calls: expected.host_calls.clone(),
-            resource_requirements: expected.resource_requirements.clone(),
-            authority_requirements: expected.authority_requirements.clone(),
-        };
-        conduit_core::derive_transformation_eligibility(&kind, &back)
-            .map_err(|e| format!("pure-chain eligibility: {e:?}"))?
-            .require(conduit_core::WorkTransformation::Fusion)
-            .map_err(|e| format!("pure-chain refusal: {e:?}"))?;
+        let kind = validate_program_profile(&program, gear.inputs[0].temporal)?;
         kinds.push(kind);
     }
     // Recover order from authored Cords, never lexicographic Gear/Placement IDs.
@@ -139,11 +123,29 @@ pub fn pure_chain_fusion_offer(
 
 /// The first reviewed profile is an exact U64-to-U64 map, not a blanket
 /// endorsement of every expression type or numeric representation.
-pub(crate) fn validate_program_profile(program: &PortableExpressionProgram) -> Result<(), String> {
+pub(crate) fn validate_program_profile(
+    program: &PortableExpressionProgram,
+    temporal: conduit_core::PortTemporal,
+) -> Result<Kind, String> {
     let u64_type = conduit_core::StructuredInfoType::leaf(conduit_core::kind_id("value/u64"))
         .map_err(|e| format!("pure-chain type: {e:?}"))?;
     if program.input_type != u64_type || program.output_type != u64_type {
         return Err("std pure-chain fusion supports exact U64 input/output only".into());
     }
-    Ok(())
+    let kind = conduit_semantic_catalog::pure_expression_contract(program, temporal)
+        .map_err(|e| format!("pure-chain Kind: {e:?}"))?;
+    let back = conduit_core::Back {
+        capability_id: "std/pure-chain-proof".into(),
+        execution_profile_id: PURE_CHAIN_FUSION_PROFILE.into(),
+        implementation_id: PURE_CHAIN_FUSION_IMPLEMENTATION.into(),
+        artifact_id: PURE_CHAIN_FUSION_ARTIFACT.into(),
+        host_calls: vec![],
+        resource_requirements: vec![],
+        authority_requirements: vec![],
+    };
+    conduit_core::derive_transformation_eligibility(&kind, &back)
+        .map_err(|e| format!("pure-chain eligibility: {e:?}"))?
+        .require(conduit_core::WorkTransformation::Fusion)
+        .map_err(|e| format!("pure-chain refusal: {e:?}"))?;
+    Ok(kind)
 }
