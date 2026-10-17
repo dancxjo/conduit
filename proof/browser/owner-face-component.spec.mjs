@@ -1154,3 +1154,52 @@ for (const value of ['\ud800', '\udfff']) {
     expect(await page.evaluate(() => globalThis.calls[0].arguments)).toEqual([{ name: 'text', value: 'é 😀' }]);
   });
 }
+
+for (const media of ['normal', 'forced-colors', 'reduced-motion']) {
+for (const zoom of [1, 2]) {
+for (const form of ['text', 'choice']) {
+  test(`owner actions remain within a narrow Unicode layout at CSS magnification ${zoom} (${form}, ${media})`, async ({ page }) => {
+    await page.setViewportSize({ width: 320, height: 720 });
+    await page.emulateMedia({ forcedColors: media === 'forced-colors' ? 'active' : 'none',
+      reducedMotion: media === 'reduced-motion' ? 'reduce' : 'no-preference' });
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const long = '漢字🙂'.repeat(20);
+    const choice = 'W'.repeat(200);
+    const inputView = { ...view, subjects: [{ ...view.subjects[0], name: long,
+      values: [{ name: 'Meaning', text: long }] }], actions: [{ ...view.actions[0], name: long, arguments: [{
+        name: 'draft', value_name: long, value_kind: 'value/text', maximum_bytes: 256, choices: form === 'choice' ? [choice] : [],
+      }] }] };
+    await page.evaluate(async ({ view, zoom, media }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); document.documentElement.style.zoom = String(zoom); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      if (media === 'reduced-motion') {
+        const motion = document.createElement('style');
+        motion.textContent = '@keyframes fixturePulse{from{opacity:.5}to{opacity:1}}button{animation:fixturePulse 1s infinite;transition:color 2s}';
+        element.shadowRoot.append(motion);
+      }
+    }, { view: inputView, zoom, media });
+    await page.waitForFunction(() => document.querySelector('conduit-owner-face').shadowRoot.querySelector('link').sheet);
+    const element = page.locator('conduit-owner-face');
+    const input = element.getByRole(form === 'choice' ? 'combobox' : 'textbox', { name: long, exact: true });
+    const action = element.getByRole('button', { name: long, exact: true });
+    const bounds = await action.boundingBox();
+    expect(bounds.x).toBeGreaterThanOrEqual(0);
+    expect(bounds.x + bounds.width).toBeLessThanOrEqual(321);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth <= document.documentElement.clientWidth + 1)).toBe(true);
+    if (form === 'choice') await input.selectOption(choice); else await input.fill('é 😀');
+    await action.focus();
+    const style = await action.evaluate(node => { const style = getComputedStyle(node); return {
+      outline: style.outlineStyle, outlineWidth: parseFloat(style.outlineWidth), color: style.color,
+      background: style.backgroundColor, animation: style.animationName, transition: style.transitionDuration }; });
+    expect(style.outline).toBe('solid'); expect(style.outlineWidth).toBeGreaterThanOrEqual(3);
+    if (media === 'forced-colors') expect(style.color).not.toBe(style.background);
+    if (media === 'reduced-motion') { expect(style.animation).toBe('none'); expect(style.transition).toBe('0s'); }
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: inputView, action: inputView.actions[0],
+      arguments: [{ name: 'draft', value: form === 'choice' ? choice : 'é 😀' }] }]);
+  });
+}
+}
+}
