@@ -22,7 +22,7 @@ pub(super) fn key_pair(
 }
 
 /// QMP acceptance acknowledges the host command, not guest consumption.
-/// Hold the planning key until its complete semantic record is observed;
+/// Hold the lifecycle key until its complete semantic record is observed;
 /// release is still attempted on a refused observation, without replay.
 /// The journey owner retains a failed guest for diagnostics and then reaps it.
 pub(super) fn key_until_status(
@@ -53,6 +53,8 @@ fn held_key(
 pub(super) fn birth_from_creche(
     qmp: &mut UnixStream,
     reader: &mut qmp::Reader,
+    serial: &Path,
+    child: &mut Child,
 ) -> Result<(), ConduitosError> {
     // The initial Face focuses the name argument. Three reverse controls in
     // the current semantic Face lead to Birth without traversing plot choices.
@@ -60,7 +62,10 @@ pub(super) fn birth_from_creche(
         hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], true, "creche-focus-birth")?;
         hid_qmp::send_named_keys(qmp, reader, &["shift", "tab"], false, "creche-focus-birth")?;
     }
-    key_pair(qmp, reader, "ret", "creche-birth")
+    // QMP command acceptance does not prove that the guest sampled Enter.
+    // Keep this single press live through the existing bounded Birth record
+    // observation, then release even if preparation refuses or times out.
+    key_until_status(qmp, reader, serial, child, "ret", "born-lulled")
 }
 
 pub(super) fn relative_motion(
