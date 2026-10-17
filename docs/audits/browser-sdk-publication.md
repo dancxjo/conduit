@@ -174,3 +174,15 @@ fixture verifies one IMAGE request, valid bytes advancing to intentionally absen
 runtime admission and a false digest refusing the original bytes. These synthetic
 manifest/fetch fixtures establish byte custody, not successful Boot or public
 release corroboration.
+
+Loader inventory-agreement follow-up: the SDK now compares IMAGE asset sizes,
+digests and media types with their corresponding release declarations before
+fetching any payload. Packaging already enforced this agreement; path-set
+equality alone was insufficient at the consumer boundary.
+
+A size disagreement reproduced an asset request before repair. The public-
+entrance fixture now checks size, digest and media-type disagreements all refuse
+with `ImageManifestMismatch` without an asset request. Its IMAGE bytes and
+release aggregate are correctly hashed to isolate the inventory comparison.
+All six SDK Node tests and the producer fixture pass. This is synthetic loader
+admission evidence, not successful Boot or public release corroboration.

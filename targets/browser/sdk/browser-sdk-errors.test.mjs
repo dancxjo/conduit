@@ -60,7 +60,7 @@ test("external Body executor accepts saved choice, continuous PCM and Thermostat
   }
 });
 
-test("Browser SDK refuses URL-changing asset paths before requesting them", async () => {
+test("Browser SDK refuses URL-changing paths and conflicting inventories before asset fetch", async () => {
   const { Conduit } = await import("./browser-sdk.mjs");
   const saved = Object.fromEntries(["document", "location", "fetch"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   const encoder = new TextEncoder();
@@ -68,11 +68,18 @@ test("Browser SDK refuses URL-changing asset paths before requesting them", asyn
   try {
     globalThis.document = { baseURI: "https://fixture.invalid/app/" };
     globalThis.location = { origin: "https://fixture.invalid" };
-    for (const path of ["https:other.mjs", "other.mjs?query", "other.mjs#fragment", "other\nmodule.mjs", "other\tmodule.mjs"]) {
+    for (const variant of ["https:other.mjs", "other.mjs?query", "other.mjs#fragment", "other\nmodule.mjs", "other\tmodule.mjs",
+      "mismatch-size", "mismatch-digest", "mismatch-media"]) {
+      const mismatch = variant.startsWith("mismatch-");
+      const path = mismatch ? "other.mjs" : variant;
       const file = { path, bytes: 1, sha256: `sha256:${"a".repeat(64)}`, media_type: "text/javascript" };
       const distributionDigest = await hash(`conduit.release/host-bundle-content@1\0${path}\0${file.sha256}\n`);
       const imageFile = { ...file, path: "conduit-browser-image.json" };
-      const files = [file, imageFile];
+      const releaseFile = { ...file };
+      if (variant === "mismatch-size") releaseFile.bytes++;
+      if (variant === "mismatch-digest") releaseFile.sha256 = `sha256:${"f".repeat(64)}`;
+      if (variant === "mismatch-media") releaseFile.media_type = "text/plain";
+      const files = [releaseFile, imageFile];
       const bundleDigest = await hash(`conduit.release/host-bundle-content@1\0${files.map(item => `${item.path}\0${item.sha256}\n`).join("")}`);
       const pkg = { schema: "conduit.browser/sdk-package@1", runtime_abi: "conduit.browser/runtime-abi@1",
         package_id: "@conduit/browser", package_version: "0.1.0", target_id: "browser/wasm32/page",
@@ -84,6 +91,10 @@ test("Browser SDK refuses URL-changing asset paths before requesting them", asyn
         distribution_sha256: distributionDigest, browser_image_id: pkg.image_id, browser_profile_id: pkg.profile_id };
       const image = { schema: "conduit.browser/bundle-image@1", image_id: pkg.image_id, profile_id: pkg.profile_id,
         reviewed_distribution: { runtime_abi: pkg.runtime_abi, distribution_digest: distributionDigest }, files: [file] };
+      imageFile.bytes = encoder.encode(JSON.stringify(image)).length;
+      imageFile.sha256 = await hash(JSON.stringify(image));
+      const exactBundleDigest = await hash(`conduit.release/host-bundle-content@1\0${files.map(item => `${item.path}\0${item.sha256}\n`).join("")}`);
+      pkg.bundle_sha256 = bundle.bundle_sha256 = exactBundleDigest;
       const assets = new Map([["browser-sdk-package.json", pkg], ["browser-page.json", distribution],
         ["browser-bundle-release.json", bundle], ["conduit-browser-image.json", image]]);
       const requested = [];
@@ -93,7 +104,7 @@ test("Browser SDK refuses URL-changing asset paths before requesting them", asyn
         assert(assets.has(name), `unexpected asset request ${url.href}`);
         return new Response(JSON.stringify(assets.get(name)));
       };
-      await assert.rejects(Conduit.browser({ bundleRoot: "./bundle/" }), { code: "ArtifactBound" });
+      await assert.rejects(Conduit.browser({ bundleRoot: "./bundle/" }), { code: mismatch ? "ImageManifestMismatch" : "ArtifactBound" });
       assert(requested.every(url => !url.includes("other")));
     }
   } finally {

@@ -679,6 +679,13 @@ async function readBundlePayloads(base, bundle, image, imageBytes) {
   if (paths.size !== declared.size || [...declared.keys()].some((path) => !paths.has(path))) {
     refuse("UnexpectedAsset", "BrowserBundle contains files outside its exact IMAGE closure");
   }
+  if (image.files.some(file => {
+    const released = declared.get(file.path);
+    return !released || released.bytes !== file.bytes || released.sha256 !== file.sha256
+      || released.media_type !== file.media_type;
+  })) {
+    refuse("ImageManifestMismatch", "BrowserBundle IMAGE inventory differs from its release declarations");
+  }
   const results = await Promise.all(bundle.files.map(async (file) => {
     if (!safeRelativePath(file.path) || !Number.isSafeInteger(file.bytes) || file.bytes < 1
       || file.bytes > (file.path === "runtime.wasm" ? MAXIMUM_RUNTIME_BYTES : MAXIMUM_MODULE_BYTES)
