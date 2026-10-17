@@ -112,7 +112,11 @@ fn changing_only_aspiration_seed_does_not_change_voiced_or_frication_state() {
         assert_ne!(field(original, "aspiration"), field(changed, "aspiration"));
     }
 }
-fn cursor_field(control: &StructuredInfoValue, name: &str, bytes: Vec<u8>) -> StructuredInfoValue {
+pub(super) fn cursor_field(
+    control: &StructuredInfoValue,
+    name: &str,
+    bytes: Vec<u8>,
+) -> StructuredInfoValue {
     let cursor = field(control, "cursor");
     let old = field(&cursor, name);
     let replacement = StructuredInfoValue::leaf(old.value_type().clone(), bytes).unwrap();
