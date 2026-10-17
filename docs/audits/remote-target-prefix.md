@@ -33,3 +33,31 @@ fan-out admission/closure/refusal suites exercise the two production call sites.
 The large case measures the actual shared duplicate helper, not a complete
 10,000-target publication or end-to-end Plan/Play throughput. No CI dispatched
 or awaited; parent acceptance and stable/physical/browser proof remain open.
+
+## Production 10,000-target admission and closure
+
+`scan_characterization::remote_many` now exercises both optimized production call
+sites with 10,000 actual ingress cords/nodes. After all nodes reach idle, one
+payload admission wakes every exact sink and stores one byte with 10,000 shared
+references. A second payload returns retryable Full. A wrong endpoint at the
+last target, or a duplicated first target at the last position, returns
+InvalidRemoteCordAccess despite earlier pressured branches. Payload and closure
+refusals leave every queue, sequence, producer-open flag, shared value and Sign
+count intact.
+
+Normal closure records one exact lifecycle event per branch while preserving
+queued values. Repeating the same closure records nothing; a conflicting
+abnormal closure refuses. All 20,000 remote lifecycle records match exact
+endpoint/cord/direction/sequence and their ordinary event identities. Sign
+sequences are continuous with no retention gap. Global cancellation clears all
+value ownership and readiness. The measured admission/refusal/closure/cancel
+phase performs one successful one-byte store and zero allocations/reallocations.
+
+Packed and linear selectors emit the same normalized observation: 10,000 targets,
+20,000 remote Signs, 30,002 ordinary Signs including startup/cancellation, one
+stored byte, zero final values, zero measured allocations. Both complete kernel
+suites and strict Clippy pass; the expanded focused case also passes under both
+selectors. The diagnostic test thread reserves a fixed 128 MiB stack before the
+measured phase; this is not a production stack-admission or physical-memory claim.
+The waiting Backs do not consume/complete their input terminals; cancellation
+performs final retirement. No full Plan/Play throughput or timing claim is added.

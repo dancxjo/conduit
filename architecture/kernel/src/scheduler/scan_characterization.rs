@@ -298,3 +298,6 @@ mod sparse_large;
 
 #[path = "host_many.rs"]
 mod host_many;
+
+#[path = "remote_many.rs"]
+mod remote_many;
