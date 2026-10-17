@@ -1,0 +1,51 @@
+{
+  "observed_at_utc": "2026-10-17T17:01:04.797450+00:00",
+  "method": "Read-only public HTTPS GETs; independent SHA-256 and package/aggregate/IMAGE recomputation; git show comparison. No browser storage access or execution.",
+  "application_manifest_url": "https://dancxjo.github.io/conduit/handbook/application.application.json",
+  "application_manifest_bytes_sha256": "sha256:9eca4ae717694d2002fbf2194cdeba476bb5406368f4fa8bf38e7e681b4d8035",
+  "application_id": "conduit.application/handbook",
+  "application_package_digest": "sha256:7eb6ac585cf747e59bbccc03ced92feb87a7eebc588a02f7dcc9fd2a5e02b8c9",
+  "application_package_digest_recomputed": true,
+  "resources": [
+    {
+      "url": "https://dancxjo.github.io/conduit/handbook/plots/convert-pitch.conduit",
+      "sha256": "sha256:20c581cac1ba8525577fb95975f38b98f4a5831bc8f43f844864f11e32db630e",
+      "bytes": 335,
+      "application_resource_digest_matches": true
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/handbook/sdk/bundle/browser-page.json",
+      "sha256": "sha256:410bbe6d5998aba9ed1f7f16998a0a84cf3363349ba05d886cc12e3efdf12c3e",
+      "bytes": 4512,
+      "application_resource_digest_matches": true
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/handbook/sdk/bundle/browser-bundle-release.json",
+      "sha256": "sha256:b861c918e56015db3e4136877035fbb9c69b5a497a2c4f927610c935fbc2d20f",
+      "bytes": 3212,
+      "application_resource_digest_matches": true
+    },
+    {
+      "url": "https://dancxjo.github.io/conduit/handbook/sdk/bundle/conduit-browser-image.json",
+      "sha256": "sha256:16eb7795e7a409ab39681b33a8f998e9e46a05b08a79e90bafaf61bcf1ed12d8",
+      "bytes": 4002,
+      "application_resource_digest_matches": true
+    }
+  ],
+  "declared_runtime_source_commit": "572292edf60c6b9054385f351de9159f0ff0fe09",
+  "pitch_source_matches_declared_revision": true,
+  "pitch_source": "plot convert-pitch-demo {\n    operation: units/convert(source = 1kHz, to = Hz)\n    show: face/text(\"Message\")\n    operation.receipt >> ((variant/is(.result, \"converted\") ? (.result.converted.coefficient == 1 ? .result.converted.exponent == 3 : false) : false) ? \"Exactly 1000 Hz\" : \"The result is not exactly 1000 Hz\") >> show.text\n}.\n",
+  "distribution_digest": "sha256:c515a84d418916a7db9709711cac67c6ab415e1e14fa462c0a44903b87322285",
+  "release_digest": "sha256:453c6a5a137e79cfda50d4f72246ac422bc20859bba4cef640e8deb0a8d3a9e4",
+  "aggregate_digests_recomputed": true,
+  "image_id": "image:sha256:3347d5c6c06949b1d00d4a21027d2833282be795642a70e32576962cf6471231",
+  "image_id_recomputed": true,
+  "profile_id": "sha256:4e90fdc3eaf7622e5ce94618b4c9a088d083686387309afa7e3a681012a8ab5b",
+  "distribution_image_inventories_match": true,
+  "limits": [
+    "Historical 11 October quoted source origin is unknown.",
+    "No access to the reporting browser cache or retained Body records.",
+    "Runtime/module payload bytes were not downloaded or executed.",
+    "No release-train receipt, accepted-main identity or publisher authority was verified."
+  ]
+}

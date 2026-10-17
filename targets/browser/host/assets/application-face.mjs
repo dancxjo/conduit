@@ -16,6 +16,7 @@ const MAX_EVENT_QUEUE = 8;
 const MAX_EVENT_QUEUE_BYTES = 131_072;
 const EVENT_HEADER_BYTES = 11;
 const ROOT_IDENTITIES = new WeakMap();
+const activeManifestations = new WeakMap();
 let nextRootIdentity = 1;
 
 export class ApplicationFaceRefusal extends Error {
@@ -27,6 +28,12 @@ export class ApplicationFaceRefusal extends Error {
 }
 
 const refuse = (code) => { throw new ApplicationFaceRefusal(code); };
+
+function encodeExactText(value) {
+  if (typeof value !== "string" || !value.isWellFormed()) refuse("malformed-encoding");
+  return new TextEncoder().encode(value);
+}
+
 
 class Cursor {
   constructor(encoded) { this.encoded = encoded; this.offset = 0; }
@@ -41,7 +48,7 @@ class Cursor {
   u16() { const bytes = this.bytes(2); return bytes[0] | (bytes[1] << 8); }
   u32() { return new DataView(this.bytes(4).buffer).getUint32(0, true); }
   text(length) {
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(this.bytes(length)); }
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.bytes(length)); }
     catch { refuse("malformed-encoding"); }
   }
 }
@@ -199,6 +206,9 @@ export function decodeApplicationView(input) {
 export function encodeApplicationView(view) {
   if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
   if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
+  if (view.nodes.length === 0) refuse("empty");
+  if (view.nodes.length > MAX_NODES) refuse("too-many-nodes");
+  if (view.actions.length > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
   const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);
@@ -210,7 +220,7 @@ export function encodeApplicationView(view) {
   for (const action of view.actions) {
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
-    const encoded = new TextEncoder().encode(action.id ?? "");
+    const encoded = encodeExactText(action.id ?? "");
     if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
     push(kind, encoded.length);
     chunks.push(encoded);
@@ -223,9 +233,9 @@ export function encodeApplicationView(view) {
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
-    const key = new TextEncoder().encode(node.key ?? "");
-    const content = new TextEncoder().encode(node.text ?? "");
-    const value = new TextEncoder().encode(node.value ?? "");
+    const key = encodeExactText(node.key ?? "");
+    const content = encodeExactText(node.text ?? "");
+    const value = encodeExactText(node.value ?? "");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
@@ -328,7 +338,7 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
 }
 
 export function encodeApplicationEvent(event) {
-  const action = new TextEncoder().encode(event.action);
+  const action = encodeExactText(event.action);
   const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
@@ -342,6 +352,11 @@ export function encodeApplicationEvent(event) {
   encoded.set(action, EVENT_HEADER_BYTES);
   encoded.set(value, EVENT_HEADER_BYTES + action.length);
   return encoded;
+}
+
+function copyApplicationEvent(event) {
+  return Object.freeze({ ...event,
+    value: new Uint8Array(event.value), encoded: new Uint8Array(event.encoded) });
 }
 
 export function manifestApplicationView(input, root, options = {}) {
@@ -361,13 +376,33 @@ export function manifestApplicationView(input, root, options = {}) {
   const byteCapacity = options.eventByteCapacity ?? MAX_EVENT_QUEUE_BYTES;
   if (!Number.isInteger(capacity) || capacity < 1 || capacity > MAX_EVENT_QUEUE) refuse("queue-pressure");
   if (!Number.isInteger(byteCapacity) || byteCapacity < 1 || byteCapacity > MAX_EVENT_QUEUE_BYTES) refuse("queue-pressure");
+  const render = {};
   const queue = [];
   let queuedBytes = 0;
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
+  const actionEvents = new WeakMap();
+  const choiceValues = new Map();
   const nodesByKey = new Map();
-  const requestAction = (node, value = "") => {
+  const requestAction = (node, value = "", control = null) => {
+    if (activeManifestations.get(root) !== render) {
+      lastRefusal = "stale-revision";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
+    if (control) {
+      let available = control.isConnected && root.contains(control) && !control.matches(":disabled");
+      for (let ancestor = control; available && ancestor;
+        ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
+        if (ancestor.inert || ancestor.hidden) available = false;
+      }
+      if (!available) {
+        lastRefusal = "unavailable-action";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
+    }
     if (node.state === "busy") {
       lastRefusal = "action-busy";
       options.onRefusal?.(lastRefusal);
@@ -391,20 +426,36 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
+    if ([15, 16, 17, 43, 44].includes(node.component)) {
+      let text;
+      try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
+        : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+      catch { text = undefined; }
+      const choices = choiceValues.get(node);
+      if (text === undefined || (choices && !choices.has(text))
+        || ([43, 44].includes(node.component) && text !== "true" && text !== "false")) {
+        lastRefusal = "invalid-control-value";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
+    }
     const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + encodedValue.length;
     if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
       lastRefusal = "queue-pressure";
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: encodedValue };
+    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: new Uint8Array(encodedValue) };
     const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
     queue.push(event);
     queuedBytes += event.encoded.length;
-    options.onEvent?.(event);
-    return event;
+    options.onEvent?.(copyApplicationEvent(event));
+    return copyApplicationEvent(event);
   };
   for (const [nodeIndex, node] of view.nodes.entries()) {
+    if (node.component === 16) {
+      choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
     element.dataset.applicationKey = node.key;
@@ -499,13 +550,17 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     if (node.component === 11) {
       element.dataset.renderer = "patchbay";
-      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity));
+      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity, element));
     }
     if (node.action !== null) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
+      actionEvents.set(element, action.event);
       element.addEventListener(action.event, (browserEvent) => {
-        requestAction(node, eventValue(browserEvent));
+        // A child binding owns its event; bubbling must not invent a second
+        // semantic action on an ancestor. Decorative descendants still route here.
+        if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;
+        requestAction(node, eventValue(browserEvent), element);
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
@@ -563,6 +618,7 @@ export function manifestApplicationView(input, root, options = {}) {
     }
   }
   root.replaceChildren(fragment);
+  activeManifestations.set(root, render);
   restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
   for (const role of appliedLookProperties.get(root) ?? []) {
@@ -583,7 +639,7 @@ export function manifestApplicationView(input, root, options = {}) {
     nextEvent() {
       const event = queue.shift() ?? null;
       if (event) queuedBytes -= event.encoded.length;
-      return event;
+      return event ? copyApplicationEvent(event) : null;
     },
     queuedEvents() { return queue.length; },
     queuedEventBytes() { return queuedBytes; },

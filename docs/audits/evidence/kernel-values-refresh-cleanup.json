@@ -1,0 +1,28 @@
+{
+  "removed": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/kernel-values-refresh-before",
+  "head": "63bda2cf824c283df28e939549f744eb78148eb3",
+  "remote_reachable_from": "origin/live",
+  "tracked_and_untracked_clean": true,
+  "ignored": "!! target/",
+  "active_cwd_owners": [],
+  "excluded_uninspectable_system_service_processes": [
+    {
+      "pid": 1791,
+      "comm": "systemd"
+    },
+    {
+      "pid": 1800,
+      "comm": "(sd-pam)"
+    },
+    {
+      "pid": 3064666,
+      "comm": "sshd-session"
+    }
+  ],
+  "regenerable_target_apparent_bytes": 300698754,
+  "free_bytes_before": 70619373568,
+  "free_bytes_after": 71186210816,
+  "observed_free_delta": 566837248,
+  "branches_removed": [],
+  "capture_evidence_retained": true
+}

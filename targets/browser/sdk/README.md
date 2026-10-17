@@ -172,6 +172,11 @@ const body = await host.recover()
 const play = await body.wake();
 ```
 
+Application continuity captures the application identity, compatibility identity,
+version and package digest before asynchronous identity hashing. Later caller
+mutation cannot replace the checked version or package digest used by storage.
+The package digest must be a string containing its exact SHA-256 identity.
+
 Host and Body continuity do not imply Boot, Plan, Wake, or Play continuity. A
 reload admits a fresh Boot; recovery exposes no live realization and never
 resurrects an in-memory Play. A subsequent `wake()` must produce newly admitted
@@ -286,7 +291,19 @@ unavailable implementations without widening the selected Profile.
 The package producer takes an exact BrowserBundle directory containing
 `browser-page.json`, `browser-bundle-release.json`,
 `conduit-browser-image.json`, and the declared immutable assets. It verifies
-the image and every content digest before copying those assets into the package.
+the image and every content digest, then writes the verified bytes into a private
+sibling staging directory. The new output directory appears only after the whole
+package is ready. A failed attempt removes its staging files and can be retried
+at the same output path; an existing package is never replaced.
+Non-runtime assets must fit the SDK consumer’s 256 KiB per-asset ceiling.
+The runtime must be present, fit the browser consumer's 20 MiB ceiling, and have
+the supported Wasm version header. Duplicate release paths are refused. Distribution and IMAGE inventories must agree
+exactly, their distribution digest is recomputed, and each IMAGE asset must match
+the release size, digest and media type. These
+package checks also require the supported reviewed-distribution schema, IMAGE
+runtime ABI, and release package/output fields. They do not replace runtime ABI
+admission in the browser. The IMAGE must declare the canonical profile-gated
+boot module with the same digest as its verified asset.
 The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 
@@ -313,3 +330,13 @@ presentation profile. `body.patchbay()` projects the selected resident source
 and checks its exact source/Plot identities; it refuses ambiguity or a runtime
 projection with a different identity. The resident Patchbay Plot remains the
 workbench for inspecting a complete Body plan.
+
+### HTTP Face responses
+
+`BrowserFaceClient` reads snapshot and interaction responses incrementally up to
+`maximumResponseBytes` (128 KiB by default), independently of Content-Length.
+It cancels an oversized response before retaining the excess chunk and reports
+`FaceResponseBound`; empty responses receive the same code. Interrupted reads
+report `FaceUnavailable` with the operation and original cause. Accepted bytes
+must decode as UTF-8 JSON. This bounds SDK response accumulation, not browser
+transport buffers or the size of the parsed JavaScript object.

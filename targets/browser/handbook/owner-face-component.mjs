@@ -2,6 +2,10 @@
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
 // owns only native controls and appearance.
 const encoder = new TextEncoder();
+const argumentValidity = (value, maximum) => !value.isWellFormed() ? 'Use valid Unicode text.'
+  : encoder.encode(value).length > maximum ? `Use at most ${maximum} UTF-8 bytes.` : '';
+const exactChoiceLabel = value => JSON.stringify(value).replace(/[\s\u007f]/gu,
+  character => `\\u${character.charCodeAt(0).toString(16).padStart(4, '0')}`);
 const faceNode = (tag, text, className) => {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -15,6 +19,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #projectCollections;
   #supportsAction = () => true;
   #disabled = true;
+  #dispatched = false;
+  #pendingFocus;
+  #render;
   #layoutObserver;
   constructor() {
     super();
@@ -25,21 +32,80 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.#surface = document.createElement('div');
     shadow.append(look, this.#surface);
   }
-  disconnectedCallback() { this.#layoutObserver?.disconnect(); }
+  disconnectedCallback() {
+    this.#layoutObserver?.disconnect();
+    // A removed surface no longer owns an active encounter. Reattachment or
+    // re-enabling controls must not revive its old event-to-action bindings.
+    this.#render = undefined;
+    this.#dispatched = true;
+    this.disabled = true;
+    this.#pendingFocus = undefined;
+  }
   set disabled(value) {
+    const focused = value ? this.#focusedState() : undefined;
+    if (focused) this.#pendingFocus = focused;
     this.#disabled = Boolean(value);
     this.setAttribute('aria-busy', String(this.#disabled));
     for (const control of this.#surface.querySelectorAll('button, input, select')) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
   }
-  #ready(view, action) {
-    return !this.#disabled && view.show_state === 'available'
+  #focusedState() {
+    const control = this.shadowRoot.activeElement;
+    if (!control?.dataset.ownerFocus) return;
+    return { key: control.dataset.ownerFocus, value: control.value,
+      start: control.selectionStart, end: control.selectionEnd, direction: control.selectionDirection };
+  }
+  #ready(view, action, render) {
+    return render === this.#render && !this.#disabled && view.show_state === 'available'
       && view.interactions_admitted === true && action.availability === 'available'
       && this.#supportsAction(action);
   }
+  #reachable(control, visibleControl = control) {
+    // Native focus/activation requires a visible, enabled control. This is a
+    // renderer guard; the SDK and owner still check interaction authority.
+    if (!this.isConnected || control.matches(':disabled')) return false;
+    // Inertness follows the composed tree, including slotted content and
+    // ancestors outside this element's shadow root. It does not hide boxes.
+    for (let node = control; node; node = node.assignedSlot ?? node.parentElement ?? node.getRootNode().host) {
+      if (node.inert || node.hidden) return false;
+    }
+    // Custom radio inputs are transparent inside their visible native label.
+    if (!control.checkVisibility({ visibilityProperty: true })
+      || !visibleControl.checkVisibility({ visibilityProperty: true, opacityProperty: true })) return false;
+    const bounds = visibleControl.getBoundingClientRect();
+    return bounds.width > 0 && bounds.height > 0;
+  }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
+    const focusState = this.#focusedState() ?? this.#pendingFocus;
+    const focusedKey = focusState?.key;
+    const disclosures = new Map();
+    if (this.#render && typeof view.body_id === 'string' && view.body_id) {
+      for (const node of this.#surface.querySelectorAll('details[data-owner-disclosure]')) {
+        disclosures.set(node.dataset.ownerDisclosure, node.open);
+      }
+    }
+    const localDetails = (subject, kind, label) => {
+      const details = document.createElement('details');
+      const key = JSON.stringify([view.body_id, 'details', subject, kind]);
+      details.dataset.ownerDisclosure = key;
+      details.open = disclosures.get(key) ?? false;
+      const summary = faceNode('summary', label);
+      summary.dataset.ownerFocus = key;
+      details.append(summary);
+      return details;
+    };
+    const drafts = new Map();
+    // Temporary refresh/preparation disables controls without submitting them.
+    // A dispatched or disconnected encounter starts with fresh input.
+    if (!this.#dispatched && typeof view.body_id === 'string' && view.body_id) {
+      for (const input of this.#surface.querySelectorAll('[data-owner-draft]')) {
+        if (input.dataset.unavailable !== 'true') drafts.set(input.dataset.ownerDraft, input.value);
+      }
+    }
+    const render = this.#render = {};
+    this.#dispatched = false;
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
@@ -84,7 +150,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     documentNode.setAttribute('part', 'document');
     const { collections, placed } = this.#projectCollections(view);
     const renderedActions = new Set();
-    const actionReady = action => this.#ready(view, action);
+    const actionReady = action => this.#ready(view, action, render);
     const actionControl = (action, itemName) => {
       renderedActions.add(action.identity);
       const control = document.createElement('form');
@@ -92,55 +158,91 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
-      let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
-      for (const argument of action.arguments ?? []) {
+      const composing = new Set();
+      const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
+      const argumentNames = new Set();
+      let supported = Array.isArray(action.arguments) && argumentCount <= 64
+        && action.arguments.every(argument => {
+          if (typeof argument?.name !== 'string' || !argument.name.trim() || argumentNames.has(argument.name)
+            || typeof argument.value_name !== 'string' || !argument.value_name.trim()) return false;
+          argumentNames.add(argument.name);
+          return true;
+        });
+      for (const argument of supported ? action.arguments : []) {
+        if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
+          || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {
+          supported = false;
+          continue;
+        }
         const label = faceNode('label', argument.value_name);
         let input;
         if (Array.isArray(argument.choices) && argument.choices.length) {
-          if (argument.choices.length > 64 || argument.choices.includes('')) {
+          if (argument.choices.length > 64 || argument.choices.some(choice =>
+            typeof choice !== 'string' || choice === '' || !choice.isWellFormed() || encoder.encode(choice).length > argument.maximum_bytes)) {
             supported = false;
             continue;
           }
+          const escapeChoices = argument.choices.some(choice => /^\s|\s$|\s{2}|[^\S ]|[\u0000-\u001f\u007f]/u.test(choice));
           input = document.createElement('select');
           const prompt = document.createElement('option');
           prompt.value = ''; prompt.textContent = 'Choose an option';
           input.append(prompt);
           for (const choice of argument.choices) {
             const option = document.createElement('option');
-            option.value = choice; option.textContent = choice;
+            option.value = choice; option.textContent = escapeChoices ? exactChoiceLabel(choice) : choice;
             input.append(option);
           }
           input.required = true;
-        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
-          && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
+        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text') {
           input = document.createElement('input');
           input.type = 'text'; input.maxLength = argument.maximum_bytes;
           input.addEventListener('input', () => input.setCustomValidity(
-            encoder.encode(input.value).length > argument.maximum_bytes
-              ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
+            argumentValidity(input.value, argument.maximum_bytes)));
         } else {
           supported = false;
           continue;
         }
+        input.addEventListener('compositionstart', () => composing.add(input));
+        input.addEventListener('compositionend', () => composing.delete(input));
         label.setAttribute('part', 'label');
         input.setAttribute('part', 'input');
+        input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'argument', argument.name]);
+        input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
+        input.dataset.ownerDraft = JSON.stringify([view.body_id, action.identity, action.target, argument]);
+        const draft = drafts.get(input.dataset.ownerDraft);
+        if (draft !== undefined && input.dataset.unavailable !== 'true'
+          && (argument.choices.length ? argument.choices.includes(draft)
+            : encoder.encode(draft).length <= argument.maximum_bytes)) input.value = draft;
         label.append(input);
         control.append(label);
-        inputs.push({ name: argument.name, input });
+        inputs.push({ name: argument.name, input, argument });
       }
       const button = faceNode('button', itemName ? `${action.name} ${itemName}` : action.name);
       button.setAttribute('part', 'button');
       button.type = 'submit';
-      button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
+      button.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'submit']);
+      button.disabled = !actionReady(action) || !supported || inputs.length !== argumentCount;
       button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
-        || !supported || inputs.length !== action.arguments.length);
+        || !supported || inputs.length !== argumentCount);
       control.append(button);
       if (button.disabled) control.append(faceNode('p', !this.#supportsAction(action)
         ? 'This action is unavailable in this view.' : action.explanation ??
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
-        if (!this.#ready(view, action) || !this.#invoke) return;
+        if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
+          || !supported || inputs.length !== argumentCount || composing.size) return;
+        // A submit event can be synthetic, and script can change values without
+        // firing input events. Recheck the admitted argument domain here.
+        for (const { input, argument } of inputs) {
+          if (!this.#reachable(input)) return;
+          if (argument.choices.length) {
+            if (!argument.choices.includes(input.value)) return;
+          }
+          input.setCustomValidity(argumentValidity(input.value, argument.maximum_bytes));
+          if (!input.checkValidity()) return;
+        }
+        this.#dispatched = true;
         this.disabled = true;
         await this.#invoke({ view, action, arguments: inputs.map(({ name, input }) => ({ name, value: input.value })) });
       });
@@ -155,19 +257,24 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
       node.append(faceNode('h4', subject.name));
       for (const text of subject.text) node.append(faceNode('p', text));
-      for (const value of subject.values ?? []) {
-        const output = faceNode('p', value.text, 'owner-face-value');
-        output.setAttribute('part', 'value');
-        output.setAttribute('aria-label', value.name);
-        node.append(output);
+      if (subject.values?.length) {
+        const values = document.createElement('dl');
+        for (const value of subject.values) {
+          const output = faceNode('dd', value.text, 'owner-face-value');
+          output.setAttribute('part', 'value');
+          values.append(faceNode('dt', value.name), output);
+        }
+        node.append(values);
       }
-      if (subject.properties.length) {
-        const details = document.createElement('details');
-        details.append(faceNode('summary', 'Exact facts'));
+      const flags = Array.isArray(subject.flags) ? subject.flags.filter(flag =>
+        typeof flag?.name === 'string' && typeof flag.value === 'boolean') : [];
+      if (subject.properties.length || flags.length) {
+        const details = localDetails(subject.identity, 'facts', 'Exact facts');
         const list = document.createElement('ul');
         for (const property of subject.properties) {
           const item = document.createElement('li'); item.textContent = property; list.append(item);
         }
+        for (const flag of flags) list.append(faceNode('li', `${flag.name}: ${flag.value}`));
         details.append(list); node.append(details);
       }
       for (const action of view.actions.filter(action => action.target === subject.identity
@@ -199,9 +306,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       if (open.length) section.append(openList);
       else section.append(faceNode('p', 'Nothing left to do.', 'owner-face-empty'));
       if (completed.length) {
-        const details = document.createElement('details');
+        const details = localDetails(collection.identity, 'completed',
+          `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`);
         details.className = 'owner-face-completed';
-        details.append(faceNode('summary', `Show ${completed.length} completed ${completed.length === 1 ? 'item' : 'items'}`));
         const completedList = document.createElement('ol');
         completedList.className = 'owner-face-items';
         completedList.setAttribute('aria-label', `Completed items in ${collection.name}`);
@@ -225,26 +332,28 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     }
     const hasApplication = collections.length > 0 || view.subjects.some(subject =>
       !['Body', 'Plot'].includes(subject.role) && subject.disclosure === 'Primary');
-    const bodyMenu = document.createElement('details');
+    const bodyMenu = localDetails(null, 'body-menu', 'Body');
     bodyMenu.dataset.bodyMenu = '';
-    bodyMenu.open = this.#surface.querySelector('[data-body-menu]')?.open ?? false;
-    bodyMenu.append(faceNode('summary', 'Body'));
     const choiceGroups = [];
-    const inspection = document.createElement('details');
-    inspection.append(faceNode('summary', 'Inspect other Face subjects'));
+    const inspection = localDetails(null, 'inspection', 'Inspect other Face subjects');
     for (const group of view.subjects) {
       if (group.semantic_role !== 'conduit.face/choice-group@1'
-        || group.choice_multiplicity !== 'exclusive') continue;
+        || group.choice_multiplicity !== 'exclusive' || group.values?.length || group.properties?.length
+        || group.flags?.length) continue;
       const options = view.relationships
         .filter(relation => relation.kind === 'Contains' && relation.source === group.identity)
         .map(relation => view.subjects.find(subject => subject.identity === relation.target));
       // A radio group requires exact semantic selection flags and one offered
       // zero-input action per option. Unfamiliar contracts keep the generic view.
       const offered = options.map(option => view.actions.filter(action => action.target === option?.identity));
-      if (!options.length || options.some((option, index) => !option
-        || option.flags?.filter(flag => flag.name === 'selected' && typeof flag.value === 'boolean').length !== 1
-        || offered[index].length !== 1 || offered[index][0].arguments.length !== 0)
-        || options.filter(option => option.flags.find(flag => flag.name === 'selected').value).length > 1) continue;
+      const selectedFlags = options.map(option => Array.isArray(option?.flags)
+        ? option.flags.filter(flag => flag?.name === 'selected') : []);
+      if (!options.length || new Set(options.map(option => option?.identity)).size !== options.length
+        || options.some((option, index) => !option || option.text?.length || option.values?.length
+          || option.properties?.length || selectedFlags[index].length !== 1 || option.flags.length !== 1
+          || typeof selectedFlags[index][0].value !== 'boolean' || offered[index].length !== 1
+          || !Array.isArray(offered[index][0].arguments) || offered[index][0].arguments.length !== 0)
+        || selectedFlags.filter(flags => flags[0].value).length > 1) continue;
       const fieldset = document.createElement('fieldset');
       fieldset.className = 'owner-face-choice-group';
       bindRegion(fieldset, group);
@@ -260,9 +369,10 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.setAttribute('part', 'choice');
         input.setAttribute('part', 'input');
         input.type = 'radio';
+        input.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'choice']);
         input.name = group.identity;
         input.value = option.identity;
-        input.checked = option.flags.find(flag => flag.name === 'selected').value;
+        input.checked = selectedFlags[index][0].value;
         input.disabled = !actionReady(action);
         input.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action));
         label.dataset.ownerAction = action.identity;
@@ -270,11 +380,12 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.#ready(view, action) || !this.#invoke) return;
+          if (!input.checked || !this.#reachable(input, label) || !this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
-            control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;
+            control.checked = selectedFlags[optionIndex][0].value;
           });
+          this.#dispatched = true;
           this.disabled = true;
           await this.#invoke({ view, action, arguments: [] });
         });
@@ -297,8 +408,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (bodyMenu.children.length > 1) documentNode.append(bodyMenu);
     if (inspection.children.length > 1) documentNode.append(inspection);
     if (view.relationships.length) {
-      const relations = document.createElement('details');
-      relations.append(faceNode('summary', 'How these parts relate'));
+      const relations = localDetails(null, 'relationships', 'How these parts relate');
       const list = document.createElement('ul');
       for (const relationship of view.relationships) {
         const item = document.createElement('li');
@@ -310,8 +420,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     if (view.actions.length) {
       const actions = document.createElement('section');
       actions.append(faceNode('h4', 'What you can do'));
-      const secondary = document.createElement('details');
-      secondary.append(faceNode('summary', 'More actions and unavailable controls'));
+      const secondary = localDetails(null, 'secondary-actions', 'More actions and unavailable controls');
       for (const action of view.actions) {
         if (renderedActions.has(action.identity)) continue;
         const container = actionReady(action)
@@ -347,6 +456,26 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     this.dataset.faceRevision = view.face_revision;
     this.dataset.showId = view.show_id;
     this.disabled = this.#disabled;
+    if (focusedKey) {
+      const current = [...this.#surface.querySelectorAll('[data-owner-focus]')]
+        .find(control => control.dataset.ownerFocus === focusedKey);
+      // Focus is local presentation state, never an action or permission.
+      // A disabled control can lose focus to the document while a Show is
+      // prepared. Carry its key, but never take focus from another control.
+      const active = this.ownerDocument.activeElement;
+      const mayRestore = active === this || active === this.ownerDocument.body;
+      this.#pendingFocus = undefined;
+      if (mayRestore && current) {
+        const visibleControl = current.matches('input[type=radio]') ? current.closest('label') : current;
+        if (this.#reachable(current, visibleControl)) {
+          current.focus();
+          if (current.value === focusState.value && Number.isInteger(focusState.start)
+            && Number.isInteger(focusState.end) && typeof current.setSelectionRange === 'function') {
+            current.setSelectionRange(focusState.start, focusState.end, focusState.direction);
+          }
+        } else if (this.#disabled) this.#pendingFocus = focusState;
+      }
+    }
   }
 }
 if (globalThis.customElements && !customElements.get('conduit-owner-face')) {

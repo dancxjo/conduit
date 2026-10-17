@@ -1,5 +1,6 @@
 import { BROWSER_COLD_PREPARATION_MS } from "./browser-preparation.mjs";
 import { readFile } from "node:fs/promises";
+import { createHash } from "node:crypto";
 import { beginHandbookJourney } from "./handbook-journey.mjs";
 import { expect, test } from "@playwright/test";
 import { openStaticProfile, stageStaticApplications } from "./static-body-application-support.mjs";
@@ -588,5 +589,400 @@ for (const malformed of [false, true]) {
       await session.context.close();
       await site.close();
     }
+  });
+}
+
+// Source-inspection fixture: no packaged WASM or Body admission is claimed.
+for (const checker of [false, true]) {
+test(`Handbook recovery distinguishes saved corrections from original packaged source (checker: ${checker})`, async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const original = 'plot pitch\n# original packaged "1kHz"\n';
+  const corrected = 'plot pitch\n# saved correction 1kHz\n';
+  const originalDigest = 'sha256:' + createHash('sha256').update(original).digest('hex');
+  await page.evaluate(async ({ original, corrected, checker, originalDigest }) => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.storageWrites = [];
+    await startApplication({
+      manifest: checker ? { applicationId: 'fixture/handbook', packageDigest: `sha256:${'b'.repeat(64)}`,
+        resources: [{ role: 'pitch-source', sha256: originalDigest }] } : undefined,
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
+        plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch-source', lesson: 'Inspect pitch' }] }) : original,
+      storage: {
+        readJson: async key => key === 'handbook-source-rescue'
+          ? [{ name: 'pitch', original, source: corrected }] : null,
+        writeJson: async (...args) => { globalThis.storageWrites.push(args); },
+      },
+      browser: async () => {
+        if (!checker) throw new Error('Fixture Host unavailable');
+        return { plot: value => ({ check: async () => value.startsWith('{')
+          ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+          : { ok: true, plots: [{ name: "pitch" }] } }) };
+      },
+    });
+  }, { original, corrected, checker, originalDigest });
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  await chooser.selectOption({ label: 'Pitch (saved correction)' });
+  await expect(editor).toHaveValue(corrected);
+  await editor.fill(`${corrected}# unsent correction draft é😀\n`);
+  const exportSource = page.getByRole('button', { name: 'Download displayed source', exact: true });
+  await expect(exportSource).toBeEnabled();
+  const pendingDownload = page.waitForEvent('download');
+  await exportSource.click();
+  const download = await pendingDownload;
+  expect(download.suggestedFilename()).toBe('pitch.conduit');
+  expect(await readFile(await download.path(), 'utf8')).toBe(`${corrected}# unsent correction draft é😀\n`);
+  await chooser.selectOption({ label: 'Pitch (packaged)' });
+  await expect(editor).toHaveValue(original);
+  const evidence = page.locator('[data-source-provenance]');
+  await expect.poll(async () => JSON.parse(await evidence.textContent())).toMatchObject({
+    application_id: checker ? 'fixture/handbook' : null,
+    package_digest: checker ? `sha256:${'b'.repeat(64)}` : null,
+    source_origin: 'packaged', packaged_source_sha256: checker ? originalDigest : null,
+    displayed_source_sha256: originalDigest, local_edit: false,
+  });
+  await expect(editor).toBeEnabled();
+  await chooser.selectOption({ label: 'Pitch (saved correction)' });
+  await expect(editor).toHaveValue(`${corrected}# unsent correction draft é😀\n`);
+  await expect.poll(async () => JSON.parse(await evidence.textContent())).toMatchObject({
+    source_origin: 'saved correction', local_edit: true,
+    displayed_source_sha256: 'sha256:' + createHash('sha256').update(`${corrected}# unsent correction draft é😀\n`).digest('hex'),
+  });
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
+  if (checker) {
+    await page.getByRole('button', { name: 'Try in my Handbook', exact: true }).click();
+    await expect(page.locator('[data-check]')).toContainText('Correction saved');
+    await expect.poll(async () => JSON.parse(await evidence.textContent()).local_edit).toBe(false);
+    expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
+      { name: 'pitch', original, source: `${corrected}# unsent correction draft é😀\n` },
+    ]]]);
+  }
+});
+}
+
+// A fixture checker isolates recovery persistence from Body/runtime admission.
+for (const firstFails of [false, true]) {
+test(`Handbook correction saves retain sibling edits while a write is pending (first fails: ${firstFails})`, async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async firstFails => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.savedCorrections = [];
+    globalThis.checkedSources = [];
+    globalThis.saveCalls = 0;
+    await startApplication({
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+        plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+      storage: {
+        readJson: async () => null,
+        writeJson: async (key, value) => {
+          if (++globalThis.saveCalls === 1) {
+            await new Promise(resolve => { globalThis.releaseSave = resolve; });
+            if (firstFails) throw new Error('Fixture storage failure');
+          }
+          globalThis.savedCorrections.push({ key, value: structuredClone(value) });
+        },
+      },
+      browser: async () => ({ plot: value => ({ check: async () => {
+        globalThis.checkedSources.push(value);
+        return value.startsWith('{')
+          ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+          : { ok: true, plots: [{ name: value.split(" ").at(-1) }] };
+      } }) }),
+    });
+  }, firstFails);
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  const save = page.getByRole('button', { name: 'Try in my Handbook', exact: true });
+  await chooser.selectOption({ label: 'first (packaged)' });
+  await editor.fill('corrected first');
+  await save.click();
+  await expect.poll(() => page.evaluate(() => typeof globalThis.releaseSave)).toBe('function');
+  await chooser.selectOption({ label: 'second (packaged)' });
+  await editor.fill('corrected second');
+  await save.click();
+  await expect.poll(() => page.evaluate(() => globalThis.checkedSources.includes('corrected second'))).toBe(true);
+  expect(await page.evaluate(() => globalThis.saveCalls)).toBe(1);
+  await page.evaluate(() => globalThis.releaseSave());
+  await expect.poll(() => page.evaluate(() => globalThis.savedCorrections.length)).toBe(firstFails ? 1 : 2);
+  expect(await page.evaluate(() => globalThis.savedCorrections.at(-1))).toEqual({
+    key: 'handbook-source-rescue', value: [
+      ...firstFails ? [] : [{ name: 'first', original: 'original first', source: 'corrected first' }],
+      { name: 'second', original: 'original second', source: 'corrected second' },
+    ],
+  });
+  await expect(page.locator('[data-check]')).toContainText('Correction saved');
+});
+}
+
+for (const storageFails of [false, true]) {
+  test(`Handbook source inspection precedes rescue storage (failure: ${storageFails})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(storageFails => {
+      globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
+        document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+        return startApplication({
+          text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+            plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+          storage: {
+            readJson: async key => {
+              if (key !== 'handbook-source-rescue') return null;
+              await new Promise(resolve => { globalThis.releaseRescueRead = resolve; });
+              if (storageFails) throw new Error('Fixture storage read failure');
+              return ['first', 'second'].map(name => ({ name, original: `original ${name}`, source: `saved ${name}` }));
+            },
+            writeJson: async () => { throw new Error('Inspection must not write storage'); },
+          },
+          browser: async () => { throw new Error('Fixture Host unavailable'); },
+        });
+      });
+    }, storageFails);
+    const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+    const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+    await expect(editor).toBeEnabled();
+    await expect(chooser).toBeEnabled();
+    await expect(editor).toHaveValue('original first');
+    await editor.fill('unsent first draft');
+    await chooser.selectOption('second');
+    await editor.fill('unsent second draft');
+    await page.evaluate(async () => { globalThis.releaseRescueRead(); await globalThis.pendingHandbook; });
+    await expect(editor).toHaveValue('unsent second draft');
+    await chooser.selectOption({ label: `first (${storageFails ? 'packaged' : 'saved correction'})` });
+    await expect(editor).toHaveValue('unsent first draft');
+    if (!storageFails) {
+      await chooser.selectOption({ label: 'first (packaged)' });
+      await expect(editor).toHaveValue('original first');
+    }
+    await expect(editor).toBeEnabled();
+  });
+}
+
+// Production editor orchestration with a fixture SDK; no runtime proof claim.
+test('Handbook retains unsent lesson drafts across startup preferences and selection', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(() => {
+    globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
+      document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+      globalThis.bodyTransitions = [];
+      const plots = ['first', 'second'].map(name => ({ name, checkedPlotId: `fixture/${name}`, source: `original ${name}` }));
+      const checked = { ok: true, plots };
+      const body = {
+        id: 'fixture/body', plots: async () => checked,
+        current: async () => ({ evidence: { body: { state: 'Awake',
+          workset: { plots: [{ checked_plot_id: 'fixture/first' }] } } } }),
+        select: async () => { globalThis.bodyTransitions.push('select'); },
+        wake: async () => {
+          globalThis.bodyTransitions.push('wake');
+          return { state: 'playing', dispatch: () => new Promise(() => {}) };
+        },
+      };
+      return startApplication({
+        text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+          plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+        storage: {
+          readJson: async key => {
+            if (key !== 'selected-example') return null;
+            await new Promise(resolve => { globalThis.releasePreferenceRead = resolve; });
+            return 'first';
+          },
+          writeJson: async () => {}, durability: async () => ({ fixture: true }),
+        },
+        browser: async () => ({ recover: async () => body, attachEditor: () => ({ render() {}, destroy() {} }),
+          plot: value => ({ check: async () => value.startsWith('{') ? checked
+            : { ok: false, refusal: { code: 'FixtureSyntaxRefused', message: 'Fixture draft refused' }, diagnostics: [] } }) }),
+      });
+    });
+  });
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  await expect.poll(() => page.evaluate(() => typeof globalThis.releasePreferenceRead)).toBe('function');
+  await editor.fill('unsent first draft');
+  await chooser.selectOption('second');
+  await editor.fill('unsent second draft');
+  await page.evaluate(async () => { globalThis.releasePreferenceRead(); await globalThis.pendingHandbook; });
+  await expect(chooser).toHaveValue('second');
+  await expect(editor).toHaveValue('unsent second draft');
+  await chooser.selectOption('first');
+  await expect(editor).toHaveValue('unsent first draft');
+  await chooser.selectOption('second');
+  await expect(editor).toHaveValue('unsent second draft');
+  await page.getByRole('button', { name: 'Try in my Handbook', exact: true }).click();
+  await expect(page.locator('[data-check]')).toHaveAttribute('data-refusal-code', 'FixtureSyntaxRefused');
+  await expect(editor).toHaveValue('unsent second draft');
+  expect(await page.evaluate(() => globalThis.bodyTransitions)).toEqual(['select', 'wake']);
+});
+
+// Recovery must preserve the selected lesson identity as well as valid syntax.
+test('Handbook recovery refuses a correction that renames the selected Plot', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.storageWrites = [];
+    await startApplication({
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
+        plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch', lesson: 'Pitch' }] }) : 'plot pitch',
+      storage: { readJson: async () => null, writeJson: async (...args) => globalThis.storageWrites.push(args) },
+      browser: async () => ({ plot: value => ({ check: async () => value.startsWith('{')
+        ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+        : { ok: true, plots: [{ name: value === 'plot renamed' ? 'renamed' : 'pitch' }] } }) }),
+    });
+  });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  const save = page.getByRole('button', { name: 'Try in my Handbook', exact: true });
+  await editor.fill('plot renamed');
+  await save.click();
+  await expect(page.locator('[data-check]')).toHaveAttribute('data-refusal-code', 'LessonPlotNameChanged');
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
+  await expect(editor).toHaveValue('plot renamed');
+  await editor.fill('plot pitch');
+  await save.click();
+  await expect(page.locator('[data-check]')).toContainText('Correction saved');
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
+    { name: 'pitch', original: 'plot pitch', source: 'plot pitch' },
+  ]]]);
+});
+
+for (const oversized of [false, true, "header"]) {
+  test(`static application loader bounds streamed manifests (oversized: ${oversized})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async oversized => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const maximum = 48 * 1024;
+      const bytes = new TextEncoder().encode('{}' + ' '.repeat(maximum - 2));
+      globalThis.streamEvidence = { pulls: 0, cancelled: false };
+      const stream = new ReadableStream({
+        pull(controller) {
+          const count = ++globalThis.streamEvidence.pulls;
+          if (count <= 2) controller.enqueue(bytes.slice((count - 1) * maximum / 2, count * maximum / 2));
+          else if (oversized && count <= 4) controller.enqueue(new Uint8Array([32]));
+          else controller.close();
+        },
+        cancel() { globalThis.streamEvidence.cancelled = true; },
+      }, { highWaterMark: 0 });
+      globalThis.fixtureStream = stream;
+      globalThis.fetch = async () => new Response(stream, oversized === "header"
+        ? { headers: { "content-length": String(maximum + 1) } } : {});
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, oversized);
+    await expect(page.locator('#workspace')).toHaveText(oversized
+      ? 'application package manifest exceeds its admitted bound' : 'browser application package schema is unsupported');
+    expect(await page.evaluate(() => ({ ...globalThis.streamEvidence, locked: globalThis.fixtureStream.locked })))
+      .toEqual({ pulls: oversized === "header" ? 0 : 3, cancelled: Boolean(oversized), locked: false });
+  });
+}
+
+for (const redirected of [true, false]) {
+  test(`static application loader keeps manifest fetch on its declared URL (redirect: ${redirected})`, async ({ page }) => {
+    let destinationRequests = 0;
+    page.on('request', request => {
+      if (request.url().endsWith('/proof/browser/fixture-redirect-target.json')) destinationRequests++;
+    });
+    await page.route('**/proof/browser/fixture-application.json', route => route.fulfill(redirected
+      ? { status: 302, headers: { location: '/proof/browser/fixture-redirect-target.json' } }
+      : { contentType: 'application/json', body: '{}' }));
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/proof/browser/fixture-application.json';
+      document.head.append(meta);
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    });
+    await expect(page.locator('#workspace.error')).toBeVisible();
+    expect(destinationRequests).toBe(0);
+    await expect(page.locator('#workspace.error')).toHaveText(redirected
+      ? 'Failed to fetch' : 'browser application package schema is unsupported');
+  });
+}
+
+for (const kind of ['entry-kind', 'runtime-kind', 'module', 'classic-script', 'shared']) {
+  test(`static application loader preflights dependency graph (${kind})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async kind => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const resource = (role, dependencies = []) => ({ role, kind: (kind === 'entry-kind' && role === 'application-module') || (kind === 'runtime-kind' && role === 'runtime') ? 'content' : role === 'runtime' ? 'wasm'
+        : kind === 'classic-script' && role !== 'application-module' ? 'classic-script' : 'module',
+        path: role + '.mjs', maximum_bytes: 1024, sha256: 'sha256:' + 'a'.repeat(64),
+        dependencies: dependencies.map(role => ({ role, specifier: './' + role + '.mjs' })) });
+      const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/graph',
+        package_digest: 'sha256:' + 'b'.repeat(64), state_compatibility: { identity: 'fixture/graph-state', version: 1 },
+        host_implementations: ['browser/dom@1'], resources: [resource('application-module', kind === 'shared' ? ['second'] : []), resource('runtime'),
+          resource('first', ['second']), resource('second', kind === 'shared' || kind.endsWith('-kind') ? [] : ['first'])] };
+      if (kind !== 'shared') {
+        const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
+          'state\0' + manifest.state_compatibility.identity + '\0' + manifest.state_compatibility.version,
+          'host-implementation\0browser/dom@1'];
+        for (const resource of manifest.resources) lines.push('resource\0' + [resource.role, resource.kind, resource.path,
+          resource.maximum_bytes, resource.sha256, resource.dependencies.map(dep => dep.role + '=' + dep.specifier).join(',')].join('\0'));
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines.join('\n') + '\n'));
+        manifest.package_digest = 'sha256:' + [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      }
+      globalThis.resourceRequests = 0;
+      globalThis.fetch = async url => {
+        if (!String(url).endsWith('/fixture-application.json')) globalThis.resourceRequests++;
+        return new Response(JSON.stringify(manifest));
+      };
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, kind);
+    await expect(page.locator('#workspace.error')).toHaveText(kind === 'shared'
+      ? 'application package identity changed' : kind.endsWith('-kind')
+        ? 'application package entry or runtime kind is invalid' : 'application resource dependency cycle refused');
+    expect(await page.evaluate(() => globalThis.resourceRequests)).toBe(0);
+  });
+}
+
+for (const refused of [true, false]) {
+  test(`static application loader releases prepared module URLs (refused: ${refused})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async refused => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const encoder = new TextEncoder();
+      const hash = async bytes => 'sha256:' + [...new Uint8Array(await crypto.subtle.digest('SHA-256', bytes))]
+        .map(byte => byte.toString(16).padStart(2, '0')).join('');
+      const source = (refused ? '' : 'import "./helper.mjs";\n')
+        + 'export async function startApplication() { document.querySelector("#workspace").textContent = "Started fixture"; }';
+      const definitions = [
+        ['application-module', 'module', 'entry.mjs', source, [{ role: 'helper', specifier: './helper.mjs' }]],
+        ['helper', 'module', 'helper.mjs', 'export const ready = true;', []],
+        ['runtime', 'wasm', 'runtime.wasm', 'fixture envelope', []],
+      ];
+      const resources = [];
+      const bodies = new Map();
+      for (const [role, kind, path, text, dependencies] of definitions) {
+        const bytes = encoder.encode(text); bodies.set(path, bytes);
+        resources.push({ role, kind, path, maximum_bytes: bytes.length, sha256: await hash(bytes), dependencies });
+      }
+      const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/module-cleanup',
+        state_compatibility: { identity: 'fixture/module-cleanup-state', version: 1 },
+        host_implementations: ['browser/indexeddb@1'], resources };
+      const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
+        'state\0' + manifest.state_compatibility.identity + '\0' + 1, 'host-implementation\0browser/indexeddb@1'];
+      for (const resource of resources) lines.push('resource\0' + [resource.role, resource.kind, resource.path,
+        resource.maximum_bytes, resource.sha256, resource.dependencies.map(dep => dep.role + '=' + dep.specifier).join(',')].join('\0'));
+      manifest.package_digest = await hash(encoder.encode(lines.join('\n') + '\n'));
+      globalThis.fetch = async url => new Response(String(url).endsWith('/fixture-application.json')
+        ? JSON.stringify(manifest) : bodies.get(new URL(url).pathname.split('/').at(-1)));
+      globalThis.moduleUrls = { created: [], revoked: [] };
+      const create = URL.createObjectURL.bind(URL), revoke = URL.revokeObjectURL.bind(URL);
+      URL.createObjectURL = blob => { const url = create(blob); globalThis.moduleUrls.created.push(url); return url; };
+      URL.revokeObjectURL = url => { globalThis.moduleUrls.revoked.push(url); revoke(url); };
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, refused);
+    await expect(page.locator('#workspace')).toHaveText(refused
+      ? 'application module application-module did not use its declared dependency' : 'Started fixture');
+    const urls = await page.evaluate(() => globalThis.moduleUrls);
+    expect(urls.created).toHaveLength(refused ? 1 : 2);
+    expect(urls.revoked).toEqual(urls.created);
   });
 }

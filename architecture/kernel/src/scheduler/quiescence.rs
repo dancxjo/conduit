@@ -3,10 +3,12 @@ use super::*;
 
 /// Prepared once from the validated active prefix. Cord specifications are
 /// immutable for the scheduler lifetime; padding cannot enable runtime work.
-pub(super) fn has_quiescence_cords(active_cords: &[CordSpec]) -> bool {
+/// Zero means absent; every quiescence cord lies strictly below this bound.
+pub(super) fn quiescence_cord_end(active_cords: &[CordSpec]) -> usize {
     active_cords
         .iter()
-        .any(|cord| cord.track == AssignedConnectionTrack::Quiescence)
+        .rposition(|cord| cord.track == AssignedConnectionTrack::Quiescence)
+        .map_or(0, |last| last + 1)
 }
 
 impl<
@@ -42,20 +44,29 @@ where
 {
     pub(super) fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
         let node = NodeId(as_u16(node)?);
-        if !self.has_quiescence_cords {
+        if self.quiescence_cord_end == 0 {
             return Ok(());
         }
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
-                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
-            {
-                self.cords[cord].quiescence_armed = true;
+        // Plan validation proves every local-source cord is in this source's
+        // exact route and that routed targets are active and unique per port.
+        for port in 0..PORTS {
+            let Ok(targets) = self.routes.route(node, PortId(as_u16(port)?)) else {
+                continue;
+            };
+            for target in targets {
+                let cord = usize::from(target.cord.0);
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.cord_scans += 1;
+                    self.scan_counts.set(counts);
+                }
+                if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
+                    && !self.cords[cord].quiescence_armed
+                {
+                    self.cords[cord].quiescence_armed = true;
+                    self.armed_quiescence_count += 1;
+                }
             }
         }
         Ok(())
@@ -65,12 +76,12 @@ where
     /// returned the whole play to quiescence. Empty queues alone do not arm an
     /// edge, and terminal sources are never reported as quiescent.
     pub(super) fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
-        if !self.has_quiescence_cords {
+        if self.armed_quiescence_count == 0 {
             return Ok(None);
         }
         let mut count = 0_usize;
         let mut first_source = None;
-        for cord in 0..self.active_cords {
+        for cord in 0..self.quiescence_cord_end {
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
@@ -96,11 +107,8 @@ where
             return Ok(None);
         }
         self.ensure_sign_capacity(count)?;
-        let value = self.values.store(&[])?;
-        for _ in 1..count {
-            self.values.retain(value)?;
-        }
-        for cord in 0..self.active_cords {
+        let value = store_fanout_value(&mut self.values, &[], count)?;
+        for cord in 0..self.quiescence_cord_end {
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
@@ -121,6 +129,7 @@ where
             }
             self.push(cord, value)?;
             self.cords[cord].quiescence_armed = false;
+            self.armed_quiescence_count -= 1;
             if let Some((sink, _)) = spec.sink_local() {
                 self.ready.set(usize::from(sink.0), true);
             }

@@ -1,6 +1,7 @@
 //! Fixed-capacity deterministic scheduler over the port-aware kernel contract.
 
 mod host_call_back;
+mod host_dispatch;
 mod host_input_ownership;
 mod host_values;
 pub use host_call_back::HostCallBack;
@@ -20,16 +21,26 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+mod cord_prefix;
 mod debug_control;
 mod derived_value;
 mod execution_region;
+mod fanout_value;
+use fanout_value::store_fanout_value;
+mod host_call_index;
 mod host_call_settlement;
+mod queue_index;
 mod quiescence;
+use queue_index::queue_slot;
+mod payload_admission;
 #[cfg(feature = "linear-ready-reference-test")]
 mod ready_reference;
 mod ready_set;
 mod remote_fanout;
+mod remote_target_prefix;
 mod retirement;
+mod route_membership;
+mod terminal_admission;
 use ready_set::ReadySet;
 #[cfg(test)]
 mod scan_characterization;
@@ -931,10 +942,17 @@ pub struct FixedScheduler<
     cord_specs: [CordSpec; CORDS],
     active_nodes: usize,
     active_cords: usize,
-    has_quiescence_cords: bool,
+    quiescence_cord_end: usize,
+    armed_quiescence_count: usize,
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
     host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
+    pending_host_count: usize,
+    host_slot_search_start: usize,
+    cancellation_search_start: usize,
+    undispatched_host_count: u32,
+    undispatched_cancellation_count: u32,
+    pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
     drivers: [D; NODES],
     values: S,
     signs: E,
@@ -1035,13 +1053,20 @@ where
             unresolved_abnormal: [None; NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
-            has_quiescence_cords: quiescence::has_quiescence_cords(&cord_specs[..active_cords]),
+            quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
+            armed_quiescence_count: 0,
             cord_specs,
             active_nodes,
             active_cords,
             routes,
             host_bindings: None,
             pending_host_calls: [None; PENDING_REQUESTS],
+            pending_host_count: 0,
+            host_slot_search_start: 0,
+            cancellation_search_start: 0,
+            undispatched_host_count: 0,
+            undispatched_cancellation_count: 0,
+            pending_host_slots: [None; NODES],
             drivers,
             values,
             signs,
@@ -1519,8 +1544,7 @@ where
         }
         let byte_len =
             u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        let available = self.admission_maximum(spec, state)?;
-        if byte_len > available {
+        if !self.payload_admissible(spec, state, byte_len)? {
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
         let next_sequence = sequence
@@ -1718,40 +1742,13 @@ where
             .ok_or(SchedulerError::InvalidRemoteCordAccess)
     }
 
-    pub fn next_host_request(&mut self) -> Option<HostCallRequest> {
-        self.next_host_request_matching(|_| true)
-    }
-
-    /// Selects the next undispatched request accepted by the host adapter.
-    /// Non-matching requests remain undispatched and retain their exact order
-    /// for a later call.
-    pub fn next_host_request_matching(
-        &mut self,
-        mut accepts: impl FnMut(&HostCallRequest) -> bool,
-    ) -> Option<HostCallRequest> {
-        for offset in 0..PENDING_REQUESTS {
-            let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
-            let Some(pending) = self.pending_host_calls[slot].as_mut() else {
-                continue;
-            };
-            if pending.dispatched || !accepts(&pending.request) {
-                continue;
-            }
-            pending.dispatched = true;
-            self.host_request_cursor = (slot + 1) % PENDING_REQUESTS;
-            return Some(pending.request);
-        }
-        None
-    }
-
     pub fn has_ready_work(&self) -> bool {
         self.ready
             .scheduler_candidates(0, self.active_nodes)
             .any(|node| {
-                let waiting_for_host_completion =
-                    self.pending_host_calls.iter().flatten().any(|pending| {
-                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                    });
+                let waiting_for_host_completion = self
+                    .indexed_host_call(node)
+                    .is_some_and(|pending| pending.completion.is_none());
                 self.ready.contains(node)
                     && !self.completed[node]
                     && (!waiting_for_host_completion
@@ -1760,16 +1757,28 @@ where
     }
 
     pub fn next_host_cancellation(&mut self) -> Option<HostCallCancellation> {
-        let pending = self
-            .pending_host_calls
-            .iter_mut()
-            .flatten()
-            .find(|pending| {
+        if self.undispatched_cancellation_count == 0 {
+            return None;
+        }
+        // No earlier slot remains eligible; a new cancellation rewinds the bound.
+        let pending_entries = self.pending_host_calls[self.cancellation_search_start..].iter_mut();
+        #[cfg(test)]
+        let pending_entries = pending_entries.inspect(|_| {
+            let mut counts = self.scan_counts.get();
+            counts.cancellation_pending_slots += 1;
+            self.scan_counts.set(counts);
+        });
+        let (offset, pending) = pending_entries
+            .enumerate()
+            .filter_map(|(offset, entry)| entry.as_mut().map(|pending| (offset, pending)))
+            .find(|(_, pending)| {
                 pending.cancellation_requested
                     && !pending.cancellation_dispatched
                     && pending.completion.is_none()
             })?;
         pending.cancellation_dispatched = true;
+        self.undispatched_cancellation_count -= 1;
+        self.cancellation_search_start += offset + 1;
         Some(HostCallCancellation {
             node: pending.request.node,
             request: pending.request.request,
@@ -1790,19 +1799,21 @@ where
             return Err(SchedulerError::HostCallCompletionRejected);
         }
         let slot = self
-            .pending_host_calls
-            .iter()
-            .position(|pending| {
-                pending
-                    .map(|pending| {
-                        pending.request.node == node && pending.request.request == request
-                    })
-                    .unwrap_or(false)
-            })
+            .indexed_host_slot(usize::from(node.0))
             .ok_or(SchedulerError::HostCallCompletionRejected)?;
+        #[cfg(test)]
+        {
+            let mut counts = self.scan_counts.get();
+            counts.completion_pending_slots += 1;
+            self.scan_counts.set(counts);
+        }
         let pending =
             self.pending_host_calls[slot].ok_or(SchedulerError::HostCallCompletionRejected)?;
-        if !pending.dispatched || pending.completion.is_some() {
+        if pending.request.node != node
+            || pending.request.request != request
+            || !pending.dispatched
+            || pending.completion.is_some()
+        {
             return Err(SchedulerError::HostCallCompletionRejected);
         }
         if let Some(output) = outcome.output {
@@ -1816,6 +1827,9 @@ where
             self.values.get(output.value)?;
         }
         self.ensure_sign_capacity(1)?;
+        if pending.cancellation_requested && !pending.cancellation_dispatched {
+            self.undispatched_cancellation_count -= 1;
+        }
         // Input ownership remains with the pending completion until its node
         // commits the resume step. That transaction may reuse the same exact
         // value for a re-armed bounded Host request.
@@ -1834,10 +1848,7 @@ where
     }
 
     pub fn pending_host_call_count(&self) -> usize {
-        self.pending_host_calls
-            .iter()
-            .filter(|pending| pending.is_some())
-            .count()
+        self.pending_host_count
     }
 
     fn next_ready(&mut self) -> Option<usize> {
@@ -1859,16 +1870,15 @@ where
                 counts.next_ready_nodes += 1;
                 self.scan_counts.set(counts);
             }
-            let pending = self.pending_host_calls.iter();
+            let pending = self.indexed_host_call(node);
             #[cfg(test)]
-            let pending = pending.inspect(|_| {
+            if pending.is_some() {
                 let mut counts = self.scan_counts.get();
                 counts.pending_slots += 1;
                 self.scan_counts.set(counts);
-            });
-            let waiting_for_host_completion = pending.flatten().any(|pending| {
-                usize::from(pending.request.node.0) == node && pending.completion.is_none()
-            });
+            }
+            let waiting_for_host_completion =
+                pending.is_some_and(|pending| pending.completion.is_none());
             if self.ready.contains(node)
                 && !self.completed[node]
                 && (!waiting_for_host_completion
@@ -1887,21 +1897,18 @@ where
         let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
         let node_id = NodeId(as_u16(node)?);
-        let pending = self.pending_host_calls.iter();
+        let pending = self.indexed_host_call(node);
         #[cfg(test)]
-        let pending = pending.inspect(|_| {
+        if pending.is_some() {
             let mut counts = self.scan_counts.get();
             counts.context_pending_slots += 1;
             self.scan_counts.set(counts);
+        }
+        let host_completion = pending.and_then(|pending| {
+            pending
+                .completion
+                .map(|outcome| (pending.request.request, outcome))
         });
-        let host_completion = pending
-            .flatten()
-            .find(|pending| usize::from(pending.request.node.0) == node)
-            .and_then(|pending| {
-                pending
-                    .completion
-                    .map(|outcome| (pending.request.request, outcome))
-            });
         for (port, cord) in self.node_specs[node]
             .input_cords
             .iter()
@@ -2073,7 +2080,7 @@ where
                 if io.host_request.is_some() || io.host_cancellation.is_some() {
                     return Err(SchedulerError::InvalidHostCallAccess);
                 }
-                self.output_route_count(node)?
+                self.terminal_publication_signs(node, outcome)?
                     .checked_add(1)
                     .and_then(|count| {
                         count.checked_add(usize::from(
@@ -2090,27 +2097,7 @@ where
                 .checked_add(usize::from(io.host_cancellation.is_some()))
                 .and_then(|count| count.checked_add(complete_sign_records))
                 .ok_or(SchedulerError::InvalidPlan)?;
-            let generated = if let Some((port, declared_len)) = io.prepared_output {
-                let bytes = self.drivers[node]
-                    .prepared_output(port)
-                    .ok_or(SchedulerError::InvalidPlan)?;
-                if u32::try_from(bytes.len()).ok() != Some(declared_len) {
-                    return Err(SchedulerError::InvalidPlan);
-                }
-                let value = self.values.store(bytes)?;
-                let output = io
-                    .outputs
-                    .get_mut(usize::from(port.0))
-                    .ok_or(SchedulerError::InvalidPortAccess)?;
-                if output.is_some() {
-                    self.values.release(value)?;
-                    return Err(SchedulerError::InvalidPortAccess);
-                }
-                *output = Some(value);
-                Some(value)
-            } else {
-                derived_value::materialize(&mut self.values, io.canonical_output, &mut io.outputs)?
-            };
+            let generated = self.materialize_step_output(node, &mut io)?;
             let mut sign_records =
                 match self.commit_event_count(node, &io.consumed, &io.consumed_closed, &io.outputs)
                 {
@@ -2690,16 +2677,19 @@ where
         let admitted_host_request = self.preflight_step(node, &staged, &retained_values)?;
 
         if let Some(request) = host_cancellation {
-            let pending = self
-                .pending_host_calls
-                .iter_mut()
-                .flatten()
-                .find(|pending| {
+            let slot = self
+                .indexed_host_slot(node)
+                .ok_or(SchedulerError::HostCallCancellationRejected)?;
+            let pending = self.pending_host_calls[slot]
+                .as_mut()
+                .filter(|pending| {
                     usize::from(pending.request.node.0) == node
                         && pending.request.request == request
                 })
                 .ok_or(SchedulerError::HostCallCancellationRejected)?;
             pending.cancellation_requested = true;
+            self.cancellation_search_start = self.cancellation_search_start.min(slot);
+            self.undispatched_cancellation_count += 1;
             self.signs.record(
                 NodeId(as_u16(node)?),
                 None,
@@ -2759,21 +2749,25 @@ where
 
         let (consumed_host_input, consumed_host_value) = if consumed_host_completion {
             let slot = self
-                .pending_host_calls
-                .iter()
-                .position(|pending| {
-                    pending
-                        .and_then(|pending| pending.completion)
-                        .is_some_and(|_| {
-                            pending
-                                .map(|pending| usize::from(pending.request.node.0) == node)
-                                .unwrap_or(false)
-                        })
+                .indexed_host_slot(node)
+                .filter(|slot| {
+                    self.pending_host_calls[*slot].is_some_and(|pending| {
+                        usize::from(pending.request.node.0) == node && pending.completion.is_some()
+                    })
                 })
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            #[cfg(test)]
+            {
+                let mut counts = self.scan_counts.get();
+                counts.consumed_completion_slots += 1;
+                self.scan_counts.set(counts);
+            }
             let pending = self.pending_host_calls[slot]
                 .take()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
+            self.pending_host_count -= 1;
+            self.host_slot_search_start = self.host_slot_search_start.min(slot);
+            self.pending_host_slots[node] = None;
             let retains_input = self.drivers[node]
                 .retains_host_call_input(pending.request.request, pending.request.input.value);
             let completion = pending
@@ -2875,12 +2869,10 @@ where
 
         if let (Some((request, call, input)), Some(binding)) = (host_request, admitted_host_request)
         {
-            let slot = self
-                .pending_host_calls
-                .iter_mut()
-                .find(|pending| pending.is_none())
-                .ok_or(SchedulerError::HostCallCapacityExceeded)?;
-            *slot = Some(PendingHostCall {
+            let slot = self.find_free_host_slot()?;
+            // One pending request per u16 node permits 65,536 distinct slots.
+            let indexed_slot = host_call_index::encode_slot(slot)?;
+            self.pending_host_calls[slot] = Some(PendingHostCall {
                 request: HostCallRequest {
                     node: NodeId(as_u16(node)?),
                     request,
@@ -2900,6 +2892,10 @@ where
                 cancellation_dispatched: false,
                 completion: None,
             });
+            self.host_slot_search_start = slot + 1;
+            self.pending_host_slots[node] = Some(indexed_slot);
+            self.pending_host_count += 1;
+            self.undispatched_host_count += 1;
             self.last_host_request[node] = Some(request);
             self.signs.record(
                 NodeId(as_u16(node)?),
@@ -2981,7 +2977,14 @@ where
         }) {
             return Err(SchedulerError::InvalidPortAccess);
         }
-        let completed_pending = self.pending_host_calls.iter().flatten().find(|pending| {
+        let node_pending = self.indexed_host_call(node);
+        #[cfg(test)]
+        if node_pending.is_some() {
+            let mut counts = self.scan_counts.get();
+            counts.preflight_completion_slots += 1;
+            self.scan_counts.set(counts);
+        }
+        let completed_pending = node_pending.filter(|pending| {
             usize::from(pending.request.node.0) == node && pending.completion.is_some()
         });
         let available_host_value = completed_pending
@@ -2999,11 +3002,8 @@ where
         };
         let node_id = NodeId(as_u16(node)?);
         if let Some(request) = host_cancellation {
-            let pending = self
-                .pending_host_calls
-                .iter()
-                .flatten()
-                .find(|pending| {
+            let pending = node_pending
+                .filter(|pending| {
                     pending.request.node == node_id && pending.request.request == request
                 })
                 .ok_or(SchedulerError::HostCallCancellationRejected)?;
@@ -3019,21 +3019,16 @@ where
         }
         let admitted_host_request = if let Some((request, call, input)) = host_request {
             if self.last_host_request[node].is_some_and(|last| request <= last)
-                || self.pending_host_calls.iter().flatten().any(|pending| {
+                || node_pending.is_some_and(|pending| {
                     pending.request.node == node_id && pending.request.request == request
                 })
             {
                 return Err(SchedulerError::HostCallRequestDuplicate);
             }
-            let pending_for_node = self
-                .pending_host_calls
-                .iter()
-                .flatten()
-                .any(|pending| usize::from(pending.request.node.0) == node);
-            if pending_for_node && !consumed_host_completion {
+            if node_pending.is_some() && !consumed_host_completion {
                 return Err(SchedulerError::InvalidHostCallAccess);
             }
-            if !consumed_host_completion && self.pending_host_calls.iter().all(Option::is_some) {
+            if !consumed_host_completion && self.pending_host_count >= PENDING_REQUESTS {
                 return Err(SchedulerError::HostCallCapacityExceeded);
             }
             self.values.get(input.value)?;
@@ -3069,15 +3064,7 @@ where
                 if spec.track != AssignedConnectionTrack::Payload {
                     continue;
                 }
-                if state.len >= spec.item_capacity {
-                    return Err(SchedulerError::QueueCapacityExceeded);
-                }
-                if value.byte_len > spec.maximum_value_bytes {
-                    return Err(SchedulerError::SemanticValueBoundExceeded);
-                }
-                if value.byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes) {
-                    return Err(SchedulerError::QueueByteCapacityExceeded);
-                }
+                self.preflight_payload_output(*spec, state, value.byte_len)?;
             }
         }
         let mut handled = [None; PORTS];
@@ -3183,21 +3170,6 @@ where
             .ok_or(SchedulerError::InvalidPlan)
     }
 
-    fn output_route_count(&self, node: usize) -> Result<usize, SchedulerError> {
-        let mut count = 0_usize;
-        for port in 0..PORTS {
-            if let Ok(routes) = self
-                .routes
-                .route(NodeId(as_u16(node)?), PortId(as_u16(port)?))
-            {
-                count = count
-                    .checked_add(routes.count())
-                    .ok_or(SchedulerError::InvalidPlan)?;
-            }
-        }
-        Ok(count)
-    }
-
     fn ensure_sign_capacity(&self, additional: usize) -> Result<(), SchedulerError> {
         let additional_items =
             u16::try_from(additional).map_err(|_| SchedulerError::InvalidPlan)?;
@@ -3290,10 +3262,7 @@ where
         let normal_close = if normal_close_targets == 0 {
             None
         } else {
-            let value = self.values.store(&[])?;
-            for _ in 1..normal_close_targets {
-                self.values.retain(value)?;
-            }
+            let value = store_fanout_value(&mut self.values, &[], normal_close_targets)?;
             Some(value)
         };
         for port in 0..PORTS {
@@ -3390,10 +3359,7 @@ where
         self.ensure_sign_capacity(abnormal_targets)?;
         self.ensure_remote_sign_capacity(remote_closures)?;
         let bytes = terminal.as_slice();
-        let value = self.values.store(bytes)?;
-        for _ in 1..abnormal_targets {
-            self.values.retain(value)?;
-        }
+        let value = store_fanout_value(&mut self.values, bytes, abnormal_targets)?;
         let targets = self
             .routes
             .route(NodeId(as_u16(node)?), output)
@@ -3471,8 +3437,7 @@ where
         if state.len == 0 {
             return Ok(None);
         }
-        let offset = state.head % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, 0);
         self.queue_slots
             .get(slot)
             .copied()
@@ -3485,8 +3450,7 @@ where
         if state.len == 0 {
             return Err(SchedulerError::InvalidPortAccess);
         }
-        let offset = state.head % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, 0);
         let value = self.queue_slots[slot]
             .take()
             .ok_or(SchedulerError::InvalidPlan)?;
@@ -3503,8 +3467,7 @@ where
             if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
                 return Err(SchedulerError::QueueCapacityExceeded);
             }
-            let offset = (state.head + state.len - 1) % spec.item_capacity;
-            let slot = usize::from(spec.slot_start + offset);
+            let slot = queue_slot(spec, state.head, state.len - 1);
             let superseded = self.queue_slots[slot]
                 .replace(value)
                 .ok_or(SchedulerError::InvalidPlan)?;
@@ -3521,8 +3484,7 @@ where
                 .saturating_add(value.byte_len);
             return Ok(Some(superseded));
         }
-        let offset = (state.head + state.len) % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, state.len);
         if self.queue_slots[slot].is_some() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -3530,21 +3492,6 @@ where
         state.len += 1;
         state.queued_bytes += value.byte_len;
         Ok(None)
-    }
-
-    fn admission_maximum(&self, spec: CordSpec, state: &CordState) -> Result<u32, SchedulerError> {
-        if state.len < spec.item_capacity {
-            return Ok(spec.byte_capacity.saturating_sub(state.queued_bytes));
-        }
-        if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
-            return Ok(0);
-        }
-        let offset = (state.head + state.len - 1) % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
-        let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
-        Ok(spec
-            .byte_capacity
-            .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
     }
 }
 
@@ -3562,6 +3509,8 @@ fn validate_plan<
     cords: &[CordSpec; CORDS],
     routes: &FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
 ) -> Result<(), SchedulerError> {
+    // Every cord has one exact source, so membership is global across routes.
+    let mut membership = None::<route_membership::RouteMembership<CORDS>>;
     for (node_index, node) in nodes[..active_nodes].iter().enumerate() {
         if node.maximum_step_fuel == 0 {
             return Err(SchedulerError::InvalidPlan);
@@ -3579,28 +3528,32 @@ fn validate_plan<
             }
         }
         for port in 0..PORTS {
-            let Ok(targets) = routes.route(NodeId(as_u16(node_index)?), PortId(as_u16(port)?))
-            else {
+            let Ok(targets) = route_membership::targets(
+                routes,
+                NodeId(as_u16(node_index)?),
+                PortId(as_u16(port)?),
+            ) else {
                 continue;
             };
-            let mut seen = [false; CORDS];
             for target in targets {
                 let cord = usize::from(target.cord.0);
                 let spec = cords
                     .get(cord)
                     .filter(|_| cord < active_cords)
                     .ok_or(SchedulerError::InvalidPlan)?;
-                if seen[cord]
+                let seen = membership.get_or_insert_with(route_membership::RouteMembership::new);
+                if seen.contains(cord)
                     || spec.source_local()
                         != Some((NodeId(as_u16(node_index)?), PortId(as_u16(port)?)))
                     || spec.sink != target.sink
                 {
                     return Err(SchedulerError::InvalidPlan);
                 }
-                seen[cord] = true;
+                seen.mark(cord);
             }
         }
     }
+    let mut prefix = cord_prefix::CordPrefix::default();
     for (cord_index, cord) in cords[..active_cords].iter().copied().enumerate() {
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
@@ -3670,30 +3623,17 @@ fn validate_plan<
             }
         }
         if let Some((source_node, source_port)) = cord.source_local() {
-            let routed = routes.route(source_node, source_port)?.any(|target| {
-                target
-                    == RouteTarget {
-                        cord: cord.cord,
-                        sink: cord.sink,
-                    }
-            });
-            if !routed {
-                return Err(SchedulerError::InvalidPlan);
-            }
-        }
-        for other in &cords[..cord_index] {
-            if cord
-                .remote_endpoint()
-                .zip(other.remote_endpoint())
-                .is_some_and(|(left, right)| left == right)
+            if !membership
+                .as_ref()
+                .is_some_and(|seen| seen.contains(cord_index))
             {
-                return Err(SchedulerError::InvalidPlan);
-            }
-            let other_end = usize::from(other.slot_start) + usize::from(other.item_capacity);
-            if usize::from(cord.slot_start) < other_end && usize::from(other.slot_start) < end {
+                // Keep RouteMissing distinct from an installed route that omits
+                // this cord. A present membership already proves exact endpoints.
+                let _ = route_membership::targets(routes, source_node, source_port)?;
                 return Err(SchedulerError::InvalidPlan);
             }
         }
+        prefix.admit(cord, &cords[..cord_index], end)?;
     }
     Ok(())
 }

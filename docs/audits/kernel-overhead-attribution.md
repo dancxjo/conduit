@@ -23,7 +23,16 @@ From a committed clean checkout on Linux:
 python3 proof/performance/kernel-overhead.py --output /tmp/conduit-kernel-overhead-01 --runs 3
 ```
 
-The directory must be new. Compilation precedes measurement. The driver pins the
+Add `--include-large` to include the existing 256-node loaded/sparse selector
+replay fixture (64 cases per process instead of 48). `--source-root PATH` measures
+a separate clean historical checkout using the same harness, without modifying
+that checkout. Metadata records the fixture sizes, process count, and harness
+hash. These options do not alter runtime policy or disable evidence.
+
+The directory must be new. The capture cleans only the measured kernel package
+and requires its executable to be rebuilt, preserving dependency caches. This
+avoids stale shared-target executables when switching source checkouts.
+Compilation precedes measurement. The driver pins the
 repository toolchain and optimized profile, verifies exact source and executable
 custody, launches three independent test processes, retains stdout/stderr and GNU
 time CPU/RSS records, and hashes all artifacts. Each process contributes 48 raw

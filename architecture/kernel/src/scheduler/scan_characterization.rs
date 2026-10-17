@@ -5,6 +5,15 @@ pub(super) struct ScanCounts {
     pub ready_bytes: u64,
     pub pending_slots: u64,
     pub context_pending_slots: u64,
+    pub completion_pending_slots: u64,
+    pub preflight_completion_slots: u64,
+    pub consumed_completion_slots: u64,
+    pub retained_pending_slots: u64,
+    pub allocation_pending_slots: u64,
+    pub dispatch_pending_slots: u64,
+    pub cancellation_pending_slots: u64,
+    pub value_owner_pending_slots: u64,
+    pub value_owner_queue_slots: u64,
     pub input_ports: u64,
     pub cord_scans: u64,
     pub queue_peeks: u64,
@@ -179,8 +188,8 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
             assert!(counts.ready_bytes + counts.next_ready_nodes < 3 * active as u64);
         }
     }
-    assert_eq!(counts.pending_slots, counts.next_ready_nodes);
-    assert_eq!(counts.context_pending_slots, steps as u64);
+    assert_eq!(counts.pending_slots, 0);
+    assert_eq!(counts.context_pending_slots, 0);
     assert_eq!(counts.input_ports, steps as u64);
     assert!(counts.queue_peeks >= steps as u64);
     assert_eq!(
@@ -283,3 +292,12 @@ fn capture_small_and_large_selector_replay() {
         .join()
         .unwrap();
 }
+
+#[path = "sparse_large.rs"]
+mod sparse_large;
+
+#[path = "host_many.rs"]
+mod host_many;
+
+#[path = "remote_many.rs"]
+mod remote_many;

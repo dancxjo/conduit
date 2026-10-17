@@ -14,6 +14,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["--test", "proof/browser/browser-saved-choice.test.mjs"],
     ),
     Step::new(
+        "check.browser.application-face-codec",
+        "Check exact Unicode and identity fidelity in the generic application Face codec",
+        "node",
+        &["--test", "proof/browser/application-face-codec.test.mjs"],
+    ),
+    Step::new(
         "check.browser.browser-runtime",
         "test conduit-browser-runtime",
         "cargo",

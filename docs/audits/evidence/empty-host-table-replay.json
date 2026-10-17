@@ -1,0 +1,18 @@
+{
+  "before_source": "3e9aba160c886009c5c6802a64e68e7912abac36",
+  "after_source": "6e795c15c8045fd98c1532a2260c4d0996d4f499",
+  "before_log_sha256": "6809d4a89cbd791ed388281f9aa53064bb843acb60646401ef23b8b92b4294be",
+  "after_log_sha256": "c51c943c6ca0151b5ed0f4f92f2bbbd5cc10f85c15750dba572fe2572972c0ee",
+  "replays_verified": 64,
+  "exact_replay_and_non_timing_parity": true,
+  "empty_pending_slot_probes": {
+    "before": 9632,
+    "after": 0
+  },
+  "native_scheduler_growth_bytes": 8,
+  "limits": [
+    "Instrumented native debug/test replay; no wall-clock speedup claim.",
+    "Live Host Call table selection remains linear.",
+    "Other table queries and target layouts are outside this observation."
+  ]
+}
