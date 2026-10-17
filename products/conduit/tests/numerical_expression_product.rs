@@ -127,3 +127,12 @@ fn explicit_f32_cancellation_keeps_intermediate_rounding_in_the_product() {
         "rounded intermediate",
     );
 }
+
+#[test]
+fn explicit_f64_cancellation_keeps_intermediate_rounding_in_the_product() {
+    run(
+        include_str!("fixtures/numerical_f64_cancellation.conduit"),
+        "IEEE binary64 cancellation",
+        "rounded intermediate",
+    );
+}
