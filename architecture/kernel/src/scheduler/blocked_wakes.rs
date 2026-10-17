@@ -209,6 +209,9 @@ fn run() {
     assert!(!scheduler.has_ready_work());
     assert_eq!(scheduler.values.used_items(), 0);
     assert_eq!(scheduler.values.used_bytes(), 0);
+    assert_eq!(scheduler.pending_host_call_count(), 0);
+    assert!(scheduler.pending_host_slots.iter().all(Option::is_none));
+    assert!(scheduler.signs.retention_gap.is_none());
     let allocations = allocation.finish();
     assert_eq!(allocations.allocations + allocations.reallocations, 0);
     let events = std::format!(
