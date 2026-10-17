@@ -10,6 +10,13 @@ fn scheduler(remote_items: u16) -> FanoutScheduler {
     scheduler_with_policy(remote_items, AssignedPressurePolicy::default())
 }
 fn scheduler_with_policy(remote_items: u16, policy: AssignedPressurePolicy) -> FanoutScheduler {
+    scheduler_with_bound(remote_items, policy, 4)
+}
+fn scheduler_with_bound(
+    remote_items: u16,
+    policy: AssignedPressurePolicy,
+    bound: u32,
+) -> FanoutScheduler {
     let endpoints = [RemoteEndpointId(0), RemoteEndpointId(1)];
     let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
     routes.seal().unwrap();
@@ -29,7 +36,8 @@ fn scheduler_with_policy(remote_items: u16, policy: AssignedPressurePolicy) -> F
         [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
         [
             CordSpec::remote_ingress(CordId(0), endpoints[0], (NodeId(0), PortId(0)), capacity(0)),
-            CordSpec::remote_ingress(CordId(1), endpoints[1], (NodeId(1), PortId(0)), capacity(1)),
+            CordSpec::remote_ingress(CordId(1), endpoints[1], (NodeId(1), PortId(0)), capacity(1))
+                .with_maximum_value_bytes(bound),
         ],
         routes,
         [
@@ -270,4 +278,63 @@ fn remote_fanout_rejects_more_targets_than_admitted_cords_even_under_pressure() 
         scheduler.admit_remote_input_fanout(&[TARGETS[0], TARGETS[1], TARGETS[0]], 1, b"next"),
         Err(SchedulerError::InvalidRemoteCordAccess)
     );
+}
+
+#[test]
+fn remote_payloads_obey_semantic_value_bounds_before_pressure_or_coalescing() {
+    for policy in [
+        AssignedPressurePolicy::default(),
+        AssignedPressurePolicy::CoalesceLatest,
+    ] {
+        for fanout in [false, true] {
+            for pressured in [false, true] {
+                let mut scheduler = scheduler_with_bound(16, policy, 2);
+                if pressured {
+                    scheduler
+                        .admit_remote_input_fanout(&TARGETS, 0, b"ok")
+                        .unwrap();
+                }
+                let sequence = u64::from(pressured);
+                let signs = scheduler.signs.entries;
+                let items = scheduler.values.used_items();
+                let bytes = scheduler.values.used_bytes();
+                let queues = scheduler
+                    .cords
+                    .map(|c| (c.len, c.queued_bytes, c.next_remote_sequence));
+                let heads = [scheduler.peek(0).unwrap(), scheduler.peek(1).unwrap()];
+                let ready = [scheduler.ready.contains(0), scheduler.ready.contains(1)];
+                let result = if fanout {
+                    scheduler.admit_remote_input_fanout(&TARGETS, sequence, b"big")
+                } else {
+                    scheduler.admit_remote_input(RemoteEndpointId(1), CordId(1), sequence, b"big")
+                };
+                assert_eq!(result, Err(SchedulerError::SemanticValueBoundExceeded));
+                assert_eq!(scheduler.signs.entries, signs);
+                assert_eq!(scheduler.values.used_items(), items);
+                assert_eq!(scheduler.values.used_bytes(), bytes);
+                assert_eq!(
+                    scheduler
+                        .cords
+                        .map(|c| (c.len, c.queued_bytes, c.next_remote_sequence)),
+                    queues
+                );
+                assert_eq!(
+                    [scheduler.peek(0).unwrap(), scheduler.peek(1).unwrap()],
+                    heads
+                );
+                assert_eq!(
+                    [scheduler.ready.contains(0), scheduler.ready.contains(1)],
+                    ready
+                );
+                if !pressured {
+                    assert_eq!(
+                        scheduler.admit_remote_input_fanout(&TARGETS, sequence, b"ok"),
+                        Ok(RemoteIngressOutcome::Accepted { sequence })
+                    );
+                }
+                scheduler.cancel().unwrap();
+                assert_eq!(scheduler.values.used_items(), 0);
+            }
+        }
+    }
 }
