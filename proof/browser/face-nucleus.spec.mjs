@@ -352,7 +352,7 @@ for (const forged of ['dom-option', 'string', 'bytes', 'malformed-bytes', 'bom-b
   });
 }
 
-for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
+for (const mutation of ['input', 'callback', 'returned', 'transfer', 'validation-mutation', 'validation-transfer', 'offset-input']) {
   test(`generic event queue retains private admitted bytes (${mutation})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result = await page.evaluate(async mutation => {
@@ -367,8 +367,19 @@ for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
           if (mutation === 'callback') { event.value.fill(0); event.encoded.fill(0); }
           if (mutation === 'transfer') structuredClone(event.encoded, { transfer: [event.encoded.buffer] });
         } });
-      const input = new TextEncoder().encode('yes');
-      const returned = manifest.requestAction('choice', input);
+      const input = mutation === 'offset-input' ? Uint8Array.of(99, 121, 101, 115, 99).subarray(1, 4)
+        : new TextEncoder().encode('yes');
+      const decode = TextDecoder.prototype.decode;
+      if (mutation.startsWith('validation-')) TextDecoder.prototype.decode = function(...args) {
+        const text = decode.apply(this, args);
+        // Deterministic boundary hook: change caller storage after text is read.
+        if (mutation === 'validation-mutation') input.fill(0);
+        else structuredClone(input, { transfer: [input.buffer] });
+        return text;
+      };
+      let returned;
+      try { returned = manifest.requestAction('choice', input); }
+      finally { TextDecoder.prototype.decode = decode; }
       if (mutation === 'input') input.fill(0);
       if (mutation === 'returned') { returned.value.fill(0); returned.encoded.fill(0); }
       const queued = manifest.nextEvent();

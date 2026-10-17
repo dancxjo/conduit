@@ -1209,3 +1209,19 @@ held Space/blur cancellation, pointer/Enter routing and exact node/port/cord
 identities. These are renderer keyboard/queue proofs, not authoritative Body/Play
 or packaged/release acceptance; #5631 remains open. No ordinary locally merged
 branches remain eligible for deletion; archive/dev/live/main refs are preserved.
+
+Pre-validation event byte custody (#5644): bounded byte requests now take their
+private copy before text/membership validation, and queue that same admitted
+copy. The admitted length/offset is fixed before copying, preserving typed-array
+subviews without borrowing later caller storage. This moves the existing copy
+earlier rather than adding another event-sized backing allocation. Callback,
+return and dequeue copies retain their existing independent custody.
+
+Both new regressions reproduced changed queued bytes or a detached-buffer throw
+before repair. Eighteen focused pinned Chromium checks pass with one worker and
+zero retries, including deterministic source mutation/transfer during decoding,
+offset subviews, later input/callback/return mutation, exact wire bytes, malformed
+typed values, shared bindings and graph identity membership. The boundary hook
+simulates caller storage changes; this is not a concurrent-worker stress test.
+These are renderer admission/queue proofs, not authoritative Body/Play or
+packaged/release acceptance; #5644 remains open.

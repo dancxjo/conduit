@@ -513,18 +513,23 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
+    let encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
     if (!(encodedValue instanceof Uint8Array)) refuse("malformed-encoding");
-    if (encodedValue.length > MAX_EVENT_BYTES) {
+    const valueLength = encodedValue.length;
+    if (valueLength > MAX_EVENT_BYTES) {
       lastRefusal = "event-too-large";
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    if (encodedValue.length > valueCapacity) {
+    if (valueLength > valueCapacity) {
       lastRefusal = "invalid-control-value";
       options.onRefusal?.(lastRefusal);
       return null;
     }
+    // Validate the same private bytes that will be queued. Caller storage can
+    // otherwise change (or be transferred) between decoding and queue insertion.
+    // Fix the admitted span before copying even if caller storage can grow.
+    encodedValue = new Uint8Array(new Uint8Array(encodedValue.buffer, encodedValue.byteOffset, valueLength));
     let text;
     try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
       : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
@@ -544,7 +549,7 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: new Uint8Array(encodedValue) };
+    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: encodedValue };
     const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
     queue.push(event);
     queuedBytes += event.encoded.length;
