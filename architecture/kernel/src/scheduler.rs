@@ -20,6 +20,7 @@ pub use conduit_assigned_plan::{AssignedConnectionTrack, AssignedPressurePolicy}
 mod active_capacity;
 #[cfg(feature = "alloc")]
 mod boxed_preparation;
+mod cord_prefix;
 mod debug_control;
 mod derived_value;
 mod execution_region;
@@ -3627,6 +3628,7 @@ fn validate_plan<
             }
         }
     }
+    let mut prefix = cord_prefix::CordPrefix::default();
     for (cord_index, cord) in cords[..active_cords].iter().copied().enumerate() {
         if usize::from(cord.cord.0) != cord_index
             || cord.item_capacity == 0
@@ -3707,19 +3709,7 @@ fn validate_plan<
                 return Err(SchedulerError::InvalidPlan);
             }
         }
-        for other in &cords[..cord_index] {
-            if cord
-                .remote_endpoint()
-                .zip(other.remote_endpoint())
-                .is_some_and(|(left, right)| left == right)
-            {
-                return Err(SchedulerError::InvalidPlan);
-            }
-            let other_end = usize::from(other.slot_start) + usize::from(other.item_capacity);
-            if usize::from(cord.slot_start) < other_end && usize::from(other.slot_start) < end {
-                return Err(SchedulerError::InvalidPlan);
-            }
-        }
+        prefix.admit(cord, &cords[..cord_index], end)?;
     }
     Ok(())
 }
