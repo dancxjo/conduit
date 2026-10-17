@@ -25,7 +25,9 @@ mod derived_value;
 mod execution_region;
 mod host_call_index;
 mod host_call_settlement;
+mod queue_index;
 mod quiescence;
+use queue_index::queue_slot;
 #[cfg(feature = "linear-ready-reference-test")]
 mod ready_reference;
 mod ready_set;
@@ -3502,8 +3504,7 @@ where
         if state.len == 0 {
             return Ok(None);
         }
-        let offset = state.head % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, 0);
         self.queue_slots
             .get(slot)
             .copied()
@@ -3516,8 +3517,7 @@ where
         if state.len == 0 {
             return Err(SchedulerError::InvalidPortAccess);
         }
-        let offset = state.head % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, 0);
         let value = self.queue_slots[slot]
             .take()
             .ok_or(SchedulerError::InvalidPlan)?;
@@ -3534,8 +3534,7 @@ where
             if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
                 return Err(SchedulerError::QueueCapacityExceeded);
             }
-            let offset = (state.head + state.len - 1) % spec.item_capacity;
-            let slot = usize::from(spec.slot_start + offset);
+            let slot = queue_slot(spec, state.head, state.len - 1);
             let superseded = self.queue_slots[slot]
                 .replace(value)
                 .ok_or(SchedulerError::InvalidPlan)?;
@@ -3552,8 +3551,7 @@ where
                 .saturating_add(value.byte_len);
             return Ok(Some(superseded));
         }
-        let offset = (state.head + state.len) % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, state.len);
         if self.queue_slots[slot].is_some() {
             return Err(SchedulerError::InvalidPlan);
         }
@@ -3586,8 +3584,7 @@ where
         if spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0 {
             return Ok(0);
         }
-        let offset = (state.head + state.len - 1) % spec.item_capacity;
-        let slot = usize::from(spec.slot_start + offset);
+        let slot = queue_slot(spec, state.head, state.len - 1);
         let newest = self.queue_slots[slot].ok_or(SchedulerError::InvalidPlan)?;
         Ok(spec
             .byte_capacity

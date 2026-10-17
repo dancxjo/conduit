@@ -18,6 +18,7 @@ mod host_cancellation;
 mod host_cancellation_polling;
 mod host_index;
 mod host_value_occupancy;
+mod queue_ring_bounds;
 
 const NODES: usize = 6;
 const CORDS: usize = 5;

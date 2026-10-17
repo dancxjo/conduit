@@ -97,14 +97,7 @@ where
             .any(|(cord, state)| {
                 let spec = self.cord_specs[cord];
                 (0..state.len).any(|offset| {
-                    // Preserve ring order without overflowing a u16 head+offset.
-                    let until_wrap = spec.item_capacity - state.head;
-                    let position = if offset < until_wrap {
-                        state.head + offset
-                    } else {
-                        offset - until_wrap
-                    };
-                    let slot = usize::from(spec.slot_start) + usize::from(position);
+                    let slot = super::queue_index::queue_slot(spec, state.head, offset);
                     #[cfg(test)]
                     {
                         let mut counts = self.scan_counts.get();
