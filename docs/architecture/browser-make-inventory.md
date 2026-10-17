@@ -195,6 +195,12 @@ ownership as `CorruptRecord`. Publication checks this before filtering records
 by application, so corrupt ownership cannot hide an immutable record from the
 replacement guard. Refusal leaves the original evidence intact.
 
+Publication metadata also requires an exact string package digest and a boolean
+immutable flag when present. Older records without an immutable flag remain
+mutable; a malformed flag is corruption, never permission to replace evidence.
+These checks detect malformed metadata, not undetectable edits from one valid
+value to another by hostile code with direct same-origin database access.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host

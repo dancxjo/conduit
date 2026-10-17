@@ -574,7 +574,9 @@ test("corrupt record ownership cannot bypass immutable publication", async ({ pa
     };
     const original = await readRaw();
     const results = [];
-    for (const change of [{ applicationIdentity: 'proof/other-owner' }, { applicationVersion: 2 }, { key: 'other-key' }]) {
+    for (const change of [{ applicationIdentity: 'proof/other-owner' }, { applicationVersion: 2 }, { key: 'other-key' },
+      { immutable: 'true' }, { immutable: 1 }, { immutable: null }, { immutable: [] },
+      { packageDigest: 'unchecked' }]) {
       const record = { ...original, ...change };
       const tx = database.transaction('application-state', 'readwrite');
       tx.objectStore('application-state').put(record);
@@ -592,5 +594,5 @@ test("corrupt record ownership cannot bypass immutable publication", async ({ pa
     await new Promise((resolve, reject) => { cleanup.oncomplete = resolve; cleanup.onabort = () => reject(cleanup.error); });
     database.close(); storage.close(); return results;
   });
-  expect(result).toEqual(Array(3).fill({ codes: ['CorruptRecord', 'CorruptRecord'], unchanged: true }));
+  expect(result).toEqual(Array(8).fill({ codes: ['CorruptRecord', 'CorruptRecord'], unchanged: true }));
 });
