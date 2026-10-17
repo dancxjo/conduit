@@ -356,3 +356,6 @@ fn run(cancel_all: bool) {
     assert_eq!(allocations.allocations + allocations.reallocations, 0);
     std::println!("MANY_HOST_ROW {{\"nodes\":{N},\"cancel_all\":{cancel_all},\"cancellation_probes\":{cancellation_probes:?},\"allocations\":{},\"signs\":{},\"value_items\":0}}", allocations.allocations, scheduler.signs.events().count());
 }
+
+#[path = "host_many/interleaving.rs"]
+mod interleaving;
