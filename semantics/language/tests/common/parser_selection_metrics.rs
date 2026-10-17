@@ -46,6 +46,7 @@ pub fn heldout(decoder: &mut Decoder) -> Value {
             Some(text.chars().count() as u32),
             LanguageTextFinality::Final,
         );
+        eprintln!("decoding held-out source {index}: {text:?}");
         let before = decoder.model.invocations();
         let start = Instant::now();
         let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| {

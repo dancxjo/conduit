@@ -120,6 +120,8 @@ fn actual_text_enters_checked_model_action_selection_without_reference_edges() {
             index == 3,
         );
         revisions.push(json!({"text":text,"source_revision":source.material().revision().get(),"analysis_revision":analysis,"source_finality":"partial","available_tokens":count,"complete":result.complete,"steps":result.steps,"decode_elapsed_ns":result.elapsed_ns,"revision_elapsed_ns":revision_start.elapsed().as_nanos(),"initial_heads":initial.heads(),"initial_unread":initial.unread(),"model_invocations":result.invocations,"invocation_first":invocation_before+1,"invocation_last":decoder.model.invocations(),"observation":observed}));
+        // Retain completed revisions in CI logs even if a later bounded run refuses.
+        eprintln!("parser revision observation: {}", revisions.last().unwrap());
         assert!(result.invocations > 0);
         assert_eq!(
             result
@@ -132,6 +134,7 @@ fn actual_text_enters_checked_model_action_selection_without_reference_edges() {
             source.material().revision()
         );
         if index == 3 {
+            eprintln!("decoding explicit deterministic fallback");
             let baseline = decoder.decode(&lexical, initial, false);
             fallback = Some(
                 json!({"mode":"deterministic class order","model_invocations":baseline.invocations,"complete":baseline.complete,"heads":baseline.beam.candidate0().parser().state().heads(),"score":baseline.beam.candidate0().parser().score()}),
