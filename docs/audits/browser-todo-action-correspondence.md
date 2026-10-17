@@ -1102,3 +1102,189 @@ identical to the preservation branch. Current control-owner production changes
 are additions, and its test fixture now delegates to the shared selected-operation
 fixture. The old branch is retained because its exact-tip remote ancestry has
 not been established; no USB code or evidence was discarded or replayed.
+
+CSS-concealed DOM action follow-up (#5632 / #5644): connected generic controls
+check computed display/opacity through their composed ancestry, their effective
+visibility and rendered bounds before DOM action admission or focus movement.
+Collapsed HTML boxes refuse; SVG stroke subjects may retain a one-dimensional
+geometric box. Detached preparation retains structural checks so focus groups
+can be built before attachment. Explicit Host semantic requests retain their
+existing path; this does not certify arbitrary CSS or recover hidden controls.
+
+All four regressions reproduced queue/callback admission before repair:
+ancestor display:none, visibility:hidden, opacity:0 and scale(0). Twenty-six
+focused pinned Chromium checks pass across focused runs with one worker and
+zero retries, including native pointer recovery, native keyboard graph/choice/
+text routes, closed disclosures, roving peers and reentrant restoration. These
+prove the listed concealment refusals and queue behavior, not authoritative
+Body/Play, arbitrary styling accessibility or packaged/release acceptance.
+The owning issues remain open; uncertain USB preservation work remains intact.
+
+Declared Home accessible names (#5630): the generic renderer and static product
+masthead generator no longer replace a Home destination's declared label with
+hardcoded aria-label wording. Native link text supplies its accessible name,
+while exact destination/current-page identity remains unchanged. The product
+masthead's declared home label is conduit; the Patchbay expectation now checks
+that exact name instead of the removed renderer override.
+
+Two custom-label browser regressions and the generated-masthead regression
+reproduced before repair; the explicitly declared Conduit home case already
+passed. Six focused pinned Chromium checks pass with one worker and zero retries,
+including Unicode names, native Tab/Enter destination activation, generated HTML
+names/status and navigation/stepper focus. The affected Patchbay test's syntax
+check passes; its full runtime journey was not rerun. These are source-description/
+renderer accessible-name proofs, not actual Todo/Commons Body/Play or packaged/
+release acceptance; #5630 remains open.
+
+Readonly native text follow-up (#5644): DOM input/change actions from text input
+and textarea components refuse with unavailable-action while the native control
+is readonly. Readonly remains distinct from disabled: the control retains reading
+focus and text selection. The existing explicit Host semantic request path is
+unchanged. Checkbox/radio components are excluded because native readonly does
+not prevent their editing.
+
+Both text-control regressions reproduced queue/callback admission before repair.
+Fourteen focused pinned Chromium fixtures pass with one worker and zero retries,
+including empty queue on forged edit, native Tab/selection, blocked native edit,
+restored native insertion, typed values, initial Unicode and selection restoration.
+These prove renderer DOM-edit admission, not authoritative Body/Play or packaged/
+release acceptance; #5644 remains open. Preserved branch work remains intact.
+
+Native child routing follow-up (#5644): native controls and associated labels
+form interaction boundaries even when the child's semantic binding uses a
+different event kind. Checkbox click/change and text-field focus no longer
+borrow an ancestor click action. Disabled or unbound native child controls
+produce unavailable-action without queueing the ancestor. Native links and
+summary controls retain their browser behavior; ordinary decoration still routes
+to its nearest matching declared binding.
+
+Five initial regressions reproduced before repair. A label-text fixture was
+refined to click a decorative child inside the label, which reproduced the
+additional label-forwarding route after the first guard; the associated-control
+guard fixes it. All sixteen focused pinned Chromium fixtures pass with one
+worker and zero retries, including native checkbox pointer/Space/label activation,
+focus-only text interaction, later native text editing, exact missing-binding
+refusal, decorative parent clicks, nested same-event bindings, graph routing and
+closed disclosures. These are renderer correspondence/queue proofs, not
+authoritative Body/Play or packaged/release acceptance; #5644 remains open.
+
+Graph Space key lifecycle (#5631): SVG graph buttons arm Space on its first
+keydown, suppress scrolling/repeat activation, and select once on release. Blur
+cancels the pending press. Enter and pointer routing retain their existing path;
+this bounded local key state does not change graph selection truth or arguments.
+
+Both new Chromium regressions reproduced repeated early selections before
+repair. Eleven focused pinned Chromium checks pass with one worker and zero
+retries, using native keyboard down/repeat/up and Tab to prove no action while
+held, one exact subject on release, cancellation after blur and later recovery.
+Existing native Enter/pointer routes, node/port/cord identities and closed
+availability also pass. These are renderer keyboard/queue proofs, not
+Body/Play, fresh packaged WASM or release acceptance; #5631 remains open.
+
+Roving keyboard ownership follow-up (#5631): generic navigation/stepper roving
+focus handles only unmodified, unconsumed key events. Control/Alt/Meta/Shift
+shortcuts and keys already claimed by another handler retain their native/Host
+path instead of being overwritten by local arrow/Home/End focus decoration.
+No semantic action or alternate authorization path is added.
+
+Four initial regressions reproduced focus capture before repair. Eleven focused
+pinned Chromium checks pass with one worker and zero retries, including all four
+modifier classes, a consumed native ArrowRight event, ordinary arrow recovery,
+exact subsequent Enter action, temporary peer availability, nested groups and
+stepper indices. These are renderer keyboard proofs, not authoritative Body/Play
+or packaged/release acceptance; #5631 remains open. Branch inventory found no
+ordinary branch with an identical archive/recovery tip eligible for deduplication;
+uncertain work remains preserved.
+
+Graph keyboard handler ownership (#5631): the SVG button keyboard shim respects
+keydown events already consumed by a prior handler. Space release always clears
+its local pending press, and a consumed release cancels activation. A later keyup
+without a new press cannot revive the canceled action. Pointer routing and the
+existing typed graph subject/availability checks remain unchanged.
+
+Both regressions reproduced semantic activation before repair. Ten focused
+pinned Chromium fixtures pass with one worker and zero retries, including native
+claimed Enter/Space, explicit adversarial extra keyup, fresh native recovery,
+held Space/blur cancellation, pointer/Enter routing and exact node/port/cord
+identities. These are renderer keyboard/queue proofs, not authoritative Body/Play
+or packaged/release acceptance; #5631 remains open. No ordinary locally merged
+branches remain eligible for deletion; archive/dev/live/main refs are preserved.
+
+Pre-validation event byte custody (#5644): bounded byte requests now take their
+private copy before text/membership validation, and queue that same admitted
+copy. The admitted length/offset is fixed before copying, preserving typed-array
+subviews without borrowing later caller storage. This moves the existing copy
+earlier rather than adding another event-sized backing allocation. Callback,
+return and dequeue copies retain their existing independent custody.
+
+Both new regressions reproduced changed queued bytes or a detached-buffer throw
+before repair. Eighteen focused pinned Chromium checks pass with one worker and
+zero retries, including deterministic source mutation/transfer during decoding,
+offset subviews, later input/callback/return mutation, exact wire bytes, malformed
+typed values, shared bindings and graph identity membership. The boundary hook
+simulates caller storage changes; this is not a concurrent-worker stress test.
+These are renderer admission/queue proofs, not authoritative Body/Play or
+packaged/release acceptance; #5644 remains open.
+
+Event metadata snapshot follow-up (#5653 / #5644): the browser event encoder
+captures revision and kind once, validates those primitives and writes the same
+values to the wire. Later action/payload conversion cannot replace an admitted
+revision with a wrapping integer or change its registered event kind. Existing
+argument, byte-budget and exact identity checks remain unchanged.
+
+All three new regressions reproduced before repair: repeated revision/kind
+getters and payload conversion rewriting already-validated metadata. All 32
+focused Face/Look/syntax codec tests pass, including unchanged size/Unicode and
+input-form negative cases. This is deterministic wire admission proof, not
+actual source/compiler/kernel Play, browser interaction or packaged/release
+acceptance; the owning issues remain open. No protected or uncertain branch
+work was changed.
+
+SDK subscription cancellation (#5376 browser integration resource boundary):
+Body event iterators check cancellation before reserving/reading and after
+snapshot reads or yielded records. An already-aborted iterator takes no finite
+subscription slot. Cancellation during a poll or replay stops later biography,
+compaction-following and Host-offer notifications; resuming the canceled iterator
+runs the existing release path exactly once. The underlying Body read is not
+canceled and no second mutable Body store or event queue is introduced.
+
+All five regressions reproduced before repair. Twenty-seven focused SDK event/
+Plot tests pass, including deferred poll settlement, cancellation between replay
+records/history gap, cancellation before Host-offer notification and exact
+reservation/release counts. README states the boundary explicitly. These use
+canonical-shaped fixture snapshots and prove SDK iterator lifecycle, not actual
+Rust Body/Play, Custom Element or packaged/release acceptance; #5376 remains open.
+
+SDK Body identity continuity (#5622 boundary support): BrowserBody takes an
+immutable private snapshot of its attachment receipt. Current Workspace snapshots
+must match that exact Body identity before return, event replay or workset-change
+preparation; mismatches produce BodyIdentityMismatch with the handle's original
+Body/Host/Boot identities. This guards these read/preparation paths, not every
+Workspace effect or durable-storage boundary.
+
+All four regressions reproduced before repair: foreign current response, foreign
+event replay, foreign workset preparation and producer mutation of the retained
+receipt. The empty-record event baseline initially waited for a poll; that owned
+test process was stopped and its fixture corrected with one retained record.
+All 31 focused SDK Plot/event tests pass, including no ChangeWorkset request on
+mismatch, immutable nested receipt, original handle identity and recovery when a
+matching response returns. README records the exact refusal boundary. These use
+bridge fixtures and prove SDK identity custody, not actual Rust Body/Play,
+cross-Mask continuity or packaged/release acceptance; #5622 remains open.
+
+SDK durable Body identity (#5622 continuity boundary): durable output is privately
+snapshotted and both its evidence/admission Body IDs must match before continuity
+writes or archive acknowledgement. Recovery captures the retained Body ID and
+checks restored evidence before foreground selection; that evidence is privately
+snapshotted across the awaited storage commit. Existing archive atomicity and
+acknowledgement ordering remain unchanged. This does not roll back a completed
+Rust Restore or claim to fence every Workspace effect.
+
+All seven regressions reproduced before repair: birth/recovery foreign evidence
+or admission IDs, changed restored identity, deferred durable producer mutation
+and restored-evidence mutation during persistence. All 38 focused SDK Plot/event
+tests pass, including no storage/acknowledgement on mismatch and preservation of
+existing continuity. Two older durable fixtures now include the mandatory
+AdmissionManager field emitted by Rust DurableSnapshot. README documents the
+identity boundary. These are bridge-fixture SDK custody/ordering proofs, not
+actual Rust Body/Play, cross-Mask or packaged/release acceptance; #5622 remains open.

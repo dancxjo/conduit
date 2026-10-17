@@ -191,6 +191,15 @@ Body biography records, membership records, workload revision, realization,
 and current Host offers remain Rust evidence; the SDK returns a recursively
 frozen projection and keeps no second mutable Body store.
 
+The Body handle owns an immutable private snapshot of its attachment receipt.
+A current snapshot must retain the Body identity from that receipt.
+A foreign Workspace response refuses with `BodyIdentityMismatch` before returning
+it, projecting its event stream, or issuing a workset change based on it.
+Durable output must match both its evidence and admission Body identities before
+storage writes or archive acknowledgement. Recovery checks the restored Body ID
+before selecting foreground state, and keeps private immutable snapshots through
+its asynchronous persistence step; it cannot silently adopt a different Body.
+
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a
 wake record to its indexed Rust wake event and returns the raw structured
@@ -203,7 +212,11 @@ boundary; it does not invent missing history.
 Subscriptions poll at a bounded interval (50–5,000 ms), yield one event at a
 time, and hold no unbounded event queue. Re-subscribing starts at current
 evidence by default. Set `replay: true` to read the finite retained biography
-window explicitly. Pass an `AbortSignal` to stop the iterator. An event can
+window explicitly. Pass an `AbortSignal` to stop the iterator. An already-aborted
+iterator takes no subscription reservation and reads no snapshot. Cancellation
+also stops remaining replay records and notifications from a pending poll once
+its snapshot read settles. Resuming a canceled iterator releases its reservation;
+this does not cancel the underlying Body operation. An event can
 only describe a Rust record already present in the snapshot, so a refused
 transition never appears as a success event. Refusals remain attached to the
 operation's typed error; lifecycle evidence remains inspectable through the

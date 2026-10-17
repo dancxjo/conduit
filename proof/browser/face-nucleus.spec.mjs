@@ -352,7 +352,7 @@ for (const forged of ['dom-option', 'string', 'bytes', 'malformed-bytes', 'bom-b
   });
 }
 
-for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
+for (const mutation of ['input', 'callback', 'returned', 'transfer', 'validation-mutation', 'validation-transfer', 'offset-input']) {
   test(`generic event queue retains private admitted bytes (${mutation})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const result = await page.evaluate(async mutation => {
@@ -367,8 +367,19 @@ for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
           if (mutation === 'callback') { event.value.fill(0); event.encoded.fill(0); }
           if (mutation === 'transfer') structuredClone(event.encoded, { transfer: [event.encoded.buffer] });
         } });
-      const input = new TextEncoder().encode('yes');
-      const returned = manifest.requestAction('choice', input);
+      const input = mutation === 'offset-input' ? Uint8Array.of(99, 121, 101, 115, 99).subarray(1, 4)
+        : new TextEncoder().encode('yes');
+      const decode = TextDecoder.prototype.decode;
+      if (mutation.startsWith('validation-')) TextDecoder.prototype.decode = function(...args) {
+        const text = decode.apply(this, args);
+        // Deterministic boundary hook: change caller storage after text is read.
+        if (mutation === 'validation-mutation') input.fill(0);
+        else structuredClone(input, { transfer: [input.buffer] });
+        return text;
+      };
+      let returned;
+      try { returned = manifest.requestAction('choice', input); }
+      finally { TextDecoder.prototype.decode = decode; }
       if (mutation === 'input') input.fill(0);
       if (mutation === 'returned') { returned.value.fill(0); returned.encoded.fill(0); }
       const queued = manifest.nextEvent();
@@ -954,5 +965,239 @@ for (const mode of ['body-button', 'graph-subject', 'summary-button']) {
     await page.keyboard.press('Enter');
     expect(await page.evaluate(() => ({ calls: globalThis.disclosureCalls, queued: globalThis.disclosureManifest.queuedEvents() })))
       .toEqual({ calls: [mode === 'graph-subject' ? 'gear' : ''], queued: 1 });
+  });
+}
+
+for (const [property, value] of [['display', 'none'], ['visibility', 'hidden'], ['opacity', '0'], ['transform', 'scale(0)']]) {
+  test(`CSS-concealed generic actions refuse until restored (${property})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ property, value }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const outer = document.createElement('section'); document.body.append(outer);
+      const root = document.createElement('section'); outer.append(root);
+      globalThis.cssConcealedCalls = [];
+      globalThis.cssConcealedManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'visible.action', event: 'activate' }], nodes: [
+          { parent: null, component: 'button', key: 'action', text: 'Visible action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.cssConcealedCalls.push(event.action) });
+      outer.style.setProperty(property, value);
+      root.querySelector('button').dispatchEvent(new MouseEvent('click', { bubbles: true }));
+      globalThis.restoreCssConcealed = () => outer.style.removeProperty(property);
+    }, { property, value });
+    expect(await page.evaluate(() => ({ calls: globalThis.cssConcealedCalls, queued: globalThis.cssConcealedManifest.queuedEvents(),
+      refusal: globalThis.cssConcealedManifest.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+    await page.evaluate(() => globalThis.restoreCssConcealed());
+    await page.getByRole('button', { name: 'Visible action', exact: true }).click();
+    expect(await page.evaluate(() => globalThis.cssConcealedCalls)).toEqual(['visible.action']);
+  });
+}
+
+for (const label of ['Workspace home', 'Accueil café 😀', 'Conduit home']) {
+  test(`Home navigation preserves its declared accessible name (${label})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async label => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.prepend(root);
+      globalThis.homeNameCalls = [];
+      globalThis.homeNameManifest = manifestApplicationView(encodeApplicationView({ revision: 1, actions: [], nodes: [
+        { parent: null, component: 'navigation', key: 'navigation', text: 'Declared destinations', value: 'home', valueCapacity: 32, action: null },
+        { parent: 0, component: 'navigation-link', key: 'home', text: label, value: 'home', valueCapacity: 16, action: null },
+      ] }), root, { onEvent: event => globalThis.homeNameCalls.push(event.action) });
+    }, label);
+    const link = page.getByRole('link', { name: label, exact: true });
+    await expect(link).toHaveText(label);
+    await expect(link).toHaveAttribute('href', '/conduit');
+    await expect(link).toHaveAttribute('aria-current', 'page');
+    await page.keyboard.press('Tab');
+    await expect(link).toBeFocused();
+    expect(await page.evaluate(() => ({ calls: globalThis.homeNameCalls, queued: globalThis.homeNameManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/conduit$/u);
+  });
+}
+
+for (const component of ['text-input', 'textarea']) {
+  test(`readonly controls retain reading focus but refuse DOM edits (${component})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async component => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.prepend(root);
+      globalThis.readonlyCalls = [];
+      globalThis.readonlyManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'edit', event: 'input' }], nodes: [
+          { parent: null, component, key: 'source', text: 'Readable source', value: 'original', valueCapacity: 32, action: 0 },
+        ] }), root, { onEvent: event => globalThis.readonlyCalls.push(new TextDecoder().decode(event.value)) });
+      const control = root.querySelector('input, textarea');
+      control.readOnly = true;
+      control.dispatchEvent(new InputEvent('input', { bubbles: true }));
+    }, component);
+    expect(await page.evaluate(() => ({ calls: globalThis.readonlyCalls, queued: globalThis.readonlyManifest.queuedEvents(),
+      refusal: globalThis.readonlyManifest.lastRefusal() })))
+      .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+    const control = page.getByRole('textbox', { name: 'Readable source', exact: true });
+    await page.keyboard.press('Tab');
+    await expect(control).toBeFocused();
+    await page.keyboard.press('Control+A');
+    expect(await control.evaluate(element => [element.selectionStart, element.selectionEnd])).toEqual([0, 8]);
+    await page.keyboard.insertText('blocked');
+    await expect(control).toHaveValue('original');
+    expect(await page.evaluate(() => globalThis.readonlyCalls)).toEqual([]);
+    await control.evaluate(element => { element.readOnly = false; });
+    await page.keyboard.press('Control+End');
+    await page.keyboard.insertText('!');
+    expect(await page.evaluate(() => globalThis.readonlyCalls)).toEqual(['original!']);
+  });
+}
+
+for (const mode of ['checkbox-pointer', 'checkbox-keyboard', 'checkbox-label', 'field-focus', 'disabled-child', 'unbound-child']) {
+  test(`native child controls cannot borrow ancestor click actions (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const nodes = [{ parent: null, component: 'panel', key: 'panel', text: 'Parent', action: 0 },
+        { parent: 0, component: 'paragraph', key: 'decoration', text: 'Panel decoration', action: null }];
+      if (mode.startsWith('checkbox')) nodes.push(
+        { parent: 0, component: 'choice-group', key: 'group', text: 'choices', action: null },
+        { parent: 2, component: 'choice-group-label', key: 'legend', text: 'Choices', action: null },
+        { parent: 2, component: 'choice-option-label', key: 'label', text: 'Child choice', action: null },
+        { parent: 4, component: 'independent-choice', key: 'choice', text: 'choice', value: 'false', valueCapacity: 5, action: 1 });
+      else if (mode === 'field-focus') nodes.push(
+        { parent: 0, component: 'text-input', key: 'field', text: 'Child field', valueCapacity: 32, action: 1 });
+      else if (mode === 'disabled-child') nodes.push(
+        { parent: 0, component: 'button', key: 'disabled', text: 'Unavailable child', action: null });
+      if (mode === 'checkbox-label') nodes.push({ parent: 4, component: 'code', key: 'label-detail', text: 'Choice detail', action: null });
+      globalThis.childBoundaryCalls = [];
+      globalThis.childBoundaryManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'parent', event: 'activate' }, { id: 'child', event: mode.startsWith('checkbox') ? 'change' : 'input' }], nodes }), root,
+        { onEvent: event => globalThis.childBoundaryCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
+      if (mode === 'unbound-child') {
+        const button = document.createElement('button'); button.textContent = 'Unbound child'; root.firstChild.append(button);
+      }
+    }, mode);
+    if (mode === 'checkbox-label') await page.getByText('Choice detail', { exact: true }).click();
+    else if (mode === 'checkbox-pointer') await page.getByRole('checkbox', { name: 'Child choice', exact: true }).click();
+    else if (mode === 'checkbox-keyboard') {
+      await page.getByRole('checkbox', { name: 'Child choice', exact: true }).focus(); await page.keyboard.press('Space');
+    } else if (mode === 'field-focus') await page.getByRole('textbox', { name: 'Child field', exact: true }).click();
+    else await page.getByRole('button', { name: mode === 'disabled-child' ? 'Unavailable child' : 'Unbound child', exact: true })
+      .evaluate(element => element.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+    expect(await page.evaluate(() => ({ calls: globalThis.childBoundaryCalls, queued: globalThis.childBoundaryManifest.queuedEvents() })))
+      .toEqual({ calls: mode.startsWith('checkbox') ? [{ action: 'child', value: 'true' }] : [], queued: mode.startsWith('checkbox') ? 1 : 0 });
+    if (mode === 'field-focus') {
+      await page.keyboard.insertText('é');
+      expect(await page.evaluate(() => globalThis.childBoundaryCalls)).toEqual([{ action: 'child', value: 'é' }]);
+    } else if (!mode.startsWith('checkbox')) {
+      expect(await page.evaluate(() => globalThis.childBoundaryManifest.lastRefusal())).toBe('unavailable-action');
+      await page.getByText('Panel decoration', { exact: true }).click();
+      expect(await page.evaluate(() => globalThis.childBoundaryCalls)).toEqual([{ action: 'parent', value: '' }]);
+    }
+  });
+}
+
+for (const mode of ['held-space', 'blur-cancel']) {
+  test(`graph Space activation follows native button release semantics (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Source', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.graphSpaceCalls = [];
+      globalThis.graphSpaceManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'select', event: 'activate' }, { id: 'safe', event: 'activate' }], nodes: [
+          { parent: null, component: 'shell', key: 'root', action: null },
+          { parent: 0, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+          { parent: 0, component: 'button', key: 'safe', text: 'Next control', action: 1 },
+        ] }), root, { onEvent: event => globalThis.graphSpaceCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
+    });
+    const subject = page.getByRole('button', { name: 'Gear Source, kind', exact: true });
+    await subject.focus();
+    await page.keyboard.down('Space');
+    await page.keyboard.down('Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.graphSpaceCalls, queued: globalThis.graphSpaceManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    if (mode === 'blur-cancel') {
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('button', { name: 'Next control', exact: true })).toBeFocused();
+    }
+    await page.keyboard.up('Space');
+    if (mode === 'blur-cancel') {
+      expect(await page.evaluate(() => globalThis.graphSpaceCalls)).toEqual([]);
+      await subject.focus();
+      await page.keyboard.press('Space');
+    }
+    expect(await page.evaluate(() => ({ calls: globalThis.graphSpaceCalls, queued: globalThis.graphSpaceManifest.queuedEvents() })))
+      .toEqual({ calls: [{ action: 'select', value: 'gear' }], queued: 1 });
+  });
+}
+
+for (const key of ['Control+ArrowRight', 'Alt+ArrowDown', 'Meta+End', 'Shift+ArrowRight', 'claimed-ArrowRight']) {
+  test(`roving focus respects modified or claimed navigation (${key})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async key => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      globalThis.shortcutCalls = [];
+      manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'first', event: 'activate' }, { id: 'second', event: 'activate' }], nodes: [
+          { parent: null, component: 'stepper', key: 'steps', text: 'Steps', value: '1/2', valueCapacity: 16, action: null },
+          { parent: 0, component: 'button', key: 'first', text: 'First shortcut control', action: 0 },
+          { parent: 0, component: 'button', key: 'second', text: 'Second shortcut control', action: 1 },
+        ] }), root, { onEvent: event => globalThis.shortcutCalls.push(event.action) });
+      if (key === 'claimed-ArrowRight') {
+        const claim = event => event.preventDefault();
+        root.addEventListener('keydown', claim, { capture: true });
+        globalThis.releaseShortcutClaim = () => root.removeEventListener('keydown', claim, { capture: true });
+      }
+    }, key);
+    const first = page.getByRole('button', { name: 'First shortcut control', exact: true });
+    await first.focus();
+    await page.keyboard.press(key === 'claimed-ArrowRight' ? 'ArrowRight' : key);
+    await expect(first).toBeFocused();
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual([]);
+    if (key === 'claimed-ArrowRight') await page.evaluate(() => globalThis.releaseShortcutClaim());
+    await page.keyboard.press('ArrowRight');
+    await expect(page.getByRole('button', { name: 'Second shortcut control', exact: true })).toBeFocused();
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual([]);
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.shortcutCalls)).toEqual(['second']);
+  });
+}
+
+for (const mode of ['claimed-enter', 'claimed-space-release']) {
+  test(`graph keyboard activation respects prior handlers (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Source', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.claimedGraphCalls = [];
+      globalThis.claimedGraphManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'select', event: 'activate' }], nodes: [
+          { parent: null, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+        ] }), root, { onEvent: event => globalThis.claimedGraphCalls.push(new TextDecoder().decode(event.value)) });
+      const type = mode === 'claimed-enter' ? 'keydown' : 'keyup';
+      const claim = event => event.preventDefault();
+      root.addEventListener(type, claim, { capture: true });
+      globalThis.releaseGraphClaim = () => root.removeEventListener(type, claim, { capture: true });
+    }, mode);
+    const subject = page.getByRole('button', { name: 'Gear Source, kind', exact: true });
+    await subject.focus();
+    await page.keyboard.press(mode === 'claimed-enter' ? 'Enter' : 'Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.claimedGraphCalls, queued: globalThis.claimedGraphManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    await page.evaluate(() => globalThis.releaseGraphClaim());
+    if (mode === 'claimed-space-release') {
+      // Adversarial keyup without another admitted press must not revive it.
+      await subject.evaluate(element => element.dispatchEvent(new KeyboardEvent('keyup', { key: ' ', bubbles: true })));
+      expect(await page.evaluate(() => globalThis.claimedGraphCalls)).toEqual([]);
+    }
+    await page.keyboard.press(mode === 'claimed-enter' ? 'Enter' : 'Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.claimedGraphCalls, queued: globalThis.claimedGraphManifest.queuedEvents() })))
+      .toEqual({ calls: ['gear'], queued: 1 });
   });
 }

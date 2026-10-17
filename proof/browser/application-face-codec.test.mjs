@@ -244,3 +244,31 @@ test('numeric control syntax and padded zero steps agree across masks', () => {
     assert.equal(decodeApplicationView(encodeApplicationView(control(component, value))).nodes[0].value, value);
   }
 });
+
+test('event encoding retains the admitted revision instead of rereading a getter', () => {
+  let reads = 0;
+  const source = { ...event(Uint8Array.of(42)), get revision() { return ++reads === 1 ? 7 : 0x1_0000_0000; } };
+  const encoded = encodeApplicationEvent(source);
+  assert.equal(reads, 1);
+  assert.equal(new DataView(encoded.buffer).getUint32(1, true), 7);
+});
+
+test('event encoding retains the admitted kind instead of rereading a getter', () => {
+  let reads = 0;
+  const source = { ...event(Uint8Array.of(42)), get kind() { return ++reads === 1 ? 3 : 99; } };
+  const encoded = encodeApplicationEvent(source);
+  assert.equal(reads, 1);
+  assert.equal(encoded[5], 3);
+});
+
+test('payload conversion cannot rewrite already-admitted event metadata', () => {
+  const source = event([42]);
+  Object.defineProperty(source.value, 0, { get() {
+    source.revision = 0x1_0000_0000; source.kind = 99;
+    return 42;
+  } });
+  const encoded = encodeApplicationEvent(source);
+  assert.equal(new DataView(encoded.buffer).getUint32(1, true), 1);
+  assert.equal(encoded[5], 3);
+  assert.equal(encoded.at(-1), 42);
+});

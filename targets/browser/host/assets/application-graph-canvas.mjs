@@ -68,7 +68,24 @@ export function renderGraphCanvas(element, source, select) {
     node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(identity === graph.selected));
     node.style.cursor = 'pointer';
     node.addEventListener('click', () => select(identity, node));
-    node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(identity, node); } });
+    let spacePending = false;
+    node.addEventListener('keydown', event => {
+      if (event.defaultPrevented) return;
+      if (event.key === 'Enter') { event.preventDefault(); select(identity, node); }
+      else if (event.key === ' ') {
+        event.preventDefault();
+        if (!event.repeat) spacePending = true;
+      }
+    });
+    node.addEventListener('keyup', event => {
+      if (event.key !== ' ') return;
+      const pending = spacePending;
+      spacePending = false;
+      if (event.defaultPrevented || !pending) return;
+      event.preventDefault();
+      select(identity, node);
+    });
+    node.addEventListener('blur', () => { spacePending = false; });
   };
   const models = graph.nodes.map(node => ({ ...node, ports: graph.ports.filter(port => port.owner === node.identity) }));
   const boundaryPorts = graph.ports.filter(port => !port.owner);
