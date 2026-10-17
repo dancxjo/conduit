@@ -333,3 +333,15 @@ activation. Successful custom-radio tests guard the reviewed label/input
 pattern. Synthetic events are limited to adversarial refusal fixtures. This
 proves renderer callback fencing, not arbitrary CSS accessibility, authoritative
 Body state, assistive-technology enactment or full #5632 acceptance.
+
+Focus-reachability follow-up (#5632): refresh restoration now uses the same
+connected/disabled/inert/visibility/opacity guard as dispatch. Custom radio
+restoration checks its visible label while retaining native input checks. An
+invisible enabled encounter discards the pending request; becoming visible
+later cannot cause an unsolicited focus jump.
+
+The transparent-encounter fixture reproduced restored keyboard focus before
+repair. All 62 pinned Chromium component fixtures pass with one worker and zero
+retries, including normal visible refresh, text selection, external-focus
+protection and custom radios. This proves renderer focus behavior without
+callbacks, not arbitrary CSS accessibility or authoritative Body acceptance.

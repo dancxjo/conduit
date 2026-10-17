@@ -1034,3 +1034,32 @@ for (const kind of ['facts', 'completed']) {
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: other, action: other.actions[0], arguments: [] }]);
   });
 }
+
+test('owner refresh does not restore keyboard focus into a transparent encounter', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren(); globalThis.calls = [];
+    const element = document.createElement('conduit-owner-face'); document.body.append(element);
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  const action = element.getByRole('button', { name: 'Complete task', exact: true });
+  await action.focus();
+  await element.evaluate((node, view) => {
+    node.disabled = true;
+    node.style.opacity = '0';
+    node.show({ ...view, face_revision: 2, show_id: 'fixture/transparent-refresh' }, { invoke: async () => {} });
+  }, view);
+  await expect(action).not.toBeFocused();
+  await element.evaluate((node, view) => {
+    node.style.opacity = '';
+    node.show({ ...view, face_revision: 3, show_id: 'fixture/visible-refresh' }, { invoke: async () => {} });
+  }, view);
+  // Becoming visible does not revive a discarded focus request.
+  await expect(action).not.toBeFocused();
+  await action.focus();
+  await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), view);
+  await expect(action).toBeFocused();
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+});

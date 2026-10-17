@@ -450,7 +450,8 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const mayRestore = active === this || active === this.ownerDocument.body;
       this.#pendingFocus = undefined;
       if (mayRestore && current) {
-        if (!current.disabled && current.checkVisibility({ visibilityProperty: true })) {
+        const visibleControl = current.matches('input[type=radio]') ? current.closest('label') : current;
+        if (this.#reachable(current, visibleControl)) {
           current.focus();
           if (current.value === focusState.value && Number.isInteger(focusState.start)
             && Number.isInteger(focusState.end) && typeof current.setSelectionRange === 'function') {
