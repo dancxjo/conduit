@@ -1,0 +1,33 @@
+{
+  "observed_at_utc": "2026-10-17T01:35:48.653115+00:00",
+  "proof_class": "Read-only HTTP metadata, not an admitted two-Host session",
+  "requests": [
+    "GET /api/version",
+    "GET /api/tags"
+  ],
+  "observations": [
+    {
+      "endpoint": "http://127.0.0.1:11434",
+      "runtime_version": "0.23.2",
+      "model": "gemma3:latest",
+      "digest": "a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a",
+      "size_bytes": 3338801804
+    },
+    {
+      "endpoint": "http://forebrain.local:11434",
+      "runtime_version": "0.34.1",
+      "model": "gemma3:latest",
+      "digest": "a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a",
+      "size_bytes": 3338801804
+    }
+  ],
+  "remote_execution_preflight": {
+    "command": "ssh -o BatchMode=yes -o ConnectTimeout=8 forebrain.local",
+    "exit_code": 255,
+    "result": "Permission denied (publickey,password)",
+    "no_remote_service_or_model_changes": true
+  },
+  "live_plan_play_receipt": null,
+  "measured_short_long_comparison": null,
+  "physical_evidence": false
+}
