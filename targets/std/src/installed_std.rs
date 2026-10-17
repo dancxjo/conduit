@@ -3399,21 +3399,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
                     reason: conduit_core::FailureReason::RequiredBranchFailed,
                 };
             }
-            Err(error) => {
-                return Err(fusion::step_failure(
-                    error,
-                    scheduler
-                        .signs()
-                        .events()
-                        .filter(|event| {
-                            event.kind == conduit_kernel::KernelEventKind::StepFuelGranted
-                        })
-                        .last()
-                        .map(|event| event.node),
-                    fragment,
-                    &lowered,
-                ))
-            }
+            Err(error) => return Err(fusion::step_failure(error, &scheduler, fragment, &lowered)),
         };
         if !lowered.fusions.is_empty() && accepted_stop.is_none() && control.stop_requested() {
             continue;

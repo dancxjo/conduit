@@ -111,10 +111,29 @@ pub(super) fn prepare_chains(
 
 pub(super) fn step_failure(
     error: conduit_kernel::scheduler::SchedulerError,
-    node: Option<NodeId>,
+    scheduler: &super::InstalledScheduler,
     fragment: &PlanFragment,
     lowered: &LoweredPlanFragment,
 ) -> String {
+    // Correlate only an exact retained failure or suspension, never the last
+    // unrelated Step when a capacity refusal prevented its start Sign.
+    let node = scheduler.debug_suspension().map(|s| s.node).or_else(|| {
+        let kind = match &error {
+            conduit_kernel::scheduler::SchedulerError::BackFailed(_) => {
+                Some(conduit_kernel::KernelEventKind::BackFailed)
+            }
+            conduit_kernel::scheduler::SchedulerError::StepFuelExceeded => {
+                Some(conduit_kernel::KernelEventKind::StepFuelExceeded)
+            }
+            _ => None,
+        }?;
+        scheduler
+            .signs()
+            .events()
+            .filter(|event| event.kind == kind)
+            .last()
+            .map(|event| event.node)
+    });
     let placement = node
         .and_then(|node| lowered.nodes.iter().find(|n| n.node == node))
         .and_then(|node| {
