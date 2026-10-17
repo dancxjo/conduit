@@ -454,6 +454,14 @@ export function manifestApplicationView(input, root, options = {}) {
       return null;
     }
     const action = view.actions[node.action];
+    // Every UTF-16 code unit requires at least one UTF-8 byte. Reject an
+    // impossible fit before allocating the encoded copy; retain the byte check
+    // below for multibyte text and byte inputs.
+    if (typeof value === "string" && (value.length > MAX_EVENT_BYTES || value.length > node.valueCapacity)) {
+      lastRefusal = value.length > MAX_EVENT_BYTES ? "event-too-large" : "invalid-control-value";
+      options.onRefusal?.(lastRefusal);
+      return null;
+    }
     const encodedValue = typeof value === "string" ? new TextEncoder().encode(value) : value;
     if (!(encodedValue instanceof Uint8Array)) refuse("malformed-encoding");
     if (encodedValue.length > MAX_EVENT_BYTES) {
