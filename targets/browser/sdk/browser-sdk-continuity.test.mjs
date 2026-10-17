@@ -13,7 +13,7 @@ test("application and compatibility identities isolate state while compatible pa
   assert.equal(first.identity, (await applicationContinuity({ ...app("one"), stateCompatibility: { identity: "state", version: 2 } }, digest)).identity);
   assert.notEqual(first.identity, (await applicationContinuity({ ...app("one"), stateCompatibility: { identity: "other", version: 1 } }, digest)).identity);
   assert.equal((await applicationContinuity(undefined, digest)).identity, "conduit.browser/sdk-body-continuity@1");
-  for (const invalid of [null, {}, { ...app("one"), packageDigest: "fake" }, app(""), { ...app("one"), stateCompatibility: { identity: "state", version: 0 } }]) {
+  for (const invalid of [null, {}, { ...app("one"), packageDigest: "fake" }, { ...app("one"), packageDigest: { toString: () => digest } }, app(""), { ...app("one"), stateCompatibility: { identity: "state", version: 0 } }]) {
     await assert.rejects(applicationContinuity(invalid, digest), TypeError);
   }
 });
@@ -101,4 +101,15 @@ test("close waits for an in-flight birth and its Body settlement before releasin
   await result; await closed;
   assert.deepEqual(events, ["acquire:application/body-continuity", "body-settled", "storage-close", "release"]);
   await assert.rejects(continuity.close(true), { code: "HostClosed" });
+});
+
+test("application continuity retains checked metadata while its identity digest is pending", async () => {
+  const application = app("stable");
+  const expected = await applicationContinuity(structuredClone(application), digest);
+  const pending = applicationContinuity(application, digest);
+  application.identity = "changed";
+  application.stateCompatibility.identity = "changed";
+  application.stateCompatibility.version = 0;
+  application.packageDigest = "unchecked";
+  assert.deepEqual(await pending, expected);
 });

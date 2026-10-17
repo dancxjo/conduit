@@ -169,6 +169,32 @@ corrupt records, application and host admission exhaustion, browser quota
 exhaustion, unavailable storage, explicit deletion, and a stale application
 generation are distinct failures or lifecycle states.
 
+Application identities cannot contain the NUL storage namespace separator.
+Admission refuses such identities before opening the database; this prevents
+an application/version prefix from aliasing another application's record key.
+Ordinary `@` characters in identities and NUL characters in record keys remain
+valid. Existing record identities are not rewritten or migrated by this check.
+
+JSON reads verify that retained values are strings with exact, nonnegative,
+safe-integer UTF-8 byte metadata within the admitted value bound before parsing.
+Malformed metadata or oversized retained JSON receives `CorruptRecord`; refusal
+does not repair, reset or delete the record. Valid JSON at the exact byte ceiling
+remains readable.
+
+Before single or batch publication, the storage transaction checks the exact
+byte accounting of every retained Host record used in its capacity totals.
+Nonfinite, negative, fractional, oversized or mismatched counts refuse with
+`CorruptRecord` before writing. Since capacity is Host-wide, malformed accounting
+in another application's record also refuses publication; records remain intact
+and explicit inspection/deletion stays separate from admission.
+
+Retained record ownership must also match its exact database key: bounded
+application identity, positive version and bounded record key reconstruct the
+stored identity without ambiguity. Reads and publication refuse inconsistent
+ownership as `CorruptRecord`. Publication checks this before filtering records
+by application, so corrupt ownership cannot hide an immutable record from the
+replacement guard. Refusal leaves the original evidence intact.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host

@@ -172,6 +172,11 @@ const body = await host.recover()
 const play = await body.wake();
 ```
 
+Application continuity captures the application identity, compatibility identity,
+version and package digest before asynchronous identity hashing. Later caller
+mutation cannot replace the checked version or package digest used by storage.
+The package digest must be a string containing its exact SHA-256 identity.
+
 Host and Body continuity do not imply Boot, Plan, Wake, or Play continuity. A
 reload admits a fresh Boot; recovery exposes no live realization and never
 resurrects an in-memory Play. A subsequent `wake()` must produce newly admitted

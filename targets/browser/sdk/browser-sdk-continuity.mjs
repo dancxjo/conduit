@@ -5,19 +5,23 @@ const legacyIdentity = "conduit.browser/sdk-body-continuity@1";
 
 export async function applicationContinuity(application, bundleDigest) {
   if (application === undefined) return { identity: legacyIdentity, version: 1, packageDigest: bundleDigest };
+  const applicationIdentity = application?.identity;
+  const compatibility = application?.stateCompatibility;
+  const compatibilityIdentity = compatibility?.identity;
+  const version = compatibility?.version;
+  const packageDigest = application?.packageDigest;
   const bounded = value => typeof value === "string" && value.length > 0 && encoder.encode(value).length <= 256;
-  if (!bounded(application?.identity) || !bounded(application?.stateCompatibility?.identity)
-    || !Number.isSafeInteger(application.stateCompatibility.version) || application.stateCompatibility.version < 1
-    || !/^sha256:[0-9a-f]{64}$/.test(application.packageDigest ?? "")) {
+  if (!bounded(applicationIdentity) || !bounded(compatibilityIdentity)
+    || !Number.isSafeInteger(version) || version < 1
+    || typeof packageDigest !== "string" || !/^sha256:[0-9a-f]{64}$/.test(packageDigest)) {
     throw new TypeError("Application continuity requires bounded application and compatibility identities, a positive version, and an exact package digest");
   }
   // Compatibility survives package upgrades; different applications cannot share
   // state merely by using the same compatibility label. Storage owns version checks.
-  const bytes = encoder.encode(JSON.stringify([application.identity, application.stateCompatibility.identity]));
+  const bytes = encoder.encode(JSON.stringify([applicationIdentity, compatibilityIdentity]));
   const digest = await crypto.subtle.digest("SHA-256", bytes);
   const hex = Array.from(new Uint8Array(digest), byte => byte.toString(16).padStart(2, "0")).join("");
-  return { identity: `conduit.browser/application/${hex}`, version: application.stateCompatibility.version,
-    packageDigest: application.packageDigest };
+  return { identity: `conduit.browser/application/${hex}`, version, packageDigest };
 }
 
 export function createSdkContinuity({ storage, identity, refusal, acquire = acquireBrowserBodyContinuity }) {
