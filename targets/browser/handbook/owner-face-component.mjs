@@ -167,11 +167,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       node.append(faceNode('span', subject.semantic_role ?? subject.role, 'owner-face-role'));
       node.append(faceNode('h4', subject.name));
       for (const text of subject.text) node.append(faceNode('p', text));
-      for (const value of subject.values ?? []) {
-        const output = faceNode('p', value.text, 'owner-face-value');
-        output.setAttribute('part', 'value');
-        output.setAttribute('aria-label', value.name);
-        node.append(output);
+      if (subject.values?.length) {
+        const values = document.createElement('dl');
+        for (const value of subject.values) {
+          const output = faceNode('dd', value.text, 'owner-face-value');
+          output.setAttribute('part', 'value');
+          values.append(faceNode('dt', value.name), output);
+        }
+        node.append(values);
       }
       if (subject.properties.length) {
         const details = document.createElement('details');

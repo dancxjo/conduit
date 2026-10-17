@@ -45,3 +45,17 @@ text assigned without an input event. Valid keyboard submissions remain usable
 after refusal. These are renderer callbacks and local constraint checks; SDK
 and Body argument admission remain authoritative, and unchanged Body state or
 packaged/public acceptance is not claimed by this fixture.
+
+
+For #5630, generic named subject values now use native definition-list terms
+and definitions. The previous paragraph's aria-label did not provide the
+required accessible value name in Chromium; labels are now visible and paired
+with exact value text even without the stylesheet. The existing value part and
+class remain on the definition for Look compatibility. A regression failed
+before repair, and the full component suite now passes twelve Chromium tests
+with one worker and zero retries, including updated names/values after a fresh
+render. A separate passing characterization confirms that choice captions
+already provide correct accessible names before and after selection and a new
+Face render; that control markup was left unchanged. These fixture callbacks
+do not establish real Todo/Commons owner custody, assistive-technology enactment
+or packaged/public acceptance of #5630.

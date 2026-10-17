@@ -312,3 +312,59 @@ for (const scenario of ['unsupported', 'utf8', 'choice']) {
       action: currentView.actions[0], arguments: [{ name: 'value', value: scenario === 'utf8' ? 'éé' : 'one' }] }]);
   });
 }
+
+test('argument names come from the current Face caption rather than choice contents', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const withArgument = name => ({ ...view, actions: [{ ...view.actions[0], arguments: [{
+    name: 'priority', value_name: name, value_kind: 'value/text', maximum_bytes: 16,
+    choices: ['Normal', 'Urgent'],
+  }] }] });
+  const initial = withArgument('Priority');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    globalThis.calls = [];
+    element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+  }, initial);
+  const element = page.locator('conduit-owner-face');
+  const select = element.getByRole('combobox');
+  await expect(select).toHaveAccessibleName('Priority');
+  await expect(select).toHaveAttribute('required', '');
+  await select.selectOption('Urgent');
+  await expect(select).toHaveAccessibleName('Priority');
+  const revised = { ...withArgument('Delivery priority'), face_revision: 2, show_id: 'fixture/revised-priority' };
+  await element.evaluate((node, view) => node.show(view, {
+    invoke: async call => { globalThis.calls.push(call); },
+  }), revised);
+  await expect(select).toHaveAccessibleName('Delivery priority');
+  await select.selectOption('Normal');
+  const button = element.getByRole('button', { name: 'Complete task', exact: true });
+  await button.focus();
+  await page.keyboard.press('Enter');
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: revised,
+    action: revised.actions[0], arguments: [{ name: 'priority', value: 'Normal' }] }]);
+});
+
+test('named Face values expose their labels and exact values without styling', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    element.show(view, { invoke: async () => {} });
+    element.shadowRoot.querySelector('link').remove();
+  }, view);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('term')).toHaveText('Completion');
+  await expect(element.getByRole('definition')).toHaveText('Open');
+  await expect(element.locator('[part=value]')).toHaveText('Open');
+  const revised = { ...view, face_revision: 2, show_id: 'fixture/completed', subjects: [{
+    ...view.subjects[0], values: [{ name: 'Completion', text: 'Done' }, { name: 'Count', text: '1' }],
+  }] };
+  await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), revised);
+  await expect(element.getByRole('term')).toHaveText(['Completion', 'Count']);
+  await expect(element.getByRole('definition')).toHaveText(['Done', '1']);
+});
