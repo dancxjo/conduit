@@ -653,3 +653,100 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
   }
 });
 }
+
+// A fixture checker isolates recovery persistence from Body/runtime admission.
+for (const firstFails of [false, true]) {
+test(`Handbook correction saves retain sibling edits while a write is pending (first fails: ${firstFails})`, async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async firstFails => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.savedCorrections = [];
+    globalThis.checkedSources = [];
+    globalThis.saveCalls = 0;
+    await startApplication({
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+        plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+      storage: {
+        readJson: async () => null,
+        writeJson: async (key, value) => {
+          if (++globalThis.saveCalls === 1) {
+            await new Promise(resolve => { globalThis.releaseSave = resolve; });
+            if (firstFails) throw new Error('Fixture storage failure');
+          }
+          globalThis.savedCorrections.push({ key, value: structuredClone(value) });
+        },
+      },
+      browser: async () => ({ plot: value => ({ check: async () => {
+        globalThis.checkedSources.push(value);
+        return value.startsWith('{')
+          ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+          : { ok: true, plots: [] };
+      } }) }),
+    });
+  }, firstFails);
+  const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  const save = page.getByRole('button', { name: 'Try in my Handbook', exact: true });
+  await chooser.selectOption({ label: 'first (packaged)' });
+  await editor.fill('corrected first');
+  await save.click();
+  await expect.poll(() => page.evaluate(() => typeof globalThis.releaseSave)).toBe('function');
+  await chooser.selectOption({ label: 'second (packaged)' });
+  await editor.fill('corrected second');
+  await save.click();
+  await expect.poll(() => page.evaluate(() => globalThis.checkedSources.includes('corrected second'))).toBe(true);
+  expect(await page.evaluate(() => globalThis.saveCalls)).toBe(1);
+  await page.evaluate(() => globalThis.releaseSave());
+  await expect.poll(() => page.evaluate(() => globalThis.savedCorrections.length)).toBe(firstFails ? 1 : 2);
+  expect(await page.evaluate(() => globalThis.savedCorrections.at(-1))).toEqual({
+    key: 'handbook-source-rescue', value: [
+      ...firstFails ? [] : [{ name: 'first', original: 'original first', source: 'corrected first' }],
+      { name: 'second', original: 'original second', source: 'corrected second' },
+    ],
+  });
+  await expect(page.locator('[data-check]')).toContainText('Correction saved');
+});
+}
+
+for (const storageFails of [false, true]) {
+  test(`Handbook source inspection precedes rescue storage (failure: ${storageFails})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(storageFails => {
+      globalThis.pendingHandbook = import('/targets/browser/handbook/application.mjs').then(({ startApplication }) => {
+        document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+        return startApplication({
+          text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['first'],
+            plots: ['first', 'second'].map(name => ({ name, title: name, role: name, lesson: name })) }) : `original ${role}`,
+          storage: {
+            readJson: async key => {
+              if (key !== 'handbook-source-rescue') return null;
+              await new Promise(resolve => { globalThis.releaseRescueRead = resolve; });
+              if (storageFails) throw new Error('Fixture storage read failure');
+              return ['first', 'second'].map(name => ({ name, original: `original ${name}`, source: `saved ${name}` }));
+            },
+            writeJson: async () => { throw new Error('Inspection must not write storage'); },
+          },
+          browser: async () => { throw new Error('Fixture Host unavailable'); },
+        });
+      });
+    }, storageFails);
+    const chooser = page.getByRole('combobox', { name: 'Choose an example' });
+    const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+    await expect(editor).toBeEnabled();
+    await expect(chooser).toBeEnabled();
+    await expect(editor).toHaveValue('original first');
+    await editor.fill('unsent first draft');
+    await chooser.selectOption('second');
+    await editor.fill('unsent second draft');
+    await page.evaluate(async () => { globalThis.releaseRescueRead(); await globalThis.pendingHandbook; });
+    await expect(editor).toHaveValue('unsent second draft');
+    await chooser.selectOption({ label: `first (${storageFails ? 'packaged' : 'saved correction'})` });
+    await expect(editor).toHaveValue('unsent first draft');
+    if (!storageFails) {
+      await chooser.selectOption({ label: 'first (packaged)' });
+      await expect(editor).toHaveValue('original first');
+    }
+    await expect(editor).toBeEnabled();
+  });
+}

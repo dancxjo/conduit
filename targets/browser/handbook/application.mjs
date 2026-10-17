@@ -74,14 +74,8 @@ export async function startApplication(application) {
   // A corrected packaged lesson may be retried without changing the signed package
   // or the original source. Overrides are exact-source scoped and independently
   // checked by the Rust checker on the next Boot.
-  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
-  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
-  const packagedPlots = specification.plots.map(plot => {
-    const original = application.text(plot.role);
-    const rescue = validRescueEdits.find(item => item?.name === plot.name && item.original === original
-      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
-    return { slug: plot.name, entry: plot.name, title: plot.title, source: rescue?.source ?? original };
-  });
+  const packagedPlots = specification.plots.map(plot => ({ slug: plot.name, entry: plot.name,
+    title: plot.title, source: application.text(plot.role) }));
   // Source inspection is available before any checker, Host or Body starts.
   // Drafts remain unapplied UI input; the original reviewed bundle stays exact.
   const openingDrafts = new Map();
@@ -112,6 +106,16 @@ export async function startApplication(application) {
   source.disabled = false; selector.disabled = false;
   selector.addEventListener('change', chooseOpeningSource);
   source.addEventListener('input', editOpeningSource);
+  // Storage can be slow or unavailable. Keep original sources inspectable
+  // while loading saved corrections, preserving any drafts made in that time.
+  const rescueEdits = await application.storage.readJson('handbook-source-rescue').catch(() => null);
+  const validRescueEdits = Array.isArray(rescueEdits) ? rescueEdits.slice(0, specification.plots.length) : [];
+  for (const plot of packagedPlots) {
+    const rescue = validRescueEdits.find(item => item?.name === plot.entry && item.original === plot.source
+      && typeof item.source === 'string' && new TextEncoder().encode(item.source).length <= 16_384);
+    if (rescue) plot.source = rescue.source;
+  }
+  inspectOpeningSource();
   const bundle = JSON.stringify({ schema: 'conduit.creche/reviewed-plot-bundle@2', plots: packagedPlots });
   let host, body, play, checked, reviewed, editor, selected, snapshot;
   let busy = false;
@@ -449,6 +453,8 @@ export async function startApplication(application) {
       checkStatus.textContent = 'Edited source, not yet checked or applied.';
       delete checkStatus.dataset.refusalCode;
     });
+    let savedCorrections = validRescueEdits;
+    let pendingCorrections = Promise.resolve();
     root.querySelector('[data-try]').addEventListener('click', async () => {
       const candidate = available[index];
       const value = source.value;
@@ -472,15 +478,22 @@ export async function startApplication(application) {
         }
         if (!['packaged', 'saved correction'].includes(candidate.origin)) return;
         const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
-        const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
-        updated.push({ name: candidate.name, original, source: value });
-        await application.storage.writeJson('handbook-source-rescue', updated);
-        if (available[index] === candidate && source.value === value) {
-          inspectSource('saved correction', candidate.name, value);
-        }
+        // Compute against the last successful save inside the queue. A sibling
+        // lesson may be checked while another correction is still persisting.
+        const saving = pendingCorrections.then(async () => {
+          const updated = savedCorrections.filter(item => item?.name !== candidate.name);
+          updated.push({ name: candidate.name, original, source: value });
+          await application.storage.writeJson('handbook-source-rescue', updated);
+          savedCorrections = updated;
+        });
+        pendingCorrections = saving.catch(() => {});
+        await saving;
+        if (available[index] !== candidate || source.value !== value) return;
+        inspectSource('saved correction', candidate.name, value);
         checkStatus.textContent = 'Source checks. Correction saved for this application; '
           + 'press Try again to reopen the Handbook. No Body has been changed.';
       } catch (refusal) {
+        if (available[index] !== candidate || source.value !== value) return;
         checkStatus.textContent = (refusal.code ?? 'CheckRefused') + ': ' + refusal.message;
       }
     });
