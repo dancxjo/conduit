@@ -30,8 +30,9 @@ fn evaluate(program: &PortableExpressionProgram, input: Quantity) -> Quantity {
         allocation_probe::observe(|| prepared.evaluate(&input.encode()).unwrap());
     assert_eq!(received, expected);
     assert_eq!((allocations.allocations, allocations.reallocations), (0, 0));
+    let result = Quantity::decode(received).unwrap();
     assert_eq!(prepared.output_capacity(), capacity);
-    Quantity::decode(received).unwrap()
+    result
 }
 #[test]
 fn authored_products_and_quotients_derive_dimensions_with_exact_reference_coordinates() {
