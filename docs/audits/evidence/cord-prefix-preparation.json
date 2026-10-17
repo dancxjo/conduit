@@ -1,0 +1,89 @@
+{
+  "before_source": "97175e74d7759f4331093810c4c2b097402c05e4",
+  "after_source": "7d7b08b5752fd6a3c5331fcda25fe3534eff4afe",
+  "verified_artifact_hashes": 14,
+  "exact_replay_and_runtime_work_parity": true,
+  "observations": {
+    "packed": {
+      "before": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 1894287022,
+        "advance_ns": 31111,
+        "ready_bytes": 480,
+        "candidate_nodes_scanned": 4,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623424,
+        "legacy": false
+      },
+      "after": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 7067166,
+        "advance_ns": 35287,
+        "ready_bytes": 480,
+        "candidate_nodes_scanned": 4,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623424,
+        "legacy": false
+      }
+    },
+    "linear": {
+      "before": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 1916233732,
+        "advance_ns": 959137,
+        "ready_bytes": 0,
+        "candidate_nodes_scanned": 30000,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623424,
+        "legacy": true
+      },
+      "after": {
+        "nodes": 10000,
+        "ready": 2,
+        "prepare_ns": 8160380,
+        "advance_ns": 1044819,
+        "ready_bytes": 0,
+        "candidate_nodes_scanned": 30000,
+        "allocations": 0,
+        "reallocations": 0,
+        "logical_steps": 4,
+        "kernel_bytes": 5623424,
+        "legacy": true
+      }
+    }
+  },
+  "capture_hashes": {
+    "before": {
+      "linear.clean.log": "44a8af281f1f2c77b6bc1b3de86418162cec65cef649c95ce58f57f03dbf7e0c",
+      "linear.stderr.log": "32f9b8e389f0469b0028be923fda6dd42966c22812911abef3d057c6f4a7fa96",
+      "linear.stdout.log": "ffa64c4384b99e94466893a3ac5892709b09ae39b8ee6b3d7d81af7a1067424a",
+      "packed.clean.log": "067614e1cdbda2f396e8de315cce5254c2a9f1f9ad64a9f1f92d3aafb8f1e91c",
+      "packed.stderr.log": "85d5ad9995df9c149001aabd6de4e2e60614176c72be9ef4e07e2e7bc99ea8a9",
+      "packed.stdout.log": "d865a7c9b9817bfb1d7cb996d734379557032c1fd45f5624f567fd3b4fdd22e0",
+      "report.json": "656bc74b87dac5e05fb0e71f91d1f07e79b5da4debedaf11ac3c162d36b72a31"
+    },
+    "after": {
+      "linear.clean.log": "44a8af281f1f2c77b6bc1b3de86418162cec65cef649c95ce58f57f03dbf7e0c",
+      "linear.stderr.log": "468e494a54d2c3ad11d85a50da0e92d0b6c25697c38ddd89bfcd3d328ab5473d",
+      "linear.stdout.log": "4ed09e30ec506f15e0740dc906749f7a4d51be6f0cab1ae3678384a34052c7ef",
+      "packed.clean.log": "e0ca866a786a434693a47f73fff298127de92a8aee410843fb358f5f1a8a717e",
+      "packed.stderr.log": "54c7445b5909369a6f2e3091c0431d5bde068e0b39e7e999125e84d7c213c611",
+      "packed.stdout.log": "edbb852441ed74ca8a9dd9cbfcc378c7f8fad71d4313352ad05113780d439613",
+      "report.json": "2f6b108347975a071c625bef381144e6ce40d0806029cd658bf3d2b947112262"
+    }
+  },
+  "limits": [
+    "Single native debug observation per selector/source, not a repeated release speed study.",
+    "Ordered independent ingress layout; unordered validation still uses pairwise fallback.",
+    "No physical, browser, complete authored Plan/Play, or parent completion claim."
+  ]
+}
