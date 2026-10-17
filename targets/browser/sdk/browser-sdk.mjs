@@ -1,3 +1,4 @@
+import { acknowledgeOwnerFaceShow, clearOwnerFaceShow } from "./browser-sdk-owner-show-state.mjs";
 import { attachBrowserSyntaxEditor, projectBrowserSyntax } from "./browser-sdk-syntax.mjs";
 import { applicationContinuity, createSdkContinuity } from "./browser-sdk-continuity.mjs";
 import { checkedOwnerFaceArguments, checkedAcknowledgedOwnerFaceArguments } from "./browser-sdk-face-actions.mjs";
@@ -241,7 +242,7 @@ export class BrowserBodyParticipation {
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential) throw new Error("current browser presence is required for owner wardrobe");
     const action = checkedOwnerWardrobeAction(report, credential.body_id, routeId, verb);
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     const checked = checkedOwnerWardrobeReport(report, credential.body_id);
     return checkedOwnerWardrobeReport(await this.#state.membership.ownerWardrobe({
       action, ownerPlanId: checked.ownerPlanId, basisRevision: checked.revision,
@@ -249,7 +250,7 @@ export class BrowserBodyParticipation {
   }
   /** Run the exact owner Face through this Host's checked browser Mask Plot. */
   async prepareOwnerFaceMask(options) {
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     const credential = this.membershipCredential();
     if (this.presenceState() !== "available" || !credential) {
       throw new Error("current browser presence is required for the owner Face Mask");
@@ -294,8 +295,11 @@ export class BrowserBodyParticipation {
     // Capture before crossing the asynchronous membership boundary: callers
     // may still own and mutate the available view while acknowledgement waits.
     const acknowledged = validateOwnerFaceAcknowledgement(view, shown);
-    await this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt());
-    this.#state.lastOwnerShow = acknowledged;
+    const hostId = this.hostId, bootId = this.bootId;
+    await acknowledgeOwnerFaceShow(this.#state, acknowledged,
+      () => this.#state.membership.acknowledgeFaceShow(this.#state.host.bridge.ownerFaceShowReceipt()),
+      () => this.presenceState() === "available" && this.hostId === hostId && this.bootId === bootId
+        && this.membershipCredential()?.body_id === acknowledged.body_id);
     return shown;
   }
   async selectOwnerComponentMask({ look, recipe, minimumTextScalePercent }) {
@@ -307,10 +311,9 @@ export class BrowserBodyParticipation {
         || !this.#state.lastOwnerShow) {
       throw new Error("current acknowledged owner Show is required for component selection");
     }
-    await this.#state.membership.selectComponentMask({
-      showBytes: this.#state.host.bridge.ownerFaceShowReceipt(), look, recipe,
-    });
-    this.#state.lastOwnerShow = null;
+    const showBytes = this.#state.host.bridge.ownerFaceShowReceipt();
+    clearOwnerFaceShow(this.#state);
+    await this.#state.membership.selectComponentMask({ showBytes, look, recipe });
     this.#state.host.bridge.ownerFaceClear();
     return this.prepareOwnerFaceMask({ minimumTextScalePercent });
   }
@@ -357,7 +360,7 @@ export class BrowserBodyParticipation {
       show_id: view.show_id, face_id: view.face_id, face_revision: view.face_revision,
       action_id: actionId, target, arguments: checked, sequence,
     });
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     return this.#state.membership.submitFaceInteraction(submission);
   }
   signalWebRtc(options) { return this.#state.membership.signalWebRtc(options); }
@@ -373,7 +376,7 @@ export class BrowserBodyParticipation {
   publishMediaResource(evidence) { return this.#state.membership.publishMediaResource(evidence); }
   close() {
     this.#state.host.bridge.ownerFaceClear?.();
-    this.#state.lastOwnerShow = null;
+    clearOwnerFaceShow(this.#state);
     return this.#state.membership.close();
   }
 
