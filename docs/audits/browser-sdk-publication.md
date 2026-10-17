@@ -115,3 +115,38 @@ cannot account for the refusal. All five focused Node-side builder/verifier
 tests pass through the pinned runner with one worker and zero retries. This
 proves these input-binding checks, not public provenance, browser execution or
 complete hostile-release admission.
+
+Release-payload binding follow-up: verification requires the release file
+inventory to match its payload sizes, digests and media types, then binds each
+non-IMAGE payload identity to the verified distribution. A self-consistent
+release aggregate cannot authorize replacing the IMAGE's declared runtime.
+
+Five variants reproduced acceptance before repair: replaced/rehashed runtime,
+changed payload media type, false declared size, false declared digest and an
+absent release inventory. All six focused Node-side builder/verifier tests now
+pass through the pinned runner (one worker, zero retries); these five variants
+refuse with `ArtifactBindingMismatch`. This proves the tested content bindings,
+not runtime execution, publisher authority or public release provenance.
+
+Builder consumer-bound follow-up: manifest admission now checks positive safe
+integer asset sizes against the existing browser consumer limits (20 MiB runtime,
+256 KiB other assets) before hashing or copying distribution payloads. A declared
+large bundle budget no longer permits individually unusable assets.
+
+Empty runtime and one-byte-over runtime/module envelopes all reproduced BUILD
+acceptance before repair. Seven focused Node-side builder/verifier tests pass
+through the pinned runner (one worker, zero retries), including exact-boundary
+acceptance and all three refusals. Padded/header payloads establish envelope
+bounds, not executable module, runtime ABI or packaged browser proof.
+
+Package-path follow-up: BUILD, SDK packaging and SDK loading reject URL schemes,
+query/fragment delimiters, ASCII whitespace/control characters and the existing
+absolute/traversal/percent/backslash forms. A declared asset must name the exact
+package resource rather than a URL-normalized alternative.
+
+Nine adversarial paths reproduced BUILD acceptance before repair. Eight focused
+Node-side builder tests pass through the pinned runner (one worker, zero retries),
+as does the producer fixture. Four SDK Node tests pass; a new public-entrance
+fixture checks five URL-changing paths are refused before asset fetch. Its
+manifest/fetch environment is synthetic and proves loader refusal, not actual
+browser execution or public package provenance.

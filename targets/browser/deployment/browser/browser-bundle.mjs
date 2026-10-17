@@ -64,6 +64,11 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     || release.payloads.some((item) => !expectedPaths.delete(item.path)) || expectedPaths.size !== 0) {
     refuse("UnexpectedAsset", "BrowserBundle contains an undeclared executable or static asset");
   }
+  const releaseFiles = release.payloads.map(({ path, bytes, sha256, media_type }) =>
+    ({ path, bytes: bytes.byteLength, sha256, media_type }));
+  if (JSON.stringify(release.manifest.files) !== JSON.stringify(releaseFiles)) {
+    refuse("ArtifactBindingMismatch", "BrowserBundle release inventory does not match its payload identities");
+  }
   for (const payload of release.payloads) {
     if (await sha256(payload.bytes) !== payload.sha256) refuse("DigestMismatch", `BrowserBundle asset ${payload.path} changed identity`);
   }
@@ -88,6 +93,14 @@ export async function verifyBrowserBundleImage({ checked, release, distribution 
     refuse("BootModuleBindingMismatch", "BrowserBundle Boot entry is absent or stale");
   }
   const files = await verifyDistributionPayloads(distribution, reviewed);
+  const released = new Map(releaseFiles.map(file => [file.path, file]));
+  if (files.some(file => {
+    const actual = released.get(file.path);
+    return !actual || actual.bytes !== file.bytes.byteLength || actual.sha256 !== file.sha256
+      || actual.media_type !== file.media_type;
+  })) {
+    refuse("ArtifactBindingMismatch", "BrowserBundle payload identities differ from the reviewed distribution");
+  }
   const expected = await expectedImagePayload(checked, distribution, reviewed, selected, files);
   if (JSON.stringify(payload) !== JSON.stringify(expected)) {
     refuse("ImageBindingMismatch", "BrowserBundle IMAGE claims do not match its checked configuration and reviewed distribution");
@@ -169,6 +182,15 @@ function requireDistribution(distribution) {
     || new Set(manifest.files.map(item => item?.path)).size !== manifest.files.length) {
     refuse("ArtifactBound", "reviewed browser distribution inventory must be finite and unique");
   }
+  for (const file of manifest.files) {
+    if (!safeRelativePath(file?.path)) {
+      refuse("ArtifactPathRejected", "reviewed browser asset path is outside its exact static package");
+    }
+    const maximum = file?.path === "runtime.wasm" ? 20 * 1024 * 1024 : 256 * 1024;
+    if (!Number.isSafeInteger(file?.bytes) || file.bytes < 1 || file.bytes > maximum) {
+      refuse("ArtifactBound", "reviewed browser asset exceeds its browser consumer byte bound");
+    }
+  }
   const paths = new Set(manifest.files.map((item) => item.path));
   const modules = new Map();
   for (const module of reviewed.modules) {
@@ -245,6 +267,12 @@ async function digestFileIdentities(files) {
 
 function encodeCanonical(value) { return encoder.encode(JSON.stringify(value)); }
 function digestIdentity(value) { return typeof value === "string" && /^(?:sha256|(?:build|image):sha256):[0-9a-f]{64}$/.test(value); }
+function safeRelativePath(value) {
+  return typeof value === "string" && value.length > 0 && value.length <= 256
+    && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
+    && !/[:?#\u0000-\u0020\u007f]/.test(value)
+    && !value.split("/").some(segment => !segment || segment === "." || segment === "..");
+}
 function boundedText(value, maximum) { return typeof value === "string" && value.length > 0 && value.length <= maximum; }
 async function sha256(bytes) {
   const digest = new Uint8Array(await crypto.subtle.digest("SHA-256", bytes));

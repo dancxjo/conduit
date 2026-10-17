@@ -826,6 +826,7 @@ function identity(value) { return typeof value === "string" && /^(?:sha256|image
 function safeRelativePath(value) {
   return typeof value === "string" && value.length > 0 && value.length <= 256
     && !value.startsWith("/") && !value.includes("\\") && !value.includes("%")
+    && !/[:?#\u0000-\u0020\u007f]/.test(value)
     && !value.split("/").some((segment) => !segment || segment === "." || segment === "..");
 }
 function refuse(code, message, cause) {

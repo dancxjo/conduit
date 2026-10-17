@@ -128,6 +128,81 @@ test("BrowserBundle verification refuses rehashed IMAGE claims detached from the
   expect(results).toEqual(mutations.map(() => "ImageBindingMismatch"));
 });
 
+test("BrowserBundle verification binds release declarations and bytes to the reviewed inventory", async () => {
+  const distribution = await fixture();
+  const configuration = checked(ids, "a");
+  const original = await buildBrowserBundleImage({ checked: configuration, distribution });
+  const results = [];
+  for (const mode of ["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]) {
+    const release = structuredClone(original);
+    if (mode === "runtime") {
+      release.payloads[0].bytes[0] ^= 1;
+      release.payloads[0].sha256 = await sha256(release.payloads[0].bytes);
+    }
+    if (mode === "payload-media") release.payloads[0].media_type = "text/plain";
+    release.manifest.files = release.payloads.map(({ path, bytes, sha256, media_type }) => ({ path, bytes: bytes.byteLength, sha256, media_type }));
+    release.manifest.bundle_sha256 = await bundleDigest(release.manifest.files);
+    if (mode === "declared-size") release.manifest.files[0].bytes++;
+    if (mode === "declared-digest") release.manifest.files[0].sha256 = `sha256:${"f".repeat(64)}`;
+    if (mode === "missing-inventory") delete release.manifest.files;
+    try {
+      await verifyBrowserBundleImage({ checked: configuration, release, distribution });
+      results.push({ mode, code: "accepted" });
+    } catch (error) { results.push({ mode, code: error.code }); }
+  }
+  expect(results).toEqual(["runtime", "payload-media", "declared-size", "declared-digest", "missing-inventory"]
+    .map(mode => ({ mode, code: "ArtifactBindingMismatch" })));
+});
+
+test("BrowserBundle BUILD applies browser per-asset bounds before hashing payloads", async () => {
+  const cases = [
+    { path: "runtime.wasm", size: 0, accepted: false },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024, accepted: true },
+    { path: "runtime.wasm", size: 20 * 1024 * 1024 + 1, accepted: false },
+    { path: "host.mjs", size: 256 * 1024, accepted: true },
+    { path: "host.mjs", size: 256 * 1024 + 1, accepted: false },
+  ];
+  const results = [];
+  for (const entry of cases) {
+    const distribution = await fixture();
+    const bytes = new Uint8Array(entry.size);
+    if (entry.path === "runtime.wasm" && entry.size >= 8) bytes.set([0, 97, 115, 109, 1, 0, 0, 0]);
+    const digest = await sha256(bytes);
+    const declared = distribution.manifest.files.find(file => file.path === entry.path);
+    declared.bytes = entry.size; declared.sha256 = digest;
+    const payload = distribution.payloads.find(file => file.path === entry.path);
+    payload.bytes = bytes; payload.sha256 = digest;
+    distribution.manifest.reviewed_distribution.maximum_bundle_bytes = 48 * 1024 * 1024;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push({ ...entry, accepted: true });
+    } catch (error) {
+      expect(error.code).toBe("ArtifactBound");
+      results.push({ ...entry, accepted: false });
+    }
+  }
+  expect(results).toEqual(cases);
+});
+
+test("BrowserBundle BUILD refuses paths that cannot name exact package-local assets", async () => {
+  const paths = ["../host.mjs", "/host.mjs", "https:host.mjs", "host.mjs?other", "host.mjs#other",
+    "host%2emjs", "host\\other.mjs", "host\nother.mjs", "host\tother.mjs"];
+  const results = [];
+  for (const path of paths) {
+    const distribution = await fixture();
+    distribution.manifest.files[1].path = path;
+    distribution.payloads[1].path = path;
+    distribution.manifest.reviewed_distribution.modules[0].path = path;
+    distribution.manifest.bundle_sha256 = await bundleDigest(distribution.manifest.files);
+    try {
+      await buildBrowserBundleImage({ checked: checked(ids, "a"), distribution });
+      results.push("accepted");
+    } catch (error) { results.push(error.code); }
+  }
+  expect(results).toEqual(paths.map(() => "ArtifactPathRejected"));
+});
+
 function checked(implementations, suffix) {
   return Object.freeze({
     schema: "conduit.creche/checked-browser-configuration@1",
