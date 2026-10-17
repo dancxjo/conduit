@@ -9,7 +9,7 @@ fn q(text: &str) -> RationalQuantity {
 fn custom(name: &str, origin: &str) -> RationalQuantity {
     let family = QuantityFamilyDefinition::new(
         name,
-        Unit::resolve("m").unwrap().dimension(),
+        Unit::resolve("J").unwrap().dimension(),
         QuantityRoles::Linear,
     )
     .unwrap();
