@@ -17,6 +17,7 @@ export class BrowserPlot {
   #projectionSequence = 0;
   constructor(source, bridge) {
     if (typeof source !== "string" || source.length === 0) throw new TypeError("Plot source must be non-empty Conduitese text");
+    if (!source.isWellFormed()) throw new TypeError("Plot source must be scalar Unicode text");
     this.#source = source;
     this.#bridge = bridge;
     Object.freeze(this);
@@ -536,6 +537,11 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
   if (typeof bodyId !== "string" || bodyId.length === 0) throw sdkRefusal("Host.recover", {
     code: "CorruptDurableBody", message: "retained continuity lacks its Body identity",
   }, { hostId: host, bootId: boot });
+  if (retained.durable.admission != null && retained.durable.admission.body_id !== bodyId) {
+    throw sdkRefusal("Host.recover", {
+      code: "BodyIdentityMismatch", message: "retained admission does not belong to the retained Body",
+    }, { bodyId, hostId: host, bootId: boot });
+  }
   const checked = await new BrowserPlot(retained.source, bridge).check();
   if (!checked.ok) throw sdkRefusal("Host.recover.check", checked.refusal, { hostId: host, bootId: boot });
   const resident = retained.durable.evidence?.body?.workset?.plots;
@@ -593,7 +599,10 @@ export async function recoverBrowserBody({ bridge, host, boot, api, root, create
 }
 
 async function readContinuity(storage, host, boot) {
-  try { return await storage.readJson(CONTINUITY_KEY); }
+  try {
+    const retained = await storage.readJson(CONTINUITY_KEY);
+    return freezeJsonValue(structuredClone(retained));
+  }
   catch (error) {
     throw sdkRefusal("Host.recover.read", {
       code: error?.code ?? "StorageUnavailable",

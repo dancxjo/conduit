@@ -537,3 +537,53 @@ test('recovery retains private restored evidence across its awaited storage comm
   assert.equal(restored.evidence.body_id, 'body/foreign');
   await body.close();
 });
+
+for (const mutation of ['source', 'admission']) {
+  test(`recovery keeps private retained input across source checking (${mutation})`, async () => {
+    const snapshot = bodySnapshot(0), durable = { ...bodySnapshot(0), admission: { body_id: 'body/1' } };
+    const retained = { schema: 'conduit.browser/body-continuity@1', source, durable: structuredClone(durable) };
+    const restores = [], writes = [];
+    const bridge = {
+      crecheReviewedInventory(input) {
+        assert.equal(input, source);
+        queueMicrotask(() => {
+          if (mutation === 'source') retained.source = 'unchecked replacement';
+          else retained.durable.admission.body_id = 'body/foreign';
+        });
+        return { status: 0, outputJson: { source_document_id: 'sha256:source', plots: [plot] } };
+      },
+      workspaceRequest(request) {
+        if (request.action === 'Restore') restores.push(request);
+        return { status: 0, outputJson: request.action === 'Durable' ? durable : snapshot };
+      },
+    };
+    const body = await recoverBrowserBody({ bridge, host: 'host/1', boot: 'boot/fresh', membership: { advertisement: () => ({}) },
+      storage: { readJson: async () => retained, writeJson: async (key, value) => writes.push(value) } });
+    assert.equal(restores[0].admission.body_id, 'body/1');
+    assert.equal(writes[0].source, source);
+    assert.equal(body.id, 'body/1');
+    assert.equal(mutation === 'source' ? retained.source : retained.durable.admission.body_id,
+      mutation === 'source' ? 'unchecked replacement' : 'body/foreign');
+    await body.close();
+  });
+}
+
+test('recovery refuses retained admission/evidence identity disagreement before Restore', async () => {
+  const snapshot = bodySnapshot(0), durable = { ...snapshot, admission: { body_id: 'body/foreign' } };
+  const requests = [], writes = [];
+  const bridge = {
+    crecheReviewedInventory: () => ({ status: 0, outputJson: { source_document_id: 'sha256:source', plots: [plot] } }),
+    workspaceRequest(request) { requests.push(request.action); return { status: 0,
+      outputJson: request.action === 'Durable' ? { ...snapshot, admission: { body_id: 'body/1' } } : snapshot }; },
+  };
+  await assert.rejects(recoverBrowserBody({ bridge, host: 'host/1', boot: 'boot/fresh', membership: { advertisement: () => ({}) },
+    storage: { readJson: async () => ({ schema: 'conduit.browser/body-continuity@1', source, durable }),
+      writeJson: async value => writes.push(value) } }),
+    error => error.code === 'BodyIdentityMismatch' && error.identities.bodyId === 'body/1');
+  assert.deepEqual(requests, []);
+  assert.deepEqual(writes, []);
+});
+
+test('Plot source refuses unpaired surrogates before any native source operation', () => {
+  for (const source of ['\ud800', '\udfff']) assert.throws(() => new BrowserPlot(source, {}), /scalar Unicode/);
+});

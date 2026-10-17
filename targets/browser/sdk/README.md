@@ -191,6 +191,11 @@ Body biography records, membership records, workload revision, realization,
 and current Host offers remain Rust evidence; the SDK returns a recursively
 frozen projection and keeps no second mutable Body store.
 
+Plot source must be scalar Unicode text: unpaired surrogates refuse rather than
+being replaced during UTF-8 encoding. Native source ingress checks the arena's
+remaining capacity before encoding impossible fits, then enforces the exact UTF-8
+byte total. This includes multipart review and birth requests.
+
 The Body handle owns an immutable private snapshot of its attachment receipt.
 A current snapshot must retain the Body identity from that receipt.
 A foreign Workspace response refuses with `BodyIdentityMismatch` before returning
@@ -199,6 +204,9 @@ Durable output must match both its evidence and admission Body identities before
 storage writes or archive acknowledgement. Recovery checks the restored Body ID
 before selecting foreground state, and keeps private immutable snapshots through
 its asynchronous persistence step; it cannot silently adopt a different Body.
+Retained continuity is also privately snapshotted before asynchronous source
+checking. A present retained admission must match its evidence Body ID before
+Restore is requested.
 
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a

@@ -1288,3 +1288,35 @@ existing continuity. Two older durable fixtures now include the mandatory
 AdmissionManager field emitted by Rust DurableSnapshot. README documents the
 identity boundary. These are bridge-fixture SDK custody/ordering proofs, not
 actual Rust Body/Play, cross-Mask or packaged/release acceptance; #5622 remains open.
+
+Retained recovery input custody (#5622 continuity boundary): continuity reads
+produce a private immutable snapshot before asynchronous source checking. Source,
+workset, admission, foreground and pending history inputs therefore remain tied
+to the record read, rather than a storage provider's later mutations. A present
+retained admission must match the evidence Body ID before source checking or
+Restore; absent admission keeps the existing Rust Restore path.
+
+All three regressions reproduced before repair: source mutation across checking,
+admission mutation across checking and an initially foreign admission. All 41
+focused SDK Plot/event tests pass, including stable checked source/Restore inputs,
+no Workspace request or storage write on mismatch, unchanged archive behavior
+and independent mutable provider records. README documents the boundary. These
+are bridge/storage-fixture SDK custody proofs, not actual Rust Body/Play,
+cross-Mask or packaged/release acceptance; #5622 remains open. Protected and
+uncertain branch work remains preserved.
+
+Exact authored source ingress (#5453 source-integrity support): the shared
+runtime bridge admits scalar text and preflights each field against remaining
+native arena capacity before encoding an impossible fit. Exact UTF-8 lengths
+are checked afterward, and multipart review/birth staging is allocated only for
+an admitted total. Source checking, Patchbay projection and source interaction
+use the same ingress. BrowserPlot rejects unpaired surrogates at construction.
+Valid BOM/Unicode bytes and existing input retirement remain unchanged.
+
+After correcting a missing required context in the new fixture, the old bridge
+reproduced all twelve admission/early-allocation regressions. All 66 focused
+runtime-bridge/SDK Plot tests pass, including exact source bytes on five routes,
+preceding-field accounting and existing memory/custody cases. The bridge suite
+is registered in browser checks; Rust registration formatting passes. These
+are mocked-native-ABI admission proofs, not Rust syntax semantics, actual
+Body/Play or packaged/release acceptance; #5453 remains open.
