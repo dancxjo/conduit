@@ -70,7 +70,7 @@ where
             if state.producer_closed || state.next_remote_sequence != sequence {
                 return Err(SchedulerError::RemoteSequenceRejected);
             }
-            if byte_len > self.admission_maximum(spec, state)? {
+            if !self.payload_admissible(spec, state, byte_len)? {
                 return Ok(RemoteIngressOutcome::Full { sequence });
             }
         }

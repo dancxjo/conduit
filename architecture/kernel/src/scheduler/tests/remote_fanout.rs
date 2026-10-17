@@ -7,6 +7,9 @@ const TARGETS: [(RemoteEndpointId, CordId); 2] = [
 type FanoutScheduler =
     FixedScheduler<Driver, FixedValueStore<2, 4>, FixedSignLog<16>, 2, 2, PORTS, 2, 2, 1>;
 fn scheduler(remote_items: u16) -> FanoutScheduler {
+    scheduler_with_policy(remote_items, AssignedPressurePolicy::default())
+}
+fn scheduler_with_policy(remote_items: u16, policy: AssignedPressurePolicy) -> FanoutScheduler {
     let endpoints = [RemoteEndpointId(0), RemoteEndpointId(1)];
     let mut routes = FixedRoutes::<2, 1>::new(PORTS as u16);
     routes.seal().unwrap();
@@ -20,7 +23,7 @@ fn scheduler(remote_items: u16) -> FanoutScheduler {
         slot_start,
         item_capacity: 1,
         byte_capacity: 4,
-        pressure_policy: Default::default(),
+        pressure_policy: policy,
     };
     FixedScheduler::<_, _, _, 2, 2, PORTS, 2, 2, 1>::new(
         [node([Some(CordId(0)), None]), node([Some(CordId(1)), None])],
@@ -132,4 +135,75 @@ fn exhausted_sign_sequence_refuses_fanout_before_payload_or_closure_mutation() {
             assert!(!state.producer_closed);
         }
     }
+}
+
+#[test]
+fn empty_remote_payload_obeys_item_pressure_without_allocating_or_partial_fanout() {
+    for fanout in [false, true] {
+        let mut scheduler = scheduler(16);
+        scheduler
+            .admit_remote_input_fanout(&TARGETS, 0, b"seed")
+            .unwrap();
+        scheduler.step().unwrap();
+        let signs = scheduler.signs.entries;
+        let values = scheduler
+            .values
+            .slots
+            .map(|slot| (slot.generation, slot.references, slot.len, slot.bytes));
+        let outcome = if fanout {
+            scheduler.admit_remote_input_fanout(&TARGETS, 1, b"")
+        } else {
+            scheduler.admit_remote_input(TARGETS[1].0, TARGETS[1].1, 1, b"")
+        };
+        assert_eq!(outcome, Ok(RemoteIngressOutcome::Full { sequence: 1 }));
+        assert_eq!(scheduler.signs.entries, signs);
+        assert_eq!(
+            scheduler.values.slots.map(|slot| (
+                slot.generation,
+                slot.references,
+                slot.len,
+                slot.bytes
+            )),
+            values
+        );
+        assert_eq!(scheduler.cord_usage(CordId(0)).unwrap(), (0, 0));
+        assert_eq!(scheduler.cord_usage(CordId(1)).unwrap(), (1, 4));
+        assert_eq!(scheduler.cords[0].next_remote_sequence, 1);
+        assert_eq!(scheduler.cords[1].next_remote_sequence, 1);
+    }
+}
+
+#[test]
+fn empty_remote_payload_is_admitted_with_item_room_and_pressured_when_slots_fill() {
+    let mut scheduler = scheduler(16);
+    assert_eq!(
+        scheduler.admit_remote_input_fanout(&TARGETS, 0, b""),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 0 })
+    );
+    for (_, cord) in TARGETS {
+        assert_eq!(scheduler.cord_usage(cord).unwrap(), (1, 0));
+    }
+    assert_eq!(scheduler.values().used_items(), 1);
+    assert_eq!(scheduler.values().used_bytes(), 0);
+    assert_eq!(
+        scheduler.admit_remote_input_fanout(&TARGETS, 1, b""),
+        Ok(RemoteIngressOutcome::Full { sequence: 1 })
+    );
+}
+
+#[test]
+fn empty_remote_fanout_preserves_admitted_coalescing_policy() {
+    let mut scheduler = scheduler_with_policy(16, AssignedPressurePolicy::CoalesceLatest);
+    scheduler
+        .admit_remote_input_fanout(&TARGETS, 0, b"seed")
+        .unwrap();
+    assert_eq!(
+        scheduler.admit_remote_input_fanout(&TARGETS, 1, b""),
+        Ok(RemoteIngressOutcome::Accepted { sequence: 1 })
+    );
+    for (_, cord) in TARGETS {
+        assert_eq!(scheduler.cord_usage(cord).unwrap(), (1, 0));
+    }
+    assert_eq!(scheduler.values().used_items(), 1);
+    assert_eq!(scheduler.values().used_bytes(), 0);
 }

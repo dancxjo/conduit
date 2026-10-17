@@ -1519,8 +1519,7 @@ where
         }
         let byte_len =
             u32::try_from(bytes.len()).map_err(|_| SchedulerError::QueueByteCapacityExceeded)?;
-        let available = self.admission_maximum(spec, state)?;
-        if byte_len > available {
+        if !self.payload_admissible(spec, state, byte_len)? {
             return Ok(RemoteIngressOutcome::Full { sequence });
         }
         let next_sequence = sequence
@@ -3530,6 +3529,22 @@ where
         state.len += 1;
         state.queued_bytes += value.byte_len;
         Ok(None)
+    }
+
+    /// Zero byte allowance does not distinguish a full queue from a queue
+    /// that can admit an empty payload. Check item pressure independently.
+    fn payload_admissible(
+        &self,
+        spec: CordSpec,
+        state: &CordState,
+        byte_len: u32,
+    ) -> Result<bool, SchedulerError> {
+        if state.len >= spec.item_capacity
+            && (spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0)
+        {
+            return Ok(false);
+        }
+        Ok(byte_len <= self.admission_maximum(spec, state)?)
     }
 
     fn admission_maximum(&self, spec: CordSpec, state: &CordState) -> Result<u32, SchedulerError> {
