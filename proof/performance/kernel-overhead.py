@@ -37,6 +37,11 @@ def capture(output, runs, source, include_large=False):
                CARGO_PROFILE_RELEASE_OVERFLOW_CHECKS="true",
                CARGO_PROFILE_RELEASE_DEBUG_ASSERTIONS="false",
                RUSTUP_TOOLCHAIN=tomllib.loads((ROOT / "rust-toolchain.toml").read_text())["toolchain"]["channel"])
+    # Cargo can report a different checkout fresh after another checkout writes
+    # the same target filename. Rebuild this measured package; keep dependencies.
+    clean_command = ["cargo", "clean", "--release", "-p", "conduit-kernel"]
+    with (output / "clean.stdout.log").open("w") as stdout, (output / "clean.stderr.log").open("w") as stderr:
+        subprocess.run(clean_command, cwd=ROOT, env=env, stdout=stdout, stderr=stderr, check=True)
     command = ["cargo", "test", "--locked", "--release", "-p", "conduit-kernel",
                "--features", "alloc,step-test-support", "--lib", "--no-run", "--message-format=json"]
     with (output / "build.jsonl").open("w") as stdout, (output / "build.stderr.log").open("w") as stderr:
@@ -45,13 +50,17 @@ def capture(output, runs, source, include_large=False):
                    if line.startswith("{") and json.loads(line).get("executable")]
     if len(executables) != 1:
         raise RuntimeError("expected exactly one kernel test executable")
+    measured = [json.loads(line) for line in (output / "build.jsonl").read_text().splitlines()
+                if line.startswith("{") and json.loads(line).get("executable")]
+    if measured[0].get("fresh") is not False:
+        raise RuntimeError("measured package was not rebuilt")
     executable = Path(executables[0])
     executable_digest = hashlib.sha256(executable.read_bytes()).hexdigest()
     custody(source)
     cpu = next((line.split(":", 1)[1].strip() for line in Path("/proc/cpuinfo").read_text().splitlines()
                 if line.startswith("model name")), "unavailable")
     metadata = {"source": source, "build_command": command,
-                "node_counts": node_counts, "runs": runs,
+                "node_counts": node_counts, "runs": runs, "clean_command": clean_command,
                 "capture_harness_sha256": hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
                 "rustc": subprocess.check_output(["rustc", "-Vv"], env=env, text=True),
                 "executable": str(executable), "executable_sha256": executable_digest,

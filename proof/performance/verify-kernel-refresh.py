@@ -17,7 +17,7 @@ def capture(folder):
     runs = metadata.get('runs', 3)
     nodes = metadata.get('node_counts', [1, 8, 32])
     assert 3 <= runs <= 9 and nodes in [[1, 8, 32], [1, 8, 32, 256]]
-    assert len(status['artifacts_sha256']) == 6 + 4 * runs, 'incomplete capture'
+    assert len(status['artifacts_sha256']) == 6 + 4 * runs + (2 if 'clean_command' in metadata else 0), 'incomplete capture'
     raw = json.loads((folder / 'raw.json').read_text())
     expected = {(p, n, sparse, trial) for p in range(runs) for n in nodes
                 for sparse in [False, True] for trial in range(8)}
@@ -64,6 +64,7 @@ def main():
     if 'capture_harness_sha256' in old_meta and 'capture_harness_sha256' in new_meta:
         assert old_meta['capture_harness_sha256'] == new_meta['capture_harness_sha256']
     same_hardware = all(old_meta[k] == new_meta[k] for k in ['cpu_model', 'affinity'])
+    assert old_meta['executable_sha256'] != new_meta['executable_sha256'], 'same executable cannot establish a changed-kernel comparison'
     work_keys = {'ready_nodes_scanned', 'ready_bytes_scanned', 'pending_slots_scanned',
                  'context_pending_slots', 'input_ports_checked', 'cords_scanned', 'queue_peeks'}
     work_changes = {}
