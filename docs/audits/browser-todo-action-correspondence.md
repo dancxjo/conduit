@@ -421,3 +421,20 @@ its caller object before repair. Eight focused SDK argument/acknowledgement
 tests and the producer fixture pass, including nested choice-table isolation.
 This proves snapshot detachment and the reviewed pre-await capture placement,
 not asynchronous supersession/presence races or remote Body commit acceptance.
+
+Acknowledgement completion-fencing follow-up (#5646): each pending owner Show
+acknowledgement now has an identity token. Clearing a Show invalidates its token;
+a newer acknowledgement supersedes older pending work. Only the current attempt
+with matching current presence/Host/Boot/Body may publish its detached snapshot.
+Component selection clears custody before awaiting its request. Preparation,
+source fetch, submission and close share the same clear transition. The helper
+is included in SDK packages.
+
+Four deferred-promise cases failed against the extracted former await-then-store
+behavior: clear during acknowledgement, both overlapping completion orders and
+lost presence. Thirteen focused SDK tests now pass, additionally checking that
+an old owner refusal cannot clear newer pending work. The producer fixture
+passes with packaged SDK import and static composition. These exercise the
+production state-transition helper and reviewed participation wiring, not a
+real remote transport or authoritative Body commit. No runtime authority or
+automatic retry is introduced.
