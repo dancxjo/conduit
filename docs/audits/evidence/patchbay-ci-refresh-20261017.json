@@ -1,0 +1,27 @@
+{
+  "source": "3b33c6eec43887fdb5b21af262e6d196ad49a45c",
+  "merged_dev": "f43c77c7049bab5d7f8bc207947bda88a847e7ac",
+  "ci_run": 39072625183,
+  "failed_job": 117513454619,
+  "github_artifact": 12116461356,
+  "github_digest_verified": true,
+  "failure": "new upstream streaming stop test omitted shared process allocator measurement guard; concurrent conformance refused nested measurement before any benchmark worker started",
+  "resolution": "Current dev already contains the identical TEST_MEASUREMENT guard. Histories merged; final repair source delta remains std boxed preparation and Patchbay negative control test. No runtime allocator assertion or conformance requirement weakened.",
+  "release_conformance_passed": [
+    22,
+    25
+  ],
+  "unchanged_repair_sources_sha256": {
+    "targets/std/src/installed_std/kernel_preparation.rs": "f8ca314b98ac2ba36ee6d726c259933d486374ca92d1e91353eb0040e2f54fb7",
+    "plots/patchbay/application/src/tests.rs": "7a05c6f3e42ade7def55b423ce34c6337f38a4e93aed455ae392833274299dad"
+  },
+  "raw_sha256": {
+    "5958-conformance-guard.log": "d47afaaa92c6c0124cbbb490ad191511b7468e90b4cdd5a4f79f2797550fe7a2",
+    "5958-conformance-current-dev.log": "5997889fe510292c807752437aa1febc6276da1c04e6c83c68d18b4f978bf351",
+    "5958-performance-failure.zip": "44b44bd6022c713e9ad2da0841ec12e4b25ea2fa8d10d0fbd7d5c93804525c6f",
+    "5958-performance-failure.log": "11c7bb4e89270f904d4314ee5844083a47061d5a5f2bf79b7dd292a36133b47d",
+    "5958-performance-artifact-metadata.json": "6850635493090eb4f0874872ac4500b7e4a808de9d2ccac006a3a123675cc2de"
+  },
+  "archive_sha256": "789f3571a2546511c885f80f1a75c28f22fcd57039270625075e99c20f40755e",
+  "focused_current_dev_replay": "still running; earlier exact default-stack and44 app proofs remain retained with unchanged source hashes"
+}
