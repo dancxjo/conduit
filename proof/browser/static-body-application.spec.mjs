@@ -625,7 +625,14 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
   const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
   await chooser.selectOption({ label: 'Pitch (saved correction)' });
   await expect(editor).toHaveValue(corrected);
-  await editor.fill(`${corrected}# unsent correction draft\n`);
+  await editor.fill(`${corrected}# unsent correction draft é😀\n`);
+  const exportSource = page.getByRole('button', { name: 'Download displayed source', exact: true });
+  await expect(exportSource).toBeEnabled();
+  const pendingDownload = page.waitForEvent('download');
+  await exportSource.click();
+  const download = await pendingDownload;
+  expect(download.suggestedFilename()).toBe('pitch.conduit');
+  expect(await readFile(await download.path(), 'utf8')).toBe(`${corrected}# unsent correction draft é😀\n`);
   await chooser.selectOption({ label: 'Pitch (packaged)' });
   await expect(editor).toHaveValue(original);
   const evidence = page.locator('[data-source-provenance]');
@@ -637,10 +644,10 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
   });
   await expect(editor).toBeEnabled();
   await chooser.selectOption({ label: 'Pitch (saved correction)' });
-  await expect(editor).toHaveValue(`${corrected}# unsent correction draft\n`);
+  await expect(editor).toHaveValue(`${corrected}# unsent correction draft é😀\n`);
   await expect.poll(async () => JSON.parse(await evidence.textContent())).toMatchObject({
     source_origin: 'saved correction', local_edit: true,
-    displayed_source_sha256: 'sha256:' + createHash('sha256').update(`${corrected}# unsent correction draft\n`).digest('hex'),
+    displayed_source_sha256: 'sha256:' + createHash('sha256').update(`${corrected}# unsent correction draft é😀\n`).digest('hex'),
   });
   expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
   if (checker) {
@@ -648,7 +655,7 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
     await expect(page.locator('[data-check]')).toContainText('Correction saved');
     await expect.poll(async () => JSON.parse(await evidence.textContent()).local_edit).toBe(false);
     expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
-      { name: 'pitch', original, source: `${corrected}# unsent correction draft\n` },
+      { name: 'pitch', original, source: `${corrected}# unsent correction draft é😀\n` },
     ]]]);
   }
 });

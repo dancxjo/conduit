@@ -15,6 +15,7 @@ export async function startApplication(application) {
     <div class="handbook-controls"><button data-wake>Wake</button><button data-lull>Lull</button><button data-patchbay>Open in Patchbay</button><button data-example>Return to example</button></div>
     <label>Choose an example <select aria-label="Choose an example"></select></label>
     <p data-lesson></p><label for="handbook-source">Plot source</label><textarea id="handbook-source" spellcheck="false" aria-label="Plot source"></textarea>
+    <button type="button" data-export-source>Download displayed source</button>
     <details><summary>Inspect source provenance</summary><pre data-source-provenance></pre></details>
     <p data-check role="status"></p><button data-try>Try in my Handbook</button>
     <p>First predict the result, then try it. Open Patchbay to follow the gears, typed ports, and cords of the installed example. Trying another example stops the previous example; saved edits are kept. Unapplied edits stay in the editor.</p>
@@ -58,6 +59,18 @@ export async function startApplication(application) {
     updateSourceEvidence();
   };
   source.addEventListener('input', updateSourceEvidence);
+  root.querySelector('[data-export-source]').addEventListener('click', () => {
+    // Export the editor's exact text even when Host/checking/storage is refused.
+    // This is a local file download, not a Body or continuity mutation.
+    const blob = new Blob([source.value], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url;
+    const name = (inspectedSource?.name ?? 'handbook-source').replace(/[^a-zA-Z0-9_.-]/g, '-').slice(0, 64);
+    link.download = `${name}.conduit`;
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url), 0);
+  });
   const showCheckRefusal = (result, origin, name) => {
     checkStatus.dataset.refusalCode = result.refusal.code;
     const details = result.diagnostics.map(item => {
@@ -68,7 +81,7 @@ export async function startApplication(application) {
     }).join('\n') || `${result.refusal.code}: ${result.refusal.message}`;
     checkStatus.textContent = `${origin} source ${name} — checking refused. ${details}`;
   };
-  const controls = [...root.querySelectorAll('button,select,textarea')];
+  const controls = [...root.querySelectorAll('button:not([data-export-source]),select,textarea')];
   controls.forEach(control => control.disabled = true);
   const specification = JSON.parse(application.text('birth-specification'));
   // A corrected packaged lesson may be retried without changing the signed package

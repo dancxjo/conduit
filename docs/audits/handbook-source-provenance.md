@@ -76,3 +76,16 @@ SDK exercises delayed preference loading, two unsent drafts, repeated lesson
 switching and a rejected source check, with exactly the initial Body select/wake
 calls. It proves production editor orchestration against a fixture SDK, not Rust
 syntax or actual Body/packaged runtime acceptance.
+
+Source rescue export (#5453): `Download displayed source` saves the exact current
+textarea text as a local `.conduit` file. It stays available independently of
+Host startup, checker/Body refusal and runtime controls, and exports unsent edits
+without writing application storage or resetting continuity. It complements the
+separate original retained-record backup; it does not claim to export archived
+history or original package bytes when the displayed source has been edited.
+
+The absent export action reproduced before repair. Seven focused pinned Chromium
+source fixtures pass with one worker and zero retries. The two provenance cases
+use real browser downloads and verify exact multiline Unicode file contents and
+filename, while retaining the zero-storage-write assertion. Host/checker remain
+fixtures; actual packaged/public acceptance stays open.
