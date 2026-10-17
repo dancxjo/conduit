@@ -50,6 +50,6 @@ separate. No #5262 acoustic, #5263 contrasting-realization, neural, audio,
 physical-playback or human-listening acceptance is claimed.
 
 The fixture consumes accepted Language Source and its existing kernel harness.
-No code is recovered from archived #5273. The implementation PR remains gated
-on admission of the upstream alignment carrier from #5925; local tests do not
-establish accepted combined `dev` evidence.
+No code is recovered from archived #5273. The upstream alignment carrier from #5925 is admitted at
+`6a2910056f980cb329eb52aa969fc89f9b59dd6a`. This proof consumes that exact
+source. Local tests do not establish accepted combined `dev` evidence.
