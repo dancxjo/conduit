@@ -5,7 +5,7 @@ pub const STEPS: &[Step] = &[
         "dsp.checked-package",
         "Check the owned DSP package and typed source exports before broad installed regression",
         "cargo",
-        &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host", "-p", "conduit-audio", "-p", "conduit-semantic-catalog", "--test", "dsp_package", "--", "--nocapture"],
+        &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host", "-p", "conduit-audio", "-p", "conduit-semantic-catalog", "--test", "dsp_package", "--test", "dsp_public_catalog", "--", "--nocapture"],
     ),
     Step::new(
         "dsp.shared-source-play",
@@ -14,6 +14,12 @@ pub const STEPS: &[Step] = &[
         &["test", "--locked", "-p", "conduit-plot", "-p", "conduit-std-host", "-p", "conduit-audio", "-p", "conduit-semantic-catalog",
           "--test", "seeded_noise", "--test", "dsp_shared_excitation",
           "--test", "dsp_shared_partition", "--test", "dsp_shared_speech", "--test", "one_pole", "--test", "dsp_package_installed", "--test", "dsp_package_frames", "--", "--nocapture"],
+    ),
+    Step::new(
+        "dsp.product-authoring",
+        "Prove the ordinary product source loader checks and expands a public DSP Source Back",
+        "cargo",
+        &["test", "--locked", "-p", "conduit", "--lib", "product_authoring_expands_the_owned_public_dsp_back", "--", "--nocapture"],
     ),
     Step::new(
         "dsp.compact-voice-parity",

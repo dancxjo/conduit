@@ -106,8 +106,15 @@ impl CanonicalSource {
     ) -> Result<conduit_plot::ExpandedAuthoringPlot, String> {
         let checked = self.check()?;
         let entry = self.authored_entry_name()?;
-        conduit_plot::expand_canonical_plot_for_authoring(&checked, entry, &self.profiles)
-            .map_err(|diagnostic| diagnostic.to_string())
+        let mut backs = CanonicalBackCatalog::new();
+        conduit_semantic_catalog::install_dsp_source_backs(&self.profiles, &mut backs)?;
+        conduit_plot::expand_canonical_plot_for_authoring_with_backs(
+            &checked,
+            entry,
+            &self.profiles,
+            &backs,
+        )
+        .map_err(|diagnostic| diagnostic.to_string())
     }
 
     // Used by the library entrance; the binary compiles this module independently.
@@ -119,15 +126,13 @@ impl CanonicalSource {
     fn expand_entry_with_backs(&self, recursive: bool) -> Result<ExpandedCanonicalPlot, String> {
         let checked = self.check()?;
         let entry = self.authored_entry_name()?;
+        let mut backs = CanonicalBackCatalog::new();
+        conduit_semantic_catalog::install_dsp_source_backs(&self.profiles, &mut backs)?;
         if recursive {
-            let mut backs = CanonicalBackCatalog::new();
             conduit_text::install_morse_backs(&self.startup, &self.profiles, &mut backs)?;
-            conduit_plot::expand_canonical_plot_with_backs(&checked, entry, &self.profiles, &backs)
-                .map_err(|diagnostic| diagnostic.to_string())
-        } else {
-            conduit_plot::expand_canonical_plot(&checked, entry, &self.profiles)
-                .map_err(|diagnostic| diagnostic.to_string())
         }
+        conduit_plot::expand_canonical_plot_with_backs(&checked, entry, &self.profiles, &backs)
+            .map_err(|diagnostic| diagnostic.to_string())
     }
 }
 
@@ -148,6 +153,7 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
     .map_err(|error| format!("installed physical catalogue refused: {error:?}"))?;
     let mut profiles = conduit_signal::primary_signal_profile_catalog();
     conduit_semantic_catalog::install_numerical_catalogs(&mut startup, &mut profiles)?;
+    conduit_semantic_catalog::install_dsp_source_catalogs(&mut startup, &mut profiles)?;
     // This first Todo vertical has one exact authored initial Form and a leaf
     // combine Kind. Retained source uses the same catalog after owner restart.
     conduit_todo_plot::install_todo_catalogs(&mut startup, &mut profiles, "Groceries")?;
@@ -208,6 +214,17 @@ fn prepare_standard_catalogs() -> Result<(StartupCatalog, ProfileCatalog), Strin
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn product_authoring_expands_the_owned_public_dsp_back() {
+        let source = parse(include_str!(
+            "../../../semantics/audio/dsp/public-gain.conduit"
+        ))
+        .unwrap();
+        let expanded = source.expand_entry_for_authoring().unwrap();
+        assert_eq!(expanded.expanded.name, "caller");
+        assert!(!expanded.expanded.gears.is_empty());
+    }
 
     #[test]
     fn prepared_standard_catalogs_do_not_share_source_local_types() {
