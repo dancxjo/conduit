@@ -777,18 +777,41 @@ async function fetchAsset(base, path, maximum) {
   }
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `reviewed BrowserBundle resource ${path} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `BrowserBundle resource ${path} exceeds its finite bound`);
-  return bytes;
+  return readBoundedResponse(response, maximum, `BrowserBundle resource ${path}`);
 }
 
 async function readJson(url, maximum, label) {
   if (url.origin !== location.origin) refuse("ArtifactOriginRejected", `${label} must be same-origin`);
   const response = await fetch(url, { cache: "no-store", credentials: "same-origin", redirect: "error" });
   if (!response.ok) refuse("ArtifactUnavailable", `${label} is unavailable`);
-  const bytes = new Uint8Array(await response.arrayBuffer());
-  if (bytes.byteLength < 1 || bytes.byteLength > maximum) refuse("ArtifactBound", `${label} exceeds its finite bound`);
+  const bytes = await readBoundedResponse(response, maximum, label);
   return parseJson(bytes, label);
+}
+
+async function readBoundedResponse(response, maximum, label) {
+  if (!response.body) refuse("ArtifactBound", `${label} is empty`);
+  const reader = response.body.getReader();
+  let bytes = new Uint8Array(Math.min(maximum, 64 * 1024));
+  let total = 0;
+  try {
+    while (true) {
+      const { done, value } = await reader.read();
+      if (done) break;
+      if (value.byteLength > maximum - total) {
+        await reader.cancel().catch(() => {});
+        refuse("ArtifactBound", `${label} exceeds its finite bound`);
+      }
+      if (total + value.byteLength > bytes.byteLength) {
+        const grown = new Uint8Array(Math.min(maximum, Math.max(total + value.byteLength, bytes.byteLength * 2)));
+        grown.set(bytes.subarray(0, total));
+        bytes = grown;
+      }
+      bytes.set(value, total);
+      total += value.byteLength;
+    }
+  } finally { reader.releaseLock(); }
+  if (total < 1) refuse("ArtifactBound", `${label} is empty`);
+  return bytes.subarray(0, total);
 }
 
 function parseJson(bytes, label) {

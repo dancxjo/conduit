@@ -103,3 +103,38 @@ test("Browser SDK refuses URL-changing asset paths before requesting them", asyn
     }
   }
 });
+
+test("Browser SDK cancels oversized manifest streams at the byte bound", async () => {
+  const { Conduit } = await import("./browser-sdk.mjs");
+  const saved = Object.fromEntries(["document", "location", "fetch"].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
+  try {
+    globalThis.document = { baseURI: "https://fixture.invalid/app/" };
+    globalThis.location = { origin: "https://fixture.invalid" };
+    for (const oversized of [true, false]) {
+      const maximum = 128 * 1024;
+      const bytes = new TextEncoder().encode('{}' + ' '.repeat(maximum - 2));
+      let pulls = 0;
+      let cancelled = false;
+      const stream = new ReadableStream({
+        pull(controller) {
+          pulls++;
+          if (pulls <= 2) controller.enqueue(bytes.slice((pulls - 1) * maximum / 2, pulls * maximum / 2));
+          else if (oversized && pulls <= 4) controller.enqueue(new Uint8Array([32]));
+          else controller.close();
+        },
+        cancel() { cancelled = true; },
+      }, { highWaterMark: 0 });
+      globalThis.fetch = async () => new Response(stream);
+      await assert.rejects(Conduit.browser({ bundleRoot: './bundle/' }),
+        { code: oversized ? 'ArtifactBound' : 'PackageManifestInvalid' });
+      assert.equal(cancelled, oversized);
+      assert.equal(pulls, 3);
+      assert.equal(stream.locked, false);
+    }
+  } finally {
+    for (const [key, descriptor] of Object.entries(saved)) {
+      if (descriptor) Object.defineProperty(globalThis, key, descriptor);
+      else delete globalThis[key];
+    }
+  }
+});

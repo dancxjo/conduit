@@ -150,3 +150,15 @@ as does the producer fixture. Four SDK Node tests pass; a new public-entrance
 fixture checks five URL-changing paths are refused before asset fetch. Its
 manifest/fetch environment is synthetic and proves loader refusal, not actual
 browser execution or public package provenance.
+
+Streaming download-bound follow-up: SDK manifests and assets now use a bounded
+stream reader rather than buffering the complete response before checking size.
+The reader cancels at the first chunk crossing the existing byte ceiling, uses
+a contiguous buffer that grows only within that ceiling and releases its lock
+on success or failure. Empty responses remain distinct bounded refusals.
+
+A public-entrance fixture reproduced full consumption without cancellation before
+repair. Five SDK Node tests now pass, including oversized cancellation after the
+first excess byte, exact-limit manifest admission into metadata validation and
+released stream locks. The producer fixture also passes. Synthetic response
+streams establish loader behavior; actual network/browser execution remains open.
