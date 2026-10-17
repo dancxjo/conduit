@@ -438,3 +438,29 @@ passes with packaged SDK import and static composition. These exercise the
 production state-transition helper and reviewed participation wiring, not a
 real remote transport or authoritative Body commit. No runtime authority or
 automatic retry is introduced.
+
+Component-selection continuation follow-up (#5646): each cleared Show now
+advances an identity epoch. A component-selection completion may clear the
+runtime bridge and prepare another Show only while its epoch and current
+presence/Host/Boot/Body still match. A newer source, acknowledgement or close
+invalidates that continuation. A current successful request still refreshes
+once; an owner refusal propagates without refresh.
+
+Deferred newer-Show and lost-presence cases failed against the extracted former
+await-then-refresh behavior. Sixteen focused SDK state/acknowledgement/argument
+tests and the producer fixture pass. These establish local completion fencing,
+not rollback of an already-sent owner selection, remote transport conformance
+or authoritative Body commit. No retry or inferred remote cancellation is added.
+
+Face-frame preparation follow-up (#5646): a downloaded owner Face reaches
+Mask preparation only if its starting Show epoch and current presence/Host/
+Boot/Body still match. The check and synchronous bridge call share one
+continuation, avoiding a second await between validation and bridge mutation.
+The request's primitive identities and text-scale constraint are retained.
+
+Both overlapping response orders and clearing during download failed against
+the extracted former presence-only gate. Twenty-one focused SDK state/Show/
+argument tests and the producer fixture pass, including existing lost-presence
+refusal, valid preparation exactly once and download failure without preparation.
+These prove production helper ordering and reviewed SDK wiring, not actual
+network/owner behavior or authoritative Body commits; no retry is added.
