@@ -75,6 +75,11 @@ losses, not empty observations.
 | `evidence.rs::EvidenceProvenance` | `source`, `method`, optional `version` preserved | Nonempty method ≤64 bytes; version ≤64 bytes. No source priority ladder or authorization copied. |
 | `acoustics.rs::AcousticObservation` | Cue identity, optional span, specification, confidence preserved by `SpeechAcousticObservation` | Generic feature value is not an admitted unit-bearing acoustic target. |
 
+`SpeechSpecificationState` in `context_match.conduit` is the existing
+mechanical policy view of those six cases; it has no payload and cannot replace
+`SpeechSpec<T>` as a transport carrier. Only an Unspecified rule requirement is
+unconstrained; unresolved observations never become Known values.
+
 Text custody uses [Language identity](../../semantics/language/identity.conduit):
 text ID, exact revision, language, original ≤4096-byte UTF-8 text and half-open Unicode-scalar ranges. IPA separately retains original
 spelling, byte/scalar/unit spans and profile/basis. Neither cursor unit is a
