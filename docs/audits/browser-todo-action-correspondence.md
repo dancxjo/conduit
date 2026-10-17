@@ -646,3 +646,15 @@ pass with one worker and zero retries; exact admitted values/encodings survive
 and dequeue returns byte accounting to zero. This is renderer queue custody,
 not arbitrary same-origin confinement or authoritative Body proof. The prior
 missing local WASM full-suite limitation remains.
+
+Generic typed control follow-up (#5644): text inputs, textareas, selects and
+boolean controls require scalar Unicode strings or fatal, BOM-preserving UTF-8
+byte decoding before queueing. Checkbox/radio values additionally require exact
+`true` or `false`; select membership remains exact. Existing byte caps apply
+before decoding, and the binary graph callback contract is not changed.
+
+Eight cases reproduced invalid queueing across both text controls and both
+boolean controls. All 26 targeted pinned Chromium fixtures pass with one worker
+and zero retries, including native Unicode text insertion and keyboard boolean
+activation after refusal. This is generic renderer admission proof, not Body
+state mutation or full runtime acceptance; the missing local WASM limit remains.

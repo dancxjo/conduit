@@ -417,12 +417,14 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const choices = choiceValues.get(node);
-    if (choices) {
-      let selected;
-      try { selected = typeof value === "string" ? value : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
-      catch { selected = undefined; }
-      if (!choices.has(selected)) {
+    if ([15, 16, 17, 43, 44].includes(node.component)) {
+      let text;
+      try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
+        : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+      catch { text = undefined; }
+      const choices = choiceValues.get(node);
+      if (text === undefined || (choices && !choices.has(text))
+        || ([43, 44].includes(node.component) && text !== "true" && text !== "false")) {
         lastRefusal = "invalid-control-value";
         options.onRefusal?.(lastRefusal);
         return null;

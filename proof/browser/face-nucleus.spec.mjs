@@ -378,3 +378,39 @@ for (const mutation of ['input', 'callback', 'returned', 'transfer']) {
     expect(result).toEqual({ value: 'yes', exactEncoding: true, queued: 0, queuedBytes: 0 });
   });
 }
+
+for (const component of ['text-input', 'textarea', 'independent-choice', 'exclusive-choice']) {
+for (const invalid of ['string', 'bytes']) {
+  test(`generic typed values refuse malformed input (${component}, ${invalid})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const boolean = component.endsWith('choice');
+    await page.evaluate(async ({ component, invalid, boolean }) => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const control = { parent: boolean ? 2 : null, component, key: 'control', text: 'Exact text',
+        value: boolean ? 'false' : '', valueCapacity: 16, action: 0 };
+      const nodes = boolean ? [
+        { parent: null, component: 'choice-group', key: 'group', text: 'Choices', action: null },
+        { parent: 0, component: 'choice-group-label', key: 'legend', text: 'Choices', action: null },
+        { parent: 0, component: 'choice-option-label', key: 'label', text: 'Choice', action: null }, control,
+      ] : [control];
+      globalThis.typedCalls = [];
+      const manifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.typed', event: boolean ? 'change' : 'input' }], nodes }), root,
+        { onEvent: event => globalThis.typedCalls.push(new TextDecoder().decode(event.value)) });
+      manifest.requestAction('control', invalid === 'bytes' ? Uint8Array.of(0xff) : boolean ? 'yes' : '\ud800');
+      globalThis.typedProof = manifest;
+    }, { component, invalid, boolean });
+    expect(await page.evaluate(() => ({ calls: globalThis.typedCalls, queued: globalThis.typedProof.queuedEvents(),
+      refusal: globalThis.typedProof.lastRefusal() }))).toEqual({ calls: [], queued: 0, refusal: 'invalid-control-value' });
+    if (boolean) {
+      await page.getByRole(component === 'independent-choice' ? 'checkbox' : 'radio', { name: 'Choice', exact: true }).focus();
+      await page.keyboard.press('Space');
+    } else {
+      await page.getByRole('textbox', { name: 'Exact text', exact: true }).focus();
+      await page.keyboard.insertText('é😀');
+    }
+    expect(await page.evaluate(() => globalThis.typedCalls)).toEqual([boolean ? 'true' : 'é😀']);
+  });
+}
+}
