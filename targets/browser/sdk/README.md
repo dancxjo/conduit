@@ -199,6 +199,9 @@ Durable output must match both its evidence and admission Body identities before
 storage writes or archive acknowledgement. Recovery checks the restored Body ID
 before selecting foreground state, and keeps private immutable snapshots through
 its asynchronous persistence step; it cannot silently adopt a different Body.
+Retained continuity is also privately snapshotted before asynchronous source
+checking. A present retained admission must match its evidence Body ID before
+Restore is requested.
 
 `body.events()` reads that same bounded snapshot and projects only retained
 Body biography records with their exact sequence and Sign identity. It joins a
