@@ -12,6 +12,8 @@ conduit-core = { path = "../../architecture/core" }
 conduit-plot = { path = "../../architecture/plot" }
 
 [dev-dependencies]
+conduit-ai = { path = "../ai" }
+conduit-data = { path = "../data" }
 conduitos = { path = "../../targets/conduitos" }
 conduit-composite = { path = "../../architecture/composite" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["alloc"] }

@@ -10,6 +10,8 @@ mod angle_reference;
 mod dsp_shared_compositions;
 #[path = "../../xtask/src/suites/inverse_angle.rs"]
 mod inverse_angle;
+#[path = "../../xtask/src/suites/parser_scorer.rs"]
+mod parser_scorer;
 #[path = "../../xtask/src/suites/print_pool.rs"]
 mod print_pool;
 
@@ -50,6 +52,16 @@ fn selected(arguments: &[String]) -> Option<Suite> {
             steps: print_pool::STEPS,
             path: "tools/xtask/src/suites/print_pool.rs",
             source: include_bytes!("../../xtask/src/suites/print_pool.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "parser-scorer" => Some(Suite {
+            steps: parser_scorer::STEPS,
+            path: "tools/xtask/src/suites/parser_scorer.rs",
+            source: include_bytes!("../../xtask/src/suites/parser_scorer.rs"),
+        }),
+        [check, suite] if check == "check" && suite == "parser-scorer-reproduce" => Some(Suite {
+            steps: parser_scorer::REPRODUCE,
+            path: "tools/xtask/src/suites/parser_scorer.rs",
+            source: include_bytes!("../../xtask/src/suites/parser_scorer.rs"),
         }),
         // Global options and all other commands retain the full CLI parser.
         _ => None,

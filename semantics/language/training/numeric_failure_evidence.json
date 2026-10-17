@@ -1,0 +1,94 @@
+{
+  "build_profile": "unoptimized + debuginfo",
+  "caller_input_bytes": 200,
+  "caller_output_bytes": 608,
+  "command": "cargo +stable xtask check parser-scorer",
+  "counts": [
+    [
+      22,
+      22
+    ],
+    [
+      25,
+      26
+    ]
+  ],
+  "counts_order": [
+    "dev",
+    "test"
+  ],
+  "failures": [
+    {
+      "expected_class": 0,
+      "gold_features": [
+        17,
+        24,
+        348,
+        361,
+        366,
+        371,
+        373,
+        377,
+        379,
+        381,
+        383,
+        385,
+        387,
+        389,
+        391,
+        393,
+        395,
+        397,
+        399,
+        402,
+        403,
+        405,
+        407,
+        409,
+        411
+      ],
+      "selected_class": 73,
+      "selected_features": [
+        17,
+        24,
+        348,
+        361,
+        366,
+        371,
+        373,
+        377,
+        379,
+        381,
+        383,
+        385,
+        387,
+        389,
+        391,
+        393,
+        395,
+        397,
+        399,
+        402,
+        403,
+        405,
+        407,
+        409,
+        411
+      ],
+      "sentence": "email-enronsent04_02-0007",
+      "split": "test"
+    }
+  ],
+  "host": "forebrain",
+  "limits": "Numeric calls only; excludes feature extraction, preparation, graph search, transition checking and Plan/Play; RSS includes test harness and is an observation, not a ceiling.",
+  "model_bytes": 62796,
+  "model_content_identity": "1dd81c6d8e9dd7f1f9b708996b909ed5cd2cc7b95b4cdc06c312761580e9ee5f",
+  "model_invocations": 63,
+  "numeric_max_ns": 23734,
+  "numeric_total_ns": 1408331,
+  "numeric_working_bytes": 1368,
+  "process_memory_observation": "VmHWM:\t    6364 kB; VmRSS:\t    6364 kB",
+  "proof": "gold-state joint action ranking; no blind parse",
+  "source_commit": "755650acf7fdc74e1dcb37f866d5e9a4ca54fc1b",
+  "whole_process_memory_ceiling": false
+}
