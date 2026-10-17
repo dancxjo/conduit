@@ -11,6 +11,7 @@ pub struct RetiredExecution<D, S, E, const NODES: usize> {
     pub signs: E,
     pub active_nodes: usize,
     pub decisions: u32,
+    pub logical_invocations: u64,
     pub cancelled: bool,
 }
 
@@ -101,6 +102,7 @@ where
             signs: self.signs,
             active_nodes: self.active_nodes,
             decisions: self.decisions,
+            logical_invocations: self.logical_invocations,
             cancelled: self.cancelled,
         })
     }

@@ -22,7 +22,9 @@ mod active_capacity;
 mod boxed_preparation;
 mod debug_control;
 mod derived_value;
+mod execution_region;
 mod host_call_settlement;
+mod quiescence;
 #[cfg(feature = "linear-ready-reference-test")]
 mod ready_reference;
 mod ready_set;
@@ -929,6 +931,7 @@ pub struct FixedScheduler<
     cord_specs: [CordSpec; CORDS],
     active_nodes: usize,
     active_cords: usize,
+    has_quiescence_cords: bool,
     routes: FixedRoutes<ROUTE_SLOTS, ROUTE_TARGETS>,
     host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
@@ -942,6 +945,8 @@ pub struct FixedScheduler<
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
+    logical_invocations: u64,
+    region_successors: [Option<NodeId>; NODES],
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
     debug_control: DebugControlState,
@@ -1030,6 +1035,7 @@ where
             unresolved_abnormal: [None; NODES],
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
+            has_quiescence_cords: quiescence::has_quiescence_cords(&cord_specs[..active_cords]),
             cord_specs,
             active_nodes,
             active_cords,
@@ -1046,6 +1052,8 @@ where
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
+            logical_invocations: 0,
+            region_successors: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
             debug_control: DebugControlState::new(),
@@ -1113,92 +1121,18 @@ where
     }
 
     pub fn step(&mut self) -> Result<SchedulerStatus, SchedulerError> {
-        if self.cancelled {
-            return Ok(SchedulerStatus::Cancelled);
-        }
-        if self.debug_control.suspension().is_some() {
-            return Err(SchedulerError::DebugSuspended);
-        }
-        let Some(node) = self.next_ready() else {
-            if let Some(node) = self.emit_quiescence_transitions()? {
-                return Ok(SchedulerStatus::Progress { node });
-            }
-            return if self.completed[..self.active_nodes]
-                .iter()
-                .all(|value| *value)
-                && self.cords[..self.active_cords]
-                    .iter()
-                    .all(|cord| cord.len == 0)
-            {
-                self.drained_status()
-            } else {
-                Ok(SchedulerStatus::Idle)
-            };
-        };
-        if self.debug_control.suspend_before(NodeId(as_u16(node)?)) {
-            return Err(SchedulerError::DebugSuspended);
-        }
-        self.decisions = self
-            .decisions
-            .checked_add(1)
-            .ok_or(SchedulerError::DecisionLimitExceeded)?;
-        self.signs.record(
-            NodeId(as_u16(node)?),
-            None,
-            None,
-            KernelEventKind::StepFuelGranted,
-        )?;
-        self.signs.observe_debug(DebugRuntimeEvent {
-            node: NodeId(as_u16(node)?),
-            port: None,
-            cord: None,
-            kind: DebugEventKind::GearStarted,
-            type_identity: None,
-            value: None,
-            fault_code: None,
-        });
+        self.step_region(&mut |_| true)
+    }
 
-        let mut io = self.context(node)?;
-        let mut current_input_bytes = [None; PORTS];
-        for (port, value) in io.inputs.iter().copied().enumerate() {
-            if let Some(value) = value {
-                current_input_bytes[port] = Some(self.values.get(value)?);
-            }
-        }
-        let input_bytes = StepInputBytes {
-            inputs: current_input_bytes,
-            host_output: io
-                .host_completion
-                .and_then(|(_, outcome)| outcome.output)
-                .map(|output| self.values.get(output.value))
-                .transpose()?,
-        };
-        let outcome = self.drivers[node].step(&mut io, &input_bytes);
-        if let Some(fault) = io.fault {
-            if fault == SchedulerError::StepFuelExceeded {
-                self.signs.record(
-                    NodeId(as_u16(node)?),
-                    None,
-                    None,
-                    KernelEventKind::StepFuelExceeded,
-                )?;
-            }
-            return Err(fault);
-        }
-        self.apply_step(node, outcome, io)?;
-        if self.completed[..self.active_nodes]
-            .iter()
-            .all(|value| *value)
-            && self.cords[..self.active_cords]
-                .iter()
-                .all(|cord| cord.len == 0)
-        {
-            self.drained_status()
-        } else {
-            Ok(SchedulerStatus::Progress {
-                node: NodeId(as_u16(node)?),
-            })
-        }
+    /// Poll the execution owner's finite control checkpoint before each
+    /// logical Gear, including members of an admitted physical region. A false
+    /// result defers the next Gear: Idle before any invocation, or Progress for
+    /// the completed prefix. The caller retains cancellation ownership.
+    pub fn step_with_checkpoint(
+        &mut self,
+        mut proceed: impl FnMut(NodeId) -> bool,
+    ) -> Result<SchedulerStatus, SchedulerError> {
+        self.step_region(&mut proceed)
     }
 
     /// Bind the exact Plan-lowered terminal contracts before play. A prepared
@@ -1300,6 +1234,11 @@ where
 
     pub fn decisions(&self) -> u32 {
         self.decisions
+    }
+
+    /// Actual Back invocations, including Await and terminal invocations.
+    pub fn logical_invocations(&self) -> u64 {
+        self.logical_invocations
     }
 
     pub fn drivers(&self) -> &[D; NODES] {
@@ -2285,90 +2224,6 @@ where
         self.terminal_phases[node] = terminal_phase;
         self.terminal_cancellation_pending[node] = cancellation_pending;
         Ok(())
-    }
-
-    fn arm_quiescence_outputs(&mut self, node: usize) -> Result<(), SchedulerError> {
-        let node = NodeId(as_u16(node)?);
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
-                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
-            {
-                self.cords[cord].quiescence_armed = true;
-            }
-        }
-        Ok(())
-    }
-
-    /// Emit one wakeable edge for every source that became active and has now
-    /// returned the whole play to quiescence. Empty queues alone do not arm an
-    /// edge, and terminal sources are never reported as quiescent.
-    fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
-        let mut count = 0_usize;
-        let mut first_source = None;
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
-                continue;
-            }
-            let Some((source, _)) = spec.source_local() else {
-                continue;
-            };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
-                continue;
-            }
-            first_source.get_or_insert(source);
-            count = count.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
-        }
-        if count == 0 {
-            return Ok(None);
-        }
-        self.ensure_sign_capacity(count)?;
-        let value = self.values.store(&[])?;
-        for _ in 1..count {
-            self.values.retain(value)?;
-        }
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            let spec = self.cord_specs[cord];
-            if spec.track != AssignedConnectionTrack::Quiescence
-                || !self.cords[cord].quiescence_armed
-            {
-                continue;
-            }
-            let Some((source, port)) = spec.source_local() else {
-                continue;
-            };
-            if self.completed[usize::from(source.0)] || self.cords[cord].len != 0 {
-                continue;
-            }
-            self.push(cord, value)?;
-            self.cords[cord].quiescence_armed = false;
-            if let Some((sink, _)) = spec.sink_local() {
-                self.ready.set(usize::from(sink.0), true);
-            }
-            self.signs
-                .record(source, Some(port), None, KernelEventKind::ValueRouted)?;
-        }
-        Ok(first_source)
     }
 
     fn projected_recovery_for_step(

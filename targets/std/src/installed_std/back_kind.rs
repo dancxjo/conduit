@@ -234,6 +234,7 @@ pub(super) enum InstalledBack {
     StructuredSelector(StructuredSelectorBack),
     PureFilter(StructuredSelectorBack),
     PureExpression(PureExpressionBack),
+    LocalExpression(crate::flow_activation::PreparedLocalExpressionBack),
     Numerical(conduit_semantic_catalog::NumericalRealizationBack),
     StructuredLiteral(StructuredLiteralBack),
     ConvertedEquals(Box<conduit_semantic_catalog::ConvertedEqualsBack>),

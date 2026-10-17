@@ -200,7 +200,8 @@ pub use dormant_readmission_explanation::{
 pub use external_fore_lines::{bind_external_fore_lines, ExternalForeLineChoice};
 pub use fact_policy::{PlannerFactRef, PlannerFactValue, PlannerPredicate, PlannerPreference};
 pub use fusion::{
-    plan_selected_optimization, select_fusion_candidate, FusionBoundary, FusionCandidate,
+    plan_expanded_selected_optimization, plan_selected_optimization,
+    select_expanded_fusion_candidate, select_fusion_candidate, FusionBoundary, FusionCandidate,
     FusionCandidateEvidence, FusionDecisionGroup, FusionPlanningInputs, FusionPlanningObservation,
     FusionRealizationOffer, FusionSelection, OptimizedPlan, MAXIMUM_FUSION_CANDIDATES,
     MAXIMUM_FUSION_GROUPS, MAXIMUM_FUSION_MEMBERS, MAXIMUM_FUSION_OFFERS,

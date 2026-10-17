@@ -95,6 +95,42 @@ impl NativeFaceScene {
         Ok(())
     }
 
+    /// Read one exact graph subject through the existing complete Details reader.
+    /// This changes Mask-local reading position, never an action or owner state.
+    pub fn inspect_subject(
+        &mut self,
+        face_id: &FaceContentId,
+        revision: u64,
+        identity: &str,
+    ) -> Result<(), FaceSceneError> {
+        if face_id != &self.face.identity || revision != self.face.revision {
+            return Err(FaceSceneError::StaleFace);
+        }
+        let subject = self
+            .face
+            .subjects
+            .iter()
+            .position(|subject| {
+                subject.identity == identity
+                    && matches!(
+                        subject.role,
+                        conduit_face::FaceRole::Gear
+                            | conduit_face::FaceRole::Port
+                            | conduit_face::FaceRole::Cord
+                    )
+            })
+            .ok_or(FaceSceneError::UnknownControl)?;
+        let page = self
+            .details
+            .iter()
+            .find(|row| row.subject_index == Some(subject))
+            .ok_or(FaceSceneError::DocumentBound)?
+            .page;
+        self.show_details(true);
+        self.page = page;
+        Ok(())
+    }
+
     /// Pointer coordinates use the exact currently displayed page. Clicking a
     /// field focuses it; clicking an argument-free action submits it. Dirty
     /// replacement input commits before changing focus, returning a fresh-focus
@@ -107,6 +143,25 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if self.showing_diagram {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected = hits
+                .into_iter()
+                .flatten()
+                .find(|(bounds, _)| {
+                    i32::from(x) >= i32::from(bounds.x)
+                        && i32::from(y) >= i32::from(bounds.y)
+                        && i32::from(x) < i32::from(bounds.x) + i32::from(bounds.width)
+                        && i32::from(y) < i32::from(bounds.y) + i32::from(bounds.height)
+                })
+                .map(|(_, identity)| String::from(identity));
+            if let Some(identity) = selected {
+                self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
+                return Ok(FaceSceneInput::Changed);
+            }
+            return Ok(FaceSceneInput::Unchanged);
+        }
         if !self.interaction_admitted {
             return Ok(FaceSceneInput::Unchanged);
         }
@@ -140,6 +195,20 @@ impl NativeFaceScene {
         sequence: u64,
     ) -> Result<FaceSceneInput, FaceSceneError> {
         self.check_show(show)?;
+        if self.showing_diagram
+            && event.transition() == KeyTransition::Pressed
+            && (30..=35).contains(&event.usage())
+        {
+            let mut drawing = GraphicsScene::empty();
+            let hits = diagram::append(&mut drawing, &self.face, self.screen, self.page)?;
+            let selected =
+                hits[usize::from(event.usage() - 30)].map(|(_, identity)| String::from(identity));
+            if let Some(identity) = selected {
+                self.inspect_subject(&self.face.identity.clone(), self.face.revision, &identity)?;
+                return Ok(FaceSceneInput::Changed);
+            }
+            return Ok(FaceSceneInput::Unchanged);
+        }
         if !self.interaction_admitted {
             if event.transition() != KeyTransition::Pressed {
                 return Ok(FaceSceneInput::Unchanged);

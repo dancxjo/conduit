@@ -1,0 +1,28 @@
+{
+  "source": "dec612af2720db64917f019036d80b94e7101a0d",
+  "session": 58404,
+  "exit": 0,
+  "command": "cargo test --workspace --no-fail-fast --features conduitos/native-compositor",
+  "runtime": {
+    "harnesses": 1165,
+    "passed": 9243,
+    "failed": 0,
+    "ignored": 38
+  },
+  "doctests": {
+    "harnesses": 91,
+    "passed": 6,
+    "failed": 0,
+    "ignored": 1
+  },
+  "whole": {
+    "harnesses": 1256,
+    "passed": 9249,
+    "failed": 0,
+    "ignored": 39
+  },
+  "log_sha256": "5ffdafdfbb30280df91d1ff3def1fdcf18a1ae69be1c16f1e3922e84c87e67d8",
+  "profile": "jobs2/devdebug0/testdebug0/testopt0/incremental0; native-compositor feature; not all optional features",
+  "elapsed_wall": "1:54:41",
+  "limits": "Full command coverage at this exact Source; wall duration is validation on a shared host, not a benchmark."
+}
