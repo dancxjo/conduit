@@ -699,3 +699,15 @@ pinned Chromium routing fixtures also pass (one worker, zero retries); the
 subsequent array-length capture was verified by its focused Node regression.
 Compiler/Play and full runtime acceptance remain open, with the prior missing
 local WASM limitation unchanged.
+
+View input admission follow-up (#5653): the generic view decoder shares bounded
+octet admission with event encoding. It checks the 128 KiB ceiling before array
+conversion and accepts only Uint8Array, ArrayBuffer or dense integer-octet arrays.
+Numeric allocation lengths, arbitrary coercion and lossy octets refuse before
+framing decode. Event and view byte ceilings retain their distinct diagnostics.
+
+The new regression reproduced oversized iteration before repair. All eight
+focused Node codec tests pass, including equivalent valid views from supported
+byte forms and existing event capacity/identity cases. No browser/runtime build
+was needed for this byte-admission change; real compiler/Play and full runtime
+acceptance remain open with the prior missing local WASM limitation.

@@ -83,3 +83,15 @@ test('event array conversion keeps the admitted length if a byte getter grows it
   assert.equal(new DataView(encoded.buffer).getUint32(7, true), 1);
   assert.equal(encoded.at(-1), 42);
 });
+
+test('view decode admits byte forms and limits before conversion', () => {
+  const oversized = Array(131_073);
+  oversized[Symbol.iterator] = () => assert.fail('oversized view must refuse before iteration');
+  assert.throws(() => decodeApplicationView(oversized), { code: 'oversized-encoding' });
+  for (const invalid of [1, 'bytes', { length: 1, 0: 10 }, [-1], [256], Array(1)]) {
+    assert.throws(() => decodeApplicationView(invalid), { code: 'malformed-encoding' });
+  }
+  const encoded = encodeApplicationView(description());
+  const expected = decodeApplicationView(encoded);
+  for (const input of [encoded.buffer, Array.from(encoded)]) assert.deepEqual(decodeApplicationView(input), expected);
+});

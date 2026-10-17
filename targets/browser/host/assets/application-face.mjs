@@ -111,8 +111,7 @@ export function decodeApplicationLook(input) {
 }
 
 export function decodeApplicationView(input) {
-  const encoded = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (encoded.length > MAX_BYTES) refuse("oversized-encoding");
+  const encoded = checkedBytes(input, MAX_BYTES, "oversized-encoding");
   const cursor = new Cursor(encoded);
   if (cursor.byte() !== VERSION) refuse("unsupported-version");
   const revision = cursor.u32();
@@ -337,14 +336,14 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
   });
 }
 
-function checkedEventBytes(value) {
+function checkedBytes(value, maximum, boundCode) {
   if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
-    if (value.byteLength > MAX_EVENT_BYTES) refuse("event-too-large");
+    if (value.byteLength > maximum) refuse(boundCode);
     return value instanceof Uint8Array ? value : new Uint8Array(value);
   }
   if (!Array.isArray(value)) refuse("malformed-encoding");
   const length = value.length;
-  if (length > MAX_EVENT_BYTES) refuse("event-too-large");
+  if (length > maximum) refuse(boundCode);
   const bytes = new Uint8Array(length);
   for (let index = 0; index < length; index++) {
     const byte = value[index];
@@ -358,7 +357,7 @@ export function encodeApplicationEvent(event) {
   if (!event || !Number.isSafeInteger(event.revision) || event.revision < 0 || event.revision > 0xffff_ffff) refuse("malformed-encoding");
   if (!Number.isInteger(event.kind) || !Object.hasOwn(EVENTS, event.kind)) refuse("unknown-event");
   const action = encodeExactText(event.action);
-  const value = checkedEventBytes(event.value);
+  const value = checkedBytes(event.value, MAX_EVENT_BYTES, "event-too-large");
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
   const encoded = new Uint8Array(EVENT_HEADER_BYTES + action.length + value.length);
