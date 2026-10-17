@@ -29,6 +29,16 @@ export class ApplicationFaceRefusal extends Error {
 
 const refuse = (code) => { throw new ApplicationFaceRefusal(code); };
 
+function encodeExactText(value, maximum, boundCode) {
+  if (typeof value !== "string") refuse("malformed-encoding");
+  if (value.length > maximum) refuse(boundCode);
+  if (!value.isWellFormed()) refuse("malformed-encoding");
+  const bytes = new TextEncoder().encode(value);
+  if (bytes.length > maximum) refuse(boundCode);
+  return bytes;
+}
+
+
 class Cursor {
   constructor(encoded) { this.encoded = encoded; this.offset = 0; }
   bytes(length) {
@@ -40,9 +50,12 @@ class Cursor {
   }
   byte() { return this.bytes(1)[0]; }
   u16() { const bytes = this.bytes(2); return bytes[0] | (bytes[1] << 8); }
-  u32() { return new DataView(this.bytes(4).buffer).getUint32(0, true); }
+  u32() {
+    const bytes = this.bytes(4);
+    return new DataView(bytes.buffer, bytes.byteOffset, bytes.byteLength).getUint32(0, true);
+  }
   text(length) {
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(this.bytes(length)); }
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.bytes(length)); }
     catch { refuse("malformed-encoding"); }
   }
 }
@@ -105,8 +118,7 @@ export function decodeApplicationLook(input) {
 }
 
 export function decodeApplicationView(input) {
-  const encoded = input instanceof Uint8Array ? input : new Uint8Array(input);
-  if (encoded.length > MAX_BYTES) refuse("oversized-encoding");
+  const encoded = checkedBytes(input, MAX_BYTES, "oversized-encoding");
   const cursor = new Cursor(encoded);
   if (cursor.byte() !== VERSION) refuse("unsupported-version");
   const revision = cursor.u32();
@@ -198,25 +210,43 @@ export function decodeApplicationView(input) {
 }
 
 export function encodeApplicationView(view) {
-  if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
-  if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
+  const revision = view?.revision;
+  const nodes = view?.nodes;
+  const actions = view?.actions;
+  if (!Number.isSafeInteger(revision) || revision < 0 || revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Array.isArray(nodes) || !Array.isArray(actions)) refuse("malformed-encoding");
+  const nodeCount = nodes.length;
+  const actionCount = actions.length;
+  if (nodeCount === 0) refuse("empty");
+  if (nodeCount > MAX_NODES) refuse("too-many-nodes");
+  if (actionCount > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
-  const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
+  let length = 0;
+  const append = (...values) => {
+    for (const chunk of values) {
+      if (chunk.length > MAX_BYTES - length) refuse("oversized-encoding");
+      chunks.push(chunk);
+      length += chunk.length;
+    }
+  };
+  const push = (...bytes) => append(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);
   header[0] = VERSION;
-  new DataView(header.buffer).setUint32(1, view.revision, true);
-  header[5] = view.nodes.length;
-  header[6] = view.actions.length;
-  chunks.push(header);
-  for (const action of view.actions) {
+  new DataView(header.buffer).setUint32(1, revision, true);
+  header[5] = nodeCount;
+  header[6] = actionCount;
+  append(header);
+  for (let index = 0; index < actionCount; index++) {
+    const action = actions[index];
     const kind = EVENT_IDENTITIES[action?.event];
     if (!kind) refuse("unknown-event");
-    const encoded = new TextEncoder().encode(action.id ?? "");
+    const encoded = encodeExactText(action.id ?? "", MAX_ACTION_ID_BYTES, "action-id-too-long");
     if (encoded.length === 0 || encoded.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
     push(kind, encoded.length);
-    chunks.push(encoded);
+    append(encoded);
   }
-  for (const node of view.nodes) {
+  for (let index = 0; index < nodeCount; index++) {
+    const node = nodes[index];
     const component = COMPONENT_IDENTITIES[node?.component];
     if (!component) refuse("unknown-component");
     const state = NODE_STATE_IDENTITIES[node?.state ?? "ready"];
@@ -224,9 +254,9 @@ export function encodeApplicationView(view) {
     const parent = node.parent === null ? 255 : node.parent;
     const action = node.action === null ? 255 : node.action;
     if (!Number.isInteger(parent) || parent < 0 || parent > 255 || !Number.isInteger(action) || action < 0 || action > 255) refuse("malformed-encoding");
-    const key = new TextEncoder().encode(node.key ?? "");
-    const content = new TextEncoder().encode(node.text ?? "");
-    const value = new TextEncoder().encode(node.value ?? "");
+    const key = encodeExactText(node.key ?? "", MAX_KEY_BYTES, "text-too-long");
+    const content = encodeExactText(node.text ?? "", MAX_TEXT_BYTES, "text-too-long");
+    const value = encodeExactText(node.value ?? "", MAX_CONTROL_VALUE_BYTES, "invalid-control-value");
     const valueCapacity = node.valueCapacity ?? 0;
     if (key.length === 0 || key.length > MAX_KEY_BYTES || content.length > MAX_TEXT_BYTES) refuse("text-too-long");
     const hasValue = (component === 11 && value.length > 0) || component === 15 || component === 16 || component === 17 || component === 22 || component === 31 || component === 32 || component === 38 || component === 39 || component === 43 || component === 44 || component === 45 || component === 46;
@@ -243,10 +273,8 @@ export function encodeApplicationView(view) {
     const headerView = new DataView(nodeHeader.buffer);
     headerView.setUint32(7, value.length, true);
     headerView.setUint32(11, valueCapacity, true);
-    chunks.push(nodeHeader, key, content, value);
+    append(nodeHeader, key, content, value);
   }
-  const length = chunks.reduce((total, chunk) => total + chunk.length, 0);
-  if (length > MAX_BYTES) refuse("oversized-encoding");
   const encoded = new Uint8Array(length);
   let offset = 0;
   for (const chunk of chunks) { encoded.set(chunk, offset); offset += chunk.length; }
@@ -328,12 +356,30 @@ function installRovingFocus(container, selectedKey, selectedIndex) {
   });
 }
 
+function checkedBytes(value, maximum, boundCode) {
+  if (value instanceof Uint8Array || value instanceof ArrayBuffer) {
+    if (value.byteLength > maximum) refuse(boundCode);
+    return value instanceof Uint8Array ? value : new Uint8Array(value);
+  }
+  if (!Array.isArray(value)) refuse("malformed-encoding");
+  const length = value.length;
+  if (length > maximum) refuse(boundCode);
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index++) {
+    const byte = value[index];
+    if (!Object.hasOwn(value, index) || !Number.isInteger(byte) || byte < 0 || byte > 255) refuse("malformed-encoding");
+    bytes[index] = byte;
+  }
+  return bytes;
+}
+
 export function encodeApplicationEvent(event) {
-  const action = new TextEncoder().encode(event.action);
-  const value = event.value instanceof Uint8Array ? event.value : new Uint8Array(event.value);
+  if (!event || !Number.isSafeInteger(event.revision) || event.revision < 0 || event.revision > 0xffff_ffff) refuse("malformed-encoding");
+  if (!Number.isInteger(event.kind) || !Object.hasOwn(EVENTS, event.kind)) refuse("unknown-event");
+  const action = encodeExactText(event.action, MAX_ACTION_ID_BYTES, "action-id-too-long");
+  const value = checkedBytes(event.value, MAX_EVENT_BYTES, "event-too-large");
   if (action.length === 0 || action.length > MAX_ACTION_ID_BYTES) refuse("action-id-too-long");
   if (value.length > MAX_EVENT_BYTES) refuse("event-too-large");
-  if (!(event.kind in EVENTS)) refuse("unknown-event");
   const encoded = new Uint8Array(EVENT_HEADER_BYTES + action.length + value.length);
   encoded[0] = VERSION;
   new DataView(encoded.buffer).setUint32(1, event.revision, true);
@@ -343,6 +389,11 @@ export function encodeApplicationEvent(event) {
   encoded.set(action, EVENT_HEADER_BYTES);
   encoded.set(value, EVENT_HEADER_BYTES + action.length);
   return encoded;
+}
+
+function copyApplicationEvent(event) {
+  return Object.freeze({ ...event,
+    value: new Uint8Array(event.value), encoded: new Uint8Array(event.encoded) });
 }
 
 export function manifestApplicationView(input, root, options = {}) {
@@ -368,12 +419,26 @@ export function manifestApplicationView(input, root, options = {}) {
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
+  const actionEvents = new WeakMap();
+  const choiceValues = new Map();
   const nodesByKey = new Map();
-  const requestAction = (node, value = "") => {
+  const requestAction = (node, value = "", control = null) => {
     if (activeManifestations.get(root) !== render) {
       lastRefusal = "stale-revision";
       options.onRefusal?.(lastRefusal);
       return null;
+    }
+    if (control) {
+      let available = control.isConnected && root.contains(control) && !control.matches(":disabled");
+      for (let ancestor = control; available && ancestor;
+        ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
+        if (ancestor.inert || ancestor.hidden) available = false;
+      }
+      if (!available) {
+        lastRefusal = "unavailable-action";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
     }
     if (node.state === "busy") {
       lastRefusal = "action-busy";
@@ -398,22 +463,39 @@ export function manifestApplicationView(input, root, options = {}) {
       options.onRefusal?.(lastRefusal);
       return null;
     }
+    if ([15, 16, 17, 43, 44].includes(node.component)) {
+      let text;
+      try { text = typeof value === "string" ? (value.isWellFormed() ? value : undefined)
+        : new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(encodedValue); }
+      catch { text = undefined; }
+      const choices = choiceValues.get(node);
+      if (text === undefined || (choices && !choices.has(text))
+        || ([43, 44].includes(node.component) && text !== "true" && text !== "false")) {
+        lastRefusal = "invalid-control-value";
+        options.onRefusal?.(lastRefusal);
+        return null;
+      }
+    }
     const encodedBytes = EVENT_HEADER_BYTES + new TextEncoder().encode(action.id).length + encodedValue.length;
     if (queue.length === capacity || queuedBytes + encodedBytes > byteCapacity) {
       lastRefusal = "queue-pressure";
       options.onRefusal?.(lastRefusal);
       return null;
     }
-    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: encodedValue };
+    const pending = { revision: view.revision, action: action.id, kind: action.kind, value: new Uint8Array(encodedValue) };
     const event = Object.freeze({ ...pending, encoded: encodeApplicationEvent(pending) });
     queue.push(event);
     queuedBytes += event.encoded.length;
-    options.onEvent?.(event);
-    return event;
+    options.onEvent?.(copyApplicationEvent(event));
+    return copyApplicationEvent(event);
   };
   for (const [nodeIndex, node] of view.nodes.entries()) {
+    if (node.component === 16) {
+      choiceValues.set(node, new Set(view.nodes.filter(child => child.parent === nodeIndex && child.component === 22).map(child => child.value)));
+    }
     const [tag, kind] = COMPONENTS[node.component];
     const element = document.createElement(tag);
+    if (node.component === 8) element.type = "button";
     element.dataset.applicationKey = node.key;
     element.dataset.applicationComponent = kind;
     if (node.component === 10) {
@@ -506,13 +588,19 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     if (node.component === 11) {
       element.dataset.renderer = "patchbay";
-      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity));
+      if (node.value) renderGraphCanvas(element, node.value, (identity, control) => requestAction(node, identity, control));
     }
     if (node.action !== null) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
-      element.addEventListener(action.event, (browserEvent) => {
-        requestAction(node, eventValue(browserEvent));
+      actionEvents.set(element, action.event);
+      // Populated graph canvases return exact subject identities through their
+      // selection callback; a second generic listener would add an empty action.
+      if (node.component !== 11 || !node.value) element.addEventListener(action.event, (browserEvent) => {
+        // A child binding owns its event; bubbling must not invent a second
+        // semantic action on an ancestor. Decorative descendants still route here.
+        if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;
+        requestAction(node, eventValue(browserEvent), element);
       });
     }
     if (node.state === "busy") element.setAttribute("aria-busy", "true");
@@ -591,7 +679,7 @@ export function manifestApplicationView(input, root, options = {}) {
     nextEvent() {
       const event = queue.shift() ?? null;
       if (event) queuedBytes -= event.encoded.length;
-      return event;
+      return event ? copyApplicationEvent(event) : null;
     },
     queuedEvents() { return queue.length; },
     queuedEventBytes() { return queuedBytes; },

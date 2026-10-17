@@ -64,8 +64,8 @@ export function renderGraphCanvas(element, source, select) {
     node.setAttribute('tabindex', '0'); node.setAttribute('role', 'button');
     node.setAttribute('aria-label', label); node.setAttribute('aria-pressed', String(identity === graph.selected));
     node.style.cursor = 'pointer';
-    node.addEventListener('click', () => select(identity));
-    node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(identity); } });
+    node.addEventListener('click', () => select(identity, node));
+    node.addEventListener('keydown', event => { if (event.key === 'Enter' || event.key === ' ') { event.preventDefault(); select(identity, node); } });
   };
   const models = graph.nodes.map(node => ({ ...node, ports: graph.ports.filter(port => port.owner === node.identity) }));
   const boundaryPorts = graph.ports.filter(port => !port.owner);

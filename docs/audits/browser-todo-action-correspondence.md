@@ -591,3 +591,188 @@ all four failures report `failed: browser runtime WASM artifact loads` before
 their assertions, so full runtime/Look/focus acceptance remains unproven. No
 rebuild or test weakening was performed. This renderer fence does not certify
 Body state, disconnected/reinserted surfaces or arbitrary CSS accessibility.
+
+Nested generic action follow-up (#5644): a DOM event routes only to the nearest
+manifested binding for that event type along its composed path. Bubbling into
+an ancestor binding cannot enqueue a second semantic action; ordinary browser
+propagation is preserved. Decorative descendants still activate their button.
+
+Native Enter and pointer-on-decoration fixtures both reproduced a child action
+plus an unwanted parent action before the repair. An initial keyboard locator
+used an incorrect space in the accessible name; the corrected fixture reproduced
+the duplicate before the production change. All four targeted pinned Chromium
+fixtures pass with one worker and zero retries, including both prior stale
+manifestation cases. The missing local WASM limitation from the prior full run
+remains; these renderer queues do not establish authoritative Body mutation.
+
+Generic DOM availability follow-up (#5644): DOM-derived actions recheck that
+their bound surface is connected, remains under its root, is not natively
+disabled (including a disabled fieldset), and has no hidden/inert composed
+ancestor. Explicit Host action requests retain their semantic admission route.
+Stale manifestation identity still refuses before availability checks.
+
+Five adversarial event cases reproduced queue/callback dispatch while disabled,
+fieldset-disabled, inert, hidden or detached. All nine targeted pinned Chromium
+fixtures pass with one worker and zero retries, including restored native Enter
+activation and prior nested/stale cases. Temporary DOM unavailability does not
+revoke the underlying manifestation: restoring its surface allows activation.
+This is not arbitrary CSS visibility, permanent lifecycle revocation or
+authoritative Body proof; the prior missing-WASM full-suite limit remains.
+
+Generic select domain follow-up (#5644): manifestation retains each select's
+declared option-value set. DOM and explicit Host action requests must supply
+one exact member before queue/callback. Byte requests decode with fatal UTF-8
+and preserve a leading BOM, preventing extra bytes from aliasing a shorter
+option through decoder normalization. Byte capacity checks remain unchanged.
+
+Forged DOM options, undeclared strings/bytes and malformed UTF-8 reproduced
+queueing before the repair. A fifth fixture reproduced the BOM-stripping alias
+in the initial decoder and passes with BOM preservation. All 14 targeted pinned
+Chromium fixtures pass (one worker, zero retries), each select case followed by
+native keyboard selection of the exact declared accented/emoji value. This is
+renderer admission/queue proof; authoritative Body and missing-WASM full runtime
+acceptance remain open.
+
+Generic event byte custody follow-up (#5644): admitted input bytes are copied
+into the private queue. Callback notifications, explicit request results and
+dequeued events receive separate bounded byte copies, rather than exposing the
+queue's value/encoding buffers through a frozen wrapper. Input mutation, public
+array mutation and transfer/detachment cannot change the queued action bytes
+or its byte accounting. Queue capacity and byte limits remain unchanged.
+
+Four mutation cases reproduced corruption before the repair, including leaked
+queued-byte accounting after transfer. All 18 targeted pinned Chromium fixtures
+pass with one worker and zero retries; exact admitted values/encodings survive
+and dequeue returns byte accounting to zero. This is renderer queue custody,
+not arbitrary same-origin confinement or authoritative Body proof. The prior
+missing local WASM full-suite limitation remains.
+
+Generic typed control follow-up (#5644): text inputs, textareas, selects and
+boolean controls require scalar Unicode strings or fatal, BOM-preserving UTF-8
+byte decoding before queueing. Checkbox/radio values additionally require exact
+`true` or `false`; select membership remains exact. Existing byte caps apply
+before decoding, and the binary graph callback contract is not changed.
+
+Eight cases reproduced invalid queueing across both text controls and both
+boolean controls. All 26 targeted pinned Chromium fixtures pass with one worker
+and zero retries, including native Unicode text insertion and keyboard boolean
+activation after refusal. This is generic renderer admission proof, not Body
+state mutation or full runtime acceptance; the missing local WASM limit remains.
+
+Generic codec identity follow-up (#5644): decoding preserves leading BOM
+characters in length-delimited UTF-8 fields instead of silently stripping them.
+Encoding requires scalar Unicode strings for action IDs, node keys, wording
+and values; it refuses implicit coercion and surrogate replacement. Event
+action IDs use the same exact-text encoder.
+
+Two focused Node codec regressions reproduced normalization/admission failures
+before the repair. The codec plus saved-choice run passes all 12 tests, and
+all 26 targeted pinned Chromium routing fixtures pass (one worker, zero retries).
+The codec check is registered in the browser xtask check suite; Rust formatting
+passes. No fresh xtask/runtime build was run, and the prior missing local WASM
+limit remains. These are codec/renderer proofs, not authoritative Body or public
+release acceptance.
+
+Generic codec inventory follow-up (#5653): encode admission enforces the same
+nonempty view, 128-node and 32-action bounds as decode before iterating entries
+or constructing chunks. Collection sizes cannot first truncate into the byte
+header and defer refusal until after oversized processing.
+
+The overcapacity regression reproduced iteration before admission; all four
+Node codec tests pass, including exact 128-node/32-action round-trip acceptance
+and early empty/overcapacity refusal. The already registered browser xtask
+codec check covers these cases. No browser/runtime rebuild was needed for this
+codec-only change. Real compiler/admitted Play and full #5653 acceptance remain
+open; the prior missing local WASM limitation is unchanged.
+
+Event codec admission follow-up (#5653): revisions must be exact uint32 values
+and event kinds exact registered integers before encoding. Payloads accept only
+Uint8Array, ArrayBuffer or dense arrays of integer octets. Byte limits precede
+array conversion; numeric lengths, strings, arbitrary array-like objects, holes
+and lossy numeric conversion refuse. Array conversion retains its admitted
+length if a getter grows the source.
+
+The new metadata/overcapacity regressions reproduced failures before repair.
+All seven focused Node codec tests pass, including exact 64 KiB payloads in
+all three supported forms and bounded source-growth conversion. All 26 targeted
+pinned Chromium routing fixtures also pass (one worker, zero retries); the
+subsequent array-length capture was verified by its focused Node regression.
+Compiler/Play and full runtime acceptance remain open, with the prior missing
+local WASM limitation unchanged.
+
+View input admission follow-up (#5653): the generic view decoder shares bounded
+octet admission with event encoding. It checks the 128 KiB ceiling before array
+conversion and accepts only Uint8Array, ArrayBuffer or dense integer-octet arrays.
+Numeric allocation lengths, arbitrary coercion and lossy octets refuse before
+framing decode. Event and view byte ceilings retain their distinct diagnostics.
+
+The new regression reproduced oversized iteration before repair. All eight
+focused Node codec tests pass, including equivalent valid views from supported
+byte forms and existing event capacity/identity cases. No browser/runtime build
+was needed for this byte-admission change; real compiler/Play and full runtime
+acceptance remain open with the prior missing local WASM limitation.
+
+Codec offset follow-up (#5653): the 32-bit cursor reads through each field's
+actual buffer offset and length. Node Buffer slices are views, unlike ordinary
+Uint8Array slices, so assuming offset zero misread revision/value lengths and
+rejected otherwise valid serialized views. The regression reproduced that
+refusal before repair. All nine focused Node codec tests pass, including padded
+typed arrays, padded Node buffers and ordinary Node buffers with exact decoded
+identity/fields. No browser/runtime build was needed for this reader correction;
+compiler/Play and full runtime acceptance remain open.
+
+Encoder allocation follow-up (#5653): exact-text encoding checks each field's
+character count against its existing UTF-8 cap before encoding, then checks the
+actual encoded bytes. View chunk accumulation maintains the existing 128 KiB
+envelope limit incrementally and stops before processing later nodes once the
+envelope cannot fit. It does not first build every oversized view chunk.
+
+Both new regressions reproduced late encoding/processing before repair. All
+11 focused Node codec tests pass, including exact 128 KiB envelope acceptance,
+early field rejection and no access to later nodes after envelope exhaustion.
+These prove codec work admission, not compiler/Play or public runtime acceptance;
+no browser/runtime rebuild was performed.
+
+View count custody follow-up (#5653): encode captures the revision, array
+references and admitted node/action counts once, then processes bounded indexed
+entries. Caller-provided iterators cannot expand the traversal and appended
+entries cannot diverge from the header counts. This does not claim confinement
+of arbitrary JavaScript getters themselves.
+
+Two regressions reproduced iterator execution and source-growth/header mismatch
+before repair. All 13 focused Node codec tests pass, including exact inventory
+and envelope ceilings. No browser/runtime build was needed for this encoder
+traversal change; real compiler/Play and full runtime acceptance remain open.
+
+Embedded-form button follow-up (#5644): generic action buttons explicitly use
+`type="button"`. Embedding a manifestation in an existing HTML form must not
+add native form submission to its declared activation. Both native Enter and
+pointer fixtures reproduced the extra submission before repair. All 28
+targeted pinned Chromium fixtures pass (one worker, zero retries), including
+one exact declared action and zero embedding-form submissions for each path.
+No synthetic positive interaction or callback filtering was added. These prove
+renderer/browser default behavior, not authoritative Body or full runtime
+acceptance; the prior missing local WASM limitation remains.
+
+Graph action route follow-up (#5644): a populated graph canvas uses its existing
+exact-subject selection callback, without a second generic DOM action listener.
+It remains registered as the nearest binding so selection events cannot fall
+through into a generic ancestor action. Background clicks do not invent an
+empty graph selection.
+
+Pointer selection reproduced a duplicate empty action and background clicks
+reproduced an empty action before repair; native keyboard selection already
+returned one exact identity. All 31 targeted pinned Chromium fixtures pass with
+one worker and zero retries, including exact-once keyboard/pointer graph
+selection and no background action. This is renderer queue proof, not actual
+resident Body mutation or full runtime acceptance; the missing local WASM
+limitation remains.
+
+Graph subject surface follow-up (#5644): graph callbacks carry the actual SVG
+subject control into the existing generic DOM availability fence. A connected
+graph container cannot stand in for a detached selected subject. The retained
+subject-event regression reproduced dispatch before repair; it now refuses as
+`unavailable-action`, and restored native Enter returns the exact subject once.
+All 32 targeted pinned Chromium fixtures pass with one worker and zero retries.
+This proves temporary surface availability, not permanent manifestation
+revocation, arbitrary CSS accessibility or authoritative Body mutation.
