@@ -215,8 +215,35 @@ fn quiescence_arming_visits_only_the_sources_routed_targets() {
     let entries = scheduler.signs.entries;
     scheduler.scan_counts.set(Default::default());
     assert_eq!(scheduler.emit_quiescence_transitions().unwrap(), None);
-    assert_eq!(scheduler.scan_counts.get().cord_scans, 2);
+    assert_eq!(scheduler.scan_counts.get().cord_scans, 0);
     assert_eq!(scheduler.signs.entries, entries);
+    assert_eq!(scheduler.armed_quiescence_count, 0);
+    // Rearming is idempotent, including while the existing queues are full.
+    scheduler.arm_quiescence_outputs(0).unwrap();
+    scheduler.arm_quiescence_outputs(0).unwrap();
+    assert_eq!(scheduler.armed_quiescence_count, 2);
+    assert_eq!(scheduler.emit_quiescence_transitions().unwrap(), None);
+    assert_eq!(scheduler.armed_quiescence_count, 2);
+    assert_eq!(scheduler.signs.entries, entries);
+    for cord in 0..2 {
+        let value = scheduler.pop(cord).unwrap();
+        scheduler.values.release(value).unwrap();
+        assert_eq!(
+            scheduler.emit_quiescence_transitions().unwrap(),
+            Some(NodeId(0))
+        );
+        assert_eq!(scheduler.armed_quiescence_count, 1 - cord);
+        assert!(!scheduler.cords[cord].quiescence_armed);
+    }
+    scheduler.scan_counts.set(Default::default());
+    assert_eq!(scheduler.emit_quiescence_transitions().unwrap(), None);
+    assert_eq!(scheduler.scan_counts.get().cord_scans, 0);
+    scheduler.arm_quiescence_outputs(0).unwrap();
+    assert_eq!(scheduler.armed_quiescence_count, 2);
+    scheduler.cancel().unwrap();
+    assert_eq!(scheduler.armed_quiescence_count, 0);
+    assert!(scheduler.cords.iter().all(|cord| !cord.quiescence_armed));
+    assert_eq!(scheduler.values.used_items(), 0);
 }
 
 #[test]

@@ -75,6 +75,7 @@ where
             projected_recovery_source: [None; NODES],
             recovery_for_cord: [None; CORDS],
             quiescence_cord_end: quiescence::quiescence_cord_end(&cord_specs[..active_cords]),
+            armed_quiescence_count: 0,
             cord_specs,
             active_nodes,
             active_cords,

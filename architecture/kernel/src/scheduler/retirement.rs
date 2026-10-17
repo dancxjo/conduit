@@ -71,7 +71,9 @@ where
         self.undispatched_cancellation_count = 0;
         self.pending_host_slots.fill(None);
         self.queue_slots.fill(None);
+        self.armed_quiescence_count = 0;
         for cord in &mut self.cords[..self.active_cords] {
+            cord.quiescence_armed = false;
             cord.head = 0;
             cord.len = 0;
             cord.queued_bytes = 0;

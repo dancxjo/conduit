@@ -61,8 +61,11 @@ where
                     counts.cord_scans += 1;
                     self.scan_counts.set(counts);
                 }
-                if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence {
+                if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
+                    && !self.cords[cord].quiescence_armed
+                {
                     self.cords[cord].quiescence_armed = true;
+                    self.armed_quiescence_count += 1;
                 }
             }
         }
@@ -73,7 +76,7 @@ where
     /// returned the whole play to quiescence. Empty queues alone do not arm an
     /// edge, and terminal sources are never reported as quiescent.
     pub(super) fn emit_quiescence_transitions(&mut self) -> Result<Option<NodeId>, SchedulerError> {
-        if self.quiescence_cord_end == 0 {
+        if self.armed_quiescence_count == 0 {
             return Ok(None);
         }
         let mut count = 0_usize;
@@ -126,6 +129,7 @@ where
             }
             self.push(cord, value)?;
             self.cords[cord].quiescence_armed = false;
+            self.armed_quiescence_count -= 1;
             if let Some((sink, _)) = spec.sink_local() {
                 self.ready.set(usize::from(sink.0), true);
             }
