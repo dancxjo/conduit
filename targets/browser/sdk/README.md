@@ -325,3 +325,13 @@ presentation profile. `body.patchbay()` projects the selected resident source
 and checks its exact source/Plot identities; it refuses ambiguity or a runtime
 projection with a different identity. The resident Patchbay Plot remains the
 workbench for inspecting a complete Body plan.
+
+### HTTP Face responses
+
+`BrowserFaceClient` reads snapshot and interaction responses incrementally up to
+`maximumResponseBytes` (128 KiB by default), independently of Content-Length.
+It cancels an oversized response before retaining the excess chunk and reports
+`FaceResponseBound`; empty responses receive the same code. Interrupted reads
+report `FaceUnavailable` with the operation and original cause. Accepted bytes
+must decode as UTF-8 JSON. This bounds SDK response accumulation, not browser
+transport buffers or the size of the parsed JavaScript object.

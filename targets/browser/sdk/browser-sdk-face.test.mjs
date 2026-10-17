@@ -46,3 +46,39 @@ test("Face client refuses failed, empty, and oversized responses", async () => {
     error => error instanceof BrowserFaceError && error.code === "FaceResponseBound",
   );
 });
+
+test("Face response overflow cancels before consuming the rest of the stream", async () => {
+  let cancelled = false;
+  let pulls = 0;
+  const stream = new ReadableStream({
+    pull(controller) { pulls++; controller.enqueue(new Uint8Array(5)); },
+    cancel() { cancelled = true; },
+  }, { highWaterMark: 0 });
+  const client = new BrowserFaceClient({ base: "https://conduit.test/", maximumResponseBytes: 4,
+    fetch: async () => new Response(stream, { headers: { "content-length": "1" } }) });
+  await assert.rejects(client.snapshot(), error => error.code === "FaceResponseBound");
+  assert.equal(cancelled, true);
+  assert.equal(pulls, 1);
+  assert.equal(stream.locked, false);
+});
+
+test("Face response streams preserve exact-boundary UTF-8 across chunks", async () => {
+  const bytes = new TextEncoder().encode('"é😀"');
+  const stream = new ReadableStream({ start(controller) {
+    for (const byte of bytes) controller.enqueue(Uint8Array.of(byte));
+    controller.close();
+  } });
+  const client = new BrowserFaceClient({ base: "https://conduit.test/", maximumResponseBytes: bytes.length,
+    fetch: async () => new Response(stream) });
+  assert.equal(await client.snapshot(), "é😀");
+  assert.equal(stream.locked, false);
+});
+
+test("Face interrupted response retains the operation and releases its reader", async () => {
+  const cause = new Error("connection lost");
+  const stream = new ReadableStream({ pull(controller) { controller.error(cause); } });
+  const client = new BrowserFaceClient({ base: "https://conduit.test/", fetch: async () => new Response(stream) });
+  await assert.rejects(client.snapshot(), error => error instanceof BrowserFaceError
+    && error.code === "FaceUnavailable" && error.operation === "BrowserFace.snapshot" && error.cause === cause);
+  assert.equal(stream.locked, false);
+});
