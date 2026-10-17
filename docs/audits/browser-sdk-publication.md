@@ -186,3 +186,16 @@ with `ImageManifestMismatch` without an asset request. Its IMAGE bytes and
 release aggregate are correctly hashed to isolate the inventory comparison.
 All six SDK Node tests and the producer fixture pass. This is synthetic loader
 admission evidence, not successful Boot or public release corroboration.
+
+Static application-loader follow-up: application manifests and resources now
+enforce their existing byte bounds while streaming. Oversized Content-Length
+responses are cancelled before reading; chunked responses cancel at the first
+excess byte. Contiguous buffering grows only within the admitted ceiling, and
+reader locks are released on success and failure.
+
+Pinned Chromium reproduced full oversized-stream consumption and retained
+reader locks before repair. Three production-loader fixtures pass with one
+worker and zero retries: exact-48-KiB manifest reaches schema admission, one byte
+over cancels immediately, and an oversized header cancels with zero body pulls.
+Responses are synthetic streams inside Chromium; no full packaged runtime,
+public deployment or source-history acceptance is implied.
