@@ -12,7 +12,10 @@ pub(super) struct ScanCounts {
 
 extern crate std;
 use super::*;
-use crate::{FixedSignLog, FixedValueStore};
+use crate::FixedSignLog;
+#[path = "overhead_observation.rs"]
+mod overhead_observation;
+use overhead_observation::{AllocationSample, ObservedValues};
 use std::time::Instant;
 
 #[derive(Clone, Copy)]
@@ -89,7 +92,7 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
         cords,
         routes,
         drivers,
-        FixedValueStore::<N, 1>::new(u32::try_from(N).unwrap()).unwrap(),
+        ObservedValues::<N>::new(),
         signs,
     )
     .unwrap();
@@ -102,6 +105,7 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
         ));
     }
     assert_eq!(scheduler.step().unwrap(), SchedulerStatus::Idle);
+    let ingress_sample = AllocationSample::begin();
     for node in 0..active {
         if !sparse || node == active - 1 {
             assert_eq!(
@@ -128,9 +132,12 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
             );
         }
     }
+    let ingress_allocations = ingress_sample.finish();
+    let ingress_values = scheduler.values.access();
     scheduler.scan_counts.set(ScanCounts::default());
     let before_signs = scheduler.signs.len();
     let before_bytes = scheduler.signs.used_bytes();
+    let step_sample = AllocationSample::begin();
     let start = Instant::now();
     let mut steps = 0;
     let mut order = [u16::MAX; N];
@@ -148,6 +155,17 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
         }
     }
     let step_ns = start.elapsed().as_nanos();
+    let step_allocations = step_sample.finish();
+    let step_values = scheduler.values.access();
+    assert_eq!(
+        ingress_allocations.allocations + ingress_allocations.reallocations,
+        0
+    );
+    assert_eq!(
+        step_allocations.allocations + step_allocations.reallocations,
+        0
+    );
+    assert_eq!(step_values.stored_bytes, ingress_values.stored_bytes);
     let counts = scheduler.scan_counts.get();
     let ready = if sparse { 1 } else { active };
     assert_eq!(steps, 2 * ready);
@@ -200,6 +218,7 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
             .map(|n| scheduler.ready.contains(n))
             .collect::<std::vec::Vec<_>>();
         std::println!("SCHEDULER_REPLAY_ROW {{\"capacity\":{N},\"active\":{active},\"sparse\":{sparse},\"trial\":{trial},\"legacy\":{},\"kernel_bytes\":{},\"events\":{events:?},\"remote\":{remote:?},\"received\":{received:?},\"readiness\":{readiness:?},\"value_items\":{},\"value_bytes\":{},\"terminal\":\"Idle\"}}", cfg!(feature = "linear-ready-reference-test"), core::mem::size_of_val(&scheduler), scheduler.values.used_items(), scheduler.values.used_bytes());
+        std::println!("SCHEDULER_OVERHEAD_ROW {{\"active_nodes\":{active},\"sparse\":{sparse},\"trial\":{trial},\"ingress_allocations\":{},\"ingress_reallocations\":{},\"step_allocations\":{},\"step_reallocations\":{},\"ingress_store_calls\":{},\"ingress_value_store_copy_bytes\":{},\"step_value_store_copy_bytes\":{},\"step_borrowed_value_reads\":{},\"copy_scope\":\"successful fixed-value-store writes only; compiler moves, Sign and Host transport copies unmeasured\"}}", ingress_allocations.allocations, ingress_allocations.reallocations, step_allocations.allocations, step_allocations.reallocations, ingress_values.successful_stores, ingress_values.stored_bytes, step_values.stored_bytes - ingress_values.stored_bytes, step_values.borrowed_reads - ingress_values.borrowed_reads);
         std::println!("SCHEDULER_SCAN_ROW {{\"active_nodes\":{active},\"active_cords\":{active},\"ready_inputs\":{ready},\"sparse\":{sparse},\"trial\":{trial},\"prepare_ns\":{prepare_ns},\"step_ns\":{step_ns},\"steps\":{steps},\"ready_nodes_scanned\":{},\"ready_bytes_scanned\":{},\"pending_slots_scanned\":{},\"signs\":{},\"sign_bytes\":{},\"context_pending_slots\":{},\"input_ports_checked\":{},\"cords_scanned\":{},\"queue_peeks\":{},\"queue_pressure_refused\":true}}",counts.next_ready_nodes,counts.ready_bytes,counts.pending_slots,scheduler.signs.len()-before_signs,scheduler.signs.used_bytes()-before_bytes,counts.context_pending_slots,counts.input_ports,counts.cord_scans,counts.queue_peeks);
     }
 }

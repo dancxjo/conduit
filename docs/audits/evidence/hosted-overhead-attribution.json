@@ -1,0 +1,2662 @@
+{
+  "source": "0861fe53462bec4fe7b99885aee2a54f6c5be778",
+  "proof_class": "three independent native Linux workers; actual checked64itemPlot/Plan/stdBack/kernel pipeline",
+  "all159artifact_hashes_verified": true,
+  "completion_window": "first to last real Fore acknowledgement;63additionaloutputs; process allocator includes Host/collection; excludes earlier preparation",
+  "regression_policy": "report-only; descriptive variation, no confidence interval or speedup threshold",
+  "captures": [
+    {
+      "process": 1,
+      "artifact_sha256": {
+        "conformance.json": "f1fec3543a4f0867876f54c435e70aa47a7514bc0a60c14e48accd01d35cb574",
+        "conformance.stderr.log": "cbde9269e5bdebad0b9caa281a718bad1d1c2b74e49e7335d015206b42de8af2",
+        "conformance.stdout.log": "c9c1f286cd16496431eb650bc243886f9e8fdcb58e4126f0e75106f48c55d8a1",
+        "metadata.json": "7b6ae4638e8c163e5816ef8dc16b627f85eef8199ff8740011a68cfc041f99a5",
+        "raw.jsonl": "c3192b00dbb42bad5eb2397aa4043ed888c9dc6f3642c73eb0552a96ea0650f0",
+        "report.json": "10d3e5dc1f9d061517e5f58bd8bbeabb14809b63c9ce8050b9c92fd575839095",
+        "sources/hosted-pipeline-1-gears-32-adds-0-host.json": "969941caaf260f2b1a74638fe110dd082cd17a22a12ba71e0fe672b5a018788a",
+        "sources/hosted-pipeline-1-gears-32-adds-0-plan.json": "82d44e74318e9743ff7d7ae909d7954268b98e79044aa633c6512d31ffbb683c",
+        "sources/hosted-pipeline-1-gears-32-adds-1-host.json": "b6f37a0593535429149135169ce6bf6ab20f42089df68ec831ffcd45ff600a78",
+        "sources/hosted-pipeline-1-gears-32-adds-1-plan.json": "6affcacedbed234d656a1f36742f12181edc900c10c3a89df3b60beb549b1918",
+        "sources/hosted-pipeline-1-gears-32-adds-2-host.json": "24447ae44814915895ce078cb02db9a0c01d0dcda09c3303f41ba720156d0c9c",
+        "sources/hosted-pipeline-1-gears-32-adds-2-plan.json": "97e3af582289db9db43878e9eb58c5c29c97db1239c5344e067dac5dd49ad13e",
+        "sources/hosted-pipeline-1-gears-32-adds.plot": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+        "sources/hosted-pipeline-32-gears-32-adds-0-host.json": "07fb78c3c64aff3da48e1ff8d433bb1de403b5126253b5454997fa76ee1a5d43",
+        "sources/hosted-pipeline-32-gears-32-adds-0-plan.json": "9cfad888ad5fb243ad98c653f1b73be03831020e480cc9c3ab17fe965b82b7e8",
+        "sources/hosted-pipeline-32-gears-32-adds-1-host.json": "b6825628f57a0e094ec9a38ed1a93d1fe7e574505173696fd4c267091caec001",
+        "sources/hosted-pipeline-32-gears-32-adds-1-plan.json": "b406c1fd27bb7188040248b923ffc1d0743927aad15e6a6c03431b15cf8881fe",
+        "sources/hosted-pipeline-32-gears-32-adds-2-host.json": "01a363dab98bdc3b06a8426267a3ff9c97d91255ee57c32d5d2e38c1e85cd11c",
+        "sources/hosted-pipeline-32-gears-32-adds-2-plan.json": "21f55ffe19c4584d1b02faafd109d4cc60c7a2094963aab0272a91cf073b759e",
+        "sources/hosted-pipeline-32-gears-32-adds.plot": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+        "sources/hosted-pipeline-8-gears-32-adds-0-host.json": "064f062e520af59729d5395631662d60c818eba02dcbccbb8f767c2747185ad1",
+        "sources/hosted-pipeline-8-gears-32-adds-0-plan.json": "d7faebf16d027f0b15faec42bfd37455bbf4b3faa10fcad8db8073c460bda275",
+        "sources/hosted-pipeline-8-gears-32-adds-1-host.json": "afd202b28c1f5523dc5c013cb5164b98c87c61fcc821f5ce1a22fe40142d30f7",
+        "sources/hosted-pipeline-8-gears-32-adds-1-plan.json": "d2489bf68de9f6d1e8d2d95aa1f7ca7e3b33a241bbd9ed83f1a40048973bcd89",
+        "sources/hosted-pipeline-8-gears-32-adds-2-host.json": "c6d160b6d8f9b8ad5478652f1eaaf634b077c65816e81e6756bb2cd50100c370",
+        "sources/hosted-pipeline-8-gears-32-adds-2-plan.json": "6350325dac73f9679951503317b3dad75b45c90bd2dd5faf62d7107d568f1cbc",
+        "sources/hosted-pipeline-8-gears-32-adds.plot": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+        "sources/pool-selection-1-realizations-1-resources.json": "7fe944a464e61911965e8a7fc18e8e496110fe23832071a067a20511f893ae54",
+        "sources/pool-selection-1-realizations-4-resources.json": "0abcff460745a1ae34770770e468866fd66472da495622b7d6a1769c86af53df",
+        "sources/pool-selection-32-realizations-1-resources.json": "993e7444b522fe50a8c037f354157b4164db6e373e3add6c7bcdfa55412f35a3",
+        "sources/pool-selection-32-realizations-4-resources.json": "4d266289aa9b2b3e04d0202247ebd61a68a42380b3c710705677660c77baed0a",
+        "sources/pool-selection-8-realizations-1-resources.json": "74c10feb541597b17d6b664f61dbe91b34d2e465dc58a1fcb767b707d15713a6",
+        "sources/pool-selection-8-realizations-4-resources.json": "4f83d839f73678274bc44b182f50bc43ae6d8869d0c3152938c5bc863d69de67",
+        "sources/scalar-add1.plot": "8363d03b4a1dc459e8d9d525c71b370ad18ba5a4335ebf2c29d781ac7f700cbb",
+        "sources/scalar-add3.plot": "927126c121ba37ef9ecc60a769fc1b7f65e82218207624f1f0fb27eca0bf31cc",
+        "sources/scalar-add32.plot": "80283b691947b05db9bf50f5c848fb7cd76e002c9fdca5f6d9bd8e686e7d49e2",
+        "sources/scalar-add8.plot": "d7c98f468a97bcb99755dde9c398157815e3b68f3c0544eb83e01172c260ff8e",
+        "sources/scalar-comparison.plot": "dcfc2c104d67d1f5ff8ba23697ada79d36af4e7cf19041696789f4fda981d951",
+        "sources/scalar-conditional.plot": "6f64eabf5d6d2db28b64745a6e846ad6e2b33823d686b97bdd480d6bde7bc5da",
+        "sources/typed-cost-selection-1-hosts-std-owner-inventory.json": "f0bd72d36d7dac0a9e521f694483420c00002c32bfa0d4dd117f7e37f96dcece",
+        "sources/typed-cost-selection-1-hosts.json": "c8be91137149160b47ffff90e643617c5255f6c11549815ca3488c86d0b151fe",
+        "sources/typed-cost-selection-32-hosts-std-owner-inventory.json": "569fb30b713bf0d655a671ab5dfe65371f7971bad7dcd63cb7dfaf08950fcc85",
+        "sources/typed-cost-selection-32-hosts.json": "99d5e5fb9f4493fe4fc6f915c2ff871f3762a399adab2c0a2d8fa6279aadf225",
+        "sources/typed-cost-selection-8-hosts-std-owner-inventory.json": "a8e3d01aa0d3864143bca02ebff5201a03a3260689969b55b4f8f14c863e9853",
+        "sources/typed-cost-selection-8-hosts.json": "efb614dd46e6a9cf02a0326419fbc02b6577e8d0b7a13350820eaa56ed17b5ce",
+        "sources/u64-add1.plot": "72b725aa9ede9a090ead02e6246890427342b8e45319821727da9017ef1d1fcc",
+        "sources/u64-add3.plot": "04067ef4c9538f8a1d19d493b5855059ead8bca2456bba8894391588f4a7dc3d",
+        "sources/u64-add32.plot": "e6d3707c1abb86a48075b74e4e280c4dbf0801c46e2e2bfbcf6a51acd2bc3523",
+        "sources/u64-add8.plot": "f7fb57bbfd0e12e164afe3509db4fe5fd41cbae68ac5f7a0df3eb23810abef82",
+        "sources/u64-comparison.plot": "3957b6dfa06e694ea95af9c66fe26149488a6739dbe3b2695d96026e90042b7d",
+        "sources/u64-conditional.plot": "bdcd312553000904ed3fba4a973882a0d9d775ad708faeb7864cd3d2194242a9",
+        "stderr.log": "4f2a506f0044ae68aba8c39585843d2c4b6fe8f0235237a096ab0725b6e7ad79",
+        "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_custody_verified": true,
+      "worker_success": true,
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t0-19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 21982168,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.955\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 862.964\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4200.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4199.957\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.490\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 801.309\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4300.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4300.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4299.956\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4281.385\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4300.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4290.870\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4300.892\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4278.606\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4299.956\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4300.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 806.560\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 799.315\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2390.147\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2758.614\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "0861fe53462bec4fe7b99885aee2a54f6c5be778",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": "3"
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      }
+    },
+    {
+      "process": 2,
+      "artifact_sha256": {
+        "conformance.json": "f1fec3543a4f0867876f54c435e70aa47a7514bc0a60c14e48accd01d35cb574",
+        "conformance.stderr.log": "f9b3581236447163a36105b37bd46511928bd3edc977b0dc360135bd8bc3f76b",
+        "conformance.stdout.log": "6c758ef6061def42b998ed1770b51a56ed553c6ad8c13bba4e25dcfc829e096b",
+        "metadata.json": "16e56eae66fe982f8771fd6802fe8514ea75549f11c197cd132cce4becad91f2",
+        "raw.jsonl": "d05ac486860bbc2b1a7263afde9a6444d3155043094b5126781c68ed96a94898",
+        "report.json": "a48e4c8949e67b62c2a2514828c4307f1ade54057376ba042b66d2bf9aa9ede0",
+        "sources/hosted-pipeline-1-gears-32-adds-0-host.json": "34e6a45dcb7bc25f31b0cb31065e7f011952642331035f449ce291f3c1fe0a01",
+        "sources/hosted-pipeline-1-gears-32-adds-0-plan.json": "6abe150b7b4241bf982fb7871cc0e43452f08ead544d7e2743968441d4b9ca47",
+        "sources/hosted-pipeline-1-gears-32-adds-1-host.json": "54ee5ce28ff36298c3676493fcad697d29d3528bc255aa7b91fe91186552e73a",
+        "sources/hosted-pipeline-1-gears-32-adds-1-plan.json": "d3d9d8839c4a3ba8c3bf6160739513b88e6d22f6b24d8b846576c0fc7012b753",
+        "sources/hosted-pipeline-1-gears-32-adds-2-host.json": "4b5a33c76f579b0d3ff58e698e4bb878a559f532e3e51c273eeca92028faf8f6",
+        "sources/hosted-pipeline-1-gears-32-adds-2-plan.json": "4dea7a336045e433c01403ced870513cf6ea1798f21bd3fb3feff817440f9417",
+        "sources/hosted-pipeline-1-gears-32-adds.plot": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+        "sources/hosted-pipeline-32-gears-32-adds-0-host.json": "6ddb44277b20a3665a9c6fb4f665321bfb3ceea7fcb5e585798ae1af4603d973",
+        "sources/hosted-pipeline-32-gears-32-adds-0-plan.json": "fff61ae0c3b7e4419fc1061df299ee32a01f9cabf7211473bdb088194d30416e",
+        "sources/hosted-pipeline-32-gears-32-adds-1-host.json": "b98fbfc7fc3977d95c80c888db6d9ba377767154592d4ce9888f76b24c1a34bc",
+        "sources/hosted-pipeline-32-gears-32-adds-1-plan.json": "4bea69f4ecb8a09b8d30f1fad1a7ef72361f28eb5c0f6f0bbdc9226f3e6c11b3",
+        "sources/hosted-pipeline-32-gears-32-adds-2-host.json": "d0f62f81c541fde60196ef83bc9cefaba436e8e94fa5cace2b212c17e57a0c09",
+        "sources/hosted-pipeline-32-gears-32-adds-2-plan.json": "912d09e207e103e90266bce4e602e70028ae87468b398b61dc6d4899a2584888",
+        "sources/hosted-pipeline-32-gears-32-adds.plot": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+        "sources/hosted-pipeline-8-gears-32-adds-0-host.json": "4c08e917c4fbb0c0b5cf3a34cdb80e40bb332a56abf99f9ae107c4084254f9e1",
+        "sources/hosted-pipeline-8-gears-32-adds-0-plan.json": "42da94f55382b06945fb0ff76dd14115510ee331ea600be43df9b818d47fb3b7",
+        "sources/hosted-pipeline-8-gears-32-adds-1-host.json": "e14da19b1941cc0e0aa724d1aa9d1ad3b191fe5a93d57dad3144f8c36e70416d",
+        "sources/hosted-pipeline-8-gears-32-adds-1-plan.json": "5fc419dbc2a48f11b7e9a6c1e9fca9ff520ca01401260f9bbcec0593a76b126e",
+        "sources/hosted-pipeline-8-gears-32-adds-2-host.json": "77d1a0d9809dbe08b05294c09129cae6c28e684aa3065f369bfe0905e6257a8a",
+        "sources/hosted-pipeline-8-gears-32-adds-2-plan.json": "cd7182da92478b6c2bb9e9ba13495013367466a33e2e8d0722a3cc245069272e",
+        "sources/hosted-pipeline-8-gears-32-adds.plot": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+        "sources/pool-selection-1-realizations-1-resources.json": "7fe944a464e61911965e8a7fc18e8e496110fe23832071a067a20511f893ae54",
+        "sources/pool-selection-1-realizations-4-resources.json": "0abcff460745a1ae34770770e468866fd66472da495622b7d6a1769c86af53df",
+        "sources/pool-selection-32-realizations-1-resources.json": "993e7444b522fe50a8c037f354157b4164db6e373e3add6c7bcdfa55412f35a3",
+        "sources/pool-selection-32-realizations-4-resources.json": "4d266289aa9b2b3e04d0202247ebd61a68a42380b3c710705677660c77baed0a",
+        "sources/pool-selection-8-realizations-1-resources.json": "74c10feb541597b17d6b664f61dbe91b34d2e465dc58a1fcb767b707d15713a6",
+        "sources/pool-selection-8-realizations-4-resources.json": "4f83d839f73678274bc44b182f50bc43ae6d8869d0c3152938c5bc863d69de67",
+        "sources/scalar-add1.plot": "8363d03b4a1dc459e8d9d525c71b370ad18ba5a4335ebf2c29d781ac7f700cbb",
+        "sources/scalar-add3.plot": "927126c121ba37ef9ecc60a769fc1b7f65e82218207624f1f0fb27eca0bf31cc",
+        "sources/scalar-add32.plot": "80283b691947b05db9bf50f5c848fb7cd76e002c9fdca5f6d9bd8e686e7d49e2",
+        "sources/scalar-add8.plot": "d7c98f468a97bcb99755dde9c398157815e3b68f3c0544eb83e01172c260ff8e",
+        "sources/scalar-comparison.plot": "dcfc2c104d67d1f5ff8ba23697ada79d36af4e7cf19041696789f4fda981d951",
+        "sources/scalar-conditional.plot": "6f64eabf5d6d2db28b64745a6e846ad6e2b33823d686b97bdd480d6bde7bc5da",
+        "sources/typed-cost-selection-1-hosts-std-owner-inventory.json": "f0bd72d36d7dac0a9e521f694483420c00002c32bfa0d4dd117f7e37f96dcece",
+        "sources/typed-cost-selection-1-hosts.json": "c8be91137149160b47ffff90e643617c5255f6c11549815ca3488c86d0b151fe",
+        "sources/typed-cost-selection-32-hosts-std-owner-inventory.json": "569fb30b713bf0d655a671ab5dfe65371f7971bad7dcd63cb7dfaf08950fcc85",
+        "sources/typed-cost-selection-32-hosts.json": "99d5e5fb9f4493fe4fc6f915c2ff871f3762a399adab2c0a2d8fa6279aadf225",
+        "sources/typed-cost-selection-8-hosts-std-owner-inventory.json": "a8e3d01aa0d3864143bca02ebff5201a03a3260689969b55b4f8f14c863e9853",
+        "sources/typed-cost-selection-8-hosts.json": "efb614dd46e6a9cf02a0326419fbc02b6577e8d0b7a13350820eaa56ed17b5ce",
+        "sources/u64-add1.plot": "72b725aa9ede9a090ead02e6246890427342b8e45319821727da9017ef1d1fcc",
+        "sources/u64-add3.plot": "04067ef4c9538f8a1d19d493b5855059ead8bca2456bba8894391588f4a7dc3d",
+        "sources/u64-add32.plot": "e6d3707c1abb86a48075b74e4e280c4dbf0801c46e2e2bfbcf6a51acd2bc3523",
+        "sources/u64-add8.plot": "f7fb57bbfd0e12e164afe3509db4fe5fd41cbae68ac5f7a0df3eb23810abef82",
+        "sources/u64-comparison.plot": "3957b6dfa06e694ea95af9c66fe26149488a6739dbe3b2695d96026e90042b7d",
+        "sources/u64-conditional.plot": "bdcd312553000904ed3fba4a973882a0d9d775ad708faeb7864cd3d2194242a9",
+        "stderr.log": "1ac291984ff522dd70b1cebf0064b39c66247c7df8fb4b6ef542e6227d9d3e2e",
+        "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_custody_verified": true,
+      "worker_success": true,
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t0-19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 21982168,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4579.630\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4582.442\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.688\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.700\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4469.477\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4600.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4446.930\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4579.598\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 799.304\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4116.121\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.730\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.591\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.460\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 799.273\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 1257.163\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 794.901\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 803.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "0861fe53462bec4fe7b99885aee2a54f6c5be778",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": "3"
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      }
+    },
+    {
+      "process": 3,
+      "artifact_sha256": {
+        "conformance.json": "f1fec3543a4f0867876f54c435e70aa47a7514bc0a60c14e48accd01d35cb574",
+        "conformance.stderr.log": "be85727b07fd26658eac6f771aaa7d44939a30bb1f838ef1de2f092a8a80f36a",
+        "conformance.stdout.log": "03d4a682aabe0fd17abe527e852da352c85b9248808bf3623c9c64e6a572f7ba",
+        "metadata.json": "2532c4bda1c2c2e06cdbc01d4bb39f36f10b446898eba2563af0da5956c9232b",
+        "raw.jsonl": "d86856c51f8d638864451642df46a6b458d93f7a96d1f2cbb7e4acc7863c25a6",
+        "report.json": "9a4b9c055758efeca0773d0c8e6486e9f6adc3ee91bbb64822fd3c1b7b1538d7",
+        "sources/hosted-pipeline-1-gears-32-adds-0-host.json": "a1d6b5a86b8bb71978806d3c3356ca5cbd81e77f449cb8dc1fcce7b01f2e7f5e",
+        "sources/hosted-pipeline-1-gears-32-adds-0-plan.json": "efe32d3bcf09ca5b2ce422e697e6ac96209bd4d18423e69c05512d26ae4055f6",
+        "sources/hosted-pipeline-1-gears-32-adds-1-host.json": "c9fa46f75fc574bff766d610a768800df2827fec4b1c6d2b272f3654fc0b6d38",
+        "sources/hosted-pipeline-1-gears-32-adds-1-plan.json": "5f9d8f9f09b5e528b7093cdd64830936f2f25d5528355eadd25c0c6811a5bcb1",
+        "sources/hosted-pipeline-1-gears-32-adds-2-host.json": "2c790f64afed01654caf9b8a99fba628304bb22497066533976d953e82a3ed83",
+        "sources/hosted-pipeline-1-gears-32-adds-2-plan.json": "57ae05954363a13adee0eb0a18e9f0a50f62d35913e537fe9b41807729f929ab",
+        "sources/hosted-pipeline-1-gears-32-adds.plot": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+        "sources/hosted-pipeline-32-gears-32-adds-0-host.json": "c15f8cdf1b0a01e2908de7f3beeb3ab6ac1681f48e6d344270c6669d445b8cc6",
+        "sources/hosted-pipeline-32-gears-32-adds-0-plan.json": "19964fbaca7d58ce3ce8f2f737c068e9ece3b235c0f337c6139d2865a40b50d7",
+        "sources/hosted-pipeline-32-gears-32-adds-1-host.json": "27be4eb6b3222e32a4e773696c9643ea301c111f515b88ca68c4cbf5827be445",
+        "sources/hosted-pipeline-32-gears-32-adds-1-plan.json": "e0305e98ea348fdc5facd669aff75242647929c2ce77b6339b086221e4671b48",
+        "sources/hosted-pipeline-32-gears-32-adds-2-host.json": "d9648aad447629f2b5f71396983636190ec09a644ef6271c9931793852c6f4d5",
+        "sources/hosted-pipeline-32-gears-32-adds-2-plan.json": "99c9fb38eb6db336f89bd0d12c965c7ab65342544b11f95b68de7d16cd5372d0",
+        "sources/hosted-pipeline-32-gears-32-adds.plot": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+        "sources/hosted-pipeline-8-gears-32-adds-0-host.json": "d7930dd8e4b3c78851c5ec15185da5838901f14f7ebe2f850be648a900cb6bac",
+        "sources/hosted-pipeline-8-gears-32-adds-0-plan.json": "4f7581343defddfe034c3567838df2ea01df5e7bffad2983d78ecd78a2872eab",
+        "sources/hosted-pipeline-8-gears-32-adds-1-host.json": "71ef9ec4f8d9788f8d96b9645d373b78e270b0302375176d6ad88565dd9ed8a2",
+        "sources/hosted-pipeline-8-gears-32-adds-1-plan.json": "7150e5002453c5a7eab9dc612056d69777347fea4023f18c84dfde3abb7e0bee",
+        "sources/hosted-pipeline-8-gears-32-adds-2-host.json": "97659a0fd85eb9cabfe10740ed9c84ad243bc33e7b7cee7c86119f253cbd324b",
+        "sources/hosted-pipeline-8-gears-32-adds-2-plan.json": "0378fa5f593e952ebe60b8f0ddc802c75c529fbf7d7a0683251914ce5a271e6b",
+        "sources/hosted-pipeline-8-gears-32-adds.plot": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+        "sources/pool-selection-1-realizations-1-resources.json": "7fe944a464e61911965e8a7fc18e8e496110fe23832071a067a20511f893ae54",
+        "sources/pool-selection-1-realizations-4-resources.json": "0abcff460745a1ae34770770e468866fd66472da495622b7d6a1769c86af53df",
+        "sources/pool-selection-32-realizations-1-resources.json": "993e7444b522fe50a8c037f354157b4164db6e373e3add6c7bcdfa55412f35a3",
+        "sources/pool-selection-32-realizations-4-resources.json": "4d266289aa9b2b3e04d0202247ebd61a68a42380b3c710705677660c77baed0a",
+        "sources/pool-selection-8-realizations-1-resources.json": "74c10feb541597b17d6b664f61dbe91b34d2e465dc58a1fcb767b707d15713a6",
+        "sources/pool-selection-8-realizations-4-resources.json": "4f83d839f73678274bc44b182f50bc43ae6d8869d0c3152938c5bc863d69de67",
+        "sources/scalar-add1.plot": "8363d03b4a1dc459e8d9d525c71b370ad18ba5a4335ebf2c29d781ac7f700cbb",
+        "sources/scalar-add3.plot": "927126c121ba37ef9ecc60a769fc1b7f65e82218207624f1f0fb27eca0bf31cc",
+        "sources/scalar-add32.plot": "80283b691947b05db9bf50f5c848fb7cd76e002c9fdca5f6d9bd8e686e7d49e2",
+        "sources/scalar-add8.plot": "d7c98f468a97bcb99755dde9c398157815e3b68f3c0544eb83e01172c260ff8e",
+        "sources/scalar-comparison.plot": "dcfc2c104d67d1f5ff8ba23697ada79d36af4e7cf19041696789f4fda981d951",
+        "sources/scalar-conditional.plot": "6f64eabf5d6d2db28b64745a6e846ad6e2b33823d686b97bdd480d6bde7bc5da",
+        "sources/typed-cost-selection-1-hosts-std-owner-inventory.json": "f0bd72d36d7dac0a9e521f694483420c00002c32bfa0d4dd117f7e37f96dcece",
+        "sources/typed-cost-selection-1-hosts.json": "c8be91137149160b47ffff90e643617c5255f6c11549815ca3488c86d0b151fe",
+        "sources/typed-cost-selection-32-hosts-std-owner-inventory.json": "569fb30b713bf0d655a671ab5dfe65371f7971bad7dcd63cb7dfaf08950fcc85",
+        "sources/typed-cost-selection-32-hosts.json": "99d5e5fb9f4493fe4fc6f915c2ff871f3762a399adab2c0a2d8fa6279aadf225",
+        "sources/typed-cost-selection-8-hosts-std-owner-inventory.json": "a8e3d01aa0d3864143bca02ebff5201a03a3260689969b55b4f8f14c863e9853",
+        "sources/typed-cost-selection-8-hosts.json": "efb614dd46e6a9cf02a0326419fbc02b6577e8d0b7a13350820eaa56ed17b5ce",
+        "sources/u64-add1.plot": "72b725aa9ede9a090ead02e6246890427342b8e45319821727da9017ef1d1fcc",
+        "sources/u64-add3.plot": "04067ef4c9538f8a1d19d493b5855059ead8bca2456bba8894391588f4a7dc3d",
+        "sources/u64-add32.plot": "e6d3707c1abb86a48075b74e4e280c4dbf0801c46e2e2bfbcf6a51acd2bc3523",
+        "sources/u64-add8.plot": "f7fb57bbfd0e12e164afe3509db4fe5fd41cbae68ac5f7a0df3eb23810abef82",
+        "sources/u64-comparison.plot": "3957b6dfa06e694ea95af9c66fe26149488a6739dbe3b2695d96026e90042b7d",
+        "sources/u64-conditional.plot": "bdcd312553000904ed3fba4a973882a0d9d775ad708faeb7864cd3d2194242a9",
+        "stderr.log": "fcb3954c45c6820fe2a10f95a93c9cf9d2db05453f04face04c6fb35afa01c67",
+        "stdout.log": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+      },
+      "source_custody_verified": true,
+      "worker_success": true,
+      "metadata": {
+        "affinity": "Cpus_allowed_list:\t0-19",
+        "allocator_scope": "successful System allocator calls; atomic counters only on allocation/deallocation; heap peak includes retained harness data",
+        "binary_bytes": 21982168,
+        "cargo": "cargo 1.98.1 (797e8a9bc 2026-08-05)",
+        "compiler": "rustc 1.98.1 (48a229cea 2026-09-01)\nbinary: rustc\ncommit-hash: 48a229ceaefd4985c50990b14116b6d856af0985\ncommit-date: 2026-09-01\nhost: x86_64-unknown-linux-gnu\nrelease: 1.98.1\nLLVM version: 22.1.8",
+        "cpu": "processor\t: 0\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4267.494\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 1\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 1634.449\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 2\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 3\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 799.241\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 4\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.640\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 5\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 3761.198\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 6\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2671.809\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 7\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 1128.978\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 8\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4600.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 9\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4584.112\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 10\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 800.514\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 11\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 796.586\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 12\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4600.000\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 13\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 4584.155\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 14\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 801.002\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 15\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 801.661\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 16\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 1518.450\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 17\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2795.736\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 18\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2059.133\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12\nprocessor\t: 19\nmodel name\t: 12th Gen Intel(R) Core(TM) i7-12700\ncpu MHz\t\t: 2078.909\nphysical id\t: 0\nsiblings\t: 20\ncpu cores\t: 12",
+        "cpu_time_scope": "Linux process CPU for each bulk phase; per-selection isolation uses wall clocks; unsupported target CPU time is null",
+        "debug_assertions": false,
+        "git_sha": "0861fe53462bec4fe7b99885aee2a54f6c5be778",
+        "measurement_limitations": [
+          "no CPU affinity change",
+          "background load is not controlled; independently rerun on an idle host",
+          "no hardware cycles/instructions/branch-miss counters",
+          "internal copy accounting not yet instrumented",
+          "expression-only native uses registers; prepared uses canonical 8-byte inputs and canonical outputs; finite hosted native uses canonical input/output frames",
+          "isolated selection trials do not model steady mixed-workload fairness or full Plot dispatch"
+        ],
+        "os": "Linux 7.0.0-38-generic #38-Ubuntu SMP PREEMPT_DYNAMIC Fri Sep  4 09:10:14 UTC 2026 x86_64",
+        "profile": "release",
+        "release_overrides": {
+          "codegen_units": null,
+          "lto": null,
+          "opt_level": "3"
+        },
+        "required_follow_on_gates": [
+          "fully separated cold std Back preparation, Play, Sign and teardown timing beyond optional combined finite Host calls",
+          "continuous 1/8/32 real Gear scaling beyond optional 64-item finite hosted trials",
+          "streaming/pressure/fan-out/payload/batch/fairness",
+          "DSP representative",
+          "browser/WASM after hosted repeatability",
+          "review independent-run uncertainty and regression thresholds"
+        ],
+        "rustflags": null,
+        "schema": "conduit.runtime-performance@1",
+        "source_status": "clean"
+      }
+    }
+  ],
+  "summary": [
+    {
+      "gears": 1,
+      "process_mean_full_host_call_ns": [
+        702410.6666666666,
+        740712,
+        743430.6666666666
+      ],
+      "mean_of_process_means_ns": 728851.1111111111,
+      "sample_sd_of_process_means_ns": 22938.40914113109,
+      "post_first_output_allocations": [
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        }
+      ]
+    },
+    {
+      "gears": 8,
+      "process_mean_full_host_call_ns": [
+        2380152.6666666665,
+        3075421,
+        2467149.3333333335
+      ],
+      "mean_of_process_means_ns": 2640907.6666666665,
+      "sample_sd_of_process_means_ns": 378805.33607132715,
+      "post_first_output_allocations": [
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        }
+      ]
+    },
+    {
+      "gears": 32,
+      "process_mean_full_host_call_ns": [
+        11940714.666666666,
+        12089072.666666666,
+        13425080.666666666
+      ],
+      "mean_of_process_means_ns": 12484956.0,
+      "sample_sd_of_process_means_ns": 817544.0756909277,
+      "post_first_output_allocations": [
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        },
+        {
+          "allocations": 378,
+          "deallocations": 0,
+          "reallocations": 0,
+          "requested_bytes": 2898
+        }
+      ]
+    }
+  ],
+  "hosted_rows": [
+    {
+      "active_play": {
+        "active_play_id": "18e889cb7637926697563469231490308a5db449119847786f8e4e643994bfa6",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/1/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "f6e3f72f2f175fb621b98b1e774eae0cc458fe4f7e46e75aa86b9d5916537350",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 385628,
+      "first_to_last_acknowledgement_ns": 306535,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 307421,
+          "phase_peak_heap_bytes": 5899653,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 738931,
+        "wall_ns": 738341
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 286275,
+          "phase_peak_heap_bytes": 286275,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1489,
+        "wall_ns": 786
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "f6e3f72f2f175fb621b98b1e774eae0cc458fe4f7e46e75aa86b9d5916537350",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "6c011d09474d6764c76c490140674e31a1b2a79f9a9ac672d97a57608aa1eaa3",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/1/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "8ae72dd71189b96ced79d8586a7302f012a0da86e2d94f50c6f5450619e6e230",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 321929,
+      "first_to_last_acknowledgement_ns": 337467,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 309597,
+          "phase_peak_heap_bytes": 5901829,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 706778,
+        "wall_ns": 706061
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 309597,
+          "phase_peak_heap_bytes": 309597,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 787,
+        "wall_ns": 556
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "8ae72dd71189b96ced79d8586a7302f012a0da86e2d94f50c6f5450619e6e230",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "3a0fa19941a17f178660bd6636e1b6fc3a38145696f3acff86d5d226f76ecf8b",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/1/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "5243782325d5a2f6b33b21b99daa6588f5c6e0cf6eab820784cc533218f1fff4",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 307300,
+      "first_to_last_acknowledgement_ns": 311142,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 311773,
+          "phase_peak_heap_bytes": 5904005,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 663081,
+        "wall_ns": 662830
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 290627,
+          "phase_peak_heap_bytes": 290627,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1763,
+        "wall_ns": 1021
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "5243782325d5a2f6b33b21b99daa6588f5c6e0cf6eab820784cc533218f1fff4",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "48ad83a124dcd09115afeefcfd928b4776693e8215e66c845a7092cc8ea04926",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/8/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "502d23ed23074f89de33a30a4990f8bc5878555b5817069baabebd503644762f",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 536496,
+      "first_to_last_acknowledgement_ns": 1760968,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 364935,
+          "phase_peak_heap_bytes": 20768271,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2362321,
+        "wall_ns": 2362045
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 333115,
+          "phase_peak_heap_bytes": 333115,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2157,
+        "wall_ns": 1190
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "502d23ed23074f89de33a30a4990f8bc5878555b5817069baabebd503644762f",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "95c2e4e7a6e745963cef19a9f99c923f4e2d75295661b55342e3d39408a413e7",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/8/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "fbcf4403fd7fd6fc6225c7e80278e3448c1448b45c01ad4a94953daf9387cf92",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 519488,
+      "first_to_last_acknowledgement_ns": 1802037,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 367111,
+          "phase_peak_heap_bytes": 20770447,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2400507,
+        "wall_ns": 2399981
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 367111,
+          "phase_peak_heap_bytes": 367111,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 778,
+        "wall_ns": 556
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "fbcf4403fd7fd6fc6225c7e80278e3448c1448b45c01ad4a94953daf9387cf92",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "1be86ee3f877949cc5d7af19574a17f247df3263871b9a7676b84092c1d2b9a6",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/8/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "85fa2f301975b957290def517d52996ff61c15bd6d2d74aeb0a9356569f04c4e",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 512937,
+      "first_to_last_acknowledgement_ns": 1782804,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 369287,
+          "phase_peak_heap_bytes": 20772623,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2378752,
+        "wall_ns": 2378432
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 337467,
+          "phase_peak_heap_bytes": 337467,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1899,
+        "wall_ns": 1182
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "85fa2f301975b957290def517d52996ff61c15bd6d2d74aeb0a9356569f04c4e",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "5d4e2896c88235b09ed6d893f5e4affc3d61230d2bcbf59752e89e5de9a32e46",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/32/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "52d04dc49983de18c07302f080bcea50bd85c300fbe4be8c02920cd87cb180ee",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1446230,
+      "first_to_last_acknowledgement_ns": 10339630,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 546886,
+          "phase_peak_heap_bytes": 71778677,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 11959010,
+        "wall_ns": 11958968
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 493095,
+          "phase_peak_heap_bytes": 493095,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2652,
+        "wall_ns": 1699
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "52d04dc49983de18c07302f080bcea50bd85c300fbe4be8c02920cd87cb180ee",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "622ecc6361d1a3293051a93ea7ab0ec1ba4d3648322d83d805b9c549cc034106",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/32/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "b2fc17b9838b938a13ee0b99ecca28d2a87ff7d994d41872805e1ed3b2bf7709",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1400389,
+      "first_to_last_acknowledgement_ns": 10259769,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 549063,
+          "phase_peak_heap_bytes": 71780854,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 11883153,
+        "wall_ns": 11882472
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 549063,
+          "phase_peak_heap_bytes": 549063,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1627,
+        "wall_ns": 1405
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "b2fc17b9838b938a13ee0b99ecca28d2a87ff7d994d41872805e1ed3b2bf7709",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "0d3f91da7142cec9763fefc39e37c409c17d50a2817bf02391d875e9f15f9854",
+        "boot_id": "boot/runtime-performance/6d04796917831e7dec1b5ac119da692802ac8df0b2c154d9bad78c7137963b3a/32/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "50b4f39d19542fb61b5b55e2cbd6a35c59834694e7754cca4abe34ffd7fa78eb",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1387571,
+      "first_to_last_acknowledgement_ns": 10362505,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 551240,
+          "phase_peak_heap_bytes": 71783031,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 11980759,
+        "wall_ns": 11980704
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 497449,
+          "phase_peak_heap_bytes": 497449,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2649,
+        "wall_ns": 1661
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "50b4f39d19542fb61b5b55e2cbd6a35c59834694e7754cca4abe34ffd7fa78eb",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 1,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "2b5caf2c4a7eb7eccaca37f6dcef031df3965d457d4ff25d9e1719ac02e966e9",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/1/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "8a640b2c75bf9335d172c640487a777f9523f5f528477e23d15be6b27ad9bfd5",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 403173,
+      "first_to_last_acknowledgement_ns": 309657,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 307415,
+          "phase_peak_heap_bytes": 5899647,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 767275,
+        "wall_ns": 766980
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 286269,
+          "phase_peak_heap_bytes": 286269,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2812,
+        "wall_ns": 1780
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "8a640b2c75bf9335d172c640487a777f9523f5f528477e23d15be6b27ad9bfd5",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "3a4fd2f32336d5048db512794af8561f58e293b7ad067d92ba9ed97c6f078b2f",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/1/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "2c11e0ff953bf9b08ea54b8dff5727248ef91d9d70830199ea39bdbc2b6fc860",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 328934,
+      "first_to_last_acknowledgement_ns": 342412,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 309591,
+          "phase_peak_heap_bytes": 5901823,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 727720,
+        "wall_ns": 726837
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 309591,
+          "phase_peak_heap_bytes": 309591,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 789,
+        "wall_ns": 585
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "2c11e0ff953bf9b08ea54b8dff5727248ef91d9d70830199ea39bdbc2b6fc860",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "7c69674d22c74148b592c4451a721b54e29cc26e3492fe76541b98267fa24a65",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/1/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "717466f29a3dc86abb95501857660bf8c17d058104f9153258b3e22ee1c24439",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 353618,
+      "first_to_last_acknowledgement_ns": 318730,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 311767,
+          "phase_peak_heap_bytes": 5903999,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 728656,
+        "wall_ns": 728319
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 290621,
+          "phase_peak_heap_bytes": 290621,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 3114,
+        "wall_ns": 1892
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "717466f29a3dc86abb95501857660bf8c17d058104f9153258b3e22ee1c24439",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "e0550e29cf376130bcf48f619509124b31e91ba24aba25cc09202871ff3f0aa3",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/8/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "87552ea70cc3f990466b49e426444999ba9dcb256e630d6e1555d50cf20afa9d",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 591010,
+      "first_to_last_acknowledgement_ns": 1795482,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 364929,
+          "phase_peak_heap_bytes": 20768265,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2457555,
+        "wall_ns": 2457218
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 333109,
+          "phase_peak_heap_bytes": 333109,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2560,
+        "wall_ns": 1632
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "87552ea70cc3f990466b49e426444999ba9dcb256e630d6e1555d50cf20afa9d",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "1c39128561fa5d4e28488be7ba6ea813da4a0eb4c10cbdae4c06e2dd67822f80",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/8/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "58327ea9e4fc1b3c531cc7de0d4b9a418b165ccc9e1fb0bea0ddda8c9498dd9f",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 574153,
+      "first_to_last_acknowledgement_ns": 1864133,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 367105,
+          "phase_peak_heap_bytes": 20770441,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2535780,
+        "wall_ns": 2534522
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 367105,
+          "phase_peak_heap_bytes": 367105,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 792,
+        "wall_ns": 561
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "58327ea9e4fc1b3c531cc7de0d4b9a418b165ccc9e1fb0bea0ddda8c9498dd9f",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "527771924316c766737aa723b468ac423c2a28fb620511523c9420a8b47a4896",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/8/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "4665e8a9031553d20560ba0e2d8591d55b16b882dd417376e8e920d53543da94",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 821554,
+      "first_to_last_acknowledgement_ns": 3200053,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 369281,
+          "phase_peak_heap_bytes": 20772617,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 4230807,
+        "wall_ns": 4234523
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 337461,
+          "phase_peak_heap_bytes": 337461,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 4453,
+        "wall_ns": 3146
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "4665e8a9031553d20560ba0e2d8591d55b16b882dd417376e8e920d53543da94",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "f1dd8bb269a771eae89b2d44281d0ce11c7a356f1a95fd6c5359a9538962e97e",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/32/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "cc80ccaf9969040fba44161bf454d150285df461ed78aac266c9e176d46cd5b1",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1448859,
+      "first_to_last_acknowledgement_ns": 10121612,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 546880,
+          "phase_peak_heap_bytes": 71778671,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 11866222,
+        "wall_ns": 11861905
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 493089,
+          "phase_peak_heap_bytes": 493089,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 3604,
+        "wall_ns": 2588
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "cc80ccaf9969040fba44161bf454d150285df461ed78aac266c9e176d46cd5b1",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "ff3bfc8ac870c61f0b968ac8c93dfb2ec8d315b0347c7e115387c6d7610abfc9",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/32/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "e270a0599a7be6aff6fb12445950fdf96923320534ea2509f9fd256c959a4b19",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1391979,
+      "first_to_last_acknowledgement_ns": 10549239,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 549057,
+          "phase_peak_heap_bytes": 71780848,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 12274329,
+        "wall_ns": 12277096
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 549057,
+          "phase_peak_heap_bytes": 549057,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2066,
+        "wall_ns": 1806
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "e270a0599a7be6aff6fb12445950fdf96923320534ea2509f9fd256c959a4b19",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "81836aad32c1eff0ff66811beb99005deb7bf24772beb82232c296272affa2d0",
+        "boot_id": "boot/runtime-performance/7b3079e8a9bf8f0cbac0664541036e96087da22e4ffb045df5dea90d240b1371/32/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "cbd254511282dc91cea0b4a7733f1aec324d4a08612aaad607b0248bb7ef1065",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1355196,
+      "first_to_last_acknowledgement_ns": 10501369,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 551234,
+          "phase_peak_heap_bytes": 71783025,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 12124824,
+        "wall_ns": 12128217
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 497443,
+          "phase_peak_heap_bytes": 497443,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 3374,
+        "wall_ns": 2426
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "cbd254511282dc91cea0b4a7733f1aec324d4a08612aaad607b0248bb7ef1065",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 2,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "7d11fa28fc3db28fb634a60e1c9f606badae08847d1f24bfc5105be76ed79952",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/1/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "76aa09d8427b3e8f71b9b44b5ed89a723fd945c5cc1a4f10a6c56cb8a8ef769e",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 440573,
+      "first_to_last_acknowledgement_ns": 319840,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 307420,
+          "phase_peak_heap_bytes": 5899652,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 816123,
+        "wall_ns": 815743
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 286274,
+          "phase_peak_heap_bytes": 286274,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 3247,
+        "wall_ns": 2115
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "76aa09d8427b3e8f71b9b44b5ed89a723fd945c5cc1a4f10a6c56cb8a8ef769e",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "0ee741939a8e75c40aa807c652ed8f4c0249860d44ad220597f7fca677e529c2",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/1/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "e54e96aaf3a7fc5266fd1640383d9f2e34757fe3651915a0866b199472cac28d",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 353579,
+      "first_to_last_acknowledgement_ns": 319627,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 309596,
+          "phase_peak_heap_bytes": 5901828,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 725866,
+        "wall_ns": 725128
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 309596,
+          "phase_peak_heap_bytes": 309596,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1060,
+        "wall_ns": 815
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "e54e96aaf3a7fc5266fd1640383d9f2e34757fe3651915a0866b199472cac28d",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "a2039a0756cacd1cb7f103d533b0515800231b601549386b3f2884bd67af420b",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/1/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "8c9965df6ac26c34f5a2749eb4de830ecf9c7f692e75db5a63fac781d6ad6eb0",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 324205,
+      "first_to_last_acknowledgement_ns": 311731,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 2502,
+          "deallocations": 2145,
+          "live_heap_bytes_at_end": 311772,
+          "phase_peak_heap_bytes": 5904004,
+          "reallocations": 55,
+          "requested_bytes": 5867241
+        },
+        "process_cpu_ns": 689858,
+        "wall_ns": 689421
+      },
+      "gears": 1,
+      "kernel_decisions": 130,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 290626,
+          "phase_peak_heap_bytes": 290626,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 3240,
+        "wall_ns": 2597
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "8c9965df6ac26c34f5a2749eb4de830ecf9c7f692e75db5a63fac781d6ad6eb0",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 322,
+      "source_sha256": "f03945ae00cc1875f7825d0544245c6920c69b6281b0675532501d84de37ed28",
+      "value_capacity_after": [
+        9,
+        2359296
+      ],
+      "value_capacity_before": [
+        9,
+        2359296
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 322,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "ValueRouted": 11,
+        "StepFuelGranted": 21,
+        "ValueConsumed": 10,
+        "HostCallRequested": 10,
+        "HostCallCompleted": 10,
+        "RemoteInputClosed": 1,
+        "InputClosed": 1,
+        "RemoteOutputClosed": 1,
+        "BackCompleted": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "6b5336fc760c189e82e9fbef8012dcdcd197d4b590e7250dc232a0c7372f1f45",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/8/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "f2cdfc86ca67a715adbb67321fd31490b94d9577532c3a6fde7ce38ea704d792",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 558803,
+      "first_to_last_acknowledgement_ns": 1795053,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 364934,
+          "phase_peak_heap_bytes": 20768270,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2454602,
+        "wall_ns": 2454144
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 333114,
+          "phase_peak_heap_bytes": 333114,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2732,
+        "wall_ns": 2002
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "f2cdfc86ca67a715adbb67321fd31490b94d9577532c3a6fde7ce38ea704d792",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "fa887980d56e3a6353d434940fb470fb8fe94eb0b815cacd49e074435b656431",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/8/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "5e572173afdc250d72e122eba2bf4fdb2ec3e7529ff31cbccbc260e87f2b748e",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 586687,
+      "first_to_last_acknowledgement_ns": 1807023,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 367110,
+          "phase_peak_heap_bytes": 20770446,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2495601,
+        "wall_ns": 2494443
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 367110,
+          "phase_peak_heap_bytes": 367110,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1018,
+        "wall_ns": 777
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "5e572173afdc250d72e122eba2bf4fdb2ec3e7529ff31cbccbc260e87f2b748e",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "03c94461b6806870750506d27f6a92931af0ac14ab3d41233782d0f9c9671435",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/8/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "5e278fced20c521afeaf390c649bc5d4b30d4d49f1d14682118ca5919671db21",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 552064,
+      "first_to_last_acknowledgement_ns": 1806597,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 4121,
+          "deallocations": 4039,
+          "live_heap_bytes_at_end": 369286,
+          "phase_peak_heap_bytes": 20772622,
+          "reallocations": 134,
+          "requested_bytes": 20945038
+        },
+        "process_cpu_ns": 2453217,
+        "wall_ns": 2452861
+      },
+      "gears": 8,
+      "kernel_decisions": 1296,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 337466,
+          "phase_peak_heap_bytes": 337466,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2751,
+        "wall_ns": 1857
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "5e278fced20c521afeaf390c649bc5d4b30d4d49f1d14682118ca5919671db21",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 546,
+      "source_sha256": "afbf42d154d8672afe61d656ca21ebf5d16d3af81b2b3b11bdbc7a3722300a6e",
+      "value_capacity_after": [
+        65,
+        17039360
+      ],
+      "value_capacity_before": [
+        65,
+        17039360
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 546,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 111,
+        "ValueConsumed": 40,
+        "HostCallRequested": 40,
+        "HostCallCompleted": 40,
+        "ValueRouted": 41,
+        "RemoteInputClosed": 1,
+        "InputClosed": 8,
+        "BackCompleted": 8,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "50190293a1839a5ee44e8068ade99a5f211e3c8b1164d6bd211b1f8ea3fea469",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/32/0",
+        "host_id": "host/runtime-performance",
+        "plan_id": "05f8a677cd6216da50682a09423ea2bf741d4b86acc00c06b8470d9f2b5072e9",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 2148135,
+      "first_to_last_acknowledgement_ns": 13828756,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 546885,
+          "phase_peak_heap_bytes": 71778676,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 16211996,
+        "wall_ns": 16252010
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 493094,
+          "phase_peak_heap_bytes": 493094,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 5140,
+        "wall_ns": 3863
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "05f8a677cd6216da50682a09423ea2bf741d4b86acc00c06b8470d9f2b5072e9",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 0,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "984c4d3b3a47ff74eb662f882b65b0ecb4513ef46a6e49eb69c7e60eb62b6120",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/32/1",
+        "host_id": "host/runtime-performance",
+        "plan_id": "64e16ffc28ab4b85e776db35549d3a30041221be15fea383035865c20780d329",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1351016,
+      "first_to_last_acknowledgement_ns": 10352490,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 549062,
+          "phase_peak_heap_bytes": 71780853,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 11991926,
+        "wall_ns": 11990374
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 549062,
+          "phase_peak_heap_bytes": 549062,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 1260,
+        "wall_ns": 1055
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "64e16ffc28ab4b85e776db35549d3a30041221be15fea383035865c20780d329",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 1,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    },
+    {
+      "active_play": {
+        "active_play_id": "417bc682f7c6d708dc750688400605d9b8470869e0437ba8c8118ed3e9bc9772",
+        "boot_id": "boot/runtime-performance/fe8031af7990915aae25d6e33dbae7fbb0445befaa1d9e456e9694fae4d3fee6/32/2",
+        "host_id": "host/runtime-performance",
+        "plan_id": "a67e15f163673bcf78755d70bb395762159d4026be12e8de02ef574456fc9a19",
+        "play_sequence": 0
+      },
+      "adds_per_value": 32,
+      "allocation_window_scope": "process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "completion_window_items": 63,
+      "first_acknowledgement_from_call_start_ns": 1396468,
+      "first_to_last_acknowledgement_ns": 10372780,
+      "full_host_call": {
+        "allocator": {
+          "allocations": 9689,
+          "deallocations": 10543,
+          "live_heap_bytes_at_end": 551239,
+          "phase_peak_heap_bytes": 71783030,
+          "reallocations": 331,
+          "requested_bytes": 72876843
+        },
+        "process_cpu_ns": 12033178,
+        "wall_ns": 12032858
+      },
+      "gears": 32,
+      "kernel_decisions": 5184,
+      "measurement_scope": "full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
+      "native_canonical_loop": {
+        "allocator": {
+          "allocations": 0,
+          "deallocations": 0,
+          "live_heap_bytes_at_end": 497448,
+          "phase_peak_heap_bytes": 497448,
+          "reallocations": 0,
+          "requested_bytes": 0
+        },
+        "process_cpu_ns": 2991,
+        "wall_ns": 2161
+      },
+      "ordered_output_sha256": "aa04cb31d45b286386166775fb83148c12bfedcf20115f8ebb3a723869cc433e",
+      "phase": "finite-ordinary-hosted-pipeline",
+      "plan_id": "a67e15f163673bcf78755d70bb395762159d4026be12e8de02ef574456fc9a19",
+      "post_first_output_allocations": {
+        "allocations": 378,
+        "deallocations": 0,
+        "reallocations": 0,
+        "requested_bytes": 2898
+      },
+      "repetition": 2,
+      "retained_kernel_events": 1314,
+      "source_sha256": "664df381f48afc6c618efcdc7177c5bc78861d1c45306a135d607d2e2da985b9",
+      "value_capacity_after": [
+        257,
+        67371008
+      ],
+      "value_capacity_before": [
+        257,
+        67371008
+      ],
+      "values": 64,
+      "process": 3,
+      "retained_sign_entries": 1314,
+      "retained_sign_kind_counts": {
+        "RemoteInputAdmitted": 64,
+        "RemoteValueOffered": 64,
+        "RemoteValueAccepted": 64,
+        "RemoteValueDelivered": 64,
+        "StepFuelGranted": 403,
+        "ValueConsumed": 147,
+        "HostCallRequested": 147,
+        "HostCallCompleted": 147,
+        "ValueRouted": 148,
+        "RemoteInputClosed": 1,
+        "InputClosed": 32,
+        "BackCompleted": 32,
+        "RemoteOutputClosed": 1
+      }
+    }
+  ]
+}
