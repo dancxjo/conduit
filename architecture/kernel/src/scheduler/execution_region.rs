@@ -188,6 +188,10 @@ where
                 .map(|output| self.values.get(output.value))
                 .transpose()?,
         };
+        self.logical_invocations = self
+            .logical_invocations
+            .checked_add(1)
+            .ok_or(SchedulerError::DecisionLimitExceeded)?;
         let outcome = self.drivers[node].step(&mut io, &input_bytes);
         if let Some(fault) = io.fault {
             if fault == SchedulerError::StepFuelExceeded {

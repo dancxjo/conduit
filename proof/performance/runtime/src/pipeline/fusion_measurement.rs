@@ -82,7 +82,7 @@ pub(super) fn run(
                     "first_to_last_acknowledgement_ns":timing::ns(last.duration_since(first)),
                     "completion_window_useful_outputs_per_second":(ITEMS-1) as f64 / last.duration_since(first).as_secs_f64(),
                     "post_first_output_allocations":collector.allocation_window()?,
-                    "kernel_decisions":kernel.decisions,"physical_regions":prepared.plan.fragments[0].execution_fusions.len(),
+                    "kernel_decisions":kernel.decisions,"kernel_logical_invocations":kernel.logical_invocations,"physical_regions":prepared.plan.fragments[0].execution_fusions.len(),
                     "logical_gear_count":prepared.plan.fragments[0].placements.len(),"logical_internal_cord_count":prepared.plan.fragments[0].connections.len(),
                     "mandatory_output_sign_count":mandatory,"active_play":kernel.active_play,
                     "value_capacity_before":kernel.value_allocation_capacity_before,"value_capacity_after":kernel.value_allocation_capacity_after,

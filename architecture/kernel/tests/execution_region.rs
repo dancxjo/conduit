@@ -257,6 +257,16 @@ fn logical_outputs_pressure_terminal_signs_and_allocation_match() {
                     assert_eq!(events(&reference), events(&fused));
                 }
             }
+            for play in [&reference, &fused] {
+                assert_eq!(
+                    play.logical_invocations(),
+                    play.signs()
+                        .inner()
+                        .events()
+                        .filter(|event| event.kind == KernelEventKind::StepFuelGranted)
+                        .count() as u64
+                );
+            }
             assert!(fused.decisions() < reference.decisions());
         }
     }

@@ -18,6 +18,7 @@ for row in rows:
     assert row["mode"] not in modes, "duplicate trial"
     modes[row["mode"]] = row
     assert row["values"] == 64
+    assert row["kernel_logical_invocations"] >= 64 * row["gears"]
     assert row["ordered_output_sha256"] == expected
     assert row["logical_gear_count"] == row["gears"]
     assert row["logical_internal_cord_count"] == row["gears"] - 1
@@ -55,6 +56,7 @@ for gears in [1, 8, 32]:
     selected = [r for r in rows if r["gears"] == gears]
     summary[gears] = {mode: {
         "decisions": sorted({r["kernel_decisions"] for r in selected if r["mode"] == mode}),
+        "logical_invocations": sorted({r["kernel_logical_invocations"] for r in selected if r["mode"] == mode}),
         "full_call_wall_ns_median": statistics.median(r["full_host_call"]["wall_ns"] for r in selected if r["mode"] == mode),
         "full_call_cpu_ns_median": statistics.median(r["full_host_call"]["process_cpu_ns"] for r in selected if r["mode"] == mode and r["full_host_call"]["process_cpu_ns"] is not None),
         "completion_outputs_per_second_median": statistics.median(r["completion_window_useful_outputs_per_second"] for r in selected if r["mode"] == mode),

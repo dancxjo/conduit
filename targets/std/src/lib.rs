@@ -356,6 +356,7 @@ pub struct StdKernelExecutionReport {
     pub active_play: conduit_core::ActivePlayIdentity,
     pub active_play_id: conduit_core::ActivePlayId,
     pub decisions: u32,
+    pub logical_invocations: u64,
     pub kernel_events: u16,
     pub kernel_sign: Vec<conduit_kernel::KernelEvent>,
     pub value_allocation_capacity_before: (usize, usize),

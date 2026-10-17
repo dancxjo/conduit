@@ -3731,6 +3731,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             active_play_id: active_play.active_play_id.clone(),
             active_play,
             decisions: scheduler.decisions(),
+            logical_invocations: scheduler.logical_invocations(),
             kernel_events: scheduler.signs().len(),
             kernel_sign: scheduler.signs().events().collect(),
             value_allocation_capacity_before: value_allocation_before,

@@ -418,7 +418,7 @@ pub fn run(
                 "first_acknowledgement_from_call_start_ns":timing::ns(first.duration_since(started)),"first_to_last_acknowledgement_ns":timing::ns(last.duration_since(first)),"completion_window_items":ITEMS-1,"post_first_output_allocations":post_first_output_allocations,
                 "allocation_window_scope":"process allocator between first/last real Fore acknowledgements, after Play began; includes Host and collection work, excludes earlier preparation; no whole-Play or zero-allocation claim",
                 "measurement_scope":"full call includes reservation, Back preparation, Play, Sign/report translation and teardown; completion window spans 63 additional acknowledged outputs; two callback wall samples retained; native uses identical canonical inputs/outputs with checked adds and legal compiler fusion",
-                "kernel_decisions":kernel.decisions,"retained_kernel_events":kernel.kernel_events,"active_play":play,"plan_id":prepared.plan.plan_id.as_str(),"signs":signs,"observations":report.observations,
+                "kernel_decisions":kernel.decisions,"kernel_logical_invocations":kernel.logical_invocations,"retained_kernel_events":kernel.kernel_events,"active_play":play,"plan_id":prepared.plan.plan_id.as_str(),"signs":signs,"observations":report.observations,
                 "value_capacity_before":kernel.value_allocation_capacity_before,"value_capacity_after":kernel.value_allocation_capacity_after});
             raw.row(&row)?;
             summaries.push(json!({"case":id,"repetition":repetition,"values":ITEMS,"gears":gears,"full_host_call":full_call,"ordered_output_sha256":digest}));

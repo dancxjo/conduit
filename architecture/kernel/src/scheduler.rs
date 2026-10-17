@@ -945,6 +945,7 @@ pub struct FixedScheduler<
     cursor: usize,
     host_request_cursor: usize,
     decisions: u32,
+    logical_invocations: u64,
     region_successors: [Option<NodeId>; NODES],
     last_host_request: [Option<RequestId>; NODES],
     cancelled: bool,
@@ -1051,6 +1052,7 @@ where
             cursor: 0,
             host_request_cursor: 0,
             decisions: 0,
+            logical_invocations: 0,
             region_successors: [None; NODES],
             last_host_request: [None; NODES],
             cancelled: false,
@@ -1232,6 +1234,11 @@ where
 
     pub fn decisions(&self) -> u32 {
         self.decisions
+    }
+
+    /// Actual Back invocations, including Await and terminal invocations.
+    pub fn logical_invocations(&self) -> u64 {
+        self.logical_invocations
     }
 
     pub fn drivers(&self) -> &[D; NODES] {
