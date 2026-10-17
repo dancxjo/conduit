@@ -44,6 +44,12 @@ pub const BROWSER_CHECK_STEPS: &[Step] = &[
         &["--test", "proof/browser/physical-host-workflow.test.mjs"],
     ),
     Step::new(
+        "check.browser.look-wire",
+        "Check canonical Look wire identities, tokens, and finite byte admission",
+        "node",
+        &["--test", "proof/browser/look-wire.test.mjs"],
+    ),
+    Step::new(
         "check.browser.look-replacement-evidence",
         "Check Look replacement evidence comparisons and mutation refusals",
         "node",

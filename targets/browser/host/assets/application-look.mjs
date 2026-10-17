@@ -17,7 +17,7 @@ class Reader {
   u32() { const b = this.take(4); return b[0] + b[1] * 256 + b[2] * 65536 + b[3] * 16777216; }
   text() {
     const n = this.u32(); if (n > 4096) this.reject("look-text-bound");
-    try { return new TextDecoder("utf-8", { fatal: true }).decode(this.take(n)); }
+    try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(this.take(n)); }
     catch { this.reject("look-malformed-encoding"); }
   }
 }
@@ -47,7 +47,7 @@ function valueNode(reader, type, depth = 0) {
     if (type.kind === "value/u16" && bytes.length === 2) return bytes[0] + bytes[1] * 256;
     if (type.kind === "value/empty" && bytes.length === 0) return null;
     if (type.kind === "value/text" && bytes.length <= 128) {
-      try { return new TextDecoder("utf-8", { fatal: true }).decode(bytes); }
+      try { return new TextDecoder("utf-8", { fatal: true, ignoreBOM: true }).decode(bytes); }
       catch { reader.reject("look-malformed-encoding"); }
     }
     reader.reject("look-invalid-leaf");
@@ -72,9 +72,26 @@ const METRIC_BOUNDS = Object.freeze({
   space_panel_px: [0, 64], radius_control_px: [0, 32], radius_panel_px: [0, 32], focus_width_px: [1, 8],
 });
 
+function lookBytes(input, reject) {
+  if (input instanceof Uint8Array || input instanceof ArrayBuffer) {
+    if (input.byteLength > MAX_LOOK_BYTES) reject("look-oversized-encoding");
+    return input instanceof Uint8Array ? input : new Uint8Array(input);
+  }
+  if (!Array.isArray(input)) reject("look-malformed-encoding");
+  const length = input.length;
+  if (length > MAX_LOOK_BYTES) reject("look-oversized-encoding");
+  const bytes = new Uint8Array(length);
+  for (let index = 0; index < length; index++) {
+    const byte = input[index];
+    if (!Object.hasOwn(input, index) || !Number.isInteger(byte) || byte < 0 || byte > 255) reject("look-malformed-encoding");
+    bytes[index] = byte;
+  }
+  return bytes;
+}
+
 export function decodeLook(input, refuse = code => { throw new Error(code); }) {
   const reject = code => { refuse(code); throw new Error(code); };
-  const bytes = input instanceof Uint8Array ? input : new Uint8Array(input);
+  const bytes = lookBytes(input, reject);
   if (bytes.length > MAX_LOOK_BYTES) reject("look-oversized-encoding");
   if (bytes.length < PROFILE.length || PROFILE.some((byte, i) => bytes[i] !== byte)) reject("look-canonical-type-required-retired-theme-wire");
   const schemaReader = new Reader(PROFILE, reject), schema = typeNode(schemaReader);

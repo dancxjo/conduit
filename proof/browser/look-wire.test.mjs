@@ -54,3 +54,37 @@ test("foreign visual identity and injected semantic fields refuse", () => {
   assert(field > 0); action.set(Buffer.from("action"), field);
   assert.throws(() => read(action), /look-field-identity/u);
 });
+
+function prefixText(bytes, text, at = bytes.lastIndexOf(Buffer.from(text))) {
+  assert(at >= 4);
+  assert.equal(bytes.readUInt32LE(at - 4), Buffer.byteLength(text));
+  const patched = Buffer.concat([bytes.subarray(0, at), Buffer.from([0xef, 0xbb, 0xbf]), bytes.subarray(at)]);
+  patched.writeUInt32LE(Buffer.byteLength(text) + 3, at - 4);
+  return patched;
+}
+
+test("Look field identities cannot hide a leading BOM", () => {
+  assert.throws(() => read(prefixText(original(), "spoken")), /look-field-identity/u);
+});
+
+test("Look identity text preserves leading BOM instead of creating an alias", () => {
+  const bytes = original(), identity = "conduit.look/phosphor@1";
+  assert.throws(() => read(prefixText(bytes, identity, bytes.indexOf(Buffer.from(identity)))), /look-visual-contract/u);
+});
+
+test("Look byte admission refuses coercion and checks bounds before conversion", () => {
+  const bytes = original();
+  const over = new Array(65_537);
+  Object.defineProperty(over, 0, { get() { throw new Error("overcapacity input read"); } });
+  assert.throws(() => read(over), /look-oversized-encoding/u);
+  for (const value of [65_537, {}, { length: bytes.length }, new Uint16Array(bytes),
+    [...bytes.slice(0, -1), bytes.at(-1) + 256], [...bytes.slice(0, -1), String(bytes.at(-1))]]) {
+    assert.throws(() => read(value), /look-malformed-encoding/u);
+  }
+  const sparse = Array.from(bytes); delete sparse[0];
+  assert.throws(() => read(sparse), /look-malformed-encoding/u);
+  for (const value of [bytes, Array.from(bytes), Uint8Array.from(bytes).buffer,
+    Buffer.concat([Buffer.from([99]), bytes, Buffer.from([99])]).subarray(1, -1)]) {
+    assert.equal(read(value).identity, "conduit.look/phosphor@1");
+  }
+});
