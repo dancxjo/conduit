@@ -72,3 +72,6 @@ conduit-web = { path = "../../../semantics/web", features = ["plot-catalog"] }
 # Browser planning conformance exercises the hosted speech offer catalog as
 # fixture data; production browser builds still carry no std speech provider.
 conduit-std-offers = { path = "../../std/offers", features = ["speech"] }
+
+[build-dependencies]
+conduit-core = { path = "../../../architecture/core" }
