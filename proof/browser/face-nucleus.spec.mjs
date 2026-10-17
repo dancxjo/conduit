@@ -792,3 +792,44 @@ for (const retained of [true, false]) {
     expect(await page.evaluate(() => globalThis.selectionRestoreCalls)).toEqual([]);
   });
 }
+
+for (const mode of ['direct', 'slot-host']) {
+  test(`focus-triggered presentation keeps the newest manifestation (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView, createApplicationFaceHost } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.dataset.applicationSlot = 'reentrant'; document.body.append(root);
+      const host = createApplicationFaceHost(document);
+      const view = revision => ({ revision, actions: [{ id: 'current.action', event: 'activate' }], nodes: [
+        { parent: null, component: 'button', key: 'action', text: `Revision ${revision}`, action: 0 },
+      ] });
+      globalThis.reentrantCalls = [];
+      const options = { onEvent: event => globalThis.reentrantCalls.push(event.revision) };
+      const present = revision => mode === 'direct'
+        ? manifestApplicationView(encodeApplicationView(view(revision)), root, options)
+        : host.present('reentrant', view(revision), options);
+      present(1);
+      globalThis.beginReentrantPresentation = () => {
+        let nested = false;
+        root.addEventListener('focusin', () => {
+          if (nested) return;
+          nested = true;
+          globalThis.newestPresentation = present(3);
+        });
+        try { present(2); }
+        catch (error) { globalThis.reentrantRefusal = error.code; }
+        return { revision: root.dataset.applicationRevision, refusal: globalThis.reentrantRefusal,
+          calls: globalThis.reentrantCalls };
+      };
+      globalThis.readReentrantEvent = () => mode === 'direct'
+        ? globalThis.newestPresentation.nextEvent()?.revision : host.nextEvent('reentrant')?.revision;
+    }, mode);
+    await page.getByRole('button', { name: 'Revision 1', exact: true }).focus();
+    expect(await page.evaluate(() => globalThis.beginReentrantPresentation()))
+      .toEqual({ revision: '3', refusal: 'stale-revision', calls: [] });
+    await expect(page.getByRole('button', { name: 'Revision 3', exact: true })).toBeFocused();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => ({ calls: globalThis.reentrantCalls, revision: globalThis.readReentrantEvent() })))
+      .toEqual({ calls: [3], revision: 3 });
+  });
+}

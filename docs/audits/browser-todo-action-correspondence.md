@@ -1033,3 +1033,18 @@ selection, nested groups, step indices, temporary peer unavailability and graph
 routing. Restoration emits no action; subsequent native Enter emits the exact
 current revision/action/subject. This is renderer keyboard proof, not Body/Play,
 fresh packaged WASM or release acceptance; #5631 remains open.
+
+Reentrant focus presentation follow-up (#5644): revision/Look metadata is applied
+before restoring focus, and a manifestation verifies its private active token
+after restoration before returning its handle. A focus handler that presents a
+newer view supersedes the outer call, which refuses with stale-revision instead
+of overwriting newer Host slot bookkeeping. Restoration itself stops immediately
+on supersession so it cannot steal the newer manifestation's restored focus.
+
+Both direct-renderer and slot-Host regressions reproduced before repair. Seven
+focused pinned Chromium fixtures pass with one worker and zero retries, covering
+nested revision 3 during revision 2 focus restoration, exact current native
+activation, ordinary restoration/selection and forged Look preservation. Focus
+restoration queues no action; subsequent native Enter queues/calls revision 3.
+This is renderer/Host custody proof, not authoritative Body/Play or packaged/
+release acceptance; #5644 remains open.

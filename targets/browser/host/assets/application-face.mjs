@@ -318,7 +318,7 @@ function rootIdentity(root) {
   return identity;
 }
 
-function restoreInteraction(root, snapshot) {
+function restoreInteraction(root, snapshot, render) {
   if (!snapshot) return;
   let preferred = Array.from(root.querySelectorAll("[data-application-key]"))
     .find(element => element.dataset.applicationKey === snapshot.key);
@@ -332,6 +332,9 @@ function restoreInteraction(root, snapshot) {
     if (!(candidate instanceof HTMLElement) && !(candidate instanceof SVGElement)) continue;
     if (!candidate.isConnected || !root.contains(candidate) || !controlAvailable(candidate)) continue;
     candidate.focus();
+    // Focus handlers can synchronously present a newer view. Leave its focus
+    // alone and let the superseded caller refuse before publishing its handle.
+    if (activeManifestations.get(root) !== render) return;
     // A retained key may now name plain text or a non-focusable container.
     if (candidate.ownerDocument.activeElement === candidate) { target = candidate; break; }
   }
@@ -699,7 +702,6 @@ export function manifestApplicationView(input, root, options = {}) {
   }
   root.replaceChildren(fragment);
   activeManifestations.set(root, render);
-  restoreInteraction(root, interaction);
   root.dataset.applicationRevision = String(view.revision);
   for (const role of appliedLookProperties.get(root) ?? []) {
     root.style.removeProperty(`--conduit-${role}`);
@@ -714,6 +716,8 @@ export function manifestApplicationView(input, root, options = {}) {
     appliedLookProperties.delete(root);
     delete root.dataset.applicationLook;
   }
+  restoreInteraction(root, interaction, render);
+  if (activeManifestations.get(root) !== render) refuse("stale-revision");
   return Object.freeze({
     view,
     nextEvent() {
