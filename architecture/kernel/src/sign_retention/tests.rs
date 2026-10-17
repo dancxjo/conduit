@@ -245,3 +245,100 @@ fn hosted_remote_sequence_overflow_preserves_history_and_sidecar() {
     )
     .unwrap());
 }
+
+macro_rules! byte_pressure_eviction {
+    ($log:expr) => {{
+        let mut log = $log;
+        log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+            .unwrap();
+        log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
+            .unwrap();
+        assert_eq!(log.ensure_capacity(1), Ok(()));
+        let next = log
+            .record(NodeId(0), None, None, KernelEventKind::BackFailed)
+            .unwrap();
+        assert_eq!(next.sequence, 2);
+        assert!(log.events().map(|event| event.sequence).eq([1, 2]));
+        assert_eq!(log.used_bytes, 2 * size_of::<KernelEvent>() as u32);
+        assert_eq!(log.retained_items, 2);
+        let before = snapshot!(log);
+        assert_eq!(
+            log.record(NodeId(0), None, None, KernelEventKind::BackCompleted),
+            Err(SignError::ByteCapacityExceeded)
+        );
+        assert_eq!(snapshot!(log), before);
+    }};
+}
+
+#[test]
+fn fixed_byte_pressure_reclaims_transient_history_before_item_slots_fill() {
+    byte_pressure_eviction!(FixedSignLog::<8>::new(2 * size_of::<KernelEvent>() as u32).unwrap());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_byte_pressure_reclaims_transient_history_before_item_slots_fill() {
+    byte_pressure_eviction!(
+        crate::HostedSignLog::new(8, 2 * size_of::<KernelEvent>() as u32).unwrap()
+    );
+}
+
+macro_rules! remote_byte_pressure {
+    ($log:expr) => {{
+        let mut log = $log;
+        for _ in 0..2 {
+            log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+                .unwrap();
+        }
+        let remote = crate::RemoteLifecycleIdentity {
+            endpoint: crate::RemoteEndpointId(0),
+            cord: crate::CordId(0),
+            direction: crate::RemoteCordDirection::Egress,
+            sequence: 0,
+        };
+        let event = log
+            .record_remote(
+                NodeId(0),
+                PortId(0),
+                KernelEventKind::RemoteValueOffered,
+                remote,
+            )
+            .unwrap();
+        assert_eq!(event.sequence, 2);
+        assert!(log.events().map(|event| event.sequence).eq([1, 2]));
+        assert_eq!(log.remote_len, 1);
+        let before = snapshot!(log);
+        assert_eq!(
+            log.record_remote(
+                NodeId(0),
+                PortId(0),
+                KernelEventKind::RemoteValueOffered,
+                remote
+            ),
+            Err(SignError::RemoteItemCapacityExceeded)
+        );
+        assert_eq!(snapshot!(log), before);
+    }};
+}
+
+#[test]
+fn fixed_remote_byte_pressure_publishes_or_preserves_history_atomically() {
+    remote_byte_pressure!(FixedSignLog::<8>::new_with_remote_storage(
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_remote_byte_pressure_publishes_or_preserves_history_atomically() {
+    remote_byte_pressure!(crate::HostedSignLog::new_with_remote_storage(
+        8,
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
+}

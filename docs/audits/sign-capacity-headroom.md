@@ -187,3 +187,24 @@ each pass 163 tests; the fixed-only retention suite and strict all-target
 kernel Clippy also pass. This advances #5231's failure/Sign obligations. The
 reservation measurements above retain their pinned source identities; no new
 publication-cost or whole-workload performance claim follows from this repair.
+
+
+## Reclaim transient history under byte pressure
+
+Publication now prepares transient eviction when either physical item capacity
+or the admitted byte budget is exhausted. Previously, a log with unused item
+slots but a full byte budget could accept a retained-history reservation and
+then refuse the corresponding append, even with reclaimable transient entries.
+Both storage profiles now reclaim the same oldest transient entry under either
+budget. If none is available, item pressure retains item-error precedence;
+byte-only pressure reports `ByteCapacityExceeded`. Sticky history is preserved.
+
+Two new regressions failed on the preceding code. The updated alloc and
+linear-ready reference kernel suites each pass 167 tests; seven fixed-only
+retention tests and strict all-target kernel Clippy pass. Tests cover ordinary
+and remote publication with eight slots but only two event charges, exact
+surviving sequence order, sticky-only refusal and full snapshot preservation
+when remote sidecar admission refuses after byte-pressure eviction is prepared.
+The independent-budget fixture now seeds sticky events to test a genuinely
+non-reclaimable byte budget. This is admission/publication consistency proof,
+not a new timing or release acceptance claim for #5231.

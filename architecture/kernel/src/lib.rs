@@ -851,10 +851,20 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
     ) -> Result<KernelEvent, SignError> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        let eviction = if usize::from(self.len) >= EVENTS {
+        let item_pressure = usize::from(self.len) >= EVENTS;
+        let byte_pressure = self
+            .used_bytes
+            .checked_add(charge)
+            .is_none_or(|used| used > self.byte_capacity);
+        let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
                 self.retention_gap,
+                if item_pressure {
+                    SignError::ItemCapacityExceeded
+                } else {
+                    SignError::ByteCapacityExceeded
+                },
             )?)
         } else {
             None
@@ -899,10 +909,20 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
-        let eviction = if usize::from(self.len) >= EVENTS {
+        let item_pressure = usize::from(self.len) >= EVENTS;
+        let byte_pressure = self
+            .used_bytes
+            .checked_add(charge)
+            .is_none_or(|used| used > self.byte_capacity);
+        let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
                 self.retention_gap,
+                if item_pressure {
+                    SignError::ItemCapacityExceeded
+                } else {
+                    SignError::ByteCapacityExceeded
+                },
             )?)
         } else {
             None
@@ -1109,10 +1129,20 @@ impl SignSink for HostedSignLog {
     ) -> Result<KernelEvent, SignError> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        let eviction = if usize::from(self.len) >= self.entries.len() {
+        let item_pressure = usize::from(self.len) >= self.entries.len();
+        let byte_pressure = self
+            .used_bytes
+            .checked_add(charge)
+            .is_none_or(|used| used > self.byte_capacity);
+        let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
                 self.retention_gap,
+                if item_pressure {
+                    SignError::ItemCapacityExceeded
+                } else {
+                    SignError::ByteCapacityExceeded
+                },
             )?)
         } else {
             None
@@ -1157,10 +1187,20 @@ impl SignSink for HostedSignLog {
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
-        let eviction = if usize::from(self.len) >= self.entries.len() {
+        let item_pressure = usize::from(self.len) >= self.entries.len();
+        let byte_pressure = self
+            .used_bytes
+            .checked_add(charge)
+            .is_none_or(|used| used > self.byte_capacity);
+        let eviction = if item_pressure || byte_pressure {
             Some(prepare_transient_eviction(
                 &self.entries[..usize::from(self.len)],
                 self.retention_gap,
+                if item_pressure {
+                    SignError::ItemCapacityExceeded
+                } else {
+                    SignError::ByteCapacityExceeded
+                },
             )?)
         } else {
             None

@@ -50,12 +50,13 @@ pub(super) fn ensure_retained_sign_capacity(
 pub(super) fn prepare_transient_eviction(
     entries: &[Option<KernelEvent>],
     mut gap: Option<SignRetentionGap>,
+    exhausted: SignError,
 ) -> Result<(usize, Option<SignRetentionGap>), SignError> {
     let index = entries
         .iter()
         .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
-        .ok_or(SignError::ItemCapacityExceeded)?;
-    let event = entries[index].ok_or(SignError::ItemCapacityExceeded)?;
+        .ok_or(exhausted)?;
+    let event = entries[index].ok_or(exhausted)?;
     extend_sign_gap(&mut gap, event.sequence)?;
     Ok((index, gap))
 }
