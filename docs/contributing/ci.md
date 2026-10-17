@@ -80,6 +80,13 @@ prose-only changes. Failed integrated proof must be repaired before release;
 publication continues to require those exact verified artifacts. PR admission
 never establishes stable acceptance or supplies publication receipts.
 
+Broad candidate admission uses the same complete parallel workspace unit shards
+as Integration, including workspace lint. The stable required `admission` check
+waits for their aggregate success, then runs the remaining feature-specific
+checks and integration smoke. Narrow changes retain affected-package admission.
+A skipped, missing, failed or cancelled workspace aggregate cannot satisfy broad
+admission. This changes scheduling, not the required test corpus.
+
 The selection and execution rules live in `tools/ci/pipeline/admission.mjs`.
 The integration matrix remains in `plan.mjs` and `targets.mjs`. Target proof
 failures do not cancel sibling lanes. Code tests have no retries; acquisition
@@ -202,7 +209,7 @@ Unit jobs retain finite per-shard wall-clock limits: foundation has 90 minutes,
 products and the ordinary Host groups have 70, ConduitOS has 120, and lint has
 40. The cold foundation path includes its main tests, doctests and a separate
 kernel allocation-feature pass; products includes browser Owner proof. Foundation,
-products, Std Host and ConduitOS tests use optimization level 1 with debug assertions and
+products, Std Host, browser Host and ConduitOS tests use optimization level 1 with debug assertions and
 overflow checks enabled. The same tests and features remain selected; this profile
 changes execution cost, not the required proof set.
 These limits include compilation and preparation. They do not permit test
@@ -223,10 +230,9 @@ LoongArch uses Ubuntu 26.04 for QEMU 10 or newer; the verifier refuses older
 emulators before boot because their large-page translation can corrupt the
 bootloader's module handoff.
 
-The foundation unit shard has a 60-minute job bound for cold compilation, tests,
-doc-tests, and its remaining allocation/continuity checks. The integrated source
-passed its reported assertions before the prior 40-minute bound stopped doc-tests.
-Host shards retain their separate 70-minute bound.
+The earlier foundation bound increased from 40 to 60 minutes after a cold run
+passed its reported assertions but exhausted the job during doc-tests. The
+current 90-minute foundation limit above supersedes that checkpoint.
 
 The x86_64 lane exercises the Face journey against the same retained product
 image: zero-Body Crèche arrival, Birth into rest, Wake, Plan, Play, Home,

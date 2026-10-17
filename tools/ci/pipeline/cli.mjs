@@ -2,8 +2,8 @@ import { readDeliveryStatus } from './delivery-status.mjs';
 import { appendFileSync, mkdirSync, readdirSync, existsSync } from 'node:fs';
 import { spawnSync } from 'node:child_process';
 import { resolve } from 'node:path';
-import { planChanges } from './plan.mjs';
-import { nativeRisk, runAdmission } from './admission.mjs';
+import { planChanges, UNIT_SHARDS } from './plan.mjs';
+import { admissionPlan, nativeRisk, runAdmission } from './admission.mjs';
 import { sealTarget, verifyBundle } from './receipts.mjs';
 import { TARGETS, setupTarget, runTarget } from './targets.mjs';
 import { setupCi, setupUnit } from './setup.mjs';
@@ -66,6 +66,15 @@ try {
           || (family === 'browser' && paths.some(path => /^(?:site|proof\/browser|targets\/browser)\//.test(path)))
           || paths.some(path => path.startsWith(`targets/${family}/firmware/`)));
       }
+      let broadAdmission = false;
+      if (args[2] === 'candidate' && !plan.docsOnly) {
+        const metadata = JSON.parse(run('cargo', ['metadata', '--locked', '--format-version', '1', '--no-deps'], true));
+        broadAdmission = admissionPlan(paths, metadata, process.cwd()).broad;
+        // Broad admission previously tested every workspace package in one job.
+        // Preserve that corpus even when target scanning selected fewer shards.
+        if (broadAdmission) plan.unitShards = [...UNIT_SHARDS];
+      }
+      output('broad-admission', String(broadAdmission));
       output('has-targets', String(plan.families.length > 0));
       output('docs-only', String(plan.docsOnly));
       output('unit-matrix', { shard: plan.unitShards });
@@ -105,10 +114,10 @@ try {
       break;
     }
     case 'admission': {
-      if (args.length !== 1) throw new Error('usage: admission <base-sha>');
+      if (args.length < 1 || args.length > 2 || (args[1] && args[1] !== '--workspace-checked')) throw new Error('usage: admission <base-sha> [--workspace-checked]');
       const paths = run('git', ['diff', '--name-only', '--no-renames', '-z', `${exactSha(args[0])}...HEAD`], true).split('\0').filter(Boolean);
       const metadata = JSON.parse(run('cargo', ['metadata', '--locked', '--no-deps', '--format-version', '1'], true));
-      runAdmission(paths, metadata, process.cwd(), run);
+      runAdmission(paths, metadata, process.cwd(), run, { workspaceChecked: args[1] === '--workspace-checked' });
       break;
     }
     case 'setup':
