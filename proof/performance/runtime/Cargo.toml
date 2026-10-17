@@ -17,8 +17,12 @@ sha2 = "0.10"
 libc = "0.2"
 
 [features]
-hosted-pipeline = ["dep:conduit-std-host"]
+hosted-pipeline = ["dep:conduit-std-host", "dep:conduit-semantic-catalog"]
 
 [dependencies.conduit-std-host]
 path = "../../../targets/std"
+optional = true
+
+[dependencies.conduit-semantic-catalog]
+path = "../../../semantics/catalog"
 optional = true

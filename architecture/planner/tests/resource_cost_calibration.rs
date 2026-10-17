@@ -208,6 +208,12 @@ fn update_refusals_are_atomic_and_zero_ticks_keep_clock_uncertainty() {
             .unwrap()
         })
         .collect::<Vec<_>>();
+    for (record, source) in records.iter().zip(&sources) {
+        assert_eq!(record.measurement().started(), &dispatched);
+        assert_eq!(record.measurement().completed(), source.window().observed());
+        assert_eq!(record.measurement().elapsed(), record.elapsed());
+        assert_eq!(record.measurement().range(), record.measured());
+    }
     assert_eq!(records[0].measured().lower().seconds(), ExactRational::ZERO);
     assert_eq!(records[0].measured().upper().seconds(), rational(2, 1000));
     assert_eq!(records[0].error_bounds().0.coordinate(), rational(-5, 1000));

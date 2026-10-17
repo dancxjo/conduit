@@ -1,0 +1,30 @@
+{
+  "before": {
+    "source": "aff7f393ec6dc7e3a5b20e0dff0f5c7bd6e9bd95",
+    "test_source_sha256": "d337c26e2db5473dfe0eba495344771fac0035c0217e2e45781e3a5a78b2de94",
+    "log_sha256": "743aa4b916678650402a1b489fd9829c99e3d940b63e219404f797ee7cda3682",
+    "profile": "test opt-level=1, debug=0, incremental=0",
+    "expected_failure": "negative test unwraps correct InvalidControlValue encoder refusal"
+  },
+  "after_source": "976468ad5a933c72a0f6a7799c6bda1d9f2bf914",
+  "tests_passed": 44,
+  "test_source_sha256": "7a05c6f3e42ade7def55b423ce34c6337f38a4e93aed455ae392833274299dad",
+  "unchanged_admission_guard_sha256": "7bb17654f93f36afd469c4c5e66fa57e9758d06793d7216b81605b6bbe0e4a09",
+  "guard_source": "semantics/face/src/application_event.rs",
+  "obligations": [
+    "unknown subject refused by encoder",
+    "valid frame with unlisted same-sized subject refused by port decoder",
+    "inspection and entire current view unchanged after refusal",
+    "stale selection and valid selection tests retained"
+  ],
+  "clippy": "strict all-target package Clippy passed",
+  "ci_failure": {
+    "run": 39069133638,
+    "job": 117503350633,
+    "test": "resident_canvas_preserves_exact_graph_and_authoritative_subject_selection"
+  },
+  "limits": [
+    "Test correction only; no production control validation relaxed.",
+    "Candidate, combined integration and full #5231 acceptance remain separate."
+  ]
+}

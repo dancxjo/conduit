@@ -136,6 +136,15 @@ impl<'a> CostEvidenceSource<'a> {
         now: &MonotonicInstant,
     ) -> Result<(), Refusal> {
         use CostScopeChange as Change;
+        // Safe immutable borrowing guarantees these are the same complete
+        // snapshot, including offers and resources. Pointer identity is only
+        // an in-process equality shortcut, never producer/clock admission.
+        if core::ptr::eq(current, self.host) {
+            if calibration != self.calibration {
+                return Err(Refusal::Scope(Change::Calibration));
+            }
+            return self.window.validate_at(now);
+        }
         let changed = if current.host_id != self.host.host_id {
             Some(Change::Host)
         } else if current.boot_id != self.host.boot_id {

@@ -128,7 +128,7 @@ fn prepare_case(case: Case, boot: &str, count: usize) -> Result<Prepared, Box<dy
         },
         &case.source(),
         boot,
-        false,
+        BackProfile::Hosted,
         false,
         case.queue,
         (case.payload_bytes * usize::from(case.queue)) as u32,

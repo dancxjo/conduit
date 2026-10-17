@@ -1,0 +1,90 @@
+COMMAND ['cargo', '+stable', 'test', '-p', 'conduit-runtime-performance', '--features', 'hosted-pipeline']
+   Compiling conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.37s
+     Running unittests src/main.rs (target/debug/deps/conduit_runtime_performance-8c36837c5b147815)
+
+running 25 tests
+test config::tests::finite_admission_refuses_unbounded_or_ambiguous_runs ... ok
+test pipeline::phase_observation::tests::missing_duplicate_reordered_and_extra_markers_refuse ... ok
+test pipeline::phase_observation::tests::phases_partition_the_call_and_refuse_nonmonotonic_samples ... ok
+test pipeline::tests::absent_acknowledgements_do_not_fabricate_zero_allocation_measurements ... ok
+test timing::tests::dispersion_is_sample_corrected_and_singletons_are_explicit ... ok
+test pool::tests::frozen_selection_keeps_exact_scope_and_refuses_stale_or_missing_evidence ... ok
+test repetition::tests::batches_keep_modes_and_cpu_availability_separate ... ok
+test expression::tests::frozen_sources_match_native_outputs_branches_and_refusals ... ok
+test pipeline::domain::control::tests::canonical_pitch_controls_preserve_units_clamps_and_exact_kernel_receipts ... ok
+test pipeline::domain::numerics::tests::selected_rational_and_binary64_execute_same_source_with_distinct_certified_results ... ok
+test pipeline::streaming::tests::malformed_overflow_cancel_and_unplanned_fore_never_become_successful_outputs ... ok
+test pipeline::streaming::tests::stop_under_real_fanout_pressure_keeps_exact_delivered_prefix_and_cancel_receipt ... ok
+test pipeline::streaming::tests::ordinary_overlapping_streams_preserve_order_fanout_pressure_and_payloads ... ok
+test pipeline::tests::checked_fused_refusals_name_every_original_gear_and_preserve_unfused_errors ... ok
+test pipeline::streaming::tests::oversized_text_keeps_the_existing_checked_256_byte_refusal ... ok
+test pipeline::tests::fused_pipeline_uses_one_region_with_equal_outputs ... ok
+test pipeline::tests::installed_local_pipeline_preserves_outputs_and_refuses_bad_values ... ok
+test pipeline::tests::ordinary_checked_pipelines_keep_equal_work_and_exact_boot_custody ... ok
+test pipeline::tests::reviewed_physical_profile_refuses_other_numeric_representations ... ok
+test pipeline::tests::ordinary_planner_can_keep_unfused_cost_or_required_observation ... ok
+test pipeline::value_matrix::tests::actual_value_reference_and_tape_preserve_work_and_keep_unsupported_profile_pairs_refused ... ok
+test typed_cost::tests::complete_owner_std_inventories_remain_in_measured_decisions ... ok
+test typed_cost::tests::every_measured_decision_retains_exact_sources_and_known_fulfillment ... ok
+test typed_cost::fixture::tests::current_evidence_and_hard_capacity_are_required_before_favorable_cost ... ok
+test typed_cost::fixture::tests::expired_same_clock_and_exhausted_arithmetic_do_not_select ... ok
+
+test result: ok. 25 passed; 0 failed; 0 ignored; 0 measured; 0 filtered out; finished in 35.06s
+
+COMMAND ['cargo', '+stable', 'clippy', '-p', 'conduit-runtime-performance', '--features', 'hosted-pipeline', '--all-targets', '--', '-D', 'warnings']
+    Checking conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+error: manual implementation of `.is_multiple_of()`
+  --> proof/performance/runtime/src/pipeline/domain/control.rs:22:8
+   |
+22 |     if index % 2 == 0 {
+   |        ^^^^^^^^^^^^^^ help: replace with: `index.is_multiple_of(2)`
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#manual_is_multiple_of
+   = note: `-D clippy::manual-is-multiple-of` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::manual_is_multiple_of)]`
+
+error: this expression creates a reference which is immediately dereferenced by the compiler
+   --> proof/performance/runtime/src/pipeline/domain/numerics.rs:178:31
+    |
+178 |     MathematicalValue::decode(&bytes, &mut ExactNumericWork::new(100_000_000))
+    |                               ^^^^^^ help: change this to: `bytes`
+    |
+    = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#needless_borrow
+    = note: `-D clippy::needless-borrow` implied by `-D warnings`
+    = help: to override `-D warnings` add `#[allow(clippy::needless_borrow)]`
+
+error: very complex type used. Consider factoring parts into `type` definitions
+  --> proof/performance/runtime/src/pipeline/value_matrix.rs:64:6
+   |
+64 |   ) -> Result<
+   |  ______^
+65 | |     (
+66 | |         Vec<conduit_std_host::StdRunReport>,
+67 | |         Vec<Outputs>,
+...  |
+71 | |     Box<dyn Error>,
+72 | | > {
+   | |_^
+   |
+   = help: for further information visit https://rust-lang.github.io/rust-clippy/rust-1.98.0/index.html#type_complexity
+   = note: `-D clippy::type-complexity` implied by `-D warnings`
+   = help: to override `-D warnings` add `#[allow(clippy::type_complexity)]`
+
+error: could not compile `conduit-runtime-performance` (bin "conduit-runtime-performance") due to 3 previous errors
+warning: build failed, waiting for other jobs to finish...
+error: could not compile `conduit-runtime-performance` (bin "conduit-runtime-performance" test) due to 3 previous errors
+COMMAND ['cargo', '+stable', 'test', '-p', 'conduit-runtime-performance', '--features', 'hosted-pipeline', 'value_matrix']
+   Compiling conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+    Finished `test` profile [unoptimized + debuginfo] target(s) in 1.78s
+     Running unittests src/main.rs (target/debug/deps/conduit_runtime_performance-8c36837c5b147815)
+
+running 1 test
+test pipeline::value_matrix::tests::actual_value_reference_and_tape_preserve_work_and_keep_unsupported_profile_pairs_refused ... ok
+
+test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 24 filtered out; finished in 1.40s
+
+COMMAND ['cargo', '+stable', 'clippy', '-p', 'conduit-runtime-performance', '--features', 'hosted-pipeline', '--all-targets', '--', '-D', 'warnings']
+    Checking conduit-runtime-performance v0.1.0 (/home/dancxjo/conduit/proof/performance/runtime)
+    Finished `dev` profile [unoptimized + debuginfo] target(s) in 0.73s
+COMMAND ['cargo', '+stable', 'fmt', '--all', '--', '--check']

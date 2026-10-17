@@ -1,0 +1,2780 @@
+{
+  "verified_comparison_sha256": "bc5e0ae7032d55aed0401969b31b13decd0a7a2056b8a0eb4c7dea3fa55b3fbb",
+  "source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "workers": [
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-02",
+      "pid": 153622,
+      "start_time_ticks": 45164745,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    },
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-03",
+      "pid": 154511,
+      "start_time_ticks": 45175243,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    },
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-04",
+      "pid": 155372,
+      "start_time_ticks": 45185853,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    }
+  ],
+  "verified_distinct_actual_plays": 3681,
+  "verified_matching_workloads": 93,
+  "domain_and_value_process_comparisons": [
+    {
+      "case": "numerical-projection-control",
+      "mode": "certified-numerical-projections",
+      "process_samples_ns": [
+        [
+          224814916,
+          223759971,
+          226139180
+        ],
+        [
+          223525575,
+          223546496,
+          223842642
+        ],
+        [
+          224031640,
+          223785754,
+          223651720
+        ]
+      ],
+      "process_means_ns": [
+        224904689,
+        223638237.66666666,
+        223823038
+      ],
+      "mean_ns": 224121988.2222222,
+      "sample_sd_process_means_ns": 684107.573010624
+    },
+    {
+      "case": "theremin-pitch-control",
+      "mode": "canonical-theremin-control",
+      "process_samples_ns": [
+        [
+          78158087,
+          79458554,
+          79280075
+        ],
+        [
+          78379214,
+          81798235,
+          78440615
+        ],
+        [
+          78619927,
+          79723278,
+          78690080
+        ]
+      ],
+      "process_means_ns": [
+        78965572,
+        79539354.66666667,
+        79011095
+      ],
+      "mean_ns": 79172007.22222222,
+      "sample_sd_process_means_ns": 318945.44139578164
+    },
+    {
+      "case": "value-chain-1-value-reference",
+      "mode": "value-reference",
+      "process_samples_ns": [
+        [
+          10513601,
+          9991903,
+          9855230
+        ],
+        [
+          10327176,
+          9888411,
+          9644974
+        ],
+        [
+          10439463,
+          9931538,
+          9932615
+        ]
+      ],
+      "process_means_ns": [
+        10120244.666666666,
+        9953520.333333334,
+        10101205.333333334
+      ],
+      "mean_ns": 10058323.444444444,
+      "sample_sd_process_means_ns": 91260.03028363673
+    },
+    {
+      "case": "value-chain-1-value-scalar-specialized",
+      "mode": "value-scalar-specialized",
+      "process_samples_ns": [
+        [
+          12875392,
+          12888727,
+          12738756
+        ],
+        [
+          12773828,
+          12868687,
+          12743050
+        ],
+        [
+          12859955,
+          12905297,
+          12899459
+        ]
+      ],
+      "process_means_ns": [
+        12834291.666666666,
+        12795188.333333334,
+        12888237
+      ],
+      "mean_ns": 12839239.0,
+      "sample_sd_process_means_ns": 46721.201530401806
+    },
+    {
+      "case": "value-chain-32-value-reference",
+      "mode": "value-reference",
+      "process_samples_ns": [
+        [
+          58552179,
+          59925080,
+          60760379
+        ],
+        [
+          57831898,
+          57976893,
+          57939532
+        ],
+        [
+          57918082,
+          57949921,
+          58187784
+        ]
+      ],
+      "process_means_ns": [
+        59745879.333333336,
+        57916107.666666664,
+        58018595.666666664
+      ],
+      "mean_ns": 58560194.222222224,
+      "sample_sd_process_means_ns": 1028111.2948357934
+    },
+    {
+      "case": "value-chain-32-value-scalar-specialized",
+      "mode": "value-scalar-specialized",
+      "process_samples_ns": [
+        [
+          65088021,
+          65022161,
+          63783034
+        ],
+        [
+          62986231,
+          63336710,
+          63249577
+        ],
+        [
+          63249720,
+          63515165,
+          63582062
+        ]
+      ],
+      "process_means_ns": [
+        64631072,
+        63190839.333333336,
+        63448982.333333336
+      ],
+      "mean_ns": 63756964.55555556,
+      "sample_sd_process_means_ns": 767924.0329857804
+    },
+    {
+      "case": "value-chain-8-value-reference",
+      "mode": "value-reference",
+      "process_samples_ns": [
+        [
+          17985876,
+          17697368,
+          18125425
+        ],
+        [
+          18004849,
+          18037256,
+          18046703
+        ],
+        [
+          18209654,
+          18185389,
+          17832570
+        ]
+      ],
+      "process_means_ns": [
+        17936223,
+        18029602.666666668,
+        18075871
+      ],
+      "mean_ns": 18013898.888888888,
+      "sample_sd_process_means_ns": 71136.11918969428
+    },
+    {
+      "case": "value-chain-8-value-scalar-specialized",
+      "mode": "value-scalar-specialized",
+      "process_samples_ns": [
+        [
+          21211735,
+          21260316,
+          21294498
+        ],
+        [
+          20846797,
+          20834038,
+          21105071
+        ],
+        [
+          21441927,
+          21350458,
+          21272479
+        ]
+      ],
+      "process_means_ns": [
+        21255516.333333332,
+        20928635.333333332,
+        21354954.666666668
+      ],
+      "mean_ns": 21179702.111111112,
+      "sample_sd_process_means_ns": 223042.35183438874
+    }
+  ],
+  "copy_extent_source_sha256": {
+    "targets/std/src/installed_std.rs": "4a0043c44a1dd757292f09049c984e7dbab963644337edce661c6daadb76252d",
+    "targets/std/src/installed_std/value_fore_outputs.rs": "a9e5b3146f0e98b0138377062e6ab3143a5d44644385ce24074221088fb7b72a",
+    "architecture/kernel/src/scheduler/remote_fanout.rs": "ab265e60b255b2fd4014522914503e534df4d93b3e0fc7ef90a75b76a6ade02d",
+    "architecture/kernel/src/scheduler/fanout_value.rs": "77bdfb93ef28faf992d6fb76e5fc37790ec272ba6d5cd5282a63d59838e833eb",
+    "architecture/kernel/src/hosted.rs": "0df9b21b3c83070052555f9a3d1ea396d7d5b6d2ce35872fe6b5d078a7c129dd"
+  },
+  "source_bound_copy_extents": [
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-1-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-8-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "pure-chain-32-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 0,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 0,
+      "case": "theremin-pitch-control",
+      "repetition": 0,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 0,
+      "case": "theremin-pitch-control",
+      "repetition": 1,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 0,
+      "case": "theremin-pitch-control",
+      "repetition": 2,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 0,
+      "case": "numerical-projection-control",
+      "repetition": 0,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 0,
+      "case": "numerical-projection-control",
+      "repetition": 1,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 0,
+      "case": "numerical-projection-control",
+      "repetition": 2,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 0,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-1-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-8-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "pure-chain-32-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 1,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 1,
+      "case": "theremin-pitch-control",
+      "repetition": 0,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 1,
+      "case": "theremin-pitch-control",
+      "repetition": 1,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 1,
+      "case": "theremin-pitch-control",
+      "repetition": 2,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 1,
+      "case": "numerical-projection-control",
+      "repetition": 0,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 1,
+      "case": "numerical-projection-control",
+      "repetition": 1,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 1,
+      "case": "numerical-projection-control",
+      "repetition": 2,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 1,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-1-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-8-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "hosted-pipeline-32-gears-32-adds",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-1-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-8-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-fused",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-fused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-local-unfused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "pure-chain-32-fused",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch1-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q4-batch8-bytes8-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 32768,
+      "report_delivery_bytes": 32768,
+      "derived_explicit_boundary_copy_extent_bytes": 73728
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes32-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 32768,
+      "adapter_delivery_bytes": 131072,
+      "report_delivery_bytes": 131072,
+      "derived_explicit_boundary_copy_extent_bytes": 294912
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 0,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 1,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 2,
+      "case": "stream-4-branches-chain0-q1-batch8-bytes256-slow20",
+      "repetition": 2,
+      "ingress_store_bytes": 262144,
+      "adapter_delivery_bytes": 1048576,
+      "report_delivery_bytes": 1048576,
+      "derived_explicit_boundary_copy_extent_bytes": 2359296
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain8-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 0,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 1,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "stream-1-branches-chain32-q1-batch8-bytes8-slow0",
+      "repetition": 2,
+      "ingress_store_bytes": 8192,
+      "adapter_delivery_bytes": 8192,
+      "report_delivery_bytes": 8192,
+      "derived_explicit_boundary_copy_extent_bytes": 24576
+    },
+    {
+      "capture": 2,
+      "case": "theremin-pitch-control",
+      "repetition": 0,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 2,
+      "case": "theremin-pitch-control",
+      "repetition": 1,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 2,
+      "case": "theremin-pitch-control",
+      "repetition": 2,
+      "ingress_store_bytes": 806912,
+      "adapter_delivery_bytes": 806912,
+      "report_delivery_bytes": 806912,
+      "derived_explicit_boundary_copy_extent_bytes": 2420736
+    },
+    {
+      "capture": 2,
+      "case": "numerical-projection-control",
+      "repetition": 0,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 2,
+      "case": "numerical-projection-control",
+      "repetition": 1,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 2,
+      "case": "numerical-projection-control",
+      "repetition": 2,
+      "ingress_store_bytes": 0,
+      "adapter_delivery_bytes": 2768,
+      "report_delivery_bytes": 2768,
+      "derived_explicit_boundary_copy_extent_bytes": 5536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-1-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-8-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-reference",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 0,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-reference",
+      "repetition": 1,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-reference",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    },
+    {
+      "capture": 2,
+      "case": "value-chain-32-value-scalar-specialized",
+      "repetition": 2,
+      "ingress_store_bytes": 512,
+      "adapter_delivery_bytes": 512,
+      "report_delivery_bytes": 512,
+      "derived_explicit_boundary_copy_extent_bytes": 1536
+    }
+  ],
+  "copy_scope": "Derived source-level explicit successful ingress-store plus two acknowledged-output owned-buffer payload copies; fan-out shares the admitted input value. Full attempts copy no ingress payload. Not a hardware/total-copy counter: intermediate computation, codec/metadata/Sign/compiler and harness copies remain outside this boundary. No zero-copy claim.",
+  "limits": "Three live-observed worker processes with identical executable SHA, CPU 4 affinity, exact source/config/output parity; descriptive process-mean SD, uncontrolled frequency/thermal/background load, no calibrated regression threshold."
+}

@@ -132,7 +132,7 @@ fn run() -> Result<(), Box<dyn Error>> {
             "repeated_batches":repetition::summarize(&summaries),
             "confidence":"descriptive sample standard deviation across repeated batches; raw repeated batches and per-event percentiles; no certified independent-run confidence interval or speedup claim; repeatability gate remains open",
             "scope":if config.hosted_pipeline {
-                "production evaluator/typed-cost/pool-selection isolation plus ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials and 1024-item bounded overlapping arithmetic/text fan-out streams; retained preparation/Play phases, synchronous slow-sink acknowledgement, queue/batch and observed fairness; DSP/numeric projections, four-mode matrix, expanded independent-process repeatability and browser gate remain required by #5395"
+                "production evaluator/typed-cost/pool-selection isolation plus ordinary checked Plot/Plan/std Back/kernel 1/8/32-Gear trials and 1024-item bounded overlapping arithmetic/text fan-out streams; retained preparation/Play phases, synchronous slow-sink acknowledgement, queue/batch and observed fairness; canonical Theremin control, certified rational/binary64 projections and eligible Value reference/scalar-tape pairs with explicit unsupported-combination refusals; expanded independent-process repeatability, copy accounting and final browser gate/report remain required by #5395"
             } else {
                 "production prepared expression evaluator and production shared-pool and typed-cost selection isolation; full ordinary Plan/Play/DSP/pressure/browser matrix remains required by #5395"
             }
