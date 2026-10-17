@@ -409,6 +409,13 @@ fn indexed_completion_admission_preserves_exact_refusals_with_a_large_table() {
                 .unwrap()
                 .completion
                 .is_none());
+            scheduler.scan_counts.set(Default::default());
+            assert_eq!(
+                scheduler.complete_host_call(NodeId(0), RequestId(21), outcome),
+                Err(SchedulerError::HostCallCompletionRejected)
+            );
+            assert_eq!(scheduler.scan_counts.get().completion_pending_slots, 1);
+            assert_eq!(scheduler.signs.entries, signs);
             let request = scheduler.next_host_request().unwrap();
             scheduler.scan_counts.set(Default::default());
             assert_eq!(
