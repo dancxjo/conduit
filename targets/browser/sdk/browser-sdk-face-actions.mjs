@@ -2,6 +2,16 @@
 // availability and the exact current action. WASM validates the bytes again.
 const encoder = new TextEncoder();
 
+export function checkedAcknowledgedOwnerFaceArguments(acknowledged, view, actionId, target, supplied) {
+  if (acknowledged?.show_state !== 'available' || acknowledged.interactions_admitted !== true
+    || view?.show_state !== 'available' || view.interactions_admitted !== true
+    || ['body_id', 'show_id', 'face_id', 'face_revision'].some(key => view[key] !== acknowledged[key])) {
+    throw new Error('Current acknowledged owner Show is required for interaction.');
+  }
+  // Caller-owned view objects cannot replace the acknowledged input contract.
+  return checkedOwnerFaceArguments(acknowledged, actionId, target, supplied);
+}
+
 export function checkedOwnerFaceArguments(view, actionId, target, supplied) {
   const action = view?.actions?.find(candidate => candidate.identity === actionId);
   if (!action || action.target !== target || action.availability !== 'available'
