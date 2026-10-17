@@ -12,28 +12,53 @@ pub(super) fn optimize_runtime(
     source: &Path,
     destination: &Path,
 ) -> Result<(), Box<dyn std::error::Error>> {
+    let linked_bytes = fs::metadata(source)?.len();
     super::require_success(
         Command::new("wasm-opt").arg("--version"),
         "identify Binaryen browser optimizer (install wasm-opt if missing)",
     )?;
-    super::require_success(
-        Command::new("wasm-opt")
-            .args(["-Oz", "--enable-bulk-memory", "--enable-sign-ext"])
-            .arg(source)
-            .arg("-o")
-            .arg(destination)
-            .env("BINARYEN_CORES", "2"),
-        "optimize browser Host release",
-    )?;
-    let bytes = fs::metadata(destination)?.len();
-    if bytes == 0 || bytes > MAXIMUM_FILE_BYTES {
+    // Stage beside the destination so validated publication is one rename.
+    // A failed optimizer or validation leaves the previous package untouched.
+    let staged = destination.with_extension(format!("{}.optimized.wasm", std::process::id()));
+    fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&staged)?;
+    let result = (|| {
+        super::require_success(
+            Command::new("wasm-opt")
+                .args(["-Oz", "--enable-bulk-memory", "--enable-sign-ext"])
+                .arg(source)
+                .arg("-o")
+                .arg(&staged)
+                .env("BINARYEN_CORES", "2"),
+            "optimize browser Host release",
+        )?;
+        let bytes = publish_runtime(&staged, destination)?;
+        println!("Browser runtime: {linked_bytes} linked bytes -> {bytes} optimized bytes");
+        Ok(())
+    })();
+    if staged.exists() {
+        fs::remove_file(&staged)?;
+    }
+    result
+}
+
+fn publish_runtime(staged: &Path, destination: &Path) -> Result<u64, Box<dyn std::error::Error>> {
+    use std::io::Read;
+    // Match the browser SDK, bootstrap and installed Host admission ceiling.
+    const MAXIMUM_RUNTIME_BYTES: u64 = 20 * 1024 * 1024;
+    let bytes = fs::metadata(staged)?.len();
+    if !(8..=MAXIMUM_RUNTIME_BYTES).contains(&bytes) {
         return Err("optimized browser runtime violates its finite file bound".into());
     }
-    println!(
-        "Browser runtime: {} linked bytes -> {bytes} optimized bytes",
-        fs::metadata(source)?.len()
-    );
-    Ok(())
+    let mut header = [0; 8];
+    fs::File::open(staged)?.read_exact(&mut header)?;
+    if header != *b"\0asm\x01\0\0\0" {
+        return Err("optimized browser runtime is not a WebAssembly module".into());
+    }
+    fs::rename(staged, destination)?;
+    Ok(bytes)
 }
 
 #[derive(Serialize)]
@@ -152,4 +177,57 @@ const fn module(
     dependencies: &'static [&'static str],
 ) -> ReviewedBrowserModule<'static> {
     ReviewedBrowserModule { path, dependencies }
+}
+
+#[cfg(test)]
+mod runtime_publication_tests {
+    use super::*;
+
+    #[test]
+    fn publication_matches_browser_bound_and_preserves_previous_bytes_on_refusal() {
+        let root = std::env::temp_dir().join(format!(
+            "conduit-runtime-publication-{}",
+            std::process::id()
+        ));
+        fs::create_dir(&root).unwrap();
+        let staged = root.join("optimized.wasm");
+        let destination = root.join("runtime.wasm");
+        let original = b"previous packaged runtime";
+        fs::write(&destination, original).unwrap();
+        for bytes in [
+            b"".as_slice(),
+            b"\0asm".as_slice(),
+            b"not wasm".as_slice(),
+            b"\0asm\x02\0\0\0".as_slice(),
+        ] {
+            fs::write(&staged, bytes).unwrap();
+            assert!(publish_runtime(&staged, &destination).is_err());
+            assert_eq!(fs::read(&destination).unwrap(), original);
+        }
+        fs::write(&staged, b"\0asm\x01\0\0\0").unwrap();
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&staged)
+            .unwrap()
+            .set_len(20 * 1024 * 1024 + 1)
+            .unwrap();
+        assert!(publish_runtime(&staged, &destination).is_err());
+        assert_eq!(fs::read(&destination).unwrap(), original);
+        // Exact consumer ceiling is admitted, then a second publication replaces it.
+        fs::OpenOptions::new()
+            .write(true)
+            .open(&staged)
+            .unwrap()
+            .set_len(20 * 1024 * 1024)
+            .unwrap();
+        assert_eq!(
+            publish_runtime(&staged, &destination).unwrap(),
+            20 * 1024 * 1024
+        );
+        assert!(!staged.exists());
+        fs::write(&staged, b"\0asm\x01\0\0\0").unwrap();
+        assert_eq!(publish_runtime(&staged, &destination).unwrap(), 8);
+        assert_eq!(fs::read(&destination).unwrap(), b"\0asm\x01\0\0\0");
+        fs::remove_dir_all(root).unwrap();
+    }
 }
