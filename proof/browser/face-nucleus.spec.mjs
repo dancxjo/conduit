@@ -262,3 +262,26 @@ for (const sameRevision of [false, true]) {
       queued: globalThis.manifestProof.current.queuedEvents() }))).toEqual({ calls: ['fixture.activate'], queued: 1 });
   });
 }
+
+for (const input of ['keyboard', 'pointer']) {
+  test(`nested generic action bindings emit only the nearest action (${input})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); root.id = 'nested-action-proof'; document.body.append(root);
+      globalThis.nestedActions = [];
+      globalThis.nestedManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'fixture.panel', event: 'activate' }, { id: 'fixture.button', event: 'activate' }], nodes: [
+          { parent: null, component: 'panel', key: 'parent', text: 'Panel action', action: 0 },
+          { parent: 0, component: 'button', key: 'child', text: 'Run choice', action: 1 },
+          { parent: 1, component: 'code', key: 'decoration', text: 'Decorative', action: null },
+        ] }), root, { onEvent: event => globalThis.nestedActions.push(event.action) });
+    });
+    if (input === 'keyboard') {
+      await page.getByRole('button', { name: 'Run choiceDecorative', exact: true }).focus();
+      await page.keyboard.press('Enter');
+    } else await page.locator('#nested-action-proof code').click();
+    expect(await page.evaluate(() => ({ actions: globalThis.nestedActions, queued: globalThis.nestedManifest.queuedEvents() })))
+      .toEqual({ actions: ['fixture.button'], queued: 1 });
+  });
+}

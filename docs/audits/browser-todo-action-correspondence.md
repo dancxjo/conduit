@@ -591,3 +591,16 @@ all four failures report `failed: browser runtime WASM artifact loads` before
 their assertions, so full runtime/Look/focus acceptance remains unproven. No
 rebuild or test weakening was performed. This renderer fence does not certify
 Body state, disconnected/reinserted surfaces or arbitrary CSS accessibility.
+
+Nested generic action follow-up (#5644): a DOM event routes only to the nearest
+manifested binding for that event type along its composed path. Bubbling into
+an ancestor binding cannot enqueue a second semantic action; ordinary browser
+propagation is preserved. Decorative descendants still activate their button.
+
+Native Enter and pointer-on-decoration fixtures both reproduced a child action
+plus an unwanted parent action before the repair. An initial keyboard locator
+used an incorrect space in the accessible name; the corrected fixture reproduced
+the duplicate before the production change. All four targeted pinned Chromium
+fixtures pass with one worker and zero retries, including both prior stale
+manifestation cases. The missing local WASM limitation from the prior full run
+remains; these renderer queues do not establish authoritative Body mutation.

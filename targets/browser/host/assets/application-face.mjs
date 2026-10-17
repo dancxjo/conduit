@@ -368,6 +368,7 @@ export function manifestApplicationView(input, root, options = {}) {
   let lastRefusal = null;
   const fragment = document.createDocumentFragment();
   const elements = [];
+  const actionEvents = new WeakMap();
   const nodesByKey = new Map();
   const requestAction = (node, value = "") => {
     if (activeManifestations.get(root) !== render) {
@@ -511,7 +512,11 @@ export function manifestApplicationView(input, root, options = {}) {
     if (node.action !== null) {
       const action = view.actions[node.action];
       element.dataset.applicationAction = action.id;
+      actionEvents.set(element, action.event);
       element.addEventListener(action.event, (browserEvent) => {
+        // A child binding owns its event; bubbling must not invent a second
+        // semantic action on an ancestor. Decorative descendants still route here.
+        if (browserEvent.composedPath().find(node => actionEvents.get(node) === browserEvent.type) !== element) return;
         requestAction(node, eventValue(browserEvent));
       });
     }
