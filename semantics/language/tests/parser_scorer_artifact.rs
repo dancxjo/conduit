@@ -93,6 +93,7 @@ fn pinned_artifact_ranks_heldout_actions_with_existing_numeric_owner() {
     let cases: Vec<Value> =
         serde_json::from_str(include_str!("../training/ewt_joint_v2/ranking_cases.json")).unwrap();
     let mut counts = [[0u64; 2]; 2];
+    let mut failures = Vec::new();
     let mut invocations = 0u64;
     let mut elapsed_ns = 0u128;
     let mut maximum_ns = 0u128;
@@ -122,6 +123,9 @@ fn pinned_artifact_ranks_heldout_actions_with_existing_numeric_owner() {
         }
         let (_, class, indices) = best.unwrap();
         let slot = usize::from(case["split"] == "test");
+        if class as u64 != case["target"].as_u64().unwrap() || json!(indices) != case["features"] {
+            failures.push(json!({"sentence":case["sentence"], "split":case["split"], "expected_class":case["target"], "selected_class":class, "gold_features":case["features"], "selected_features":indices}));
+        }
         counts[slot][1] += 1;
         counts[slot][0] += u64::from(
             class as u64 == case["target"].as_u64().unwrap() && json!(indices) == case["features"],
@@ -141,7 +145,7 @@ fn pinned_artifact_ranks_heldout_actions_with_existing_numeric_owner() {
     });
     println!(
         "{}",
-        json!({"proof":"gold-state joint action ranking; no blind parse", "counts":counts, "model_invocations":invocations,"numeric_total_ns":elapsed_ns,"numeric_max_ns":maximum_ns,"model_bytes":BYTES.len(),"numeric_working_bytes":model.working_bytes(),"caller_input_bytes":200,"caller_output_bytes":608,"whole_process_memory_ceiling":false,"process_memory_observation":memory})
+        json!({"proof":"gold-state joint action ranking; no blind parse", "counts":counts,"failures":failures, "model_invocations":invocations,"numeric_total_ns":elapsed_ns,"numeric_max_ns":maximum_ns,"model_bytes":BYTES.len(),"numeric_working_bytes":model.working_bytes(),"caller_input_bytes":200,"caller_output_bytes":608,"whole_process_memory_ceiling":false,"process_memory_observation":memory})
     );
 }
 #[test]
