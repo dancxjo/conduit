@@ -844,3 +844,12 @@ focused Rust tests pass with --no-default-features and all 16 Node codec tests
 pass, covering signed node/port/cord counts at both boundaries. Rust formatting
 passes. This proves codec syntax agreement, not full cross-Mask topology, actual
 Body/Play or rebuilt/released browser acceptance.
+
+Long graph wording follow-up (#5518): the existing shortened-label budget no
+longer leaves a trailing unpaired high surrogate when an emoji crosses its cut.
+Visible text remains scalar Unicode; the complete title and accessible name
+retain the exact label, and selection still returns its exact subject identity.
+The new Chromium fixture reproduced the split surrogate before repair. All five
+pinned graph fixtures pass with one worker and zero retries, including native
+activation of the long-label subject. This is not full grapheme typography or
+cross-Mask/Body acceptance.
