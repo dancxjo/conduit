@@ -27,3 +27,24 @@ test('view encoding refuses surrogate replacement and implicit text coercion', (
       { code: 'malformed-encoding' });
   }
 });
+
+test('view collection admission refuses before iterating overcapacity input', () => {
+  for (const [field, count, code] of [['nodes', 129, 'too-many-nodes'], ['actions', 33, 'too-many-actions']]) {
+    const source = description();
+    source[field] = Array(count);
+    source[field][Symbol.iterator] = () => assert.fail('overcapacity collection must not be iterated');
+    assert.throws(() => encodeApplicationView(source), { code });
+  }
+  const empty = description(); empty.nodes = [];
+  empty.actions[Symbol.iterator] = () => assert.fail('empty view must refuse before action processing');
+  assert.throws(() => encodeApplicationView(empty), { code: 'empty' });
+});
+
+test('view codec accepts the exact node and action inventory ceilings', () => {
+  const nodes = [{ parent: null, component: 'shell', key: 'root', text: '', action: null },
+    ...Array.from({ length: 127 }, (_, index) => ({ parent: 0, component: 'paragraph', key: `node-${index}`, text: 'bounded', action: null }))];
+  const actions = Array.from({ length: 32 }, (_, index) => ({ id: `fixture.action-${index}`, event: 'activate' }));
+  const decoded = decodeApplicationView(encodeApplicationView({ revision: 1, nodes, actions }));
+  assert.equal(decoded.nodes.length, 128);
+  assert.equal(decoded.actions.length, 32);
+});

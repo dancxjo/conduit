@@ -206,6 +206,9 @@ export function decodeApplicationView(input) {
 export function encodeApplicationView(view) {
   if (!view || !Number.isSafeInteger(view.revision) || view.revision < 0 || view.revision > 0xffff_ffff) refuse("malformed-encoding");
   if (!Array.isArray(view.nodes) || !Array.isArray(view.actions)) refuse("malformed-encoding");
+  if (view.nodes.length === 0) refuse("empty");
+  if (view.nodes.length > MAX_NODES) refuse("too-many-nodes");
+  if (view.actions.length > MAX_ACTIONS) refuse("too-many-actions");
   const chunks = [];
   const push = (...bytes) => chunks.push(Uint8Array.of(...bytes));
   const header = new Uint8Array(7);

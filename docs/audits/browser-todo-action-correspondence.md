@@ -672,3 +672,15 @@ The codec check is registered in the browser xtask check suite; Rust formatting
 passes. No fresh xtask/runtime build was run, and the prior missing local WASM
 limit remains. These are codec/renderer proofs, not authoritative Body or public
 release acceptance.
+
+Generic codec inventory follow-up (#5653): encode admission enforces the same
+nonempty view, 128-node and 32-action bounds as decode before iterating entries
+or constructing chunks. Collection sizes cannot first truncate into the byte
+header and defer refusal until after oversized processing.
+
+The overcapacity regression reproduced iteration before admission; all four
+Node codec tests pass, including exact 128-node/32-action round-trip acceptance
+and early empty/overcapacity refusal. The already registered browser xtask
+codec check covers these cases. No browser/runtime rebuild was needed for this
+codec-only change. Real compiler/admitted Play and full #5653 acceptance remain
+open; the prior missing local WASM limitation is unchanged.
