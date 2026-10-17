@@ -204,3 +204,47 @@ interrupted refresh, submit that exact value through the current Show using
 trusted keyboard input, and verify empty fields after dispatch. SDK carrier
 remains a fixture; actual Body receipts, full focus continuity and packaged/public
 acceptance remain separate.
+
+Prepared-Show focus continuity (#5631): disabling a focused owner control now
+retains its exact local focus key before the browser blurs it. Preparation can
+carry that key until an enabled, visible control with the same Body/action/target
+identity exists. Disconnect clears it; changed/removed/unavailable controls do
+not inherit it. Focus on an external control cancels restoration, and focus
+restoration does not invoke an action or confer permission.
+
+The real Handbook orchestration fixture reproduced lost button focus after a
+trusted keyboard submission. All thirty-seven component Chromium tests pass with
+one worker and zero retries; the three Handbook cases now assert focus on the
+new current button. A strengthened focused negative fixture also passes when the
+user moves focus outside during preparation, alongside changed-target refusal.
+This remains renderer/orchestration evidence with a fixture SDK, not full
+assistive-technology enactment or actual Body/packaged acceptance.
+
+Text selection continuity (#5631): local focus state now includes the input's
+text, selection start/end and direction. Restore that range only when the exact
+current control still contains the same text and supports native selection;
+changed/cleared drafts do not inherit a stale range. The same state crosses
+temporary disabling/prepared Shows, and disconnect clears it after disabling.
+This remains local editing state, with no action callback or additional authority.
+
+The backward-selection regression reproduced a jump to the end before repair.
+All thirty-seven component Chromium tests pass with one worker and zero retries.
+The strengthened focused selection/external-focus cases also pass, using trusted
+keyboard selection, replacement typing and Backspace to verify the preserved
+range through direct and prepared Show refreshes without invoking an action.
+Renderer fixtures do not establish actual Body or packaged/public acceptance.
+
+Collection semantic completeness (#5367): the specialized collection layout now
+falls back to generic subjects when collection/item named values or properties,
+or item explanatory text, would be omitted by its simplified rows. A count
+Status is folded only when it has no additional facts or targeted actions.
+Generic rendering preserves those authored values, facts and action routes;
+plain Todo collections retain their existing projection and counts.
+
+All three semantic-loss cases reproduced before repair. All forty component
+Chromium tests pass with one worker and zero retries, including visible named
+values, explanatory text, native disclosure of exact facts and trusted keyboard
+action invocation for enriched collection/item/status subjects. Four Handbook
+unit tests pass, including positive simple count projection and preservation of
+an actionable count Status. These are renderer/projector fixtures, not complete
+Face grammar coverage, real Body state or packaged/public acceptance.

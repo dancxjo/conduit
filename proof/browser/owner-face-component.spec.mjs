@@ -387,12 +387,35 @@ for (const control of ['submit', 'argument']) {
     const focused = control === 'submit'
       ? element.getByRole('button', { name: 'Complete task', exact: true })
       : element.getByRole('textbox', { name: 'Text', exact: true });
+    if (control === 'argument') await focused.fill('abcdef');
     await focused.focus();
+    if (control === 'argument') {
+      await page.keyboard.press('Home');
+      await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('ArrowRight'); await page.keyboard.press('ArrowRight');
+      await page.keyboard.press('Shift+ArrowLeft'); await page.keyboard.press('Shift+ArrowLeft');
+    }
     const next = { ...withInput, face_revision: 2, show_id: 'fixture/refreshed' };
     await element.evaluate((node, view) => node.show(view, {
       invoke: async call => { globalThis.calls.push(call); },
     }), next);
     await expect(focused).toBeFocused();
+    if (control === 'argument') {
+      expect(await focused.evaluate(node => [node.selectionStart, node.selectionEnd, node.selectionDirection]))
+        .toEqual([2, 4, 'backward']);
+      await page.keyboard.type('X');
+      await expect(focused).toHaveValue('abXef');
+      await page.keyboard.press('Shift+ArrowLeft');
+      await element.evaluate((node, view) => {
+        node.disabled = true;
+        node.show({ ...view, show_state: 'prepared', interactions_admitted: false }, { invoke: async () => {} });
+        node.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+      }, next);
+      expect(await focused.evaluate(node => [node.selectionStart, node.selectionEnd, node.selectionDirection]))
+        .toEqual([2, 3, 'backward']);
+      await page.keyboard.press('Backspace');
+      await expect(focused).toHaveValue('abef');
+    }
     expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
     await element.evaluate((node, view) => node.show({ ...view, actions: [{
       ...view.actions[0], availability: 'unavailable',
@@ -420,6 +443,11 @@ test('Face refresh neither transfers focus to a different target nor steals exte
   await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
   await expect(control).not.toBeFocused();
   const outside = page.getByRole('button', { name: 'Outside', exact: true });
+  await control.focus();
+  await element.evaluate((node, view) => {
+    node.disabled = true;
+    node.show({ ...view, show_state: 'prepared', interactions_admitted: false }, { invoke: async () => {} });
+  }, changed);
   await outside.focus();
   await element.evaluate((node, view) => node.show(view, { invoke: async () => {} }), changed);
   await expect(outside).toBeFocused();
@@ -697,6 +725,7 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   await expect(owner).toHaveAttribute('data-face-revision', String(Number(currentRevision) + 1));
   await expect(draft).toHaveValue('');
   await expect(button).toBeEnabled();
+  await expect(button).toBeFocused();
   expect(await page.evaluate(() => globalThis.calls[0])).toMatchObject({
     view: { show_id: `fixture/show/${currentRevision}`, face_revision: currentRevision },
     actionId: view.actions[0].identity, target: view.actions[0].target, arguments: [{ name: 'draft', value: 'é draft' }], sequence: 1,
@@ -769,5 +798,40 @@ for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-argument
     await expect(action).toBeEnabled();
     await action.focus(); await page.keyboard.press('Enter');
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
+  });
+}
+
+for (const enriched of ['collection', 'item', 'status']) {
+  test(`collection layout preserves additional ${enriched} semantics`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const subject = (identity, name, role) => ({ identity, name, role, disclosure: 'Primary', text: [], properties: [], values: [] });
+    const collection = subject('fixture/list', 'Tasks', 'Collection');
+    const item = { ...subject('fixture/item', 'Read', 'Item'), flags: [{ name: 'complete', value: false }] };
+    const status = { ...subject('fixture/status', 'Progress', 'Status'), text: ['1 thing left · 0 completed'] };
+    const extra = { collection, item, status }[enriched];
+    extra.properties = ['Important authored fact'];
+    extra.values = [{ name: 'Priority', text: 'Urgent' }];
+    if (enriched !== 'status') extra.text = ['Additional explanation'];
+    const currentView = { ...view, subjects: [collection, item, status],
+      relationships: [item, status].map(subject => ({ kind: 'Contains', source: collection.identity, target: subject.identity })),
+      actions: [{ ...view.actions[0], target: item.identity }],
+    };
+    await page.evaluate(async view => {
+      const { projectFaceCollections } = await import('/targets/browser/handbook/owner-participation.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { projectCollections: projectFaceCollections,
+        invoke: async call => { globalThis.calls.push(call); } });
+    }, currentView);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('term')).toHaveText('Priority');
+    await expect(element.getByRole('definition')).toHaveText('Urgent');
+    if (enriched !== 'status') await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
+    await element.getByText('Exact facts', { exact: true }).click();
+    await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
+    const action = element.getByRole('button', { name: /^Complete task/ });
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
+      action: currentView.actions[0], arguments: [] }]);
   });
 }

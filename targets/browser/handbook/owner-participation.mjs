@@ -9,15 +9,17 @@ export function projectFaceCollections(view) {
   const subjects = new Map((view.subjects ?? []).map(subject => [subject.identity, subject]));
   const collections = [];
   const placed = new Set();
+  const hasExtraFacts = subject => Boolean(subject.properties?.length || subject.values?.length);
   for (const collection of view.subjects ?? []) {
-    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)) continue;
+    if (collection.role !== 'Collection' || !['Primary', 'Context'].includes(collection.disclosure)
+      || hasExtraFacts(collection)) continue;
     const items = (view.relationships ?? [])
       .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
       .map(relation => subjects.get(relation.target))
       .filter(item => item?.role === 'Item');
     if (items.some(item => {
-      const complete = item.flags?.filter(flag => flag.name === 'complete');
-      return complete?.length !== 1 || typeof complete[0].value !== 'boolean'
+      const complete = Array.isArray(item.flags) ? item.flags.filter(flag => flag?.name === 'complete') : [];
+      return hasExtraFacts(item) || item.text?.length || complete.length !== 1 || typeof complete[0].value !== 'boolean'
         || item.disclosure !== (complete[0].value ? 'SelectedDetail' : 'Primary');
     })) continue;
     const open = items.filter(item => !item.flags.find(flag => flag.name === 'complete').value);
@@ -29,7 +31,8 @@ export function projectFaceCollections(view) {
       .filter(relation => relation.kind === 'Contains' && relation.source === collection.identity)
       .map(relation => subjects.get(relation.target))
       .find(subject => subject?.role === 'Status' && subject.text?.length === 1
-        && subject.text[0] === count);
+        && subject.text[0] === count && !hasExtraFacts(subject)
+        && !(view.actions ?? []).some(action => action.target === subject.identity));
     collections.push({ collection, open, completed, count });
     placed.add(collection.identity);
     for (const item of items) placed.add(item.identity);
