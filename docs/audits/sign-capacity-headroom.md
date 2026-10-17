@@ -91,3 +91,21 @@ because this change extracts a module. Actual parser-selection before/after
 execution remains necessary to quantify how much of that CI test this removes.
 This does not close #5231: its large/sparse graphs, pending-call stress, fairness,
 timing profiles, FARGAN and full-Host performance obligations remain open.
+
+## Occupied-prefix query follow-up
+
+Event iteration and remote-identity lookup now restrict their input slices to
+`len` and `remote_len` respectively, for both fixed and hosted logs. Storage
+remains admitted in advance. Append writes exactly at the occupied extent and
+transient eviction compacts that prefix, so empty allocated tail slots carry
+no additional history. This also bounds the pressured admission fallback by
+occupied history rather than allocated capacity.
+
+A deterministic integration regression failed on the preceding implementation:
+an empty 128-slot log's iterator upper bound was 128. It is now zero, and grows
+with occupancy. The fixture checks every prefix through saturation and one
+transient eviction, including exact event ordering, retention gap, missing-kind
+queries and retained/missing remote identities, in both storage profiles.
+Current local kernel tests with `alloc` and strict all-target Clippy pass.
+This is a traversal-bound result; no new wall-clock speedup is claimed, and the
+historical timing table above remains tied to its original source artifacts.

@@ -782,7 +782,10 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
     }
 
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
-        self.entries.iter().copied().flatten()
+        self.entries[..usize::from(self.len)]
+            .iter()
+            .copied()
+            .flatten()
     }
 
     pub fn remote_item_capacity(&self) -> u16 {
@@ -957,7 +960,7 @@ impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
     }
 
     fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity> {
-        self.remote_entries
+        self.remote_entries[..usize::from(self.remote_len)]
             .iter()
             .copied()
             .flatten()
@@ -1033,7 +1036,10 @@ impl HostedSignLog {
     }
 
     pub fn events(&self) -> impl Iterator<Item = KernelEvent> + '_ {
-        self.entries.iter().copied().flatten()
+        self.entries[..usize::from(self.len)]
+            .iter()
+            .copied()
+            .flatten()
     }
 
     pub fn allocation_capacity(&self) -> usize {
@@ -1198,7 +1204,7 @@ impl SignQuery for HostedSignLog {
     }
 
     fn remote_identity(&self, event_sequence: u32) -> Option<RemoteLifecycleIdentity> {
-        self.remote_entries
+        self.remote_entries[..usize::from(self.remote_len)]
             .iter()
             .copied()
             .flatten()
