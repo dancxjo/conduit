@@ -126,6 +126,55 @@ fn omitted_or_foreign_tape_bounds_refuse_before_output() {
 }
 
 #[test]
+fn actual_std_boolean_matrix_preserves_reference_outcomes_without_play_allocations() {
+    let source = include_str!(
+        "../../../../../architecture/plot/tests/fixtures/expression_boolean_baseline.conduit"
+    );
+    for operations in [1, 3, 8, 32] {
+        for value in [0u8, 1] {
+            let mut outcomes = Vec::new();
+            for tape in [false, true] {
+                let (mut host, plan, _) = prepare(source, &format!("boolean-{operations}"), tape);
+                let mut output = Outputs(Vec::with_capacity(1));
+                let report = host
+                    .run_external_plot_to(
+                        plan.fragments[0].clone(),
+                        &[ExternalForeInput {
+                            front_port_id: "value".into(),
+                            track: ConnectionTrack::Payload,
+                            bytes: vec![value],
+                        }],
+                        &mut output,
+                        &mut Vec::new(),
+                        &mut NoTimer,
+                    )
+                    .unwrap();
+                assert_eq!(output.0, [vec![value]]);
+                let kernel = report.kernel.unwrap();
+                assert_eq!(kernel.post_play_start_allocations, 0);
+                assert_eq!(
+                    kernel.value_allocation_capacity_before,
+                    kernel.value_allocation_capacity_after
+                );
+                outcomes.push((
+                    plan.source_document_id,
+                    plan.checked_plot_id,
+                    plan.expanded_plot_id,
+                    output.0,
+                    report.observations.last().unwrap().kind.clone(),
+                    kernel
+                        .kernel_sign
+                        .iter()
+                        .map(|s| s.kind)
+                        .collect::<Vec<_>>(),
+                ));
+            }
+            assert_eq!(outcomes[0], outcomes[1]);
+        }
+    }
+}
+
+#[test]
 fn tape_offer_refuses_unsupported_temporal_and_semantic_profiles() {
     let source =
         include_str!("../../../../../architecture/plot/tests/fixtures/expression_baseline.conduit");
