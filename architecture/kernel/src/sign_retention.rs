@@ -46,6 +46,20 @@ pub(super) fn ensure_retained_sign_capacity(
     Ok(())
 }
 
+/// Plan an eviction without mutating history; append may still refuse later.
+pub(super) fn prepare_transient_eviction(
+    entries: &[Option<KernelEvent>],
+    mut gap: Option<SignRetentionGap>,
+) -> Result<(usize, Option<SignRetentionGap>), SignError> {
+    let index = entries
+        .iter()
+        .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
+        .ok_or(SignError::ItemCapacityExceeded)?;
+    let event = entries[index].ok_or(SignError::ItemCapacityExceeded)?;
+    extend_sign_gap(&mut gap, event.sequence)?;
+    Ok((index, gap))
+}
+
 pub(super) fn extend_sign_gap(
     gap: &mut Option<SignRetentionGap>,
     sequence: u32,

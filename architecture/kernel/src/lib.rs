@@ -8,7 +8,7 @@
 //! the same value/sign contracts.
 
 mod sign_retention;
-use sign_retention::{ensure_retained_sign_capacity, extend_sign_gap, transient_sign};
+use sign_retention::{ensure_retained_sign_capacity, prepare_transient_eviction, transient_sign};
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -807,18 +807,12 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
         self.remote_used_bytes
     }
 
-    fn evict_transient(&mut self) -> Result<(), SignError> {
-        let index = self.entries[..usize::from(self.len)]
-            .iter()
-            .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
-            .ok_or(SignError::ItemCapacityExceeded)?;
-        let event = self.entries[index].ok_or(SignError::ItemCapacityExceeded)?;
-        self.entries[index..usize::from(self.len)].rotate_left(1);
+    fn evict_transient(&mut self, eviction: (usize, Option<SignRetentionGap>), charge: u32) {
+        self.entries[eviction.0..usize::from(self.len)].rotate_left(1);
         self.len -= 1;
         self.entries[usize::from(self.len)] = None;
-        self.used_bytes -=
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        extend_sign_gap(&mut self.retention_gap, event.sequence)
+        self.used_bytes -= charge;
+        self.retention_gap = eviction.1;
     }
 }
 
@@ -857,11 +851,16 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
     ) -> Result<KernelEvent, SignError> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        if usize::from(self.len) >= EVENTS {
-            self.evict_transient()?;
-        }
-        if self
-            .used_bytes
+        let eviction = if usize::from(self.len) >= EVENTS {
+            Some(prepare_transient_eviction(
+                &self.entries[..usize::from(self.len)],
+                self.retention_gap,
+            )?)
+        } else {
+            None
+        };
+        let used_bytes = self.used_bytes - if eviction.is_some() { charge } else { 0 };
+        if used_bytes
             .checked_add(charge)
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
@@ -870,6 +869,10 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         }
         let sequence = self.next_sequence;
         let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        // All admission and sequence checks succeeded; commit eviction once.
+        if let Some(eviction) = eviction {
+            self.evict_transient(eviction, charge);
+        }
         let event = KernelEvent {
             sequence,
             node,
@@ -896,11 +899,16 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
-        if usize::from(self.len) >= EVENTS {
-            self.evict_transient()?;
-        }
-        if self
-            .used_bytes
+        let eviction = if usize::from(self.len) >= EVENTS {
+            Some(prepare_transient_eviction(
+                &self.entries[..usize::from(self.len)],
+                self.retention_gap,
+            )?)
+        } else {
+            None
+        };
+        let used_bytes = self.used_bytes - if eviction.is_some() { charge } else { 0 };
+        if used_bytes
             .checked_add(charge)
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
@@ -910,6 +918,10 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         self.ensure_remote_capacity(1)?;
         let sequence = self.next_sequence;
         let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        // All admission and sequence checks succeeded; commit eviction once.
+        if let Some(eviction) = eviction {
+            self.evict_transient(eviction, charge);
+        }
         let event = KernelEvent {
             sequence,
             node,
@@ -1052,18 +1064,12 @@ impl HostedSignLog {
         self.entries.capacity() + self.remote_entries.capacity()
     }
 
-    fn evict_transient(&mut self) -> Result<(), SignError> {
-        let index = self.entries[..usize::from(self.len)]
-            .iter()
-            .position(|event| event.is_some_and(|event| transient_sign(event.kind)))
-            .ok_or(SignError::ItemCapacityExceeded)?;
-        let event = self.entries[index].ok_or(SignError::ItemCapacityExceeded)?;
-        self.entries[index..usize::from(self.len)].rotate_left(1);
+    fn evict_transient(&mut self, eviction: (usize, Option<SignRetentionGap>), charge: u32) {
+        self.entries[eviction.0..usize::from(self.len)].rotate_left(1);
         self.len -= 1;
         self.entries[usize::from(self.len)] = None;
-        self.used_bytes -=
-            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        extend_sign_gap(&mut self.retention_gap, event.sequence)
+        self.used_bytes -= charge;
+        self.retention_gap = eviction.1;
     }
 }
 
@@ -1103,11 +1109,16 @@ impl SignSink for HostedSignLog {
     ) -> Result<KernelEvent, SignError> {
         let charge =
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-        if usize::from(self.len) >= self.entries.len() {
-            self.evict_transient()?;
-        }
-        if self
-            .used_bytes
+        let eviction = if usize::from(self.len) >= self.entries.len() {
+            Some(prepare_transient_eviction(
+                &self.entries[..usize::from(self.len)],
+                self.retention_gap,
+            )?)
+        } else {
+            None
+        };
+        let used_bytes = self.used_bytes - if eviction.is_some() { charge } else { 0 };
+        if used_bytes
             .checked_add(charge)
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
@@ -1116,6 +1127,10 @@ impl SignSink for HostedSignLog {
         }
         let sequence = self.next_sequence;
         let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        // All admission and sequence checks succeeded; commit eviction once.
+        if let Some(eviction) = eviction {
+            self.evict_transient(eviction, charge);
+        }
         let event = KernelEvent {
             sequence,
             node,
@@ -1142,11 +1157,16 @@ impl SignSink for HostedSignLog {
             u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
         let remote_charge = u32::try_from(size_of::<RemoteLifecycleSign>())
             .map_err(|_| SignError::InvalidBudget)?;
-        if usize::from(self.len) >= self.entries.len() {
-            self.evict_transient()?;
-        }
-        if self
-            .used_bytes
+        let eviction = if usize::from(self.len) >= self.entries.len() {
+            Some(prepare_transient_eviction(
+                &self.entries[..usize::from(self.len)],
+                self.retention_gap,
+            )?)
+        } else {
+            None
+        };
+        let used_bytes = self.used_bytes - if eviction.is_some() { charge } else { 0 };
+        if used_bytes
             .checked_add(charge)
             .filter(|used| *used <= self.byte_capacity)
             .is_none()
@@ -1156,6 +1176,10 @@ impl SignSink for HostedSignLog {
         self.ensure_remote_capacity(1)?;
         let sequence = self.next_sequence;
         let next_sequence = sequence.checked_add(1).ok_or(SignError::SequenceOverflow)?;
+        // All admission and sequence checks succeeded; commit eviction once.
+        if let Some(eviction) = eviction {
+            self.evict_transient(eviction, charge);
+        }
         let event = KernelEvent {
             sequence,
             node,

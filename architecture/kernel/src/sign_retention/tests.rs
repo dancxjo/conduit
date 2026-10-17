@@ -84,6 +84,22 @@ fn maximum_reservation_uses_retained_count_without_narrowing_overflow() {
     );
 }
 
+macro_rules! snapshot {
+    ($log:expr) => {
+        (
+            $log.entries.clone(),
+            $log.len,
+            $log.used_bytes,
+            $log.next_sequence,
+            $log.retained_items,
+            $log.retention_gap,
+            $log.remote_entries.clone(),
+            $log.remote_len,
+            $log.remote_used_bytes,
+        )
+    };
+}
+
 macro_rules! remote_and_sequence_refusals {
     ($log:expr) => {{
         let mut log = $log;
@@ -103,6 +119,7 @@ macro_rules! remote_and_sequence_refusals {
         )
         .unwrap();
         assert_eq!(log.retained_items, check(&log, log.events()));
+        let before_remote = snapshot!(log);
         assert_eq!(
             log.record_remote(
                 NodeId(0),
@@ -112,12 +129,15 @@ macro_rules! remote_and_sequence_refusals {
             ),
             Err(SignError::RemoteItemCapacityExceeded)
         );
+        assert_eq!(snapshot!(log), before_remote);
         assert_eq!(log.retained_items, check(&log, log.events()));
         log.next_sequence = u32::MAX;
+        let before_sequence = snapshot!(log);
         assert_eq!(
             log.record(NodeId(0), None, None, KernelEventKind::BackCompleted),
             Err(SignError::SequenceOverflow)
         );
+        assert_eq!(snapshot!(log), before_sequence);
         assert_eq!(log.retained_items, check(&log, log.events()));
     }};
 }
@@ -136,6 +156,88 @@ fn fixed_remote_and_sequence_failures_do_not_publish_retained_entries() {
 #[test]
 fn hosted_remote_and_sequence_failures_do_not_publish_retained_entries() {
     remote_and_sequence_refusals!(crate::HostedSignLog::new_with_remote_storage(
+        2,
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
+}
+
+macro_rules! overflowing_gap {
+    ($log:expr) => {{
+        let mut log = $log;
+        for _ in 0..2 {
+            log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+                .unwrap();
+        }
+        log.retention_gap = Some(SignRetentionGap {
+            first_sequence: 0,
+            last_sequence: 0,
+            entries: u32::MAX,
+        });
+        let before = snapshot!(log);
+        assert_eq!(
+            log.record(NodeId(0), None, None, KernelEventKind::BackCompleted),
+            Err(SignError::SequenceOverflow)
+        );
+        assert_eq!(snapshot!(log), before);
+    }};
+}
+
+#[test]
+fn fixed_gap_overflow_preserves_complete_history() {
+    overflowing_gap!(FixedSignLog::<2>::new(2 * size_of::<KernelEvent>() as u32).unwrap());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_gap_overflow_preserves_complete_history() {
+    overflowing_gap!(crate::HostedSignLog::new(2, 2 * size_of::<KernelEvent>() as u32).unwrap());
+}
+
+macro_rules! remote_sequence_overflow {
+    ($log:expr) => {{
+        let mut log = $log;
+        for _ in 0..2 {
+            log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+                .unwrap();
+        }
+        log.next_sequence = u32::MAX;
+        let before = snapshot!(log);
+        let remote = crate::RemoteLifecycleIdentity {
+            endpoint: crate::RemoteEndpointId(0),
+            cord: crate::CordId(0),
+            direction: crate::RemoteCordDirection::Egress,
+            sequence: 0,
+        };
+        assert_eq!(
+            log.record_remote(
+                NodeId(0),
+                PortId(0),
+                KernelEventKind::RemoteValueOffered,
+                remote
+            ),
+            Err(SignError::SequenceOverflow)
+        );
+        assert_eq!(snapshot!(log), before);
+    }};
+}
+
+#[test]
+fn fixed_remote_sequence_overflow_preserves_history_and_sidecar() {
+    remote_sequence_overflow!(FixedSignLog::<2>::new_with_remote_storage(
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_remote_sequence_overflow_preserves_history_and_sidecar() {
+    remote_sequence_overflow!(crate::HostedSignLog::new_with_remote_storage(
         2,
         2 * size_of::<KernelEvent>() as u32,
         1,

@@ -163,3 +163,27 @@ After extracting the archive, recompute the receipt with the existing verifier
 using `--before /absolute/path/sign-count-before` and
 `--after /absolute/path/sign-count-after`. Historical headroom measurements
 above retain their original source identities.
+
+
+## Refusal-atomic publication
+
+A full log previously evicted a transient event before checking remote sidecar
+capacity or the next event sequence. Gap extension itself could also overflow
+after changing history. A refused publication could therefore remove history
+and advance its retention gap without publishing a replacement.
+
+Fixed and hosted append paths now prepare an eviction index and next gap
+without changing storage, preserving the existing refusal precedence. Byte,
+remote and sequence admission complete before a single infallible eviction
+commit and publication. Successful eviction still uses the same first transient
+entry and exact ordered compaction; no rollback buffer, second scan or dynamic
+storage is introduced.
+
+Four strengthened history assertions failed before repair. Complete storage,
+retention-gap, occupancy, sequence, retained-count and remote-sidecar snapshots
+are now preserved under remote-capacity refusal, ordinary/remote sequence
+overflow and gap overflow. The alloc and linear-ready reference kernel suites
+each pass 163 tests; the fixed-only retention suite and strict all-target
+kernel Clippy also pass. This advances #5231's failure/Sign obligations. The
+reservation measurements above retain their pinned source identities; no new
+publication-cost or whole-workload performance claim follows from this repair.
