@@ -588,7 +588,7 @@ export function manifestApplicationView(input, root, options = {}) {
     }
     if (node.component === 11) {
       element.dataset.renderer = "patchbay";
-      if (node.value) renderGraphCanvas(element, node.value, identity => requestAction(node, identity, element));
+      if (node.value) renderGraphCanvas(element, node.value, (identity, control) => requestAction(node, identity, control));
     }
     if (node.action !== null) {
       const action = view.actions[node.action];

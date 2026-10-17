@@ -767,3 +767,12 @@ one worker and zero retries, including exact-once keyboard/pointer graph
 selection and no background action. This is renderer queue proof, not actual
 resident Body mutation or full runtime acceptance; the missing local WASM
 limitation remains.
+
+Graph subject surface follow-up (#5644): graph callbacks carry the actual SVG
+subject control into the existing generic DOM availability fence. A connected
+graph container cannot stand in for a detached selected subject. The retained
+subject-event regression reproduced dispatch before repair; it now refuses as
+`unavailable-action`, and restored native Enter returns the exact subject once.
+All 32 targeted pinned Chromium fixtures pass with one worker and zero retries.
+This proves temporary surface availability, not permanent manifestation
+revocation, arbitrary CSS accessibility or authoritative Body mutation.

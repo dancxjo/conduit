@@ -436,7 +436,7 @@ for (const input of ['keyboard', 'pointer']) {
   });
 }
 
-for (const input of ['keyboard', 'pointer', 'background']) {
+for (const input of ['keyboard', 'pointer', 'background', 'detached-subject']) {
   test(`graph selection has one exact action route (${input})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     await page.evaluate(async () => {
@@ -452,7 +452,18 @@ for (const input of ['keyboard', 'pointer', 'background']) {
         ] }), root, { onEvent: event => globalThis.graphRouteCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
     });
     const subject = page.getByRole('button', { name: 'Gear Source, source-kind', exact: true });
-    if (input === 'keyboard') { await subject.focus(); await page.keyboard.press('Enter'); }
+    if (input === 'detached-subject') {
+      await subject.evaluate(node => {
+        const parent = node.parentElement;
+        node.remove();
+        node.dispatchEvent(new MouseEvent('click', { bubbles: true }));
+        globalThis.restoreGraphSubject = () => parent.append(node);
+      });
+      expect(await page.evaluate(() => ({ calls: globalThis.graphRouteCalls,
+        refusal: globalThis.graphRouteManifest.lastRefusal() }))).toEqual({ calls: [], refusal: 'unavailable-action' });
+      await page.evaluate(() => globalThis.restoreGraphSubject());
+      await subject.focus(); await page.keyboard.press('Enter');
+    } else if (input === 'keyboard') { await subject.focus(); await page.keyboard.press('Enter'); }
     else if (input === 'pointer') await subject.click();
     else await page.locator('#graph-route-proof p').click();
     const expected = input === 'background' ? [] : [{ action: 'fixture.graph-select', value: 'gear/source' }];
