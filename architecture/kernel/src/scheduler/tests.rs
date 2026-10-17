@@ -15,6 +15,7 @@ use crate::{
 
 mod host_alias;
 mod host_cancellation;
+mod host_index;
 
 const NODES: usize = 6;
 const CORDS: usize = 5;

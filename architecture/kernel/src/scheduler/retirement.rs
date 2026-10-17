@@ -65,6 +65,7 @@ where
         self.values.clear();
         self.pending_host_calls.fill(None);
         self.pending_host_count = 0;
+        self.pending_host_slots.fill(None);
         self.queue_slots.fill(None);
         for cord in &mut self.cords[..self.active_cords] {
             cord.head = 0;

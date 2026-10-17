@@ -23,6 +23,7 @@ mod boxed_preparation;
 mod debug_control;
 mod derived_value;
 mod execution_region;
+mod host_call_index;
 mod host_call_settlement;
 mod quiescence;
 #[cfg(feature = "linear-ready-reference-test")]
@@ -936,6 +937,7 @@ pub struct FixedScheduler<
     host_bindings: Option<FixedHostCallBindings<HOST_BINDING_SLOTS>>,
     pending_host_calls: [Option<PendingHostCall>; PENDING_REQUESTS],
     pending_host_count: usize,
+    pending_host_slots: [Option<core::num::NonZeroU32>; NODES],
     drivers: [D; NODES],
     values: S,
     signs: E,
@@ -1044,6 +1046,7 @@ where
             host_bindings: None,
             pending_host_calls: [None; PENDING_REQUESTS],
             pending_host_count: 0,
+            pending_host_slots: [None; NODES],
             drivers,
             values,
             signs,
@@ -1749,10 +1752,9 @@ where
         self.ready
             .scheduler_candidates(0, self.active_nodes)
             .any(|node| {
-                let waiting_for_host_completion = self.pending_host_count != 0
-                    && self.pending_host_calls.iter().flatten().any(|pending| {
-                        usize::from(pending.request.node.0) == node && pending.completion.is_none()
-                    });
+                let waiting_for_host_completion = self
+                    .indexed_host_call(node)
+                    .is_some_and(|pending| pending.completion.is_none());
                 self.ready.contains(node)
                     && !self.completed[node]
                     && (!waiting_for_host_completion
@@ -1857,23 +1859,15 @@ where
                 counts.next_ready_nodes += 1;
                 self.scan_counts.set(counts);
             }
-            let pending = self
-                .pending_host_calls
-                .iter()
-                .take(if self.pending_host_count == 0 {
-                    0
-                } else {
-                    PENDING_REQUESTS
-                });
+            let pending = self.indexed_host_call(node);
             #[cfg(test)]
-            let pending = pending.inspect(|_| {
+            if pending.is_some() {
                 let mut counts = self.scan_counts.get();
                 counts.pending_slots += 1;
                 self.scan_counts.set(counts);
-            });
-            let waiting_for_host_completion = pending.flatten().any(|pending| {
-                usize::from(pending.request.node.0) == node && pending.completion.is_none()
-            });
+            }
+            let waiting_for_host_completion =
+                pending.is_some_and(|pending| pending.completion.is_none());
             if self.ready.contains(node)
                 && !self.completed[node]
                 && (!waiting_for_host_completion
@@ -1892,28 +1886,18 @@ where
         let mut input_abnormal = [None; PORTS];
         let mut output_maximum_bytes = [None; PORTS];
         let node_id = NodeId(as_u16(node)?);
-        let pending = self
-            .pending_host_calls
-            .iter()
-            .take(if self.pending_host_count == 0 {
-                0
-            } else {
-                PENDING_REQUESTS
-            });
+        let pending = self.indexed_host_call(node);
         #[cfg(test)]
-        let pending = pending.inspect(|_| {
+        if pending.is_some() {
             let mut counts = self.scan_counts.get();
             counts.context_pending_slots += 1;
             self.scan_counts.set(counts);
+        }
+        let host_completion = pending.and_then(|pending| {
+            pending
+                .completion
+                .map(|outcome| (pending.request.request, outcome))
         });
-        let host_completion = pending
-            .flatten()
-            .find(|pending| usize::from(pending.request.node.0) == node)
-            .and_then(|pending| {
-                pending
-                    .completion
-                    .map(|outcome| (pending.request.request, outcome))
-            });
         for (port, cord) in self.node_specs[node]
             .input_cords
             .iter()
@@ -2787,6 +2771,7 @@ where
                 .take()
                 .ok_or(SchedulerError::InvalidHostCallAccess)?;
             self.pending_host_count -= 1;
+            self.pending_host_slots[node] = None;
             let retains_input = self.drivers[node]
                 .retains_host_call_input(pending.request.request, pending.request.input.value);
             let completion = pending
@@ -2890,10 +2875,12 @@ where
         {
             let slot = self
                 .pending_host_calls
-                .iter_mut()
-                .find(|pending| pending.is_none())
+                .iter()
+                .position(Option::is_none)
                 .ok_or(SchedulerError::HostCallCapacityExceeded)?;
-            *slot = Some(PendingHostCall {
+            // One pending request per u16 node permits 65,536 distinct slots.
+            let indexed_slot = host_call_index::encode_slot(slot)?;
+            self.pending_host_calls[slot] = Some(PendingHostCall {
                 request: HostCallRequest {
                     node: NodeId(as_u16(node)?),
                     request,
@@ -2913,6 +2900,7 @@ where
                 cancellation_dispatched: false,
                 completion: None,
             });
+            self.pending_host_slots[node] = Some(indexed_slot);
             self.pending_host_count += 1;
             self.last_host_request[node] = Some(request);
             self.signs.record(
