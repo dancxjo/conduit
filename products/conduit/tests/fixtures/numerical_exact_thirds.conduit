@@ -1,0 +1,12 @@
+plot thirds (
+    >> value: MathematicalValue
+    result: Text >>
+) = (((. / 3) + (. / 3) + (. / 3) == .) ? "exact" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:1,maximum-error:0})
+    check: thirds
+    shown: face/text("Exact thirds")
+    seed.result >> (.source) >> check.value
+    check.result >> shown
+}.

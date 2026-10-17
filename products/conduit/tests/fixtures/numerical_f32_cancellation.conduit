@@ -1,0 +1,19 @@
+plot cancellation (
+    >> value: MathematicalValue
+    result: F32 >>
+) = ((0x4b800000 + 0x3f800000) - 0x4b800000)
+
+plot explain (
+    >> value: F32
+    result: Text >>
+) = (. == 0x00000000 ? "rounded intermediate" : "wrong")
+
+plot main {
+    seed: math/realize(request={value:0,maximum-error:0})
+    compute: cancellation
+    check: explain
+    show: face/text("IEEE cancellation")
+    seed.result >> (.source) >> compute.value
+    compute.result >> check.value
+    check.result >> show
+}.
