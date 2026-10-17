@@ -899,3 +899,41 @@ for (const redirected of [true, false]) {
       ? 'Failed to fetch' : 'browser application package schema is unsupported');
   });
 }
+
+for (const kind of ['module', 'classic-script', 'shared']) {
+  test(`static application loader preflights dependency graph (${kind})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async kind => {
+      document.body.innerHTML = '<main id="workspace"></main>';
+      const meta = document.createElement('meta');
+      meta.name = 'conduit-application-package'; meta.content = '/fixture-application.json';
+      document.head.append(meta);
+      const resource = (role, dependencies = []) => ({ role, kind: role === 'runtime' ? 'wasm'
+        : kind === 'classic-script' && role !== 'application-module' ? 'classic-script' : 'module',
+        path: role + '.mjs', maximum_bytes: 1024, sha256: 'sha256:' + 'a'.repeat(64),
+        dependencies: dependencies.map(role => ({ role, specifier: './' + role + '.mjs' })) });
+      const manifest = { schema: 'conduit.browser/application-package@1', application_id: 'fixture/graph',
+        package_digest: 'sha256:' + 'b'.repeat(64), state_compatibility: { identity: 'fixture/graph-state', version: 1 },
+        host_implementations: ['browser/dom@1'], resources: [resource('application-module', kind === 'shared' ? ['second'] : []), resource('runtime'),
+          resource('first', ['second']), resource('second', kind === 'shared' ? [] : ['first'])] };
+      if (kind !== 'shared') {
+        const lines = ['conduit.browser/application-package-content@1', 'application\0' + manifest.application_id,
+          'state\0' + manifest.state_compatibility.identity + '\0' + manifest.state_compatibility.version,
+          'host-implementation\0browser/dom@1'];
+        for (const resource of manifest.resources) lines.push('resource\0' + [resource.role, resource.kind, resource.path,
+          resource.maximum_bytes, resource.sha256, resource.dependencies.map(dep => dep.role + '=' + dep.specifier).join(',')].join('\0'));
+        const digest = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(lines.join('\n') + '\n'));
+        manifest.package_digest = 'sha256:' + [...new Uint8Array(digest)].map(byte => byte.toString(16).padStart(2, '0')).join('');
+      }
+      globalThis.resourceRequests = 0;
+      globalThis.fetch = async url => {
+        if (!String(url).endsWith('/fixture-application.json')) globalThis.resourceRequests++;
+        return new Response(JSON.stringify(manifest));
+      };
+      await import('/targets/browser/host/assets/browser-application-loader.mjs');
+    }, kind);
+    await expect(page.locator('#workspace.error')).toHaveText(kind === 'shared'
+      ? 'application package identity changed' : 'application resource dependency cycle refused');
+    expect(await page.evaluate(() => globalThis.resourceRequests)).toBe(0);
+  });
+}

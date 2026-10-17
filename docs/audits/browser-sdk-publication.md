@@ -211,3 +211,18 @@ worker and zero retries: redirect refusal, direct response reaching schema
 admission, and all three streaming-bound cases. Redirects are intercepted local
 responses and the destination is observed through browser request events; this
 does not establish full packaged runtime or public deployment acceptance.
+
+Application graph-preflight follow-up: module and classic-script dependency
+cycles are now refused during manifest admission, before resource fetch, script
+execution or storage initialization. Active/completed visitation follows the
+same-kind executable edges used by the existing loaders, over their already
+bounded resource/dependency tables. Shared dependencies remain admissible;
+execution-time cycle guards remain in place.
+
+A correctly hashed cyclic module manifest reproduced resource downloading before
+repair. Eight focused pinned Chromium loader fixtures pass with one worker and
+zero retries, including module/classic cycle refusal with zero resource requests
+and a shared-dependency graph reaching package-identity validation. The shared
+fixture intentionally has a false package digest; it proves graph admission, not
+module execution. These synthetic package fixtures do not prove packaged runtime
+or public acceptance.

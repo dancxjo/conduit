@@ -143,6 +143,23 @@ function admitManifest(document, manifestUrl) {
       if (!seenRoles.has(dependency.role) || dependency.role === resource.role) throw new Error("application resource dependency is invalid");
     }
   }
+  const byRole = new Map(resources.map(resource => [resource.role, resource]));
+  const active = new Set();
+  const complete = new Set();
+  const visit = resource => {
+    if (active.has(resource.role)) throw new Error("application resource dependency cycle refused");
+    if (complete.has(resource.role)) return;
+    active.add(resource.role);
+    for (const dependency of resource.dependencies) {
+      const target = byRole.get(dependency.role);
+      if (target.kind === resource.kind) visit(target);
+    }
+    active.delete(resource.role);
+    complete.add(resource.role);
+  };
+  for (const resource of resources) {
+    if (resource.kind === "module" || resource.kind === "classic-script") visit(resource);
+  }
   return Object.freeze({ schema: PACKAGE_SCHEMA, applicationId, packageDigest: document.package_digest, stateCompatibility, hostImplementations, resources: Object.freeze(resources) });
 }
 
