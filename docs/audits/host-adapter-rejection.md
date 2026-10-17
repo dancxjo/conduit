@@ -30,3 +30,23 @@ traversal makes the new rejection regression fail at 4,096 versus 1 probes;
 the production change is restored afterward. These are deterministic work and
 semantic tests, not elapsed-time speedup measurements. No CI or stable-release
 acceptance is claimed; #5231 remains open.
+
+## Differential adapter lifecycle coverage
+
+`adapter_selection_matches_full_scan_through_competition_completion_and_reuse`
+compares every adapter poll against an independent implementation of the original
+full-table traversal. It enumerates all four cursors in a four-slot reservation,
+all four node-acceptance masks, ordinary and stateful alternating predicates, and
+both completion orders: 64 scenarios and 576 polls. Only the initial cursor is
+set directly; request creation, selection, completion, rearming, and cancellation
+use scheduler APIs and committed Steps.
+
+A complementary adapter competes for the remaining requests. Each node then
+completes and reuses its slot while the other request remains retained. Every
+poll checks exact callback/request order, selected identity, cursor movement,
+unchanged Signs, and undispatched-count agreement with actual table occupancy.
+Global cancellation is followed by an empty poll and an empty value-store check.
+This supplements the large-table probe bound with semantic coverage of the
+counter and cursor across lifecycle transitions. The focused differential test
+passes with both packed and linear ready selectors; strict all-target kernel
+Clippy and formatting/diff checks pass locally. No timing or CI claim is added.

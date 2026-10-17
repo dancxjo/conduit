@@ -177,3 +177,94 @@ fn earlier_cancellation_reinsertion_preserves_order_through_completion_races() {
 fn global_cancel_clears_reinserted_and_queued_cancellations() {
     interleave(None, true);
 }
+
+// Compare adapter-visible behavior with the original full-table traversal,
+// including stateful predicates whose result depends on callback order.
+fn compare_adapter(scheduler: &mut Pair, mask: u8, alternating: bool) {
+    let cursor = scheduler.host_request_cursor;
+    let mut expected_calls = std::vec::Vec::new();
+    let mut expected = None;
+    for offset in 0..4 {
+        let slot = (cursor + offset) % 4;
+        let Some(pending) = scheduler.pending_host_calls[slot] else {
+            continue;
+        };
+        if pending.dispatched {
+            continue;
+        }
+        let request = pending.request;
+        expected_calls.push((request.node, request.request));
+        let accepted =
+            mask & (1 << request.node.0) != 0 && (!alternating || expected_calls.len() % 2 == 0);
+        if accepted {
+            expected = Some((slot, request));
+            break;
+        }
+    }
+    let signs = scheduler.signs.entries;
+    let before = scheduler.undispatched_host_count;
+    let mut actual_calls = std::vec::Vec::new();
+    let actual = scheduler.next_host_request_matching(|request| {
+        actual_calls.push((request.node, request.request));
+        mask & (1 << request.node.0) != 0 && (!alternating || actual_calls.len() % 2 == 0)
+    });
+    assert_eq!(actual_calls, expected_calls);
+    assert_eq!(actual, expected.map(|(_, request)| request));
+    assert_eq!(scheduler.signs.entries, signs);
+    assert_eq!(
+        scheduler.undispatched_host_count,
+        before - u32::from(expected.is_some())
+    );
+    assert_eq!(
+        scheduler.host_request_cursor,
+        expected.map_or(cursor, |(slot, _)| (slot + 1) % 4)
+    );
+    assert_eq!(
+        scheduler.undispatched_host_count as usize,
+        scheduler
+            .pending_host_calls
+            .iter()
+            .flatten()
+            .filter(|p| !p.dispatched)
+            .count()
+    );
+}
+
+#[test]
+fn adapter_selection_matches_full_scan_through_competition_completion_and_reuse() {
+    for cursor in 0..4 {
+        for mask in 0..4 {
+            for alternating in [false, true] {
+                for first in 0..2 {
+                    let (mut scheduler, _) = pair();
+                    step(&mut scheduler, 0);
+                    step(&mut scheduler, 1);
+                    scheduler.host_request_cursor = cursor;
+                    compare_adapter(&mut scheduler, mask, alternating);
+                    // A competing adapter sees precisely the remaining requests.
+                    compare_adapter(&mut scheduler, mask ^ 3, alternating);
+                    compare_adapter(&mut scheduler, 3, false);
+                    compare_adapter(&mut scheduler, 3, false);
+                    assert_eq!(scheduler.undispatched_host_count, 0);
+                    for node in 0..2 {
+                        control(&mut scheduler, node, 0);
+                        step(&mut scheduler, node);
+                    }
+                    complete(&mut scheduler, first, 0);
+                    step(&mut scheduler, first);
+                    // The completed slot is reused while the other remains pending.
+                    assert_eq!(scheduler.undispatched_host_count, 1);
+                    compare_adapter(&mut scheduler, mask, alternating);
+                    compare_adapter(&mut scheduler, 3, false);
+                    complete(&mut scheduler, 1 - first, 0);
+                    step(&mut scheduler, 1 - first);
+                    compare_adapter(&mut scheduler, mask ^ 3, alternating);
+                    compare_adapter(&mut scheduler, 3, false);
+                    scheduler.cancel().unwrap();
+                    compare_adapter(&mut scheduler, 3, false);
+                    assert_eq!(scheduler.values.used_items(), 0);
+                }
+            }
+        }
+    }
+}
