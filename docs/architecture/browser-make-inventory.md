@@ -188,6 +188,13 @@ Nonfinite, negative, fractional, oversized or mismatched counts refuse with
 in another application's record also refuses publication; records remain intact
 and explicit inspection/deletion stays separate from admission.
 
+Retained record ownership must also match its exact database key: bounded
+application identity, positive version and bounded record key reconstruct the
+stored identity without ambiguity. Reads and publication refuse inconsistent
+ownership as `CorruptRecord`. Publication checks this before filtering records
+by application, so corrupt ownership cannot hide an immutable record from the
+replacement guard. Refusal leaves the original evidence intact.
+
 The `application-state` and `browser-host-identity` object stores are separate.
 Clearing one application's records cannot reset host identity, mutate body
 membership, or revoke a host. Book and Crèche receive only the bounded host

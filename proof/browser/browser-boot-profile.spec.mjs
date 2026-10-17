@@ -557,3 +557,40 @@ test("application namespace separators cannot alias and delete another applicati
   });
   expect(result).toEqual({ code: 'AdmissionBound', retained: { source: 'original' }, other: { source: 'independent' } });
 });
+
+test("corrupt record ownership cannot bypass immutable publication", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/immutable-ownership';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'a'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJsonBatch([{ key: 'original', value: { evidence: 'retain' }, immutable: true }]);
+    const request = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => { request.onsuccess = () => resolve(request.result); request.onerror = () => reject(request.error); });
+    const identity = `${application}@1\u0000original`;
+    const readRaw = async () => {
+      const get = database.transaction('application-state', 'readonly').objectStore('application-state').get(identity);
+      return new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    };
+    const original = await readRaw();
+    const results = [];
+    for (const change of [{ applicationIdentity: 'proof/other-owner' }, { applicationVersion: 2 }, { key: 'other-key' }]) {
+      const record = { ...original, ...change };
+      const tx = database.transaction('application-state', 'readwrite');
+      tx.objectStore('application-state').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+      const codes = [];
+      for (const write of [() => storage.writeJson('original', { evidence: 'replacement' }),
+        () => storage.writeJsonBatch([{ key: 'original', value: { evidence: 'replacement' } }])]) {
+        try { await write(); codes.push('accepted'); } catch (error) { codes.push(error.code); }
+      }
+      results.push({ codes, unchanged: JSON.stringify(await readRaw()) === JSON.stringify(record) });
+    }
+    // Explicit test teardown through the raw connection; refusal must not repair ownership.
+    const cleanup = database.transaction('application-state', 'readwrite');
+    cleanup.objectStore('application-state').delete(identity);
+    await new Promise((resolve, reject) => { cleanup.oncomplete = resolve; cleanup.onabort = () => reject(cleanup.error); });
+    database.close(); storage.close(); return results;
+  });
+  expect(result).toEqual(Array(3).fill({ codes: ['CorruptRecord', 'CorruptRecord'], unchanged: true }));
+});
