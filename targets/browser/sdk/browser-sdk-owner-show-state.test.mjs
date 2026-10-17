@@ -114,3 +114,14 @@ test('current Face frame prepares once; failed download never invokes preparatio
     prepare, () => true), /download refused/);
   assert.equal(preparations, 1);
 });
+
+test('prepared Show custody is detached from returned views and cleared on invalidation', async () => {
+  const { prepareOwnerFaceShow } = await import('./browser-sdk-owner-show-state.mjs');
+  const state = {}, view = { show_id: 'show/current', show_state: 'available',
+    actions: [{ arguments: [{ choices: ['yes'] }] }] };
+  await prepareOwnerFaceShow(state, clearOwnerFaceShow(state), async () => 'frame', () => view, () => true);
+  view.actions[0].arguments[0].choices.push('forged');
+  assert.deepEqual(state.preparedOwnerShow.actions[0].arguments[0].choices, ['yes']);
+  clearOwnerFaceShow(state);
+  assert.equal(state.preparedOwnerShow, null);
+});

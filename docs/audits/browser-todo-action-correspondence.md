@@ -464,3 +464,18 @@ argument tests and the producer fixture pass, including existing lost-presence
 refusal, valid preparation exactly once and download failure without preparation.
 These prove production helper ordering and reviewed SDK wiring, not actual
 network/owner behavior or authoritative Body commits; no retry is added.
+
+Already-available Show custody follow-up (#5646): preparation retains a detached
+copy of the validated bridge-produced view. The available-view acknowledgement
+path uses that private prepared view (or the private acknowledged view), never
+the caller's action table. A missing retained view or a caller claim that a
+prepared-only view is already available refuses. Every Show invalidation clears
+prepared custody as well as acknowledged custody. Runtime acknowledgement is
+not repeated for already-available Shows.
+
+Twenty-three focused SDK tests and the producer fixture pass, covering detached
+prepared contracts, invalidation, absent retained authority and forged caller
+choice tables. The new custody test initially failed because prepared custody
+was absent; no real owner-runtime exploit reproduction is claimed. These are
+state/validation helper tests plus reviewed participation wiring, not remote
+Body commits or full trusted-DOM/Mask acceptance.

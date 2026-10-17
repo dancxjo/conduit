@@ -35,3 +35,14 @@ test('validated acknowledgement retains identity and nested contracts despite ca
   assert.equal(snapshot.face_id, view.face_id);
   assert.deepEqual(snapshot.actions[0].arguments[0].choices, ['yes']);
 });
+
+test('available caller views require retained authority and cannot replace its action table', () => {
+  const current = { ...prepared(), show_state: 'available', interactions_admitted: true,
+    actions: [{ identity: 'action/current', arguments: [{ name: 'value', choices: ['yes'] }] }] };
+  const caller = structuredClone(current);
+  caller.actions[0].arguments[0].choices.push('forged');
+  const snapshot = validateOwnerFaceAcknowledgement(caller, current);
+  assert.deepEqual(snapshot.actions[0].arguments[0].choices, ['yes']);
+  assert.throws(() => validateOwnerFaceAcknowledgement(caller, undefined), /another owner Face Show/);
+  assert.throws(() => validateOwnerFaceAcknowledgement(caller, { ...current, show_state: 'prepared' }), /another owner Face Show/);
+});
