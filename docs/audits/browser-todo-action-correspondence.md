@@ -1082,3 +1082,23 @@ atomic-refusal proof, not authoritative Body/Play or packaged/release acceptance
 #5644 remains open. The USB preservation branch's selected-operation helper is
 identical to current code and its control owner has later additions; the branch
 is retained pending the rest of the history review rather than replayed wholesale.
+
+Closed disclosure availability follow-up (#5644 / #5632): DOM action and focus
+availability now respects native closed details bodies. Only the first direct
+summary and its descendants remain available while closed; the disclosure itself
+can still report its toggle. Opening it restores ordinary action availability
+without revoking the current manifestation or changing typed action identity.
+
+The body-button and graph-subject regressions reproduced queue/callback admission
+before repair; the summary-button positive fixture already passed. All sixteen
+focused pinned Chromium fixtures pass with one worker and zero retries, including
+exact refusal/empty queue while closed, native summary opening, current Enter
+activation, graph routing, temporary availability and roving focus. This is
+renderer/native-disclosure proof, not arbitrary CSS certification, authoritative
+Body/Play or packaged/release acceptance; the owning issues remain open.
+
+USB preservation review: the selected-operation helper and register binding are
+identical to the preservation branch. Current control-owner production changes
+are additions, and its test fixture now delegates to the shared selected-operation
+fixture. The old branch is retained because its exact-tip remote ancestry has
+not been established; no USB code or evidence was discarded or replayed.

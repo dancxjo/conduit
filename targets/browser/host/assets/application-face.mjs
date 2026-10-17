@@ -356,6 +356,10 @@ function controlAvailable(control) {
   for (let ancestor = control; ancestor;
     ancestor = ancestor.assignedSlot ?? ancestor.parentElement ?? ancestor.getRootNode().host) {
     if (ancestor.inert || ancestor.hidden) return false;
+    // A closed disclosure exposes its first summary, while its body controls
+    // remain unavailable. The disclosure itself may still emit its toggle.
+    if (ancestor !== control && ancestor.matches("details:not([open])")
+      && !ancestor.querySelector(":scope > summary")?.contains(control)) return false;
   }
   return true;
 }

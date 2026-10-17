@@ -923,3 +923,36 @@ for (const [component, value] of [['text-input', 'café😀'], ['textarea', 'lin
     expect(await page.evaluate(() => globalThis.exactInitialCalls)).toEqual([value + '!']);
   });
 }
+
+for (const mode of ['body-button', 'graph-subject', 'summary-button']) {
+  test(`closed disclosures preserve exact control availability (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async mode => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Gear', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.disclosureCalls = [];
+      globalThis.disclosureManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'exact.action', event: 'activate' }], nodes: [
+          { parent: null, component: 'disclosure', key: 'details', text: 'Details', action: null },
+          { parent: 0, component: 'summary', key: 'summary', text: 'Open details', action: null },
+          mode === 'graph-subject'
+            ? { parent: 0, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 }
+            : { parent: mode === 'summary-button' ? 1 : 0, component: 'button', key: 'action', text: 'Disclosure action', action: 0 },
+        ] }), root, { onEvent: event => globalThis.disclosureCalls.push(new TextDecoder().decode(event.value)) });
+    }, mode);
+    const target = page.getByRole('button', { name: mode === 'graph-subject' ? 'Gear Gear, kind' : 'Disclosure action', exact: true, includeHidden: true });
+    if (mode !== 'summary-button') {
+      await target.evaluate(element => element.dispatchEvent(new MouseEvent('click', { bubbles: true })));
+      expect(await page.evaluate(() => ({ calls: globalThis.disclosureCalls,
+        queued: globalThis.disclosureManifest.queuedEvents(), refusal: globalThis.disclosureManifest.lastRefusal() })))
+        .toEqual({ calls: [], queued: 0, refusal: 'unavailable-action' });
+      await page.locator('[data-application-key="summary"]').click();
+    }
+    await target.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => ({ calls: globalThis.disclosureCalls, queued: globalThis.disclosureManifest.queuedEvents() })))
+      .toEqual({ calls: [mode === 'graph-subject' ? 'gear' : ''], queued: 1 });
+  });
+}
