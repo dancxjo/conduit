@@ -13,3 +13,19 @@ The committed public producer also passed at clean Source `0d88e163fab18dcb70f7d
 
 
 Delivery review also found Integration run `38577612941` at Source `178c616bd6c815232b7391460fe012e253fa551b` failed the distinct-browser membership proof on its default 20-second test budget. Its retained trace shows invitation inspection, share handling, explicit join, exact two-member agreement and current Host offers all succeeded, then the deadline interrupted the final restored-page control. Give this multi-context proof the neighboring membership proof's finite 120-second budget. Its semantic assertions and global timeouts remain unchanged; this is a test budget, not a product timing guarantee. The focused packaged Chromium proof passed with no retry in 13.3 seconds at clean Source `1edc760c08a116727717ead41cbcb2ab68ed6ad7`, using its matching sealed runtime and Workspace package, including the final reload/restored-membership assertions. The later documentation commit preserves that captured Source.
+
+
+Development follow-up for #5644: the reusable owner Face element now fences
+submit and exclusive-choice listeners with a token unique to each render. A
+listener retained from replaced DOM cannot reach the current callback, disable
+the current controls, or reset their selection. Reusing the exact same view
+object still produces a fresh render token; source/Face/Show identities retain
+their separate SDK and owner checks.
+
+Two new stale-form regressions failed against the preceding renderer in pinned
+Chromium. The repaired full component fixture passes seven tests with one
+worker and zero retries, including a stale radio event and trusted keyboard
+activation of the current button/radio control. Adversarial synthetic stale
+events are negative fixtures; successful current keyboard actions are renderer
+callbacks, not Body mutation receipts. This establishes local renderer fencing,
+not packaged/public acceptance or the whole #5644 adversarial corpus.

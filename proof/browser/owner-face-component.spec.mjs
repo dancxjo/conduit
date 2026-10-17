@@ -195,3 +195,74 @@ test('a Body without primary application content keeps its arrival controls visi
   await expect(element.getByRole('button', { name: 'Wake', exact: true })).toBeVisible();
   await expect(element.locator('[data-body-menu]')).toHaveCount(0);
 });
+
+for (const reuseView of [false, true]) {
+  test(`replaced owner controls cannot invoke the current route (reuse view: ${reuseView})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async ({ view, reuseView }) => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      const element = document.createElement('conduit-owner-face');
+      document.body.append(element);
+      globalThis.calls = [];
+      const invoke = async call => { globalThis.calls.push(call); };
+      element.show(view, { invoke });
+      const obsolete = element.shadowRoot.querySelector('form');
+      const next = reuseView ? view : { ...view, face_revision: 2, show_id: 'fixture/next-show' };
+      element.show(next, { invoke });
+      if (obsolete.isConnected) throw new Error('fixture did not replace the old control');
+      // Adversarial stale event, deliberately separate from trusted user proof.
+      obsolete.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
+      globalThis.currentView = next;
+    }, { view, reuseView });
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const current = page.locator('conduit-owner-face').getByRole('button', { name: 'Complete task', exact: true });
+    await expect(current).toBeEnabled();
+    await current.focus();
+    await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{
+      view: reuseView ? view : { ...view, face_revision: 2, show_id: 'fixture/next-show' },
+      action: view.actions[0], arguments: [],
+    }]);
+    await expect(current).toBeDisabled();
+  });
+}
+
+test('a replaced exclusive-choice listener cannot dispatch or reset current selection', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  const choices = {
+    ...view,
+    subjects: [
+      { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
+        semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+      ...[true, false].map((selected, index) => ({ ...view.subjects[0],
+        identity: `fixture/option/${index}`, name: `Mode ${index}`,
+        flags: [{ name: 'selected', value: selected }] })),
+    ],
+    relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
+    actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
+      target: `fixture/option/${index}`, name: `Select ${index}` })),
+  };
+  await page.evaluate(async view => {
+    await import('/targets/browser/handbook/owner-face-component.mjs');
+    document.body.replaceChildren();
+    const element = document.createElement('conduit-owner-face');
+    document.body.append(element);
+    globalThis.calls = [];
+    const invoke = async call => { globalThis.calls.push(call); };
+    element.show(view, { invoke });
+    const obsolete = element.shadowRoot.querySelector('input[type=radio]');
+    if (!obsolete) throw new Error('fixture did not render an exclusive choice');
+    element.show(view, { invoke });
+    obsolete.dispatchEvent(new Event('change', { bubbles: true }));
+  }, choices);
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+  const element = page.locator('conduit-owner-face');
+  await expect(element.getByRole('radio', { name: 'Mode 0', exact: true })).toBeChecked();
+  const current = element.getByRole('radio', { name: 'Mode 1', exact: true });
+  await expect(current).toBeEnabled();
+  await current.focus();
+  await page.keyboard.press('Space');
+  expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices, action: choices.actions[1], arguments: [] }]);
+  await expect(current).toBeDisabled();
+});

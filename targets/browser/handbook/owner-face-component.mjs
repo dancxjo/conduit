@@ -15,6 +15,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
   #projectCollections;
   #supportsAction = () => true;
   #disabled = true;
+  #render;
   #layoutObserver;
   constructor() {
     super();
@@ -33,13 +34,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.disabled = this.#disabled || control.dataset.unavailable === 'true';
     }
   }
-  #ready(view, action) {
-    return !this.#disabled && view.show_state === 'available'
+  #ready(view, action, render) {
+    return render === this.#render && !this.#disabled && view.show_state === 'available'
       && view.interactions_admitted === true && action.availability === 'available'
       && this.#supportsAction(action);
   }
   show(view, { invoke, projectCollections = () => ({ collections: [], placed: new Set() }),
     supportsAction = () => true } = {}) {
+    const render = this.#render = {};
     this.#invoke = invoke;
     this.#projectCollections = projectCollections;
     this.#supportsAction = supportsAction;
@@ -84,7 +86,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
     documentNode.setAttribute('part', 'document');
     const { collections, placed } = this.#projectCollections(view);
     const renderedActions = new Set();
-    const actionReady = action => this.#ready(view, action);
+    const actionReady = action => this.#ready(view, action, render);
     const actionControl = (action, itemName) => {
       renderedActions.add(action.identity);
       const control = document.createElement('form');
@@ -140,7 +142,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         (supported ? 'This owner action is unavailable.' : 'This input has no supported browser form.')));
       control.addEventListener('submit', async event => {
         event.preventDefault();
-        if (!this.#ready(view, action) || !this.#invoke) return;
+        if (!this.#ready(view, action, render) || !this.#invoke) return;
         this.disabled = true;
         await this.#invoke({ view, action, arguments: inputs.map(({ name, input }) => ({ name, value: input.value })) });
       });
@@ -270,7 +272,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         label.append(input, faceNode('span', option.name));
         if (action.explanation) label.append(faceNode('small', action.explanation));
         input.addEventListener('change', async () => {
-          if (!this.#ready(view, action) || !this.#invoke) return;
+          if (!this.#ready(view, action, render) || !this.#invoke) return;
           // Selection remains the acknowledged Face's fact until a fresh Show.
           choices.querySelectorAll('input').forEach((control, optionIndex) => {
             control.checked = options[optionIndex].flags.find(flag => flag.name === 'selected').value;
