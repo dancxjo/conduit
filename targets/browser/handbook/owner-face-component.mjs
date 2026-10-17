@@ -154,7 +154,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       const inputs = [];
       const composing = new Set();
       const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
-      let supported = Array.isArray(action.arguments) && argumentCount <= 64;
+      const argumentNames = new Set();
+      let supported = Array.isArray(action.arguments) && argumentCount <= 64
+        && action.arguments.every(argument => {
+          if (typeof argument?.name !== 'string' || !argument.name.trim() || argumentNames.has(argument.name)
+            || typeof argument.value_name !== 'string' || !argument.value_name.trim()) return false;
+          argumentNames.add(argument.name);
+          return true;
+        });
       for (const argument of supported ? action.arguments : []) {
         if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
           || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {

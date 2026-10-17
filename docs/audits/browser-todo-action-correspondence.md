@@ -370,3 +370,16 @@ new case synthesizes composition/submit events only to establish refusal, then
 uses native text entry and Enter to verify exact Unicode plus sibling arguments.
 It does not prove an operating-system IME, authoritative Body receipt or full
 trusted Mask/Show round-trip acceptance.
+
+Argument identity/label follow-up (#5644): browser forms require unique nonblank
+argument names and nonblank semantic value labels before constructing controls.
+Absent/ambiguous identities cannot share a focus/draft key or produce duplicate
+callback arguments, and unnamed fields refuse through the existing unsupported
+form explanation. Unrelated current actions remain available.
+
+Missing names, blank names, duplicate names, missing labels and blank labels all
+reproduced enabled actions before repair. All 72 pinned Chromium component
+fixtures pass with one worker and zero retries. Each new case verifies disabled
+refusal without input construction or callback and native keyboard activation
+of an unrelated valid action. This proves renderer contract admission, not
+authoritative Body receipts or complete accessibility acceptance.

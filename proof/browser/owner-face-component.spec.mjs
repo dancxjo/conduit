@@ -736,12 +736,18 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
 });
 }
 
-for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many']) {
+for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many',
+  'missing-name', 'empty-name', 'duplicate-name', 'missing-label', 'empty-label']) {
   test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
     await page.goto('/proof/browser/signal-dom-host.test.html');
     const broken = { ...view.actions[0], identity: 'fixture/broken', name: 'Broken action', arguments: [{
       name: 'value', value_name: 'Value', value_kind: 'value/text', maximum_bytes: 4, choices: [],
     }] };
+    if (malformed === 'missing-name') delete broken.arguments[0].name;
+    if (malformed === 'empty-name') broken.arguments[0].name = '   ';
+    if (malformed === 'duplicate-name') broken.arguments.push({ ...broken.arguments[0], value_name: 'Other value' });
+    if (malformed === 'missing-label') delete broken.arguments[0].value_name;
+    if (malformed === 'empty-label') broken.arguments[0].value_name = '   ';
     if (malformed === 'missing') delete broken.arguments;
     if (malformed === 'non-array') broken.arguments = {};
     if (malformed === 'too-many') broken.arguments = Array.from({ length: 65 }, (_, index) => ({
