@@ -664,3 +664,39 @@ for (const path of ['created', 'existing', 'race', 'reset', 'malformed']) {
     expect(result).toEqual({ upgrade: 'upgraded', stable: true, refused: path === 'malformed' });
   });
 }
+
+test("Host identity refuses sparse signing seeds without filling or replacing them", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserHostIdentity } = await import('/targets/browser/host/assets/browser-host-identity.mjs');
+    await openBrowserHostIdentity();
+    const open = indexedDB.open('conduit-browser-host-applications', 2);
+    const database = await new Promise((resolve, reject) => { open.onsuccess = () => resolve(open.result); open.onerror = () => reject(open.error); });
+    const readRaw = async () => {
+      const get = database.transaction('browser-host-identity', 'readonly').objectStore('browser-host-identity').get('durable-browser-host');
+      return new Promise((resolve, reject) => { get.onsuccess = () => resolve(get.result); get.onerror = () => reject(get.error); });
+    };
+    const original = await readRaw();
+    const put = async record => {
+      const tx = database.transaction('browser-host-identity', 'readwrite');
+      tx.objectStore('browser-host-identity').put(record);
+      await new Promise((resolve, reject) => { tx.oncomplete = resolve; tx.onabort = () => reject(tx.error); });
+    };
+    const outcomes = [];
+    for (const index of [0, 15, 31]) {
+      const seed = new Array(32); seed[index] = 1;
+      await put({ ...original, seed });
+      let refused = false;
+      try { await openBrowserHostIdentity(); } catch { refused = true; }
+      const retained = await readRaw();
+      outcomes.push({ refused, unchanged: retained.hostId === original.hostId
+        && retained.seed.length === 32 && Object.keys(retained.seed).length === 1 && retained.seed[index] === 1 });
+    }
+    // Actual zero bytes are valid when all 32 positions exist and the seed is nonzero.
+    const dense = Array(32).fill(0); dense[15] = 1;
+    await put({ ...original, seed: dense });
+    const restored = await openBrowserHostIdentity();
+    const exactDense = restored.hostId === original.hostId && restored.seed.every((byte, index) => byte === dense[index]);
+    database.close(); return { outcomes, exactDense };
+  });
+  expect(result).toEqual({ outcomes: Array(3).fill({ refused: true, unchanged: true }), exactDense: true });
+});

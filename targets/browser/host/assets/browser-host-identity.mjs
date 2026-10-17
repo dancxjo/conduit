@@ -48,7 +48,7 @@ function validate(record) {
     || encoder.encode(record.hostId).length > MAXIMUM_IDENTITY_BYTES
     || !Array.isArray(seed)
     || seed.length !== KEY_BYTES
-    || seed.some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
+    || Array.from(seed).some((byte) => !Number.isInteger(byte) || byte < 0 || byte > 255)
     || seed.every((byte) => byte === 0)) {
     throw new Error("durable browser Host identity is malformed; explicit Host reset is required");
   }

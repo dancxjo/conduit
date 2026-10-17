@@ -11,6 +11,11 @@ body membership      body-owned admitted part and signed membership events
 
 The host keeps exactly one bounded `conduit.browser/host-identity@1` record. It contains the stable `HostId` and continuity signing seed. A missing record is initialized once from the browser cryptographic RNG. A malformed record, quota failure, or database version failure refuses host startup; it is not silently replaced. `resetBrowserHostIdentity()` is the separate, explicit operation that rotates this identity. Clearing Book, Crèche, or Patchbay state never calls it.
 
+Retained signing seeds must contain exactly 32 explicit integer bytes. Sparse
+arrays refuse instead of being converted to zero-filled bytes; valid dense
+seeds may contain zeros but cannot be entirely zero. Refusal leaves the stored
+identity untouched and requires the existing explicit reset path.
+
 Identity lookup/creation and explicit reset use short-lived IndexedDB connections.
 Each operation closes its connection after transaction settlement, including
 existing-record, concurrent-creation and validation-failure paths. A completed
