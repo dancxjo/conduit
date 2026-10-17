@@ -2491,13 +2491,16 @@ name = "conduit-speech"
 version = "0.1.0"
 dependencies = [
  "conduit-audio",
+ "conduit-composite",
  "conduit-core",
  "conduit-kernel",
  "conduit-language",
  "conduit-plan-lowering",
  "conduit-planner",
  "conduit-plot",
+ "conduitos",
  "postcard",
+ "serde_json",
 ]
 
 [[package]]
