@@ -65,6 +65,13 @@ function manifest(configuration, container, onChoose) {
  */
 export function openBrowserSavedChoice({ configuration, storage, container, render = manifest }) {
   const identities = validate(configuration);
+  // Restore/save may await storage; caller mutation cannot change the admitted
+  // initial value, option labels, or the semantic view during that encounter.
+  configuration = {
+    label: configuration.label, key: configuration.key, initial: configuration.initial,
+    options: configuration.options.map(({ identity, label }) => ({ identity, label })),
+    view: structuredClone(configuration.view),
+  };
   if (typeof storage?.readJson !== "function" || typeof storage?.writeJson !== "function") {
     throw refusal("ChoiceStorageUnavailable", "Saved choice requires admitted durable browser storage");
   }

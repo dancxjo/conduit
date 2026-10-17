@@ -120,3 +120,23 @@ test("saved choices retain and emit exact scalar Unicode identities", async () =
   assert.deepEqual(writes, [{ schema: 'input/saved-choice@1', identity }]);
   adapter.close();
 });
+
+test("pending restore keeps the admitted initial choice and renderer configuration", async () => {
+  const supplied = structuredClone(configuration);
+  let finishRead;
+  const read = new Promise(resolve => { finishRead = resolve; });
+  const writes = [];
+  let rendered;
+  const adapter = openBrowserSavedChoice({ configuration: supplied, storage: {
+    readJson() { return read; }, async writeJson(key, record) { writes.push({ key, record }); },
+  }, render(configuration) { rendered = configuration; return { state() {}, close() {} }; } });
+  const pending = adapter.next();
+  supplied.initial = 'two'; supplied.key = 'different';
+  supplied.options[0].label = 'Changed'; supplied.options.push({ identity: 'forged', label: 'Forged' });
+  supplied.view.push({ forged: true });
+  finishRead(null);
+  assert.equal(text(await pending), 'one');
+  assert.deepEqual(writes, [{ key: 'saved-choice/naming-tradition', record: { schema: 'input/saved-choice@1', identity: 'one' } }]);
+  assert.deepEqual(rendered, configuration);
+  adapter.close();
+});
