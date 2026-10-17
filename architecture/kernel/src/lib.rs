@@ -7,6 +7,9 @@
 //! bindings before Play start. The fixed and hosted storage profiles implement
 //! the same value/sign contracts.
 
+mod sign_retention;
+use sign_retention::{ensure_retained_sign_capacity, extend_sign_gap, transient_sign};
+
 #[cfg(feature = "alloc")]
 extern crate alloc;
 
@@ -835,6 +838,8 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             self.events(),
             self.item_capacity(),
             self.byte_capacity,
+            self.len,
+            self.used_bytes,
             additional,
         )
     }
@@ -1073,6 +1078,8 @@ impl SignSink for HostedSignLog {
             self.events(),
             self.item_capacity(),
             self.byte_capacity,
+            self.len,
+            self.used_bytes,
             additional,
         )
     }
@@ -1202,69 +1209,6 @@ impl SignQuery for HostedSignLog {
     fn retention_gap(&self) -> Option<SignRetentionGap> {
         self.retention_gap
     }
-}
-
-fn transient_sign(kind: KernelEventKind) -> bool {
-    !matches!(
-        kind,
-        KernelEventKind::StepFuelExceeded
-            | KernelEventKind::RemoteValueOffered
-            | KernelEventKind::RemoteValueAccepted
-            | KernelEventKind::RemoteValueDelivered
-            | KernelEventKind::RemoteOutputClosed
-            | KernelEventKind::RemoteInputAdmitted
-            | KernelEventKind::RemoteInputClosed
-            | KernelEventKind::BackCompleted
-            | KernelEventKind::BackFailed
-            | KernelEventKind::SemanticAbnormal
-            | KernelEventKind::SemanticAbnormalRecovered
-            | KernelEventKind::RunCancelled
-    )
-}
-
-fn ensure_retained_sign_capacity(
-    events: impl Iterator<Item = KernelEvent>,
-    item_capacity: u16,
-    byte_capacity: u32,
-    additional: u16,
-) -> Result<(), SignError> {
-    let retained = events.filter(|event| !transient_sign(event.kind)).count();
-    if retained
-        .checked_add(usize::from(additional))
-        .filter(|required| *required <= usize::from(item_capacity))
-        .is_none()
-    {
-        return Err(SignError::ItemCapacityExceeded);
-    }
-    let charge = u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-    let required = u32::try_from(retained)
-        .map_err(|_| SignError::InvalidBudget)?
-        .checked_add(u32::from(additional))
-        .and_then(|items| items.checked_mul(charge))
-        .ok_or(SignError::InvalidBudget)?;
-    if required > byte_capacity {
-        return Err(SignError::ByteCapacityExceeded);
-    }
-    Ok(())
-}
-
-fn extend_sign_gap(gap: &mut Option<SignRetentionGap>, sequence: u32) -> Result<(), SignError> {
-    *gap = Some(match *gap {
-        None => SignRetentionGap {
-            first_sequence: sequence,
-            last_sequence: sequence,
-            entries: 1,
-        },
-        Some(existing) => SignRetentionGap {
-            first_sequence: existing.first_sequence.min(sequence),
-            last_sequence: existing.last_sequence.max(sequence),
-            entries: existing
-                .entries
-                .checked_add(1)
-                .ok_or(SignError::SequenceOverflow)?,
-        },
-    });
-    Ok(())
 }
 
 #[cfg(test)]
