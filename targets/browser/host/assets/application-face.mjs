@@ -606,7 +606,6 @@ export function manifestApplicationView(input, root, options = {}) {
     } else if (node.component === 45) {
       element.href = browserDestinationHref(node.value);
       element.textContent = node.text;
-      if (node.value === "home") element.setAttribute("aria-label", "Conduit home");
     } else if (node.component === 46) {
       element.href = new URL(node.value, document.baseURI).href;
       element.textContent = node.text;

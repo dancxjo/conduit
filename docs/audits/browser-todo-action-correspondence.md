@@ -1119,3 +1119,19 @@ text routes, closed disclosures, roving peers and reentrant restoration. These
 prove the listed concealment refusals and queue behavior, not authoritative
 Body/Play, arbitrary styling accessibility or packaged/release acceptance.
 The owning issues remain open; uncertain USB preservation work remains intact.
+
+Declared Home accessible names (#5630): the generic renderer and static product
+masthead generator no longer replace a Home destination's declared label with
+hardcoded aria-label wording. Native link text supplies its accessible name,
+while exact destination/current-page identity remains unchanged. The product
+masthead's declared home label is conduit; the Patchbay expectation now checks
+that exact name instead of the removed renderer override.
+
+Two custom-label browser regressions and the generated-masthead regression
+reproduced before repair; the explicitly declared Conduit home case already
+passed. Six focused pinned Chromium checks pass with one worker and zero retries,
+including Unicode names, native Tab/Enter destination activation, generated HTML
+names/status and navigation/stepper focus. The affected Patchbay test's syntax
+check passes; its full runtime journey was not rerun. These are source-description/
+renderer accessible-name proofs, not actual Todo/Commons Body/Play or packaged/
+release acceptance; #5630 remains open.

@@ -981,3 +981,28 @@ for (const [property, value] of [['display', 'none'], ['visibility', 'hidden'], 
     expect(await page.evaluate(() => globalThis.cssConcealedCalls)).toEqual(['visible.action']);
   });
 }
+
+for (const label of ['Workspace home', 'Accueil café 😀', 'Conduit home']) {
+  test(`Home navigation preserves its declared accessible name (${label})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async label => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.prepend(root);
+      globalThis.homeNameCalls = [];
+      globalThis.homeNameManifest = manifestApplicationView(encodeApplicationView({ revision: 1, actions: [], nodes: [
+        { parent: null, component: 'navigation', key: 'navigation', text: 'Declared destinations', value: 'home', valueCapacity: 32, action: null },
+        { parent: 0, component: 'navigation-link', key: 'home', text: label, value: 'home', valueCapacity: 16, action: null },
+      ] }), root, { onEvent: event => globalThis.homeNameCalls.push(event.action) });
+    }, label);
+    const link = page.getByRole('link', { name: label, exact: true });
+    await expect(link).toHaveText(label);
+    await expect(link).toHaveAttribute('href', '/conduit');
+    await expect(link).toHaveAttribute('aria-current', 'page');
+    await page.keyboard.press('Tab');
+    await expect(link).toBeFocused();
+    expect(await page.evaluate(() => ({ calls: globalThis.homeNameCalls, queued: globalThis.homeNameManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    await page.keyboard.press('Enter');
+    await expect(page).toHaveURL(/\/conduit$/u);
+  });
+}

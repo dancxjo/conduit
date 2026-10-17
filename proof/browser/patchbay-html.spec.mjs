@@ -137,7 +137,7 @@ test("HTML Patchbay reconstructs one typed state accessibly and survives deliver
     const snapshot=await (await fetch(`${url}/api/snapshot`)).json();
     await page.goto(url);
     await expect(page.getByRole("navigation",{name:"Conduit products"}).getByRole("link")).toHaveCount(3);
-    await expect(page.getByRole("link",{name:"Conduit home"})).toHaveAttribute("href","/conduit");
+    await expect(page.getByRole("link",{name:"conduit",exact:true})).toHaveAttribute("href","/conduit");
     await expect(page.locator('style[data-application-resource="flow-style"]')).toHaveCount(1);
     await expect(page.locator("#flow-root .flow-frontplate").first()).toHaveCSS("width", "240px");
     await expect(page.locator('[data-application-key="product-status"]')).toContainText("Face revision 1");
