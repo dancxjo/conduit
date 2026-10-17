@@ -224,3 +224,11 @@ interpreter validates forged annotations or nominal native laws. All 12 Plot
 evaluator/eligibility tests and 13 installed std tape tests pass; focused strict
 Clippy passes. Existing CPU receipts retain their historical source identities;
 the measured fixtures already used this checked instruction path.
+
+The supported `cargo xtask check expression-baseline` suite also passes from
+clean source `36c978f82363877cd3beb0dad74e7a787d8696af`: two native baseline
+tests and the real WASM parity/refusal/allocation corpus. Its
+[checked-binding receipt](evidence/scalar-tape-wasm-checked-hints.json) and
+[validation record](evidence/scalar-tape-wasm-checked-hints-validation.json)
+retain that source, the runtime hash and the same 128 std semantic identity
+matches. Earlier WASM and CPU receipts remain unchanged.
