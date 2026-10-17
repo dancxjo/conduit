@@ -21,3 +21,18 @@ closure checks also pass. These use tiny fixture Wasm bytes and prove producer
 behavior, not a fresh optimized runtime, actual browser execution, historical
 quoted-1kHz provenance or public release identity. Those acceptance claims remain
 open.
+
+Consumer-envelope follow-up: SDK packaging now requires the canonical runtime,
+checks its declared size against the existing 20 MiB browser consumer ceiling,
+and checks the verified bytes for the Wasm v1 header. Release paths must be
+unique as well as contained in the IMAGE; otherwise duplicate entries could
+omit a declared asset while satisfying the previous cardinality check. The
+48 MiB total-package bound and other identity checks remain unchanged.
+
+All six unusable envelopes were accepted before repair: oversized runtime,
+truncated/wrong-magic/wrong-version header, absent runtime and duplicated release
+path. The focused producer fixture now passes with exact-20-MiB acceptance and
+independent byte-hash verification, refusal/no-output/no-staging checks for each
+bad case, and the earlier retry/overwrite/permissions/composition checks. The
+ceiling fixture is a header envelope, not executable Wasm/ABI proof; optimized
+runtime, packaged browser and public release claims remain open.
