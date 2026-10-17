@@ -123,7 +123,7 @@ impl KernelTables {
         if self.chains.len() != self.expected_fusions {
             return Err("selected fusion requires exact installed Back preparation".into());
         }
-        let mut scheduler = InstalledScheduler::new_with_active_counts_and_host_calls(
+        let mut scheduler = InstalledScheduler::new_boxed_with_active_counts_and_host_calls(
             self.active_nodes,
             self.active_cords,
             self.nodes,
@@ -143,7 +143,7 @@ impl KernelTables {
         scheduler
             .bind_terminal_transductions(self.terminal_transductions)
             .map_err(|error| format!("bind std terminal transductions: {error:?}"))?;
-        Ok(Box::new(scheduler))
+        Ok(scheduler)
     }
 }
 

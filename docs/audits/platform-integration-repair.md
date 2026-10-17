@@ -25,6 +25,20 @@ The kernel all-features regression suite passes 240 tests with five existing
 diagnostic tests ignored, including the ordered-prefix oracle and Sign bounds.
 Strict kernel library Clippy passes with warnings denied.
 
+## Std scheduler preparation stack
+
+Candidate [39069319654](https://github.com/dancxjo/conduit/actions/runs/39069319654)
+also exposed a default-stack overflow in the Patchbay HTTP route regression.
+The unchanged test reproduces locally. A debugger locates the overflow in
+kernel topology validation reached through several wide, by-value scheduler
+construction frames in std preparation.
+
+Std now calls the kernel's existing boxed preparation entrance directly instead
+of constructing a scheduler by value and boxing it afterward. It retains the
+same fixed scheduler, topology/Host-binding validation and pre-Play allocation
+boundary. The complete thirteen-test HTTP server suite passes with its original
+stack settings and assertions, including the previously aborting route test.
+
 ## Fixed protected image window
 
 The x86_64 independently linked image exceeded the existing 128 KiB admitted
