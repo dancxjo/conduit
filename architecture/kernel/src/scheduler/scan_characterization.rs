@@ -183,7 +183,10 @@ fn specimen<const N: usize>(active: usize, sparse: bool, trial: usize, print: bo
     assert_eq!(counts.context_pending_slots, steps as u64);
     assert_eq!(counts.input_ports, steps as u64);
     assert!(counts.queue_peeks >= steps as u64);
-    assert!(counts.cord_scans >= active as u64);
+    assert_eq!(
+        counts.cord_scans, 0,
+        "payload-only graphs need no quiescence probes"
+    );
     for node in 0..active {
         assert_eq!(
             scheduler.drivers[node].received,
@@ -236,7 +239,12 @@ fn characterize_loaded_and_sparse_fixed_scheduler_scans() {
     for trial in 0..8 {
         for active in [1, 8, 32] {
             for sparse in [false, true] {
-                specimen::<32>(active, sparse, trial, true);
+                match active {
+                    1 => specimen::<1>(active, sparse, trial, true),
+                    8 => specimen::<8>(active, sparse, trial, true),
+                    32 => specimen::<32>(active, sparse, trial, true),
+                    _ => unreachable!(),
+                }
             }
         }
     }
