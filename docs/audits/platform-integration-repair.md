@@ -117,3 +117,13 @@ library Clippy and formatting also pass. See the
 [receipt and scope record](evidence/browser-choice-projection-20261017.json) and
 [raw evidence archive](evidence/browser-choice-projection-20261017-raw.tar.gz).
 Full combined Candidate, integration and exact stable publication remain required.
+
+## Refreshed accepted foundation
+
+Merged accepted dev `45a6384eafe3bf8c2d29b843421adbb2766e8396` into this
+repair. All 44 Patchbay application tests pass on combined source
+`b98cead003a3bd5eee96561f6c649d66a61d5fa8`, including the previously failing
+resident-canvas case. The boxed std preparation and allocation-measurement mutex
+corrections are now in accepted dev and are no longer unique changes in this PR.
+The source-specific native and browser receipts above retain their original pins;
+the refreshed Candidate must establish acceptance of the final combined tree.
