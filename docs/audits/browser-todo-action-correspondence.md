@@ -1304,3 +1304,19 @@ and independent mutable provider records. README documents the boundary. These
 are bridge/storage-fixture SDK custody proofs, not actual Rust Body/Play,
 cross-Mask or packaged/release acceptance; #5622 remains open. Protected and
 uncertain branch work remains preserved.
+
+Exact authored source ingress (#5453 source-integrity support): the shared
+runtime bridge admits scalar text and preflights each field against remaining
+native arena capacity before encoding an impossible fit. Exact UTF-8 lengths
+are checked afterward, and multipart review/birth staging is allocated only for
+an admitted total. Source checking, Patchbay projection and source interaction
+use the same ingress. BrowserPlot rejects unpaired surrogates at construction.
+Valid BOM/Unicode bytes and existing input retirement remain unchanged.
+
+After correcting a missing required context in the new fixture, the old bridge
+reproduced all twelve admission/early-allocation regressions. All 66 focused
+runtime-bridge/SDK Plot tests pass, including exact source bytes on five routes,
+preceding-field accounting and existing memory/custody cases. The bridge suite
+is registered in browser checks; Rust registration formatting passes. These
+are mocked-native-ABI admission proofs, not Rust syntax semantics, actual
+Body/Play or packaged/release acceptance; #5453 remains open.

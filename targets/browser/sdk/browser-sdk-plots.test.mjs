@@ -583,3 +583,7 @@ test('recovery refuses retained admission/evidence identity disagreement before 
   assert.deepEqual(requests, []);
   assert.deepEqual(writes, []);
 });
+
+test('Plot source refuses unpaired surrogates before any native source operation', () => {
+  for (const source of ['\ud800', '\udfff']) assert.throws(() => new BrowserPlot(source, {}), /scalar Unicode/);
+});

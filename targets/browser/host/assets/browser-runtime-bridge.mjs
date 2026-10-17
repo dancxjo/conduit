@@ -49,6 +49,25 @@ function readCapacity(api, capacityExport, label) {
   return nonnegativeInteger(Number(exported(api, capacityExport, label).call(api)), label);
 }
 
+function encodeTextInput(api, values, capacityExport, label) {
+  const capacity = readCapacity(api, capacityExport, label);
+  let total = 0;
+  const parts = values.map(value => {
+    if (typeof value !== "string") throw new TypeError(`${label} requires scalar Unicode text`);
+    boundedLength(value.length, { maximum: capacity - total, label });
+    if (!value.isWellFormed()) throw new TypeError(`${label} requires scalar Unicode text`);
+    const bytes = encoder.encode(value);
+    boundedLength(bytes.length, { maximum: capacity - total, label });
+    total += bytes.length;
+    return bytes;
+  });
+  if (parts.length === 1) return { input: parts[0], parts };
+  const input = new Uint8Array(total);
+  let offset = 0;
+  for (const part of parts) { input.set(part, offset); offset += part.length; }
+  return { input, parts };
+}
+
 function readPointer(api, pointerExport, label) {
   return nonnegativeInteger(Number(exported(api, pointerExport, label).call(api)), label);
 }
@@ -291,7 +310,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }) };
     },
     crecheReviewedInventory(source) {
-      const input = encoder.encode(source);
+      const { input } = encodeTextInput(api, [source], "conduit_creche_input_capacity", "Plot source");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -308,7 +327,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     projectPatchbay(source, sequence) {
-      const input = encoder.encode(source);
+      const { input } = encodeTextInput(api, [source], "conduit_browser_projection_input_capacity", "Patchbay Plot source");
       return withInput(api, input, {
         pointerExport: "conduit_browser_projection_input_ptr",
         capacityExport: "conduit_browser_projection_input_capacity",
@@ -327,10 +346,8 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheReviewInitialWorkload({ host, boot, initialPlots, source }) {
-      const parts = [host, boot, JSON.stringify(initialPlots), source].map((value) => encoder.encode(value));
-      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
-      let offset = 0;
-      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      const { input, parts } = encodeTextInput(api, [host, boot, JSON.stringify(initialPlots), source],
+        "conduit_creche_input_capacity", "Plot realization review input");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -348,7 +365,7 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheAdmitSourceInteraction(source, sequence) {
-      const input = encoder.encode(source);
+      const { input } = encodeTextInput(api, [source], "conduit_creche_input_capacity", "Plot source interaction");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",
@@ -365,10 +382,8 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     crecheBirth({ host, boot, friendlyName, initialPlots, source, sequence }) {
-      const parts = [host, boot, friendlyName, JSON.stringify(initialPlots), source].map((value) => encoder.encode(value));
-      const input = new Uint8Array(parts.reduce((total, part) => total + part.length, 0));
-      let offset = 0;
-      for (const part of parts) { input.set(part, offset); offset += part.length; }
+      const { input, parts } = encodeTextInput(api, [host, boot, friendlyName, JSON.stringify(initialPlots), source],
+        "conduit_creche_input_capacity", "Body birth input");
       return withInput(api, input, {
         pointerExport: "conduit_creche_input_ptr",
         capacityExport: "conduit_creche_input_capacity",

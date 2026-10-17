@@ -17,6 +17,7 @@ export class BrowserPlot {
   #projectionSequence = 0;
   constructor(source, bridge) {
     if (typeof source !== "string" || source.length === 0) throw new TypeError("Plot source must be non-empty Conduitese text");
+    if (!source.isWellFormed()) throw new TypeError("Plot source must be scalar Unicode text");
     this.#source = source;
     this.#bridge = bridge;
     Object.freeze(this);

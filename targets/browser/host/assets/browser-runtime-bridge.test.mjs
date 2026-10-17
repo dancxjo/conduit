@@ -289,3 +289,81 @@ test("canonical owner Face observation preserves exact integer bytes and copies 
   api.conduit_browser_owner_face_canonical_snapshot = () => -5;
   assert.throws(() => bridge.ownerFaceCanonicalSnapshot(), /snapshot refused/);
 });
+
+const sourceOperations = [
+  ['check', (bridge, source) => bridge.crecheReviewedInventory(source)],
+  ['patchbay', (bridge, source) => bridge.projectPatchbay(source, 1n)],
+  ['interaction', (bridge, source) => bridge.crecheAdmitSourceInteraction(source, 1n)],
+  ['review', (bridge, source) => bridge.crecheReviewInitialWorkload({ host: 'host/1', boot: 'boot/1', initialPlots: [], source })],
+  ['birth', (bridge, source) => bridge.crecheBirth({ host: 'host/1', boot: 'boot/1', friendlyName: 'Body', initialPlots: [], source, sequence: 1n })],
+];
+function sourceRuntime() {
+  const api = runtime();
+  let calls = 0;
+  const complete = () => {
+    calls++;
+    new Uint8Array(api.memory.buffer, 0, 2).set([123, 125]);
+    api.setProjectionOutput(Uint8Array.of(123, 125));
+    return 0;
+  };
+  for (const name of ['conduit_creche_reviewed_inventory', 'conduit_browser_project_patchbay',
+    'conduit_creche_admit_source_interaction', 'conduit_creche_review_initial_workload', 'conduit_creche_birth']) api[name] = complete;
+  api.conduit_creche_output_len = () => 2;
+  return { api, calls: () => calls };
+}
+for (const [name, invoke] of sourceOperations) {
+  test(`source ${name} refuses non-scalar text before invoking native code`, () => {
+    const fixture = sourceRuntime();
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: "source ingress proof" });
+    for (const source of ['\ud800', '\udfff', 1]) assert.throws(() => invoke(bridge, source), /scalar Unicode/);
+    assert.equal(fixture.calls(), 0);
+  });
+  test(`source ${name} preflights its arena before UTF-8 allocation`, () => {
+    const fixture = sourceRuntime();
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: "source ingress proof" });
+    const encode = TextEncoder.prototype.encode;
+    TextEncoder.prototype.encode = function(value) {
+      if (value.length > 1024) throw new Error('oversized encoding attempted');
+      return encode.call(this, value);
+    };
+    try { assert.throws(() => invoke(bridge, 'x'.repeat(1025)), /bound/); }
+    finally { TextEncoder.prototype.encode = encode; }
+    assert.equal(fixture.calls(), 0);
+  });
+}
+
+const sourceExports = {
+  check: ['conduit_creche_reviewed_inventory', 0, 0],
+  patchbay: ['conduit_browser_project_patchbay', 4096, 0],
+  interaction: ['conduit_creche_admit_source_interaction', 0, 0],
+  review: ['conduit_creche_review_initial_workload', 0, 3],
+  birth: ['conduit_creche_birth', 0, 4],
+};
+for (const [name, invoke] of sourceOperations) {
+  test(`source ${name} preserves BOM and scalar UTF-8 bytes exactly`, () => {
+    const fixture = sourceRuntime(), source = '\ufeffplot café { "😀" }';
+    const [exportName, pointer, sourceIndex] = sourceExports[name];
+    const complete = fixture.api[exportName];
+    let captured;
+    fixture.api[exportName] = (...lengths) => {
+      const offset = lengths.slice(0, sourceIndex).reduce((total, length) => total + length, 0);
+      captured = new Uint8Array(fixture.api.memory.buffer, pointer + offset, lengths[sourceIndex]).slice();
+      return complete();
+    };
+    invoke(bindBrowserRuntimeBridge(fixture.api, { context: 'source fidelity proof' }), source);
+    assert.deepEqual(captured, new TextEncoder().encode(source));
+    assert.equal(fixture.calls(), 1);
+  });
+  if (name === 'review' || name === 'birth') test(`source ${name} accounts for preceding fields before encoding`, () => {
+    const fixture = sourceRuntime(), source = 'x'.repeat(name === 'review' ? 1011 : 1007);
+    const bridge = bindBrowserRuntimeBridge(fixture.api, { context: 'multipart source proof' });
+    const encode = TextEncoder.prototype.encode;
+    TextEncoder.prototype.encode = function(value) {
+      if (value === source) throw new Error('overbudget source encoding attempted');
+      return encode.call(this, value);
+    };
+    try { assert.throws(() => invoke(bridge, source), /bound/); }
+    finally { TextEncoder.prototype.encode = encode; }
+    assert.equal(fixture.calls(), 0);
+  });
+}
