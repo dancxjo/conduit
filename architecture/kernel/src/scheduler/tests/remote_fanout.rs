@@ -103,3 +103,33 @@ fn abnormal_closure_preserves_one_exact_terminal_on_every_branch() {
         Err(SchedulerError::RemoteDeliveryRejected)
     );
 }
+
+#[test]
+fn exhausted_sign_sequence_refuses_fanout_before_payload_or_closure_mutation() {
+    for close in [false, true] {
+        let mut scheduler = scheduler(16);
+        scheduler.signs.next_sequence = u32::MAX - 1;
+        let before = scheduler.signs.entries;
+        let result = if close {
+            scheduler.close_remote_input_fanout(&TARGETS)
+        } else {
+            scheduler
+                .admit_remote_input_fanout(&TARGETS, 0, b"seed")
+                .map(|_| ())
+        };
+        assert_eq!(
+            result,
+            Err(SchedulerError::Sign(SignError::SequenceOverflow))
+        );
+        assert_eq!(scheduler.signs.entries, before);
+        assert_eq!(scheduler.signs.next_sequence, u32::MAX - 1);
+        assert_eq!(scheduler.signs.remote_len, 0);
+        assert_eq!(scheduler.values().used_items(), 0);
+        for (_, cord) in TARGETS {
+            assert_eq!(scheduler.cord_usage(cord).unwrap(), (0, 0));
+            let state = &scheduler.cords[usize::from(cord.0)];
+            assert_eq!(state.next_remote_sequence, 0);
+            assert!(!state.producer_closed);
+        }
+    }
+}

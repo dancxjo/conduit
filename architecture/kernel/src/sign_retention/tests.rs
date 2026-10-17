@@ -138,7 +138,12 @@ macro_rules! remote_and_sequence_refusals {
             Err(SignError::SequenceOverflow)
         );
         assert_eq!(snapshot!(log), before_sequence);
-        assert_eq!(log.retained_items, check(&log, log.events()));
+        assert_eq!(
+            log.retained_items,
+            log.events()
+                .filter(|event| !transient_sign(event.kind))
+                .count() as u16
+        );
     }};
 }
 
@@ -341,4 +346,67 @@ fn hosted_remote_byte_pressure_publishes_or_preserves_history_atomically() {
         crate::remote_sign_storage_bytes(1).unwrap()
     )
     .unwrap());
+}
+
+macro_rules! reserve_sequence_bounds {
+    ($log:expr) => {{
+        let mut log = $log;
+        log.next_sequence = u32::MAX - 1;
+        let before = snapshot!(log);
+        assert_eq!(log.ensure_capacity(2), Err(SignError::SequenceOverflow));
+        assert_eq!(log.ensure_capacity(1), Ok(()));
+        assert_eq!(snapshot!(log), before);
+        log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
+            .unwrap();
+        let terminal = snapshot!(log);
+        assert_eq!(log.ensure_capacity(1), Err(SignError::SequenceOverflow));
+        assert_eq!(log.ensure_capacity(0), Ok(()));
+        assert_eq!(snapshot!(log), terminal);
+    }};
+}
+
+macro_rules! reserve_gap_bounds {
+    ($log:expr) => {{
+        let mut log = $log;
+        for _ in 0..2 {
+            log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+                .unwrap();
+        }
+        log.retention_gap = Some(SignRetentionGap {
+            first_sequence: 0,
+            last_sequence: 0,
+            entries: u32::MAX - 1,
+        });
+        let before = snapshot!(log);
+        assert_eq!(log.ensure_capacity(2), Err(SignError::SequenceOverflow));
+        assert_eq!(log.ensure_capacity(1), Ok(()));
+        assert_eq!(snapshot!(log), before);
+        log.record(NodeId(0), None, None, KernelEventKind::BackCompleted)
+            .unwrap();
+        let terminal = snapshot!(log);
+        assert_eq!(log.ensure_capacity(1), Err(SignError::SequenceOverflow));
+        assert_eq!(log.ensure_capacity(0), Ok(()));
+        assert_eq!(snapshot!(log), terminal);
+    }};
+}
+
+#[test]
+fn fixed_reservation_checks_event_sequence_before_publication() {
+    reserve_sequence_bounds!(FixedSignLog::<8>::new(8 * size_of::<KernelEvent>() as u32).unwrap());
+}
+#[test]
+fn fixed_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch() {
+    reserve_gap_bounds!(FixedSignLog::<8>::new(2 * size_of::<KernelEvent>() as u32).unwrap());
+}
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_reservation_checks_event_sequence_before_publication() {
+    reserve_sequence_bounds!(
+        crate::HostedSignLog::new(8, 8 * size_of::<KernelEvent>() as u32).unwrap()
+    );
+}
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_reservation_checks_byte_pressure_gap_growth_for_the_entire_batch() {
+    reserve_gap_bounds!(crate::HostedSignLog::new(8, 2 * size_of::<KernelEvent>() as u32).unwrap());
 }

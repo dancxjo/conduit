@@ -208,3 +208,27 @@ when remote sidecar admission refuses after byte-pressure eviction is prepared.
 The independent-budget fixture now seeds sticky events to test a genuinely
 non-reclaimable byte budget. This is admission/publication consistency proof,
 not a new timing or release acceptance claim for #5231.
+
+
+## Reserve finite publication sequence space
+
+Fixed and hosted reservation now check event-sequence capacity for the entire
+requested batch after storage admission. A zero-sized reservation remains
+valid at the sequence ceiling. If a retention gap already exists, reservation
+also checks the gap growth implied by the occupied count and effective
+item/byte capacity. This uses constant arithmetic, with no history scan,
+allocation or mutation. Storage refusal precedence is retained.
+
+Four boundary fixtures failed before repair. Batch and single-publication
+checks now distinguish the last usable event from exhausted sequence space,
+and check gap growth under byte pressure without changing complete snapshots.
+A production scheduler fixture also proves that a two-branch remote payload or
+closure refuses before value allocation, queue changes, remote sequence changes
+or branch closure when only one Sign sequence remains.
+
+Alloc and linear-ready reference kernel suites each pass 172 tests; nine
+fixed-only retention tests and strict all-target kernel Clippy pass. This
+advances #5231's admission-before-mutation contract for these production sinks;
+other SignSink implementations retain their own admission obligations.
+Historical reservation timings above remain pinned to their original sources;
+these added boundary checks have no fresh timing or release acceptance claim.

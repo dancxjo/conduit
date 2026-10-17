@@ -46,6 +46,32 @@ pub(super) fn ensure_retained_sign_capacity(
     Ok(())
 }
 
+/// Storage admission has already succeeded. Check publication's finite clocks
+/// before the scheduler mutates work covered by this Sign reservation.
+pub(super) fn ensure_sign_sequence_capacity(
+    next_sequence: u32,
+    gap: Option<SignRetentionGap>,
+    occupied: u16,
+    item_capacity: u16,
+    byte_capacity: u32,
+    additional: u16,
+) -> Result<(), SignError> {
+    next_sequence
+        .checked_add(u32::from(additional))
+        .ok_or(SignError::SequenceOverflow)?;
+    if let Some(gap) = gap {
+        let charge =
+            u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
+        let physical_items = u32::from(item_capacity).min(byte_capacity / charge);
+        let evictions =
+            (u32::from(occupied) + u32::from(additional)).saturating_sub(physical_items);
+        gap.entries
+            .checked_add(evictions)
+            .ok_or(SignError::SequenceOverflow)?;
+    }
+    Ok(())
+}
+
 /// Plan an eviction without mutating history; append may still refuse later.
 pub(super) fn prepare_transient_eviction(
     entries: &[Option<KernelEvent>],

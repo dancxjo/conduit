@@ -8,7 +8,10 @@
 //! the same value/sign contracts.
 
 mod sign_retention;
-use sign_retention::{ensure_retained_sign_capacity, prepare_transient_eviction, transient_sign};
+use sign_retention::{
+    ensure_retained_sign_capacity, ensure_sign_sequence_capacity, prepare_transient_eviction,
+    transient_sign,
+};
 
 #[cfg(feature = "alloc")]
 extern crate alloc;
@@ -839,6 +842,14 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             self.item_capacity(),
             self.byte_capacity,
             additional,
+        )?;
+        ensure_sign_sequence_capacity(
+            self.next_sequence,
+            self.retention_gap,
+            self.len,
+            self.item_capacity(),
+            self.byte_capacity,
+            additional,
         )
     }
 
@@ -1114,6 +1125,14 @@ impl SignSink for HostedSignLog {
     fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
         ensure_retained_sign_capacity(
             self.retained_items,
+            self.item_capacity(),
+            self.byte_capacity,
+            additional,
+        )?;
+        ensure_sign_sequence_capacity(
+            self.next_sequence,
+            self.retention_gap,
+            self.len,
             self.item_capacity(),
             self.byte_capacity,
             additional,
