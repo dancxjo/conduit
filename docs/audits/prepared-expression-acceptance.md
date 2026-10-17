@@ -8,7 +8,7 @@ decoding, input validation, output framing, Host Calls and kernel evidence
 remain part of execution.
 
 The reference interpreter remains an independently offered realization.
-Unsupported text, structured, mathematical, quantity, floating and Flow
+Unsupported nominal, text, structured, mathematical, quantity, floating and Flow
 profiles refuse tape preparation; a caller may select the reference before
 Play. There is no runtime fallback or automatic preference based on these
 measurements.
@@ -42,6 +42,7 @@ realization/session identities.
 | Requirement | Proof surface |
 | --- | --- |
 | Checked 1/3/8/32-operation source, integer boundaries and overflow | Plot `scalar_tape`; installed std `scalar_tape_tests` and `scalar_tape_parity_tests` |
+| Native range/where laws without retained validation witnesses | Named preparation and std offer refusal; `scalar_tape_native_laws` and installed offer regression |
 | Constants, checked multiplication, Boolean operations, lazy conditional and instruction ceiling | Plot `scalar_tape`, including repeated success/refusal transitions and allocation counting |
 | Malformed configuration, input extent and foreign provenance | Installed `scalar_tape_parity_tests` |
 | Exact source/checked/expanded identity; actual selected Back, scheduler and typed output | Installed std Plan/Play tests |
@@ -157,3 +158,26 @@ primitive validation, dispatch or kernel work. It is a separate optimized
 computation reference, not evidence that the tape compiles authored expressions
 to native instructions. This capture retains the same uncontrolled-host,
 within-process and diagnostic-clock limitations as the preceding capture.
+
+## Native-law eligibility boundary
+
+The scalar tape admits intrinsic fixed-integer and Boolean Types. A nominal
+scalar Type commits to its native range/`where` laws in its schema identity,
+but `PortableExpressionProgram` does not retain those validation programs.
+Both the recursive reference evaluator and the previous tape could unwrap the
+representation and accept a forged nominal capsule outside the native range.
+Reference parity is therefore insufficient evidence for these profiles.
+
+Tape preparation now refuses nominal input, output, and supported intermediate
+node Types with `scalar-tape/native-law-witness-unavailable@1`. The std offer
+builder propagates this reason before advertising a specialized Back. Tests
+cover range and `where` Types, a law used to prove non-overflow, and an
+intermediate nominal Type behind intrinsic ports. No runtime fallback is added.
+The ordinary evaluator is not certified as a native-law validator by this work;
+future nominal specialization requires retaining and enforcing its validation
+witness before erasing any checks. This is the named unsupported-profile branch
+of #5396 acceptance, not a claim of nominal support.
+
+The retained CPU captures predate this admission guard. Their checked intrinsic
+integer/Boolean sources do not contain nominal Types; their exact source pins
+and raw measurements remain unchanged.

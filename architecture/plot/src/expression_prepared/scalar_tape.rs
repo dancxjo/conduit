@@ -209,6 +209,9 @@ impl ScalarTape {
 impl PreparedPortableExpressionEvaluator {
     /// Explicit fixed-integer/boolean specialization; unsupported profiles refuse.
     pub fn new_scalar_tape(program: &PortableExpressionProgram) -> Result<Self, Refusal> {
+        require_intrinsic_type(&program.input_type)?;
+        require_intrinsic_type(&program.output_type)?;
+        require_intrinsic_node_types(&program.root)?;
         let mut prepared = Self::new(program)?;
         let PreparedRoot::Primitive { node, nominal_type } = &prepared.root else {
             return Err(Refusal::UnsupportedType("scalar-tape/structured@1".into()));
@@ -247,5 +250,40 @@ impl PreparedPortableExpressionEvaluator {
                     })
                     .sum::<usize>(),
         )
+    }
+}
+
+// A nominal schema commits to native laws, but this portable format does not
+// retain their validation programs. Unwrapping its representation would erase
+// those laws, including assumptions used by proven arithmetic. Such profiles
+// need a retained validation witness before this Back can admit them.
+fn require_intrinsic_type(value_type: &conduit_core::StructuredInfoType) -> Result<(), Refusal> {
+    if matches!(value_type.shape(), StructuredInfoTypeShape::Nominal { .. }) {
+        return Err(Refusal::UnsupportedType(
+            "scalar-tape/native-law-witness-unavailable@1".into(),
+        ));
+    }
+    Ok(())
+}
+
+fn require_intrinsic_node_types(node: &PortableExpressionNode) -> Result<(), Refusal> {
+    require_intrinsic_type(&node.value_type)?;
+    match &node.operation {
+        PortableExpressionOperation::Unary { operand, .. } => require_intrinsic_node_types(operand),
+        PortableExpressionOperation::Binary { left, right, .. } => {
+            require_intrinsic_node_types(left)?;
+            require_intrinsic_node_types(right)
+        }
+        PortableExpressionOperation::Conditional {
+            condition,
+            when_true,
+            when_false,
+        } => {
+            require_intrinsic_node_types(condition)?;
+            require_intrinsic_node_types(when_true)?;
+            require_intrinsic_node_types(when_false)
+        }
+        // Other composite operations already refuse during tape lowering.
+        _ => Ok(()),
     }
 }

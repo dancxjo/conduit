@@ -209,3 +209,21 @@ fn tape_offer_refuses_unsupported_temporal_and_semantic_profiles() {
     )
     .is_ok());
 }
+
+#[test]
+fn tape_offer_refuses_native_laws_without_a_retained_validation_witness() {
+    let source = "type Small = U32 where . < 4_294_967_295\nplot choose (\n >> value: Small\n result: U32 >>\n) = (. + 1)\n";
+    let checked =
+        check_syntax_document(&parse_syntax_document(source), &StartupCatalog::new()).unwrap();
+    let expanded =
+        expand_canonical_plot_for_authoring(&checked, "choose", &ProfileCatalog::new()).unwrap();
+    let ConfigurationValue::Text(encoded) = &expanded.expanded.gears[0].configuration[0].value
+    else {
+        panic!("program")
+    };
+    let program = PortableExpressionProgram::from_canonical_hex(encoded).unwrap();
+    let refusal =
+        conduit_std_offers::pure_scalar_tape_std_offer(&program, conduit_core::PortTemporal::Value)
+            .unwrap_err();
+    assert!(refusal.contains("scalar-tape/native-law-witness-unavailable@1"));
+}
