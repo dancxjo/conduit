@@ -125,3 +125,76 @@ fn a_select_cannot_borrow_another_controls_option() {
         Err(ApplicationViewRefusal::InvalidControlValue)
     );
 }
+
+#[test]
+fn graph_selection_is_an_exact_subject_of_the_current_canvas() {
+    use conduit_face::application_canvas::{ApplicationCanvas, CanvasCord, CanvasNode, CanvasPort};
+    let canvas = ApplicationCanvas {
+        checked_plot: "checked".into(),
+        expanded_plot: "expanded".into(),
+        plan: "plan".into(),
+        body_plan: "body-plan".into(),
+        play: "play".into(),
+        selected: String::new(),
+        nodes: vec![CanvasNode {
+            identity: "gear/é😀".into(),
+            label: "Gear label".into(),
+            kind: "kind".into(),
+        }],
+        ports: vec![
+            CanvasPort {
+                identity: "port/out".into(),
+                owner: "gear/é😀".into(),
+                label: "Output".into(),
+                direction: "output".into(),
+                info: "text".into(),
+                temporal: "stream".into(),
+            },
+            CanvasPort {
+                identity: "port/in".into(),
+                owner: "gear/é😀".into(),
+                label: "Input".into(),
+                direction: "input".into(),
+                info: "text".into(),
+                temporal: "stream".into(),
+            },
+        ],
+        cords: vec![CanvasCord {
+            identity: "cord/one".into(),
+            source: "port/out".into(),
+            sink: "port/in".into(),
+        }],
+    };
+    let mut control = node(ApplicationComponent::PatchbayCanvas, None, "canvas");
+    control.value = canvas.encode().unwrap();
+    control.value_capacity = 65_536;
+    control.action = Some(0);
+    let mut view = view(vec![control]);
+    view.actions[0].event = ApplicationEventKind::Activate;
+    view.validate().unwrap();
+    let selection = |value: &str| ApplicationEvent {
+        kind: ApplicationEventKind::Activate,
+        ..event(value.as_bytes())
+    };
+    for identity in ["gear/é😀", "port/out", "port/in", "cord/one"] {
+        let event = selection(identity);
+        assert_eq!(
+            ApplicationEvent::decode(&event.encode(&view).unwrap(), &view),
+            Ok(event)
+        );
+    }
+    for identity in ["", "gear/absent", "Gear label", "plan", "\u{feff}port/out"] {
+        assert_eq!(
+            selection(identity).validate(&view),
+            Err(ApplicationViewRefusal::InvalidControlValue)
+        );
+    }
+    let stale = ApplicationEvent {
+        revision: 2,
+        ..selection("port/out")
+    };
+    assert_eq!(
+        stale.validate(&view),
+        Err(ApplicationViewRefusal::StaleRevision)
+    );
+}

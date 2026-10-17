@@ -70,6 +70,24 @@ impl ApplicationEvent {
                         return Err(ApplicationViewRefusal::InvalidControlValue);
                     }
                 }
+                super::ApplicationComponent::PatchbayCanvas if !node.value.is_empty() => {
+                    let canvas = crate::application_canvas::ApplicationCanvas::decode(&node.value)?;
+                    if !canvas
+                        .nodes
+                        .iter()
+                        .any(|subject| subject.identity.as_bytes() == self.value)
+                        && !canvas
+                            .ports
+                            .iter()
+                            .any(|subject| subject.identity.as_bytes() == self.value)
+                        && !canvas
+                            .cords
+                            .iter()
+                            .any(|subject| subject.identity.as_bytes() == self.value)
+                    {
+                        return Err(ApplicationViewRefusal::InvalidControlValue);
+                    }
+                }
                 super::ApplicationComponent::PatchbayCanvas
                 | super::ApplicationComponent::TextInput
                 | super::ApplicationComponent::TextArea => {}

@@ -806,3 +806,16 @@ caches created by the completed baseline were removed while preserving kernel
 caches/evidence; a package-native Face cleanup also removed 445.6 MiB. The final
 nonincremental focused run passed, leaving 1.9 GiB free. No workspace rebuild,
 workflow dispatch or acceptance-claim upgrade was performed.
+
+Portable graph return admission follow-up (#5518): populated application
+canvases validate returned selection bytes against the exact Gear, Port or Cord
+identities in their existing serialized canvas. UTF-8 and capacity checks remain
+first; no coordinates, labels, plan IDs or new graph store define membership.
+Empty placeholder canvases retain their prior behavior.
+
+The Rust regression reproduced absent-subject acceptance before repair. All
+four control-contract tests and 15 application-view tests pass under conduit-face
+--no-default-features, including exact Gear/Port/Cord encode/decode, alias/label/
+absent-subject refusal and stale revision refusal. Rust formatting passes. This
+is portable Face admission proof, not native/browser/linear equal-topology or
+actual Body/Play/public acceptance; #5518 remains open.
