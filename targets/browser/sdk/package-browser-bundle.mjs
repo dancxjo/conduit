@@ -6,6 +6,7 @@ import { fileURLToPath } from "node:url";
 const ROOT = path.resolve(path.dirname(fileURLToPath(import.meta.url)));
 const RELEASE_SCHEMA = "conduit.release/host-bundle@1";
 const IMAGE_PATH = "conduit-browser-image.json";
+const MAXIMUM_MODULE_BYTES = 256 * 1024;
 const MAXIMUM_RUNTIME_BYTES = 20 * 1024 * 1024;
 const RUNTIME_HEADER = [0, 97, 115, 109, 1, 0, 0, 0];
 const encoder = new TextEncoder();
@@ -73,6 +74,12 @@ if (await digestFiles(release.files) !== release.bundle_sha256) {
 }
 if (!releasePaths.has("runtime.wasm")) throw new Error("BrowserBundle has no browser runtime");
 
+const boot = image.files.find(file => file.path === "browser-boot-profile.mjs");
+if (!boot || image.boot_module?.role !== "profile-gated-boot"
+  || image.boot_module.path !== boot.path || image.boot_module.sha256 !== boot.sha256) {
+  throw new Error("BrowserBundle boot module declaration does not match its exact IMAGE asset");
+}
+
 // The public destination appears only after its complete package is ready.
 await mkdir(path.dirname(outputRoot), { recursive: true });
 const stageRoot = await mkdtemp(path.join(path.dirname(outputRoot), ".conduit-sdk-stage-"));
@@ -87,6 +94,9 @@ try {
     }
     if (file.path === "runtime.wasm" && file.bytes > MAXIMUM_RUNTIME_BYTES) {
       throw new Error("BrowserBundle runtime exceeds the browser consumer 20 MiB ceiling");
+    }
+    if (file.path !== "runtime.wasm" && file.bytes > MAXIMUM_MODULE_BYTES) {
+      throw new Error(`BrowserBundle asset ${file.path} exceeds the browser consumer 256 KiB ceiling`);
     }
     const source = path.resolve(bundleRoot, file.path);
     if (!source.startsWith(`${bundleRoot}${path.sep}`)) throw new Error("BrowserBundle path escaped its source directory");
