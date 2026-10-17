@@ -617,7 +617,7 @@ test(`Handbook recovery distinguishes saved corrections from original packaged s
         if (!checker) throw new Error('Fixture Host unavailable');
         return { plot: value => ({ check: async () => value.startsWith('{')
           ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
-          : { ok: true, plots: [] } }) };
+          : { ok: true, plots: [{ name: "pitch" }] } }) };
       },
     });
   }, { original, corrected, checker, originalDigest });
@@ -688,7 +688,7 @@ test(`Handbook correction saves retain sibling edits while a write is pending (f
         globalThis.checkedSources.push(value);
         return value.startsWith('{')
           ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
-          : { ok: true, plots: [] };
+          : { ok: true, plots: [{ name: value.split(" ").at(-1) }] };
       } }) }),
     });
   }, firstFails);
@@ -811,4 +811,35 @@ test('Handbook retains unsent lesson drafts across startup preferences and selec
   await expect(page.locator('[data-check]')).toHaveAttribute('data-refusal-code', 'FixtureSyntaxRefused');
   await expect(editor).toHaveValue('unsent second draft');
   expect(await page.evaluate(() => globalThis.bodyTransitions)).toEqual(['select', 'wake']);
+});
+
+// Recovery must preserve the selected lesson identity as well as valid syntax.
+test('Handbook recovery refuses a correction that renames the selected Plot', async ({ page }) => {
+  await page.goto('/proof/browser/signal-dom-host.test.html');
+  await page.evaluate(async () => {
+    const { startApplication } = await import('/targets/browser/handbook/application.mjs');
+    document.body.innerHTML = '<main><section data-handbook-application></section></main>';
+    globalThis.storageWrites = [];
+    await startApplication({
+      text: role => role === 'birth-specification' ? JSON.stringify({ name: 'Fixture', initialPlots: ['pitch'],
+        plots: [{ name: 'pitch', title: 'Pitch', role: 'pitch', lesson: 'Pitch' }] }) : 'plot pitch',
+      storage: { readJson: async () => null, writeJson: async (...args) => globalThis.storageWrites.push(args) },
+      browser: async () => ({ plot: value => ({ check: async () => value.startsWith('{')
+        ? { ok: false, refusal: { code: 'FixtureInventoryRefused', message: 'Fixture inventory refused' }, diagnostics: [] }
+        : { ok: true, plots: [{ name: value === 'plot renamed' ? 'renamed' : 'pitch' }] } }) }),
+    });
+  });
+  const editor = page.getByRole('textbox', { name: 'Plot source', exact: true });
+  const save = page.getByRole('button', { name: 'Try in my Handbook', exact: true });
+  await editor.fill('plot renamed');
+  await save.click();
+  await expect(page.locator('[data-check]')).toHaveAttribute('data-refusal-code', 'LessonPlotNameChanged');
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([]);
+  await expect(editor).toHaveValue('plot renamed');
+  await editor.fill('plot pitch');
+  await save.click();
+  await expect(page.locator('[data-check]')).toContainText('Correction saved');
+  expect(await page.evaluate(() => globalThis.storageWrites)).toEqual([['handbook-source-rescue', [
+    { name: 'pitch', original: 'plot pitch', source: 'plot pitch' },
+  ]]]);
 });

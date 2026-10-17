@@ -493,6 +493,11 @@ export async function startApplication(application) {
           return;
         }
         if (!['packaged', 'saved correction'].includes(candidate.origin)) return;
+        if (!result.plots?.some(plot => plot.name === candidate.name)) {
+          checkStatus.dataset.refusalCode = 'LessonPlotNameChanged';
+          checkStatus.textContent = `Keep the plot name ${candidate.name} for this lesson so your saved edits stay with the example.`;
+          return;
+        }
         const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
         // Compute against the last successful save inside the queue. A sibling
         // lesson may be checked while another correction is still persisting.

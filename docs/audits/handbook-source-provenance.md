@@ -89,3 +89,16 @@ source fixtures pass with one worker and zero retries. The two provenance cases
 use real browser downloads and verify exact multiline Unicode file contents and
 filename, while retaining the zero-storage-write assertion. Host/checker remain
 fixtures; actual packaged/public acceptance stays open.
+
+Recovery lesson-identity follow-up (#5453): a successful syntax check must still
+contain the selected lesson's Plot name before its source can be saved as that
+lesson's correction. Renaming the Plot previously saved an unusable correction
+under the original name. Recovery now reports `LessonPlotNameChanged` without
+writing storage or replacing the editor draft; restoring the name permits save.
+
+The regression reproduced the bad save before repair. Five focused pinned
+Chromium fixtures pass with one worker and zero retries: rename refusal/repaired
+save, both pending-write outcomes and both original/correction inspector modes.
+Fixture checkers now return the Plot names they claim to check. These tests
+isolate recovery UI and persistence; Rust syntax, actual Body lifecycle and
+packaged/public acceptance remain separate proof obligations.
