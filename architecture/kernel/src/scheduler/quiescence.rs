@@ -45,17 +45,23 @@ where
         if !self.has_quiescence_cords {
             return Ok(());
         }
-        for cord in 0..self.active_cords {
-            #[cfg(test)]
-            {
-                let mut counts = self.scan_counts.get();
-                counts.cord_scans += 1;
-                self.scan_counts.set(counts);
-            }
-            if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence
-                && self.cord_specs[cord].source_local().map(|source| source.0) == Some(node)
-            {
-                self.cords[cord].quiescence_armed = true;
+        // Plan validation proves every local-source cord is in this source's
+        // exact route and that routed targets are active and unique per port.
+        for port in 0..PORTS {
+            let Ok(targets) = self.routes.route(node, PortId(as_u16(port)?)) else {
+                continue;
+            };
+            for target in targets {
+                let cord = usize::from(target.cord.0);
+                #[cfg(test)]
+                {
+                    let mut counts = self.scan_counts.get();
+                    counts.cord_scans += 1;
+                    self.scan_counts.set(counts);
+                }
+                if self.cord_specs[cord].track == AssignedConnectionTrack::Quiescence {
+                    self.cords[cord].quiescence_armed = true;
+                }
             }
         }
         Ok(())
