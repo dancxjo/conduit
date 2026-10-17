@@ -114,12 +114,19 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.dataset.ownerAction = action.identity;
       if (!itemName) control.append(faceNode('h5', action.name));
       const inputs = [];
-      let supported = Array.isArray(action.arguments) && action.arguments.length <= 64;
-      for (const argument of action.arguments ?? []) {
+      const argumentCount = Array.isArray(action.arguments) ? action.arguments.length : 0;
+      let supported = Array.isArray(action.arguments) && argumentCount <= 64;
+      for (const argument of supported ? action.arguments : []) {
+        if (!argument || !Number.isSafeInteger(argument.maximum_bytes)
+          || argument.maximum_bytes < 0 || argument.maximum_bytes > 4096) {
+          supported = false;
+          continue;
+        }
         const label = faceNode('label', argument.value_name);
         let input;
         if (Array.isArray(argument.choices) && argument.choices.length) {
-          if (argument.choices.length > 64 || argument.choices.includes('')) {
+          if (argument.choices.length > 64 || argument.choices.some(choice =>
+            typeof choice !== 'string' || choice === '' || encoder.encode(choice).length > argument.maximum_bytes)) {
             supported = false;
             continue;
           }
@@ -133,8 +140,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
             input.append(option);
           }
           input.required = true;
-        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text'
-          && Number.isSafeInteger(argument.maximum_bytes) && argument.maximum_bytes <= 4096) {
+        } else if (Array.isArray(argument.choices) && argument.value_kind === 'value/text') {
           input = document.createElement('input');
           input.type = 'text'; input.maxLength = argument.maximum_bytes;
           input.addEventListener('input', () => input.setCustomValidity(
@@ -161,9 +167,9 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       button.setAttribute('part', 'button');
       button.type = 'submit';
       button.dataset.ownerFocus = JSON.stringify([view.body_id, action.identity, action.target, 'submit']);
-      button.disabled = !actionReady(action) || !supported || inputs.length !== action.arguments.length;
+      button.disabled = !actionReady(action) || !supported || inputs.length !== argumentCount;
       button.dataset.unavailable = String(action.availability !== 'available' || !this.#supportsAction(action)
-        || !supported || inputs.length !== action.arguments.length);
+        || !supported || inputs.length !== argumentCount);
       control.append(button);
       if (button.disabled) control.append(faceNode('p', !this.#supportsAction(action)
         ? 'This action is unavailable in this view.' : action.explanation ??
@@ -171,13 +177,14 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
       control.addEventListener('submit', async event => {
         event.preventDefault();
         if (!this.#reachable(button) || !this.#ready(view, action, render) || !this.#invoke
-          || !supported || inputs.length !== action.arguments.length) return;
+          || !supported || inputs.length !== argumentCount) return;
         // A submit event can be synthetic, and script can change values without
         // firing input events. Recheck the admitted argument domain here.
         for (const { input, argument } of inputs) {
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
-          } else input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
+          }
+          input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
             ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : '');
           if (!input.checkValidity()) return;
         }

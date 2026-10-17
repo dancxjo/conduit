@@ -697,3 +697,37 @@ test(`Handbook refresh preserves current controls and refuses interrupted ${inte
   });
 });
 }
+
+for (const malformed of ['missing', 'non-array', 'negative-bound', 'choice-bytes', 'too-many']) {
+  test(`malformed owner argument contracts refuse without losing other actions (${malformed})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const broken = { ...view.actions[0], identity: 'fixture/broken', name: 'Broken action', arguments: [{
+      name: 'value', value_name: 'Value', value_kind: 'value/text', maximum_bytes: 4, choices: [],
+    }] };
+    if (malformed === 'missing') delete broken.arguments;
+    if (malformed === 'non-array') broken.arguments = {};
+    if (malformed === 'too-many') broken.arguments = Array.from({ length: 65 }, (_, index) => ({
+      name: `value/${index}`, value_name: `Value ${index}`, value_kind: 'value/text', maximum_bytes: 4, choices: [],
+    }));
+    if (malformed === 'negative-bound') broken.arguments[0].maximum_bytes = -1;
+    if (malformed === 'choice-bytes') broken.arguments[0].choices = ['ééé'];
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren();
+      globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, { ...view, actions: [broken, ...view.actions] });
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('button', { name: 'Broken action', exact: true })).toBeDisabled();
+    await expect(element.getByText('This input has no supported browser form.', { exact: true })).toBeVisible();
+    await expect(element.locator('form[data-owner-action="fixture/broken"] input')).toHaveCount(0);
+    await element.locator('form[data-owner-action="fixture/broken"]').evaluate(form =>
+      form.dispatchEvent(new Event('submit', { bubbles: true, cancelable: true })));
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([]);
+    const current = element.getByRole('button', { name: 'Complete task', exact: true });
+    await current.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls.length)).toBe(1);
+    expect(await page.evaluate(() => globalThis.calls[0].action.identity)).toBe('fixture/complete');
+  });
+}

@@ -158,3 +158,18 @@ for the exact route-change refusal, cleared acknowledgement, zero callback on
 an adversarial stale submit and trusted keyboard activation after a fresh Show;
 the three owner-route unit tests pass. These use a fixture SDK carrier through
 production Handbook orchestration, not real Body state or packaged acceptance.
+
+Malformed argument-contract follow-up (#5644): form rendering now refuses
+non-array/excessive argument lists without iterating them, validates nonnegative
+finite byte bounds before assigning native input properties, and refuses
+non-string/empty/oversized finite choice values. Submission rechecks byte limits for
+choice values as well as free text. Unsupported actions retain an explicit
+unsupported-form message while neighboring valid actions remain usable.
+
+Negative bounds reproduced a native DOM exception and oversized UTF-8 choices
+remained enabled before repair. The missing-list case already refused safely
+and remains a characterization. All thirty-three component Chromium tests pass
+with one worker and zero retries, including non-array lists, the 64-argument
+ceiling, no callback from forged submit and trusted keyboard activation of an
+unrelated valid action. These are renderer fixtures; authoritative Face/SDK/Body
+validation and packaged/public acceptance remain separate.
