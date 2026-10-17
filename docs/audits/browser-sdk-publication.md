@@ -36,3 +36,16 @@ independent byte-hash verification, refusal/no-output/no-staging checks for each
 bad case, and the earlier retry/overwrite/permissions/composition checks. The
 ceiling fixture is a header envelope, not executable Wasm/ABI proof; optimized
 runtime, packaged browser and public release claims remain open.
+
+Inventory-consistency follow-up: distribution files must match the IMAGE inventory
+exactly, including order, as required by the browser SDK consumer. The producer
+recomputes the distribution digest and compares IMAGE asset sizes, digests and
+media types with the release inventory before staging output.
+
+Eight contradictory inventories reproduced acceptance before repair: missing,
+duplicated, size-changed or reordered distribution files, a false distribution
+digest, and IMAGE/release size, digest or media-type disagreements. The focused
+producer fixture now refuses all eight without output or staging residue and
+retains successful packaging and the earlier envelope/publication checks. This
+is producer fixture evidence; executable runtime, packaged browser, historical
+source provenance and public release acceptance remain unproven.
