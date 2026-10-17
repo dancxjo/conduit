@@ -68,6 +68,9 @@ where
                     if spec.byte_capacity < terminal_bytes {
                         return Err(SchedulerError::QueueCapacityExceeded);
                     }
+                    if terminal_bytes > spec.maximum_value_bytes {
+                        return Err(SchedulerError::SemanticValueBoundExceeded);
+                    }
                     values = values.checked_add(1).ok_or(SchedulerError::InvalidPlan)?;
                 }
                 if matches!(target.sink, CordEndpoint::Remote(_)) {

@@ -40,6 +40,21 @@ fn scheduler_with_bytes(
     ordinary: u32,
     byte_capacity: u32,
 ) -> Scheduler {
+    scheduler_with_bounds(
+        abnormal,
+        remote,
+        ordinary,
+        byte_capacity,
+        [byte_capacity; 2],
+    )
+}
+fn scheduler_with_bounds(
+    abnormal: bool,
+    remote: u16,
+    ordinary: u32,
+    byte_capacity: u32,
+    maximum_value_bytes: [u32; 2],
+) -> Scheduler {
     let mut routes = FixedRoutes::new(PORTS as u16);
     let targets = core::array::from_fn::<_, 2, _>(|i| RouteTarget {
         cord: CordId(i as u16),
@@ -68,6 +83,7 @@ fn scheduler_with_bytes(
                     pressure_policy: Default::default(),
                 },
             )
+            .with_maximum_value_bytes(maximum_value_bytes[i])
             .with_track(if abnormal {
                 AssignedConnectionTrack::AbnormalTerminal
             } else {
@@ -168,4 +184,45 @@ fn oversized_abnormal_terminal_refuses_before_commit_and_allows_smaller_retry() 
         assert_eq!(cord.len, 1);
         assert!(cord.producer_closed);
     }
+}
+
+#[test]
+fn abnormal_terminal_obeys_each_branch_semantic_envelope_before_commit() {
+    for bounds in [[2, 8], [8, 2]] {
+        let mut scheduler = scheduler_with_bounds(true, 2, 16, 8, bounds);
+        assert_eq!(
+            scheduler.step(),
+            Err(SchedulerError::SemanticValueBoundExceeded)
+        );
+        assert_eq!(scheduler.drivers[0].committed, 0);
+        assert!(!scheduler.completed[0]);
+        assert!(scheduler.ready.contains(0));
+        assert_eq!(scheduler.values.used_items(), 0);
+        assert_eq!(scheduler.signs.events().count(), 1);
+        for cord in &scheduler.cords {
+            assert_eq!(cord.len, 0);
+            assert!(!cord.producer_closed);
+        }
+        // Exactly the narrowest admitted value envelope remains publishable.
+        scheduler.drivers[0].terminal = CanonicalValue::new(b"ok").unwrap();
+        assert_eq!(
+            scheduler.step(),
+            Ok(SchedulerStatus::Progress { node: NodeId(0) })
+        );
+        assert_eq!(scheduler.drivers[0].committed, 1);
+        assert!(scheduler.completed[0]);
+        assert_eq!(scheduler.signs.events().count(), 7);
+        let value = scheduler.peek(0).unwrap().unwrap();
+        assert_eq!(scheduler.values.get(value), Ok(b"ok".as_slice()));
+        assert_eq!(scheduler.values.reference_count(value), Ok(2));
+        assert_eq!(scheduler.peek(1).unwrap(), Some(value));
+        scheduler.cancel().unwrap();
+        assert_eq!(scheduler.values.used_items(), 0);
+    }
+    let mut normal = scheduler_with_bounds(false, 2, 16, 8, [1, 1]);
+    assert_eq!(
+        normal.step(),
+        Ok(SchedulerStatus::Progress { node: NodeId(0) })
+    );
+    assert_eq!(normal.drivers[0].committed, 1);
 }
