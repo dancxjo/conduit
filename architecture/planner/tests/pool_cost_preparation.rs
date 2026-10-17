@@ -249,6 +249,15 @@ fn exercise_demand(demand_bytes: usize, expected_provider: usize) {
         demand_bytes as u64
     );
     assert_eq!(prepared[0].account.input_bytes, demand_bytes);
+    // A retained forecast must identify the actual operation it prepared, so
+    // inspection cannot join another request's stages by Host or total alone.
+    for item in &prepared {
+        assert_eq!(item.account.binding.plan, plan.plan_id);
+        assert_eq!(item.account.binding.pool, pool_id);
+        assert_eq!(item.account.binding.operation, operation);
+        assert_eq!(item.account.binding.demand, [9; 32]);
+        assert_eq!(item.account.binding.realization, item.cost.realization());
+    }
     assert_eq!(
         prepared[0]
             .account
