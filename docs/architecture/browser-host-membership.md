@@ -22,6 +22,12 @@ existing-record, concurrent-creation and validation-failure paths. A completed
 identity operation therefore cannot keep an application database upgrade blocked.
 Closing the connection does not reset the retained Host identity.
 
+A blocked identity database upgrade refuses startup instead of waiting for an
+unbounded external connection lifetime. If the blocking connection later closes,
+the abandoned request aborts its upgrade rather than changing the schema after
+refusal. Application-storage startup follows the same rule and reports
+`StorageUnavailable`. Neither path retries or resets retained state automatically.
+
 Each runtime initialization creates a fresh `BootId`. Restored application state cannot make an earlier boot current. When the durable host is already an admitted part, the body records the prior boot as `HostDetached` and the fresh boot as `HostAttached`, with exact monotonically revised membership and biography evidence. A different host identity refuses reconciliation without changing the restored membership.
 
 `conduit.browser/body-membership-client@1` is the reusable browser-side admission client. It exposes the exact current host advertisement and signs only bounded body-issued admission, return, or spawn challenges for its own host and boot. Knowing a `BodyId` is insufficient. The body admission authority remains responsible for validating the invitation/proof and applying ordinary `admit`, `observe_present`, `observe_offline`, or `revoke` transitions. Crèche and Patchbay consume this client; neither owns a parallel membership algebra.
