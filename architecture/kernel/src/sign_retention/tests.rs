@@ -1,93 +1,145 @@
 use super::*;
-use crate::NodeId;
-use core::cell::Cell;
+use crate::{FixedSignLog, NodeId, PortId, SignSink};
 
-fn event(sticky: bool) -> KernelEvent {
-    KernelEvent {
-        sequence: 0,
-        node: NodeId(0),
-        port: None,
-        request: None,
-        kind: if sticky {
-            KernelEventKind::BackCompleted
+fn check(log: &impl SignSink, events: impl Iterator<Item = KernelEvent>) -> u16 {
+    // Independent history oracle; only the tests walk the actual log.
+    let retained = events.filter(|event| !transient_sign(event.kind)).count() as u16;
+    let charge = size_of::<KernelEvent>() as u32;
+    for additional in 0..=log.item_capacity() + 1 {
+        let items = u32::from(retained) + u32::from(additional);
+        let expected = if items > u32::from(log.item_capacity()) {
+            Err(SignError::ItemCapacityExceeded)
+        } else if items * charge > log.byte_capacity() {
+            Err(SignError::ByteCapacityExceeded)
         } else {
-            KernelEventKind::ValueConsumed
-        },
+            Ok(())
+        };
+        assert_eq!(log.ensure_capacity(additional), expected);
+    }
+    retained
+}
+
+fn fixed_patterns<const N: usize>() {
+    for byte_items in 1..=N {
+        for pattern in 0..(1u16 << N) {
+            let mut log =
+                FixedSignLog::<N>::new((byte_items * size_of::<KernelEvent>()) as u32).unwrap();
+            for index in 0..N * 3 {
+                assert_eq!(log.retained_items, check(&log, log.events()));
+                let kind = if pattern & (1 << (index % N)) == 0 {
+                    KernelEventKind::ValueConsumed
+                } else {
+                    KernelEventKind::BackCompleted
+                };
+                let _ = log.record(NodeId(0), None, None, kind);
+            }
+            assert_eq!(log.retained_items, check(&log, log.events()));
+        }
     }
 }
 
 #[test]
-fn physical_headroom_does_not_visit_history() {
-    let visits = Cell::new(0);
-    let events = core::iter::once(event(true)).inspect(|_| visits.set(visits.get() + 1));
-    let charge = size_of::<KernelEvent>() as u32;
-    assert_eq!(
-        ensure_retained_sign_capacity(events, 8, 8 * charge, 1, charge, 1),
-        Ok(())
-    );
-    assert_eq!(visits.get(), 0);
+fn fixed_retained_count_matches_history_through_eviction_and_refused_records() {
+    fixed_patterns::<1>();
+    fixed_patterns::<2>();
+    fixed_patterns::<4>();
+    fixed_patterns::<8>();
 }
 
+#[cfg(feature = "alloc")]
 #[test]
-fn pressured_logs_preserve_retained_history_admission() {
-    let charge = size_of::<KernelEvent>() as u32;
-    for capacity in 1u16..=8 {
-        for occupied in 0..=capacity {
-            for pattern in 0u16..(1u16 << occupied) {
-                let retained = (pattern & ((1u16 << occupied) - 1)).count_ones();
-                for additional in 0..=capacity + 1 {
-                    for byte_items in 0..=capacity + 1 {
-                        let expected = if retained + u32::from(additional) > u32::from(capacity) {
-                            Err(SignError::ItemCapacityExceeded)
-                        } else if retained + u32::from(additional) > u32::from(byte_items) {
-                            Err(SignError::ByteCapacityExceeded)
-                        } else {
-                            Ok(())
-                        };
-                        let events = (0..occupied).map(|index| event(pattern & (1 << index) != 0));
-                        assert_eq!(ensure_retained_sign_capacity(events, capacity,
-                            u32::from(byte_items) * charge, occupied,
-                            u32::from(occupied) * charge, additional), expected,
-                            "capacity={capacity}, occupied={occupied}, pattern={pattern}, additional={additional}, byte_items={byte_items}");
-                    }
+fn hosted_retained_count_matches_history_through_eviction_and_refused_records() {
+    for capacity in 1..=8 {
+        for byte_items in 1..=capacity {
+            for pattern in 0..(1u16 << capacity) {
+                let mut log = crate::HostedSignLog::new(
+                    capacity,
+                    u32::from(byte_items) * size_of::<KernelEvent>() as u32,
+                )
+                .unwrap();
+                for index in 0..capacity * 3 {
+                    assert_eq!(log.retained_items, check(&log, log.events()));
+                    let kind = if pattern & (1 << (index % capacity)) == 0 {
+                        KernelEventKind::ValueConsumed
+                    } else {
+                        KernelEventKind::BackFailed
+                    };
+                    let _ = log.record(NodeId(0), None, None, kind);
                 }
+                assert_eq!(log.retained_items, check(&log, log.events()));
             }
         }
     }
 }
 
 #[test]
-fn overflowing_physical_count_uses_retained_history_rule() {
-    let charge = size_of::<KernelEvent>() as u32;
+fn maximum_reservation_uses_retained_count_without_narrowing_overflow() {
     assert_eq!(
-        ensure_retained_sign_capacity(
-            core::iter::once(event(false)),
-            u16::MAX,
-            u32::from(u16::MAX) * charge,
-            1,
-            charge,
-            u16::MAX
-        ),
+        ensure_retained_sign_capacity(0, u16::MAX, u32::MAX, u16::MAX),
         Ok(())
+    );
+    assert_eq!(
+        ensure_retained_sign_capacity(1, u16::MAX, u32::MAX, u16::MAX),
+        Err(SignError::ItemCapacityExceeded)
     );
 }
 
-#[test]
-fn physical_item_or_byte_pressure_inspects_retained_history() {
-    let charge = size_of::<KernelEvent>() as u32;
-    for (capacity, byte_capacity, expected) in [
-        (2, 3 * charge, Ok(())),
-        (3, 2 * charge, Ok(())),
-        (3, charge, Err(SignError::ByteCapacityExceeded)),
-    ] {
-        let visits = Cell::new(0);
-        let events = [event(true), event(false)]
-            .into_iter()
-            .inspect(|_| visits.set(visits.get() + 1));
+macro_rules! remote_and_sequence_refusals {
+    ($log:expr) => {{
+        let mut log = $log;
+        let remote = crate::RemoteLifecycleIdentity {
+            endpoint: crate::RemoteEndpointId(0),
+            cord: crate::CordId(0),
+            direction: crate::RemoteCordDirection::Egress,
+            sequence: 0,
+        };
+        log.record(NodeId(0), None, None, KernelEventKind::ValueConsumed)
+            .unwrap();
+        log.record_remote(
+            NodeId(0),
+            PortId(0),
+            KernelEventKind::RemoteValueOffered,
+            remote,
+        )
+        .unwrap();
+        assert_eq!(log.retained_items, check(&log, log.events()));
         assert_eq!(
-            ensure_retained_sign_capacity(events, capacity, byte_capacity, 2, 2 * charge, 1),
-            expected
+            log.record_remote(
+                NodeId(0),
+                PortId(0),
+                KernelEventKind::RemoteValueOffered,
+                remote
+            ),
+            Err(SignError::RemoteItemCapacityExceeded)
         );
-        assert_eq!(visits.get(), 2);
-    }
+        assert_eq!(log.retained_items, check(&log, log.events()));
+        log.next_sequence = u32::MAX;
+        assert_eq!(
+            log.record(NodeId(0), None, None, KernelEventKind::BackCompleted),
+            Err(SignError::SequenceOverflow)
+        );
+        assert_eq!(log.retained_items, check(&log, log.events()));
+    }};
+}
+
+#[test]
+fn fixed_remote_and_sequence_failures_do_not_publish_retained_entries() {
+    remote_and_sequence_refusals!(FixedSignLog::<2>::new_with_remote_storage(
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
+}
+
+#[cfg(feature = "alloc")]
+#[test]
+fn hosted_remote_and_sequence_failures_do_not_publish_retained_entries() {
+    remote_and_sequence_refusals!(crate::HostedSignLog::new_with_remote_storage(
+        2,
+        2 * size_of::<KernelEvent>() as u32,
+        1,
+        crate::remote_sign_storage_bytes(1).unwrap()
+    )
+    .unwrap());
 }

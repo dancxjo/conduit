@@ -728,6 +728,8 @@ pub trait SignQuery {
 pub struct FixedSignLog<const EVENTS: usize> {
     entries: [Option<KernelEvent>; EVENTS],
     len: u16,
+    // Non-transient entries are never evicted; updated only on publication.
+    retained_items: u16,
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
@@ -769,6 +771,7 @@ impl<const EVENTS: usize> FixedSignLog<EVENTS> {
         Ok(Self {
             entries: [None; EVENTS],
             len: 0,
+            retained_items: 0,
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
@@ -838,11 +841,9 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
 
     fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
         ensure_retained_sign_capacity(
-            self.events(),
+            self.retained_items,
             self.item_capacity(),
             self.byte_capacity,
-            self.len,
-            self.used_bytes,
             additional,
         )
     }
@@ -878,6 +879,7 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
         };
         self.entries[usize::from(self.len)] = Some(event);
         self.len += 1;
+        self.retained_items += u16::from(!transient_sign(kind));
         self.used_bytes += charge;
         self.next_sequence = next_sequence;
         Ok(event)
@@ -922,6 +924,7 @@ impl<const EVENTS: usize> SignSink for FixedSignLog<EVENTS> {
             identity: remote,
         });
         self.len += 1;
+        self.retained_items += u16::from(!transient_sign(kind));
         self.used_bytes += charge;
         self.remote_len += 1;
         self.remote_used_bytes += remote_charge;
@@ -977,6 +980,8 @@ impl<const EVENTS: usize> SignQuery for FixedSignLog<EVENTS> {
 pub struct HostedSignLog {
     entries: alloc::vec::Vec<Option<KernelEvent>>,
     len: u16,
+    // Non-transient entries are never evicted; updated only on publication.
+    retained_items: u16,
     byte_capacity: u32,
     used_bytes: u32,
     next_sequence: u32,
@@ -1023,6 +1028,7 @@ impl HostedSignLog {
         Ok(Self {
             entries,
             len: 0,
+            retained_items: 0,
             byte_capacity,
             used_bytes: 0,
             next_sequence: 0,
@@ -1081,11 +1087,9 @@ impl SignSink for HostedSignLog {
 
     fn ensure_capacity(&self, additional: u16) -> Result<(), SignError> {
         ensure_retained_sign_capacity(
-            self.events(),
+            self.retained_items,
             self.item_capacity(),
             self.byte_capacity,
-            self.len,
-            self.used_bytes,
             additional,
         )
     }
@@ -1121,6 +1125,7 @@ impl SignSink for HostedSignLog {
         };
         self.entries[usize::from(self.len)] = Some(event);
         self.len += 1;
+        self.retained_items += u16::from(!transient_sign(kind));
         self.used_bytes += charge;
         self.next_sequence = next_sequence;
         Ok(event)
@@ -1165,6 +1170,7 @@ impl SignSink for HostedSignLog {
             identity: remote,
         });
         self.len += 1;
+        self.retained_items += u16::from(!transient_sign(kind));
         self.used_bytes += charge;
         self.remote_len += 1;
         self.remote_used_bytes += remote_charge;

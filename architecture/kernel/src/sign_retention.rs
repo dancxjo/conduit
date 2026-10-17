@@ -23,29 +23,12 @@ pub(super) fn transient_sign(kind: KernelEventKind) -> bool {
 
 #[inline]
 pub(super) fn ensure_retained_sign_capacity(
-    events: impl Iterator<Item = KernelEvent>,
+    retained: u16,
     item_capacity: u16,
     byte_capacity: u32,
-    occupied: u16,
-    used_bytes: u32,
     additional: u16,
 ) -> Result<(), SignError> {
-    // Physical headroom is sufficient without evicting or inspecting history.
-    // Both callers maintain exact occupied/used counts. If either physical
-    // budget is tight, retain the existing transient-aware admission rule.
-    let item_headroom = occupied
-        .checked_add(additional)
-        .is_some_and(|required| required <= item_capacity);
-    let byte_headroom = u32::try_from(size_of::<KernelEvent>())
-        .ok()
-        .and_then(|charge| charge.checked_mul(u32::from(additional)))
-        .and_then(|charge| used_bytes.checked_add(charge))
-        .is_some_and(|required| required <= byte_capacity);
-    if item_headroom && byte_headroom {
-        return Ok(());
-    }
-    let retained = events.filter(|event| !transient_sign(event.kind)).count();
-    if retained
+    if usize::from(retained)
         .checked_add(usize::from(additional))
         .filter(|required| *required <= usize::from(item_capacity))
         .is_none()
@@ -53,8 +36,7 @@ pub(super) fn ensure_retained_sign_capacity(
         return Err(SignError::ItemCapacityExceeded);
     }
     let charge = u32::try_from(size_of::<KernelEvent>()).map_err(|_| SignError::InvalidBudget)?;
-    let required = u32::try_from(retained)
-        .map_err(|_| SignError::InvalidBudget)?
+    let required = u32::from(retained)
         .checked_add(u32::from(additional))
         .and_then(|items| items.checked_mul(charge))
         .ok_or(SignError::InvalidBudget)?;
