@@ -26,6 +26,9 @@ conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 
 [dev-dependencies]
+conduitos = { path = "../../targets/conduitos" }
+conduit-composite = { path = "../../architecture/composite" }
+serde_json = "1"
 conduit-plot = { path = "../../architecture/plot" }
 conduit-core = { path = "../../architecture/core" }
 conduit-kernel = { path = "../../architecture/kernel", features = ["step-test-support", "alloc"] }

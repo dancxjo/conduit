@@ -71,6 +71,8 @@ pub const STEPS: &[Step] = &[
             "correspondence",
             "--test",
             "profile_phones",
+            "--test",
+            "committed_carrier",
             "--locked",
             "--",
             "--nocapture",
