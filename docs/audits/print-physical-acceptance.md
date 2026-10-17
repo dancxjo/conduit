@@ -9,7 +9,10 @@ cargo xtask check print-pool
 Run it from a checkout of the reviewed revision and retain that checkout's
 commit identity with the command result. The suite checks typed document/support
 admission, hard printer attributes, generic shared-pool cost and queue selection,
-provider availability, bounded waiting and requester fairness. It performs no
+provider availability, bounded waiting, requester fairness and the finite
+append-only request fence. The fence retains terminal or uncertain job identities
+and refuses duplicate dispatch; it does not provide durable reconciliation or
+exactly-once physical delivery. The suite performs no
 print I/O. The fixture provider is explicitly a protocol model; it does not
 install or impersonate an effectful `print/submit` Host Back.
 
