@@ -85,6 +85,10 @@ Resident Tour and Patchbay plots and durable body restoration across a new
 boot remain open work. The startup sound and reusable first-wake behavior are
 tracked in [#3152](https://github.com/dancxjo/conduit/issues/3152).
 
+In a Patchbay diagram, press the number on a Gear card to open its complete
+name and identity in Details. Page Up and Page Down continue long Details;
+F3 returns to the diagram.
+
 ## Available images
 
 Paths below are relative to `target/conduitos/`.

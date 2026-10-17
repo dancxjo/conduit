@@ -677,14 +677,14 @@ fn patchbay_diagram_uses_exact_face_gears_ports_and_cord_endpoints() {
             .scene
             .commands()
             .iter()
-            .any(|command| command.payload() == "Source Gear")
+            .any(|command| command.payload() == "1 · Source Gear")
     );
     assert!(
         frame
             .scene
             .commands()
             .iter()
-            .any(|command| command.payload() == "Sink Gear")
+            .any(|command| command.payload() == "2 · Sink Gear")
     );
     assert!(frame.hits.is_empty());
     scene.show_details(true);

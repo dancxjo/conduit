@@ -6,6 +6,8 @@
 
 mod raster;
 pub use raster::{render_glyph, render_text, render_text_scaled};
+mod preview;
+pub use preview::single_line_preview;
 mod layout;
 pub use layout::{PositionedGlyph, TextLayout};
 mod scene;

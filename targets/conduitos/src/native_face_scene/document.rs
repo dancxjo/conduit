@@ -49,6 +49,9 @@ pub(super) fn prepare(
         );
         identity.subject_index = Some(index);
         details.push(identity);
+        let mut name = item(format!("Name: {}", subject.name), GraphicsTextRole::Body);
+        name.subject_index = Some(index);
+        details.push(name);
         if subject.role == FaceRole::Cord {
             let mut endpoints = item(
                 super::ports::cord_summary(face, subject),

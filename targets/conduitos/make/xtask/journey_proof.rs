@@ -206,6 +206,31 @@ pub(super) fn execute_supplied(
         )?;
         artifacts.capture(&mut qmp, &mut reader, "patchbay-diagram", true)?;
 
+        let inspected_view = latest_workspace_view(&serial_path)?;
+        for (key, frame) in [
+            ("1", "patchbay-gear-details"),
+            ("f3", "patchbay-diagram-returned"),
+        ] {
+            let before = stage_count(&serial_path, "CONDUIT_WORKSPACE_VIEW ")?;
+            journey_input::key_pair(&mut qmp, &mut reader, key, "journey-gear-inspection")?;
+            hid_qmp::wait_for_stage_count(
+                &serial_path,
+                &mut child,
+                "CONDUIT_WORKSPACE_VIEW ",
+                before + 1,
+                "journey-gear-inspection-timeout",
+            )?;
+            artifacts.capture(&mut qmp, &mut reader, frame, true)?;
+            let current = latest_workspace_view(&serial_path)?;
+            for field in ["face_id", "body_id", "view_sha256", "status"] {
+                if inspected_view[field].as_str().is_none()
+                    || current[field] != inspected_view[field]
+                {
+                    return Err(refusal(format!("Gear inspection changed owner {field}")));
+                }
+            }
+        }
+
         journey_input::key_pair(&mut qmp, &mut reader, "f8", "journey-stop-through-face")?;
         journey_input::wait_status_retaining_guest(&serial_path, &mut child, "stopped")?;
         artifacts.capture(&mut qmp, &mut reader, "body-stopped", true)?;
@@ -237,7 +262,7 @@ pub(super) fn execute_supplied(
             "input":"real-qmp-keyboard", "screenshots":"journey-frames/manifest.json",
             "protected_keyboard_domain": keyboard_cost,
             "protected_retained_text_domain": editor_cost,
-            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","stop"],
+            "steps":["arrive","birth","wake","plan","play","protected-keyboard-canvas","protected-memory-lantern","home","patchbay","face","diagram","gear-details","diagram-return","stop"],
             "physical_evidence":false, "human_enactment":false,
         });
         fs::write(
@@ -402,6 +427,17 @@ fn refusal(detail: impl Into<String>) -> ConduitosError {
 }
 fn io_error(error: std::io::Error) -> ConduitosError {
     ConduitosError::refusal("face-journey-io", error.to_string())
+}
+
+/// Read the latest actual guest record; a missing or malformed record refuses.
+fn latest_workspace_view(path: &Path) -> Result<Value, ConduitosError> {
+    let serial = fs::read_to_string(path).map_err(io_error)?;
+    let encoded = serial
+        .lines()
+        .rev()
+        .find_map(|line| line.strip_prefix("CONDUIT_WORKSPACE_VIEW "))
+        .ok_or_else(|| refusal("Gear inspection lacks a workspace-view receipt"))?;
+    serde_json::from_str(encoded).map_err(|error| refusal(error.to_string()))
 }
 
 #[cfg(test)]

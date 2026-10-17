@@ -6,24 +6,10 @@ use conduit_face::{
     FacePropertyValue, FaceRelationshipKind, FaceRole, FaceSubject, GraphicsPath, GraphicsPoint,
 };
 
-const GAP: u16 = 16;
-const PORT_ROW: u16 = 27;
+#[path = "diagram_geometry.rs"]
+mod geometry;
+use geometry::{DiagramGeometry, GAP, GearHits, PORT_ROW, visible_ports};
 const MAX_VISIBLE_LINKS: usize = 12;
-
-fn columns(width: u16) -> usize {
-    if width >= 520 { 2 } else { 1 }
-}
-
-fn rows(height: u16, gears: usize, columns: usize) -> usize {
-    let available = if height >= 680 {
-        3
-    } else if height >= 440 {
-        2
-    } else {
-        1
-    };
-    available.min(gears.div_ceil(columns).max(1))
-}
 
 pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
     let gears = face
@@ -31,10 +17,16 @@ pub(super) fn pages(face: &Face, width: u16, height: u16) -> usize {
         .iter()
         .filter(|subject| subject.role == FaceRole::Gear)
         .count();
-    let columns = columns(width);
-    gears
-        .div_ceil(columns * rows(height, gears, columns))
-        .max(1)
+    let geometry = DiagramGeometry::new(
+        LayoutRect {
+            x: 0,
+            y: 0,
+            width,
+            height,
+        },
+        gears,
+    );
+    gears.div_ceil(geometry.capacity()).max(1)
 }
 
 pub(super) fn exists(face: &Face) -> bool {
@@ -44,17 +36,20 @@ pub(super) fn exists(face: &Face) -> bool {
 }
 
 pub(super) fn link_notice(face: &Face, screen: LayoutRect, page: usize) -> String {
-    let columns = columns(screen.width);
     let gear_count = face
         .subjects
         .iter()
         .filter(|s| s.role == FaceRole::Gear)
         .count();
-    let rows = rows(screen.height, gear_count, columns);
-    let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
-        / rows as u16;
+    let geometry = DiagramGeometry::new(screen, gear_count);
+    let height = geometry.height;
     let ordering = super::connected_layout::order(face);
-    let gears = visible_gears(face, &ordering, page * columns * rows, columns * rows);
+    let gears = visible_gears(
+        face,
+        &ordering,
+        page * geometry.capacity(),
+        geometry.capacity(),
+    );
     let cords = face
         .subjects
         .iter()
@@ -86,31 +81,32 @@ fn endpoints(
     (from.0 != to.0).then_some((from, to))
 }
 
-pub(super) fn append(
+pub(super) fn append<'a>(
     scene: &mut GraphicsScene,
-    face: &Face,
+    face: &'a Face,
     screen: LayoutRect,
     page: usize,
-) -> Result<(), FaceSceneError> {
-    let columns = columns(screen.width);
+) -> Result<GearHits<'a>, FaceSceneError> {
     let gear_count = face
         .subjects
         .iter()
         .filter(|subject| subject.role == FaceRole::Gear)
         .count();
-    let rows = rows(screen.height, gear_count, columns);
-    let capacity = columns * rows;
-    let width = (screen.width - SPACE_XL * 2 - GAP * (columns as u16 - 1)) / columns as u16;
-    let height = (screen.height - layout::HEADER - layout::FOOTER - 16 - GAP * (rows as u16 - 1))
-        / rows as u16;
+    let geometry = DiagramGeometry::new(screen, gear_count);
+    let height = geometry.height;
     let ordering = super::connected_layout::order(face);
-    let gears = visible_gears(face, &ordering, page * capacity, capacity);
-    let card = |index: usize| LayoutRect {
-        x: (SPACE_XL + index.rem_euclid(columns) as u16 * (width + GAP)) as i16,
-        y: (layout::HEADER + 8 + index.div_euclid(columns) as u16 * (height + GAP)) as i16,
-        width,
-        height,
-    };
+    let gears = visible_gears(
+        face,
+        &ordering,
+        page * geometry.capacity(),
+        geometry.capacity(),
+    );
+    let card = |index| geometry.card(index);
+    let hits = core::array::from_fn(|index| {
+        gears
+            .get(index)
+            .map(|gear| (card(index), gear.identity.as_str()))
+    });
     // Paths go underneath their endpoint cards and use only endpoints whose
     // exact Port subject and directional contract are visible on this page.
     let mut visible_links = 0;
@@ -179,7 +175,12 @@ pub(super) fn append(
                 },
                 screen,
                 GraphicsPaintRole::Foreground,
-                &preview(&readable(title), 30),
+                &crate::display::typography::single_line_preview(
+                    &alloc::format!("{} · {}", index + 1, readable(title)),
+                    crate::display::typography::TextRole::Heading,
+                    bounds.width - 20,
+                )
+                .map_err(|_| FaceSceneError::SceneBound)?,
             )
             .and_then(|command| command.with_text_role(GraphicsTextRole::Heading)),
         )?;
@@ -201,7 +202,7 @@ pub(super) fn append(
             )?;
         }
         let ports = ports(face, gear).collect::<Vec<_>>();
-        let shown = visible_ports(height).min(ports.len());
+        let shown = visible_ports(height, ports.len()).min(ports.len());
         for (row, port) in ports.iter().take(shown).enumerate() {
             let direction = property_text(face, &port.identity, "direction");
             let paint = if direction == Some("outgoing") {
@@ -245,11 +246,7 @@ pub(super) fn append(
             )?;
         }
     }
-    Ok(())
-}
-
-fn visible_ports(height: u16) -> usize {
-    usize::from(height.saturating_sub(78) / PORT_ROW).min(4)
+    Ok(hits)
 }
 
 fn ports<'a>(face: &'a Face, gear: &FaceSubject) -> impl Iterator<Item = &'a FaceSubject> {
@@ -278,7 +275,10 @@ fn port_location(
         if gear.identity != face.subjects[owner].identity {
             continue;
         }
-        for (row, port) in ports(face, gear).take(visible_ports(height)).enumerate() {
+        for (row, port) in ports(face, gear)
+            .take(visible_ports(height, ports(face, gear).count()))
+            .enumerate()
+        {
             if port.identity == resolved.identity {
                 if found.is_some() {
                     return None;
