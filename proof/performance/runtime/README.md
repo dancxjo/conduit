@@ -208,3 +208,8 @@ costs. Expensive fusion and required observation boundaries keep the unfused
 choice. Target-specific timing observations stay separate from these policy
 assumptions. Browser/WASM refuses this physical profile; native kernel tests do
 not establish browser execution parity.
+
+Region binding requires the kernel's `alloc` preparation feature, matching the
+reviewed installed std Back. No-alloc products refuse binding and retain one
+logical Step per dispatch. This keeps their fixed private image bounds intact;
+it does not introduce allocation during admitted Play.

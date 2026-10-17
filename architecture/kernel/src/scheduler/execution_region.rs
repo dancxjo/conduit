@@ -35,8 +35,14 @@ where
     /// Bind an already admitted pure chain before Play. Logical tables and
     /// transport remain authoritative. This API neither proves semantic purity
     /// nor selects a Back: those are the exact Plan/Host preparation obligations.
+    /// The reviewed installed region profile requires `alloc` preparation;
+    /// no-alloc products refuse binding and retain their single-Step path.
     pub fn bind_execution_chain(&mut self, nodes: &[NodeId]) -> Result<(), SchedulerError> {
-        if self.cancelled || self.decisions != 0 || !(2..=32).contains(&nodes.len()) {
+        if !cfg!(feature = "alloc")
+            || self.cancelled
+            || self.decisions != 0
+            || !(2..=32).contains(&nodes.len())
+        {
             return Err(SchedulerError::InvalidPlan);
         }
         for (index, node) in nodes.iter().enumerate() {
@@ -128,6 +134,11 @@ where
             }
             let may_continue = self.step_logical(node)?;
             last_executed = Some(node_id);
+            // No reviewed no-alloc Host offers this physical profile. Keep its
+            // fixed private images on the original single logical Step path.
+            if !cfg!(feature = "alloc") {
+                break;
+            }
             let Some(next) = self.region_successors[node] else {
                 break;
             };
