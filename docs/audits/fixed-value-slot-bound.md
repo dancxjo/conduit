@@ -84,3 +84,24 @@ heterogeneous selection remains linear per store. No elapsed-time or unchanged
 object-layout claim is made. Both complete kernel selector suites,
 plan-lowering tests, strict all-target Clippy for both packages and formatting/
 diff checks pass locally. No CI dispatched or awaited.
+
+## Independent lifecycle model
+
+`tests/value_store_model.rs` adds a full-scan contract oracle that has no cached
+free-slot bound and derives live-byte/item totals from its reference table.
+Across 256 deterministic seeds with 256 operations per seed, each of fixed,
+uniform hosted and heterogeneous hosted storage executes 65,536 operations
+(196,608 total). Operations mix variable-size/empty stores, retain, release,
+clear, stale-history get and reference-count queries. The oracle independently
+chooses the smallest fitting capacity and first equal slot, predicts exact
+refusals/returned identities, and checks every live value's bytes/reference count
+and total occupancy after every operation. Successful store/retain/release paths
+must all occur. Existing separate tests cover full generation-domain retirement.
+
+Both selector-feature configurations pass the model; strict all-target kernel
+Clippy and formatting/diff checks pass. Omitting the hosted release-bound rewind
+makes it fail at actual slot one versus expected first-free slot zero, with
+different generations; production source is restored byte-for-byte afterward.
+This is deterministic model conformance, not exhaustive state-space coverage or
+an elapsed-time/physical proof. No production change, CI dispatch or CI wait is
+introduced by this proof slice.
