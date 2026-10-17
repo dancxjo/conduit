@@ -27,3 +27,11 @@ export async function selectOwnerFaceComponent(state, select, refresh, stillCurr
   }
   return refresh();
 }
+
+export async function prepareOwnerFaceShow(state, epoch, receive, prepare, stillCurrent) {
+  const frame = await receive();
+  if (state.ownerShowEpoch !== epoch || !stillCurrent()) {
+    throw new Error('Owner Face preparation is no longer current.');
+  }
+  return prepare(frame);
+}

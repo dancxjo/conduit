@@ -77,3 +77,40 @@ test('current component selection refreshes once and preserves owner refusal', a
     () => { refreshes++; }, () => true), /selection refused/);
   assert.equal(refreshes, 1);
 });
+
+for (const newestFirst of [false, true]) {
+  test(`older Face frame never reaches preparation (newest first: ${newestFirst})`, async () => {
+    const { prepareOwnerFaceShow } = await import('./browser-sdk-owner-show-state.mjs');
+    const state = {}, first = deferred(), second = deferred(), prepared = [];
+    const prepare = frame => { prepared.push(frame); return frame; };
+    const older = prepareOwnerFaceShow(state, clearOwnerFaceShow(state), () => first.promise, prepare, () => true);
+    const newer = prepareOwnerFaceShow(state, clearOwnerFaceShow(state), () => second.promise, prepare, () => true);
+    const refused = assert.rejects(older, /preparation is no longer current/);
+    if (newestFirst) { second.resolve('new'); await newer; first.resolve('old'); await refused; }
+    else { first.resolve('old'); await refused; second.resolve('new'); await newer; }
+    assert.deepEqual(prepared, ['new']);
+  });
+}
+
+for (const invalidation of ['clear', 'presence']) {
+  test(`pending Face frame cannot prepare after ${invalidation}`, async () => {
+    const { prepareOwnerFaceShow } = await import('./browser-sdk-owner-show-state.mjs');
+    const state = {}, gate = deferred(); let available = true, preparations = 0;
+    const pending = prepareOwnerFaceShow(state, clearOwnerFaceShow(state), () => gate.promise,
+      () => { preparations++; }, () => available);
+    if (invalidation === 'clear') clearOwnerFaceShow(state); else available = false;
+    const refused = assert.rejects(pending, /preparation is no longer current/);
+    gate.resolve('frame'); await refused;
+    assert.equal(preparations, 0);
+  });
+}
+
+test('current Face frame prepares once; failed download never invokes preparation', async () => {
+  const { prepareOwnerFaceShow } = await import('./browser-sdk-owner-show-state.mjs');
+  const state = {}; let preparations = 0;
+  const prepare = frame => { preparations++; return frame; };
+  assert.equal(await prepareOwnerFaceShow(state, clearOwnerFaceShow(state), async () => 'frame', prepare, () => true), 'frame');
+  await assert.rejects(prepareOwnerFaceShow(state, clearOwnerFaceShow(state), async () => { throw new Error('download refused'); },
+    prepare, () => true), /download refused/);
+  assert.equal(preparations, 1);
+});
