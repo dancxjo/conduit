@@ -286,6 +286,7 @@ fn expand_argument_expression(
         pool_references: Vec::new(),
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),
@@ -394,6 +395,7 @@ fn expand_one(
         pool_references: Vec::new(),
     });
     provenance.push(ExpandedGearProvenance {
+        construction_owner: None,
         gear_id: gear_id.as_str().to_string(),
         plot_path: path.to_vec(),
         source_plot: source_plot.name.clone(),
