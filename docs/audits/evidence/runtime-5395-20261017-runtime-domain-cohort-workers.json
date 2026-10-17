@@ -1,0 +1,28 @@
+{
+  "workers": [
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-02",
+      "pid": 153622,
+      "start_time_ticks": 45164745,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    },
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-03",
+      "pid": 154511,
+      "start_time_ticks": 45175243,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    },
+    {
+      "capture": "/home/dancxjo/Documents/Codex/2026-10-17/goal-each-turn-find-the-next/work/hosted-runtime-domain-20261017-04",
+      "pid": 155372,
+      "start_time_ticks": 45185853,
+      "affinity": "4",
+      "executable": "/home/dancxjo/conduit/target/release/conduit-runtime-performance",
+      "executable_sha256": "91feb9f4fed3b2f0c7ced76bc6ea28d9b28a161afc5909390c1d76e4829b9adb"
+    }
+  ]
+}

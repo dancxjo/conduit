@@ -2433,6 +2433,7 @@ dependencies = [
  "conduit-kernel",
  "conduit-planner",
  "conduit-plot",
+ "conduit-semantic-catalog",
  "conduit-signal",
  "conduit-std-host",
  "conduit-std-offers",

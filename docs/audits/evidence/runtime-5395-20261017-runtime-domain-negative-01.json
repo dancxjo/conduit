@@ -1,0 +1,60 @@
+{
+  "source": "a52ddeff5fc3e047bdf311591a1c7ef8233d69ee",
+  "checks": [
+    {
+      "mutation": "control-output",
+      "refused": true,
+      "expected_reason": "control Frequency differs"
+    },
+    {
+      "mutation": "control-input",
+      "refused": true,
+      "expected_reason": "control input differs"
+    },
+    {
+      "mutation": "numerical-source",
+      "refused": true,
+      "expected_reason": "numerical source differs"
+    },
+    {
+      "mutation": "numerical-error",
+      "refused": true,
+      "expected_reason": "numerical error differs"
+    },
+    {
+      "mutation": "numerical-type",
+      "refused": true,
+      "expected_reason": "numerical output Type differs"
+    },
+    {
+      "mutation": "value-play",
+      "refused": true,
+      "expected_reason": "identity, implementation or eligibility invariant"
+    },
+    {
+      "mutation": "value-implementation",
+      "refused": true,
+      "expected_reason": "identity, implementation or eligibility invariant"
+    },
+    {
+      "mutation": "value-eligibility",
+      "refused": true,
+      "expected_reason": "identity, implementation or eligibility invariant"
+    },
+    {
+      "mutation": "domain-matrix",
+      "refused": true,
+      "expected_reason": "domain matrix incomplete"
+    },
+    {
+      "mutation": "value-matrix",
+      "refused": true,
+      "expected_reason": "Value matrix incomplete"
+    }
+  ],
+  "capture_status_sha256": "76d04c2888ee93a48947ef7598922ee7095c4d61bd2f9de913f39bea0c397acb",
+  "verifier_sha256": "31ad06c2f76af43040f7587eed3b39149c4c2194f86ed8cdd28a493feaf8539e",
+  "domain_verifier_sha256": "295fe4102fc6e16f3acfb5ae5850d96718a3e5c836b939f89891f040f237ac64",
+  "proof_sha256": "bc7e701d8c884ef5e7e93145baf82abc49523bff002cb94f0b5d70019ba9f074",
+  "scope": "Rehashed copies only; original immutable data unchanged."
+}

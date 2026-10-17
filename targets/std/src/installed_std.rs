@@ -323,11 +323,19 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
     let supplied_inputs = external_fore
         .as_ref()
         .map_or(&[][..], |binding| binding.inputs);
-    let mut fore_inputs = external_fore_feeder::PreparedForeInputs::prepare(
-        &planned_inputs,
-        supplied_inputs,
-        external_fore.as_ref().is_some_and(|run| run.sequential),
-    )?;
+    let mut fore_inputs = if let Some(config) = external_fore.as_ref().and_then(|run| run.stream) {
+        external_fore_feeder::PreparedForeInputs::prepare_stream(
+            &planned_inputs,
+            supplied_inputs,
+            config,
+        )?
+    } else {
+        external_fore_feeder::PreparedForeInputs::prepare(
+            &planned_inputs,
+            supplied_inputs,
+            external_fore.as_ref().is_some_and(|run| run.sequential),
+        )?
+    };
 
     let mut value_items = 0_u16;
     let mut value_bytes = 0_u32;
@@ -3716,6 +3724,7 @@ pub(super) fn run_fragment_retaining<W: Write, T: TimerAdapter>(
             .collect(),
         external_fore_deliveries,
         kernel: Some(StdKernelExecutionReport {
+            external_fore_stream: fore_inputs.stream_stats(),
             active_play_id: active_play.active_play_id.clone(),
             active_play,
             decisions: scheduler.decisions(),

@@ -6,6 +6,8 @@ import hashlib
 import json
 import math
 import statistics
+from verify_runtime_stream import verify_streams
+from verify_runtime_domain import verify_extended
 from pathlib import Path
 
 
@@ -120,6 +122,17 @@ def verify(root, output):
         elif phase in ['pool-selection', 'typed-cost-selection']:
             mode = 'production-selection-isolation' if phase == 'pool-selection' else 'production-typed-cost-selection-isolation'
             metrics = {'selection_wall_ns': row['run']['summed_selection_wall_ns']}
+        elif phase in ['ordinary-domain-control', 'ordinary-numerical-control']:
+            mode = row['mode']
+            metrics = {'full_host_call': row['full_host_call'], 'kernel_phase_wall': verify_phase_wall(row)}
+        elif phase == 'ordinary-value-matrix':
+            mode = row['mode']
+            metrics = {'full_host_call': row['full_host_call']}
+            for per_play in row['per_play_phase_wall']:
+                verify_phase_wall({'kernel_phase_wall': per_play, 'full_host_call': row['full_host_call']})
+        elif phase == 'bounded-ordinary-stream':
+            mode = row['mode']
+            metrics = {'full_host_call': row['full_host_call'], 'kernel_phase_wall': verify_phase_wall(row)}
         elif phase in ['finite-ordinary-hosted-pipeline', 'finite-ordinary-fusion-pipeline']:
             mode = row.get('mode', 'finite-ordinary-hosted-pipeline')
             metrics = {'full_host_call': row['full_host_call']}
@@ -223,6 +236,8 @@ def verify(root, output):
     if metadata.get('hosted_phase_wall_schema') is not None:
         assert metadata['hosted_phase_wall_schema'] == 'installed-boundaries-wall@1'
         assert phase_count == len(pipelines), 'declared phase observation absent'
+    stream_rows = verify_streams(root, status, raw, metadata)
+    extended = verify_extended(root, status, raw, metadata)
     receipt = {
         'source': status['git_sha'],
         'verified_artifact_hashes': len(status['artifact_sha256']),
@@ -234,6 +249,8 @@ def verify(root, output):
                                for case, digests in sorted(checksums.items())},
         'hosted_rows': ordinary,
         'all_pipeline_rows': len(pipelines),
+        'verified_stream_rows': stream_rows,
+        'verified_extended_rows': extended,
         'verified_phase_wall_partitions': phase_count,
         'verified_pipeline_execution_identities': identities,
         'ordered_pipeline_output_sha256': expected_digest,
