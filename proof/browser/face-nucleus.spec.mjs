@@ -1085,3 +1085,40 @@ for (const mode of ['checkbox-pointer', 'checkbox-keyboard', 'checkbox-label', '
     }
   });
 }
+
+for (const mode of ['held-space', 'blur-cancel']) {
+  test(`graph Space activation follows native button release semantics (${mode})`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    await page.evaluate(async () => {
+      const { encodeApplicationView, manifestApplicationView } = await import('/targets/browser/host/assets/application-face.mjs');
+      const root = document.createElement('section'); document.body.append(root);
+      const source = ['conduit.face/graph-canvas@1', 'checked', 'expanded', 'plan', 'body-plan', 'play', '',
+        '1', 'gear', 'Source', 'kind', '0', '0'].map(value => `${new TextEncoder().encode(value).length}:${value}`).join('');
+      globalThis.graphSpaceCalls = [];
+      globalThis.graphSpaceManifest = manifestApplicationView(encodeApplicationView({ revision: 1,
+        actions: [{ id: 'select', event: 'activate' }, { id: 'safe', event: 'activate' }], nodes: [
+          { parent: null, component: 'shell', key: 'root', action: null },
+          { parent: 0, component: 'patchbay-canvas', key: 'graph', text: 'Graph', value: source, valueCapacity: 65_536, action: 0 },
+          { parent: 0, component: 'button', key: 'safe', text: 'Next control', action: 1 },
+        ] }), root, { onEvent: event => globalThis.graphSpaceCalls.push({ action: event.action, value: new TextDecoder().decode(event.value) }) });
+    });
+    const subject = page.getByRole('button', { name: 'Gear Source, kind', exact: true });
+    await subject.focus();
+    await page.keyboard.down('Space');
+    await page.keyboard.down('Space');
+    expect(await page.evaluate(() => ({ calls: globalThis.graphSpaceCalls, queued: globalThis.graphSpaceManifest.queuedEvents() })))
+      .toEqual({ calls: [], queued: 0 });
+    if (mode === 'blur-cancel') {
+      await page.keyboard.press('Tab');
+      await expect(page.getByRole('button', { name: 'Next control', exact: true })).toBeFocused();
+    }
+    await page.keyboard.up('Space');
+    if (mode === 'blur-cancel') {
+      expect(await page.evaluate(() => globalThis.graphSpaceCalls)).toEqual([]);
+      await subject.focus();
+      await page.keyboard.press('Space');
+    }
+    expect(await page.evaluate(() => ({ calls: globalThis.graphSpaceCalls, queued: globalThis.graphSpaceManifest.queuedEvents() })))
+      .toEqual({ calls: [{ action: 'select', value: 'gear' }], queued: 1 });
+  });
+}

@@ -1167,3 +1167,16 @@ focus-only text interaction, later native text editing, exact missing-binding
 refusal, decorative parent clicks, nested same-event bindings, graph routing and
 closed disclosures. These are renderer correspondence/queue proofs, not
 authoritative Body/Play or packaged/release acceptance; #5644 remains open.
+
+Graph Space key lifecycle (#5631): SVG graph buttons arm Space on its first
+keydown, suppress scrolling/repeat activation, and select once on release. Blur
+cancels the pending press. Enter and pointer routing retain their existing path;
+this bounded local key state does not change graph selection truth or arguments.
+
+Both new Chromium regressions reproduced repeated early selections before
+repair. Eleven focused pinned Chromium checks pass with one worker and zero
+retries, using native keyboard down/repeat/up and Tab to prove no action while
+held, one exact subject on release, cancellation after blur and later recovery.
+Existing native Enter/pointer routes, node/port/cord identities and closed
+availability also pass. These are renderer keyboard/queue proofs, not
+Body/Play, fresh packaged WASM or release acceptance; #5631 remains open.
