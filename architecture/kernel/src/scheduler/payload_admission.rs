@@ -68,6 +68,26 @@ where
             .byte_capacity
             .saturating_sub(state.queued_bytes.saturating_sub(newest.byte_len)))
     }
+    pub(super) fn preflight_payload_output(
+        &self,
+        spec: CordSpec,
+        state: &CordState,
+        bytes: u32,
+    ) -> Result<(), SchedulerError> {
+        if state.len >= spec.item_capacity
+            && (spec.pressure_policy != AssignedPressurePolicy::CoalesceLatest || state.len == 0)
+        {
+            return Err(SchedulerError::QueueCapacityExceeded);
+        }
+        if bytes > spec.maximum_value_bytes {
+            return Err(SchedulerError::SemanticValueBoundExceeded);
+        }
+        if bytes > self.admission_maximum(spec, state)? {
+            return Err(SchedulerError::QueueByteCapacityExceeded);
+        }
+        Ok(())
+    }
+
     fn ensure_output_value_envelope(
         &self,
         node: usize,

@@ -3063,15 +3063,7 @@ where
                 if spec.track != AssignedConnectionTrack::Payload {
                     continue;
                 }
-                if state.len >= spec.item_capacity {
-                    return Err(SchedulerError::QueueCapacityExceeded);
-                }
-                if value.byte_len > spec.maximum_value_bytes {
-                    return Err(SchedulerError::SemanticValueBoundExceeded);
-                }
-                if value.byte_len > spec.byte_capacity.saturating_sub(state.queued_bytes) {
-                    return Err(SchedulerError::QueueByteCapacityExceeded);
-                }
+                self.preflight_payload_output(*spec, state, value.byte_len)?;
             }
         }
         let mut handled = [None; PORTS];
