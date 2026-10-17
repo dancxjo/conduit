@@ -853,3 +853,16 @@ The new Chromium fixture reproduced the split surrogate before repair. All five
 pinned graph fixtures pass with one worker and zero retries, including native
 activation of the long-label subject. This is not full grapheme typography or
 cross-Mask/Body acceptance.
+
+Initial-select admission follow-up (#5644): a nonempty initial select value
+must match an Option directly owned by that select in both Rust structure
+validation and browser view decoding. Invalid initial selection refuses during
+codec admission rather than depending on a later DOM manifestation failure.
+Empty values retain the existing unselected/no-option scaffolding behavior.
+
+Both new regressions reproduced late acceptance before repair. All 25 focused
+Rust tests (--no-default-features), 17 Node codec tests and five pinned Chromium
+select fixtures pass; browser proof uses one worker and zero retries. Unicode
+initial selection and empty scaffolding remain valid. Rust formatting passes.
+This is view/event admission and native select proof, not Body/Play or a rebuilt
+browser runtime/release acceptance claim.

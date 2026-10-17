@@ -198,3 +198,27 @@ fn graph_selection_is_an_exact_subject_of_the_current_canvas() {
         Err(ApplicationViewRefusal::StaleRevision)
     );
 }
+
+#[test]
+fn initial_selection_must_be_an_owned_option_unless_it_is_empty() {
+    let mut select = node(ApplicationComponent::Select, None, "select");
+    select.value = "absent".into();
+    select.value_capacity = 16;
+    let mut option = node(ApplicationComponent::Option, Some(0), "one");
+    option.value = "é😀".into();
+    option.value_capacity = 16;
+    let mut view = view(vec![select, option]);
+    assert_eq!(
+        view.validate(),
+        Err(ApplicationViewRefusal::InvalidControlValue)
+    );
+    view.nodes[0].value = "é😀".into();
+    assert_eq!(
+        ApplicationView::decode(&view.encode().unwrap()),
+        Ok(view.clone())
+    );
+    view.nodes[0].value.clear();
+    assert_eq!(view.validate(), Ok(()));
+    view.nodes.truncate(1);
+    assert_eq!(view.validate(), Ok(()));
+}

@@ -182,6 +182,7 @@ export function decodeApplicationView(input) {
   for (const [index, node] of nodes.entries()) {
     if (node.component === 12 && node.value && !nodes.some((child, childIndex) => childIndex > index && child.parent === index && (child.component === 8 || child.component === 45) && child.key === node.value)) refuse("invalid-control-value");
     const children = nodes.filter((child) => child.parent === index);
+    if (node.component === 16 && node.value && !children.some(child => child.component === 22 && child.value === node.value)) refuse("invalid-control-value");
     if (node.component === 34) {
       const count = (component) => children.filter((child) => child.component === component).length;
       if (count(35) !== 1 || count(36) !== 1 || count(37) > 1 || count(15) + count(16) + count(17) !== 1) refuse("invalid-control-value");

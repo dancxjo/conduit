@@ -195,3 +195,17 @@ test('graph record counts refuse signed decimal forms for every collection', () 
     assert.throws(() => decodeGraphCanvas(encodeGraphFields(fields)), /Graph record count exceeds its bound/);
   }
 });
+
+test('select initial values require an owned option while empty scaffolding remains valid', () => {
+  const view = { revision: 1, actions: [], nodes: [
+    { parent: null, component: 'select', key: 'select', text: 'Choice', value: 'absent', valueCapacity: 16, action: null },
+    { parent: 0, component: 'option', key: 'one', text: 'Unicode', value: 'é😀', valueCapacity: 16, action: null },
+  ] };
+  assert.throws(() => encodeApplicationView(view), { code: 'invalid-control-value' });
+  view.nodes[0].value = 'é😀';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[0].value, 'é😀');
+  view.nodes[0].value = '';
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes[0].value, '');
+  view.nodes.length = 1;
+  assert.equal(decodeApplicationView(encodeApplicationView(view)).nodes.length, 1);
+});

@@ -38,6 +38,14 @@ pub(super) fn validate(nodes: &[ApplicationViewNode]) -> Result<(), ApplicationV
             {
                 return Err(ApplicationViewRefusal::InvalidControlValue);
             }
+            ApplicationComponent::Select
+                if !node.value.is_empty()
+                    && !children.clone().any(|child| {
+                        child.component == ApplicationComponent::Option && child.value == node.value
+                    }) =>
+            {
+                return Err(ApplicationViewRefusal::InvalidControlValue);
+            }
             ApplicationComponent::Option
                 if node.parent.is_none_or(|parent| {
                     nodes[usize::from(parent)].component != ApplicationComponent::Select
