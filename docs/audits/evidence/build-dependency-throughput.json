@@ -1,0 +1,118 @@
+{
+  "baseline_source": "bcef0e4ade69ce43ab838871c8b94a395169fc1a",
+  "optimized_source": "4c6d53e8f074c1dd5a389de944a6ab6d1234c4f0",
+  "source_delta": [
+    "Cargo.toml"
+  ],
+  "generator": "semantics/human/build.rs",
+  "profile_flags": {
+    "baseline_profile": {
+      "opt_level": "0",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    },
+    "optimized_profile": {
+      "opt_level": "1",
+      "debuginfo": 0,
+      "debug_assertions": true,
+      "overflow_checks": true,
+      "test": false
+    }
+  },
+  "measurements": {
+    "baseline": {
+      "artifact_sha256": "469140914539b68f52a28b8b7dd2fea0657ab97638cf57d00cf92db4578ad216",
+      "expected_output_hashes": {
+        "keymap_layouts.rs": "c5110a075493e603d8a6b2aaa2aaebd3bde9db7ab3d2e10d7b67fa76de1595b4",
+        "semantic_types.rs": "f7f09fcddbffd1d0e5a7303c1544b924ce46f610cece485b4e86fdd32c177795"
+      },
+      "rows": [
+        {
+          "trial": 0,
+          "wall_ns": 129044237672,
+          "user_cpu_seconds": 128.986579,
+          "system_cpu_seconds": 0.025998999999999998,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "trial": 1,
+          "wall_ns": 124006628320,
+          "user_cpu_seconds": 123.969144,
+          "system_cpu_seconds": 0.027998,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "trial": 2,
+          "wall_ns": 115187069167,
+          "user_cpu_seconds": 114.74774399999998,
+          "system_cpu_seconds": 0.025999,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    },
+    "optimized": {
+      "artifact_sha256": "e1c8ec7c4acca6ea02d994db9cbd376977c220d8317baef6d8a37d4dd9e90edf",
+      "expected_output_hashes": {
+        "keymap_layouts.rs": "c5110a075493e603d8a6b2aaa2aaebd3bde9db7ab3d2e10d7b67fa76de1595b4",
+        "semantic_types.rs": "f7f09fcddbffd1d0e5a7303c1544b924ce46f610cece485b4e86fdd32c177795"
+      },
+      "rows": [
+        {
+          "trial": 0,
+          "wall_ns": 6928982579,
+          "user_cpu_seconds": 6.901401,
+          "system_cpu_seconds": 0.027000999999999997,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "trial": 1,
+          "wall_ns": 7088515922,
+          "user_cpu_seconds": 7.055539,
+          "system_cpu_seconds": 0.029002,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        },
+        {
+          "trial": 2,
+          "wall_ns": 7004098241,
+          "user_cpu_seconds": 6.980627999999999,
+          "system_cpu_seconds": 0.022999000000000006,
+          "all_generated_bytes_match": true,
+          "stdout_sha256": "48bc4487621d65a342b82c216f90f4de22e984f06cb135cb851398a650aaf0d2",
+          "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+        }
+      ]
+    }
+  },
+  "summary": {
+    "baseline": {
+      "median_wall_seconds": 124.00662832,
+      "median_cpu_seconds": 123.997142
+    },
+    "optimized": {
+      "median_wall_seconds": 7.004098241,
+      "median_cpu_seconds": 7.003627
+    }
+  },
+  "assertions_and_overflow_checks_retained": true,
+  "all_generated_outputs_byte_identical": true,
+  "regression": {
+    "human_library_tests": 8,
+    "strict_clippy": true,
+    "format_and_patch_checks": true,
+    "test_generator_opt_level": "1"
+  },
+  "clock": "Python perf_counter_ns wall; getrusage RUSAGE_CHILDREN user/system CPU for each isolated generator process",
+  "limitations": "Concurrent host load, frequency and affinity uncontrolled; three trials per variant in one host session. Excludes Cargo compilation. No whole-CI or runtime speed claim."
+}
