@@ -596,3 +596,33 @@ test("corrupt record ownership cannot bypass immutable publication", async ({ pa
   });
   expect(result).toEqual(Array(8).fill({ codes: ['CorruptRecord', 'CorruptRecord'], unchanged: true }));
 });
+
+test("storage version changes release the connection and fence the old handle", async ({ page }) => {
+  const result = await page.evaluate(async () => {
+    const { openBrowserApplicationStorage } = await import('/targets/browser/host/assets/browser-application-storage.mjs');
+    const application = 'proof/version-change';
+    const storage = await openBrowserApplicationStorage(application, 1, `sha256:${'b'.repeat(64)}`,
+      { implementationRegistry: ['browser/indexeddb@1'] });
+    await storage.writeJson('source', { source: 'retained' });
+    const request = indexedDB.open('conduit-browser-host-applications', 3);
+    let blocked = false;
+    let observed;
+    const observation = new Promise(resolve => { observed = resolve; });
+    const upgraded = new Promise((resolve, reject) => {
+      request.onblocked = () => { blocked = true; observed(); };
+      request.onsuccess = () => { observed(); resolve(request.result); };
+      request.onerror = () => reject(request.error);
+    });
+    await observation;
+    let stale = 'accepted';
+    try { await storage.writeJson('late', { source: 'stale' }); } catch (error) { stale = error.code; }
+    storage.close();
+    const database = await upgraded;
+    const read = database.transaction('application-state', 'readonly').objectStore('application-state').getAll();
+    const records = await new Promise((resolve, reject) => { read.onsuccess = () => resolve(read.result); read.onerror = () => reject(read.error); });
+    database.close();
+    return { blocked, stale, records: records.map(record => ({ key: record.key, value: JSON.parse(record.value) })) };
+  });
+  expect(result).toEqual({ blocked: false, stale: 'StaleApplicationGeneration',
+    records: [{ key: 'source', value: { source: 'retained' } }] });
+});
