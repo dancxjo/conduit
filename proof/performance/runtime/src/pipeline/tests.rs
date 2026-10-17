@@ -267,8 +267,8 @@ fn ordinary_planner_can_keep_unfused_cost_or_required_observation() -> Result<()
 }
 
 #[test]
-fn checked_fused_and_local_refusals_name_every_original_gear_and_span() -> Result<(), Box<dyn Error>>
-{
+fn checked_fused_refusals_name_every_original_gear_and_preserve_unfused_errors(
+) -> Result<(), Box<dyn Error>> {
     let _measurement = crate::allocation::TEST_MEASUREMENT.lock().unwrap();
     let authored = source(32);
     for fused in [false, true] {
@@ -316,10 +316,18 @@ fn checked_fused_and_local_refusals_name_every_original_gear_and_span() -> Resul
                 )
                 .unwrap_err();
             assert!(
-                reason.contains(&format!("logical-gear={}", gear.as_str())),
-                "{index}: {reason}"
+                reason.starts_with("installed kernel step: BackFailed("),
+                "{reason}"
             );
-            assert!(reason.contains("source-span=Some"), "{reason}");
+            if fused {
+                assert!(
+                    reason.contains(&format!("logical-gear={}", gear.as_str())),
+                    "{index}: {reason}"
+                );
+                assert!(reason.contains("source-span=Some"), "{reason}");
+            } else {
+                assert!(!reason.contains("; logical-gear="), "{reason}");
+            }
             assert!(outputs.values.is_empty());
         }
     }
