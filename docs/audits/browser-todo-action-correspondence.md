@@ -495,3 +495,17 @@ evidence and a subsequent accepted native button action. Public package identity
 and modified fixture identity are distinct in the receipt. This proves the
 changed local facade path against real runtime execution; it is not evidence
 that this SDK change is deployed, nor remote-owner or release-gate proof.
+
+Unicode scalar fidelity follow-up (#5644): renderer and SDK argument admission
+now refuse ill-formed JavaScript strings before UTF-8 encoding can replace lone
+surrogates. Choice-table members must also be well-formed. Native inputs expose
+`Use valid Unicode text.` through constraint validation, and submission repeats
+the check even if no input event ran. No replacement or normalization is applied.
+
+Lone high/low surrogate controls reproduced callback dispatch before repair.
+SDK cases reproduced admission of lone/reversed surrogates and a malformed
+nonselected choice. All 75 pinned Chromium component fixtures pass with one
+worker and zero retries, including malformed-choice refusal and subsequent
+native submission of exact accented text plus emoji. The 24 focused SDK tests
+and producer fixture pass. These prove renderer/SDK fidelity fences, not
+authoritative Body receipts or deployment of the unpromoted changes.

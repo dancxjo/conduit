@@ -2,6 +2,8 @@
 // Mask Plan, Play, Show acknowledgement and typed return route; this element
 // owns only native controls and appearance.
 const encoder = new TextEncoder();
+const argumentValidity = (value, maximum) => !value.isWellFormed() ? 'Use valid Unicode text.'
+  : encoder.encode(value).length > maximum ? `Use at most ${maximum} UTF-8 bytes.` : '';
 const faceNode = (tag, text, className) => {
   const node = document.createElement(tag);
   node.textContent = text;
@@ -172,7 +174,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
         let input;
         if (Array.isArray(argument.choices) && argument.choices.length) {
           if (argument.choices.length > 64 || argument.choices.some(choice =>
-            typeof choice !== 'string' || choice === '' || encoder.encode(choice).length > argument.maximum_bytes)) {
+            typeof choice !== 'string' || choice === '' || !choice.isWellFormed() || encoder.encode(choice).length > argument.maximum_bytes)) {
             supported = false;
             continue;
           }
@@ -190,8 +192,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           input = document.createElement('input');
           input.type = 'text'; input.maxLength = argument.maximum_bytes;
           input.addEventListener('input', () => input.setCustomValidity(
-            encoder.encode(input.value).length > argument.maximum_bytes
-              ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : ''));
+            argumentValidity(input.value, argument.maximum_bytes)));
         } else {
           supported = false;
           continue;
@@ -233,8 +234,7 @@ export class OwnerFaceElement extends (globalThis.HTMLElement ?? class {}) {
           if (argument.choices.length) {
             if (!argument.choices.includes(input.value)) return;
           }
-          input.setCustomValidity(encoder.encode(input.value).length > argument.maximum_bytes
-            ? `Use at most ${argument.maximum_bytes} UTF-8 bytes.` : '');
+          input.setCustomValidity(argumentValidity(input.value, argument.maximum_bytes));
           if (!input.checkValidity()) return;
         }
         this.#dispatched = true;
