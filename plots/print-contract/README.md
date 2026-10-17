@@ -30,6 +30,11 @@ Document references admit at most 16 MiB and 1,000 declared items. Copies are
 and maximum request/lifecycle frames fit the admitted 8 KiB port bound.
 
 This is checked Source/Plan plus typed protocol-simulator evidence for #5556.
-No printer Back is installed by the catalog. Generic shared-pool execution,
-queue fairness, durable duplicate/uncertain-delivery reconciliation and optional
-physical CUPS/IPP acceptance remain #5557, #5558 and #5559; parent #5229 stays open.
+No printer Back is installed by the catalog. The deterministic generic
+shared-pool fixture and bounded fairness proof shipped in #5913 for #5557.
+The finite append-only request fence shipped in #5916 for #5558; it retains
+uncertain jobs and refuses duplicate dispatch. Durable provider reconciliation
+and physical CUPS/IPP acceptance are separate gates. See
+[acceptance tiers and prerequisites](../../docs/audits/print-physical-acceptance.md)
+for the supported fixture command and current physical blockers. Parent #5229
+stays open.
