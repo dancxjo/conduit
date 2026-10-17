@@ -47,14 +47,23 @@ where
             return None;
         }
         let mut remaining = self.undispatched_host_count;
-        for offset in 0..PENDING_REQUESTS {
+        // There is at most one retained call per active node. First-free
+        // allocation therefore cannot populate a slot beyond this prefix,
+        // even after arbitrary completion consumption and slot reuse.
+        let slots = self.active_nodes.min(PENDING_REQUESTS);
+        let cursor = if self.host_request_cursor < slots {
+            self.host_request_cursor
+        } else {
+            0
+        };
+        for offset in 0..slots {
             #[cfg(test)]
             {
                 let mut counts = self.scan_counts.get();
                 counts.dispatch_pending_slots += 1;
                 self.scan_counts.set(counts);
             }
-            let slot = (self.host_request_cursor + offset) % PENDING_REQUESTS;
+            let slot = (cursor + offset) % slots;
             let Some(pending) = self.pending_host_calls[slot].as_mut() else {
                 continue;
             };
