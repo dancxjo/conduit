@@ -49,20 +49,22 @@ function readCapacity(api, capacityExport, label) {
   return nonnegativeInteger(Number(exported(api, capacityExport, label).call(api)), label);
 }
 
-function encodeTextInput(api, values, capacityExport, label) {
+function encodeTextInput(api, values, capacityExport, label, reservedBytes = 0) {
   const capacity = readCapacity(api, capacityExport, label);
+  boundedLength(reservedBytes, { maximum: capacity, label });
+  const textCapacity = capacity - reservedBytes;
   let total = 0;
   const parts = values.map(value => {
     if (typeof value !== "string") throw new TypeError(`${label} requires scalar Unicode text`);
-    boundedLength(value.length, { maximum: capacity - total, label });
+    boundedLength(value.length, { maximum: textCapacity - total, label });
     if (!value.isWellFormed()) throw new TypeError(`${label} requires scalar Unicode text`);
     const bytes = encoder.encode(value);
-    boundedLength(bytes.length, { maximum: capacity - total, label });
+    boundedLength(bytes.length, { maximum: textCapacity - total, label });
     total += bytes.length;
     return bytes;
   });
-  if (parts.length === 1) return { input: parts[0], parts };
-  const input = new Uint8Array(total);
+  if (parts.length === 1 && reservedBytes === 0) return { input: parts[0], parts };
+  const input = new Uint8Array(total + reservedBytes);
   let offset = 0;
   for (const part of parts) { input.set(part, offset); offset += part.length; }
   return { input, parts };
@@ -493,18 +495,19 @@ export function bindBrowserRuntimeBridge(api, { context }) {
       }, { retireInput: true });
     },
     browserPlotCompleteEffect(activePlayId, placementId, sequence, effectOutputBytes) {
-      const play = encoder.encode(activePlayId);
-      const placement = encoder.encode(placementId);
-      const bytes = new Uint8Array(play.length + placement.length + effectOutputBytes.length);
-      bytes.set(play);
-      bytes.set(placement, play.length);
-      bytes.set(effectOutputBytes, play.length + placement.length);
+      if (!(effectOutputBytes instanceof Uint8Array)) throw new TypeError("effect output must be encoded bytes");
+      const outputLength = effectOutputBytes.length;
+      const outputBuffer = effectOutputBytes.buffer;
+      const outputOffset = effectOutputBytes.byteOffset;
+      const { input: bytes, parts: [play, placement] } = encodeTextInput(api, [activePlayId, placementId],
+        "conduit_browser_plot_input_capacity", "effect completion input", outputLength);
+      bytes.set(new Uint8Array(outputBuffer, outputOffset, outputLength), play.length + placement.length);
       return withInput(api, bytes, {
         pointerExport: "conduit_browser_plot_input_ptr",
         capacityExport: "conduit_browser_plot_input_capacity",
         label: "effect completion input",
       }, () => {
-        const status = call("conduit_browser_plot_complete_effect", play.length, placement.length, sequence, effectOutputBytes.length);
+        const status = call("conduit_browser_plot_complete_effect", play.length, placement.length, sequence, outputLength);
         return { status, outputJson: maybeReadPlotOutputJson(api, status >= 0 ? 1 : 0) };
       }, { retireInput: true });
     },

@@ -1335,3 +1335,17 @@ span and preservation of its adjacent sentinel. These are mocked-entry ABI
 lifecycle proofs using real memory/view behavior, not Rust compiler/kernel Play
 or packaged/release acceptance; #5653 remains open. Protected and uncertain work
 remains preserved.
+
+Exact bounded effect output ingress (#5653 ABI boundary support): effect
+completion requires Uint8Array output instead of allowing staging's implicit
+array/string/wide-integer conversion. Text identity fields use scalar encoding,
+and output bytes reserve their share of the native input arena before text
+encoding or combined allocation. The captured opaque byte span is copied exactly;
+existing ABI argument order, sequence value and retirement remain unchanged.
+
+All eight negative regressions reproduced before repair. All 81 focused
+runtime-bridge/SDK Plot tests pass, including pre-allocation overflow, combined
+budget preflight, non-scalar identity refusal, exact non-UTF-8 subview payload,
+u64 sequence preservation and complete frame retirement. These are mocked-native
+ABI admission/custody proofs, not actual Rust typed-Port execution, Body/Play or
+packaged/release acceptance; #5653 remains open. Protected work remains intact.

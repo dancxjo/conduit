@@ -394,3 +394,62 @@ for (const mutation of ['wasm-grow', 'source-grow', 'source-transfer']) for (con
     assert.equal(new Uint8Array(api.memory.buffer)[4], 99, 'adjacent bytes are outside the admitted input');
   });
 }
+
+for (const value of [[256], '1', Uint16Array.of(256), Int8Array.of(-1)]) {
+  test(`effect completion refuses implicit byte conversion (${value.constructor.name})`, () => {
+    const api = runtime(); let calls = 0;
+    api.conduit_browser_plot_complete_effect = () => { calls++; api.setBodyOutput(Uint8Array.of(123, 125)); return 0; };
+    const bridge = bindBrowserRuntimeBridge(api, { context: 'effect byte proof' });
+    assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1n, value), /encoded bytes/);
+    assert.equal(calls, 0);
+  });
+}
+
+test('effect completion refuses overcapacity output before allocating its frame', () => {
+  const api = runtime(), output = new Uint8Array(1025);
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect capacity proof' });
+  const Original = globalThis.Uint8Array;
+  globalThis.Uint8Array = new Proxy(Original, { construct(target, args, type) {
+    if (typeof args[0] === 'number' && args[0] > 1024) throw new Error('overcapacity frame allocated');
+    return Reflect.construct(target, args, type);
+  } });
+  try { assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1n, output), /bound/); }
+  finally { globalThis.Uint8Array = Original; }
+});
+
+test('effect completion reserves output capacity before encoding identity fields', () => {
+  const api = runtime(), output = new Uint8Array(1020);
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect combined capacity proof' });
+  const encode = TextEncoder.prototype.encode;
+  TextEncoder.prototype.encode = function(value) {
+    if (value === 'play/1') throw new Error('overbudget identity encoded');
+    return encode.call(this, value);
+  };
+  try { assert.throws(() => bridge.browserPlotCompleteEffect('play/1', 'placement/1', 1n, output), /bound/); }
+  finally { TextEncoder.prototype.encode = encode; }
+});
+
+for (const invalid of ['play', 'placement']) test(`effect completion refuses non-scalar ${invalid} identity`, () => {
+  const api = runtime(); let calls = 0;
+  api.conduit_browser_plot_complete_effect = () => { calls++; api.setBodyOutput(Uint8Array.of(123, 125)); return 0; };
+  const bridge = bindBrowserRuntimeBridge(api, { context: 'effect identity proof' });
+  assert.throws(() => bridge.browserPlotCompleteEffect(invalid === 'play' ? '\ud800' : 'play/1',
+    invalid === 'placement' ? '\udfff' : 'placement/1', 1n, Uint8Array.of(42)), /scalar Unicode/);
+  assert.equal(calls, 0);
+});
+
+test('effect completion preserves exact opaque subview bytes and u64 sequence', () => {
+  const api = runtime(), sequence = 9007199254740993n;
+  const output = Uint8Array.of(99, 255, 0, 254, 99).subarray(1, 4);
+  let captured;
+  api.conduit_browser_plot_complete_effect = (playLength, placementLength, value, outputLength) => {
+    captured = { sequence: value, outputLength,
+      output: [...new Uint8Array(api.memory.buffer, playLength + placementLength, outputLength)] };
+    api.setBodyOutput(Uint8Array.of(123, 125)); return 0;
+  };
+  const result = bindBrowserRuntimeBridge(api, { context: 'opaque effect proof' })
+    .browserPlotCompleteEffect('play/1', 'placement/1', sequence, output);
+  assert.equal(result.status, 0);
+  assert.deepEqual(captured, { sequence, outputLength: 3, output: [255, 0, 254] });
+  assert.deepEqual([...new Uint8Array(api.memory.buffer, 0, 20)], Array(20).fill(0));
+});
