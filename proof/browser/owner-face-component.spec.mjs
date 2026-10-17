@@ -234,10 +234,10 @@ test('a replaced exclusive-choice listener cannot dispatch or reset current sele
     ...view,
     subjects: [
       { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
-        semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+        values: [], semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
       ...[true, false].map((selected, index) => ({ ...view.subjects[0],
         identity: `fixture/option/${index}`, name: `Mode ${index}`,
-        flags: [{ name: 'selected', value: selected }] })),
+        values: [], flags: [{ name: 'selected', value: selected }] })),
     ],
     relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
     actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
@@ -542,10 +542,10 @@ test(`a ${unavailable} exclusive-choice listener cannot dispatch or reset curren
     ...view,
     subjects: [
       { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
-        semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+        values: [], semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
       ...[true, false].map((selected, index) => ({ ...view.subjects[0],
         identity: `fixture/option/${index}`, name: `Mode ${index}`,
-        flags: [{ name: 'selected', value: selected }] })),
+        values: [], flags: [{ name: 'selected', value: selected }] })),
     ],
     relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
     actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
@@ -773,9 +773,9 @@ for (const malformed of ['ambiguous-flag', 'duplicate-option', 'missing-argument
     const choices = { ...view,
       subjects: [
         { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
-          semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+          values: [], semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
         ...[0, 1].map(index => ({ ...view.subjects[0], identity: `fixture/option/${index}`,
-          name: `Mode ${index}`, flags: [{ name: 'selected', value: false }] })),
+          name: `Mode ${index}`, values: [], flags: [{ name: 'selected', value: false }] })),
       ],
       relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
       actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
@@ -827,11 +827,53 @@ for (const enriched of ['collection', 'item', 'status']) {
     await expect(element.getByRole('term')).toHaveText('Priority');
     await expect(element.getByRole('definition')).toHaveText('Urgent');
     if (enriched !== 'status') await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
-    await element.getByText('Exact facts', { exact: true }).click();
+    await element.locator('[part=subject]').filter({ hasText: 'Important authored fact' })
+      .getByText('Exact facts', { exact: true }).click();
     await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
     const action = element.getByRole('button', { name: /^Complete task/ });
     await action.focus(); await page.keyboard.press('Enter');
     expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: currentView,
       action: currentView.actions[0], arguments: [] }]);
+  });
+}
+
+for (const enriched of ['group', 'option']) {
+  test(`exclusive-choice layout preserves additional ${enriched} semantics`, async ({ page }) => {
+    await page.goto('/proof/browser/signal-dom-host.test.html');
+    const choices = { ...view,
+      subjects: [
+        { ...view.subjects[0], identity: 'fixture/group', name: 'Mode',
+          values: [], semantic_role: 'conduit.face/choice-group@1', choice_multiplicity: 'exclusive' },
+        ...[0, 1].map(index => ({ ...view.subjects[0], identity: `fixture/option/${index}`,
+          name: `Mode ${index}`, values: [], flags: [{ name: 'selected', value: index === 0 }] })),
+      ],
+      relationships: [0, 1].map(index => ({ kind: 'Contains', source: 'fixture/group', target: `fixture/option/${index}` })),
+      actions: [0, 1].map(index => ({ ...view.actions[0], identity: `fixture/select/${index}`,
+        target: `fixture/option/${index}`, name: `Select ${index}` })),
+    };
+    const extra = choices.subjects[enriched === 'group' ? 0 : 2];
+    extra.values = [{ name: 'Authored value', text: 'Exact meaning' }];
+    extra.properties = ['Important authored fact'];
+    extra.text = ['Additional explanation'];
+    await page.evaluate(async view => {
+      await import('/targets/browser/handbook/owner-face-component.mjs');
+      document.body.replaceChildren(); globalThis.calls = [];
+      const element = document.createElement('conduit-owner-face'); document.body.append(element);
+      element.show(view, { invoke: async call => { globalThis.calls.push(call); } });
+    }, choices);
+    const element = page.locator('conduit-owner-face');
+    await expect(element.getByRole('term')).toHaveText('Authored value');
+    await expect(element.getByRole('definition')).toHaveText('Exact meaning');
+    await expect(element.getByText('Additional explanation', { exact: true })).toBeVisible();
+    await element.locator('[part=subject]').filter({ hasText: 'Important authored fact' })
+      .getByText('Exact facts', { exact: true }).click();
+    await expect(element.getByText('Important authored fact', { exact: true })).toBeVisible();
+    const selectedFacts = element.locator('[part=subject]').filter({ hasText: 'selected: true' });
+    await selectedFacts.getByText('Exact facts', { exact: true }).click();
+    await expect(selectedFacts.getByText('selected: true', { exact: true })).toBeVisible();
+    const action = element.getByRole('button', { name: 'Select 1', exact: true });
+    await action.focus(); await page.keyboard.press('Enter');
+    expect(await page.evaluate(() => globalThis.calls)).toEqual([{ view: choices,
+      action: choices.actions[1], arguments: [] }]);
   });
 }

@@ -248,3 +248,18 @@ action invocation for enriched collection/item/status subjects. Four Handbook
 unit tests pass, including positive simple count projection and preservation of
 an actionable count Status. These are renderer/projector fixtures, not complete
 Face grammar coverage, real Body state or packaged/public acceptance.
+
+Choice semantic completeness (#5367): exclusive groups with named values or
+properties, and options with explanatory text/values/properties, keep generic
+subject/action rendering rather than losing those facts in radio-only markup.
+Generic subjects now disclose exact boolean source flags under native Exact
+facts, preserving selection/completion truth without inventing a reversible
+checkbox or application action. Plain exclusive choices retain native radios.
+
+Both enriched group/option regressions reproduced before repair. All forty-two
+component Chromium tests pass with one worker and zero retries. The new cases
+inspect named values, explanations, exact properties and selected-state facts,
+then invoke the exact current action by keyboard. Plain-radio fixtures now
+explicitly omit unrelated Completion values inherited from the shared subject;
+enriched fixtures cover their generic fallback. These are renderer semantics
+and callback fixtures, not full Face grammar, Body or packaged/public acceptance.
