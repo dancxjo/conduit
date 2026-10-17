@@ -449,6 +449,8 @@ export async function startApplication(application) {
       checkStatus.textContent = 'Edited source, not yet checked or applied.';
       delete checkStatus.dataset.refusalCode;
     });
+    let savedCorrections = validRescueEdits;
+    let pendingCorrections = Promise.resolve();
     root.querySelector('[data-try]').addEventListener('click', async () => {
       const candidate = available[index];
       const value = source.value;
@@ -472,15 +474,22 @@ export async function startApplication(application) {
         }
         if (!['packaged', 'saved correction'].includes(candidate.origin)) return;
         const original = application.text(specification.plots.find(plot => plot.name === candidate.name).role);
-        const updated = validRescueEdits.filter(item => item?.name !== candidate.name);
-        updated.push({ name: candidate.name, original, source: value });
-        await application.storage.writeJson('handbook-source-rescue', updated);
-        if (available[index] === candidate && source.value === value) {
-          inspectSource('saved correction', candidate.name, value);
-        }
+        // Compute against the last successful save inside the queue. A sibling
+        // lesson may be checked while another correction is still persisting.
+        const saving = pendingCorrections.then(async () => {
+          const updated = savedCorrections.filter(item => item?.name !== candidate.name);
+          updated.push({ name: candidate.name, original, source: value });
+          await application.storage.writeJson('handbook-source-rescue', updated);
+          savedCorrections = updated;
+        });
+        pendingCorrections = saving.catch(() => {});
+        await saving;
+        if (available[index] !== candidate || source.value !== value) return;
+        inspectSource('saved correction', candidate.name, value);
         checkStatus.textContent = 'Source checks. Correction saved for this application; '
           + 'press Try again to reopen the Handbook. No Body has been changed.';
       } catch (refusal) {
+        if (available[index] !== candidate || source.value !== value) return;
         checkStatus.textContent = (refusal.code ?? 'CheckRefused') + ': ' + refusal.message;
       }
     });
