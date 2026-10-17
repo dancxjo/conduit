@@ -30,3 +30,27 @@ Both complete local kernel suites pass with alloc under packed and linear ready
 selectors, along with strict all-target kernel Clippy, formatting and diff
 checks. This is native kernel evidence; no browser/physical/stable acceptance or
 parent completion is claimed. No CI dispatched or awaited.
+
+## Sealed typed input through whole-Plan lowering
+
+`architecture/plan-lowering/tests/remote_value_envelope.rs` now carries a checked
+two-byte value/text contract on an ordinary sealed input Fore with an independent
+eight-byte queue budget. The Plan is sealed and verified, then lowered through
+the public whole-Plan-aware entrance. The test verifies there are no state,
+Host Call or activation obligations omitted by the native fixture, and installs
+the returned node/cord tables directly into FixedScheduler.
+
+For PreserveOrder and CoalesceLatest, Fore validation rejects a three-byte value
+as Oversize and accepts the exact two-byte value. Kernel ingress independently
+refuses the oversized bytes before and after the queue is occupied, preserving
+queue/value occupancy and Sign count. Admission at the same sequence then succeeds
+at the limit; a second within-limit input returns Full for PreserveOrder or
+replaces the current item for CoalesceLatest. Occupancy stays one item/two bytes,
+and cancellation releases it.
+
+Both complete plan-lowering suites pass locally with normal and linear kernel
+selectors, alongside strict all-target plan-lowering Clippy and formatting/diff
+checks. Fixture value/Sign storage is explicitly fixed; this does not claim
+checked authored-source execution, real Host installation, complete hosted
+resource admission, live transport, browser or stable acceptance. No production
+code changes, CI dispatch or CI wait are added by this proof slice.
