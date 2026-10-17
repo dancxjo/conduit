@@ -8,6 +8,65 @@ import math
 import statistics
 from pathlib import Path
 
+
+def verify_pipeline_work(root, status, row, fragment):
+    gears = row['gears']
+    assert type(gears) is int and gears in [1, 8, 32]
+    placements = {p['placement_id'] for p in fragment['placements']}
+    assert len(placements) == len(fragment['placements']) == gears, 'pipeline Gear count/Plan placements'
+    connections = fragment['connections']
+    assert len(connections) == gears - 1, 'pipeline internal Cord count'
+    successors = {}
+    sinks = set()
+    for cord in connections:
+        source, sink = cord['source_placement_id'], cord['sink_placement_id']
+        assert source in placements and sink in placements
+        assert source not in successors and sink not in sinks, 'pipeline is not one chain'
+        assert cord['track'] == 'payload' and cord['value_kind'] == 'value/u64'
+        successors[source] = sink
+        sinks.add(sink)
+    starts = placements - sinks
+    assert len(starts) == 1
+    current = next(iter(starts))
+    start = current
+    visited = set()
+    while current not in visited:
+        visited.add(current)
+        if current not in successors:
+            break
+        current = successors[current]
+    assert visited == placements and current not in successors, 'pipeline chain disconnected or cyclic'
+    fronts = {f['direction']: f for f in fragment['fore_ports']}
+    assert len(fragment['fore_ports']) == len(fronts) == 2
+    assert fronts['Input']['placement_id'] == start and fronts['Output']['placement_id'] == current
+    assert all(f['track'] == 'payload' and f['value_kind'] == 'value/u64' for f in fronts.values())
+    name = f'sources/hosted-pipeline-{gears}-gears-32-adds.plot'
+    assert name in status['artifact_sha256']
+    source = (root / name).read_bytes()
+    assert hashlib.sha256(source).hexdigest() == row['source_sha256'], 'pipeline source custody'
+    # Lexical counts apply only to this frozen, literal arithmetic fixture.
+    assert source.count(b'+') == 32 and source.count(b' >> (') == gears
+    if row['phase'] == 'finite-ordinary-hosted-pipeline':
+        assert row['adds_per_value'] == 32
+        assert row['case'] == f'hosted-pipeline-{gears}-gears-32-adds'
+    else:
+        assert row['mode'] in ['fused', 'local-unfused']
+        assert row['case'] == f"pure-chain-{gears}-{row['mode']}"
+        assert row['logical_gear_count'] == gears and row['logical_internal_cord_count'] == gears - 1
+        assert row['physical_regions'] == len(fragment['execution_fusions'])
+        work = row['work_accounting']
+        assert work['logical_evaluations'] == gears * 64, 'pipeline logical work count'
+        assert work['intermediate_materializations'] == (gears - 1) * 64, 'pipeline intermediate materializations'
+        assert work['intermediate_canonical_bytes'] == (gears - 1) * 64 * 8, 'pipeline intermediate bytes'
+        assert work['internal_copy_counter'] is None
+        assert len(fragment['execution_fusions']) == int(row['mode'] == 'fused' and gears > 1)
+        for fusion in fragment['execution_fusions']:
+            assert len(fusion['preserved_placements']) == gears and set(fusion['preserved_placements']) == placements
+            ids = {c['connection_id'] for c in connections}
+            assert len(ids) == len(connections)
+            assert len(fusion['preserved_connections']) == gears - 1 and set(fusion['preserved_connections']) == ids, 'fusion logical connection preservation'
+
+
 def verify(root, output):
     root = root.resolve()
     assert not output.resolve().is_relative_to(root), "receipt must be outside immutable capture"
@@ -117,6 +176,7 @@ def verify(root, output):
         assert (host['host_id'], host['boot_id']) == (play['host_id'], play['boot_id']), 'pipeline Host/Boot custody'
         assert len(plan['fragments']) == 1
         fragment = plan['fragments'][0]
+        verify_pipeline_work(root, status, row, fragment)
         assert (fragment['host_id'], fragment['boot_id'], fragment['plan_id']) == (play['host_id'], play['boot_id'], play['plan_id']), 'pipeline fragment custody'
         assert fragment['offer_generation'] == host['offer_generation']
         boot = (play['host_id'], play['boot_id'])

@@ -83,3 +83,28 @@ receipts remain unchanged; no benchmark was rerun or timing claim added.
 Validation: positive verification of all 89 artifacts/190 raw rows/78
 statistics plus the three differential negative cases and diff checks. No Rust
 production changes, CI dispatch or CI wait are introduced by this slice.
+
+## Follow-up: declared workload matches retained Plan shape
+
+The verifier now checks every pipeline's declared Gear count against unique
+placements, its internal Cord count against a single connected acyclic payload
+chain, and its input/output Fores against that chain's endpoints and U64 track.
+Each row's source digest must match its exact retained 1/8/32-Gear fixture.
+Fixture-specific lexical checks retain exactly 32 nominal addition operators;
+they are not a general Plot checker or hardware instruction count.
+
+Local/fused rows additionally bind logical counts and physical-region counts to
+the retained Plan. Fusion must preserve every placement and connection exactly
+once. Logical evaluations and intermediate value/byte work must match the fixed
+64-value chain; the unmeasured internal-copy counter remains explicitly null.
+No transport-elimination claim is inferred from fewer scheduler decisions.
+
+Four rehashed counterexamples passed the previous verifier and now refuse:
+swapped ordinary 1/32-Gear labels, a false zero intermediate-materialization
+count, an omitted preserved Cord, and a digest from the wrong retained source.
+The unmodified 89-artifact/190-row/78-distribution capture still passes.
+Updated evidence is `evidence/hosted-runtime-work-20261017.json` and
+`evidence/hosted-runtime-work-negative-20261017.json`; original capture and prior
+receipts remain unchanged. This verifies frozen-fixture structure and metadata,
+not general cryptographic recomputation of a Plan seal. No benchmark rerun,
+production Rust change, CI dispatch or CI wait is introduced.
