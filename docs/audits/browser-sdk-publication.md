@@ -64,3 +64,11 @@ The focused fixture now accepts exactly 256 KiB with independent hash verificati
 and refuses one byte over without output or staging residue. The existing
 20 MiB runtime and 48 MiB total bounds remain intact. The padded module is an
 envelope fixture, not executable module or packaged browser proof.
+
+Boot-declaration follow-up: packaging requires the IMAGE's profile-gated boot
+role, canonical boot path and digest to match its verified inventory asset,
+mirroring browser Boot admission. Missing declarations, incorrect roles/paths
+and stale digests all reproduced publication before repair, even with correctly
+rehashed IMAGE and release payloads. The focused fixture now refuses all four
+without output or staging residue; its valid fixture includes an exact boot
+declaration. This establishes producer consistency, not actual Boot execution.

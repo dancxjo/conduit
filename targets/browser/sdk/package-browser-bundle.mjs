@@ -74,6 +74,12 @@ if (await digestFiles(release.files) !== release.bundle_sha256) {
 }
 if (!releasePaths.has("runtime.wasm")) throw new Error("BrowserBundle has no browser runtime");
 
+const boot = image.files.find(file => file.path === "browser-boot-profile.mjs");
+if (!boot || image.boot_module?.role !== "profile-gated-boot"
+  || image.boot_module.path !== boot.path || image.boot_module.sha256 !== boot.sha256) {
+  throw new Error("BrowserBundle boot module declaration does not match its exact IMAGE asset");
+}
+
 // The public destination appears only after its complete package is ready.
 await mkdir(path.dirname(outputRoot), { recursive: true });
 const stageRoot = await mkdtemp(path.join(path.dirname(outputRoot), ".conduit-sdk-stage-"));

@@ -297,7 +297,8 @@ exactly, their distribution digest is recomputed, and each IMAGE asset must matc
 the release size, digest and media type. These
 package checks also require the supported reviewed-distribution schema, IMAGE
 runtime ABI, and release package/output fields. They do not replace runtime ABI
-admission in the browser.
+admission in the browser. The IMAGE must declare the canonical profile-gated
+boot module with the same digest as its verified asset.
 The consuming application only installs or serves that resulting directory;
 it does not invoke the producer or compile Conduit.
 

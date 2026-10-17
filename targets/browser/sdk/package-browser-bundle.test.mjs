@@ -23,6 +23,7 @@ try {
     image_id: imageId,
     profile_id: profileId,
     files: [runtimeFile, bootFile],
+    boot_module: { role: "profile-gated-boot", path: bootFile.path, sha256: bootFile.sha256 },
     reviewed_distribution: { distribution_digest: distributionDigest, runtime_abi: "conduit.browser/runtime-abi@1" },
   };
   const imageBytes = new TextEncoder().encode(JSON.stringify(image));
@@ -200,7 +201,7 @@ try {
     const variantBoot = await fileIdentity("browser-boot-profile.mjs", bytes);
     const inventory = [runtimeFile, variantBoot];
     const inventoryDigest = await digestFiles(inventory);
-    const variantImage = { ...image, files: inventory,
+    const variantImage = { ...image, files: inventory, boot_module: { ...image.boot_module, sha256: variantBoot.sha256 },
       reviewed_distribution: { ...image.reviewed_distribution, distribution_digest: inventoryDigest } };
     const imageBytes = new TextEncoder().encode(JSON.stringify(variantImage));
     const releaseFiles = [...inventory, await fileIdentity("conduit-browser-image.json", imageBytes)];
@@ -224,7 +225,8 @@ try {
   }
   assert.deepEqual(moduleResults, [{ size: 256 * 1024, accepted: true }, { size: 256 * 1024 + 1, accepted: false }]);
 
-  const metadataCases = ["distribution-schema", "image-abi", "release-package", "release-output"];
+  const metadataCases = ["distribution-schema", "image-abi", "release-package", "release-output",
+    "boot-missing", "boot-role", "boot-path", "boot-digest"];
   const metadataResults = [];
   for (const name of metadataCases) {
     const variantSource = path.join(scratch, name);
@@ -237,6 +239,10 @@ try {
     if (name === "image-abi") variantImage.reviewed_distribution.runtime_abi = "unknown@1";
     if (name === "release-package") variantRelease.make_package_id = "native@1";
     if (name === "release-output") variantRelease.output = "native-bundle";
+    if (name === "boot-missing") delete variantImage.boot_module;
+    if (name === "boot-role") variantImage.boot_module.role = "ordinary-module";
+    if (name === "boot-path") variantImage.boot_module.path = "runtime.wasm";
+    if (name === "boot-digest") variantImage.boot_module.sha256 = `sha256:${"f".repeat(64)}`;
     const bytes = new TextEncoder().encode(JSON.stringify(variantImage));
     variantRelease.files = [runtimeFile, bootFile, await fileIdentity("conduit-browser-image.json", bytes)];
     variantRelease.bundle_sha256 = await digestFiles(variantRelease.files);
@@ -249,7 +255,7 @@ try {
     const result = spawnSync(process.execPath, [path.join(root, "package-browser-bundle.mjs"), variantSource, variantOutput], { encoding: "utf8" });
     metadataResults.push({ name, accepted: result.status === 0 });
     if (result.status !== 0) {
-      assert.match(result.stderr, /exact reviewed BrowserBundle/);
+      assert.match(result.stderr, /exact reviewed BrowserBundle|boot.*declaration/i);
       await assert.rejects(lstat(variantOutput), { code: "ENOENT" });
       assert.deepEqual((await readdir(scratch)).sort(), before);
     }
