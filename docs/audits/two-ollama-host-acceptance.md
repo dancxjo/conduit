@@ -4,10 +4,11 @@ The supported `cargo xtask prove local-model-pool` entrance retains deterministi
 Plan/Play and provider-loss evidence separately from an optional imported live
 receipt. Fixture execution does not establish a real two-machine session.
 
-## Current live prerequisites
+## Historical prerequisite observation: 16 October 2026
 
-A read-only preflight on 16 October 2026 found Ollama at the local loopback
-endpoint and `forebrain.local:11434`. Both inventories reported `gemma3:latest`
+This retained preflight records the environment on 16 October 2026; it does not
+establish current availability or access. A read-only preflight then found
+Ollama at the local loopback endpoint and `forebrain.local:11434`. Both inventories reported `gemma3:latest`
 with digest `a2af6cc3eb7fa8be8504abaf9b04e88f17a119ec3f04a3addf55f92841195f5a`
 and 3,338,801,804 model bytes. The services reported versions 0.23.2 and 0.34.1.
 Only GET `/api/version` and GET `/api/tags` were used; no inference or download
